@@ -1,5 +1,5 @@
 <Project>
-  <!-- Profile for src/ and libs/: the net10.0 assemblies embedded in the CESDK package. AllowUnsafeBlocks is set per project. -->
+  <!-- Profile for src/ and libs/: the net10.0 assemblies embedded in the CheatEngine.SDK package. AllowUnsafeBlocks is set per project. -->
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -13,9 +13,9 @@
 
   <PropertyGroup Label="Assembly metadata">
     <Authors>AriusII;ShadowNineX</Authors>
-    <Product>CESDK</Product>
-    <Copyright>Copyright (c) AriusII, ShadowNineX and CESDK contributors</Copyright>
-    <RepositoryUrl>https://github.com/ShadowNineX/CESDK</RepositoryUrl>
+    <Product>CheatEngine.SDK</Product>
+    <Copyright>Copyright (c) AriusII, ShadowNineX and CheatEngine.SDK contributors</Copyright>
+    <RepositoryUrl>https://github.com/CheatEngineNet/CheatEngine.SDK</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Does not ship. Runs only in this repository's build: turns the curated Cheat Engine API spec (AdditionalFiles) into the CheatEngine.SDK.Engine wrappers.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Code shared with the other Roslyn components. Its assembly must sit next to this one wherever this one is loaded. -->
+    <ProjectReference Include="../CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj"/>
+  </ItemGroup>
+
+</Project>

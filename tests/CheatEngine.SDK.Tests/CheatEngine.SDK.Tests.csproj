@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Deliberately no ProjectReference, not even to src/CheatEngine.SDK: the packed .nupkg and what a plugin sees after restoring it
+    are checked from outside the project graph. Infrastructure/PackagedUmbrellaFixture.cs runs 'dotnet pack' on
+    src/CheatEngine.SDK/CheatEngine.SDK.csproj itself.
+  -->
+
+  <ItemGroup>
+    <!-- Used by Infrastructure/ThrowawayConsumer.cs (MSBuild JSON output) and Infrastructure/NupkgInspector.cs (nuspec XML). -->
+    <Using Include="System.Text.Json"/>
+    <Using Include="System.Xml.Linq"/>
+  </ItemGroup>
+
+</Project>

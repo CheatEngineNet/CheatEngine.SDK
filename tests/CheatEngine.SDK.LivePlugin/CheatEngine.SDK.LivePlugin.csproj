@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Never a CESDK.* namespace (CESDK0004): Cheat Engine requires the generated type CESDK.CESDK in the plugin assembly, and inside CESDK the simple name CESDK binds to it. -->
+    <RootNamespace>LivePlugin</RootNamespace>
+    <!-- x64 only, declared here because the solution declares no x64 platform: 'dotnet sln add' writes the per-project mapping. -->
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- A plugin is a component loaded by a native host into its own AssemblyLoadContext. -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- Consumers of the LuaBindings generator need it: the generated thunks take addresses of [UnmanagedCallersOnly] statics. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Writes every generator's output to disk so the generated bootstrap can be inspected without a live Cheat Engine. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <!-- Under artifacts/ (git-ignored), not the project-relative default next to the hand-written source.
+         Built from $(ArtifactsPath), which is set in the root Directory.Build.props: $(IntermediateOutputPath) is not final yet here. -->
+    <CompilerGeneratedFilesOutputPath>$(ArtifactsPath)\obj\$(MSBuildProjectName)\generated\$(Configuration)</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <!-- Direct references to the libs, not to src/CheatEngine.SDK: it embeds them with PrivateAssets=all, so their types do not flow through it (CS0234). -->
+  <ItemGroup>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
+  </ItemGroup>
+
+  <!-- The components a package consumer gets, running on this project as they would on a real plugin. -->
+  <ItemGroup>
+    <ProjectReference Include="../../analyzers/CheatEngine.SDK.Analyzers/CheatEngine.SDK.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <!-- IDE-only: the compiler finds no analyzer in it, the IDE gets the light bulbs for CESDK0001 / CESDK1004. -->
+    <ProjectReference Include="../../analyzers/CheatEngine.SDK.Analyzers.CodeFixes/CheatEngine.SDK.Analyzers.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/CheatEngine.SDK.SourceGenerators.EntryPoint.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/CheatEngine.SDK.SourceGenerators.LuaBindings.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

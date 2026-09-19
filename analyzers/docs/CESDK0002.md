@@ -2,7 +2,7 @@
 
 |                    |                                                                       |
 |--------------------|-----------------------------------------------------------------------|
-| Category           | `CESDK.Plugin`                                                        |
+| Category           | `CheatEngine.SDK.Plugin`                                              |
 | Default severity   | Error                                                                 |
 | Enabled by default | Yes                                                                   |
 | Code fix           | No                                                                    |
@@ -10,7 +10,7 @@
 
 ## Cause
 
-Two or more classes of the same project carry `[CESDK.Annotations.Plugin.CheatEnginePlugin]`. The diagnostic is reported
+Two or more classes of the same project carry `[CheatEngine.SDK.Annotations.Plugin.CheatEnginePlugin]`. The diagnostic is reported
 on each of them, with the total count.
 
 ## Why
@@ -26,7 +26,7 @@ once, however many files it spans, and a nested plugin class counts like a top-l
 in the part that carries the attribute. Classes in generated code are neither counted nor reported.
 
 Two cases report nothing. A project that switches the generated entry point off
-(`<CesdkGenerateEntryPoint>false</CesdkGenerateEntryPoint>`) is not reported, because hand-written bootstrap code then
+(`<CheatEngineSdkGenerateEntryPoint>false</CheatEngineSdkGenerateEntryPoint>`) is not reported, because hand-written bootstrap code then
 decides which class gets constructed. A project without any plugin class is not reported either.
 
 Because the answer needs the whole compilation, the rule runs in the compilation-end phase. Such diagnostics appear in
@@ -35,8 +35,8 @@ build output and in full-solution analysis where an IDE offers it, not while typ
 ## Example
 
 ```csharp
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Plugin;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Plugin;
 
 namespace MyPlugin;
 

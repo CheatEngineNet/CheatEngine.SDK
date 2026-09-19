@@ -30,7 +30,7 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Packaging and versioning">
-    <!-- Only src/CESDK packs. -->
+    <!-- Only src/CheatEngine.SDK packs. -->
     <IsPackable>false</IsPackable>
     <!-- MinVer derives the version from the nearest v* tag, so CI must fetch full history and tags. -->
     <MinVerTagPrefix>v</MinVerTagPrefix>
@@ -44,12 +44,12 @@
   </ItemGroup>
 
   <PropertyGroup Label="Folder profiles">
-    <_CesdkFolder>$([MSBuild]::MakeRelative('$(RepoRoot)', '$(MSBuildProjectDirectory)').Replace('\', '/'))/</_CesdkFolder>
+    <_CheatEngineSdkFolder>$([MSBuild]::MakeRelative('$(RepoRoot)', '$(MSBuildProjectDirectory)').Replace('\', '/'))/</_CheatEngineSdkFolder>
   </PropertyGroup>
   <Import Project="$(RepoRoot)eng/Shipping.props"
-          Condition="$(_CesdkFolder.StartsWith('src/')) or $(_CesdkFolder.StartsWith('libs/'))"/>
+          Condition="$(_CheatEngineSdkFolder.StartsWith('src/')) or $(_CheatEngineSdkFolder.StartsWith('libs/'))"/>
   <Import Project="$(RepoRoot)eng/RoslynComponent.props"
-          Condition="$(_CesdkFolder.StartsWith('analyzers/')) or $(_CesdkFolder.StartsWith('source-generators/'))"/>
+          Condition="$(_CheatEngineSdkFolder.StartsWith('analyzers/')) or $(_CheatEngineSdkFolder.StartsWith('source-generators/'))"/>
   <Import Project="$(RepoRoot)eng/Tests.props"
-          Condition="$(_CesdkFolder.StartsWith('tests/'))"/>
+          Condition="$(_CheatEngineSdkFolder.StartsWith('tests/'))"/>
 </Project>

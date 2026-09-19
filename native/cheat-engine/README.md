@@ -9,8 +9,8 @@ Give every test and benchmark the Lua that a plugin binds in production, byte fo
 ## Why it exists
 
 A plugin never loads its own Lua. Cheat Engine keeps its Lua state inside its `lua53-64.dll`, and the plugin calls that
-copy (see [`libs/CESDK.Lua.Interop`](../../libs/CESDK.Lua.Interop/README.md)). A Lua built from the lua.org sources is a
-different library, and the differences show up in scripts:
+copy (see [`libs/CheatEngine.SDK.Lua.Interop`](../../libs/CheatEngine.SDK.Lua.Interop/README.md)). A Lua built from
+the lua.org sources is a different library, and the differences show up in scripts:
 
 | Property                        | Cheat Engine 7.7                                | lua.org 5.3.6, default makefile flags |
 |---------------------------------|-------------------------------------------------|---------------------------------------|
@@ -32,21 +32,21 @@ does.
 | SHA-256        | `C95DCDFA0F60F97B43D970D77FD1BB907AF4DE04B500A3C89A99600B20B35BD2` |
 | Linker stamp   | 2025-08-02                                                         |
 
-`CESDK.Tests.Shared` copies the file to `native/lua53-64.dll` in the output of every test project and benchmark that
-references it. `NativeLuaLibrary` binds that copy unless `CESDK_LUA53_PATH` names another DLL, and an installed Cheat
-Engine is never consulted. Nothing else has to be provisioned locally or in CI, and the DLL loads on any Windows x64
-because it needs no C runtime.
+`CheatEngine.SDK.Tests.Shared` copies the file to `native/lua53-64.dll` in the output of every test project and
+benchmark that references it. `NativeLuaLibrary` binds that copy unless `CHEATENGINE_SDK_LUA53_PATH` names another DLL,
+and an installed Cheat Engine is never consulted. Nothing else has to be provisioned locally or in CI, and the DLL
+loads on any Windows x64 because it needs no C runtime.
 
 The file name must stay `lua53-64.dll`: the production module lookup test resolves the module by that name.
 
 To replace the file, copy the new build here, update the size and hash in
-`tests/CESDK.Lua.Interop.Tests/Fixture/BundledLuaLibraryTests.cs` and in this file, and run the whole suite.
+`tests/CheatEngine.SDK.Lua.Interop.Tests/Fixture/BundledLuaLibraryTests.cs` and in this file, and run the whole suite.
 
 ## Terms
 
 The file is a component of Cheat Engine, by Eric Heijnen, and stays under Cheat Engine's own terms (the `license.txt` of
 its installation). The MIT license of this repository does not cover it. Tests and benchmarks use it, and it is never
-packed into `CESDK` or shipped with a plugin.
+packed into `CheatEngine.SDK` or shipped with a plugin.
 
 The Lua library inside is distributed under the MIT license:
 
@@ -70,5 +70,5 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 ## Promise
 
 - The file is exactly the recorded build, pinned by `Bundled_copy_is_the_recorded_Cheat_Engine_build`.
-- The tests bind this copy and not an installed Cheat Engine unless `CESDK_LUA53_PATH` is set, pinned by
+- The tests bind this copy and not an installed Cheat Engine unless `CHEATENGINE_SDK_LUA53_PATH` is set, pinned by
   `Fixture_binds_the_bundled_copy_unless_the_variable_overrides_it`.

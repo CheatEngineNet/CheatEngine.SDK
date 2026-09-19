@@ -62,13 +62,13 @@ Each rule below is a line of code in the scanner.
 ### 2. Write the scanner
 
 ```csharp
-using CESDK.Engine.Enums;
-using CESDK.Engine.Objects;
-using CESDK.Engine.Values;
-using CESDK.Lua.Calls;
-using CESDK.Lua.Marshalling;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace ScanTools;
 
@@ -216,11 +216,11 @@ How the pieces fit:
 
 ```csharp
 using System.Globalization;
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Engine.Enums;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace ScanTools;
 

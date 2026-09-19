@@ -36,12 +36,12 @@ what it means.
 
 ### 1. Bind the memory functions
 
-The SDK ships four ready made wrappers, `CESDK.Engine.Generated.MemoryScalars`: `TryReadInt32`, `WriteInt32`,
+The SDK ships four ready made wrappers, `CheatEngine.SDK.Engine.Generated.MemoryScalars`: `TryReadInt32`, `WriteInt32`,
 `TryReadInt64` and `WriteInt64`. All four take an `Address`. Everything else is a binding you declare, like this:
 
 ```csharp
 using System.Diagnostics.CodeAnalysis;
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace GameTools;
 
@@ -109,7 +109,7 @@ An address in Cheat Engine is a Lua integer in one function and hexadecimal text
 `Address` holds the 64 bits once and converts at the edges.
 
 ```csharp
-using CESDK.Engine.Values;
+using CheatEngine.SDK.Engine.Values;
 
 namespace GameTools;
 
@@ -161,8 +161,8 @@ holds the health. The resolver below reads a pointer, adds an offset, and repeat
 the field, and it is not read.
 
 ```csharp
-using CESDK.Engine.Generated;
-using CESDK.Engine.Values;
+using CheatEngine.SDK.Engine.Generated;
+using CheatEngine.SDK.Engine.Values;
 
 namespace GameTools;
 
@@ -203,12 +203,12 @@ The resolver stops and returns `false` on an unreadable step, on a null pointer 
 
 ```csharp
 using System.Globalization;
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Engine.Generated;
-using CESDK.Engine.Values;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Engine.Generated;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace GameTools;
 
@@ -319,7 +319,7 @@ print(my_plugin_entity("game.exe+2A5000"))
 |---------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
 | `my_plugin_attach("game.exe")`                    | `true` when Cheat Engine has a process open afterwards                                                             |
 | `my_plugin_bump("game.exe", "game.exe+1234", 10)` | The new value: `110` when the address held `100`                                                                   |
-| `my_plugin_bump(...)` on an unknown symbol        | A Lua error that starts with `CESDK.Lua.Calls.LuaException:` and carries Cheat Engine's own message                |
+| `my_plugin_bump(...)` on an unknown symbol        | A Lua error that starts with `CheatEngine.SDK.Lua.Calls.LuaException:` and carries Cheat Engine's own message      |
 | `my_plugin_bump(...)` on an unreadable address    | `System.InvalidOperationException: <symbol> is not readable.`                                                      |
 | `my_plugin_bump(...)` when the write is refused   | `System.InvalidOperationException: Cheat Engine rejected the write.`                                               |
 | `my_plugin_player_health()`                       | The health field, for example `250`. A null pointer on the way raises `The player pointer chain is not valid yet.` |

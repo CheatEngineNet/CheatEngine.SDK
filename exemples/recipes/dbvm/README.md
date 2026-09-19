@@ -41,8 +41,8 @@ Try forms make that the default: a missing function, a raised error or a `nil` r
 ### 1. Bind the functions
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Lua.Calls;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Lua.Calls;
 
 namespace DbvmProbe;
 
@@ -107,13 +107,13 @@ the operating system onto DBVM, and the wrapper confirms the result with `dbvm_i
 ### 2. Read the state, read the bytes, watch the writes
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Engine.Values;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Marshalling;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace DbvmProbe;
 

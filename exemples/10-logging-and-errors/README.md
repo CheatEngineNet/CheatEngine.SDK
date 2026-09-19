@@ -42,7 +42,7 @@ the SDK catches every failure at the boundary and writes it to one seam, `HostLo
 
 The host logs every failure that it turns into `FALSE` or `0` for Cheat Engine, and your own code writes to the same
 place. To read the default output, start Sysinternals DebugView, turn on **Capture > Capture Global Win32** and filter
-for `CESDK`, or attach a debugger to Cheat Engine. A sink that throws never escapes `HostLog`.
+for `CheatEngine.SDK`, or attach a debugger to Cheat Engine. A sink that throws never escapes `HostLog`.
 
 ## How it works
 
@@ -51,7 +51,7 @@ for `CESDK`, or attach a debugger to Cheat Engine. A sink that throws never esca
 ```csharp
 using System.Globalization;
 using System.Text;
-using CESDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Diagnostics;
 
 namespace LogSinks;
 
@@ -127,13 +127,13 @@ Each line has a timestamp in UTC, the level and the message. An exception follow
 
 ```text
 2026-09-19 14:02:11.482 [Warning] Could not open game.exe.
-CESDK.Lua.Calls.LuaException: <the message Cheat Engine raised>
+CheatEngine.SDK.Lua.Calls.LuaException: <the message Cheat Engine raised>
 ```
 
 ### 2. Write to several places, and to Cheat Engine's output
 
 ```csharp
-using CESDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Diagnostics;
 
 namespace LogSinks;
 
@@ -157,10 +157,10 @@ internal sealed class TeeSink(params IHostLogSink[] sinks) : IHostLogSink
 ```
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Hosting.Bootstrap;
-using CESDK.Hosting.Diagnostics;
-using CESDK.Hosting.Threading;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Hosting.Bootstrap;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Threading;
 
 namespace LogSinks;
 
@@ -192,10 +192,10 @@ silent while the plugin is disabled, because no Lua state exists then.
 ### 3. Install the sinks in `OnEnable`
 
 ```csharp
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Diagnostics;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Calls;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Calls;
 
 namespace LogSinks;
 
@@ -239,11 +239,11 @@ public sealed class TrainerLogPlugin : CheatEnginePlugin
 
 After the plugin is enabled, every host message and every `HostLog.Write` of yours reaches all three places:
 
-| Destination     | Read it in                                                              |
-|-----------------|-------------------------------------------------------------------------|
-| Debugger output | DebugView, filtered for `CESDK`, or a debugger attached to Cheat Engine |
-| Rolling file    | `%APPDATA%\TrainerLog\plugin.log`                                       |
-| Lua output      | The Lua Engine window                                                   |
+| Destination     | Read it in                                                                        |
+|-----------------|-----------------------------------------------------------------------------------|
+| Debugger output | DebugView, filtered for `CheatEngine.SDK`, or a debugger attached to Cheat Engine |
+| Rolling file    | `%APPDATA%\TrainerLog\plugin.log`                                                 |
+| Lua output      | The Lua Engine window                                                             |
 
 Restore the default sink in `OnDisable` so that the next enable starts from a known state.
 

@@ -35,7 +35,7 @@ a load that silently replaces what is open, and a file name taken straight from 
 ### 1. Bind the table functions
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace ProfileRecipe;
 
@@ -58,13 +58,13 @@ reports a failed Cheat Engine call as a `LuaException`.
 ### 2. The profile store and the plugin
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Diagnostics;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Calls;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace ProfileRecipe;
 

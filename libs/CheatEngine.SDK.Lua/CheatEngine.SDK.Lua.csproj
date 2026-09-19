@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Managed Lua layer: state view, stack-frame guard, static-abstract marshallers, registry references with epoch invalidation, UTF-8 text handling, callback registration and the managed-to-Lua error channel.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj"/>
+    <ProjectReference Include="../CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
+  </ItemGroup>
+
+</Project>

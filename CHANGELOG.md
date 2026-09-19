@@ -1,13 +1,34 @@
 # Changelog
 
-All notable changes to CESDK are documented in this file. The format
+All notable changes to CheatEngine.SDK are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
 Versions 0.1.0 to 0.2.1 were published before this file existed. Version 0.3.0 is a rewrite that is neither source nor
 binary compatible with them. Read the breaking changes under [0.3.0](#030---2026-09-18) before upgrading.
 
+The project was called CESDK until the rename described under [Unreleased](#unreleased). The entry for 0.3.0 keeps the
+names that release shipped with.
+
 ## [Unreleased]
+
+### Changed
+
+- The project is renamed CheatEngine.SDK. It was called CESDK.
+- The NuGet package id, the assemblies and the root namespace change from `CESDK` to `CheatEngine.SDK`, for example
+  `CESDK.Hosting.Plugin` becomes `CheatEngine.SDK.Hosting.Plugin`. A plugin replaces its `CESDK` package reference with
+  `CheatEngine.SDK` and updates its `using` directives.
+- The MSBuild switch `CesdkGenerateEntryPoint` is now `CheatEngineSdkGenerateEntryPoint`.
+- The native Lua bridge `cesdk-lua-bridge.dll` is now `cheatengine-sdk-lua-bridge.dll`, and its exports are prefixed
+  `cheatengine_sdk_`.
+- The environment variable `CESDK_LUA53_PATH`, which only the tests read, is now `CHEATENGINE_SDK_LUA53_PATH`.
+- The engine API spec files `*.cesdk-api.txt` are now `*.cheatengine-sdk-api.txt`.
+- The diagnostic categories `CESDK.Plugin`, `CESDK.Usage` and `CESDK.Generation` are now `CheatEngine.SDK.Plugin`,
+  `CheatEngine.SDK.Usage` and `CheatEngine.SDK.Generation`.
+
+The diagnostic IDs keep their `CESDK` prefix (`CESDK0001` and so on), and so do the names of their pages in
+`analyzers/docs`. Cheat Engine still looks for the type `CESDK.CESDK` in a plugin assembly, so the entry point the SDK
+generates keeps that name, and `CESDK0004` still warns about a plugin namespace under `CESDK`.
 
 ## [0.3.0] - 2026-09-18
 
@@ -53,5 +74,5 @@ binary compatible with them. Read the breaking changes under [0.3.0](#030---2026
 - The `CesdkException` hierarchy.
 - The NLog dependency.
 
-[Unreleased]: https://github.com/ShadowNineX/CESDK/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/ShadowNineX/CESDK/releases/tag/v0.3.0
+[Unreleased]: https://github.com/CheatEngineNet/CheatEngine.SDK/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/CheatEngineNet/CheatEngine.SDK/releases/tag/v0.3.0

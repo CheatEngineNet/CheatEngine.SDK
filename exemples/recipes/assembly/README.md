@@ -36,7 +36,7 @@ reference, so the patch stays reversible.
 
 ```csharp
 using System.Diagnostics.CodeAnalysis;
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace AssemblyRecipe;
 
@@ -73,11 +73,11 @@ many results as you declare.
 ### 2. A patch you can switch on and off
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Lua.Marshalling;
-using CESDK.Lua.References;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.References;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace AssemblyRecipe;
 
@@ -159,11 +159,11 @@ the pattern and the original bytes of your own target.
 ### 3. Read code and assemble a line
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Engine.Values;
-using CESDK.Lua.Marshalling;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace AssemblyRecipe;
 

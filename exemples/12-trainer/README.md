@@ -74,10 +74,10 @@ GoldRush/
 **`GoldRushPlugin.cs`**
 
 ```csharp
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Diagnostics;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace GoldRush;
 
@@ -108,7 +108,7 @@ outlives the plugin would call into code that Cheat Engine no longer expects to 
 **`Ce.cs`**
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace GoldRush;
 
@@ -134,8 +134,8 @@ See [03 · Calling Cheat Engine](../03-calling-cheat-engine/README.md).
 **`Player.cs`**
 
 ```csharp
-using CESDK.Engine.Generated;
-using CESDK.Engine.Values;
+using CheatEngine.SDK.Engine.Generated;
+using CheatEngine.SDK.Engine.Values;
 
 namespace GoldRush;
 
@@ -198,8 +198,8 @@ See [04 · Memory](../04-memory/README.md).
 **`GodMode.cs`**
 
 ```csharp
-using CESDK.Hosting.Diagnostics;
-using CESDK.Hosting.Threading;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Threading;
 
 namespace GoldRush;
 
@@ -261,8 +261,8 @@ See [09 · The main thread](../09-main-thread/README.md).
 **`Commands.cs`**
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Lua.Calls;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Lua.Calls;
 
 namespace GoldRush;
 

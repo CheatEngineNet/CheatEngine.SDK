@@ -2,7 +2,7 @@
 
 |                    |                                                                 |
 |--------------------|-----------------------------------------------------------------|
-| Category           | `CESDK.Plugin`                                                  |
+| Category           | `CheatEngine.SDK.Plugin`                                        |
 | Default severity   | Error                                                           |
 | Enabled by default | Yes                                                             |
 | Code fix           | Yes: three actions for the mechanical problems (see Code fixes) |
@@ -10,7 +10,7 @@
 
 ## Cause
 
-A class carries `[CESDK.Annotations.Plugin.CheatEnginePlugin]`, but the entry point that the SDK generates into the
+A class carries `[CheatEngine.SDK.Annotations.Plugin.CheatEnginePlugin]`, but the entry point that the SDK generates into the
 plugin assembly cannot create it.
 
 ## Why
@@ -19,7 +19,7 @@ Cheat Engine calls one fixed method of the plugin assembly, `CESDK.CESDK.CEPlugi
 method together with a small factory that does, in effect, `new global::YourNamespace.YourPlugin()` and hands the object
 to the hosting layer. The factory is a top-level type in a generated file of the same assembly and has no inheritance
 relation to your class. Everything the rule asks for follows from that one expression having to compile and to yield a
-`CESDK.Hosting.Plugin.CheatEnginePlugin`.
+`CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin`.
 
 When the class does not qualify, the generator emits nothing. Without this rule the only symptom would be a plugin that
 Cheat Engine refuses to load. The rule names the cause where it is, at the class.
@@ -35,7 +35,7 @@ itself for the display name):
 | `Abstract`                             | The class is not `abstract`.                                                                                                                                                                                                                                                                                                                                                   |
 | `Generic`                              | The class has no type parameters.                                                                                                                                                                                                                                                                                                                                              |
 | `NestedInGeneric`                      | No type the class is nested in has type parameters.                                                                                                                                                                                                                                                                                                                            |
-| `NotDerivedFromPluginBase`             | `CESDK.Hosting.Plugin.CheatEnginePlugin` is somewhere in the base-class chain. A `record` can never satisfy this, because a record cannot inherit from a class.                                                                                                                                                                                                                |
+| `NotDerivedFromPluginBase`             | `CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin` is somewhere in the base-class chain. A `record` can never satisfy this, because a record cannot inherit from a class.                                                                                                                                                                                                      |
 | `Inaccessible`                         | The class and every type it is nested in are `public`, `internal` or `protected internal`. `private`, `protected` and `private protected` hide it from the generated factory.                                                                                                                                                                                                  |
 | `FileLocal`                            | Neither the class nor a type it is nested in is a `file` type.                                                                                                                                                                                                                                                                                                                 |
 | `ReservedEntryPointName`               | The class is not, and is not nested in, the top-level type `CESDK.CESDK`. Cheat Engine dictates that name for the generated entry point type, and an assembly holds one type of a name. `MyPlugin.CESDK` and `CESDK.Samples.CESDK` are other types and fine. The namespace `CESDK` itself is what [CESDK0004](CESDK0004.md) is about.                                          |
@@ -58,16 +58,16 @@ Not checked, on purpose:
 - `sealed` is not required. Sealing the plugin class is good practice, not a load-time condition.
 - The attribute on a struct, interface or enum: the compiler already rejects it (CS0592).
 - Classes in generated code (files marked `<auto-generated/>`, `*.g.cs`, `[GeneratedCode]`).
-- Projects in which `CESDK.Annotations.Plugin.CheatEnginePluginAttribute` or `CESDK.Hosting.Plugin.CheatEnginePlugin`
+- Projects in which `CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute` or `CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin`
   cannot be resolved: the analyzer registers nothing there.
-- Projects that switch the generated entry point off (`<CesdkGenerateEntryPoint>false</CesdkGenerateEntryPoint>`): the
+- Projects that switch the generated entry point off (`<CheatEngineSdkGenerateEntryPoint>false</CheatEngineSdkGenerateEntryPoint>`): the
   rule states what the generated entry point needs. See When to suppress.
 
 ## Example
 
 ```csharp
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Plugin;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Plugin;
 
 namespace MyPlugin;
 
@@ -81,8 +81,8 @@ public abstract class DemoPlugin : CheatEnginePlugin   // CESDK0001 twice: abstr
 Compliant:
 
 ```csharp
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Plugin;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Plugin;
 
 namespace MyPlugin;
 
@@ -109,10 +109,10 @@ The remaining problems are design decisions and have no fix. All actions support
 Do not suppress it in a plugin project: the diagnostic means the plugin will not load.
 
 If you construct the plugin yourself and have switched the generated entry point off
-(`<CesdkGenerateEntryPoint>false</CesdkGenerateEntryPoint>`), there is nothing to suppress: the rule
+(`<CheatEngineSdkGenerateEntryPoint>false</CheatEngineSdkGenerateEntryPoint>`), there is nothing to suppress: the rule
 and [CESDK0002](CESDK0002.md) are not reported, because the conditions are then yours to define. This needs the property
-to be visible to the compiler, which is what the props file of the CESDK package declares
-(`<CompilerVisibleProperty Include="CesdkGenerateEntryPoint" />`). A project that consumes the analyzers without those
+to be visible to the compiler, which is what the props file of the CheatEngine.SDK package declares
+(`<CompilerVisibleProperty Include="CheatEngineSdkGenerateEntryPoint" />`). A project that consumes the analyzers without those
 props adds that item to its own project file, or, as a last resort, disables the rule for the project:
 
 ```ini

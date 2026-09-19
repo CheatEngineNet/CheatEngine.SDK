@@ -1,5 +1,5 @@
 <Project>
-  <!-- Profile for analyzers/ and source-generators/. Components ship inside the CESDK package under analyzers/dotnet/cs and are never packed on their own. -->
+  <!-- Profile for analyzers/ and source-generators/. Components ship inside the CheatEngine.SDK package under analyzers/dotnet/cs and are never packed on their own. -->
 
   <PropertyGroup>
     <!-- Compilers load components on .NET and on .NET Framework, so netstandard2.0 only (RS1041). -->

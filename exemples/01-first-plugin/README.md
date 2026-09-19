@@ -26,7 +26,7 @@ package and one class.
 ## Why it matters
 
 Cheat Engine finds a managed plugin by a hard-coded name, and it refuses a plugin whose entry point has the wrong shape
-without saying why. CESDK generates that entry point for you. Your project holds only your code, and a mistake shows up
+without saying why. CheatEngine.SDK generates that entry point for you. Your project holds only your code, and a mistake shows up
 as a compiler message before Cheat Engine ever starts.
 
 ## How it works
@@ -36,7 +36,7 @@ as a compiler message before Cheat Engine ever starts.
 ```powershell
 dotnet new classlib -n MyPlugin
 cd MyPlugin
-dotnet add package CESDK --prerelease
+dotnet add package CheatEngine.SDK --prerelease
 Remove-Item Class1.cs
 ```
 
@@ -51,7 +51,7 @@ Then open `MyPlugin.csproj` and add the `PlatformTarget` line. The finished file
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CESDK" Version="0.3.0" />
+    <PackageReference Include="CheatEngine.SDK" Version="0.3.0" />
   </ItemGroup>
 </Project>
 ```
@@ -62,10 +62,10 @@ empty. Cheat Engine hosts plugins in an x64 process, so an `x86` target stops th
 ### 2. Write the plugin
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace MyPlugin;
 
@@ -93,13 +93,16 @@ internal static partial class Commands
 | `partial` on `Commands`            | Lets the generator add `RegisterLuaFunctions` and `UnregisterLuaFunctions` to your type       |
 
 > [!IMPORTANT]
-> Do not touch CESDK from a constructor, a field initializer or a static constructor. The Lua runtime attaches after
+> Do not touch CheatEngine.SDK from a constructor, a field initializer or a static constructor. The Lua runtime attaches after
 > the plugin is constructed, so anything you call there throws. Do your setup in `OnEnable`.
 
 > [!WARNING]
-> Keep your code out of the `CESDK` namespace. The generated entry point is a class named `CESDK` inside the namespace
-> `CESDK`, so a plugin namespace such as `CESDK.MyPlugin` makes `using CESDK.Hosting.Plugin;` stop resolving
-> (`CESDK0004`). A plugin assembly also holds exactly one `[CheatEnginePlugin]` class (`CESDK0002`).
+> Keep your code out of the `CESDK` namespace. Cheat Engine requires the plugin assembly to contain the type
+> `CESDK.CESDK`, which the SDK generates. Inside the namespace `CESDK`, or any namespace under it, the simple name
+> `CESDK` binds to that generated class, so a qualified name that starts with `CESDK.` no longer resolves to a namespace
+> you declared under `CESDK` (`CS0426`, and analyzer `CESDK0004` warns about the namespace). Keep plugin code in a
+> namespace such as `MyPlugin`. The SDK itself lives under `CheatEngine.SDK` and is not affected. A plugin assembly also
+> holds exactly one `[CheatEnginePlugin]` class (`CESDK0002`).
 
 ### 3. Build
 
@@ -107,7 +110,7 @@ internal static partial class Commands
 dotnet build -c Release
 ```
 
-Keep the whole output folder together. Cheat Engine loads `MyPlugin.dll`, and the CESDK assemblies plus the native Lua
+Keep the whole output folder together. Cheat Engine loads `MyPlugin.dll`, and the CheatEngine.SDK assemblies plus the native Lua
 protection bridge must sit next to it. The package supplies the bridge; no C compiler or xmake is required.
 
 ```text
@@ -116,14 +119,14 @@ bin/Release/net10.0/
     MyPlugin.pdb
     MyPlugin.deps.json
     MyPlugin.runtimeconfig.json
-    CESDK.Abi.dll
-    CESDK.Annotations.dll
-    CESDK.Engine.dll
-    CESDK.Hosting.dll
-    CESDK.Lua.dll
-    CESDK.Lua.Interop.dll
-    CESDK.dll
-    cesdk-lua-bridge.dll
+    CheatEngine.SDK.Abi.dll
+    CheatEngine.SDK.Annotations.dll
+    CheatEngine.SDK.Engine.dll
+    CheatEngine.SDK.Hosting.dll
+    CheatEngine.SDK.Lua.dll
+    CheatEngine.SDK.Lua.Interop.dll
+    CheatEngine.SDK.dll
+    cheatengine-sdk-lua-bridge.dll
 ```
 
 ### 4. Let Cheat Engine run a .NET 10 plugin
@@ -194,16 +197,16 @@ enable gets a fresh Lua runtime epoch, so never keep a Lua reference or a `Plugi
 <details>
 <summary><strong>If nothing happens</strong></summary>
 
-| Symptom                                    | Likely cause                                                                    | Fix                                                                                                         |
-|--------------------------------------------|---------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| The plugin is not listed after **Add new** | The plugin DLL is separated from CESDK dependencies                             | Keep the whole `bin/Release/net10.0` folder together                                                        |
-| Cheat Engine refuses the DLL               | No generated entry point                                                        | Check for `CESDK0001` or `CESDK0002` in the build output, and that `CesdkGenerateEntryPoint` is not `false` |
-| The plugin ticks and `greet` is `nil`      | `OnEnable` threw, so Cheat Engine was told the enable failed                    | Read the log below: the host logs every failed enable                                                       |
-| Cheat Engine cannot start the runtime      | The x64 .NET 10 runtimes are missing or its runtime configuration still requests .NET 9 | Run `dotnet --list-runtimes` and apply step 4                                                               |
-| `CS9057` in the build                      | The .NET SDK is older than 10.0.401                                             | Update the SDK. The generators are built against Roslyn 5.9                                                 |
+| Symptom                                    | Likely cause                                                                            | Fix                                                                                                                  |
+|--------------------------------------------|-----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| The plugin is not listed after **Add new** | The plugin DLL is separated from CheatEngine.SDK dependencies                           | Keep the whole `bin/Release/net10.0` folder together                                                                 |
+| Cheat Engine refuses the DLL               | No generated entry point                                                                | Check for `CESDK0001` or `CESDK0002` in the build output, and that `CheatEngineSdkGenerateEntryPoint` is not `false` |
+| The plugin ticks and `greet` is `nil`      | `OnEnable` threw, so Cheat Engine was told the enable failed                            | Read the log below: the host logs every failed enable                                                                |
+| Cheat Engine cannot start the runtime      | The x64 .NET 10 runtimes are missing or its runtime configuration still requests .NET 9 | Run `dotnet --list-runtimes` and apply step 4                                                                        |
+| `CS9057` in the build                      | The .NET SDK is older than 10.0.401                                                     | Update the SDK. The generators are built against Roslyn 5.9                                                          |
 
 To see the host's log, start Sysinternals DebugView, turn on **Capture > Capture Global Win32** and filter for
-`CESDK`. Entries start with `[CESDK.Hosting] Information:` or `[CESDK.Hosting] Error:`.
+`CheatEngine.SDK`. Entries start with `[CheatEngine.SDK.Hosting] Information:` or `[CheatEngine.SDK.Hosting] Error:`.
 
 </details>
 

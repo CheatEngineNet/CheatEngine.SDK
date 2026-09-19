@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Does not ship on its own. Code the CheatEngine.SDK generators and analyzers have in common: pipeline and emission helpers, the Lua call emitters, the plugin shape predicate and the LuaBindings input validation. Packed beside the components under analyzers/dotnet/cs.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The types stay internal: only the Roslyn components and their tests see them. -->
+    <InternalsVisibleTo Include="CheatEngine.SDK.SourceGenerators.EntryPoint"/>
+    <InternalsVisibleTo Include="CheatEngine.SDK.SourceGenerators.LuaBindings"/>
+    <InternalsVisibleTo Include="CheatEngine.SDK.SourceGenerators.EngineApi"/>
+    <InternalsVisibleTo Include="CheatEngine.SDK.Analyzers"/>
+    <InternalsVisibleTo Include="CheatEngine.SDK.Analyzers.CodeFixes"/>
+    <InternalsVisibleTo Include="CheatEngine.SDK.SourceGenerators.EntryPoint.Tests"/>
+    <InternalsVisibleTo Include="CheatEngine.SDK.SourceGenerators.LuaBindings.Tests"/>
+    <InternalsVisibleTo Include="CheatEngine.SDK.SourceGenerators.EngineApi.Tests"/>
+    <InternalsVisibleTo Include="CheatEngine.SDK.Analyzers.Tests"/>
+  </ItemGroup>
+
+</Project>

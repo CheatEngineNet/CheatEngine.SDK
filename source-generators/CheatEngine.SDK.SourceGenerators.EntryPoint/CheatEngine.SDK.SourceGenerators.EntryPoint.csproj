@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Ships in the CheatEngine.SDK package. Emits the Cheat Engine entry point (CESDK.CESDK.CEPluginInitialize) and the plugin factory into the consumer's plugin assembly.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Code shared with the other Roslyn components. Its assembly must sit next to this one wherever this one is loaded. -->
+    <ProjectReference Include="../CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj"/>
+  </ItemGroup>
+
+</Project>

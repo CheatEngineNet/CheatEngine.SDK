@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Plugin lifecycle runtime called by the generated bootstrap: init-record filling, enable/disable callbacks, plugin context and epoch, main-thread identity and dispatching.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj"/>
+    <ProjectReference Include="../CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj"/>
+    <ProjectReference Include="../CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
+    <ProjectReference Include="../CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
+  </ItemGroup>
+
+</Project>

@@ -1,11 +1,11 @@
-# CESDK diagnostics
+# CheatEngine.SDK diagnostics
 
 One page per rule. The help link of every diagnostic
-(`https://github.com/ShadowNineX/CESDK/blob/main/analyzers/docs/<ID>.md`) lands on the page of that rule. Each page is
+(`https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/<ID>.md`) lands on the page of that rule. Each page is
 written for the plugin author who just saw the message: cause, reason, exact definition, fix, when to suppress.
 
-Identifier ranges: `CESDK0xxx` plugin shape and bootstrap (category `CESDK.Plugin`), `CESDK1xxx` runtime-safety usage
-(`CESDK.Usage`), `CESDK2xxx` generator input (`CESDK.Generation`). Identifiers are never renumbered or reused.
+Identifier ranges: `CESDK0xxx` plugin shape and bootstrap (category `CheatEngine.SDK.Plugin`), `CESDK1xxx` runtime-safety usage
+(`CheatEngine.SDK.Usage`), `CESDK2xxx` generator input (`CheatEngine.SDK.Generation`). Identifiers are never renumbered or reused.
 
 | Id                        | Title                                                           | Severity | Code fix                                                                                     |
 |---------------------------|-----------------------------------------------------------------|----------|----------------------------------------------------------------------------------------------|
@@ -32,6 +32,6 @@ output and in full-solution analysis where an IDE offers it, not while typing.
 flags two `[LuaFunction]` members of one type that share a Lua name, so it needs every sibling member. The tag makes an
 IDE defer the whole rule to build or full-solution analysis.
 
-Adding a rule: constant in `CESDK.Analyzers/Diagnostics/DiagnosticIds.cs`, descriptor in `DiagnosticDescriptors.cs`, row
+Adding a rule: constant in `CheatEngine.SDK.Analyzers/Diagnostics/DiagnosticIds.cs`, descriptor in `DiagnosticDescriptors.cs`, row
 in `AnalyzerReleases.Unshipped.md`, page here, tests. `DiagnosticCatalogTests` fails when the page or the
 release-tracking row of a descriptor is missing.

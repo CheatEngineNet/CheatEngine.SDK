@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Code fixes for the CheatEngine.SDK diagnostics. IDE-only assembly: the one Roslyn component allowed to reference Microsoft.CodeAnalysis.Workspaces (RS1038).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Same version as the compiler pin (Directory.Packages.props). Allowed ONLY in this project. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../CheatEngine.SDK.Analyzers/CheatEngine.SDK.Analyzers.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The code fixes are tested by CheatEngine.SDK.Analyzers.Tests; no CheatEngine.SDK.Analyzers.CodeFixes.Tests project exists. -->
+    <InternalsVisibleTo Include="CheatEngine.SDK.Analyzers.Tests"/>
+  </ItemGroup>
+
+</Project>

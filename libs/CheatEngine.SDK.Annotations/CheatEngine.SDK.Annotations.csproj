@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Attributes that declare the plugin entry point, Lua bindings, main-thread affinity and object lifetime rules for the CheatEngine.SDK source generators and analyzers. No dependencies.</Description>
+  </PropertyGroup>
+
+</Project>

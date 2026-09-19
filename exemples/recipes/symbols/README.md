@@ -36,7 +36,7 @@ part of the recipe and not an afterthought.
 
 ```csharp
 using System.Diagnostics.CodeAnalysis;
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace SymbolRecipe;
 
@@ -77,13 +77,13 @@ it is the Try form, and the one you use whenever a missing symbol is normal.
 ### 2. The symbol book and the plugin
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Engine.Values;
-using CESDK.Hosting.Diagnostics;
-using CESDK.Hosting.Plugin;
-using CESDK.Hosting.Threading;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Hosting.Threading;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace SymbolRecipe;
 

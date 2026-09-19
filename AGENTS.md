@@ -2,13 +2,13 @@
 
 ## Project Structure & Module Organization
 
-CESDK is a Windows x64, .NET 10 SDK for Cheat Engine 7.7 plugins.
+CheatEngine.SDK is a Windows x64, .NET 10 SDK for Cheat Engine 7.7 plugins.
 
 - `libs/`: layered assemblies for annotations, ABI definitions, Lua interop, Lua operations, engine APIs, and hosting.
-- `src/CESDK/`: umbrella NuGet package and consumer build properties.
+- `src/CheatEngine.SDK/`: umbrella NuGet package and consumer build properties.
 - `source-generators/` and `analyzers/`: generated bindings, entry points, diagnostics, and code fixes.
 - `native/`: bundled Cheat Engine Lua test DLL and the source plus prebuilt Windows x64 Lua protection bridge.
-- `tests/`: matching test projects, shared native fixtures, benchmarks, and `CESDK.LivePlugin`.
+- `tests/`: matching test projects, shared native fixtures, benchmarks, and `CheatEngine.SDK.LivePlugin`.
 - `exemples/`: guides, recipes, and API documentation; preserve this directory spelling.
 - `eng/` and `.github/`: shared build configuration and CI. Treat `artifacts/` as generated output.
 
@@ -18,14 +18,14 @@ Use the SDK selected by `global.json` (10.0.401, `latestFeature`). Ordinary mana
 binary and need no C toolchain. Only bridge maintainers and CI rebuild it, using xmake and a Windows x64 C compiler.
 
 ```powershell
-dotnet restore CESDK.slnx
-dotnet build CESDK.slnx -c Debug --no-restore
-dotnet test --solution CESDK.slnx -c Debug --fail-skips on
-dotnet test --solution CESDK.slnx -c Release
-dotnet pack src/CESDK -c Release -o artifacts/nuget
+dotnet restore CheatEngine.SDK.slnx
+dotnet build CheatEngine.SDK.slnx -c Debug --no-restore
+dotnet test --solution CheatEngine.SDK.slnx -c Debug --fail-skips on
+dotnet test --solution CheatEngine.SDK.slnx -c Release
+dotnet pack src/CheatEngine.SDK -c Release -o artifacts/nuget
 ```
 
-These restore dependencies, compile the solution, validate both configurations, and produce the package. For host testing, follow `tests/CESDK.LivePlugin/README.md`; keep the complete plugin output together, including `cesdk-lua-bridge.dll`. Configure Cheat Engine to use .NET 10 explicitly.
+These restore dependencies, compile the solution, validate both configurations, and produce the package. For host testing, follow `tests/CheatEngine.SDK.LivePlugin/README.md`; keep the complete plugin output together, including `cheatengine-sdk-lua-bridge.dll`. Configure Cheat Engine to use .NET 10 explicitly.
 
 ## Coding Style & Naming Conventions
 

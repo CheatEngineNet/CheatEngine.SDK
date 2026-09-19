@@ -1,12 +1,12 @@
 # CESDK2002: Type cannot receive a generated Lua binding part
 
-|                    |                           |
-|--------------------|---------------------------|
-| Category           | `CESDK.Generation`        |
-| Default severity   | Error                     |
-| Enabled by default | Yes                       |
-| Code fix           | No                        |
-| Reported           | While typing and in build |
+|                    |                              |
+|--------------------|------------------------------|
+| Category           | `CheatEngine.SDK.Generation` |
+| Default severity   | Error                        |
+| Enabled by default | Yes                          |
+| Code fix           | No                           |
+| Reported           | While typing and in build    |
 
 ## Cause
 
@@ -15,7 +15,7 @@ cannot receive a generated part.
 
 ## Why
 
-The LuaBindings generator (`CESDK.SourceGenerators.LuaBindings`) adds a generated `partial` part to the containing type
+The LuaBindings generator (`CheatEngine.SDK.SourceGenerators.LuaBindings`) adds a generated `partial` part to the containing type
 of every bound member. The part holds the thunk and registration table for `[LuaFunction]`, or the implementing
 declaration for `[LuaGlobal]`.
 
@@ -43,7 +43,7 @@ This rule is about the container. [CESDK2003](CESDK2003.md) and [CESDK2004](CESD
 ## Example
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace MyPlugin;
 
@@ -57,7 +57,7 @@ public static class Functions
 Compliant:
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace MyPlugin;
 

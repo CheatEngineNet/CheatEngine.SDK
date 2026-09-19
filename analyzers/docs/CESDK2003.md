@@ -2,7 +2,7 @@
 
 |                    |                                                                                                                                                                             |
 |--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Category           | `CESDK.Generation`                                                                                                                                                          |
+| Category           | `CheatEngine.SDK.Generation`                                                                                                                                                |
 | Default severity   | Error                                                                                                                                                                       |
 | Enabled by default | Yes                                                                                                                                                                         |
 | Code fix           | No                                                                                                                                                                          |
@@ -10,8 +10,8 @@
 
 ## Cause
 
-A method carries `[CESDK.Annotations.Lua.LuaFunction("...")]`, but the LuaBindings generator
-(`CESDK.SourceGenerators.LuaBindings`) cannot wrap it in a `lua_CFunction` thunk.
+A method carries `[CheatEngine.SDK.Annotations.Lua.LuaFunction("...")]`, but the LuaBindings generator
+(`CheatEngine.SDK.SourceGenerators.LuaBindings`) cannot wrap it in a `lua_CFunction` thunk.
 
 ## Why
 
@@ -35,15 +35,15 @@ diagnostic is reported per independent problem, on the method's own location:
 | `ByRefParameter`           | Every parameter is passed by value: no `ref`, `in`, `out` or `ref readonly`.                                                                                                                                                                  |
 | `ParamsParameter`          | No `params` parameter: variadic exports are not supported.                                                                                                                                                                                    |
 | `OptionalParameter`        | No parameter has a default value: the thunk checks the exact argument count.                                                                                                                                                                  |
-| `StateParameterNotFirst`   | A `CESDK.Lua.State.LuaState` parameter, if any, is the first parameter.                                                                                                                                                                       |
-| `UnsupportedParameterType` | Every parameter is `int`, `long`, `float`, `double`, `bool`, `nuint`, `ReadOnlySpan<byte>`, `string` or `CESDK.Lua.State.LuaState` (first only).                                                                                              |
+| `StateParameterNotFirst`   | A `CheatEngine.SDK.Lua.State.LuaState` parameter, if any, is the first parameter.                                                                                                                                                             |
+| `UnsupportedParameterType` | Every parameter is `int`, `long`, `float`, `double`, `bool`, `nuint`, `ReadOnlySpan<byte>`, `string` or `CheatEngine.SDK.Lua.State.LuaState` (first only).                                                                                    |
 | `UnsupportedReturnType`    | The return type is `void` or one of the same marshalled kinds.                                                                                                                                                                                |
 | `DuplicateName`            | No other `[LuaFunction]` of the same containing type registers the same Lua name. Only members with no other problem count. The generator drops every member of a duplicated name from the registration table, and this rule names the cause. |
 
 ## Example
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace MyPlugin;
 
@@ -61,7 +61,7 @@ Fixing one does not silence the other. Both are reported.
 `DuplicateName` needs two otherwise valid members:
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace MyPlugin;
 

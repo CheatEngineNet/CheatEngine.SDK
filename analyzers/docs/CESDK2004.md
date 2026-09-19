@@ -1,17 +1,17 @@
 # CESDK2004: [LuaGlobal] method cannot receive a generated body
 
-|                    |                           |
-|--------------------|---------------------------|
-| Category           | `CESDK.Generation`        |
-| Default severity   | Error                     |
-| Enabled by default | Yes                       |
-| Code fix           | No                        |
-| Reported           | While typing and in build |
+|                    |                              |
+|--------------------|------------------------------|
+| Category           | `CheatEngine.SDK.Generation` |
+| Default severity   | Error                        |
+| Enabled by default | Yes                          |
+| Code fix           | No                           |
+| Reported           | While typing and in build    |
 
 ## Cause
 
-A method carries `[CESDK.Annotations.Lua.LuaGlobal("...")]`, but the LuaBindings generator
-(`CESDK.SourceGenerators.LuaBindings`) cannot write its body.
+A method carries `[CheatEngine.SDK.Annotations.Lua.LuaGlobal("...")]`, but the LuaBindings generator
+(`CheatEngine.SDK.SourceGenerators.LuaBindings`) cannot write its body.
 
 ## Why
 
@@ -53,7 +53,7 @@ problem, on the method's own location:
 | `ByRefParameter`           | Arguments are passed by value (results are `out` parameters instead): no `ref`, `in` or `ref readonly`.                                                                           |
 | `ParamsParameter`          | No `params` parameter.                                                                                                                                                            |
 | `OptionalParameter`        | No parameter has a default value: the body pushes every argument.                                                                                                                 |
-| `StateParameterNotFirst`   | A `CESDK.Lua.State.LuaState` parameter, if any, is the first parameter.                                                                                                           |
+| `StateParameterNotFirst`   | A `CheatEngine.SDK.Lua.State.LuaState` parameter, if any, is the first parameter.                                                                                                 |
 | `UnsupportedParameterType` | Every by-value argument is `int`, `long`, `float`, `double`, `bool`, `nuint`, `ReadOnlySpan<byte>`, `string` or the leading `LuaState`.                                           |
 | `ResultBeforeArgument`     | Every argument precedes every result: `out` parameters and copy-out pairs come last.                                                                                              |
 | `UnsupportedResultType`    | Every `out` result is `int`, `long`, `float`, `double`, `bool`, `nuint` or `string`, or a `Span<byte> destination, out int written` copy-out pair.                                |
@@ -64,7 +64,7 @@ problem, on the method's own location:
 ## Example
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace MyPlugin;
 
@@ -79,7 +79,7 @@ Compliant: the Try form, a `bool` return with the `out` result. Dropping the `ou
 instead.
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace MyPlugin;
 

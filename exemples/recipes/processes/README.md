@@ -35,7 +35,7 @@ few lines here.
 ### 1. Bind the process functions
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace ProcessRecipe;
 
@@ -83,10 +83,10 @@ own `getOpenedProcessID` answers 0 while nothing is open, which is how the code 
 
 ```csharp
 using System.Text;
-using CESDK.Annotations.Lua;
-using CESDK.Engine.Values;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace ProcessRecipe;
 
@@ -217,8 +217,8 @@ internal static partial class Attach
 ```
 
 The two tables come back from Cheat Engine as Lua sequences, so the code reads them with the zero based helpers of
-`CESDK.Engine.Values`. A protected accessor such as `TryGetField` always leaves exactly one value on the stack, the
-field or the error, so each read pops once. `LuaFrame` restores the stack even on an early return.
+`CheatEngine.SDK.Engine.Values`. A protected accessor such as `TryGetField` always leaves exactly one value on the
+stack, the field or the error, so each read pops once. `LuaFrame` restores the stack even on an early return.
 
 ### 3. Try it
 
@@ -244,8 +244,8 @@ argument is a bare name.
 case. Put it in a `using` around a group of reads that must agree with each other:
 
 ```csharp
-using CESDK.Engine.Generated;
-using CESDK.Engine.Values;
+using CheatEngine.SDK.Engine.Generated;
+using CheatEngine.SDK.Engine.Values;
 
 namespace ProcessRecipe;
 

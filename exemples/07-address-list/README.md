@@ -51,11 +51,11 @@ what Cheat Engine still uses.
 
 ```csharp
 using System.Diagnostics.CodeAnalysis;
-using CESDK.Engine.Enums;
-using CESDK.Engine.Objects;
-using CESDK.Lua.Marshalling;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace TableTools;
 
@@ -194,11 +194,11 @@ The table below lists the record members the editor uses and how each one travel
 ### 3. Export it
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Engine.Enums;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace TableTools;
 
@@ -295,7 +295,7 @@ your own thread reaches the list through `MainThread.Invoke`, which runs the wor
 result:
 
 ```csharp
-using CESDK.Hosting.Threading;
+using CheatEngine.SDK.Hosting.Threading;
 
 namespace TableTools;
 

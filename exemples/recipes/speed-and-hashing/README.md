@@ -37,7 +37,7 @@ A hash check saves you from writing to a game version whose addresses have moved
 
 ```csharp
 using System.Diagnostics.CodeAnalysis;
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace TimeTools;
 
@@ -72,10 +72,10 @@ speed that was set, so it is a Try form: a script that never set one leaves noth
 ### 2. Write the tools
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace TimeTools;
 

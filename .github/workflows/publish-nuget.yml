@@ -95,7 +95,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $names = @(Get-ChildItem -Path artifacts/nuget -File | ForEach-Object Name)
-          $expected = if ($env:VERSION) { "CESDK.${env:VERSION}.nupkg" } else { 'CESDK.*.nupkg' }
+          $expected = if ($env:VERSION) { "CheatEngine.SDK.${env:VERSION}.nupkg" } else { 'CheatEngine.SDK.*.nupkg' }
           if ($names.Count -ne 1 -or $names[0] -notlike $expected) {
             Write-Host "::error::The package artifact must contain exactly $expected, but it contains: $($names -join ', ')."
             exit 1
@@ -104,12 +104,12 @@ jobs:
   publish:
     name: Publish to NuGet
     needs: [ verify, package ]
-    if: github.event_name == 'push' && github.ref_type == 'tag' && github.repository == 'ShadowNineX/CESDK'
+    if: github.event_name == 'push' && github.ref_type == 'tag' && github.repository == 'CheatEngineNet/CheatEngine.SDK'
     runs-on: windows-latest
     timeout-minutes: 15
     environment:
       name: nuget
-      url: https://www.nuget.org/packages/CESDK/${{ needs.verify.outputs.version }}
+      url: https://www.nuget.org/packages/CheatEngine.SDK/${{ needs.verify.outputs.version }}
     permissions:
       contents: read
       id-token: write # NuGet trusted publishing and the provenance signature
@@ -128,7 +128,7 @@ jobs:
       - name: Attest provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: artifacts/nuget/CESDK.${{ env.VERSION }}.nupkg
+          subject-path: artifacts/nuget/CheatEngine.SDK.${{ env.VERSION }}.nupkg
 
       # The user is the nuget.org profile name of the person who registered the trusted publishing policy, not an organization.
       - name: NuGet login
@@ -142,7 +142,7 @@ jobs:
         shell: pwsh
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
-        run: dotnet nuget push "artifacts/nuget/CESDK.${env:VERSION}.nupkg" --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push "artifacts/nuget/CheatEngine.SDK.${env:VERSION}.nupkg" --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
 
   github-release:
     name: Create GitHub release
@@ -167,10 +167,10 @@ jobs:
       - name: Create release
         shell: pwsh
         run: |
-          $name = "CESDK.${env:VERSION}.nupkg"
+          $name = "CheatEngine.SDK.${env:VERSION}.nupkg"
           $attached = gh release view $env:TAG --json assets --jq '.assets[].name' 2>$null
           if ($LASTEXITCODE -ne 0) {
-            $options = @('--verify-tag', '--generate-notes', '--notes', "NuGet package: https://www.nuget.org/packages/CESDK/$env:VERSION")
+            $options = @('--verify-tag', '--generate-notes', '--notes', "NuGet package: https://www.nuget.org/packages/CheatEngine.SDK/$env:VERSION")
             if ($env:PRERELEASE -eq 'true') { $options += '--prerelease' }
             gh release create $env:TAG "artifacts/nuget/$name" @options
           } elseif ($attached -notcontains $name) {

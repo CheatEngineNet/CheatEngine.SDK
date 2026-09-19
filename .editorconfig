@@ -19,7 +19,7 @@ dotnet_sort_system_directives_first = true
 # Unused usings fail the build; this needs GenerateDocumentationFile, set in Directory.Build.props.
 dotnet_diagnostic.IDE0005.severity = warning
 
-[libs/CESDK.Lua.Interop/**.cs]
+[libs/CheatEngine.SDK.Lua.Interop/**.cs]
 # The project mirrors the Lua 5.3 C API one to one, so C identifiers (lua_gettop, LUA_REGISTRYINDEX) stay.
 dotnet_diagnostic.IDE1006.severity = none
 dotnet_diagnostic.CA1707.severity = none

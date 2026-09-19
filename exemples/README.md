@@ -1,6 +1,6 @@
 <div align="center">
 
-# CESDK Examples
+# CheatEngine.SDK Examples
 
 **Learn to build Cheat Engine plugins in C#, one small and working example at a time.**
 
@@ -29,10 +29,10 @@ matters, the code, what to expect, and what the SDK promises.
 A plugin is one class and one attribute. This is the whole of [guide 01](01-first-plugin/README.md):
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace MyPlugin;
 
@@ -54,8 +54,8 @@ internal static partial class Commands
 Build it, add the DLL to Cheat Engine, and `print(greet("world"))` in the Lua Engine window answers `Hello, world!`.
 
 > [!TIP]
-> New to CESDK? Read guides 01 to 03 in order, then pick the topic you need. Each guide lists what it expects you to
-> have read in its `Needs` field.
+> New to CheatEngine.SDK? Read guides 01 to 03 in order, then pick the topic you need. Each guide lists what it expects
+> you to have read in its `Needs` field.
 
 ## Pick your path
 
@@ -133,13 +133,13 @@ The [recipe index](recipes/README.md) lists the Cheat Engine functions each one 
 
 ## How to read these pages
 
-| You see                                            | It means                                                                                                            |
-|----------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| **Level**, **Time**, **Needs**                     | How hard the page is, how long it takes, and what to read first                                                     |
-| A C# block that starts with `using` or `namespace` | A whole file. Add it to a project that references the `CESDK` package, with `ImplicitUsings` and `Nullable` enabled |
-| A `lua` block                                      | Something to run in Cheat Engine's Lua Engine window                                                                |
-| `Promise`                                          | What the SDK guarantees in that area                                                                                |
-| `Before you move on`                               | A short checklist to confirm you are ready for the next page                                                        |
+| You see                                            | It means                                                                                                                      |
+|----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| **Level**, **Time**, **Needs**                     | How hard the page is, how long it takes, and what to read first                                                               |
+| A C# block that starts with `using` or `namespace` | A whole file. Add it to a project that references the `CheatEngine.SDK` package, with `ImplicitUsings` and `Nullable` enabled |
+| A `lua` block                                      | Something to run in Cheat Engine's Lua Engine window                                                                          |
+| `Promise`                                          | What the SDK guarantees in that area                                                                                          |
+| `Before you move on`                               | A short checklist to confirm you are ready for the next page                                                                  |
 
 Callouts mark the things worth stopping for:
 
@@ -173,15 +173,15 @@ Every guide repeats one or more of these. They are worth knowing before you star
 
 Each project of the repository carries a README with its design and guarantees.
 
-| Project                                                                                  | Read it for                                                |
-|------------------------------------------------------------------------------------------|------------------------------------------------------------|
-| [`src/CESDK`](../src/CESDK/README.md)                                                    | The package: what ships, build properties, requirements    |
-| [`libs/CESDK.Hosting`](../libs/CESDK.Hosting/README.md)                                  | The plugin lifecycle, the main thread and logging          |
-| [`libs/CESDK.Lua`](../libs/CESDK.Lua/README.md)                                          | The Lua state, protected calls, marshallers and callbacks  |
-| [`libs/CESDK.Engine`](../libs/CESDK.Engine/README.md)                                    | Object handles, ownership, addresses and enums             |
-| [`source-generators`](../source-generators/CESDK.SourceGenerators.LuaBindings/README.md) | How the generators read your attributes                    |
-| [`analyzers`](../analyzers/docs/README.md)                                               | One page per diagnostic                                    |
-| [`tests/CESDK.LivePlugin`](../tests/CESDK.LivePlugin/README.md)                          | A plugin to load into Cheat Engine, with the log to expect |
+| Project                                                                                            | Read it for                                                |
+|----------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| [`src/CheatEngine.SDK`](../src/CheatEngine.SDK/README.md)                                          | The package: what ships, build properties, requirements    |
+| [`libs/CheatEngine.SDK.Hosting`](../libs/CheatEngine.SDK.Hosting/README.md)                        | The plugin lifecycle, the main thread and logging          |
+| [`libs/CheatEngine.SDK.Lua`](../libs/CheatEngine.SDK.Lua/README.md)                                | The Lua state, protected calls, marshallers and callbacks  |
+| [`libs/CheatEngine.SDK.Engine`](../libs/CheatEngine.SDK.Engine/README.md)                          | Object handles, ownership, addresses and enums             |
+| [`source-generators`](../source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/README.md) | How the generators read your attributes                    |
+| [`analyzers`](../analyzers/docs/README.md)                                                         | One page per diagnostic                                    |
+| [`tests/CheatEngine.SDK.LivePlugin`](../tests/CheatEngine.SDK.LivePlugin/README.md)                | A plugin to load into Cheat Engine, with the log to expect |
 
 ---
 

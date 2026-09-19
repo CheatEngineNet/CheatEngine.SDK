@@ -36,11 +36,11 @@ path can go wrong. The generator writes it once, correctly, for every method you
 
 ```csharp
 using System.Text;
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace GameMath;
 

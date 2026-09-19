@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Cheat Engine object model (borrowed and owned handles, Address, enums) and generated wrappers for reading and writing 32-bit and 64-bit integers in the target process.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj"/>
+    <ProjectReference Include="../CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
+    <ProjectReference Include="../CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Repository-internal generator, referenced as an analyzer only. It turns the spec below into the generated wrappers. -->
+    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/CheatEngine.SDK.SourceGenerators.EngineApi.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <AdditionalFiles Include="../../source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/Specs/memory-scalars.cheatengine-sdk-api.txt"/>
+  </ItemGroup>
+
+</Project>

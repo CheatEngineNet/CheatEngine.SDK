@@ -35,7 +35,7 @@ does its checks first, and the release of remote memory sits in a `finally` bloc
 ### 1. Bind the functions
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace RemoteKit;
 
@@ -81,9 +81,9 @@ the type map. Send that shape through [running Lua](../../08-running-lua/README.
 
 ```csharp
 using System.Text;
-using CESDK.Annotations.Lua;
-using CESDK.Hosting.Diagnostics;
-using CESDK.Lua.Calls;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Lua.Calls;
 
 namespace RemoteKit;
 

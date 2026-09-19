@@ -61,7 +61,7 @@ Empty strings and `0` are valid values. Pass them explicitly when you have nothi
 form exactly. The same file binds `autoAssemble`, which the patcher uses.
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace SignatureTools;
 
@@ -93,11 +93,11 @@ internal static partial class SignatureCalls
 `LuaState` toolkit. The steps are the ones every object call follows.
 
 ```csharp
-using CESDK.Engine.Objects;
-using CESDK.Engine.Values;
-using CESDK.Lua.Marshalling;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace SignatureTools;
 
@@ -155,11 +155,11 @@ flowchart LR
 ### 4. Export it and patch with it
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Engine.Values;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace SignatureTools;
 

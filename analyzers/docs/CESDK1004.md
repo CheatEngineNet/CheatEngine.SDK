@@ -2,7 +2,7 @@
 
 |                    |                                                                          |
 |--------------------|--------------------------------------------------------------------------|
-| Category           | `CESDK.Usage`                                                            |
+| Category           | `CheatEngine.SDK.Usage`                                                  |
 | Default severity   | Warning                                                                  |
 | Enabled by default | Yes                                                                      |
 | Code fix           | Yes: wrap body in try/catch returning a failure value (supports Fix All) |
@@ -104,8 +104,8 @@ Scope:
 
 - Methods and local functions with the attribute, block or expression bodied. A local function is analyzed on its own.
 - Generated code is not analyzed.
-- The analyzer only runs in projects where a CESDK contract type (`CESDK.Annotations.Plugin.CheatEnginePluginAttribute`
-  or `CESDK.Hosting.Plugin.CheatEnginePlugin`) can be resolved.
+- The analyzer only runs in projects where a CheatEngine.SDK contract type (`CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute`
+  or `CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin`) can be resolved.
 
 ## Example
 

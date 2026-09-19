@@ -35,8 +35,8 @@ registers, decide whether to continue. The generator turns that into a typed C# 
 ### 1. Bind the debugger functions
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Engine.Enums;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Engine.Enums;
 
 namespace WriteWatch;
 
@@ -80,24 +80,25 @@ internal static partial class DebuggerCalls
 }
 ```
 
-A binding cannot take an enum, so the raw methods take `int` and the public wrappers take the CESDK enums. The values
-match Cheat Engine's own constants: `BreakpointTrigger.Write` is `bptWrite` (2), `BreakpointMethod.DebugRegister` is
-`bpmDebugRegister` (1) and `ContinueMethod.Run` is `co_run` (0). The debugger interface numbers are 0 for the default,
-1 for the Windows debugger, 2 for the VEH debugger and 3 for the kernel debugger.
+A binding cannot take an enum, so the raw methods take `int` and the public wrappers take the CheatEngine.SDK enums.
+The values match Cheat Engine's own constants: `BreakpointTrigger.Write` is `bptWrite` (2),
+`BreakpointMethod.DebugRegister` is `bpmDebugRegister` (1) and `ContinueMethod.Run` is `co_run` (0). The debugger
+interface numbers are 0 for the default, 1 for the Windows debugger, 2 for the VEH debugger and 3 for the kernel
+debugger.
 
 ### 2. Write the watcher
 
 ```csharp
 using System.Text;
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Engine.Enums;
-using CESDK.Engine.Values;
-using CESDK.Hosting.Diagnostics;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Calls;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace WriteWatch;
 

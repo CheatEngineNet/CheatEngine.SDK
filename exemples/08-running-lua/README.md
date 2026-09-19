@@ -27,8 +27,9 @@ function to Cheat Engine. Every step keeps the Lua stack balanced.
 ## Why it matters
 
 Lua reports errors with `longjmp`, and the .NET runtime cannot unwind managed frames that way. One unguarded raise can
-corrupt the process. The `CESDK.Lua` toolkit keeps every operation that can run Lua code under a protected call, returns
-a `LuaStatus` instead of raising, and gives you `LuaFrame` so that no exit path leaves the stack unbalanced.
+corrupt the process. The `CheatEngine.SDK.Lua` toolkit keeps every operation that can run Lua code under a protected
+call, returns a `LuaStatus` instead of raising, and gives you `LuaFrame` so that no exit path leaves the stack
+unbalanced.
 
 ## Which tool for which job
 
@@ -65,11 +66,11 @@ it when the block ends, on every exit: an early `return`, an exception or a fail
 
 ```csharp
 using System.Diagnostics.CodeAnalysis;
-using CESDK.Engine.Values;
-using CESDK.Lua.Calls;
-using CESDK.Lua.Marshalling;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace ScriptLab;
 
@@ -152,8 +153,8 @@ The stack after TryExecute(..., 3)
 ```
 
 - A relative index such as `-3` moves every time you push, so convert it once with `AbsoluteIndex`.
-- `RawSequenceCount`, `RawGetSequenceItem` and `TryGetSequenceItem` are zero based, like every public index in CESDK.
-  The single `+ 1` lives in `IndexBase.ToLuaKey`.
+- `RawSequenceCount`, `RawGetSequenceItem` and `TryGetSequenceItem` are zero based, like every public index in
+  CheatEngine.SDK. The single `+ 1` lives in `IndexBase.ToLuaKey`.
 - The raw form skips metamethods and suits a plain table. Use `TryGetSequenceItem` for a Cheat Engine object that
   behaves like an array, because it runs under a protected call.
 - `TryReadUtf8` hands you the bytes Lua already holds, so `IsReady` compares text with no allocation. The span is valid
@@ -162,10 +163,10 @@ The stack after TryExecute(..., 3)
 ### 4. Call a function by hand
 
 ```csharp
-using CESDK.Engine.Enums;
-using CESDK.Lua.Marshalling;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace ScriptLab;
 
@@ -247,9 +248,9 @@ The marshallers are the typed way to push and read one value. Each one is a `str
 
 ```csharp
 using System.Diagnostics.CodeAnalysis;
-using CESDK.Lua.References;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Lua.References;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace ScriptLab;
 
@@ -302,12 +303,12 @@ dispose them in `OnDisable`.
 ```csharp
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using CESDK.Annotations.Plugin;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Callbacks;
-using CESDK.Lua.Marshalling;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Callbacks;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace ScriptLab;
 

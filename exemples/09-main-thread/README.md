@@ -62,7 +62,7 @@ with its original stack trace.
 ### 1. Bind what the monitor needs
 
 ```csharp
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace ValueMonitor;
 
@@ -79,14 +79,14 @@ internal static partial class Ce
 ### 2. Sample on a worker, report through the main thread
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Engine.Generated;
-using CESDK.Engine.Values;
-using CESDK.Hosting.Diagnostics;
-using CESDK.Hosting.Plugin;
-using CESDK.Hosting.Threading;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Engine.Generated;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Hosting.Threading;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace ValueMonitor;
 
@@ -195,11 +195,11 @@ Three details make this safe.
 ### 3. Keep the window alive during a long task
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Engine.Generated;
-using CESDK.Engine.Values;
-using CESDK.Hosting.Bootstrap;
-using CESDK.Hosting.Threading;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Engine.Generated;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Hosting.Bootstrap;
+using CheatEngine.SDK.Hosting.Threading;
 
 namespace ValueMonitor;
 
@@ -238,7 +238,7 @@ which is how it notices a disable or a re-enable.
 ### 4. A helper that reads like a block
 
 ```csharp
-using CESDK.Hosting.Threading;
+using CheatEngine.SDK.Hosting.Threading;
 
 namespace ValueMonitor;
 
@@ -289,11 +289,11 @@ which returns `null` while the plugin is disabled.
 no Lua reference across a disable: the next enable publishes a new context and a new epoch, and `IsCurrent` tells the
 old one from the live one.
 
-Four attributes in `CESDK.Annotations` document these rules on the SDK's own members: `[RunsOnMainThread]` for a body
-that runs on the main thread and restricts no caller, `[MainThreadOnly]` for a member that callers must reach from the
-main thread, `[RequiresPluginEnabled]` for an API that works only between enable and disable, and `[CEOwned]` for an
-object you must not dispose. They are metadata only, so the compiler does not enforce them. Mark your own APIs the same
-way.
+Four attributes in `CheatEngine.SDK.Annotations` document these rules on the SDK's own members: `[RunsOnMainThread]`
+for a body that runs on the main thread and restricts no caller, `[MainThreadOnly]` for a member that callers must
+reach from the main thread, `[RequiresPluginEnabled]` for an API that works only between enable and disable, and
+`[CEOwned]` for an object you must not dispose. They are metadata only, so the compiler does not enforce them. Mark
+your own APIs the same way.
 
 ## What you see when you call too early
 

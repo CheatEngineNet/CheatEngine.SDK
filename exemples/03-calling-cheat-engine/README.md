@@ -41,7 +41,7 @@ every binding the same failure rules.
 
 ```csharp
 using System.Diagnostics.CodeAnalysis;
-using CESDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Lua;
 
 namespace GameBindings;
 
@@ -122,9 +122,9 @@ missing `getOpenedProcessID` is a bug, so it is a throwing form.
 ### 3. Use the bindings
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Hosting.Diagnostics;
-using CESDK.Lua.Calls;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Lua.Calls;
 
 namespace GameBindings;
 
@@ -176,7 +176,7 @@ In every case the Lua stack returns to the height it had before the call.
 - **The first call resolves the global.** The binding keeps the function it found in the Lua registry. A script that
   replaces the Cheat Engine function afterwards is not seen until the plugin is enabled again.
 - **Addresses are `nuint` in bindings.** Convert with `Address.FromUInt64(address)` and back with
-  `unchecked((nuint)value.ToUInt64())` when you use the `CESDK.Engine` value type (see
+  `unchecked((nuint)value.ToUInt64())` when you use the `CheatEngine.SDK.Engine` value type (see
   [04 · Memory](../04-memory/README.md)).
 - **Copy out text to avoid allocations.** `TryGetName(address, buffer, out written)` writes UTF-8 into a buffer you own,
   for example `stackalloc byte[64]`. A `string` result allocates one string per call.

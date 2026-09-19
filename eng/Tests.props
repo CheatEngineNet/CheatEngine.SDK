@@ -1,5 +1,5 @@
 <Project>
-  <!-- Profile for tests/. Nothing here is packed. Only projects named *.Tests become xUnit executables; CESDK.Benchmarks and CESDK.LivePlugin do not. -->
+  <!-- Profile for tests/. Nothing here is packed. Only projects named *.Tests become xUnit executables; CheatEngine.SDK.Benchmarks and CheatEngine.SDK.LivePlugin do not. -->
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>

@@ -49,12 +49,12 @@ line that says "this object is not mine anymore".
 
 ```csharp
 using System.Text;
-using CESDK.Annotations.Lua;
-using CESDK.Engine.Enums;
-using CESDK.Engine.Objects;
-using CESDK.Lua.Marshalling;
-using CESDK.Lua.Runtime;
-using CESDK.Lua.State;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
 
 namespace StructureKit;
 
@@ -171,8 +171,8 @@ print(my_plugin_guess("Player", getAddress("game.exe+2F0000"), 24))
 
 ## Good to know
 
-- **The lister counts from zero.** It asks for index 0 up to the last one, like every object index in `CESDK.Engine`.
-  `getStructure("Player")` looks a structure up by name, and the name is case sensitive.
+- **The lister counts from zero.** It asks for index 0 up to the last one, like every object index in
+  `CheatEngine.SDK.Engine`. `getStructure("Player")` looks a structure up by name, and the name is case sensitive.
 - **Batch your edits.** `beginUpdate` and `endUpdate` bracket several element changes, so Cheat Engine refreshes once.
 - **An element can point at another structure.** The `ChildStruct` property links an element to a structure it points
   to, which is how a `Player` gets a `Weapon`. Set it with `TrySetProperty` and a handle from `getStructure`.

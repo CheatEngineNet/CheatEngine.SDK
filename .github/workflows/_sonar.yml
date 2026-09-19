@@ -82,7 +82,7 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: lua-protection-bridge
-          path: native/cesdk-lua-bridge/runtimes/win-x64/native
+          path: native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native
 
       - name: Download coverage
         if: env.SONAR_ENABLED == 'true'
@@ -114,18 +114,18 @@ jobs:
             @{ Key = 'noLinq'; Rule = 'csharpsquid:S3267'; Resource = '**/*.cs' }
             @{ Key = 'unsafeInterop'; Rule = 'csharpsquid:S6640'; Resource = '**/*.cs' }
             @{ Key = 'nullableFlow'; Rule = 'csharpsquid:S8970'; Resource = '**/*.cs' }
-            @{ Key = 'luaExportNames'; Rule = 'csharpsquid:S3218'; Resource = 'libs/CESDK.Lua.Interop/Api/**' }
-            @{ Key = 'luaTypeNames'; Rule = 'csharpsquid:S101'; Resource = 'libs/CESDK.Lua.Interop/Types/**' }
-            @{ Key = 'interopShape'; Rule = 'csharpsquid:S107'; Resource = 'libs/CESDK.Lua.Interop/Protected/LuaProtectedExports.cs' }
-            @{ Key = 'callbackDispose'; Rule = 'csharpsquid:S3881'; Resource = 'libs/CESDK.Lua/Callbacks/LuaCallback.cs' }
-            @{ Key = 'memoryProtectionName'; Rule = 'csharpsquid:S2342'; Resource = 'libs/CESDK.Engine/Enums/MemoryProtection.cs' }
-            @{ Key = 'descriptorDispatch'; Rule = 'csharpsquid:S1694'; Resource = 'libs/CESDK.Hosting/Bootstrap/PluginDescriptor.cs' }
+            @{ Key = 'luaExportNames'; Rule = 'csharpsquid:S3218'; Resource = 'libs/CheatEngine.SDK.Lua.Interop/Api/**' }
+            @{ Key = 'luaTypeNames'; Rule = 'csharpsquid:S101'; Resource = 'libs/CheatEngine.SDK.Lua.Interop/Types/**' }
+            @{ Key = 'interopShape'; Rule = 'csharpsquid:S107'; Resource = 'libs/CheatEngine.SDK.Lua.Interop/Protected/LuaProtectedExports.cs' }
+            @{ Key = 'callbackDispose'; Rule = 'csharpsquid:S3881'; Resource = 'libs/CheatEngine.SDK.Lua/Callbacks/LuaCallback.cs' }
+            @{ Key = 'memoryProtectionName'; Rule = 'csharpsquid:S2342'; Resource = 'libs/CheatEngine.SDK.Engine/Enums/MemoryProtection.cs' }
+            @{ Key = 'descriptorDispatch'; Rule = 'csharpsquid:S1694'; Resource = 'libs/CheatEngine.SDK.Hosting/Bootstrap/PluginDescriptor.cs' }
             @{ Key = 'apiOverloadLayout'; Rule = 'csharpsquid:S4136'; Resource = 'libs/**' }
             @{ Key = 'roslynInstances'; Rule = 'csharpsquid:S2325'; Resource = 'analyzers/**' }
             @{ Key = 'generatorInstances'; Rule = 'csharpsquid:S2325'; Resource = 'source-generators/**' }
-            @{ Key = 'emittedFragments'; Rule = 'csharpsquid:S1192'; Resource = 'source-generators/CESDK.SourceGenerators.Shared/LuaEmit/LuaGlobalCallEmitter.cs' }
+            @{ Key = 'emittedFragments'; Rule = 'csharpsquid:S1192'; Resource = 'source-generators/CheatEngine.SDK.SourceGenerators.Shared/LuaEmit/LuaGlobalCallEmitter.cs' }
             @{ Key = 'analyzerComments'; Rule = 'csharpsquid:S125'; Resource = 'analyzers/**' }
-            @{ Key = 'interopComments'; Rule = 'csharpsquid:S125'; Resource = 'libs/CESDK.Lua.Interop/Api/**' }
+            @{ Key = 'interopComments'; Rule = 'csharpsquid:S125'; Resource = 'libs/CheatEngine.SDK.Lua.Interop/Api/**' }
             @{ Key = 'testReflection'; Rule = 'csharpsquid:S3011'; Resource = 'tests/**' }
             @{ Key = 'testLiterals'; Rule = 'csharpsquid:S1192'; Resource = 'tests/**' }
             @{ Key = 'testGc'; Rule = 'csharpsquid:S1215'; Resource = 'tests/**' }
@@ -142,7 +142,7 @@ jobs:
           $arguments = @(
             "/k:$env:SONAR_PROJECT_KEY"
             "/o:$env:SONAR_ORGANIZATION"
-            '/d:sonar.exclusions=artifacts/**,tests/CESDK.Benchmarks/**,tests/CESDK.LivePlugin/**'
+            '/d:sonar.exclusions=artifacts/**,tests/CheatEngine.SDK.Benchmarks/**,tests/CheatEngine.SDK.LivePlugin/**'
             '/d:sonar.coverage.exclusions=tests/**'
             "/d:sonar.issue.ignore.multicriteria=$(($ignoredIssues.Key) -join ',')"
             "/d:sonar.cs.vscoveragexml.reportsPaths=$coverage/**/*.xml"
@@ -156,7 +156,7 @@ jobs:
 
       - name: Build
         if: env.SONAR_ENABLED == 'true'
-        run: dotnet build CESDK.slnx -c Debug --no-incremental --disable-build-servers
+        run: dotnet build CheatEngine.SDK.slnx -c Debug --no-incremental --disable-build-servers
 
       - name: End analysis
         if: env.SONAR_ENABLED == 'true'

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Plain references: the tests need the analyzer and code-fix types, not the components running on the test code. -->
+    <ProjectReference Include="../../analyzers/CheatEngine.SDK.Analyzers/CheatEngine.SDK.Analyzers.csproj"/>
+    <ProjectReference Include="../../analyzers/CheatEngine.SDK.Analyzers.CodeFixes/CheatEngine.SDK.Analyzers.CodeFixes.csproj"/>
+    <!-- Generator types, run directly (CSharpGeneratorDriver) to check that a generator emits exactly when its analyzer rule is silent. -->
+    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/CheatEngine.SDK.SourceGenerators.EntryPoint.csproj"/>
+    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/CheatEngine.SDK.SourceGenerators.LuaBindings.csproj"/>
+    <!-- Real Annotations and Lua types that the CESDK2xxx tests bind against (LuaState, [LuaFunction], [LuaGlobal]). -->
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
+  </ItemGroup>
+
+</Project>

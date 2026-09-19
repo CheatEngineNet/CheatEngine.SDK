@@ -1,6 +1,6 @@
 <div align="center">
 
-# The CESDK API, end to end
+# The CheatEngine.SDK API, end to end
 
 **Every type a plugin author touches, in the order you meet it, with the rule that keeps Cheat Engine alive.**
 
@@ -19,13 +19,13 @@
 
 ## The layers
 
-CESDK ships as one NuGet package. Inside it, small libraries stack on each other, and two build time components write
-code into your plugin.
+CheatEngine.SDK ships as one NuGet package. Inside it, small libraries stack on each other, and two build time
+components write code into your plugin.
 
 ```mermaid
 flowchart TB
     Plugin["Your plugin"]
-    subgraph SDK["The CESDK package"]
+    subgraph SDK["The CheatEngine.SDK package"]
         Gen["Generators and analyzers<br/>build time"]
         Annotations["Annotations<br/>attributes"]
         Hosting["Hosting<br/>lifecycle, main thread, log"]
@@ -48,32 +48,33 @@ flowchart TB
     Hosting --> CE
 ```
 
-| Namespace                                                 | You use it for                                                    | Guide                                                                                                               |
-|-----------------------------------------------------------|-------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| `CESDK.Annotations.*`                                     | The attributes the generators and analyzers read                  | [01](../01-first-plugin/README.md), [02](../02-lua-functions/README.md), [03](../03-calling-cheat-engine/README.md) |
-| `CESDK.Hosting.Plugin`                                    | The `CheatEnginePlugin` base class                                | [01](../01-first-plugin/README.md)                                                                                  |
-| `CESDK.Hosting.Context`, `.Bootstrap`                     | `PluginContext` and the `PluginHost` readers                      | [09](../09-main-thread/README.md)                                                                                   |
-| `CESDK.Hosting.Threading`                                 | `MainThread`                                                      | [09](../09-main-thread/README.md)                                                                                   |
-| `CESDK.Hosting.Diagnostics`                               | `HostLog` and log sinks                                           | [10](../10-logging-and-errors/README.md)                                                                            |
-| `CESDK.Lua.State`, `.Runtime`, `.Calls`                   | `LuaState`, `LuaFrame`, `LuaRuntime`, `LuaStatus`, `LuaException` | [08](../08-running-lua/README.md)                                                                                   |
-| `CESDK.Lua.Marshalling`, `.References`, `.Callbacks`      | Marshallers, `LuaRef`, `LuaCallback`                              | [08](../08-running-lua/README.md)                                                                                   |
-| `CESDK.Engine.Objects`, `.Values`, `.Enums`, `.Generated` | `CEObject`, `Owned<T>`, `Address`, enums, `MemoryScalars`         | [04](../04-memory/README.md) to [07](../07-address-list/README.md)                                                  |
+| Namespace                                                           | You use it for                                                    | Guide                                                                                                               |
+|---------------------------------------------------------------------|-------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| `CheatEngine.SDK.Annotations.*`                                     | The attributes the generators and analyzers read                  | [01](../01-first-plugin/README.md), [02](../02-lua-functions/README.md), [03](../03-calling-cheat-engine/README.md) |
+| `CheatEngine.SDK.Hosting.Plugin`                                    | The `CheatEnginePlugin` base class                                | [01](../01-first-plugin/README.md)                                                                                  |
+| `CheatEngine.SDK.Hosting.Context`, `.Bootstrap`                     | `PluginContext` and the `PluginHost` readers                      | [09](../09-main-thread/README.md)                                                                                   |
+| `CheatEngine.SDK.Hosting.Threading`                                 | `MainThread`                                                      | [09](../09-main-thread/README.md)                                                                                   |
+| `CheatEngine.SDK.Hosting.Diagnostics`                               | `HostLog` and log sinks                                           | [10](../10-logging-and-errors/README.md)                                                                            |
+| `CheatEngine.SDK.Lua.State`, `.Runtime`, `.Calls`                   | `LuaState`, `LuaFrame`, `LuaRuntime`, `LuaStatus`, `LuaException` | [08](../08-running-lua/README.md)                                                                                   |
+| `CheatEngine.SDK.Lua.Marshalling`, `.References`, `.Callbacks`      | Marshallers, `LuaRef`, `LuaCallback`                              | [08](../08-running-lua/README.md)                                                                                   |
+| `CheatEngine.SDK.Engine.Objects`, `.Values`, `.Enums`, `.Generated` | `CEObject`, `Owned<T>`, `Address`, enums, `MemoryScalars`         | [04](../04-memory/README.md) to [07](../07-address-list/README.md)                                                  |
 
-`CESDK.Abi` (the packed init record and host function table) and `CESDK.Lua.Interop` (the raw Lua 5.3 C API) are the
-foundation. A plugin author rarely calls them, and `CESDK.Lua.CompilerServices` is called by generated code only.
+`CheatEngine.SDK.Abi` (the packed init record and host function table) and `CheatEngine.SDK.Lua.Interop` (the raw
+Lua 5.3 C API) are the foundation. A plugin author rarely calls them, and `CheatEngine.SDK.Lua.CompilerServices` is
+called by generated code only.
 
 ## Install and build settings
 
 ```powershell
-dotnet add package CESDK --prerelease
+dotnet add package CheatEngine.SDK --prerelease
 ```
 
-| Setting                   | Default from the package | Meaning                                                                                 |
-|---------------------------|--------------------------|-----------------------------------------------------------------------------------------|
-| `AllowUnsafeBlocks`       | `true` while empty       | The Lua binding generator takes the address of native thunks and needs it (`CESDK2001`) |
-| `EnableDynamicLoading`    | `true` while empty       | Copies referenced assemblies next to your plugin and writes its runtime config          |
-| `CesdkGenerateEntryPoint` | `true` while empty       | Set `false` to write `CESDK.CESDK.CEPluginInitialize` by hand                           |
-| `PlatformTarget`          | yours                    | Must not be `x86`: the build stops with `CESDK9101`                                     |
+| Setting                            | Default from the package | Meaning                                                                                 |
+|------------------------------------|--------------------------|-----------------------------------------------------------------------------------------|
+| `AllowUnsafeBlocks`                | `true` while empty       | The Lua binding generator takes the address of native thunks and needs it (`CESDK2001`) |
+| `EnableDynamicLoading`             | `true` while empty       | Copies referenced assemblies next to your plugin and writes its runtime config          |
+| `CheatEngineSdkGenerateEntryPoint` | `true` while empty       | Set `false` to write `CESDK.CESDK.CEPluginInitialize` by hand                           |
+| `PlatformTarget`                   | yours                    | Must not be `x86`: the build stops with `CESDK9101`                                     |
 
 | Requirement  | Version                                                                                               |
 |--------------|-------------------------------------------------------------------------------------------------------|
@@ -95,13 +96,13 @@ dotnet add package CESDK --prerelease
 | `RequiresPluginEnabled`                | `Lifetime`  | member or type                    | The API works only between enable and disable                 |
 | `CEOwned`                              | `Lifetime`  | return value, property, parameter | Cheat Engine owns the object: do not dispose it               |
 
-All namespaces start with `CESDK.Annotations.`. The last five attributes are metadata: they document intent for you and
-for tools, and the SDK applies them to its own APIs.
+All namespaces start with `CheatEngine.SDK.Annotations.`. The last five attributes are metadata: they document intent
+for you and for tools, and the SDK applies them to its own APIs.
 
 ## Plugin lifecycle
 
-`CESDK.Hosting.Plugin.CheatEnginePlugin` is the base class. Mark one subclass with `[CheatEnginePlugin("Name")]`, give
-it a public parameterless constructor, and override two methods.
+`CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin` is the base class. Mark one subclass with
+`[CheatEnginePlugin("Name")]`, give it a public parameterless constructor, and override two methods.
 
 | Member        | Kind                                       | Notes                                                                                                                |
 |---------------|--------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -119,8 +120,8 @@ it a public parameterless constructor, and override two methods.
 | `IsCurrent`                                                        | Whether this context is the live one                                          |
 | `ReportedExportsSize`, `HasProcessMessages`, `HasCheckSynchronize` | What the host reported, for diagnostics                                       |
 
-`PluginHost` (`CESDK.Hosting.Bootstrap`) exposes lock free readers: `IsInitialized`, `IsEnabled`, `Context` (`null`
-while disabled), `LastInitRecordSize` and `LastVersionRecordSize`.
+`PluginHost` (`CheatEngine.SDK.Hosting.Bootstrap`) exposes lock free readers: `IsInitialized`, `IsEnabled`, `Context`
+(`null` while disabled), `LastInitRecordSize` and `LastVersionRecordSize`.
 
 ```mermaid
 stateDiagram-v2
@@ -169,7 +170,7 @@ parameters. Read the full rules in the [Lua functions guide](../02-lua-functions
 
 ## The Lua toolkit
 
-`CESDK.Lua` is what generated code calls, and what you call when a binding cannot express the job.
+`CheatEngine.SDK.Lua` is what generated code calls, and what you call when a binding cannot express the job.
 
 ### Runtime and state
 
@@ -258,8 +259,8 @@ above `long.MaxValue`.
 
 ### Indices and sequences
 
-Every public index in CESDK is zero based. Cheat Engine's own objects count from zero and a Lua table counts from one,
-and the only `+ 1` lives in `IndexBase.ToLuaKey`. The extensions on `LuaState` for a table on the stack are
+Every public index in CheatEngine.SDK is zero based. Cheat Engine's own objects count from zero and a Lua table counts
+from one, and the only `+ 1` lives in `IndexBase.ToLuaKey`. The extensions on `LuaState` for a table on the stack are
 `RawSequenceCount`, `RawGetSequenceItem`, `RawSetSequenceItem`, `TryGetSequenceItem` and `TrySetSequenceItem`.
 
 ### Enums
@@ -282,7 +283,7 @@ returns the Cheat Engine name as UTF-8 (empty for an undefined value or a flag c
 
 ### `MemoryScalars`
 
-`CESDK.Engine.Generated.MemoryScalars` wraps four Cheat Engine functions with `Address` arguments.
+`CheatEngine.SDK.Engine.Generated.MemoryScalars` wraps four Cheat Engine functions with `Address` arguments.
 
 | Method                             | Cheat Engine function | On failure                                                             |
 |------------------------------------|-----------------------|------------------------------------------------------------------------|
@@ -293,8 +294,8 @@ returns the Cheat Engine name as UTF-8 (empty for an undefined value or a flag c
 
 ## Threads
 
-`CESDK.Hosting.Threading.MainThread` is Cheat Engine's main (GUI) thread as a plugin sees it. Everything needs an
-enabled plugin.
+`CheatEngine.SDK.Hosting.Threading.MainThread` is Cheat Engine's main (GUI) thread as a plugin sees it. Everything
+needs an enabled plugin.
 
 | Member                                                  | Meaning                                                                                  |
 |---------------------------------------------------------|------------------------------------------------------------------------------------------|
@@ -309,7 +310,7 @@ Read [09 · The main thread](../09-main-thread/README.md).
 
 ## Logging
 
-`CESDK.Hosting.Diagnostics.HostLog` receives every failure that a lifecycle callback turns into a failed call.
+`CheatEngine.SDK.Hosting.Diagnostics.HostLog` receives every failure that a lifecycle callback turns into a failed call.
 
 | Member                             | Meaning                                                                                                  |
 |------------------------------------|----------------------------------------------------------------------------------------------------------|
@@ -339,13 +340,13 @@ Every rule has a page with the cause, the reason, the exact definition and the f
 The smallest plugin that touches each layer once: lifecycle, an exported function, a typed call and the memory wrappers.
 
 ```csharp
-using CESDK.Annotations.Lua;
-using CESDK.Annotations.Plugin;
-using CESDK.Engine.Generated;
-using CESDK.Engine.Values;
-using CESDK.Hosting.Diagnostics;
-using CESDK.Hosting.Plugin;
-using CESDK.Lua.Runtime;
+using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Annotations.Plugin;
+using CheatEngine.SDK.Engine.Generated;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace Skeleton;
 

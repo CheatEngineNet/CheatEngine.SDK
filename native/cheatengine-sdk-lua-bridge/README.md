@@ -18,10 +18,11 @@ when it is stale, the job fails after uploading the corrected `lua-protection-br
 Only rebuild it locally after changing `cheatengine_sdk_lua_bridge.c` or `xmake.lua`:
 
 ```powershell
-$output = Join-Path $PWD 'artifacts/native/cheatengine-sdk-lua-bridge'
+$output = 'artifacts/native/cheatengine-sdk-lua-bridge'
+$outputPath = Join-Path $PWD $output
 xmake f -P native/cheatengine-sdk-lua-bridge -o $output -p windows -a x64 -m release -y
 xmake -P native/cheatengine-sdk-lua-bridge -y
-Copy-Item "$output/cheatengine-sdk-lua-bridge.dll" native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll
+Copy-Item (Join-Path $outputPath 'cheatengine-sdk-lua-bridge.dll') native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll
 ```
 
 The xmake target uses reproducible MSVC linking, so rebuilding twice with the same toolchain and source produces the

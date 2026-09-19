@@ -80,10 +80,14 @@ jobs:
 
       - name: Build bridge
         run: |
-          $output = Join-Path $PWD 'artifacts/native/cheatengine-sdk-lua-bridge'
+          # xmake 3.0.9 mis-parses an absolute Windows -o path when the target
+          # uses $(builddir); keep the xmake path relative and resolve it only
+          # for PowerShell validation.
+          $output = 'artifacts/native/cheatengine-sdk-lua-bridge'
+          $outputPath = Join-Path $PWD $output
           xmake f -P native/cheatengine-sdk-lua-bridge -o $output -p windows -a x64 -m release -y
           xmake -P native/cheatengine-sdk-lua-bridge -y
-          if (-not (Test-Path -LiteralPath "$output/cheatengine-sdk-lua-bridge.dll" -PathType Leaf)) {
+          if (-not (Test-Path -LiteralPath (Join-Path $outputPath 'cheatengine-sdk-lua-bridge.dll') -PathType Leaf)) {
             throw 'xmake did not produce cheatengine-sdk-lua-bridge.dll.'
           }
 

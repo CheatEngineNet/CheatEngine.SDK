@@ -1,0 +1,304 @@
+name: CI
+
+on:
+  workflow_call:
+    inputs:
+      collect-coverage:
+        description: Emit Visual Studio XML coverage from every test job and upload it as coverage-<project>.
+        type: boolean
+        default: false
+      upload-package:
+        description: Upload the packed package as the nuget-package artifact.
+        type: boolean
+        default: false
+      test-release:
+        description: Also run every test project against the Release build, which is what ships.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  discover:
+    name: Discover tests
+    runs-on: windows-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.projects.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: tests
+          persist-credentials: false
+
+      - name: Find test projects
+        id: projects
+        env:
+          TEST_RELEASE: ${{ inputs.test-release }}
+        # Mirrors eng/Tests.props: a test project is any tests/**/*.Tests project, so a new one needs no edit here.
+        run: |
+          $projects = @(Get-ChildItem -Path tests -Filter '*.Tests.csproj' -Recurse -File | Sort-Object Name)
+          if ($projects.Count -eq 0) { throw 'No *.Tests.csproj project found under tests.' }
+          $configurations = if ($env:TEST_RELEASE -eq 'true') { 'Debug', 'Release' } else { 'Debug' }
+          $include = foreach ($project in $projects) {
+            foreach ($configuration in $configurations) {
+              $suffix = if ($configuration -eq 'Release') { '-release' } else { '' }
+              [ordered]@{
+                name = $project.BaseName
+                project = [IO.Path]::GetRelativePath($PWD.Path, $project.FullName).Replace('\', '/')
+                configuration = $configuration
+                label = "$($project.BaseName)$(if ($suffix) { ' (Release)' })"
+                artifact = "$($project.BaseName)$suffix"
+              }
+            }
+          }
+          $matrix = ConvertTo-Json -Compress -InputObject ([ordered]@{ include = @($include) })
+          "matrix=$matrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Found $($projects.Count) test projects."
+          $projects | ForEach-Object { Write-Host "  $($_.BaseName)" }
+
+  native:
+    name: Build native bridge
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@3a1a5dddfc7fa625d9a698738334bf55655a861a # v1
+        with:
+          xmake-version: '3.0.9'
+
+      - name: Build bridge
+        run: |
+          $output = Join-Path $PWD 'artifacts/native/cesdk-lua-bridge'
+          xmake f -P native/cesdk-lua-bridge -o $output -p windows -a x64 -m release -y
+          xmake -P native/cesdk-lua-bridge -y
+          if (-not (Test-Path -LiteralPath "$output/cesdk-lua-bridge.dll" -PathType Leaf)) {
+            throw 'xmake did not produce cesdk-lua-bridge.dll.'
+          }
+
+      - name: Upload bridge
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lua-protection-bridge
+          path: artifacts/native/cesdk-lua-bridge/cesdk-lua-bridge.dll
+          if-no-files-found: error
+          retention-days: 14
+
+      # Run after upload so a failed drift check still leaves the corrected DLL available to download.
+      - name: Verify checked-in bridge matches its source
+        run: |
+          $sourceHash = (Get-FileHash -Algorithm SHA256 native/cesdk-lua-bridge/cesdk_lua_bridge.c).Hash.ToLowerInvariant()
+          $buildHash = (Get-FileHash -Algorithm SHA256 native/cesdk-lua-bridge/xmake.lua).Hash.ToLowerInvariant()
+          $expected = "$sourceHash`:$buildHash"
+          $prebuilt = Resolve-Path native/cesdk-lua-bridge/runtimes/win-x64/native/cesdk-lua-bridge.dll
+          $module = [System.Runtime.InteropServices.NativeLibrary]::Load($prebuilt.Path)
+          try {
+            $address = [System.Runtime.InteropServices.NativeLibrary]::GetExport($module, 'cesdk_lua_bridge_source_fingerprint')
+            $actual = [System.Runtime.InteropServices.Marshal]::PtrToStringAnsi($address)
+          }
+          finally {
+            [System.Runtime.InteropServices.NativeLibrary]::Free($module)
+          }
+          if ($actual -ne $expected) {
+            throw "The checked-in bridge is stale. Expected source fingerprint '$expected', found '$actual'. Download the lua-protection-bridge artifact from this run and commit it."
+          }
+
+  build:
+    name: Build
+    needs: native
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # MinVer computes the version from tags and history
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
+        with:
+          restore: CESDK.slnx
+
+      - name: Use CI-built native bridge
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: lua-protection-bridge
+          path: native/cesdk-lua-bridge/runtimes/win-x64/native
+
+      # Tests run against Debug, where some guards exist only. Release is what ships.
+      - name: Build Debug
+        run: dotnet build CESDK.slnx --no-restore -c Debug
+
+      - name: Build Release
+        run: dotnet build CESDK.slnx --no-restore -c Release
+
+  test:
+    name: Test ${{ matrix.label }}
+    needs: [ discover, native ]
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # MinVer computes the version from tags and history
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
+
+      - name: Use CI-built native bridge
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: lua-protection-bridge
+          path: native/cesdk-lua-bridge/runtimes/win-x64/native
+
+      # A skipped test fails the Debug job: NativeLua tests skip when the bundled Lua DLL does not bind, and a green check must not hide that.
+      # Release keeps one legitimate skip, a guard that only exists in Debug.
+      - name: Test
+        env:
+          PROJECT: ${{ matrix.project }}
+          CONFIGURATION: ${{ matrix.configuration }}
+          RESULTS: artifacts/test-results/${{ matrix.artifact }}
+          COLLECT_COVERAGE: ${{ inputs.collect-coverage }}
+        run: |
+          $options = '--project', $env:PROJECT, '-c', $env:CONFIGURATION, '--report-trx', '--results-directory', $env:RESULTS
+          if ($env:CONFIGURATION -eq 'Debug') { $options += '--fail-skips', 'on' }
+          if ($env:CONFIGURATION -eq 'Debug' -and $env:COLLECT_COVERAGE -eq 'true') { $options += '--coverage', '--coverage-output-format', 'xml', '--coverage-output', 'coverage.xml' }
+          dotnet test @options
+
+      - name: Summarize results
+        if: ${{ !cancelled() }}
+        env:
+          NAME: ${{ matrix.label }}
+          RESULTS: artifacts/test-results/${{ matrix.artifact }}
+        run: |
+          $files = @(Get-ChildItem -Path $env:RESULTS -Filter *.trx -File -ErrorAction SilentlyContinue)
+          if ($files.Count -eq 0) { Write-Host '::warning::The test run produced no TRX report.'; return }
+          $lines = foreach ($file in $files) {
+            $results = @(([xml](Get-Content -LiteralPath $file.FullName -Raw)).TestRun.Results.UnitTestResult | Where-Object { $_ })
+            $passed = @($results | Where-Object outcome -eq 'Passed').Count
+            $skipped = @($results | Where-Object outcome -eq 'NotExecuted').Count
+            $failed = @($results | Where-Object { $_.outcome -notin 'Passed', 'NotExecuted' })
+            "### $env:NAME"
+            ''
+            '| Total | Passed | Failed | Skipped |'
+            '| ---: | ---: | ---: | ---: |'
+            "| $($results.Count) | $passed | $($failed.Count) | $skipped |"
+            if ($failed.Count -gt 0) {
+              ''
+              $failed | Select-Object -First 20 | ForEach-Object { "- ``$($_.testName)``" }
+              $rest = @($failed | Select-Object -Skip 20).Count
+              if ($rest -gt 0) { "- and $rest more" }
+            }
+          }
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Summarize coverage
+        if: ${{ inputs.collect-coverage && matrix.configuration == 'Debug' && !cancelled() }}
+        env:
+          RESULTS: artifacts/test-results/${{ matrix.artifact }}
+        run: |
+          $modules = @(Get-ChildItem -Path $env:RESULTS -Filter *.xml -File -ErrorAction SilentlyContinue | ForEach-Object {
+            ([xml](Get-Content -LiteralPath $_.FullName -Raw)).results.modules.module
+          } | Where-Object { $_ })
+          if ($modules.Count -eq 0) { Write-Host 'The coverage report lists no instrumented module.'; return }
+          $rows = $modules | Sort-Object name | ForEach-Object {
+            "| $($_.name) | $($_.line_coverage)% | $($_.lines_covered) | $($_.lines_not_covered) |"
+          }
+          '', '#### Coverage', '', '| Module | Line coverage | Lines covered | Lines not covered |', '| --- | ---: | ---: | ---: |', $rows |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results-${{ matrix.artifact }}
+          path: artifacts/test-results/${{ matrix.artifact }}/*.trx
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload coverage
+        if: ${{ inputs.collect-coverage && matrix.configuration == 'Debug' && !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-${{ matrix.name }}
+          path: artifacts/test-results/${{ matrix.artifact }}/coverage.xml
+          if-no-files-found: error
+          retention-days: 7
+
+  pack:
+    name: Pack
+    needs: native
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # MinVer computes the version from tags and history
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
+
+      - name: Use CI-built native bridge
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: lua-protection-bridge
+          path: native/cesdk-lua-bridge/runtimes/win-x64/native
+
+      - name: Pack
+        run: dotnet pack src/CESDK -c Release -o artifacts/nuget
+
+      - name: Verify package
+        run: |
+          $packages = @(Get-ChildItem -Path artifacts/nuget -Filter *.nupkg -File)
+          if ($packages.Count -ne 1) { throw "Expected one package in artifacts/nuget, found $($packages.Count)." }
+          Write-Host "Packed $($packages[0].Name)."
+
+      - name: Upload package
+        if: ${{ inputs.upload-package }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nuget-package
+          path: artifacts/nuget/*.nupkg
+          if-no-files-found: error
+          retention-days: 90
+
+  # The one check to require in branch protection.
+  gate:
+    name: Gate
+    if: ${{ always() }}
+    needs: [ discover, native, build, test, pack ]
+    runs-on: windows-latest
+    timeout-minutes: 5
+    permissions: { }
+    steps:
+      - name: Check results
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          $jobs = $env:NEEDS | ConvertFrom-Json -AsHashtable
+          $rows = $jobs.GetEnumerator() | Sort-Object Key | ForEach-Object { "| $($_.Key) | $($_.Value.result) |" }
+          '| Job | Result |', '| --- | --- |', $rows | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          $failed = @($jobs.GetEnumerator() | Where-Object { $_.Value.result -ne 'success' } | ForEach-Object Key)
+          if ($failed.Count -gt 0) {
+            Write-Host "::error::Not successful: $($failed -join ', ')."
+            exit 1
+          }

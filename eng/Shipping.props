@@ -1,0 +1,26 @@
+<Project>
+  <!-- Profile for src/ and libs/: the net10.0 assemblies embedded in the CESDK package. AllowUnsafeBlocks is set per project. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Implies IsTrimmable and the trim, single-file and AOT analyzers. -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <!-- Interop-heavy code: raise three analysis categories and keep the rest at recommended. -->
+    <AnalysisModeInteroperability>All</AnalysisModeInteroperability>
+    <AnalysisModeSecurity>All</AnalysisModeSecurity>
+    <AnalysisModeReliability>All</AnalysisModeReliability>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Assembly metadata">
+    <Authors>AriusII;ShadowNineX</Authors>
+    <Product>CESDK</Product>
+    <Copyright>Copyright (c) AriusII, ShadowNineX and CESDK contributors</Copyright>
+    <RepositoryUrl>https://github.com/ShadowNineX/CESDK</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reports RS0030 on every use of a symbol listed in BannedSymbols.txt. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all"/>
+    <AdditionalFiles Include="$(RepoRoot)eng/BannedSymbols.txt" Visible="false"/>
+  </ItemGroup>
+</Project>

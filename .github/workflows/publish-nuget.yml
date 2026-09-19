@@ -1,71 +1,180 @@
-name: Publish NuGet
+name: Release
+
+run-name: Release ${{ github.ref_name }}${{ github.event_name == 'workflow_dispatch' && ' (dry run)' || '' }}
 
 on:
   push:
     tags:
       - "v*.*.*"
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Package version to publish, for example 0.1.0"
-        required: true
-        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  publish:
-    name: Pack and publish
+  verify:
+    name: Verify tag
     runs-on: windows-latest
-
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+      prerelease: ${{ steps.tag.outputs.prerelease }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          dotnet-version: "10.0.x"
+          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Resolve package version
-        id: version
+      # A version on nuget.org can never be replaced, and a squash or rebase merge gives the pull request new commits.
+      # Only a commit on the first-parent line of main, the merged head, may be released.
+      - name: Verify tag
+        id: tag
         shell: pwsh
         run: |
-          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-            $version = "${{ inputs.version }}"
-          } else {
-            $version = "${{ github.ref_name }}" -replace '^v', ''
+          $ErrorActionPreference = 'Stop'
+
+          if ($env:GITHUB_REF_TYPE -ne 'tag') {
+            Write-Host "::notice::Dry run on branch $env:GITHUB_REF_NAME, so there is no tag to verify."
+            exit 0
           }
 
-          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
-            throw "Version '$version' is not a valid NuGet package version."
+          $semver = '^v(?<version>(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?)$'
+          if (-not ($env:GITHUB_REF_NAME -cmatch $semver)) {
+            Write-Host "::error::Tag $env:GITHUB_REF_NAME is not a release tag. Use v<major>.<minor>.<patch> with an optional SemVer prerelease such as -rc.1, and no build metadata."
+            exit 1
+          }
+          $version = $Matches['version']
+
+          $commit = git rev-parse --verify "${env:GITHUB_REF}^{commit}"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::Tag $env:GITHUB_REF_NAME does not resolve to a commit."
+            exit 1
+          }
+          $landed = git rev-list --first-parent refs/remotes/origin/main
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host '::error::The checkout has no origin/main to compare the tag with.'
+            exit 1
+          }
+          if ($landed -notcontains $commit) {
+            Write-Host "::error::Tag $env:GITHUB_REF_NAME points to $commit, which did not land on main. Tag the merged head of main."
+            exit 1
           }
 
-          "version=$version" >> $env:GITHUB_OUTPUT
+          $prerelease = if ($version.Contains('-')) { 'true' } else { 'false' }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "prerelease=$prerelease" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      - name: Restore
-        run: dotnet restore CESDK.sln
+  ci:
+    needs: verify
+    uses: ./.github/workflows/_ci.yml
+    with:
+      upload-package: true
+      test-release: true
 
-      - name: Pack
-        run: dotnet pack CESDK.csproj -c Release --no-restore -o artifacts /p:PackageVersion=${{ steps.version.outputs.version }}
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v6
+  package:
+    name: Check package
+    needs: [ verify, ci ]
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: nuget-package
-          path: artifacts/*
+          path: artifacts/nuget
 
-      - name: NuGet login
-        uses: NuGet/login@v1
-        id: login
+      - name: Check contents
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $names = @(Get-ChildItem -Path artifacts/nuget -File | ForEach-Object Name)
+          $expected = if ($env:VERSION) { "CESDK.${env:VERSION}.nupkg" } else { 'CESDK.*.nupkg' }
+          if ($names.Count -ne 1 -or $names[0] -notlike $expected) {
+            Write-Host "::error::The package artifact must contain exactly $expected, but it contains: $($names -join ', ')."
+            exit 1
+          }
+
+  publish:
+    name: Publish to NuGet
+    needs: [ verify, package ]
+    if: github.event_name == 'push' && github.ref_type == 'tag' && github.repository == 'ShadowNineX/CESDK'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    environment:
+      name: nuget
+      url: https://www.nuget.org/packages/CESDK/${{ needs.verify.outputs.version }}
+    permissions:
+      contents: read
+      id-token: write # NuGet trusted publishing and the provenance signature
+      attestations: write # store the provenance attestation
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      VERSION: ${{ needs.verify.outputs.version }}
+    steps:
+      - name: Download package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          user: ShadowNineX
+          name: nuget-package
+          path: artifacts/nuget
 
-      - name: Publish to NuGet
+      - name: Attest provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: artifacts/nuget/CESDK.${{ env.VERSION }}.nupkg
+
+      # The user is the nuget.org profile name of the person who registered the trusted publishing policy, not an organization.
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ vars.NUGET_USER || 'ShadowNineX' }}
+
+      # A re-run after a partial failure must not fail on a version that is already published.
+      - name: Push package
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push "artifacts/nuget/CESDK.${env:VERSION}.nupkg" --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+  github-release:
+    name: Create GitHub release
+    needs: [ verify, publish ]
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # create the release and upload the package
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+      VERSION: ${{ needs.verify.outputs.version }}
+      PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+    steps:
+      - name: Download package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: nuget-package
+          path: artifacts/nuget
+
+      - name: Create release
         shell: pwsh
         run: |
-          Get-ChildItem -Path artifacts -Filter "*.nupkg" | ForEach-Object {
-            dotnet nuget push $_.FullName --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          $name = "CESDK.${env:VERSION}.nupkg"
+          $attached = gh release view $env:TAG --json assets --jq '.assets[].name' 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            $options = @('--verify-tag', '--generate-notes', '--notes', "NuGet package: https://www.nuget.org/packages/CESDK/$env:VERSION")
+            if ($env:PRERELEASE -eq 'true') { $options += '--prerelease' }
+            gh release create $env:TAG "artifacts/nuget/$name" @options
+          } elseif ($attached -notcontains $name) {
+            gh release upload $env:TAG "artifacts/nuget/$name"
+          } else {
+            Write-Host "::notice::Release $env:TAG already carries $name."
           }

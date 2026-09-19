@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Normal reference: the tests need the generator type, not the generator running on the test code. -->
+    <ProjectReference Include="../../source-generators/CESDK.SourceGenerators.EngineApi/CESDK.SourceGenerators.EngineApi.csproj"/>
+    <!-- Real assemblies the generated code is compiled against and executed with. -->
+    <ProjectReference Include="../../libs/CESDK.Annotations/CESDK.Annotations.csproj"/>
+    <ProjectReference Include="../../libs/CESDK.Lua.Interop/CESDK.Lua.Interop.csproj"/>
+    <ProjectReference Include="../../libs/CESDK.Lua/CESDK.Lua.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Native Lua fixture (tests/CESDK.Tests.Shared/README.md). -->
+    <ProjectReference Include="../CESDK.Tests.Shared/CESDK.Tests.Shared.csproj"/>
+  </ItemGroup>
+
+</Project>

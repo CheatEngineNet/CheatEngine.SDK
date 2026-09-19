@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Blittable mapping of the Cheat Engine plugin ABI: managed init record and exports record, version structure, native registration records, enums and ABI booleans. No policy.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+</Project>

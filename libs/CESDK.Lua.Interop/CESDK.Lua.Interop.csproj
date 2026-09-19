@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Raw Lua 5.3 C API as one function-pointer table resolved from an injectable module handle, plus constants and macro equivalents. No policy.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!-- Content participates in GetCopyToOutputDirectoryItems, so project-reference consumers receive the
+       prebuilt bridge beside their own executable/plugin rather than only beside this library. Rebuilding
+       the C source is a maintainer/CI operation; an ordinary managed build does not require xmake or a C compiler. -->
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <Content Include="../../native/cesdk-lua-bridge/runtimes/win-x64/native/cesdk-lua-bridge.dll"
+             Link="cesdk-lua-bridge.dll"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

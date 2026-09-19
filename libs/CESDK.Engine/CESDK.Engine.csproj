@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Cheat Engine object model (borrowed and owned handles, Address, enums) and generated wrappers for reading and writing 32-bit and 64-bit integers in the target process.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../CESDK.Annotations/CESDK.Annotations.csproj"/>
+    <ProjectReference Include="../CESDK.Lua.Interop/CESDK.Lua.Interop.csproj"/>
+    <ProjectReference Include="../CESDK.Lua/CESDK.Lua.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Repository-internal generator, referenced as an analyzer only. It turns the spec below into the generated wrappers. -->
+    <ProjectReference Include="../../source-generators/CESDK.SourceGenerators.EngineApi/CESDK.SourceGenerators.EngineApi.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../source-generators/CESDK.SourceGenerators.Shared/CESDK.SourceGenerators.Shared.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <AdditionalFiles Include="../../source-generators/CESDK.SourceGenerators.EngineApi/Specs/memory-scalars.cesdk-api.txt"/>
+  </ItemGroup>
+
+</Project>

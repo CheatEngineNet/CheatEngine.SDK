@@ -1,0 +1,37 @@
+<Project>
+  <!-- Imported after the project body and the SDK targets, so conditions here see final property values. -->
+
+  <PropertyGroup Label="Package readme by convention" Condition="'$(IsPackable)' == 'true'">
+    <PackageReadmeFile Condition="'$(PackageReadmeFile)' == ''">README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup Label="Package readme by convention" Condition="'$(IsPackable)' == 'true'">
+    <!-- Update, not Include: the SDK's default globs already add README.md as a None item. -->
+    <None Update="README.md" Pack="true" PackagePath="/"/>
+  </ItemGroup>
+
+  <!-- CS1591 only: IDE0005 needs the documentation file, but test code does not document its public members. -->
+  <PropertyGroup Label="No XML doc requirement under tests/" Condition="'$(IsTestTree)' == 'true'">
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <Target Name="CesdkRequireProjectReadme" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/README.md')"
+           Code="CESDK9001"
+           Text="$(MSBuildProjectName) has no README.md next to its project file."/>
+  </Target>
+
+  <!--
+    A component built against a newer Roslyn than the consumer's compiler does not load there (CS9057). No local build
+    catches a bumped pin because the SDK named in global.json bundles the same Roslyn, so this target compares the
+    two copies of the pin.
+  -->
+  <Target Name="CesdkCheckRoslynPin" BeforeTargets="BeforeBuild" Condition="'$(IsRoslynComponent)' == 'true'">
+    <PropertyGroup>
+      <_CesdkRoslynPin>@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.CodeAnalysis.CSharp')->'%(Version)')</_CesdkRoslynPin>
+      <_CesdkWorkspacesPin>@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.CodeAnalysis.CSharp.Workspaces')->'%(Version)')</_CesdkWorkspacesPin>
+    </PropertyGroup>
+    <Error Condition="'$(_CesdkRoslynPin)' != '$(RoslynComponentFloor)' or '$(_CesdkWorkspacesPin)' != '$(RoslynComponentFloor)'"
+           Code="CESDK9002"
+           Text="Directory.Packages.props pins Microsoft.CodeAnalysis.CSharp '$(_CesdkRoslynPin)' and Workspaces '$(_CesdkWorkspacesPin)', expected '$(RoslynComponentFloor)'. Restore the pin, or raise it together with RoslynComponentFloor in eng/RoslynComponent.props."/>
+  </Target>
+</Project>

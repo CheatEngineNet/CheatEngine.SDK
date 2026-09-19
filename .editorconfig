@@ -1,0 +1,34 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{csproj,props,targets,slnx,config,json,yml}]
+indent_size = 2
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+dotnet_style_require_accessibility_modifiers = always:warning
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+# Unused usings fail the build; this needs GenerateDocumentationFile, set in Directory.Build.props.
+dotnet_diagnostic.IDE0005.severity = warning
+
+[libs/CESDK.Lua.Interop/**.cs]
+# The project mirrors the Lua 5.3 C API one to one, so C identifiers (lua_gettop, LUA_REGISTRYINDEX) stay.
+dotnet_diagnostic.IDE1006.severity = none
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1708.severity = none
+
+[tests/**.cs]
+# Test code awaits without ConfigureAwait.
+dotnet_diagnostic.MA0004.severity = suggestion
+
+[tests/*.Tests/**.cs]
+# Test methods are named Subject_condition_expected.
+dotnet_diagnostic.CA1707.severity = none

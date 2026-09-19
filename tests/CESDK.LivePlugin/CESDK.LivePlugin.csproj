@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Code inside a plugin assembly must not live in a CESDK.* namespace: there the simple name CESDK binds to the generated bootstrap type CESDK.CESDK. -->
+    <RootNamespace>LivePlugin</RootNamespace>
+    <!-- x64 only, declared here because the solution declares no x64 platform: 'dotnet sln add' writes the per-project mapping. -->
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- A plugin is a component loaded by a native host into its own AssemblyLoadContext. -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- Consumers of the LuaBindings generator need it: the generated thunks take addresses of [UnmanagedCallersOnly] statics. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Writes every generator's output to disk so the generated bootstrap can be inspected without a live Cheat Engine. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <!-- Under artifacts/ (git-ignored), not the project-relative default next to the hand-written source.
+         Built from $(ArtifactsPath), which is set in the root Directory.Build.props: $(IntermediateOutputPath) is not final yet here. -->
+    <CompilerGeneratedFilesOutputPath>$(ArtifactsPath)\obj\$(MSBuildProjectName)\generated\$(Configuration)</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <!-- Direct references to the libs, not to src/CESDK: it embeds them with PrivateAssets=all, so their types do not flow through it (CS0234). -->
+  <ItemGroup>
+    <ProjectReference Include="../../libs/CESDK.Abi/CESDK.Abi.csproj"/>
+    <ProjectReference Include="../../libs/CESDK.Annotations/CESDK.Annotations.csproj"/>
+    <ProjectReference Include="../../libs/CESDK.Engine/CESDK.Engine.csproj"/>
+    <ProjectReference Include="../../libs/CESDK.Hosting/CESDK.Hosting.csproj"/>
+    <ProjectReference Include="../../libs/CESDK.Lua.Interop/CESDK.Lua.Interop.csproj"/>
+    <ProjectReference Include="../../libs/CESDK.Lua/CESDK.Lua.csproj"/>
+  </ItemGroup>
+
+  <!-- The components a package consumer gets, running on this project as they would on a real plugin. -->
+  <ItemGroup>
+    <ProjectReference Include="../../analyzers/CESDK.Analyzers/CESDK.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <!-- IDE-only: the compiler finds no analyzer in it, the IDE gets the light bulbs for CESDK0001 / CESDK1004. -->
+    <ProjectReference Include="../../analyzers/CESDK.Analyzers.CodeFixes/CESDK.Analyzers.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../source-generators/CESDK.SourceGenerators.EntryPoint/CESDK.SourceGenerators.EntryPoint.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../source-generators/CESDK.SourceGenerators.LuaBindings/CESDK.SourceGenerators.LuaBindings.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../source-generators/CESDK.SourceGenerators.Shared/CESDK.SourceGenerators.Shared.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

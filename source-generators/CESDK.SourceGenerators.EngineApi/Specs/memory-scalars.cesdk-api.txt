@@ -1,0 +1,44 @@
+# CESDK.Engine wrappers for a handful of scalar memory read and write globals.
+#
+# Names and argument order follow Cheat Engine's Lua API. The descriptions are written independently, never copied.
+# Format: source-generators/CESDK.SourceGenerators.EngineApi/README.md.
+#
+# The header below names the one type every entry in this file lands in.
+
+namespace: CESDK.Engine.Generated
+type: MemoryScalars
+
+# readInteger(address): a 32-bit integer, or nil when the address cannot be read as one.
+global: readInteger
+method: TryReadInt32
+form: try
+arg: address:address
+fixed: boolean:true
+result: value:int32
+doc: Reads a 32-bit integer from the target process at the given address; returns false when the address is not readable as a 32-bit integer.
+
+# writeInteger(address, value): writes a 32-bit integer, true on success.
+global: writeInteger
+method: WriteInt32
+form: throwing
+arg: address:address
+arg: value:int32
+return: boolean
+doc: Writes a 32-bit integer to the target process at the given address; the returned value reports whether the write succeeded.
+
+# readQword(address): a 64-bit integer, or nil when the address cannot be read as one.
+global: readQword
+method: TryReadInt64
+form: try
+arg: address:address
+result: value:int64
+doc: Reads a 64-bit integer from the target process at the given address; returns false when the address is not readable as a 64-bit integer.
+
+# writeQword(address, value): writes a 64-bit integer, true on success.
+global: writeQword
+method: WriteInt64
+form: throwing
+arg: address:address
+arg: value:int64
+return: boolean
+doc: Writes a 64-bit integer to the target process at the given address; the returned value reports whether the write succeeded.

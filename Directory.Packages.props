@@ -1,0 +1,36 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="Roslyn components and shipping libraries">
+    <!--
+      A component built against Roslyn N does not load in a compiler older than N (CS9057), so this pin sets the minimum
+      consumer SDK: 5.9.0 needs .NET SDK 10.0.4xx or later. CESDK9002 fails the build when the two Microsoft.CodeAnalysis
+      pins differ from RoslynComponentFloor in eng/RoslynComponent.props. Raise all three together.
+    -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0"/>
+    <PackageVersion Include="PolySharp" Version="1.16.0"/>
+  </ItemGroup>
+
+  <ItemGroup Label="Tests">
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.1"/>
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2"/>
+    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.4.1"/>
+    <!-- The framework-agnostic flavors, used with DefaultVerifier. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.4"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="1.1.4"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing" Version="1.1.4"/>
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8"/>
+  </ItemGroup>
+
+  <!-- Added to every project as build-only assets (PrivateAssets=all). -->
+  <ItemGroup Label="Every project">
+    <GlobalPackageReference Include="Meziantou.Analyzer" Version="3.0.262"/>
+    <!-- Global so that every assembly embedded in the CESDK package carries the same version. -->
+    <GlobalPackageReference Include="MinVer" Version="8.0.0"/>
+  </ItemGroup>
+</Project>

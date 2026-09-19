@@ -1,0 +1,27 @@
+<Project>
+  <!-- Profile for tests/. Nothing here is packed. Only projects named *.Tests become xUnit executables; CESDK.Benchmarks and CESDK.LivePlugin do not. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Read by Directory.Build.targets, which appends the CS1591 suppression (the SDK sets its NoWarn default only while NoWarn is empty). -->
+    <IsTestTree>true</IsTestTree>
+    <!-- Lifts the old transitive Roslyn dependencies of the Roslyn testing packages and BenchmarkDotNet. Never enable it for packed projects. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!-- Keyed on the project name because IsTestProject is not defined yet when props are evaluated. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+    <!-- Makes the executable speak the Microsoft.Testing.Platform command line, same as dotnet test. -->
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <PackageReference Include="xunit.v3.mtp-v2"/>
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport"/>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+</Project>

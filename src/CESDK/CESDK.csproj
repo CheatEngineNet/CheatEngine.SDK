@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>CESDK</PackageId>
+    <Description>Write Cheat Engine plugins in C# on .NET 10. Generated plugin entry point, Lua function bindings, typed Cheat Engine objects and addresses, and analyzers in one package.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/ShadowNineX/CESDK</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>cheat-engine;cheat-engine-plugin;sdk;lua;source-generator;roslyn-analyzer;reverse-engineering</PackageTags>
+    <PackageReleaseNotes>$(PackageProjectUrl)/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_CesdkEmbedLibraries</TargetsForTfmSpecificBuildOutput>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_CesdkPackRoslynComponents;_CesdkPackLuaBridge</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <!-- A pack without a build sets NoBuild for referenced projects too, which then fail with NETSDK1085 when asked to build. -->
+  <PropertyGroup Condition="'$(NoBuild)' == 'true'">
+    <BuildProjectReferences>false</BuildProjectReferences>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- One source file packed to both locations, so they cannot drift. -->
+    <None Update="build/CESDK.props" Pack="true" PackagePath="build/CESDK.props;buildTransitive/CESDK.props"/>
+  </ItemGroup>
+
+  <!-- PrivateAssets="all" keeps the embedded libraries out of the nuspec dependency group, so no phantom CESDK.Lua package is ever resolved. -->
+  <ItemGroup Label="Libraries embedded under lib/net10.0">
+    <ProjectReference Include="../../libs/CESDK.Abi/CESDK.Abi.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="../../libs/CESDK.Annotations/CESDK.Annotations.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="../../libs/CESDK.Engine/CESDK.Engine.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="../../libs/CESDK.Hosting/CESDK.Hosting.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="../../libs/CESDK.Lua.Interop/CESDK.Lua.Interop.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="../../libs/CESDK.Lua/CESDK.Lua.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!--
+    OutputItemType="Analyzer" captures each component as an @(Analyzer) item, and PackAsAnalyzer (a name private to this
+    build) selects them for packing under analyzers/dotnet/cs. CESDK.SourceGenerators.EngineApi is absent on purpose:
+    it does not ship.
+  -->
+  <ItemGroup Label="Roslyn components packed under analyzers/dotnet/cs">
+    <ProjectReference Include="../../analyzers/CESDK.Analyzers/CESDK.Analyzers.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" PackAsAnalyzer="true"/>
+    <ProjectReference Include="../../analyzers/CESDK.Analyzers.CodeFixes/CESDK.Analyzers.CodeFixes.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" PackAsAnalyzer="true"/>
+    <ProjectReference Include="../../source-generators/CESDK.SourceGenerators.EntryPoint/CESDK.SourceGenerators.EntryPoint.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" PackAsAnalyzer="true"/>
+    <ProjectReference Include="../../source-generators/CESDK.SourceGenerators.LuaBindings/CESDK.SourceGenerators.LuaBindings.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" PackAsAnalyzer="true"/>
+    <ProjectReference Include="../../source-generators/CESDK.SourceGenerators.Shared/CESDK.SourceGenerators.Shared.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" PackAsAnalyzer="true"/>
+  </ItemGroup>
+
+  <Target Name="_CesdkCollectEmbeddedLibraries" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <_CesdkEmbeddedLibrary Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference')->WithMetadataValue('PrivateAssets', 'all')->WithMetadataValue('Extension', '.dll'))"/>
+    </ItemGroup>
+  </Target>
+
+  <!-- Each embedded assembly travels with its XML documentation file so plugin authors keep IntelliSense. -->
+  <Target Name="_CesdkEmbedLibraries" DependsOnTargets="_CesdkCollectEmbeddedLibraries">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(_CesdkEmbeddedLibrary)"/>
+      <BuildOutputInPackage Include="%(_CesdkEmbeddedLibrary.RootDir)%(_CesdkEmbeddedLibrary.Directory)%(_CesdkEmbeddedLibrary.Filename).xml"
+                            Condition="Exists('%(_CesdkEmbeddedLibrary.RootDir)%(_CesdkEmbeddedLibrary.Directory)%(_CesdkEmbeddedLibrary.Filename).xml')"/>
+    </ItemGroup>
+  </Target>
+
+  <!-- Only each component's own DLL is packed, so a component must not take a runtime dependency. -->
+  <Target Name="_CesdkPackRoslynComponents" DependsOnTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(Analyzer->WithMetadataValue('PackAsAnalyzer', 'true'))" PackagePath="analyzers/dotnet/cs"/>
+    </ItemGroup>
+  </Target>
+
+  <!-- The native protection shim is a runtime asset, not a build dependency. Consumers never need xmake or a C toolchain. -->
+  <Target Name="_CesdkPackLuaBridge">
+    <PropertyGroup>
+      <_CesdkLuaBridgePath>$(RepoRoot)native\cesdk-lua-bridge\runtimes\win-x64\native\cesdk-lua-bridge.dll</_CesdkLuaBridgePath>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(_CesdkLuaBridgePath)')"
+           Text="The prebuilt Lua protection bridge is missing at '$(_CesdkLuaBridgePath)'. Rebuild it with xmake before packing CESDK."/>
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(_CesdkLuaBridgePath)" PackagePath="runtimes/win-x64/native"/>
+    </ItemGroup>
+  </Target>
+
+</Project>

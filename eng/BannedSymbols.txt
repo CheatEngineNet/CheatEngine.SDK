@@ -1,0 +1,34 @@
+// Banned APIs for the shipping net10.0 assemblies (src/, libs/), wired in eng/Shipping.props. Every use is RS0030.
+// Format: <documentation comment ID>;<message>. An entry that does not resolve is silently ignored.
+
+// Delegate marshalling: thunks allocate, need rooting and break under Native AOT.
+M:System.Runtime.InteropServices.Marshal.GetFunctionPointerForDelegate(System.Delegate);Use [UnmanagedCallersOnly] and the address-of operator (&Method) instead of delegate marshalling.
+M:System.Runtime.InteropServices.Marshal.GetFunctionPointerForDelegate``1(``0);Use [UnmanagedCallersOnly] and the address-of operator (&Method) instead of delegate marshalling.
+M:System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer(System.IntPtr,System.Type);Call through a typed function pointer (delegate* unmanaged[...]) instead of delegate marshalling.
+M:System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer``1(System.IntPtr);Call through a typed function pointer (delegate* unmanaged[...]) instead of delegate marshalling.
+
+// Structure marshalling: ABI structs are blittable, so read and write them through pointers, Unsafe or MemoryMarshal.
+M:System.Runtime.InteropServices.Marshal.PtrToStructure(System.IntPtr,System.Object);ABI structs are blittable: read through a pointer, Unsafe.ReadUnaligned or MemoryMarshal.
+M:System.Runtime.InteropServices.Marshal.PtrToStructure(System.IntPtr,System.Type);ABI structs are blittable: read through a pointer, Unsafe.ReadUnaligned or MemoryMarshal.
+M:System.Runtime.InteropServices.Marshal.PtrToStructure``1(System.IntPtr);ABI structs are blittable: read through a pointer, Unsafe.ReadUnaligned or MemoryMarshal.
+M:System.Runtime.InteropServices.Marshal.PtrToStructure``1(System.IntPtr,``0);ABI structs are blittable: read through a pointer, Unsafe.ReadUnaligned or MemoryMarshal.
+M:System.Runtime.InteropServices.Marshal.StructureToPtr(System.Object,System.IntPtr,System.Boolean);ABI structs are blittable: write through a pointer, Unsafe.WriteUnaligned or MemoryMarshal.
+M:System.Runtime.InteropServices.Marshal.StructureToPtr``1(``0,System.IntPtr,System.Boolean);ABI structs are blittable: write through a pointer, Unsafe.WriteUnaligned or MemoryMarshal.
+
+// Untyped GC handles: use GCHandle<T> (.NET 10), one owner, freed on the main thread.
+T:System.Runtime.InteropServices.GCHandle;Use the typed System.Runtime.InteropServices.GCHandle<T> (.NET 10).
+
+// Reflection activation: not trim or AOT safe, and plugin construction is generated code.
+M:System.Activator.CreateInstance(System.Type);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstance(System.Type,System.Boolean);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstance(System.Type,System.Object[]);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstance(System.Type,System.Object[],System.Object[]);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstance(System.Type,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstance(System.Type,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[]);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstance(System.String,System.String);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstance(System.String,System.String,System.Object[]);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstance(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[]);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstance``1;No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstanceFrom(System.String,System.String);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstanceFrom(System.String,System.String,System.Object[]);No reflection-based activation: construct through generated code or a static abstract factory.
+M:System.Activator.CreateInstanceFrom(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[]);No reflection-based activation: construct through generated code or a static abstract factory.

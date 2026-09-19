@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Normal reference: the tests need the generator type, not the generator running on the test code. -->
+    <ProjectReference Include="../../source-generators/CESDK.SourceGenerators.EntryPoint/CESDK.SourceGenerators.EntryPoint.csproj"/>
+    <!--
+      Real contract, used only by Generator/RealAssemblyCompilationTests.cs. Every other test compiles against
+      ContractStubs, which expose instrumentation the real PluginHost does not.
+    -->
+    <ProjectReference Include="../../libs/CESDK.Annotations/CESDK.Annotations.csproj"/>
+    <ProjectReference Include="../../libs/CESDK.Hosting/CESDK.Hosting.csproj"/>
+    <!--
+      Used only by the parity test in Generator/NominalOutputTests.cs, which checks the generator's ManagedEntryPointNames
+      (from CESDK.SourceGenerators.Shared) against CESDK.Abi.Managed.ManagedEntryPoint.
+    -->
+    <ProjectReference Include="../../libs/CESDK.Abi/CESDK.Abi.csproj"/>
+  </ItemGroup>
+
+</Project>

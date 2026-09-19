@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../libs/CESDK.Hosting/CESDK.Hosting.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Native Lua fixture (tests/CESDK.Tests.Shared/README.md): the state the fake GetLuaState hands out. -->
+    <ProjectReference Include="../CESDK.Tests.Shared/CESDK.Tests.Shared.csproj"/>
+  </ItemGroup>
+
+</Project>

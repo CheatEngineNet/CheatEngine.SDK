@@ -1,0 +1,163 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig"/>
+    <File Path=".gitattributes"/>
+    <File Path=".gitignore"/>
+    <File Path="CHANGELOG.md"/>
+    <File Path="Directory.Build.props"/>
+    <File Path="Directory.Build.targets"/>
+    <File Path="Directory.Packages.props"/>
+    <File Path="global.json"/>
+    <File Path="LICENSE"/>
+    <File Path="nuget.config"/>
+    <File Path="README.md"/>
+  </Folder>
+  <Folder Name="/.github/">
+    <File Path=".github/dependabot.yml"/>
+  </Folder>
+  <Folder Name="/.github/actions/setup-dotnet/">
+    <File Path=".github/actions/setup-dotnet/action.yml"/>
+  </Folder>
+  <Folder Name="/.github/workflows/">
+    <File Path=".github/workflows/_ci.yml"/>
+    <File Path=".github/workflows/_sonar.yml"/>
+    <File Path=".github/workflows/merge.yml"/>
+    <File Path=".github/workflows/publish-nuget.yml"/>
+    <File Path=".github/workflows/pull-request.yml"/>
+  </Folder>
+  <Folder Name="/eng/">
+    <File Path="eng/BannedSymbols.txt"/>
+    <File Path="eng/RoslynComponent.props"/>
+    <File Path="eng/Shipping.props"/>
+    <File Path="eng/Tests.props"/>
+  </Folder>
+  <Folder Name="/native/cheat-engine/">
+    <File Path="native/cheat-engine/README.md"/>
+    <File Path="native/cheat-engine/lua53-64.dll"/>
+  </Folder>
+  <Folder Name="/analyzers/">
+    <Project Path="analyzers/CESDK.Analyzers.CodeFixes/CESDK.Analyzers.CodeFixes.csproj"/>
+    <Project Path="analyzers/CESDK.Analyzers/CESDK.Analyzers.csproj"/>
+  </Folder>
+  <Folder Name="/analyzers/docs/">
+    <File Path="analyzers/docs/README.md"/>
+    <File Path="analyzers/docs/CESDK0001.md"/>
+    <File Path="analyzers/docs/CESDK0002.md"/>
+    <File Path="analyzers/docs/CESDK0004.md"/>
+    <File Path="analyzers/docs/CESDK1004.md"/>
+    <File Path="analyzers/docs/CESDK2001.md"/>
+    <File Path="analyzers/docs/CESDK2002.md"/>
+    <File Path="analyzers/docs/CESDK2003.md"/>
+    <File Path="analyzers/docs/CESDK2004.md"/>
+  </Folder>
+  <Folder Name="/libs/">
+    <Project Path="libs/CESDK.Abi/CESDK.Abi.csproj"/>
+    <Project Path="libs/CESDK.Annotations/CESDK.Annotations.csproj"/>
+    <Project Path="libs/CESDK.Engine/CESDK.Engine.csproj"/>
+    <Project Path="libs/CESDK.Hosting/CESDK.Hosting.csproj"/>
+    <Project Path="libs/CESDK.Lua.Interop/CESDK.Lua.Interop.csproj"/>
+    <Project Path="libs/CESDK.Lua/CESDK.Lua.csproj"/>
+  </Folder>
+  <Folder Name="/source-generators/">
+    <Project Path="source-generators/CESDK.SourceGenerators.EngineApi/CESDK.SourceGenerators.EngineApi.csproj"/>
+    <Project Path="source-generators/CESDK.SourceGenerators.EntryPoint/CESDK.SourceGenerators.EntryPoint.csproj"/>
+    <Project Path="source-generators/CESDK.SourceGenerators.LuaBindings/CESDK.SourceGenerators.LuaBindings.csproj"/>
+    <Project Path="source-generators/CESDK.SourceGenerators.Shared/CESDK.SourceGenerators.Shared.csproj"/>
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="src/CESDK/build/CESDK.props"/>
+    <Project Path="src/CESDK/CESDK.csproj"/>
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CESDK.Abi.Tests/CESDK.Abi.Tests.csproj"/>
+    <Project Path="tests/CESDK.Analyzers.Tests/CESDK.Analyzers.Tests.csproj"/>
+    <Project Path="tests/CESDK.Benchmarks/CESDK.Benchmarks.csproj">
+      <Platform Project="x64"/>
+    </Project>
+    <Project Path="tests/CESDK.Engine.Tests/CESDK.Engine.Tests.csproj"/>
+    <Project Path="tests/CESDK.Hosting.Tests/CESDK.Hosting.Tests.csproj"/>
+    <Project Path="tests/CESDK.LivePlugin/CESDK.LivePlugin.csproj">
+      <Platform Project="x64"/>
+    </Project>
+    <Project Path="tests/CESDK.Lua.Interop.Tests/CESDK.Lua.Interop.Tests.csproj"/>
+    <Project Path="tests/CESDK.Lua.FailureProbe/CESDK.Lua.FailureProbe.csproj"/>
+    <Project Path="tests/CESDK.Lua.Tests/CESDK.Lua.Tests.csproj"/>
+    <Project Path="tests/CESDK.SourceGenerators.EngineApi.Tests/CESDK.SourceGenerators.EngineApi.Tests.csproj"/>
+    <Project Path="tests/CESDK.SourceGenerators.EntryPoint.Tests/CESDK.SourceGenerators.EntryPoint.Tests.csproj"/>
+    <Project Path="tests/CESDK.SourceGenerators.LuaBindings.Tests/CESDK.SourceGenerators.LuaBindings.Tests.csproj"/>
+    <Project Path="tests/CESDK.Tests/CESDK.Tests.csproj"/>
+    <Project Path="tests/CESDK.Tests.Shared/CESDK.Tests.Shared.csproj"/>
+  </Folder>
+  <Folder Name="/exemples/">
+    <File Path="exemples/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/01-first-plugin/">
+    <File Path="exemples/01-first-plugin/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/02-lua-functions/">
+    <File Path="exemples/02-lua-functions/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/03-calling-cheat-engine/">
+    <File Path="exemples/03-calling-cheat-engine/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/04-memory/">
+    <File Path="exemples/04-memory/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/05-aob-scans/">
+    <File Path="exemples/05-aob-scans/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/06-value-scans/">
+    <File Path="exemples/06-value-scans/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/07-address-list/">
+    <File Path="exemples/07-address-list/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/08-running-lua/">
+    <File Path="exemples/08-running-lua/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/09-main-thread/">
+    <File Path="exemples/09-main-thread/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/10-logging-and-errors/">
+    <File Path="exemples/10-logging-and-errors/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/11-diagnostics/">
+    <File Path="exemples/11-diagnostics/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/12-trainer/">
+    <File Path="exemples/12-trainer/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/api/">
+    <File Path="exemples/api/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/recipes/">
+    <File Path="exemples/recipes/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/recipes/assembly/">
+    <File Path="exemples/recipes/assembly/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/recipes/cheat-tables/">
+    <File Path="exemples/recipes/cheat-tables/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/recipes/dbvm/">
+    <File Path="exemples/recipes/dbvm/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/recipes/debugger/">
+    <File Path="exemples/recipes/debugger/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/recipes/injection/">
+    <File Path="exemples/recipes/injection/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/recipes/processes/">
+    <File Path="exemples/recipes/processes/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/recipes/speed-and-hashing/">
+    <File Path="exemples/recipes/speed-and-hashing/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/recipes/structures/">
+    <File Path="exemples/recipes/structures/README.md"/>
+  </Folder>
+  <Folder Name="/exemples/recipes/symbols/">
+    <File Path="exemples/recipes/symbols/README.md"/>
+  </Folder>
+</Solution>

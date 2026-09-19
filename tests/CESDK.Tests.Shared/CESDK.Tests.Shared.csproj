@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Test support only: it runs no test and ships nowhere. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../libs/CESDK.Lua.Interop/CESDK.Lua.Interop.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Cheat Engine's own Lua, flowing into the output of every project that references this one (native/cheat-engine/README.md). -->
+    <None Include="$(RepoRoot)native/cheat-engine/lua53-64.dll" Link="native/lua53-64.dll" Visible="false"
+          CopyToOutputDirectory="PreserveNewest"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The fixture types stay internal: only the projects that use them see them. -->
+    <InternalsVisibleTo Include="CESDK.Lua.Interop.Tests"/>
+    <InternalsVisibleTo Include="CESDK.Lua.Tests"/>
+    <InternalsVisibleTo Include="CESDK.Engine.Tests"/>
+    <InternalsVisibleTo Include="CESDK.Hosting.Tests"/>
+    <InternalsVisibleTo Include="CESDK.SourceGenerators.EngineApi.Tests"/>
+    <InternalsVisibleTo Include="CESDK.SourceGenerators.LuaBindings.Tests"/>
+    <InternalsVisibleTo Include="CESDK.Benchmarks"/>
+  </ItemGroup>
+
+</Project>

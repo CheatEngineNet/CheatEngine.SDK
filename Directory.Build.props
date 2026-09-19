@@ -1,0 +1,55 @@
+<Project>
+  <!-- Root defaults for every project. Imports nothing above it, so a stray Directory.Build.props higher on the disk cannot leak in. -->
+
+  <PropertyGroup Label="Layout">
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+    <ArtifactsPath>$(RepoRoot)artifacts</ArtifactsPath>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Language">
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Quality gates">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- CS1591 makes undocumented public API an error, and IDE0005 only fails the build when a documentation file exists. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <!-- A newly published advisory must not break an unrelated build. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900;NU1901;NU1902;NU1903;NU1904;NU1905</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Determinism and symbols">
+    <!-- Path normalization only in CI: locally it breaks source debugging. -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- Plugins are debugged inside the Cheat Engine process, so symbols travel inside the DLL. -->
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Packaging and versioning">
+    <!-- Only src/CESDK packs. -->
+    <IsPackable>false</IsPackable>
+    <!-- MinVer derives the version from the nearest v* tag, so CI must fetch full history and tags. -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <!-- Floor for commits no v* tag covers yet, which build as 0.3.0-alpha.0.N. Raise it to open the next minor or major line, and never above the line of the tag being released. -->
+    <MinVerMinimumMajorMinor>0.3</MinVerMinimumMajorMinor>
+  </PropertyGroup>
+
+  <!-- Keyed on the project name only, so the props phase is early enough. -->
+  <ItemGroup Label="Friend assemblies by convention" Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+    <InternalsVisibleTo Include="$(MSBuildProjectName).Tests"/>
+  </ItemGroup>
+
+  <PropertyGroup Label="Folder profiles">
+    <_CesdkFolder>$([MSBuild]::MakeRelative('$(RepoRoot)', '$(MSBuildProjectDirectory)').Replace('\', '/'))/</_CesdkFolder>
+  </PropertyGroup>
+  <Import Project="$(RepoRoot)eng/Shipping.props"
+          Condition="$(_CesdkFolder.StartsWith('src/')) or $(_CesdkFolder.StartsWith('libs/'))"/>
+  <Import Project="$(RepoRoot)eng/RoslynComponent.props"
+          Condition="$(_CesdkFolder.StartsWith('analyzers/')) or $(_CesdkFolder.StartsWith('source-generators/'))"/>
+  <Import Project="$(RepoRoot)eng/Tests.props"
+          Condition="$(_CesdkFolder.StartsWith('tests/'))"/>
+</Project>

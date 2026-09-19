@@ -1,0 +1,29 @@
+name: Merge
+
+on:
+  push:
+    branches: [ main ]
+  merge_group:
+    types: [ checks_requested ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_ci.yml
+    with:
+      collect-coverage: ${{ vars.SONAR_CI_ENABLED == 'true' && github.ref == 'refs/heads/main' }}
+
+  # The branch analysis of main is the baseline that pull request analyses compare against. A merge queue branch never matches the ref.
+  sonar:
+    needs: ci
+    if: vars.SONAR_CI_ENABLED == 'true' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/_sonar.yml
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

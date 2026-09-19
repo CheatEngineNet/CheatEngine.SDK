@@ -1,0 +1,49 @@
+<Project>
+  <!--
+    Packed to build/ and buildTransitive/. NuGet ignores restore-affecting settings here (TargetFramework, PackageReference),
+    so none are set. Every default applies only while the property is still empty, so the consumer's project file wins.
+  -->
+
+  <PropertyGroup>
+    <!-- The LuaBindings generator takes the address of [UnmanagedCallersOnly] thunks. Without unsafe code it emits nothing and CESDK2001 explains why. -->
+    <AllowUnsafeBlocks Condition="'$(AllowUnsafeBlocks)' == ''">true</AllowUnsafeBlocks>
+    <!-- Copies referenced assemblies next to the plugin and emits its runtimeconfig.json. Cheat Engine's own ce.runtimeconfig.json still decides the runtime. -->
+    <EnableDynamicLoading Condition="'$(EnableDynamicLoading)' == ''">true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exposes the property to the entry-point generator as build_property.CesdkGenerateEntryPoint. -->
+    <CompilerVisibleProperty Include="CesdkGenerateEntryPoint"/>
+  </ItemGroup>
+  <PropertyGroup>
+    <!-- Matches the generator's own default. Set false to write CESDK.CESDK by hand. -->
+    <CesdkGenerateEntryPoint Condition="'$(CesdkGenerateEntryPoint)' == ''">true</CesdkGenerateEntryPoint>
+  </PropertyGroup>
+
+  <!-- Cheat Engine hosts plugins in an x64 process, so an x86 plugin cannot load. An unset PlatformTarget still runs as x64 there. -->
+  <Target Name="CesdkRequireX64Platform" BeforeTargets="BeforeBuild" Condition="'$(PlatformTarget)' == 'x86'">
+    <Error Code="CESDK9101"
+           Text="$(MSBuildProjectName) targets PlatformTarget=x86. Cheat Engine hosts plugins in an x64 process only: set &lt;PlatformTarget&gt;x64&lt;/PlatformTarget&gt; (or &lt;Platforms&gt;x64&lt;/Platforms&gt;) instead."/>
+  </Target>
+
+  <PropertyGroup>
+    <_CesdkLuaBridgePath>$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\cesdk-lua-bridge.dll</_CesdkLuaBridgePath>
+  </PropertyGroup>
+
+  <!-- The package carries the prebuilt bridge. Copying it here keeps ordinary plugin builds compiler-free. -->
+  <Target Name="CesdkCopyLuaProtectionBridge" AfterTargets="Build"
+          Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(_CesdkLuaBridgePath)')">
+    <Copy SourceFiles="$(_CesdkLuaBridgePath)"
+          DestinationFiles="$(TargetDir)cesdk-lua-bridge.dll"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
+  <Target Name="CesdkIncludeLuaProtectionBridgeInPublish" BeforeTargets="ComputeFilesToPublish"
+          Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(_CesdkLuaBridgePath)')">
+    <ItemGroup>
+      <ResolvedFileToPublish Include="$(_CesdkLuaBridgePath)"
+                             RelativePath="cesdk-lua-bridge.dll"
+                             CopyToPublishDirectory="PreserveNewest"/>
+    </ItemGroup>
+  </Target>
+</Project>

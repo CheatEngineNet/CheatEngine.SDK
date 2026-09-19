@@ -1,0 +1,29 @@
+<Project>
+  <!-- Profile for analyzers/ and source-generators/. Components ship inside the CESDK package under analyzers/dotnet/cs and are never packed on their own. -->
+
+  <PropertyGroup>
+    <!-- Compilers load components on .NET and on .NET Framework, so netstandard2.0 only (RS1041). -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- An explicit number, never latest or preview. PolySharp supplies the compiler-recognized types; features that need runtime support stay unavailable. -->
+    <LangVersion>14.0</LangVersion>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <!-- RS1035: no file system, environment, console, current culture or Random inside the compiler. -->
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- Second copy of the Roslyn pin on purpose: Directory.Build.targets fails the build (CESDK9002) when Directory.Packages.props disagrees. -->
+    <RoslynComponentFloor>5.9.0</RoslynComponentFloor>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The host compiler supplies Roslyn, so it is never shipped. NuGet does not resolve analyzer dependencies, so components take no other runtime dependency. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all"/>
+    <PackageReference Include="PolySharp" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup Label="Analyzer release tracking (RS2008)">
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/AnalyzerReleases.Shipped.md"
+                     Condition="Exists('$(MSBuildProjectDirectory)/AnalyzerReleases.Shipped.md')"/>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/AnalyzerReleases.Unshipped.md"
+                     Condition="Exists('$(MSBuildProjectDirectory)/AnalyzerReleases.Unshipped.md')"/>
+  </ItemGroup>
+</Project>

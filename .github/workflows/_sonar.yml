@@ -6,7 +6,7 @@ on:
       project-key:
         description: SonarQube Cloud project key.
         type: string
-        default: ShadowNineX_CESDK
+        default: CheatEngineNet_CheatEngine.SDK
       organization:
         description: SonarQube Cloud organization key.
         type: string

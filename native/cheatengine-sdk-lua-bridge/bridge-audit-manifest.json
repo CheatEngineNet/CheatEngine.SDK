@@ -31,7 +31,7 @@
     "fingerprint": "8a63e00c7dd941212e7ef8c13d8c97f73142c5154bfbe5dbc5459e7131bb789b:2871368515be4c6fd235e49e793d5557e7c50229fcc8fbfd903efd39f9b754a8"
   },
   "nativeAsset": {
-    "sha256": "5c9923867989efcd256b643fdff61ed2fdfa1ee7133311bd89395e25d6d5cf77",
+    "sha256": "da08c2ba03019da3a8c432ef061d5d6133fd2169ba3a6a8e9ac903353856d994",
     "pe": {
       "format": "PE32+",
       "machine": "AMD64",

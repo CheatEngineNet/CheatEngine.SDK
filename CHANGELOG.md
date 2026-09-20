@@ -47,6 +47,8 @@ under [1.0.0](#100---2026-09-20) before upgrading.
   return `bool` or `LuaStatus`, and `LuaException` reports a failed Lua call.
 - Work that must run on the main thread goes through `MainThread` in `CheatEngine.SDK.Hosting.Threading`, and logging
   goes through the host.
+- `AddressResolutionOptions.UseHostSymbolTable` was removed so target `Address` values cannot be confused with host
+  addresses. Use `EngineInspection.ResolveHostAddress` for host-symbol resolution.
 
 ### Removed
 

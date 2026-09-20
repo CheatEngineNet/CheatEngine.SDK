@@ -151,8 +151,9 @@ internal static class EngineDemo
         if (!StringLists.TryCreate(out Owned<StringList>? list)) return false;
         using (list)
         {
-            list.Value.TryCallMethod("clear"u8);
-            return list.Value.TryGetProperty<Int32Marshaller, int>("Count"u8, out int count) && count == 0;
+            return list.Value.TryCallMethod("clear"u8)
+                   && list.Value.TryGetProperty<Int32Marshaller, int>("Count"u8, out int count)
+                   && count == 0;
         }
     }
 

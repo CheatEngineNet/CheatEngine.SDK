@@ -408,6 +408,9 @@ public static unsafe partial class PluginHost
             cleanupSucceeded = CleanupDisable();
         }
 
+        if (cleanupSucceeded && HostLog.IsEnabled(HostLogLevel.Information))
+            HostLog.Information($"Plugin {context!.PluginId} disabled.");
+
         return cleanupSucceeded;
     }
 
@@ -480,11 +483,9 @@ public static unsafe partial class PluginHost
             }
             catch (Exception exception)
             {
-                HostLog.Error("DisablePlugin: OnDisable threw; the plugin is disabled anyway.", exception);
+                HostLog.Error("DisablePlugin: OnDisable threw; cleanup continues and detach determines the final disable result.", exception);
             }
 
-        if (HostLog.IsEnabled(HostLogLevel.Information))
-            HostLog.Information($"Plugin {context.PluginId} disabled.");
     }
 
     private static bool CleanupDisable()

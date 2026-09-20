@@ -121,7 +121,7 @@ archives, twenty short entries end like this:
 |----------------|------------------------------------------------------------------------------------------------|
 | `plugin.log`   | The newest entries, including `entry 20`                                                       |
 | `plugin.log.1` | The entries before them                                                                        |
-| `plugin.log.2` | The oldest entries still kept. `entry 01` to `entry 12` are gone; ordinary entries stay within 200 bytes |
+| `plugin.log.2` | The oldest entries still kept; ordinary entries stay within 200 bytes                    |
 
 Each line has a timestamp in UTC, the level and the message. An exception follows on the next lines, in full:
 

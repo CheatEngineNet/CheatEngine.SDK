@@ -22,6 +22,9 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
         Assert.Contains("private static readonly global::CheatEngine.SDK.Lua.References.LuaRef s_luaGlobal_writeQword = new();",
             text,
             StringComparison.Ordinal);
+        Assert.Contains("CE &gt;= 7.7.0.10621; architecture: x64; thread: unknown; ownership: none; return: bool with out results; nil: absence; provenance: ExactInstalledFile: CE 7.7 celua.txt scalar memory globals.",
+            text,
+            StringComparison.Ordinal);
 
         // Every entry declares an 'address' argument, so each gets the two-method split (Emit/EngineApiFileEmitter.cs,
         // EmitAddressTypedWrapper): a private nuint core (LuaGlobalCallEmitter's own call shape, untouched) plus a
@@ -65,7 +68,8 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
         var expectedCore = """
                            private static bool __TryReadInt32Raw(nuint address, out int value)
                            {
-                               global::CheatEngine.SDK.Lua.State.LuaState __L = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+                               using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation();
+                               global::CheatEngine.SDK.Lua.State.LuaState __L = __operation.State;
                                int __top = __L.Top;
                                try
                                {
@@ -142,6 +146,58 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 
         Assert.DoesNotContain("namespace ", text, StringComparison.Ordinal);
         Assert.Contains("public static partial class Root", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>Address Try results are public target addresses, not host-width integers.</summary>
+    [Fact]
+    public void An_address_try_result_is_exposed_as_Address_and_converted_from_the_raw_core()
+    {
+        const string Text = "namespace: Demo\ntype: Addresses\n\nglobal: getAddress\nmethod: TryGetAddress\nform: try\nresult: value:address\ndoc: Gets a target address.\n";
+
+        var run = roslyn.Run("address-result.cheatengine-sdk-api.txt", Text);
+
+        run.AssertCompilesClean();
+        var text = run.SingleGeneratedText;
+        Assert.Contains("private static bool __TryGetAddressRaw(out nuint value)", text, StringComparison.Ordinal);
+        Assert.Contains("public static bool TryGetAddress(out global::CheatEngine.SDK.Engine.Values.Address value)", text,
+            StringComparison.Ordinal);
+        Assert.Contains("nuint __engineApiRawResult0;", text, StringComparison.Ordinal);
+        Assert.Contains("value = new global::CheatEngine.SDK.Engine.Values.Address(unchecked((ulong)__engineApiRawResult0));",
+            text, StringComparison.Ordinal);
+    }
+
+    /// <summary>Address throwing returns are public target addresses, not host-width integers.</summary>
+    [Fact]
+    public void An_address_throwing_return_is_exposed_as_Address_and_converted_from_the_raw_core()
+    {
+        const string Text = "namespace: Demo\ntype: Addresses\n\nglobal: getAddress\nmethod: GetAddress\nform: throwing\nreturn: address\ndoc: Gets a target address.\n";
+
+        var run = roslyn.Run("address-return.cheatengine-sdk-api.txt", Text);
+
+        run.AssertCompilesClean();
+        var text = run.SingleGeneratedText;
+        Assert.Contains("private static nuint __GetAddressRaw()", text, StringComparison.Ordinal);
+        Assert.Contains("public static global::CheatEngine.SDK.Engine.Values.Address GetAddress()", text,
+            StringComparison.Ordinal);
+        Assert.Contains("return new global::CheatEngine.SDK.Engine.Values.Address(unchecked((ulong)__engineApiRawResult));",
+            text, StringComparison.Ordinal);
+        Assert.DoesNotContain("public static nuint", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>Address arguments and results retain their strong target-address contract in the public signature.</summary>
+    [Fact]
+    public void Address_arguments_and_try_results_keep_the_complete_public_signature_strongly_typed()
+    {
+        const string Text = "namespace: Demo\ntype: Addresses\n\nglobal: resolvePointer\nmethod: TryResolvePointer\nform: try\narg: address:address\nresult: result:address\ndoc: Resolves a target pointer.\n";
+
+        var run = roslyn.Run("address-argument-and-result.cheatengine-sdk-api.txt", Text);
+
+        run.AssertCompilesClean();
+        var text = run.SingleGeneratedText;
+        Assert.Contains("public static bool TryResolvePointer(global::CheatEngine.SDK.Engine.Values.Address address, out global::CheatEngine.SDK.Engine.Values.Address result)",
+            text, StringComparison.Ordinal);
+        Assert.DoesNotContain("public static bool TryResolvePointer(nuint", text, StringComparison.Ordinal);
+        Assert.Contains("unchecked((nuint)address.ToUInt64())", text, StringComparison.Ordinal);
     }
 
     private static int CountOccurrences(string text, string value)

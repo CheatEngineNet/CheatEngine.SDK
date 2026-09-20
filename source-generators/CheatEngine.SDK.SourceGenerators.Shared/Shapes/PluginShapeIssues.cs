@@ -33,11 +33,10 @@ internal enum PluginShapeIssues
     NestedInGeneric = 1 << 3,
 
     /// <summary>
-    ///     No base class is named <c>CheatEnginePlugin</c> in namespace <c>CheatEngine.SDK.Hosting.Plugin</c>. Checked
-    ///     structurally (name and namespace of each symbol in the base-type chain), not by resolving
-    ///     <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> and comparing symbols: the decision then depends on nothing but
-    ///     the symbol it is given, which also lets the entry-point generator use it from inside a per-node transform
-    ///     without combining with the compilation.
+    ///     No base class is the resolved <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> symbol in the base-type
+    ///     chain. Current generators and analyzers pass that symbol from the referenced SDK assembly, so a same-named
+    ///     source or foreign-reference type cannot impersonate it. The legacy structural fallback exists only for older
+    ///     internal callers that have not supplied a symbol.
     /// </summary>
     NotDerivedFromPluginBase = 1 << 4,
 
@@ -51,14 +50,15 @@ internal enum PluginShapeIssues
     FileLocal = 1 << 6,
 
     /// <summary>
-    ///     Constructors are declared, and none of them is callable with an empty argument list: neither a literally
-    ///     parameterless constructor, nor one whose every parameter is optional or ends in <see langword="params" />.
+    ///     Constructors are declared, and none of them has zero parameters. A constructor with optional or
+    ///     <see langword="params" /> parameters is not the explicit parameterless construction contract the generated
+    ///     factory requires.
     /// </summary>
     MissingParameterlessConstructor = 1 << 7,
 
     /// <summary>
-    ///     A constructor callable with an empty argument list exists, but every such constructor is
-    ///     <see langword="private" />, <see langword="protected" /> or <see langword="private protected" />.
+    ///     A real zero-parameter constructor exists, but every such constructor is <see langword="private" />,
+    ///     <see langword="protected" /> or <see langword="private protected" />.
     /// </summary>
     InaccessibleParameterlessConstructor = 1 << 8,
 

@@ -118,6 +118,50 @@ public sealed class LuaRefTests
     }
 
     [Fact]
+    public void A_reference_from_the_pre_reset_state_never_releases_a_current_generation_slot()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new(false);
+        var L = LuaTest.View(state);
+        using RuntimeScope scope = new(state);
+        L.PushString("old generation"u8);
+        var stale = L.CreateRef();
+        var before = LuaRuntime.CurrentStateIdentity;
+
+        using (LuaRuntime.BeginStateReset())
+        {
+        }
+
+        var after = LuaRuntime.CurrentStateIdentity;
+        Assert.Equal(before.AttachEpoch, after.AttachEpoch);
+        Assert.Equal(before.StateGeneration + 1, after.StateGeneration);
+        Assert.True(stale.IsResolved);
+        Assert.False(stale.IsCurrent);
+        Assert.False(L.TryPushRef(stale));
+        Assert.Equal(0, L.Top);
+
+        L.PushString("current generation"u8);
+        var current = L.CreateRef();
+        Assert.True(current.IsCurrent);
+
+        // Model a registry-slot number reused by the replacement state. This stale binding must not be unref'd merely
+        // because it shares the current attachment epoch: state generation is the distinguishing component.
+        LuaRef collidingStale = new();
+        collidingStale.Rebind(current.Reference, before);
+        collidingStale.Release(L);
+
+        Assert.False(collidingStale.IsResolved);
+        stale.Release(L);
+
+        Assert.False(stale.IsResolved);
+        Assert.True(L.TryPushRef(current));
+        Assert.Equal("current generation", LuaTest.ReadString(L, -1));
+        L.Pop(1);
+        Assert.Equal(0, L.Top);
+        current.Release(L);
+    }
+
+    [Fact]
     public void Dispose_releases_through_the_attached_runtime()
     {
         LuaTest.RequireNativeLua();

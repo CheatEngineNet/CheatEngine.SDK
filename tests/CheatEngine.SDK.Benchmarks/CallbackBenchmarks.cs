@@ -14,7 +14,6 @@ namespace CheatEngine.SDK.Benchmarks;
 ///     <see cref="LoopCount" /> so the reported time is per call.
 /// </summary>
 [MemoryDiagnoser(false)]
-[ShortRunJob]
 [BenchmarkCategory("Callbacks")]
 public class CallbackBenchmarks : IDisposable
 {

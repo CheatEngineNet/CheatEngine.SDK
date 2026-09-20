@@ -111,6 +111,65 @@ public sealed class CallbackLifetimeConcurrencyTests
         }
     }
 
+    [Fact]
+    public async Task Detach_waits_for_an_admitted_callback_and_rejects_a_callback_that_starts_after_close()
+    {
+        LuaTest.RequireNativeLua();
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using NativeLuaState state = new();
+        var main = LuaTest.View(state);
+        using RuntimeScope scope = new(state);
+        using CallbackRace race = new(cancellationToken);
+        using ManualResetEventSlim admissionClosed = new(false);
+        s_race = race;
+        LuaRuntime.OperationAdmissionClosedForTesting = admissionClosed.Set;
+
+        try
+        {
+            Counter counter = new();
+            Assert.True(LuaCallback.TryCreate(main, PauseAfterLookupFunction, counter, out var callback).IsOk);
+            Assert.NotNull(callback);
+            Assert.True(callback.TryRegister(main, "count"u8).IsOk);
+
+            // This root intentionally lives through Detach. Its Dispose path detects that the attachment is gone and
+            // abandons its stale registry slot rather than starting a raw Lua operation after teardown.
+            using RootedThread worker = RootedThread.Create(main);
+            Assert.True(callback.TryPush(worker.State));
+            Task<LuaStatus> call = StartCall(worker.State, cancellationToken);
+            Assert.True(race.Entered.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+                "The callback did not acquire its managed state.");
+
+            Task detach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken, TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+            Assert.True(admissionClosed.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+                "Detach did not close callback admission.");
+            Assert.False(detach.IsCompleted, "Detach completed while a previously admitted callback was still running.");
+
+            // The closure is still registered until the active invocation returns, but the shared admission gate must
+            // refuse this new invocation before it reaches the plugin thunk.
+            var late = main.TryExecute("local ok, err = pcall(count) return ok, err"u8, 2);
+            Assert.True(late.IsOk);
+            Assert.False(main.ToBoolean(-2));
+            Assert.Contains("runtime is stopping", LuaTest.ReadString(main, -1), StringComparison.Ordinal);
+            main.Pop(2);
+            Assert.Equal(0, counter.Value);
+
+            race.Continue.Set();
+            Assert.Equal(LuaStatus.Ok, await call.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken));
+            await detach.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+
+            Assert.True(callback.IsReleased);
+            Assert.Null(callback.StateObject);
+            Assert.Equal(1, counter.Value);
+        }
+        finally
+        {
+            LuaRuntime.OperationAdmissionClosedForTesting = null;
+            race.Continue.Set();
+            s_race = null;
+        }
+    }
+
     private static Task<LuaStatus> StartCall(LuaState state, CancellationToken cancellationToken)
     {
         return Task.Factory.StartNew(() => state.TryCall(0, 1), cancellationToken,
@@ -205,7 +264,19 @@ public sealed class CallbackLifetimeConcurrencyTests
 
         public void Dispose()
         {
-            _root.Release(LuaRuntime.AcquireState());
+            // The root may deliberately outlive the SDK attachment in the detach race. Releasing through the normal
+            // operation lease when one is available, and otherwise abandoning the stale registry slot, avoids using
+            // the legacy unleased AcquireState escape hatch during teardown.
+            if (!LuaRuntime.TryAcquireOperation(out var operation))
+            {
+                _root.Release(default);
+                return;
+            }
+
+            using (operation)
+            {
+                _root.Release(operation.State);
+            }
         }
     }
 }

@@ -41,6 +41,12 @@ internal static class SpecIdentifiers
         return true;
     }
 
+    /// <summary>Whether <paramref name="value" /> is valid where the generator cannot emit an <c>@</c> escape.</summary>
+    public static bool IsValidTypeIdentifier(string? value)
+    {
+        return IsValidIdentifier(value) && Array.IndexOf(Keywords, value) < 0;
+    }
+
     /// <summary>
     ///     Whether <paramref name="value" /> is a dotted sequence of valid identifiers, or empty for the global
     ///     namespace.
@@ -50,7 +56,7 @@ internal static class SpecIdentifiers
         if (value.Length == 0) return true;
 
         foreach (var part in value.Split('.'))
-            if (!IsValidIdentifier(part))
+            if (!IsValidTypeIdentifier(part))
                 return false;
 
         return true;

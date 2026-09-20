@@ -1,5 +1,7 @@
 using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using CheatEngine.SDK.Abi;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Tests.Support;
@@ -14,6 +16,112 @@ namespace CheatEngine.SDK.Hosting.Tests.Lifecycle;
 /// <summary>The disable callback and the enable-disable-enable cycle Cheat Engine's plugin dialog produces.</summary>
 public sealed unsafe class DisablePluginTests
 {
+    [Fact]
+    [Trait("Category", "NativeLua")]
+    public void Disable_from_a_non_main_thread_is_refused_without_starting_cleanup()
+    {
+        HostingTest.RequireNativeLua();
+        var sink = HostingTest.Reset();
+        using NativeLuaState state = new();
+        using HostSimulator host = new();
+        var plugin = HostingTest.Enable(host, state);
+        var context = PluginHost.Context!;
+        StrongBox<Bool32> result = new();
+        StrongBox<Exception?> workerFailure = new();
+        Thread worker = new(() =>
+        {
+            try
+            {
+                result.Value = host.CallDisable();
+            }
+            catch (Exception exception)
+            {
+                workerFailure.Value = exception;
+            }
+        });
+
+        worker.Start();
+        Assert.True(worker.Join(TimeSpan.FromSeconds(5)), "The non-main lifecycle callback did not return.");
+
+        Assert.Null(workerFailure.Value);
+        Assert.False(result.Value.IsTrue);
+        Assert.Equal(0, plugin.DisableCalls);
+        Assert.True(PluginHost.IsEnabled);
+        Assert.Same(context, PluginHost.Context);
+        Assert.True(LuaRuntime.IsAttached);
+        Assert.NotEmpty(sink.Errors("other than the captured plugin main thread"));
+    }
+
+    [Fact]
+    [Trait("Category", "NativeLua")]
+    [SuppressMessage("Meziantou.Analyzer", "MA0051", Justification = "This test deliberately covers the complete close-drain-detach sequence in one deterministic scenario.")]
+    [SuppressMessage("xUnit.Analyzers", "xUnit1051", Justification = "The bounded host-thread barrier is a deterministic synchronization point independent of test cancellation.")]
+    public void Disable_on_the_GUI_thread_pumps_admitted_worker_work_before_detaching()
+    {
+        HostingTest.RequireNativeLua();
+        HostingTest.Reset();
+        using NativeLuaState state = new();
+        using HostSimulator host = new();
+        HostingTest.Enable(host, state);
+        var context = PluginHost.Context!;
+        using ManualResetEventSlim queued = new(initialState: false);
+        using ManualResetEventSlim workExecuted = new(initialState: false);
+        StrongBox<MainThreadWorkItem?> queuedWork = new();
+        Exception? workerFailure = null;
+        var observedShutdown = false;
+        var executedThreadId = new int[1];
+        var workerResult = 0;
+        MainThreadDispatcher.DispatchOverrideForTests = item =>
+        {
+            queuedWork.Value = item;
+            queued.Set();
+            workExecuted.Wait();
+        };
+        FakeExports.CheckSynchronizeHandlerForTests = () =>
+        {
+            var item = queuedWork.Value;
+            if (item is null) return;
+
+            observedShutdown = context.ShutdownToken.IsCancellationRequested;
+            MainThreadDispatcher.ExecuteQueuedWorkForTests(item);
+            workExecuted.Set();
+        };
+        Thread worker = new(() =>
+        {
+            try
+            {
+                workerResult = MainThread.Invoke(
+                    static threadId =>
+                    {
+                        threadId[0] = Environment.CurrentManagedThreadId;
+                        return 6 * 7;
+                    },
+                    executedThreadId);
+            }
+            catch (Exception exception)
+            {
+                workerFailure = exception;
+            }
+        });
+
+        worker.Start();
+        Assert.True(queued.Wait(TimeSpan.FromSeconds(5)), "The worker did not queue MainThread.Invoke work.");
+
+        // The worker is inside MainThread.Invoke and waits for the queue-capable host fake. Disable must call
+        // CheckSynchronize instead of blindly waiting on the GUI thread, then wait for that real Invoke to return
+        // before Lua callbacks are neutralized.
+        Assert.True(host.CallDisable().IsTrue);
+        Assert.True(worker.Join(TimeSpan.FromSeconds(5)), "The queued worker did not terminate.");
+        Assert.Null(workerFailure);
+        Assert.Equal(42, workerResult);
+        Assert.True(observedShutdown);
+        Assert.Equal(Environment.CurrentManagedThreadId, executedThreadId[0]);
+        Assert.True(FakeExports.CheckSynchronizeCalls > 0);
+        Assert.False(PluginHost.IsEnabled);
+        Assert.False(LuaRuntime.IsAttached);
+        Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
+    }
+
     [Fact]
     public void Disabling_while_disabled_is_a_no_op_reported_as_TRUE_with_a_warning()
     {
@@ -44,11 +152,13 @@ public sealed unsafe class DisablePluginTests
         Assert.True(result.IsTrue);
         Assert.Equal(1, plugin.DisableCalls);
         Assert.True(plugin.RuntimeAttachedInOnDisable);
-        Assert.True(plugin.HostEnabledInOnDisable);
+        Assert.False(plugin.HostEnabledInOnDisable);
         Assert.False(PluginHost.IsEnabled);
         Assert.Null(PluginHost.Context);
         Assert.False(LuaRuntime.IsAttached);
         Assert.False(context.IsCurrent);
+        Assert.True(context.ShutdownToken.IsCancellationRequested);
+        Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
         Assert.False(MainThread.IsMainThread);
         Assert.True(sink.HasEntry(HostLogLevel.Information, "Plugin 5 disabled"));
         Assert.Equal(0, LuaApi.lua_gettop(state.L));

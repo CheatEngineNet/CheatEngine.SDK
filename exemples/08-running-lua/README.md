@@ -29,7 +29,8 @@ function to Cheat Engine. Every step keeps the Lua stack balanced.
 Lua reports errors with `longjmp`, and the .NET runtime cannot unwind managed frames that way. One unguarded raise can
 corrupt the process. The `CheatEngine.SDK.Lua` toolkit keeps every operation that can run Lua code under a protected
 call, returns a `LuaStatus` instead of raising, and gives you `LuaFrame` so that no exit path leaves the stack
-unbalanced.
+unbalanced. The native bridge also protects the host-object push path with `lua_pcallk`, so a failure while CE creates
+userdata cannot jump across a managed frame. That protection does not make arbitrary raw Lua C calls safe.
 
 ## Which tool for which job
 
@@ -51,12 +52,14 @@ var L = LuaRuntime.AcquireState();
 using LuaFrame frame = new(L);
 ```
 
-`LuaRuntime.AcquireState()` returns the state of the calling thread. `LuaFrame` remembers the stack height and restores
-it when the block ends, on every exit: an early `return`, an exception or a failed call.
+`LuaRuntime.AcquireState()` asks the attached host for a state for this operation. `LuaFrame` remembers the stack height
+and restores it when the block ends, on every exit: an early `return`, an exception or a failed call. The exact CE 7.7
+state-per-thread behavior remains an opt-in live probe, so the safe SDK rule is narrower: use the acquired value on the
+current operation only, and use the state passed into a Lua callback rather than acquiring another one.
 
 | Rule                                                                       | Why                                                                                 |
 |----------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| Never store a `LuaState`. Acquire it once per operation                    | It belongs to one thread, and a stored state goes stale when the plugin is disabled |
+| Never store a `LuaState`. Acquire it once per operation                    | Its host lifetime and state generation can change during disable or a supported reset |
 | Open a `LuaFrame` before you push anything                                 | Your code cannot leave a value behind, whatever path it takes                       |
 | A `Try*` member leaves either its results or exactly one error value       | `LuaError.FromStack` reads that value without running Lua code                      |
 | Raw members (`PushInteger`, `TypeOf`, `TryReadInteger`) never run Lua code | Only the protected `Try*` members can, so only they can fail                        |
@@ -294,9 +297,16 @@ internal sealed class KeptFunction : IDisposable
 the function it captured: if a script later assigns a new function to the same global name, the reference still calls
 the old one.
 
-A `LuaRef` carries the epoch of the enable that created it. After a disable and a new enable it is stale, `IsCurrent` is
-`false` and `TryPushRef` returns `false` instead of touching a dead slot. Capture your references in `OnEnable` and
-dispose them in `OnDisable`.
+A `LuaRef` carries a complete `LuaStateIdentity`: `(attachEpoch, stateGeneration)`. A disable followed by a new enable
+changes the attachment epoch; an SDK-controlled state replacement changes the generation within the same attachment.
+Either mismatch makes the reference stale: `IsCurrent` is `false`, `TryPushRef` returns `false`, and `Release` does not
+touch a registry slot that may now name another value. Capture references in `OnEnable`, dispose them in `OnDisable`,
+and re-resolve a stale reference instead of rebinding it by hand.
+
+The state-generation preparation path is deliberately internal until the SDK owns the CE `resetLuaState` call from end
+to end. Calling `resetLuaState` directly outside that path is unsupported: the SDK will not guess whether the old
+registry, userdata, or callback closures are still valid. The intended order is to close admission, neutralize callbacks
+and caches for the old identity, then replace/rebind the host state and advance `stateGeneration`.
 
 ### 6. Give Cheat Engine a function that carries state
 
@@ -387,7 +397,9 @@ The thunk is the one piece you write by hand, and it follows four rules:
 4. It reads its state with `LuaThunk.TryGetState`, which returns `false` once the callback is released.
 
 `TryRegister` assigns the function to a global. To hand it to a Cheat Engine function that wants a callback, such as the
-`OnScanDone` property of a scan object, push it with `TryPush(L)` and pass it as the value or argument.
+`OnScanDone` property of a scan object, push it with `TryPush(L)` and pass it as the value or argument. A callback also
+captures the complete Lua state identity. Disable and a supported state reset neutralize callback closures before their
+managed state is released; an old closure is never deliberately rebound to a new registry universe.
 
 > [!IMPORTANT]
 > Release every callback in `OnDisable`, on the thread that created it. A script that kept the function and calls it
@@ -414,14 +426,15 @@ The thunk is the one piece you write by hand, and it follows four rules:
 - The stack stays balanced: a `Try*` member leaves its results or one error value, and `LuaFrame` restores the height on
   every exit.
 - Scalar pushes and reads, protected calls and callbacks allocate nothing once warm.
-- A `LuaRef` from an earlier enable is never pushed.
-- `Release` and `Detach` neutralize a callback before its state is freed.
+- A `LuaRef` from an earlier attachment or state generation is never pushed.
+- `Release`, supported reset preparation, and `Detach` neutralize a callback before its managed state is freed.
 
 ## Before you move on
 
 - [ ] Every method that acquires a state opens a `LuaFrame` on the next line.
 - [ ] Every `TryExecute` and `TryCall` result is checked, and the message is read with `LuaError.FromStack`.
-- [ ] Each `LuaRef` and each `LuaCallback` you create in `OnEnable` is released in `OnDisable`.
+- [ ] Each `LuaRef` and each `LuaCallback` you create in `OnEnable` is released in `OnDisable`, and none is retained
+  across a changed `(attachEpoch, stateGeneration)` identity.
 
 ---
 

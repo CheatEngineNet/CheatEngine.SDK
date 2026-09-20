@@ -26,9 +26,9 @@ namespace CheatEngine.SDK.Hosting.Plugin;
 ///     <para>
 ///         <b>Threads.</b> Cheat Engine calls the lifecycle callbacks from its main (GUI) thread; that thread is captured
 ///         as
-///         the main thread when the plugin is enabled, so <see cref="OnEnable" /> and <see cref="OnDisable" /> run on it
-///         by
-///         construction.
+///         the main thread when the plugin is enabled. Hosting requires the later disable callback to arrive on that
+///         same captured thread; a wrong-thread disable is refused before cleanup because GUI-bound work could not be
+///         drained safely.
 ///     </para>
 ///     <para>
 ///         <b>Failures.</b> An exception thrown by <see cref="OnEnable" /> makes the enable fail (Cheat Engine is told

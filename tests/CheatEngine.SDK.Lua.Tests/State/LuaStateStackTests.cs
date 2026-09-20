@@ -150,6 +150,30 @@ public sealed class LuaStateStackTests
     }
 
     [Fact]
+    public void PushUncheckedFunction_reserves_the_light_C_function_slot_before_each_push()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new(false);
+        var L = LuaTest.View(state);
+        var initialTop = L.Top;
+        const int functionCount = 64;
+
+        // CE's pinned lapi.c makes lua_pushcclosure(..., 0) a light C function: it only writes one already-reserved
+        // stack slot. Do not reserve here: every production call must make the immediate lua_checkstack(L, 1) reservation
+        // itself before it takes the direct fast path. Crossing the initial free-slot boundary proves the method retains
+        // that precondition instead of relying on a caller's incidental reservation.
+        for (var i = 0; i < functionCount; i++)
+        {
+            L.PushUncheckedFunction(Thunks.Add);
+            Assert.Equal(initialTop + i + 1, L.Top);
+            Assert.Equal(LuaType.Function, L.TypeOf(-1));
+        }
+
+        L.SetTop(initialTop);
+        Assert.Equal(initialTop, L.Top);
+    }
+
+    [Fact]
     public void Raw_table_access_bypasses_metamethods()
     {
         LuaTest.RequireNativeLua();

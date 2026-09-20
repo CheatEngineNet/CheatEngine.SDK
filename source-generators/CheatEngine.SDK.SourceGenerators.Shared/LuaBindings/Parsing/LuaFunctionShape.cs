@@ -22,13 +22,15 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 /// </remarks>
 internal static class LuaFunctionShape
 {
-    /// <summary>Inspects <paramref name="method" />; never throws on malformed (error) symbols.</summary>
+    /// <summary>Inspects <paramref name="method" /> against the resolved SDK <paramref name="luaState" /> symbol.</summary>
     /// <param name="method">The attributed method.</param>
+    /// <param name="luaState">The real Lua runtime state symbol, or <see langword="null" /> when it is unavailable.</param>
     /// <param name="signature">
     ///     What could be classified; complete only when the result is
     ///     <see cref="LuaFunctionShapeIssues.None" />.
     /// </param>
-    public static LuaFunctionShapeIssues Inspect(IMethodSymbol method, out LuaFunctionSignature signature)
+    public static LuaFunctionShapeIssues Inspect(IMethodSymbol method, INamedTypeSymbol? luaState,
+        out LuaFunctionSignature signature)
     {
         var issues = LuaFunctionShapeIssues.None;
 
@@ -40,14 +42,15 @@ internal static class LuaFunctionShape
 
         if (method.IsAsync) issues |= LuaFunctionShapeIssues.Async;
 
-        issues |= InspectParameters(method, out var passesState, out var arguments);
+        issues |= InspectParameters(method, luaState, out var passesState, out var arguments);
         issues |= InspectReturn(method, out var returnKind);
 
         signature = new LuaFunctionSignature(passesState, arguments, returnKind);
         return issues;
     }
 
-    private static LuaFunctionShapeIssues InspectParameters(IMethodSymbol method, out bool passesState,
+    private static LuaFunctionShapeIssues InspectParameters(IMethodSymbol method, INamedTypeSymbol? luaState,
+        out bool passesState,
         out EquatableArray<LuaArgumentModel> arguments)
     {
         var issues = LuaFunctionShapeIssues.None;
@@ -63,7 +66,7 @@ internal static class LuaFunctionShape
             if (parameter.IsOptional || parameter.HasExplicitDefaultValue)
                 issues |= LuaFunctionShapeIssues.OptionalParameter;
 
-            if (LuaValueKindMapper.IsLuaState(parameter.Type))
+            if (LuaValueKindMapper.IsLuaState(parameter.Type, luaState))
             {
                 if (i == 0)
                     passesState = true;

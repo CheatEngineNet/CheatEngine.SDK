@@ -27,6 +27,8 @@ internal static class TypeScaffoldEmitter
 
         foreach (var declaration in type.Declarations)
         {
+            if (declaration.IsReadOnly) writer.Write("readonly ");
+
             writer.Write("partial ");
             writer.Write(declaration.Keyword);
             writer.Write(' ');

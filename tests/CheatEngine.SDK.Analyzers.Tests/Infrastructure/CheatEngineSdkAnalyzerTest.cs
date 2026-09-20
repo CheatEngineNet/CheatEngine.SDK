@@ -13,10 +13,13 @@ namespace CheatEngine.SDK.Analyzers.Tests.Infrastructure;
 internal sealed class CheatEngineSdkAnalyzerTest<TAnalyzer> : CSharpAnalyzerTest<TAnalyzer, DefaultVerifier>
     where TAnalyzer : DiagnosticAnalyzer, new()
 {
-    public CheatEngineSdkAnalyzerTest(bool referenceCheatEngineSdk = true)
+    public CheatEngineSdkAnalyzerTest(bool referenceCheatEngineSdk = true, bool applyDirectPackageDefaults = true)
     {
         ReferenceAssemblies = LocalFrameworkReferences.WithoutPackages;
         TestState.AdditionalReferences.AddRange(LocalFrameworkReferences.References);
         if (referenceCheatEngineSdk) ContractStubs.AddTo(TestState);
+        if (applyDirectPackageDefaults)
+            TestState.AnalyzerConfigFiles.Add(("/.globalconfig",
+                TestText.Normalize("is_global = true\nbuild_property.CheatEngineSdkGenerateEntryPoint = true\n")));
     }
 }

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Normal reference: tests instantiate the generator; it must not run over the test project itself. -->
+    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBridgeContract/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The exact production input is embedded, so this test never needs a workspace path at runtime. -->
+    <EmbeddedResource Include="../../eng/lua-bridge/protected-operations.json"
+                      LogicalName="CheatEngine.SDK.LuaBridgeContract.Tests.ProductionCatalog.json" />
+  </ItemGroup>
+
+</Project>

@@ -19,7 +19,7 @@ public sealed class TrackingNamesTests
     [Fact]
     public void Entry_point_step_names_follow_the_convention_and_are_unique()
     {
-        Assert.Equal(6, EntryPointTrackingNames.All.Length);
+        Assert.Equal(8, EntryPointTrackingNames.All.Length);
         Assert.Equal(EntryPointTrackingNames.All.Length,
             EntryPointTrackingNames.All.Distinct(StringComparer.Ordinal).Count());
         Assert.All(

@@ -37,7 +37,7 @@ internal static class AnalyzerVerifier<TAnalyzer>
     public static Task VerifyWithBuildPropertyAsync(string name, string value, string source,
         params DiagnosticResult[] expected)
     {
-        CheatEngineSdkAnalyzerTest<TAnalyzer> test = new();
+        CheatEngineSdkAnalyzerTest<TAnalyzer> test = new(applyDirectPackageDefaults: false);
         test.TestState.AnalyzerConfigFiles.Add(("/.globalconfig",
             TestText.Normalize($"is_global = true\nbuild_property.{name} = {value}\n")));
         return RunAsync(test, [("Test0.cs", source)], expected);

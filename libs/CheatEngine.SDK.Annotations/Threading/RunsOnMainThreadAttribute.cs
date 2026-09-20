@@ -42,5 +42,5 @@ namespace CheatEngine.SDK.Annotations.Threading;
 ///         the attribute, and adding a target later is a compatible change while removing one is not.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method)]
+[AttributeUsage(AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
 public sealed class RunsOnMainThreadAttribute : Attribute;

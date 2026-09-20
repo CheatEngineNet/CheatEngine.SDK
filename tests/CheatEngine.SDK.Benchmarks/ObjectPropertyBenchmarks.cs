@@ -14,7 +14,6 @@ namespace CheatEngine.SDK.Benchmarks;
 ///     stands in for Cheat Engine's <c>LuaPushClassInstance</c>), which is what lets this project benchmark them.
 /// </summary>
 [MemoryDiagnoser(false)]
-[ShortRunJob]
 [BenchmarkCategory("ObjectAccess")]
 public class ObjectPropertyBenchmarks : IDisposable
 {

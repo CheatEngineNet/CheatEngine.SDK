@@ -78,17 +78,54 @@ jobs:
         with:
           xmake-version: '3.0.9'
 
+      # This is source-only and must precede both native builds: it makes the operation catalogue, C enum/switch,
+      # managed operation enum/wrappers and contract bitmap one reproducible gate.
+      - name: Validate protected Lua operation catalogue
+        run: pwsh -NoProfile -File eng/lua-bridge/Test-ProtectedOperationCatalog.ps1
+
       - name: Build bridge
         run: |
           # xmake 3.0.9 mis-parses an absolute Windows -o path when the target
-          # uses $(builddir); keep the xmake path relative and resolve it only
-          # for PowerShell validation.
-          $output = 'artifacts/native/cheatengine-sdk-lua-bridge'
-          $outputPath = Join-Path $PWD $output
-          xmake f -P native/cheatengine-sdk-lua-bridge -o $output -p windows -a x64 -m release -y
+          # uses $(builddir); keep both xmake paths relative and resolve them
+          # only for PowerShell validation and cleanup.
+          $repositoryRoot = [IO.Path]::GetFullPath($PWD.Path)
+          $primaryOutput = 'artifacts/native/cheatengine-sdk-lua-bridge'
+          $reproducibilityOutput = 'artifacts/native/cheatengine-sdk-lua-bridge-repro'
+          $primaryOutputPath = [IO.Path]::GetFullPath((Join-Path $repositoryRoot $primaryOutput))
+          $reproducibilityOutputPath = [IO.Path]::GetFullPath((Join-Path $repositoryRoot $reproducibilityOutput))
+          if ([string]::Equals($primaryOutputPath, $reproducibilityOutputPath, [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'The primary and reproducibility bridge output directories must be distinct.'
+          }
+
+          $workspacePrefix = "$repositoryRoot$([IO.Path]::DirectorySeparatorChar)"
+          foreach ($resolvedOutput in @($primaryOutputPath, $reproducibilityOutputPath)) {
+            if (-not $resolvedOutput.StartsWith($workspacePrefix, [StringComparison]::OrdinalIgnoreCase)) {
+              throw "Refusing to clean native bridge output outside the checkout: '$resolvedOutput'."
+            }
+            if (Test-Path -LiteralPath $resolvedOutput) {
+              Remove-Item -LiteralPath $resolvedOutput -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $resolvedOutput -Force | Out-Null
+          }
+
+          xmake f -P native/cheatengine-sdk-lua-bridge -o $primaryOutput -p windows -a x64 -m release -y
           xmake -P native/cheatengine-sdk-lua-bridge -y
-          if (-not (Test-Path -LiteralPath (Join-Path $outputPath 'cheatengine-sdk-lua-bridge.dll') -PathType Leaf)) {
-            throw 'xmake did not produce cheatengine-sdk-lua-bridge.dll.'
+          $primaryBridge = Join-Path $primaryOutputPath 'cheatengine-sdk-lua-bridge.dll'
+          if (-not (Test-Path -LiteralPath $primaryBridge -PathType Leaf)) {
+            throw "xmake did not produce '$primaryBridge'."
+          }
+
+          xmake f -P native/cheatengine-sdk-lua-bridge -o $reproducibilityOutput -p windows -a x64 -m release -y
+          xmake -P native/cheatengine-sdk-lua-bridge -y
+          $reproducibilityBridge = Join-Path $reproducibilityOutputPath 'cheatengine-sdk-lua-bridge.dll'
+          if (-not (Test-Path -LiteralPath $reproducibilityBridge -PathType Leaf)) {
+            throw "xmake did not produce '$reproducibilityBridge'."
+          }
+
+          $primaryHash = (Get-FileHash -LiteralPath $primaryBridge -Algorithm SHA256).Hash
+          $reproducibilityHash = (Get-FileHash -LiteralPath $reproducibilityBridge -Algorithm SHA256).Hash
+          if (-not [string]::Equals($primaryHash, $reproducibilityHash, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "The native bridge is not reproducible: '$primaryBridge' SHA-256 is $primaryHash but '$reproducibilityBridge' is $reproducibilityHash."
           }
 
       - name: Upload bridge
@@ -144,6 +181,12 @@ jobs:
       # Tests run against Debug, where some guards exist only. Release is what ships.
       - name: Build Debug
         run: dotnet build CheatEngine.SDK.slnx --no-restore -c Debug
+
+      # Do not rely only on the per-project matrix below: native MTP must also discover every test executable when
+      # invoked through the solution. The preceding build is deliberately part of this job, so --no-build cannot
+      # silently exercise stale or incomplete test-host output.
+      - name: Test Debug solution discovery
+        run: dotnet test --solution CheatEngine.SDK.slnx --no-build --no-restore -c Debug --fail-skips on
 
       - name: Build Release
         run: dotnet build CheatEngine.SDK.slnx --no-restore -c Release
@@ -285,11 +328,48 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+  aot:
+    name: Native AOT publication probe
+    needs: native
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # MinVer computes the version from tags and history
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
+        with:
+          restore: tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj
+
+      - name: Use CI-built native bridge
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: lua-protection-bridge
+          path: native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native
+
+      # This executable is an AOT/trim graph probe only. It is not a plugin candidate for Cheat Engine's hostfxr path.
+      - name: Publish and run Native AOT probe
+        run: |
+          $output = Join-Path $PWD 'artifacts/aot-probe'
+          dotnet publish tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj -c Release --no-restore -o $output
+          $probe = Join-Path $output 'CheatEngine.SDK.AotProbe.exe'
+          if (-not (Test-Path -LiteralPath $probe -PathType Leaf)) {
+            throw "Native AOT publish did not produce '$probe'."
+          }
+          & $probe
+          if ($LASTEXITCODE -ne 0) {
+            throw "Native AOT probe exited with code $LASTEXITCODE."
+          }
+
   # The one check to require in branch protection.
   gate:
     name: Gate
     if: ${{ always() }}
-    needs: [ discover, native, build, test, pack ]
+    needs: [ discover, native, build, test, pack, aot ]
     runs-on: windows-latest
     timeout-minutes: 5
     permissions: { }

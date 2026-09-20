@@ -95,21 +95,16 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
     }
 
     [Fact]
-    public void Generator_parameter_named_like_a_generated_local_fails_loudly_not_silently()
+    public void Generator_parameter_named_like_a_generated_local_is_skipped_without_poisoning_compilation()
     {
-        // A known, accepted limitation: the emitter's own locals share the implementing declaration's parameter scope,
-        // so a parameter named the same as one of them is a compile error in the generated file, never silently wrong
-        // generated code. The generator itself still emits normally (it validates shapes, not name collisions) and
-        // reports no diagnostic of its own.
+        // A generated partial body shares its parameter scope with the defining declaration. Do not emit CS0136 and
+        // leave the analyzer to report the precise CESDK2007 collision at the author declaration.
         const string Source = Usings +
                               "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(nuint __L, out int v); }";
 
         var run = roslyn.Run(Source);
 
-        Assert.Single(run.GeneratedSources);
+        Assert.Empty(run.GeneratedSources);
         Assert.Empty(run.GeneratorDiagnostics);
-        Assert.Contains(
-            run.OutputCompilation.GetDiagnostics(TestContext.Current.CancellationToken),
-            static diagnostic => string.Equals(diagnostic.Id, "CS0136", StringComparison.Ordinal));
     }
 }

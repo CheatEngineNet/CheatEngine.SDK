@@ -1,0 +1,645 @@
+{
+  "$schema": "./protected-operations.schema.json",
+  "schemaVersion": 1,
+  "catalogId": "cheatengine-sdk-lua-protected-operations",
+  "host": {
+    "product": "Cheat Engine",
+    "version": "7.7.0.10621",
+    "architecture": "x64",
+    "lua": {
+      "majorMinor": "5.3",
+      "fixtureSha256": "C95DCDFA0F60F97B43D970D77FD1BB907AF4DE04B500A3C89A99600B20B35BD2"
+    },
+    "evidence": [
+      {
+        "component": "Lua fixture",
+        "symbol": "lua53-64.dll",
+        "status": "ExactInstalledFile",
+        "source": "https://www.lua.org/manual/5.3/manual.html",
+        "verifiedOn": "2026-09-20",
+        "verification": "The SDK fixture hash matches the CE 7.7 installed Lua DLL; its hash is recorded above.",
+        "note": "The fixture identity does not, by itself, prove every CE host behavior."
+      }
+    ]
+  },
+  "bridgeContract": {
+    "abiMajor": 1,
+    "minimumAbiMinor": 1,
+    "operationBitmapWidth": 64,
+    "operationBitmap": "0x00000000000007FF"
+  },
+  "classificationPreconditions": [
+    "The Lua state, stack indices, argument types, and target tables satisfy the documented Lua 5.3 C API preconditions.",
+    "The managed caller holds the SDK lifetime/serialization lease for the current attach epoch and Lua state generation.",
+    "A raw operation marked never is not permission to bypass stack admission, ownership, or the protected boundary of a surrounding operation."
+  ],
+  "operations": [
+    {
+      "id": "PushBytes",
+      "nativeEnum": "OP_PUSH_BYTES",
+      "managed": { "constant": "PushBytesOperation", "wrapper": "PushBytes" },
+      "opcode": 0,
+      "capability": "push-bytes",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "memory",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 0,
+        "inputDescription": "The bytes are borrowed from the managed call for its duration.",
+        "success": { "resultCount": 1, "delta": "+1", "note": "The copied Lua string is returned by the protected call." },
+        "failure": { "resultCount": 1, "delta": "+1", "note": "lua_pcallk leaves its error object." }
+      },
+      "ownership": {
+        "input": "Managed bytes are borrowed only while the call is active.",
+        "result": "Lua owns the copied string and its garbage collector determines its lifetime."
+      },
+      "hostOperation": "lua_pushlstring",
+      "provenance": [
+        {
+          "component": "Lua 5.3 C API",
+          "symbol": "lua_pushlstring",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushlstring",
+          "verifiedOn": "2026-09-20",
+          "verification": "The manual annotation is [-0,+1,m]; m means a memory error may be raised."
+        }
+      ]
+    },
+    {
+      "id": "CreateTable",
+      "nativeEnum": "OP_CREATE_TABLE",
+      "managed": { "constant": "CreateTableOperation", "wrapper": "CreateTable" },
+      "opcode": 1,
+      "capability": "create-table",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "memory",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 0,
+        "inputDescription": "Array and record capacities travel as integer bridge parameters, not Lua stack values.",
+        "success": { "resultCount": 1, "delta": "+1" },
+        "failure": { "resultCount": 1, "delta": "+1", "note": "lua_pcallk leaves its error object." }
+      },
+      "ownership": {
+        "input": "No managed or Lua input has ownership transferred.",
+        "result": "Lua owns the new table."
+      },
+      "hostOperation": "lua_createtable",
+      "provenance": [
+        {
+          "component": "Lua 5.3 C API",
+          "symbol": "lua_createtable",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/manual/5.3/manual.html#lua_createtable",
+          "verifiedOn": "2026-09-20",
+          "verification": "The manual annotation is [-0,+1,m]."
+        }
+      ]
+    },
+    {
+      "id": "NewUserdata",
+      "nativeEnum": "OP_NEW_USERDATA",
+      "managed": { "constant": "NewUserdataOperation", "wrapper": "NewUserdata" },
+      "opcode": 2,
+      "capability": "new-userdata",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "memory",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 0,
+        "inputDescription": "The requested byte size travels as a bridge parameter.",
+        "success": { "resultCount": 1, "delta": "+1" },
+        "failure": { "resultCount": 1, "delta": "+1", "note": "lua_pcallk leaves its error object." }
+      },
+      "ownership": {
+        "input": "No input ownership is transferred.",
+        "result": "Lua owns the full-userdata allocation; later metatable and __gc behavior is separate from this allocation."
+      },
+      "hostOperation": "lua_newuserdata",
+      "provenance": [
+        {
+          "component": "Lua 5.3 C API",
+          "symbol": "lua_newuserdata",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/manual/5.3/manual.html#lua_newuserdata",
+          "verifiedOn": "2026-09-20",
+          "verification": "The manual annotation is [-0,+1,m]."
+        }
+      ]
+    },
+    {
+      "id": "PushClosure",
+      "nativeEnum": "OP_PUSH_CLOSURE",
+      "managed": { "constant": "PushClosureOperation", "wrapper": "PushClosure" },
+      "opcode": 3,
+      "capability": "push-closure",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "memory",
+      "conditionalFastPath": "A separately designed direct fast path may call lua_pushcclosure only when upvalueCount == 0 and lua_checkstack(state, 1) succeeded immediately before on the same call path. The current generic operation accepts arbitrary upvalues and remains protected.",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": "upvalueCount",
+        "inputDescription": "The top upvalueCount values become closure upvalues; the C-function address is borrowed.",
+        "success": { "resultCount": 1, "delta": "1 - upvalueCount" },
+        "failure": { "resultCount": 1, "delta": "1 - upvalueCount", "note": "lua_pcallk leaves its error object." }
+      },
+      "ownership": {
+        "input": "Lua consumes the upvalue stack values; the managed layer must root the native callback target for as long as Lua can invoke it.",
+        "result": "Lua owns the closure and its upvalue references."
+      },
+      "hostOperation": "lua_pushcclosure",
+      "provenance": [
+        {
+          "component": "Lua 5.3 C API",
+          "symbol": "lua_pushcclosure",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushcclosure",
+          "verifiedOn": "2026-09-20",
+          "verification": "The general manual annotation is [-n,+1,m]; the Lua 5.3.6 source has a distinct n == 0 light-C-function fast path."
+        }
+      ]
+    },
+    {
+      "id": "RawSet",
+      "nativeEnum": "OP_RAWSET",
+      "managed": { "constant": "RawSetOperation", "wrapper": "RawSet" },
+      "opcode": 4,
+      "capability": "raw-set",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "memory",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 3,
+        "inputDescription": "Argument one is a copied target table, followed by key and value.",
+        "success": { "resultCount": 0, "delta": "-3" },
+        "failure": { "resultCount": 1, "delta": "-2", "note": "lua_pcallk consumes the arguments and leaves its error object." }
+      },
+      "ownership": {
+        "input": "The table receives a Lua reference to the key/value as specified by Lua.",
+        "result": "No result is returned."
+      },
+      "hostOperation": "lua_rawset",
+      "provenance": [
+        {
+          "component": "Lua 5.3 C API",
+          "symbol": "lua_rawset",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawset",
+          "verifiedOn": "2026-09-20",
+          "verification": "The manual annotation is [-2,+0,m]; raw access disables metamethods but not allocation failure."
+        }
+      ]
+    },
+    {
+      "id": "RawSetIndex",
+      "nativeEnum": "OP_RAWSETI",
+      "managed": { "constant": "RawSetIndexOperation", "wrapper": "RawSetI" },
+      "opcode": 5,
+      "capability": "raw-set-index",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "memory",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 2,
+        "inputDescription": "Argument one is a copied target table and argument two is the value; the integer key is a bridge parameter.",
+        "success": { "resultCount": 0, "delta": "-2" },
+        "failure": { "resultCount": 1, "delta": "-1", "note": "lua_pcallk consumes the arguments and leaves its error object." }
+      },
+      "ownership": {
+        "input": "The table receives a Lua reference to the value.",
+        "result": "No result is returned."
+      },
+      "hostOperation": "lua_rawseti",
+      "provenance": [
+        {
+          "component": "Lua 5.3 C API",
+          "symbol": "lua_rawseti",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawseti",
+          "verifiedOn": "2026-09-20",
+          "verification": "The manual annotation is [-1,+0,m]."
+        }
+      ]
+    },
+    {
+      "id": "RawSetPointer",
+      "nativeEnum": "OP_RAWSETP",
+      "managed": { "constant": "RawSetPointerOperation", "wrapper": "RawSetP" },
+      "opcode": 6,
+      "capability": "raw-set-pointer",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "memory",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 2,
+        "inputDescription": "Argument one is a copied target table and argument two is the value; the pointer key is borrowed as a bridge parameter.",
+        "success": { "resultCount": 0, "delta": "-2" },
+        "failure": { "resultCount": 1, "delta": "-1", "note": "lua_pcallk consumes the arguments and leaves its error object." }
+      },
+      "ownership": {
+        "input": "The pointer key is borrowed and the table receives a Lua reference to the value.",
+        "result": "No result is returned."
+      },
+      "hostOperation": "lua_rawsetp",
+      "provenance": [
+        {
+          "component": "Lua 5.3 C API",
+          "symbol": "lua_rawsetp",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawsetp",
+          "verifiedOn": "2026-09-20",
+          "verification": "The manual annotation is [-1,+0,m]."
+        }
+      ]
+    },
+    {
+      "id": "CreateReference",
+      "nativeEnum": "OP_REF",
+      "managed": { "constant": "CreateReferenceOperation", "wrapper": "TryCreatePrivateRef" },
+      "opcode": 7,
+      "capability": "create-private-reference",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "memory",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 1,
+        "inputDescription": "The value becomes a reference in the SDK-private registry table identified by a borrowed stable key.",
+        "success": { "resultCount": 1, "delta": "0", "note": "The returned Lua integer is the reference slot." },
+        "failure": { "resultCount": 1, "delta": "0", "note": "lua_pcallk consumes the value and leaves its error object." }
+      },
+      "ownership": {
+        "input": "The registry table acquires the Lua reference to the input value.",
+        "result": "The returned reference id is a value; the registry owns the strong Lua reference until Unref."
+      },
+      "hostOperation": "lua_rawgetp + lua_createtable + lua_rawset + luaL_ref",
+      "provenance": [
+        {
+          "component": "Lua 5.3 C API",
+          "symbol": "luaL_ref",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/manual/5.3/manual.html#luaL_ref",
+          "verifiedOn": "2026-09-20",
+          "verification": "luaL_ref is annotated [-1,+0,m]; the lazy private-table path also calls lua_createtable and lua_rawset, both m."
+        }
+      ]
+    },
+    {
+      "id": "PushReference",
+      "nativeEnum": "OP_PUSH_REF",
+      "managed": { "constant": "PushReferenceOperation", "wrapper": "PushPrivateRef" },
+      "opcode": 8,
+      "capability": "push-private-reference",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "any",
+      "successPathRaises": "never",
+      "availability": {
+        "state": "supported-unused",
+        "consumerCount": 0,
+        "candidateRetirement": true,
+        "note": "LuaReferences.Push already uses the proven direct rawgetp/rawgeti fast path and normalizes a missing table in managed code. Retire this ABI bit only in a deliberate contract-major/minor plan."
+      },
+      "conditionalFastPath": "A separately designed PushExistingPrivateRef fast path can be direct only after it proves the private table exists and reports a missing table in managed code. The current operation intentionally creates an error string and calls lua_error when the table is absent.",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 0,
+        "inputDescription": "Stable key and reference id are bridge parameters; neither transfers ownership.",
+        "success": { "resultCount": 1, "delta": "+1", "note": "The referenced value is pushed; the intermediate table is not returned." },
+        "failure": { "resultCount": 1, "delta": "+1", "note": "The absent-table path calls lua_pushlstring and lua_error; lua_pcallk leaves its error object." }
+      },
+      "ownership": {
+        "input": "Stable key and reference id are borrowed values.",
+        "result": "The pushed value is a borrowed stack reference; the registry retains ownership."
+      },
+      "hostOperation": "lua_rawgetp + lua_type + lua_rawgeti; absent table calls lua_pushlstring + lua_error",
+      "provenance": [
+        {
+          "component": "Lua 5.3 C API",
+          "symbol": "lua_rawgetp, lua_rawgeti, lua_error",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/manual/5.3/manual.html#lua_error",
+          "verifiedOn": "2026-09-20",
+          "verification": "The normal raw-get path has no error annotation; the current absent-table branch intentionally raises through lua_error after allocating its message."
+        }
+      ]
+    },
+    {
+      "id": "ReleaseReference",
+      "nativeEnum": "OP_UNREF",
+      "managed": { "constant": "ReleaseReferenceOperation", "wrapper": "UnrefPrivate" },
+      "opcode": 9,
+      "capability": "release-private-reference",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "any",
+      "successPathRaises": "memory",
+      "availability": {
+        "state": "active",
+        "consumerCount": 1,
+        "candidateRetirement": false,
+        "note": "LuaReferences.Release calls UnrefPrivate for current SDK-private registry slots."
+      },
+      "provenanceConflict": "The Lua manual annotates luaL_unref [-0,+0,-], while Lua 5.3.6 lauxlib.c calls lua_rawseti twice and the manual annotates lua_rawseti as m. The successful path is therefore conservatively classified memory until a pinned fixture proves allocator-failure behavior.",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 0,
+        "inputDescription": "Stable key and reference id are bridge parameters; neither transfers ownership.",
+        "success": { "resultCount": 0, "delta": "0" },
+        "failure": { "resultCount": 1, "delta": "+1", "note": "The absent-table path calls lua_pushlstring and lua_error; lua_pcallk leaves its error object." }
+      },
+      "ownership": {
+        "input": "Stable key and reference id are borrowed values.",
+        "result": "The SDK-private registry releases its strong Lua reference; Lua may reuse the released slot."
+      },
+      "hostOperation": "lua_rawgetp + lua_type + luaL_unref; absent table calls lua_pushlstring + lua_error",
+      "provenance": [
+        {
+          "component": "Lua 5.3 auxiliary library",
+          "symbol": "luaL_unref",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/source/5.3/lauxlib.c.html",
+          "verifiedOn": "2026-09-20",
+          "verification": "Lua 5.3.6 source shows luaL_unref calling lua_rawseti twice; the current absent-table branch intentionally raises with lua_error."
+        }
+      ]
+    },
+    {
+      "id": "PushHostObject",
+      "nativeEnum": "OP_PUSH_HOST_OBJECT",
+      "managed": { "constant": "PushHostObjectOperation", "wrapper": "PushHostObject" },
+      "opcode": 10,
+      "capability": "push-host-object",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "any",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 0,
+        "inputDescription": "The CE host pusher address and CE object pointer are borrowed bridge parameters.",
+        "success": { "resultCount": 1, "delta": "+1", "note": "The host pusher contract is that it pushes one CE userdata." },
+        "failure": { "resultCount": 1, "delta": "+1", "note": "Any Lua/CE failure becomes the lua_pcallk error object." }
+      },
+      "ownership": {
+        "input": "The CE object pointer remains borrowed; the managed layer must not infer destruction rights from this push.",
+        "result": "Lua owns the userdata container and its metatable; Cheat Engine retains ownership of the native object by default."
+      },
+      "hostOperation": "Cheat Engine LuaPushClassInstance / luaclass_pushClass",
+      "provenance": [
+        {
+          "component": "Cheat Engine Lua class projection",
+          "symbol": "luaclass_pushClass",
+          "status": "PinnedUpstream",
+          "source": "https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/LuaClass.pas",
+          "verifiedOn": "2026-09-20",
+          "verification": "The pusher delegates to userdata and metatable creation; its exact CE 7.7 failure behavior remains a P0-LIVE-005 probe.",
+          "note": "Host behavior beyond the pinned implementation is Unknown until live verification."
+        }
+      ]
+    }
+  ],
+  "directApiPolicy": [
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_gettop",
+      "nativeSymbol": "lua_gettop",
+      "raises": "never",
+      "allowedDirectly": true,
+      "requiresBridge": false,
+      "reason": "Read-only stack-height query.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_gettop", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_gettop", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-0,+0,-]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_settop",
+      "nativeSymbol": "lua_settop",
+      "raises": "never",
+      "allowedDirectly": true,
+      "requiresBridge": false,
+      "reason": "Stack restoration is non-allocating; the caller owns index validity and balance.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_settop", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_settop", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-?,+?,-]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_checkstack",
+      "nativeSymbol": "lua_checkstack",
+      "raises": "never",
+      "allowedDirectly": true,
+      "requiresBridge": false,
+      "reason": "It reports lack of stack capacity by returning zero; the caller must check that result before a conditional direct fast path.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_checkstack", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_checkstack", "verifiedOn": "2026-09-20", "verification": "The manual specifies a boolean capacity result, not a Lua error." },
+        { "component": "CE 7.7-identical Lua fixture", "symbol": "lua_checkstack(4096)", "status": "ExactInstalledFile", "source": "https://www.lua.org/manual/5.3/manual.html#lua_checkstack", "verifiedOn": "2026-09-20", "verification": "A rejecting-allocator fixture probe returned 0, preserved stack height 0, and left the state reusable. The fixture DLL hash is recorded by host.lua.fixtureSha256.", "note": "This is an exact-installed-file fixture observation, not an ObservedLive Cheat Engine result." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rotate",
+      "nativeSymbol": "lua_rotate",
+      "raises": "never",
+      "allowedDirectly": true,
+      "requiresBridge": false,
+      "reason": "Pure stack permutation.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_rotate", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_rotate", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-?,+?,-]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushinteger",
+      "nativeSymbol": "lua_pushinteger",
+      "raises": "never",
+      "allowedDirectly": true,
+      "requiresBridge": false,
+      "reason": "Scalar push without allocation, subject to the normal Lua API stack-capacity precondition.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_pushinteger", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushinteger", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-0,+1,-]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushlightuserdata",
+      "nativeSymbol": "lua_pushlightuserdata",
+      "raises": "never",
+      "allowedDirectly": true,
+      "requiresBridge": false,
+      "reason": "Light userdata is a scalar pointer value; it does not create full userdata.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_pushlightuserdata", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushlightuserdata", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-0,+1,-]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawgetp",
+      "nativeSymbol": "lua_rawgetp",
+      "raises": "never",
+      "allowedDirectly": true,
+      "requiresBridge": false,
+      "reason": "Raw get bypasses metamethods and the Lua 5.3 API annotation is non-raising.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_rawgetp", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawgetp", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-0,+1,-]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawgeti",
+      "nativeSymbol": "lua_rawgeti",
+      "raises": "never",
+      "allowedDirectly": true,
+      "requiresBridge": false,
+      "reason": "Raw integer get bypasses metamethods and the Lua 5.3 API annotation is non-raising.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_rawgeti", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawgeti", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-0,+1,-]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_type",
+      "nativeSymbol": "lua_type",
+      "raises": "never",
+      "allowedDirectly": true,
+      "requiresBridge": false,
+      "reason": "Type inspection is non-allocating and does not invoke metamethods.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_type", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_type", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-0,+0,-]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pcallk",
+      "nativeSymbol": "lua_pcallk",
+      "raises": "never",
+      "allowedDirectly": true,
+      "requiresBridge": false,
+      "reason": "lua_pcallk is the native protected-call boundary and returns a status. It does not authorize a managed reverse callback to run a raising Lua primitive directly.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_pcallk", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_pcallk", "verifiedOn": "2026-09-20", "verification": "The manual annotation has no error marker and specifies status results from protected execution." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushlstring",
+      "nativeSymbol": "lua_pushlstring",
+      "raises": "memory",
+      "allowedDirectly": false,
+      "requiresBridge": true,
+      "bridgeOperation": "PushBytes",
+      "reason": "Copies/allocates a Lua string; route through PushBytes.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_pushlstring", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushlstring", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-0,+1,m]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_createtable",
+      "nativeSymbol": "lua_createtable",
+      "raises": "memory",
+      "allowedDirectly": false,
+      "requiresBridge": true,
+      "bridgeOperation": "CreateTable",
+      "reason": "Allocates a Lua table; route through CreateTable.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_createtable", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_createtable", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-0,+1,m]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_newuserdata",
+      "nativeSymbol": "lua_newuserdata",
+      "raises": "memory",
+      "allowedDirectly": false,
+      "requiresBridge": true,
+      "bridgeOperation": "NewUserdata",
+      "reason": "Allocates full userdata; route through NewUserdata.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_newuserdata", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_newuserdata", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-0,+1,m]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushcclosure",
+      "nativeSymbol": "lua_pushcclosure",
+      "raises": "memory",
+      "allowedDirectly": false,
+      "requiresBridge": true,
+      "bridgeOperation": "PushClosure",
+      "conditionalDirectUse": {
+        "allowed": true,
+        "when": "upvalueCount == 0 and lua_checkstack(state, 1) returned nonzero immediately before on the same call path",
+        "proof": "Lua 5.3.6 lapi.c has a light-C-function fast path for n == 0; no generic direct path is approved."
+      },
+      "reason": "The general operation owns arbitrary upvalues and can allocate; route through PushClosure unless the exact n == 0 fast-path proof holds.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_pushcclosure", "status": "PinnedUpstream", "source": "https://www.lua.org/source/5.3/lapi.c.html", "verifiedOn": "2026-09-20", "verification": "The general manual annotation is [-n,+1,m]; lapi.c has a separate n == 0 light-C-function branch." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawset",
+      "nativeSymbol": "lua_rawset",
+      "raises": "memory",
+      "allowedDirectly": false,
+      "requiresBridge": true,
+      "bridgeOperation": "RawSet",
+      "reason": "Raw access avoids metamethods but table mutation may allocate; route through RawSet.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_rawset", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawset", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-2,+0,m]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawseti",
+      "nativeSymbol": "lua_rawseti",
+      "raises": "memory",
+      "allowedDirectly": false,
+      "requiresBridge": true,
+      "bridgeOperation": "RawSetIndex",
+      "reason": "Raw access avoids metamethods but table mutation may allocate; route through RawSetI.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_rawseti", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawseti", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-1,+0,m]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawsetp",
+      "nativeSymbol": "lua_rawsetp",
+      "raises": "memory",
+      "allowedDirectly": false,
+      "requiresBridge": true,
+      "bridgeOperation": "RawSetPointer",
+      "reason": "Raw access avoids metamethods but table mutation may allocate; route through RawSetP.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_rawsetp", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawsetp", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-1,+0,m]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_error",
+      "nativeSymbol": "lua_error",
+      "raises": "any",
+      "allowedDirectly": false,
+      "requiresBridge": true,
+      "reason": "Intentionally throws a Lua error with longjmp behavior; it is valid only under a native lua_pcallk boundary.",
+      "provenance": [
+        { "component": "Lua 5.3 C API", "symbol": "lua_error", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#lua_error", "verifiedOn": "2026-09-20", "verification": "Lua 5.3 documents C error handling through longjmp; .NET does not support longjmp skipping managed frames." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_ref",
+      "nativeSymbol": "luaL_ref",
+      "raises": "memory",
+      "allowedDirectly": false,
+      "requiresBridge": true,
+      "bridgeOperation": "CreateReference",
+      "reason": "Creates a registry reference and may allocate; route through TryCreatePrivateRef.",
+      "provenance": [
+        { "component": "Lua 5.3 auxiliary library", "symbol": "luaL_ref", "status": "PinnedUpstream", "source": "https://www.lua.org/manual/5.3/manual.html#luaL_ref", "verifiedOn": "2026-09-20", "verification": "The manual annotation is [-1,+0,m]." }
+      ]
+    },
+    {
+      "managedSymbol": "CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_unref",
+      "nativeSymbol": "luaL_unref",
+      "raises": "memory",
+      "allowedDirectly": false,
+      "requiresBridge": true,
+      "bridgeOperation": "ReleaseReference",
+      "reason": "The manual marks it non-raising, but the pinned 5.3.6 implementation calls lua_rawseti; retain the conservative protected route until fixture evidence resolves the conflict.",
+      "provenance": [
+        { "component": "Lua 5.3 auxiliary library", "symbol": "luaL_unref", "status": "PinnedUpstream", "source": "https://www.lua.org/source/5.3/lauxlib.c.html", "verifiedOn": "2026-09-20", "verification": "The implementation calls lua_rawseti twice while the manual labels lua_rawseti m." }
+      ]
+    }
+  ]
+}

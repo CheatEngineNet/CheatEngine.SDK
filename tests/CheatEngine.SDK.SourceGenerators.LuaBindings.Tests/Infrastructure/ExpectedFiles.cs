@@ -166,7 +166,8 @@ internal static class ExpectedFiles
                                                                      {{GeneratedCode}}
                                                                      public static partial int ReadInt32(nuint address)
                                                                      {
-                                                                         global::CheatEngine.SDK.Lua.State.LuaState __L = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+                                                                         using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation();
+                                                                         global::CheatEngine.SDK.Lua.State.LuaState __L = __operation.State;
                                                                          int __top = __L.Top;
                                                                          try
                                                                          {
@@ -198,7 +199,8 @@ internal static class ExpectedFiles
                                                                      {{GeneratedCode}}
                                                                      public static partial bool TryReadInt32(nuint address, out int value)
                                                                      {
-                                                                         global::CheatEngine.SDK.Lua.State.LuaState __L = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+                                                                         using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation();
+                                                                         global::CheatEngine.SDK.Lua.State.LuaState __L = __operation.State;
                                                                          int __top = __L.Top;
                                                                          try
                                                                          {

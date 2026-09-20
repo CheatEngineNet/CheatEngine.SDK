@@ -63,6 +63,36 @@ public sealed class ZeroAllocationTests
     }
 
     [Fact]
+    public void Non_ascii_utf8_payload_at_the_benchmark_upper_bound_allocates_nothing()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new(false);
+        var L = LuaTest.View(state);
+        byte[] payload = new byte[1024];
+
+        for (var index = 0; index < payload.Length; index += 4)
+        {
+            payload[index] = 0xF0;
+            payload[index + 1] = 0x9F;
+            payload[index + 2] = 0xA7;
+            payload[index + 3] = 0xAA;
+        }
+
+        long sink = 0;
+        AllocationGate.AssertZero(() =>
+        {
+            var top = L.Top;
+            Utf8Marshaller.Push(L, payload);
+            if (!Utf8Marshaller.TryRead(L, -1, out var read) || !read.SequenceEqual(payload)) Fail();
+            sink += read.Length;
+            L.SetTop(top);
+        });
+
+        Assert.NotEqual(0, sink);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
     public void Utf16_string_push_allocates_nothing_through_the_stack_buffer()
     {
         LuaTest.RequireNativeLua();

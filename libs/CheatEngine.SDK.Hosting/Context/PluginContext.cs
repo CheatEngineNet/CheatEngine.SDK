@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Threading;
@@ -27,13 +28,14 @@ public sealed unsafe class PluginContext
     private readonly ManagedExportedFunctions _exports;
 
     internal PluginContext(in ManagedExportedFunctions exports, uint pluginId, int epoch, int mainThreadId,
-        in LuaHostBinding hostBinding)
+        in LuaHostBinding hostBinding, CancellationToken shutdownToken)
     {
         _exports = exports;
         PluginId = pluginId;
         Epoch = epoch;
         MainThreadId = mainThreadId;
         HostBinding = hostBinding;
+        ShutdownToken = shutdownToken;
     }
 
     /// <summary>Gets the plugin id Cheat Engine assigned in the enable callback.</summary>
@@ -47,6 +49,17 @@ public sealed unsafe class PluginContext
 
     /// <summary>Gets the managed thread id of the thread that ran the enable callback: Cheat Engine's main thread.</summary>
     public int MainThreadId { get; }
+
+    /// <summary>
+    ///     Gets the token signalled as soon as disable closes admission for this enable, before <c>OnDisable</c> and
+    ///     before the Lua runtime detaches.
+    /// </summary>
+    /// <remarks>
+    ///     Long-running plugin work should observe this token and finish promptly. Cancellation is cooperative: the
+    ///     host waits only for main-thread dispatches that Hosting admitted before shutdown began. A context retained
+    ///     from an earlier enable has a cancelled token and <see cref="IsCurrent" /> is <see langword="false" />.
+    /// </remarks>
+    public CancellationToken ShutdownToken { get; }
 
     /// <summary>
     ///     Gets the binding that was attached to <see cref="LuaRuntime" /> for this enable: the state provider and
@@ -65,8 +78,8 @@ public sealed unsafe class PluginContext
     public bool IsMainThread => Environment.CurrentManagedThreadId == MainThreadId;
 
     /// <summary>
-    ///     Gets a value indicating whether this is the context of the current enable (the plugin is enabled and has not
-    ///     been disabled or re-enabled since).
+    ///     Gets a value indicating whether this is the context of the current lifecycle transition or stable enable
+    ///     (it has not been disabled or re-enabled since).
     /// </summary>
     public bool IsCurrent => ReferenceEquals(PluginHost.Context, this);
 

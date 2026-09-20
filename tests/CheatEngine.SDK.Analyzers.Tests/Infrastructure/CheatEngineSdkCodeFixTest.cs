@@ -18,5 +18,7 @@ internal sealed class CheatEngineSdkCodeFixTest<TAnalyzer, TCodeFix> : CSharpCod
         ReferenceAssemblies = LocalFrameworkReferences.WithoutPackages;
         TestState.AdditionalReferences.AddRange(LocalFrameworkReferences.References);
         ContractStubs.AddTo(TestState);
+        TestState.AnalyzerConfigFiles.Add(("/.globalconfig",
+            TestText.Normalize("is_global = true\nbuild_property.CheatEngineSdkGenerateEntryPoint = true\n")));
     }
 }

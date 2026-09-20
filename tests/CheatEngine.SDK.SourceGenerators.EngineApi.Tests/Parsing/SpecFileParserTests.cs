@@ -1,3 +1,4 @@
+using CheatEngine.SDK.SourceGenerators.EngineApi.Model;
 using CheatEngine.SDK.SourceGenerators.EngineApi.Parsing;
 using CheatEngine.SDK.SourceGenerators.EngineApi.Tests.Infrastructure;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
@@ -659,5 +660,98 @@ public sealed class SpecFileParserTests
         var spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", SpecSources.SingleTry);
 
         Assert.Equal(string.Empty, spec.HintName);
+    }
+
+    /// <summary>A ce77 contract becomes immutable per-entry data rather than an ignored comment beside the spec.</summary>
+    [Fact]
+    public void A_ce77_contract_is_attached_to_every_valid_entry_with_its_nil_semantics()
+    {
+        var spec = SpecFileParser.Parse("memory.cheatengine-sdk-api.txt", SpecSources.Memory);
+
+        Assert.Empty(spec.Issues.AsSpan().ToArray());
+        Assert.Equal(4, spec.Calls.Length);
+        Assert.Equal("7.7.0.10621", Assert.IsType<SpecFileContract>(spec.Contract).MinimumCheatEngineVersion);
+        var absenceCount = 0;
+        var noneCount = 0;
+        foreach (var entry in spec.Calls)
+        {
+            var contract = Assert.IsType<SpecContract>(entry.Contract);
+            Assert.Equal("ExactInstalledFile: CE 7.7 celua.txt scalar memory globals", contract.Provenance);
+            Assert.Equal("7.7.0.10621", contract.MinimumCheatEngineVersion);
+            Assert.Equal("x64", contract.Architecture);
+            Assert.Equal("unknown", contract.ThreadAffinity);
+            Assert.Equal("none", contract.Ownership);
+            if (string.Equals(contract.NilSemantics, "absence", StringComparison.Ordinal)) absenceCount++;
+            if (string.Equals(contract.NilSemantics, "none", StringComparison.Ordinal)) noneCount++;
+        }
+
+        Assert.Equal(2, absenceCount);
+        Assert.Equal(2, noneCount);
+    }
+
+    /// <summary>Contract fields may not remain free-form comments: an invalid status is a localized grammar issue.</summary>
+    [Fact]
+    public void An_invalid_ce77_provenance_records_the_provenance_value_location()
+    {
+        const string Text = "namespace: Demo\ntype: T\ncontract: ce77\nprovenance: unverified note\nminimum-ce: 7.7.0.10621\narchitecture: x64\nthread: unknown\nownership: none\n";
+
+        var spec = SpecFileParser.Parse("contract.cheatengine-sdk-api.txt", Text);
+
+        var issue = Assert.Single(spec.Issues);
+        Assert.Equal(4, issue.Line);
+        Assert.Equal(13, issue.Column);
+        Assert.Contains("not a valid provenance", issue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Every independently malformed CE 7.7 header fact is retained as its own source-located issue.</summary>
+    [Fact]
+    public void Invalid_ce77_contract_facts_report_each_exact_value_location()
+    {
+        const string Text = "namespace: Demo\ntype: T\ncontract: ce77\nprovenance: not proof\nminimum-ce: seven\narchitecture: x86\nthread: worker\nownership: shared\n";
+
+        var spec = SpecFileParser.Parse("contract.cheatengine-sdk-api.txt", Text);
+
+        Assert.Equal(5, spec.Issues.Length);
+        AssertIssue(spec, "not a valid provenance", 4, 13);
+        AssertIssue(spec, "not a valid minimum CE version", 5, 13);
+        AssertIssue(spec, "not a supported Engine API architecture", 6, 15);
+        AssertIssue(spec, "not a valid thread contract", 7, 9);
+        AssertIssue(spec, "not a valid ownership contract", 8, 12);
+    }
+
+    /// <summary>Parser issues preserve the exact value column from an indented additional-file field.</summary>
+    [Fact]
+    public void An_invalid_argument_kind_records_its_value_column()
+    {
+        const string Text = "namespace: Demo\ntype: T\n\n    global: readInteger\n    method: M\n    form: try\n    arg: address:notakind\n    result: value:int32\n    doc: d.\n";
+
+        var spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
+
+        var issue = Assert.Single(spec.Issues);
+        Assert.Equal(7, issue.Line);
+        Assert.Equal(10, issue.Column);
+    }
+
+    /// <summary>Reserved implementation locals and hidden raw-core method identities cannot reach generated C#.</summary>
+    [Fact]
+    public void Parameter_and_generated_member_identity_collisions_drop_the_affected_entries()
+    {
+        const string Text = "namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: BadParameter\nform: try\narg: __L:int32\nresult: value:int32\ndoc: bad.\n\nglobal: readInteger\nmethod: Read\nform: try\narg: address:address\nresult: value:int32\ndoc: raw core.\n\nglobal: readQword\nmethod: __ReadRaw\nform: try\nresult: value:int64\ndoc: collision.\n";
+
+        var spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
+
+        Assert.Empty(spec.Calls.AsSpan().ToArray());
+        Assert.Contains(spec.Issues,
+            static issue => issue.Message.Contains("reserved local", StringComparison.Ordinal));
+        Assert.Contains(spec.Issues,
+            static issue => issue.Message.Contains("Generated member", StringComparison.Ordinal));
+    }
+
+    private static void AssertIssue(SpecFileModel spec, string messageFragment, int line, int column)
+    {
+        var issue = Assert.Single(spec.Issues.AsSpan().ToArray(), issue =>
+            issue.Message.Contains(messageFragment, StringComparison.Ordinal));
+        Assert.Equal(line, issue.Line);
+        Assert.Equal(column, issue.Column);
     }
 }

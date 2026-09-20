@@ -40,6 +40,22 @@ public sealed class LuaRuntimeDetachedTests
     }
 
     [Fact]
+    public void BeginStateReset_throws_while_detached()
+    {
+        LuaRuntime.Detach();
+        var identity = LuaRuntime.CurrentStateIdentity;
+
+        Assert.Throws<InvalidOperationException>(BeginStateReset);
+
+        Assert.Equal(identity, LuaRuntime.CurrentStateIdentity);
+    }
+
+    private static void BeginStateReset()
+    {
+        using var reset = LuaRuntime.BeginStateReset();
+    }
+
+    [Fact]
     public void PushHostObject_throws_while_detached()
     {
         LuaRuntime.Detach();

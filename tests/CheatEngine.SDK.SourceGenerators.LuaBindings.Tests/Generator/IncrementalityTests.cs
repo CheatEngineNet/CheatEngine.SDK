@@ -1,10 +1,11 @@
 using CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
+using CheatEngine.SDK.SourceGenerators.Shared;
 using Microsoft.CodeAnalysis;
 
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Generator;
 
 /// <summary>
-///     The cacheability gate of both pipelines: edits that cannot change the output must leave every tracked step
+///     The cacheability gate of every Lua-binding pipeline: edits that cannot change the output must leave every tracked step
 ///     <c>Cached</c>/<c>Unchanged</c>, and edits that can must reach the source output of their pipeline only.
 /// </summary>
 public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<RoslynFixture>
@@ -12,13 +13,15 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
     [Fact]
     public void Pipeline_first_run_tracks_every_named_step()
     {
-        var run = roslyn.Run(BindingSources.Functions, BindingSources.Globals);
+        var run = roslyn.Run(BindingSources.Functions, BindingSources.Globals, ObjectBindings);
 
-        foreach (var stepName in LuaBindingsTrackingNames.All)
+        foreach (var stepName in run.Result.TrackedSteps.Keys
+                     .Where(TrackingNames.IsCheatEngineSdkStep)
+                     .Order(StringComparer.Ordinal))
             Assert.All(StepAssert.Reasons(run.Result, stepName),
                 static reason => Assert.Equal(IncrementalStepRunReason.New, reason));
 
-        Assert.Equal(2, StepAssert.OutputReasons(run.Result).Length);
+        Assert.Equal(4, StepAssert.OutputReasons(run.Result).Length);
         Assert.All(StepAssert.OutputReasons(run.Result),
             static reason => Assert.Equal(IncrementalStepRunReason.New, reason));
     }
@@ -230,7 +233,7 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
     }
 
     [Fact]
-    public void Pipeline_unsafe_switched_off_removes_every_output()
+    public void Pipeline_unsafe_switched_off_removes_only_function_output()
     {
         var compilation = roslyn.CreateCompilation(BindingSources.Functions, BindingSources.Globals);
         var first = RoslynFixture.Run(compilation);
@@ -239,7 +242,8 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
         var second = GeneratorRun.Execute(first.Driver,
             compilation.WithOptions(RoslynEnvironment.SafeCompilationOptions));
 
-        second.AssertNoOutput();
+        Assert.Single(second.GeneratedSources);
+        Assert.Equal(ExpectedFiles.GlobalsHintName, second.HintNames[0]);
         Assert.Equal([IncrementalStepRunReason.Modified],
             StepAssert.Reasons(second.Result, LuaBindingsTrackingNames.Facts));
         AssertUntouched(second.Result, LuaBindingsTrackingNames.LuaFunctionTables,
@@ -252,13 +256,21 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
         var run = roslyn.Run(
             BindingSources.FunctionSuite,
             BindingSources.GlobalSuite,
-            "namespace Demo; public static partial class Broken { [CheatEngine.SDK.Annotations.Lua.LuaFunction(\"bad\")] public static int Bad(object o) => 0; [CheatEngine.SDK.Annotations.Lua.LuaGlobal(\"bad\")] public static partial bool TryBad(out object o); }");
+            "namespace Demo; public static partial class Broken { [CheatEngine.SDK.Annotations.Lua.LuaFunction(\"bad\")] public static int Bad(object o) => 0; [CheatEngine.SDK.Annotations.Lua.LuaGlobal(\"bad\")] public static partial bool TryBad(out object o); }",
+            ObjectBindings);
 
         var visited = 0;
-        foreach (var stepName in LuaBindingsTrackingNames.All)
-        foreach (var step in run.Result.TrackedSteps[stepName])
-        foreach (var (value, _) in step.Outputs)
-            visited += ModelGraph.AssertFreeOfRoslynObjects(value, stepName);
+        foreach (var stepName in run.Result.TrackedSteps.Keys
+                     .Where(TrackingNames.IsCheatEngineSdkStep)
+                     .Order(StringComparer.Ordinal))
+        {
+            Assert.True(run.Result.TrackedSteps.TryGetValue(stepName, out var steps),
+                $"Tracked step '{stepName}' was not present.");
+
+            foreach (var step in steps)
+            foreach (var (value, _) in step.Outputs)
+                visited += ModelGraph.AssertFreeOfRoslynObjects(value, stepName);
+        }
 
         Assert.True(visited > 0, "No model object was visited: the assertion would be vacuous.");
     }
@@ -272,4 +284,20 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
                     reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
                     $"Step '{stepName}' was recomputed: {reason}."));
     }
+
+    private const string ObjectBindings = """
+                                          using CheatEngine.SDK.Annotations.Lua;
+
+                                          namespace Demo;
+
+                                          [LuaClass("Fixture")]
+                                          public readonly partial struct Fixture
+                                          {
+                                              [LuaMethod("getValue")]
+                                              public partial int GetValue();
+
+                                              [LuaProperty("Value")]
+                                              public partial int Value { get; }
+                                          }
+                                          """;
 }

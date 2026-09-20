@@ -28,7 +28,7 @@ internal static class EngineApiTrackingNames
     /// <summary>One file, hint name included: the per-file output unit.</summary>
     public const string SpecFile = TrackingNames.Prefix + "EngineApi.SpecFile";
 
-    /// <summary>Files with at least one valid entry: what actually reaches <c>RegisterSourceOutput</c>.</summary>
+    /// <summary>Files with valid entries and no cross-file conflict: what reaches the source-emission output.</summary>
     public const string SpecFileOutput = TrackingNames.Prefix + "EngineApi.SpecFileOutput";
 
     /// <summary>Every step name above, for the cacheability test.</summary>

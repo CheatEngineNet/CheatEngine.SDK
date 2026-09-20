@@ -8,13 +8,13 @@ namespace CheatEngine.SDK.Annotations.Lua;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Consumed by.</b> Nothing in the SDK reads this attribute: it generates nothing, so a partial property that
-///         relies on it has no implementation. The attribute only supplies the external name (<see cref="Name" />) of the
-///         member of the wrapped object.
+///         <b>Consumed by.</b> The <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c> generator supplies supported
+///         partial accessors through the protected <c>CEObject</c> property primitives. The attribute supplies the
+///         external name (<see cref="Name" />) of the member of the wrapped object.
 ///     </para>
 ///     <para>
-///         <b>Run time.</b> The attribute has no behaviour and nothing in the SDK reads it: generated accessors carry the
-///         name themselves. It stays in metadata unconditionally so that tooling can read it from a compiled assembly.
+///         <b>Run time.</b> The attribute has no behaviour itself: generated accessors carry the name themselves. It
+///         stays in metadata unconditionally so that tooling can read it from a compiled assembly.
 ///         Instances are immutable and may be used from any thread.
 ///     </para>
 ///     <para>
@@ -26,7 +26,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         one Cheat Engine property.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
 public sealed class LuaPropertyAttribute : Attribute
 {
     /// <summary>

@@ -1,16 +1,17 @@
 # CheatEngine.SDK.SourceGenerators.LuaBindings.Tests
 
-Tests for the LuaBindings generator, which emits thunks for `[LuaFunction]` methods and bodies for `[LuaGlobal]`
-methods, and for the call-shape emitters it shares.
+Tests for the LuaBindings generator, which emits thunks for `[LuaFunction]` methods, bodies for `[LuaGlobal]` methods,
+and borrowed object handles plus protected members for `[LuaClass]`, `[LuaMethod]` and `[LuaProperty]`.
 
 ## Objective
 
-Prove that the generator emits exact, warning-free code and stays silent on invalid input. The generated code runs
-correctly on a real Lua 5.3 state.
+Prove that the generator emits exact, warning-free code, isolates invalid inputs from healthy declarations and produces
+no unmanaged boundary other than the explicit `[LuaFunction]` thunks. The generated code runs correctly on a real Lua
+5.3 state.
 
 ## Why it exists
 
-Generated code must be right for the assemblies it ships with: `CheatEngine.SDK.Annotations`, `CheatEngine.SDK.Lua.Interop` and `CheatEngine.SDK.Lua`.
+Generated code must be right for the assemblies it ships with: `CheatEngine.SDK.Annotations`, `CheatEngine.SDK.Lua.Interop`, `CheatEngine.SDK.Lua` and `CheatEngine.SDK.Engine`.
 So this project uses no contract stubs. Every test compiles against the real assemblies. See
 the [generator README](../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/README.md).
 
@@ -19,7 +20,8 @@ the [generator README](../../source-generators/CheatEngine.SDK.SourceGenerators.
 | Suite          | What it proves                                                                                                                   |
 |----------------|----------------------------------------------------------------------------------------------------------------------------------|
 | Output         | Exact text for the nominal sources, and clean compilation of every supported shape, containing type and partial-method signature |
-| Silence        | Invalid shapes, look-alike attributes and a project without `AllowUnsafeBlocks` emit no file, no diagnostic and no exception     |
+| Input isolation | Invalid shapes and look-alike attributes emit no conflicting source; a globals-only project works without `AllowUnsafeBlocks` |
+| Object handles | Borrowed-handle identity, marshalling, protected methods/properties and valid-sibling isolation                                  |
 | Incrementality | Edits that cannot change the output recompute nothing, and an edit to one kind of binding leaves the other's output cached       |
 | End to end     | Generated thunks and wrappers are compiled, loaded and run against a real Lua 5.3 state through the real `LuaRuntime`            |
 | Shared code    | Unit tests of the linked `LuaEmit` emitters, `LuaNames`, `LuaValueKinds`, `HintNames` and the grouping models                    |
@@ -47,7 +49,7 @@ dotnet test --project tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests -
 ## Promise
 
 - The nominal inputs yield exactly the expected files, and an invalid member never blocks its valid neighbors
-  (`LuaFunctionOutputTests`, `LuaGlobalOutputTests`, `NoOutputTests`).
+  (`LuaFunctionOutputTests`, `LuaGlobalOutputTests`, `LuaObjectOutputTests`, `NoOutputTests`).
 - A wrong argument kind, a wrong argument count and a throwing target become catchable Lua errors
   (`LuaFunctionEndToEndTests`).
 - Generated wrappers report nil, wrong kinds and raising globals as failure, and throw while the runtime is detached

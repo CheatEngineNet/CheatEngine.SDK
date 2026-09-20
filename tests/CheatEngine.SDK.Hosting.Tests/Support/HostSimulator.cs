@@ -69,10 +69,10 @@ internal sealed unsafe class HostSimulator : IDisposable
     }
 
     /// <summary>The bootstrap call, as the generated entry point makes it.</summary>
-    public int Initialize<TFactory>(int size = 36)
+    public int Initialize<TFactory>(int hostArgument = 0)
         where TFactory : IPluginFactory
     {
-        return PluginHost.InitializeManaged<TFactory>(RecordAddress, size);
+        return PluginHost.InitializeManaged<TFactory>(RecordAddress, hostArgument);
     }
 
     /// <summary>The host's version query through the record's pointer.</summary>

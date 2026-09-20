@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace CheatEngine.SDK.Lua.Interop.Protected;
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential, Pack = 8)]
 internal readonly struct LuaProtectedExports
 {
     private readonly nint _getTop, _setTop, _checkStack, _rotate, _pushLString, _pushInteger, _createTable, _newUserdata, _pushClosure, _pushLightUserdata, _rawSet, _rawSetI, _rawSetP, _rawGetP, _rawGetI, _type, _pCallK, _error, _lRef, _lUnref;

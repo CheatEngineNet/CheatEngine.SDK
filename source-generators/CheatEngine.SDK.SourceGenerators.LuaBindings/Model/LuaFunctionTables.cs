@@ -49,23 +49,15 @@ internal static class LuaFunctionTables
         return new EquatableArray<LuaFunctionTableModel>([.. AssignHintNames(tables)]);
     }
 
-    // Hint names are resolved here, over every table of the pass at once, because Roslyn compares them
-    // case-insensitively (AdditionalSourcesCollection.Add throws ArgumentException otherwise): two containing types
-    // whose dotted names differ only in ASCII case both produce the plain HintNames.ForType result (neither has a
-    // replaced character), so the second one in sort order falls back to a hash-suffixed name.
+    // Hint names are resolved across every table of the pass because Roslyn compares them case-insensitively. The
+    // shared allocator reserves the readable candidate, then a deterministic hash candidate, then ordinal suffixes.
     private static List<LuaFunctionTableModel> AssignHintNames(List<LuaFunctionTableModel> tables)
     {
-        HashSet<string> used = new(StringComparer.OrdinalIgnoreCase);
+        var used = HintNames.CreateUsedNames();
         for (var i = 0; i < tables.Count; i++)
         {
             var baseName = tables[i].ContainingType.HintBaseName;
-            var hintName = HintNames.ForType(baseName, LuaFunctionTableModel.HintSuffix);
-            if (!used.Add(hintName))
-            {
-                hintName = HintNames.Disambiguated(baseName, LuaFunctionTableModel.HintSuffix);
-                used.Add(hintName);
-            }
-
+            var hintName = HintNames.AllocateUnique(baseName, LuaFunctionTableModel.HintSuffix, used);
             tables[i] = tables[i] with { HintName = hintName };
         }
 

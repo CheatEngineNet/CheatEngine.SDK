@@ -236,6 +236,39 @@ public sealed class LuaCallbackTests
     }
 
     [Fact]
+    public void BeginStateReset_neutralizes_every_callback_before_the_state_is_replaced()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+        using RuntimeScope scope = new(state);
+        Counter counter = new();
+        Assert.True(LuaCallback.TryCreate(L, Thunks.Count, counter, out var callback).IsOk);
+        Assert.True(callback!.TryRegister(L, "count"u8).IsOk);
+        LuaTest.Run(L, "kept = count"u8);
+        var before = LuaRuntime.CurrentStateIdentity;
+
+        using (LuaRuntime.BeginStateReset())
+        {
+        }
+
+        var after = LuaRuntime.CurrentStateIdentity;
+        Assert.Equal(before.AttachEpoch, after.AttachEpoch);
+        Assert.Equal(before.StateGeneration + 1, after.StateGeneration);
+        Assert.True(callback.IsReleased);
+        Assert.False(callback.IsCurrent);
+        Assert.Null(callback.StateObject);
+        Assert.Equal(0, LuaCallbackRegistry.Count);
+
+        // The fixture leaves the old state alive so this verifies preparation order: the old closure was neutralized
+        // before a future host reset can replace that state.
+        LuaTest.Run(L, "local ok, err = pcall(kept)\nreturn ok, err"u8, 2);
+        Assert.False(L.ToBoolean(1));
+        Assert.Contains("callback released", LuaTest.ReadString(L, 2), StringComparison.Ordinal);
+        Assert.Equal(0, counter.Value);
+    }
+
+    [Fact]
     public void Dispose_while_detached_abandons_the_handle_instead_of_freeing_it_behind_the_closure()
     {
         LuaTest.RequireNativeLua();
@@ -253,6 +286,64 @@ public sealed class LuaCallbackTests
         // No state could be acquired, so the closure was not neutralized and the state object deliberately stays alive.
         LuaTest.Run(L, "return count()"u8, 1);
         Assert.Equal(1, counter.Value);
+    }
+
+    [Fact]
+    public async Task Detach_closes_admission_and_drains_callback_creation_before_registry_publication()
+    {
+        LuaTest.RequireNativeLua();
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+        using RuntimeScope scope = new(state);
+        using ManualResetEventSlim creationPaused = new(false);
+        using ManualResetEventSlim allowPublication = new(false);
+        using ManualResetEventSlim admissionClosed = new(false);
+        Counter counter = new();
+
+        LuaCallback.BeforeRegistryAddForTesting = () =>
+        {
+            creationPaused.Set();
+            if (!allowPublication.Wait(TimeSpan.FromSeconds(5), cancellationToken))
+                throw new TimeoutException("The callback-publication barrier timed out.");
+        };
+        LuaRuntime.OperationAdmissionClosedForTesting = admissionClosed.Set;
+
+        try
+        {
+            Task<LuaCallback<Counter>?> creation = Task.Factory.StartNew(() =>
+            {
+                var status = LuaCallback.TryCreate(L, Thunks.Count, counter, out var callback);
+                Assert.True(status.IsOk);
+                return callback;
+            }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            Assert.True(creationPaused.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+                "Callback creation did not reach its pre-registry barrier.");
+
+            Task detach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken, TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+            Assert.True(admissionClosed.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+                "Detach did not close Lua operation admission.");
+            Assert.False(LuaRuntime.TryAcquireOperation(out var rejected));
+            rejected.Dispose();
+            Assert.False(detach.IsCompleted,
+                "Detach completed while an admitted callback creation had not published to the registry.");
+
+            allowPublication.Set();
+            LuaCallback<Counter>? callback = await creation.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+            await detach.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+
+            Assert.NotNull(callback);
+            Assert.True(callback.IsReleased);
+            Assert.Null(callback.StateObject);
+            Assert.Equal(0, LuaCallbackRegistry.Count);
+        }
+        finally
+        {
+            LuaCallback.BeforeRegistryAddForTesting = null;
+            LuaRuntime.OperationAdmissionClosedForTesting = null;
+            allowPublication.Set();
+        }
     }
 
     [Fact]

@@ -4,6 +4,8 @@ using CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 using CheatEngine.SDK.SourceGenerators.Shared;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Parsing;
 
@@ -33,7 +35,7 @@ internal static class ContainingTypeParser
     {
         List<TypeDeclarationModel> chain = [];
         for (var current = type; current is not null; current = current.ContainingType)
-            chain.Add(new TypeDeclarationModel(Keyword(current), Identifiers.Escape(current.Name)));
+            chain.Add(new TypeDeclarationModel(Keyword(current), Identifiers.Escape(current.Name), IsReadOnly(current)));
 
         chain.Reverse();
 
@@ -59,5 +61,17 @@ internal static class ContainingTypeParser
             (_, true) => "record",
             _ => "class"
         };
+    }
+
+    // Do not use a symbol-name heuristic: a partial readonly struct has the modifier on every declaration, and the
+    // generated part must repeat it. The syntax walk keeps this code compatible with the netstandard Roslyn host.
+    private static bool IsReadOnly(INamedTypeSymbol type)
+    {
+        foreach (var reference in type.DeclaringSyntaxReferences)
+            if (reference.GetSyntax() is TypeDeclarationSyntax declaration
+                && declaration.Modifiers.Any(SyntaxKind.ReadOnlyKeyword))
+                return true;
+
+        return false;
     }
 }

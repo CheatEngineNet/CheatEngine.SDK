@@ -17,7 +17,7 @@
 | **You build**              | A value monitor that samples on a worker thread, and a long task that keeps the window responsive    |
 | **You learn**              | `MainThread.Invoke`, `IsMainThread`, `ProcessMessages`, `CheckSynchronize`, `PluginContext`          |
 | **You need**               | The bindings from [03 · Calling Cheat Engine](../03-calling-cheat-engine/README.md)                  |
-| **Cheat Engine functions** | `getAddressSafe`, `readInteger`, `print`, and `synchronize`, which `MainThread.Invoke` calls for you |
+| **Cheat Engine functions** | `getAddressSafe`, `readInteger`, `print`, and the `synchronize` route used by `MainThread.Invoke`                |
 
 ## Objective
 
@@ -26,17 +26,19 @@ stops cleanly when the plugin is disabled.
 
 ## Why it matters
 
-Cheat Engine's Lua state, its engine objects, its scanners and its windows belong to one thread: the main, or GUI,
-thread. A call from any other thread can corrupt them. The SDK gives you one door to that thread, `MainThread`, so that
-your worker threads never touch Cheat Engine directly.
+Treat Cheat Engine's Lua state, engine objects, scanners, and windows as main-thread-only. A call from another thread
+can corrupt them. The SDK gives worker code one bounded synchronous route, `MainThread`, so it need not touch Cheat
+Engine directly. The exact CE 7.7 behavior of `synchronize` — execution thread, error/return propagation, and
+re-entrance — remains an opt-in live-probe gate. The SDK guards the route mechanically; it does not convert that
+pending host evidence into a universal CE promise.
 
 ## Where your code runs
 
 | Code                                                                        | Thread                |
 |-----------------------------------------------------------------------------|-----------------------|
-| `OnEnable` and `OnDisable`                                                  | The main thread       |
-| A `[LuaFunction]` called from the Lua Engine window or a cheat table script | The main thread       |
-| A thread you start: `Thread`, `Task.Run`, a timer callback                  | Never the main thread |
+| `OnEnable` and `OnDisable`                                                  | The captured enable thread; treated as the plugin main-thread boundary |
+| A `[LuaFunction]` called from the Lua Engine window or a cheat table script | Do not assume a thread: protect the work with the same boundary             |
+| A thread you start: `Thread`, `Task.Run`, a timer callback                  | Not the captured enable thread unless you explicitly dispatch               |
 
 ```mermaid
 sequenceDiagram
@@ -53,9 +55,11 @@ sequenceDiagram
     Note over W,M: On the main thread, Invoke runs the work inline
 ```
 
-`MainThread.Invoke` runs your work inline when you are already on the main thread. From another thread it goes through
-Cheat Engine's Lua `synchronize` global, waits for the work to finish, and rethrows the work's exception on the caller
-with its original stack trace.
+`MainThread.Invoke` runs your work inline when you are already on the captured enable thread. From another thread it
+uses Cheat Engine's Lua `synchronize` global and waits for completion. Its callback thunk checks that the host really
+called it on that captured thread; a mismatch rejects the work rather than executing it on a worker. The implementation
+does not expose `queue(function, ...)`, because that CE API does not have a proven argument/return contract here. Until
+the live probe completes, this is a guarded SDK mechanism, not evidence that every CE 7.7 host schedules it as shown.
 
 ## How it works
 
@@ -180,17 +184,18 @@ monitor_stop()                            -- the worker keeps running and reads 
 
 Three details make this safe.
 
-- **`monitor_watch` runs on the main thread**, so it may call `getAddressSafe` directly. It hands the worker a plain
-  number through `Interlocked`, never a Cheat Engine object.
-- **Every read goes through `Invoke`.** `MemoryScalars.TryReadInt32` runs Lua, so the worker calls it as work for the
-  main thread and gets the `int?` back as the result.
+- **`monitor_watch` is called only on the captured enable thread in this sample**, so it may call `getAddressSafe`
+  directly. It hands the worker a plain number through `Interlocked`, never a Cheat Engine object.
+- **Every worker read goes through `Invoke`.** `MemoryScalars.TryReadInt32` runs Lua, so the worker calls it as guarded
+  work for the captured thread and gets the `int?` back as the result.
 - **The worker catches everything.** An exception that escapes a thread you started ends the process. The
   `InvalidOperationException` branch is the normal ending: `Invoke` throws it once the plugin is disabled.
 
 > [!WARNING]
-> Never block the main thread on a worker that calls `Invoke`. The worker waits for the main thread, the main thread
-> waits for the worker, and both wait forever. When the main thread must wait, as in `OnDisable` above, it pumps
-> `MainThread.CheckSynchronize(timeout)` in a loop so that queued calls still run.
+> Never block the captured enable thread on a worker that calls `Invoke`. The worker waits for that thread and the
+> thread waits for the worker. When it must wait, as in `OnDisable` above, use `MainThread.CheckSynchronize(timeout)`
+> to pump the host queue. This deadlock-avoidance shape is tested against the SDK boundary; its exact CE 7.7 queue and
+> re-entrance behavior remains part of the opt-in live probe.
 
 ### 3. Keep the window alive during a long task
 
@@ -227,13 +232,14 @@ internal static partial class Scanner
 }
 ```
 
-This function counts the 32-bit values equal to `target` in a range. It runs on the main thread, so a long loop would
-freeze Cheat Engine's window. Every 1,024 reads it calls `MainThread.ProcessMessages()`, which lets Cheat Engine handle
-its pending window messages.
+This function counts the 32-bit values equal to `target` in a range. It is designed to run on the captured enable
+thread, so a long loop could freeze Cheat Engine's window. Every 1,024 reads it calls `MainThread.ProcessMessages()`,
+which invokes the host's message-pump slot.
 
-`ProcessMessages` is re-entrant: message handlers run inside the call. The user can therefore untick the plugin in the
-middle of the loop. The loop keeps the `PluginContext` it started with and stops as soon as `IsCurrent` turns `false`,
-which is how it notices a disable or a re-enable.
+Treat `ProcessMessages` as re-entrant: message handlers can execute within the call. The user might therefore untick
+the plugin in the middle of the loop. The loop keeps the `PluginContext` it started with and stops as soon as
+`IsCurrent` turns `false`, which is how it notices a disable or a re-enable. The precise CE 7.7 GUI scheduling remains
+unverified live.
 
 ### 4. A helper that reads like a block
 
@@ -262,11 +268,11 @@ var moduleBase = Sync.Run(() => Ce.TryGetAddress("game.exe", out var address) ? 
 
 | Rule                                                               | Why                                                            | Where you saw it                                |
 |--------------------------------------------------------------------|----------------------------------------------------------------|-------------------------------------------------|
-| Cheat Engine state, objects and scanners belong to the main thread | None of them is thread safe                                    | `Invoke` around `ReadInt32`                     |
-| Reach the main thread only through `MainThread.Invoke`             | It is the one supported hop, inline when you are already there | Steps 2 and 4                                   |
+| Treat CE state, objects and scanners as main-thread-only           | Their CE 7.7 thread contract is not yet proven by the live probe | `Invoke` around `ReadInt32`                   |
+| Reach the captured thread only through `MainThread.Invoke`         | It is the guarded synchronous hop, inline when you are already there | Steps 2 and 4                               |
 | Keep a check and the action it guards in the same `Invoke`         | Another thread can change Cheat Engine between two hops        | One `ReadInt32` call, one hop                   |
 | Catch every exception on a thread you start                        | An escaped exception ends the process                          | `Sample`                                        |
-| Pump when the main thread waits or works long                      | It keeps queued calls and window messages moving               | `OnDisable` and `CountMatches`                  |
+| Pump when the captured thread waits or works long                  | It exercises the host queue/message slots; model re-entrance explicitly | `OnDisable` and `CountMatches`       |
 | Stop your threads in `OnDisable`                                   | After it returns, `Invoke` and the Lua state are gone          | `_stop.Cancel()` and `Join`                     |
 | Dispose an `Owned<T>` on the main thread                           | `Dispose` calls the object's `destroy()`                       | See [05 · AOB scans](../05-aob-scans/README.md) |
 
@@ -280,20 +286,21 @@ which returns `null` while the plugin is disabled.
 |---------------------------------------------|------------------------------------------------------------|
 | `PluginId`                                  | The id Cheat Engine assigned in the enable callback        |
 | `Epoch`                                     | The runtime epoch of this enable. Every enable advances it |
-| `MainThreadId`                              | The managed thread id of the main thread                   |
+| `MainThreadId`                              | The managed thread id captured by the enable callback      |
 | `IsMainThread`                              | Whether the calling thread is the main thread              |
 | `IsCurrent`                                 | Whether this is still the context of the current enable    |
 | `HasProcessMessages`, `HasCheckSynchronize` | Whether the host supplied the two message loop slots       |
 
-`MainThread.IsMainThread` reads the same fact and is `false` while the plugin is disabled. Keep no `PluginContext` and
-no Lua reference across a disable: the next enable publishes a new context and a new epoch, and `IsCurrent` tells the
-old one from the live one.
+`MainThread.IsMainThread` reads the same captured fact and is `false` while the plugin is disabled. Keep no
+`PluginContext` and no Lua reference across a disable: the next enable publishes a new context and a new Lua identity,
+and `IsCurrent` tells the old context from the live one.
 
-Four attributes in `CheatEngine.SDK.Annotations` document these rules on the SDK's own members: `[RunsOnMainThread]`
-for a body that runs on the main thread and restricts no caller, `[MainThreadOnly]` for a member that callers must
-reach from the main thread, `[RequiresPluginEnabled]` for an API that works only between enable and disable, and
-`[CEOwned]` for an object you must not dispose. They are metadata only, so the compiler does not enforce them. Mark
-your own APIs the same way.
+The attributes now have specific consumers; they are not one blanket compile-time enforcement mechanism. The Lua
+generator propagates `[LuaClass]`, `[LuaMethod]`, and `[LuaProperty]` contracts into protected bindings;
+`[RequiresPluginEnabled]` informs `CESDK1001` for constructor/initializer use; `[CEOwned]` informs the direct-dispose
+rule `CESDK1003`; and `OnEnable`/`OnDisable` reject `async void`. `[MainThreadOnly]` and `[RunsOnMainThread]` still
+state the thread contract on APIs and generated bindings, while a general static `CESDK1002` remains deferred until the
+CE 7.7 dispatcher probe validates the host semantics. Runtime guards on `MainThread` remain active regardless.
 
 ## What you see when you call too early
 
@@ -310,16 +317,18 @@ left the function out of its record.
 
 ## Promise
 
-- `Invoke` runs inline on the main thread. From another thread it waits for the work, then returns its result or
-  rethrows its exception on the caller.
-- `ProcessMessages` and `CheckSynchronize` run only on the main thread and throw `InvalidOperationException` elsewhere.
+- `Invoke` runs inline on the captured enable thread. From another thread its thunk verifies the target thread before it
+  runs work, then returns its result or rethrows its exception on the caller.
+- `ProcessMessages` and `CheckSynchronize` run only on the captured enable thread and throw `InvalidOperationException`
+  elsewhere.
 - `MainThread.IsMainThread` is `false`, and `Invoke` throws, whenever the plugin is disabled.
 - No exception from your plugin reaches Cheat Engine. `OnEnable` failures are logged and reported as failed calls;
   `OnDisable` failures are logged, then cleanup completes and Cheat Engine records the disabled state.
 
 ## Before you move on
 
-- [ ] Every call into Cheat Engine from a thread you started goes through `MainThread.Invoke`.
+- [ ] Every call into Cheat Engine from a thread you started goes through `MainThread.Invoke`, and you keep the CE 7.7
+  live-dispatch limitation visible in the feature's deployment/testing plan.
 - [ ] Every thread you start ends before `OnDisable` returns, and its loop catches every exception.
 - [ ] A main thread that waits for a worker pumps `CheckSynchronize`.
 

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.State;
 using Microsoft.CodeAnalysis;
@@ -38,7 +39,8 @@ internal sealed class RoslynEnvironment
         [
             MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(LuaApi).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(LuaState).Assembly.Location)
+            MetadataReference.CreateFromFile(typeof(LuaState).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(CEObject).Assembly.Location)
         ];
     }
 

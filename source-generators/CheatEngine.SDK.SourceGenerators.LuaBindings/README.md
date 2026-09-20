@@ -6,8 +6,10 @@ in the [`CheatEngine.SDK` package](../../src/CheatEngine.SDK/README.md) under `a
 ## Objective
 
 The generator turns each `[LuaFunction("name")]` static method into a function that Lua can call. It turns each
-`[LuaGlobal("name")]` static partial method into a typed call of a Cheat Engine Lua global. The emitted code uses only
-the public API of [`CheatEngine.SDK.Lua`](../../libs/CheatEngine.SDK.Lua/README.md).
+`[LuaGlobal("name")]` static partial method into a typed call of a Cheat Engine Lua global, and each
+`[LuaClass("name")] readonly partial struct` into a borrowed `CEObject` handle with generated
+`[LuaMethod]`/`[LuaProperty]` members. The emitted code uses only the public APIs of
+[`CheatEngine.SDK.Lua`](../../libs/CheatEngine.SDK.Lua/README.md) and `CheatEngine.SDK.Engine.Objects`.
 
 ## Why it exists
 
@@ -42,8 +44,15 @@ internal static partial class Bindings
 }
 ```
 
-In `OnEnable`, call `Bindings.RegisterLuaFunctions(state)` with the state from `LuaRuntime.AcquireState()` and check the
-returned `LuaStatus`. `UnregisterLuaFunctions(state)` assigns `nil` to each name.
+In `OnEnable`, acquire one operation lease, then call `Bindings.RegisterLuaFunctions(operation.State)` and check the
+returned `LuaStatus`:
+
+```csharp
+using var operation = LuaRuntime.AcquireOperation();
+Bindings.RegisterLuaFunctions(operation.State);
+```
+
+`UnregisterLuaFunctions(operation.State)` assigns `nil` to each name while the caller holds the corresponding lease.
 
 For this type the build adds two files. `MyTrainer.Bindings.LuaFunctions.g.cs` holds the registration pair and one thunk
 per function. `MyTrainer.Bindings.LuaGlobals.g.cs` holds one cached `LuaRef` per global and the method bodies.
@@ -72,32 +81,44 @@ the public `int` API from receiving an unsigned value that cannot represent nega
 - A Lua name starts with an ASCII letter or `_`, continues with letters, digits or `_`, and is not a Lua 5.3 reserved
   word.
 - A `[LuaFunction]` method is `static`, non-generic and not `async`. Its parameters are by value, without `params` or
-  default values. A leading `LuaState` parameter receives the callback state and is not a Lua argument.
+  default values. A leading `LuaState` parameter receives the callback state and is not a Lua argument. Its type must
+  be the `CheatEngine.SDK.Lua.State.LuaState` symbol from the referenced SDK runtime; a consumer-defined same-name
+  type does not qualify.
 - A `[LuaGlobal]` method is the defining declaration of a `static partial` method without a body. Arguments come first
-  and `out` results last. A leading `LuaState` replaces `LuaRuntime.AcquireState()`.
+  and `out` results last. A leading `LuaState` is admitted through `LuaRuntime.AcquireOperation(state)` rather than
+  bypassing the lifecycle gate.
+- A `[LuaClass]` declaration is a non-generic `readonly partial struct`, including partial enclosing types. It is a
+  borrowed handle only: the generated type implements `ICEObject<T>` and `ILuaMarshaller<T>` around `CEObject`.
+  `Owned<T>` is the sole representation of plugin ownership.
+- `[LuaMethod]` is an instance partial method on a valid Lua class handle. It uses the same scalar arguments/results as
+  a global wrapper, except that a `LuaState` parameter is not accepted; the generated body snapshots the stack, pushes
+  the bound CE method under protection, and restores the original top in `finally`.
+- `[LuaProperty]` is a bodyless partial `get` and/or `set` property on a valid Lua class handle, with one scalar type.
+  Its accessors use `CEObject.TryGetProperty`/`TrySetProperty`, whose operations are protected and stack-balanced.
 - Two `[LuaFunction]` methods of one type with the same name are both skipped. The check covers one type: two types can
   register the same name, and the later `RegisterLuaFunctions` call wins.
 - Several `[LuaGlobal]` methods can bind one global and share one cache.
-- Only methods are bound. `[LuaGlobal]` on a property is ignored and raises no diagnostic.
+- `[LuaGlobal]` targets methods only. Lua global variables require a separate future contract.
 - A `string?` argument rejects `nil` like a `string` argument. A `null` string result becomes `nil`.
 - A Try-form `out string` result needs `[MaybeNullWhen(false)]` or `string?`. Without it the compiler reports `CS8601`
   in the generated file.
 
 ## How it works
 
-1. Two pipelines find the methods that carry `CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute` or
-   `CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute` in the current compilation.
-2. Shape rules check each method, its containing types and its Lua name. The analyzers link the same source, so a member
-   skipped for its type, name or shape gets [`CESDK2002`](../../analyzers/docs/CESDK2002.md), [
-   `CESDK2003`](../../analyzers/docs/CESDK2003.md) or [`CESDK2004`](../../analyzers/docs/CESDK2004.md).
+1. Four pipelines find SDK-identity `LuaFunction`, `LuaGlobal`, `LuaClass`, `LuaMethod` and `LuaProperty` annotations in
+   the current compilation. A look-alike type with the same full name in a consumer source file or another assembly is
+   not a binding contract.
+2. Shape rules check each declaration, its containing types and its Lua name. The analyzers link the same source, so a
+   member skipped for its type, name or shape gets the localized CESDK2xxx diagnostic.
 3. Valid members are grouped by containing type. One type yields one file for each kind it declares.
 4. The emitters write each file against the `CheatEngine.SDK.Lua` API, with every type name `global::`-qualified. The function
    file disables `CS0612`, `CS0618` and the IDs declared on its targets, so an `[Obsolete]` or `[Experimental]` target
    compiles clean (`LuaFunctionOutputTests`).
 
-Registration takes the address of each thunk, so the generator needs `AllowUnsafeBlocks`. The `CheatEngine.SDK` package sets it
-while the property is empty. Without it the generator emits nothing, not even the `[LuaGlobal]` bodies, which need no
-unsafe code themselves. Analyzer [`CESDK2001`](../../analyzers/docs/CESDK2001.md) reports the cause.
+Registration takes the address of each thunk, so only `[LuaFunction]` needs `AllowUnsafeBlocks`; set
+`<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` in a project that declares one. `[LuaGlobal]`, `[LuaClass]`,
+`[LuaMethod]` and `[LuaProperty]` generate without unsafe code and remain valid with it set to `false`. Analyzer
+[`CESDK2001`](../../analyzers/docs/CESDK2001.md) reports a function-export project that has not enabled it.
 
 ## Promise
 
@@ -110,8 +131,8 @@ unsafe code themselves. Analyzer [`CESDK2001`](../../analyzers/docs/CESDK2001.md
   (`LuaGlobalEndToEndTests`, `LuaFunctionEndToEndTests`).
 - The generated files compile without errors or warnings with C# 14, nullable on and documentation diagnostics on,
   except the `out string` case above (`LuaFunctionOutputTests`, `LuaGlobalOutputTests`).
-- The generator reports no diagnostics and emits nothing for a member it cannot bind (`LuaFunctionOutputTests`,
-  `NoOutputTests`).
+- The generator emits no conflicting source for a member it cannot bind, while the linked analyzer reports the
+  localized contract diagnostic and healthy siblings continue to generate (`LuaObjectOutputTests`, `NoOutputTests`).
 - Editing one type re-emits only that type's file, and an unrelated edit re-emits nothing (`IncrementalityTests`).
 
 ## Run the tests

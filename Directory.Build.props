@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Language">
+    <!-- C# 14 is the repository language contract, including shipping libraries, tests and Roslyn components. -->
+    <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 

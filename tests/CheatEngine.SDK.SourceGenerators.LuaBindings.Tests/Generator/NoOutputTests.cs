@@ -1,4 +1,8 @@
+using System.Collections.Immutable;
+using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Generator;
 
@@ -336,12 +340,63 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
     }
 
     [Fact]
-    public void Generator_unsafe_not_allowed_emits_nothing_for_either_kind()
+    public void Generator_same_name_source_LuaState_without_the_sdk_runtime_emits_nothing()
+    {
+        ImmutableArray<MetadataReference>.Builder references = ImmutableArray.CreateBuilder<MetadataReference>();
+        references.AddRange(roslyn.Environment.FrameworkReferences);
+        foreach (var reference in roslyn.Environment.SdkReferences)
+        {
+            if (string.Equals(reference.Display, typeof(LuaState).Assembly.Location,
+                    StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            references.Add(reference);
+        }
+
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace CheatEngine.SDK.Lua.State
+                              {
+                                  public readonly struct LuaState
+                                  {
+                                  }
+                              }
+
+                              namespace Demo;
+
+                              public static partial class Functions
+                              {
+                                  [LuaFunction("callback")]
+                                  public static int Callback(global::CheatEngine.SDK.Lua.State.LuaState state) => 0;
+                              }
+
+                              public static partial class Globals
+                              {
+                                  [LuaGlobal("read")]
+                                  public static partial int Read(global::CheatEngine.SDK.Lua.State.LuaState state);
+                              }
+                              """;
+
+        var compilation = CSharpCompilation.Create(
+            RoslynFixture.PluginAssemblyName,
+            [RoslynFixture.Parse(source, "Source0.cs")],
+            references.ToImmutable(),
+            RoslynEnvironment.CompilationOptions);
+
+        RoslynFixture.Run(compilation).AssertNoOutput();
+    }
+
+    [Fact]
+    public void Generator_unsafe_not_allowed_skips_functions_but_emits_globals()
     {
         var run = RoslynFixture.Run(roslyn.CreateCompilation(RoslynEnvironment.SafeCompilationOptions,
             BindingSources.Functions, BindingSources.Globals));
 
-        run.AssertNoOutput();
+        Assert.Null(run.Result.Exception);
+        Assert.Empty(run.GeneratorDiagnostics);
+        Assert.Single(run.GeneratedSources);
+        Assert.Equal("Demo.Memory.LuaGlobals.g.cs", run.HintNames[0]);
     }
 
     [Fact]
@@ -367,6 +422,47 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
         Assert.Contains("TryRead(nuint a, out int v)", globals, StringComparison.Ordinal);
         Assert.DoesNotContain("TryBroken", globals, StringComparison.Ordinal);
         Assert.DoesNotContain("s_luaGlobal_broken", globals, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Generator_generated_function_identity_collision_skips_only_the_affected_function()
+    {
+        const string Source = Usings + """
+                                       public static partial class T
+                                       {
+                                           [LuaFunction("good")] public static int Good(int a) => a;
+                                           [LuaFunction("bad")] public static int Bad(int a) => a;
+                                           private static int __LuaThunk_bad(nint handle) => 0;
+                                       }
+                                       """;
+
+        var run = roslyn.Run(Source);
+
+        var functions = run.SingleGeneratedText;
+        Assert.Contains("__LuaThunk_good", functions, StringComparison.Ordinal);
+        Assert.DoesNotContain("__LuaThunk_bad(nint", functions, StringComparison.Ordinal);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Generator_generated_global_cache_collision_skips_only_the_affected_global()
+    {
+        const string Source = Usings + """
+                                       public static partial class T
+                                       {
+                                           private static readonly global::CheatEngine.SDK.Lua.References.LuaRef s_luaGlobal_bad = new();
+                                           [LuaGlobal("bad")] public static int Bad(nuint address) => address > 0 ? 1 : 0;
+                                           [LuaGlobal("good")] public static partial int Good(nuint address);
+                                       }
+                                       """;
+
+        var run = roslyn.Run(Source);
+
+        var globals = run.SingleGeneratedText;
+        Assert.DoesNotContain("Bad(nuint address)", globals, StringComparison.Ordinal);
+        Assert.Contains("Good(nuint address)", globals, StringComparison.Ordinal);
+        Assert.DoesNotContain("s_luaGlobal_bad = new", globals, StringComparison.Ordinal);
+        run.AssertCompilesClean();
     }
 
     [Fact]

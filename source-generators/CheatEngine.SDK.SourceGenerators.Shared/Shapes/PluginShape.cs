@@ -5,7 +5,7 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 /// <summary>
 ///     Decides whether the generated entry point can construct a <c>[CheatEnginePlugin]</c> class, that is whether
 ///     <c>new global::&lt;type&gt;()</c> compiles inside a top-level type of the same assembly, in another file, and
-///     yields a <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c>. "Compiles" includes the two errors that no accessibility
+///     yields the supplied <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> symbol. "Compiles" includes the two errors that no accessibility
 ///     check
 ///     finds: CS9035 (required members without an object initializer) and CS0619 (<c>[Obsolete]</c> as an error).
 /// </summary>
@@ -20,17 +20,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 ///     <para>
 ///         Pure function of the symbols it is given: no compilation, no syntax, no state, so a generator's incremental
 ///         pipeline can call it from inside a per-node transform without combining with anything wider. Never throws on a
-///         malformed (error) symbol. <see cref="PluginShapeIssues.NotDerivedFromPluginBase" /> is decided structurally
-///         (name
-///         and namespace of the base-type chain), not by resolving <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> once and
-///         comparing
-///         symbols: <c>Compilation.GetTypeByMetadataName</c> returns <see langword="null" /> when two references define
-///         the
-///         type, and a decision that depends on nothing but the given symbol is robust to that. The two attribute symbols
-///         are still resolved by the caller (there is no name/namespace-only way to recognise a BCL attribute safely):
-///         pass
-///         <see langword="null" /> when a compilation has none, which reads as "no constructor sets required members" /
-///         "nothing is obsolete-as-error".
+///         malformed (error) symbol. The preferred overload receives the resolved SDK plugin-base symbol and compares
+///         symbols, rather than accepting a same-named type from another assembly. The compatibility overload keeps the
+///         old structural fallback until all consumers pass that symbol. The BCL attribute symbols are also resolved by
+///         the caller: pass <see langword="null" /> when a compilation has none, which reads as "no constructor sets
+///         required members" / "nothing is obsolete-as-error".
 ///     </para>
 /// </remarks>
 internal static class PluginShape
@@ -38,7 +32,8 @@ internal static class PluginShape
     // Namespace and type name of the entry point that Cheat Engine looks up: 'CESDK.CESDK'.
     private const string ReservedName = "CESDK";
 
-    // The plugin base class is CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin: type name, then the namespace segments, innermost first.
+    // The fallback spelling of the plugin base type, retained only for consumers not yet upgraded to the symbol-aware
+    // overload. New consumers must pass the actual SDK assembly symbol.
     private const string PluginBaseName = "CheatEnginePlugin";
     private const string HostingNamespaceName = "Hosting";
     private const string PluginNamespaceName = "Plugin";
@@ -70,8 +65,51 @@ internal static class PluginShape
         INamedTypeSymbol? obsoleteAttribute,
         out string displayName)
     {
+        return Inspect(
+            type,
+            attribute,
+            null,
+            setsRequiredMembersAttribute,
+            obsoleteAttribute,
+            out displayName,
+            out _);
+    }
+
+    /// <summary>
+    ///     Inspects <paramref name="type" /> against the actual SDK plugin-base symbol and returns the exact
+    ///     zero-parameter constructor the generated <c>new T()</c> expression names.
+    /// </summary>
+    /// <param name="type">The class carrying the SDK plugin marker.</param>
+    /// <param name="attribute">The marker application on <paramref name="type" />, or <see langword="null" />.</param>
+    /// <param name="pluginBase">
+    ///     The resolved <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> symbol. When <see langword="null" />,
+    ///     the legacy structural fallback is used only for compatibility with consumers not yet upgraded to this
+    ///     overload.
+    /// </param>
+    /// <param name="setsRequiredMembersAttribute">
+    ///     The resolved BCL <c>SetsRequiredMembersAttribute</c>, or <see langword="null" /> when unavailable.
+    /// </param>
+    /// <param name="obsoleteAttribute">
+    ///     The resolved BCL <c>ObsoleteAttribute</c>, or <see langword="null" /> when unavailable.
+    /// </param>
+    /// <param name="displayName">The marker's display name; empty when its argument is unusable.</param>
+    /// <param name="parameterlessConstructor">
+    ///     The actual zero-parameter instance constructor selected by the generated expression, including an implicit
+    ///     constructor; otherwise <see langword="null" />. Constructors whose parameters are optional or
+    ///     <see langword="params" /> are deliberately not selected.
+    /// </param>
+    public static PluginShapeIssues Inspect(
+        INamedTypeSymbol type,
+        AttributeData? attribute,
+        INamedTypeSymbol? pluginBase,
+        INamedTypeSymbol? setsRequiredMembersAttribute,
+        INamedTypeSymbol? obsoleteAttribute,
+        out string displayName,
+        out IMethodSymbol? parameterlessConstructor)
+    {
         displayName = ReadDisplayName(attribute);
         var issues = string.IsNullOrWhiteSpace(displayName) ? PluginShapeIssues.InvalidName : PluginShapeIssues.None;
+        parameterlessConstructor = null;
 
         if (type.IsStatic)
             // A static class is also abstract and sealed in metadata, has no base class and no instance
@@ -84,7 +122,7 @@ internal static class PluginShape
 
         if (type.ContainingType is { IsGenericType: true }) issues |= PluginShapeIssues.NestedInGeneric;
 
-        if (!DerivesFromPluginBase(type)) issues |= PluginShapeIssues.NotDerivedFromPluginBase;
+        if (!DerivesFromPluginBase(type, pluginBase)) issues |= PluginShapeIssues.NotDerivedFromPluginBase;
 
         for (var current = type; current is not null; current = current.ContainingType)
         {
@@ -98,7 +136,11 @@ internal static class PluginShape
 
         if (IsOrIsNestedInEntryPointType(type)) issues |= PluginShapeIssues.ReservedEntryPointName;
 
-        return issues | InspectConstructors(type, setsRequiredMembersAttribute, obsoleteAttribute);
+        return issues | InspectConstructors(
+            type,
+            setsRequiredMembersAttribute,
+            obsoleteAttribute,
+            out parameterlessConstructor);
     }
 
     // A missing or mistyped argument is a compiler error already (CS7036, CS1503); a well-formed but unusable name
@@ -126,16 +168,16 @@ internal static class PluginShape
         };
     }
 
-    private static bool DerivesFromPluginBase(INamedTypeSymbol type)
+    private static bool DerivesFromPluginBase(INamedTypeSymbol type, INamedTypeSymbol? pluginBase)
     {
         for (var current = type.BaseType; current is not null; current = current.BaseType)
-            if (IsPluginBase(current))
+            if (pluginBase is null ? IsPluginBaseFallback(current) : SymbolEqualityComparer.Default.Equals(current, pluginBase))
                 return true;
 
         return false;
     }
 
-    private static bool IsPluginBase(INamedTypeSymbol type)
+    private static bool IsPluginBaseFallback(INamedTypeSymbol type)
     {
         return type is
         {
@@ -158,18 +200,18 @@ internal static class PluginShape
     private static PluginShapeIssues InspectConstructors(
         INamedTypeSymbol type,
         INamedTypeSymbol? setsRequiredMembersAttribute,
-        INamedTypeSymbol? obsoleteAttribute)
+        INamedTypeSymbol? obsoleteAttribute,
+        out IMethodSymbol? parameterlessConstructor)
     {
-        // 'new T()' binds to any constructor callable with an empty argument list, not only a literally
-        // parameterless one (every parameter optional, or a trailing 'params'); more than one such constructor can
-        // legally coexist (e.g. 'P()' and 'P(int x = 0)'). An inaccessible one is not even a candidate for a caller
-        // outside the class, so an accessible candidate (if any exists) is always what the compiler binds to,
-        // regardless of what else is declared; only when every candidate is inaccessible does that reason surface.
+        // The generated factory has an explicit contract: it invokes a real parameterless constructor. C# permits an
+        // empty argument list to bind to optional or params parameters, but accepting that broadens a construction
+        // contract that cannot be represented in the generated factory's documentation or lifecycle model. An
+        // implicitly declared zero-parameter constructor is a real constructor and is accepted.
         IMethodSymbol? accessible = null;
         IMethodSymbol? inaccessible = null;
         foreach (var constructor in type.InstanceConstructors)
         {
-            if (!IsCallableWithNoArguments(constructor)) continue;
+            if (!constructor.Parameters.IsEmpty) continue;
 
             // The implicit constructor is public, except on an abstract class (protected), which is reported as
             // Abstract: once 'abstract' is gone the implicit constructor is public again.
@@ -179,8 +221,8 @@ internal static class PluginShape
                 inaccessible ??= constructor;
         }
 
-        var chosen = accessible ?? inaccessible;
-        var issues = chosen switch
+        parameterlessConstructor = accessible ?? inaccessible;
+        var issues = parameterlessConstructor switch
         {
             null => PluginShapeIssues.MissingParameterlessConstructor,
             _ when accessible is null => PluginShapeIssues.InaccessibleParameterlessConstructor,
@@ -188,11 +230,11 @@ internal static class PluginShape
         };
 
         var setsRequiredMembers = false;
-        if (chosen is not null)
+        if (parameterlessConstructor is not null)
         {
-            if (IsObsoleteError(chosen, obsoleteAttribute)) issues |= PluginShapeIssues.ObsoleteError;
+            if (IsObsoleteError(parameterlessConstructor, obsoleteAttribute)) issues |= PluginShapeIssues.ObsoleteError;
 
-            setsRequiredMembers = HasAttribute(chosen, setsRequiredMembersAttribute);
+            setsRequiredMembers = HasAttribute(parameterlessConstructor, setsRequiredMembersAttribute);
         }
 
         // 'new T()' has no object initializer: required members make it CS9035 unless the constructor it binds to
@@ -200,23 +242,6 @@ internal static class PluginShape
         if (!setsRequiredMembers && HasRequiredMembers(type)) issues |= PluginShapeIssues.RequiredMembers;
 
         return issues;
-    }
-
-    // A parameter binds without a supplied argument when it has a default value ('optional') or, being the
-    // trailing parameter, is 'params' (an empty argument list binds it to an empty array). C# requires every
-    // optional parameter to follow all required ones and 'params' to be the very last parameter, so this needs no
-    // look-ahead.
-    private static bool IsCallableWithNoArguments(IMethodSymbol constructor)
-    {
-        for (var i = 0; i < constructor.Parameters.Length; i++)
-        {
-            var parameter = constructor.Parameters[i];
-            if (parameter.IsOptional || (parameter.IsParams && i == constructor.Parameters.Length - 1)) continue;
-
-            return false;
-        }
-
-        return true;
     }
 
     // Required members are inherited: the whole base-class chain counts.

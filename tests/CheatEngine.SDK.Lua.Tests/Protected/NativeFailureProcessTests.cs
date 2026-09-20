@@ -54,6 +54,9 @@ public sealed class NativeFailureProcessTests
         var standardError = await error;
         Assert.True(process.ExitCode == 0,
             $"Probe exit code: {process.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{standardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{standardError}");
-        Assert.Contains("PASS native allocation and finalizer boundaries", standardOutput, StringComparison.Ordinal);
+        Assert.Contains("MARK PushHostObject native pusher longjmp observed", standardOutput, StringComparison.Ordinal);
+        Assert.Contains("MARK LuaRef.Release protected allocator boundary recovered", standardOutput, StringComparison.Ordinal);
+        Assert.Contains("PASS native protected allocation, finalizer, and host-object longjmp boundaries", standardOutput,
+            StringComparison.Ordinal);
     }
 }

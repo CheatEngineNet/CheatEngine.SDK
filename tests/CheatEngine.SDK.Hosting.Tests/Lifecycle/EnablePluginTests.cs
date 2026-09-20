@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Context;
@@ -102,6 +103,7 @@ public sealed unsafe class EnablePluginTests
 
     [Fact]
     [Trait("Category", "NativeLua")]
+    [SuppressMessage("Meziantou.Analyzer", "MA0051", Justification = "This test verifies every lifecycle invariant after a successful enable and intentionally keeps the assertions together.")]
     public void Enables_the_plugin_binds_Lua_attaches_the_runtime_and_runs_OnEnable_on_this_thread()
     {
         HostingTest.RequireNativeLua();
@@ -129,7 +131,7 @@ public sealed unsafe class EnablePluginTests
         Assert.Equal(1, plugin.EnableCalls);
         Assert.Equal(Environment.CurrentManagedThreadId, plugin.EnableThreadId);
         Assert.True(plugin.RuntimeAttachedInOnEnable);
-        Assert.True(plugin.HostEnabledInOnEnable);
+        Assert.False(plugin.HostEnabledInOnEnable);
         Assert.True(plugin.MainThreadInOnEnable);
         Assert.Equal(42, plugin.LuaResultInOnEnable);
 
@@ -144,6 +146,8 @@ public sealed unsafe class EnablePluginTests
         Assert.True(context.HasProcessMessages);
         Assert.True(context.HasCheckSynchronize);
         Assert.Equal(LuaRuntime.CurrentBinding, context.HostBinding);
+        Assert.False(context.ShutdownToken.IsCancellationRequested);
+        Assert.Equal(PluginHostLifecyclePhase.Enabled, PluginHost.Phase);
 
         Assert.Equal(0, FakeExports.LuaRegisterCalls);
         Assert.True(sink.HasEntry(HostLogLevel.Information, "Plugin 42 enabled"));
@@ -206,6 +210,7 @@ public sealed unsafe class EnablePluginTests
         Assert.False(host.CallEnable(&exports, 1).IsTrue);
 
         Assert.False(PluginHost.IsEnabled);
+        Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
         Assert.False(LuaRuntime.IsAttached);
         Assert.Equal(0, RecordingPlugin.ConstructorCalls);
         Assert.NotEmpty(sink.Errors("returned no state"));
@@ -228,9 +233,11 @@ public sealed unsafe class EnablePluginTests
 
         Assert.False(result.IsTrue);
         Assert.False(PluginHost.IsEnabled);
+        Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
         Assert.Null(PluginHost.Context);
         Assert.False(LuaRuntime.IsAttached);
         Assert.Equal(1, RecordingPlugin.LastConstructed!.EnableCalls);
+        Assert.True(RecordingPlugin.LastConstructed.ContextInOnEnable!.ShutdownToken.IsCancellationRequested);
         (HostLogLevel, string, Exception?) entry = Assert.Single(sink.Errors("OnEnable threw"));
         var exception = Assert.IsType<InvalidOperationException>(entry.Item3);
         Assert.Contains("requested by the test", exception.Message, StringComparison.Ordinal);

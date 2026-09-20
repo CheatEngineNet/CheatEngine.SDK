@@ -14,7 +14,7 @@ namespace CheatEngine.SDK.Lua.Runtime;
 ///         <b>State provider</b> (<c>stdcall</c>, <c>lua_State* ()</c>): Cheat Engine's <c>GetLuaState</c>, which returns
 ///         the
 ///         Lua thread that belongs to the calling OS thread. It is called once per operation by
-///         <see cref="LuaRuntime.AcquireState" />; a return of null is reported as "no state for this thread".
+///         <see cref="LuaRuntime.AcquireOperation()" />; a return of null is reported as "no state for this thread".
 ///     </para>
 ///     <para>
 ///         <b>Host-object pusher</b> (<c>stdcall</c>, <c>void (lua_State*, void*)</c>): Cheat Engine's

@@ -15,6 +15,7 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 ///     <c>[LuaGlobal]</c> member exists but the compilation does not allow unsafe code. CESDK2002: the type that
 ///     declares such a member cannot receive a generated part. CESDK2003: a <c>[LuaFunction]</c> method cannot be
 ///     exported by a generated thunk. CESDK2004: a <c>[LuaGlobal]</c> method cannot receive a generated body.
+///     CESDK2005: two otherwise valid functions of one binding type export the same Lua name.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -29,17 +30,10 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 ///         Stateless and safe for concurrent execution. Everything that lives as long as a compilation is created in the
 ///         compilation-start action. When neither <c>CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute</c> nor
 ///         <c>CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute</c> can be resolved, nothing is registered. CESDK2001, CESDK2002
-///         and
-///         CESDK2004, and eleven of CESDK2003's twelve <c>LuaFunctionShapeIssues</c> flags, are reported from a symbol
-///         action and show up while typing. CESDK2003's <see cref="LuaFunctionShapeIssues.DuplicateName" /> is the one
-///         exception: it needs every sibling member of a containing type, not just the one method a symbol action is
-///         given,
-///         so it is decided by a second, compilation-end registration (<see cref="LuaFunctionDuplicateState" />), the
-///         same
-///         technique <c>PluginCompilationState</c> uses for CESDK0002. RS1037 then requires the <c>InvalidLuaFunction</c>
-///         descriptor to carry the <c>CompilationEnd</c> tag (any report of an ID from a compilation-end action does),
-///         which in an IDE defers the whole rule (the still-live eleven flags included) to build or full-solution
-///         analysis; see that descriptor's own remarks. Generated code is neither analysed nor counted.
+///         and CESDK2004 are reported from a symbol action and show up while typing. CESDK2005 is the one exception:
+///         duplicate exported names need every valid sibling member of a containing type, so a second compilation-end
+///         registration (<see cref="LuaFunctionDuplicateState" />) decides it. Its own descriptor carries the
+///         <c>CompilationEnd</c> tag; local shape rules remain IDE-live. Generated code is neither analysed nor counted.
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
@@ -51,7 +45,8 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
         DiagnosticDescriptors.UnsafeBlocksRequired,
         DiagnosticDescriptors.InvalidLuaBindingContainingType,
         DiagnosticDescriptors.InvalidLuaFunction,
-        DiagnosticDescriptors.InvalidLuaGlobal
+        DiagnosticDescriptors.InvalidLuaGlobal,
+        DiagnosticDescriptors.DuplicateLuaName
     ];
 
     /// <inheritdoc />
@@ -64,11 +59,17 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 
     private static void OnCompilationStart(CompilationStartAnalysisContext context)
     {
-        var luaFunctionAttribute = context.Compilation.GetTypeByMetadataName(WellKnownTypeNames.LuaFunctionAttribute);
-        var luaGlobalAttribute = context.Compilation.GetTypeByMetadataName(WellKnownTypeNames.LuaGlobalAttribute);
+        var luaFunctionAttribute = SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaFunctionAttribute);
+        var luaGlobalAttribute = SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaGlobalAttribute);
         if (luaFunctionAttribute is null && luaGlobalAttribute is null) return;
 
-        LuaBindingContractSymbols symbols = new(luaFunctionAttribute, luaGlobalAttribute);
+        LuaBindingContractSymbols symbols = new(
+            luaFunctionAttribute,
+            luaGlobalAttribute,
+            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaClassAttribute),
+            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaMethodAttribute),
+            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaPropertyAttribute),
+            SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaState));
 
         // Mirrors CheatEngine.SDK.SourceGenerators.LuaBindings.Model.CompilationFacts.From: a non-C# compilation (never seen
         // here, the analyzer is C#-only) would read as "unsafe not allowed" too.
@@ -93,7 +94,7 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
         var name = method.Name;
         var location = FirstLocation(method);
 
-        if (!allowsUnsafe)
+        if (!allowsUnsafe && luaFunction is not null)
             context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.UnsafeBlocksRequired, location, name));
 
         var typeIssues = ContainingTypeShape.Inspect(method.ContainingType, context.CancellationToken);
@@ -107,9 +108,9 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
         }
 
         if (luaFunction is not null)
-            AnalyzeLuaFunction(context, method, luaFunction, location, typeIssues, duplicateNames);
+            AnalyzeLuaFunction(context, method, luaFunction, location, typeIssues, duplicateNames, symbols);
 
-        if (luaGlobal is not null) AnalyzeLuaGlobal(context, method, luaGlobal, location);
+        if (luaGlobal is not null) AnalyzeLuaGlobal(context, method, luaGlobal, location, symbols);
     }
 
     private static void AnalyzeLuaFunction(
@@ -118,10 +119,11 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
         AttributeData attribute,
         Location location,
         ContainingTypeIssues typeIssues,
-        LuaFunctionDuplicateState duplicateNames)
+        LuaFunctionDuplicateState duplicateNames,
+        LuaBindingContractSymbols symbols)
     {
         var name = ReadName(attribute);
-        var issues = LuaFunctionShape.Inspect(method, out _);
+        var issues = LuaFunctionShape.Inspect(method, symbols.LuaState, out _);
         if (!LuaNames.IsValidName(name)) issues |= LuaFunctionShapeIssues.InvalidName;
 
         foreach (var problem in LuaFunctionProblemText.ReportOrder)
@@ -141,9 +143,9 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
     }
 
     private static void AnalyzeLuaGlobal(SymbolAnalysisContext context, IMethodSymbol method, AttributeData attribute,
-        Location location)
+        Location location, LuaBindingContractSymbols symbols)
     {
-        var issues = LuaGlobalShape.Inspect(method, out _);
+        var issues = LuaGlobalShape.Inspect(method, symbols.LuaState, out _);
         if (!LuaNames.IsValidName(ReadName(attribute))) issues |= LuaGlobalShapeIssues.InvalidName;
 
         foreach (var problem in LuaGlobalProblemText.ReportOrder)

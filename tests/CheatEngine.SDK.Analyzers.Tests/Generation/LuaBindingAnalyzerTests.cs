@@ -15,7 +15,7 @@ namespace CheatEngine.SDK.Analyzers.Tests.Generation;
 
 /// <summary>
 ///     CESDK2001 (AllowUnsafeBlocks), CESDK2002 (containing type), CESDK2003 (<c>[LuaFunction]</c>), CESDK2004
-///     (<c>[LuaGlobal]</c>): the <c>LuaBindingAnalyzer</c> rules, which link
+///     (<c>[LuaGlobal]</c>) and CESDK2005 (duplicate valid export name): the <c>LuaBindingAnalyzer</c> rules, which link
 ///     <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>'s own shape-validation source instead of a hand-written copy. Test
 ///     compilations reference the REAL <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c>
 ///     assemblies (not stubs: <c>CheatEngine.SDK.Lua.State.LuaState</c> is part of the shape the rules recognise), mirroring
@@ -40,6 +40,13 @@ public sealed class LuaBindingAnalyzerTests
         MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location),
         MetadataReference.CreateFromFile(typeof(LuaApi).Assembly.Location),
         MetadataReference.CreateFromFile(typeof(LuaState).Assembly.Location)
+    ];
+
+    // The annotations are present, but no CheatEngine.SDK.Lua runtime assembly is referenced. A source type with the
+    // runtime's metadata name must therefore not make a binding valid.
+    private static readonly ImmutableArray<MetadataReference> SdkReferencesWithoutLuaRuntime =
+    [
+        MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location)
     ];
 
     public static TheoryData<string, string, bool> Shapes => new()
@@ -224,7 +231,7 @@ public sealed class LuaBindingAnalyzerTests
     }
 
     [Fact]
-    public async Task Duplicate_lua_function_names_in_the_same_type_report_CESDK2003_on_both_members()
+    public async Task Duplicate_lua_function_names_in_the_same_type_report_CESDK2005_on_both_members()
     {
         // LuaFunctionTables.Group/SelectThunks drops both members from the generator's output with no explanation
         // of its own: this is the compilation-end pass that names the cause.
@@ -248,7 +255,7 @@ public sealed class LuaBindingAnalyzerTests
         Diagnostic[] duplicates =
         [
             .. diagnostics.Where(static d =>
-                string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal))
+                string.Equals(d.Id, DiagnosticIds.DuplicateLuaName, StringComparison.Ordinal))
         ];
         Assert.Equal(2, duplicates.Length);
         Assert.Contains(duplicates,
@@ -256,7 +263,7 @@ public sealed class LuaBindingAnalyzerTests
         Assert.Contains(duplicates,
             d => d.GetMessage(CultureInfo.InvariantCulture).Contains("Second", StringComparison.Ordinal));
         Assert.All(duplicates,
-            d => Assert.Contains("must not share its Lua name", d.GetMessage(CultureInfo.InvariantCulture),
+            d => Assert.Contains("duplicates the Lua name", d.GetMessage(CultureInfo.InvariantCulture),
                 StringComparison.Ordinal));
     }
 
@@ -344,6 +351,46 @@ public sealed class LuaBindingAnalyzerTests
                         d.GetMessage(CultureInfo.InvariantCulture).Contains("default value", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task Same_name_source_LuaState_without_the_sdk_runtime_is_rejected_by_generator_and_analyzer()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace CheatEngine.SDK.Lua.State
+                              {
+                                  public readonly struct LuaState
+                                  {
+                                  }
+                              }
+
+                              namespace Demo;
+
+                              public static partial class Functions
+                              {
+                                  [LuaFunction("callback")]
+                                  public static int Callback(global::CheatEngine.SDK.Lua.State.LuaState state) => 0;
+                              }
+
+                              public static partial class Globals
+                              {
+                                  [LuaGlobal("read")]
+                                  public static partial int Read(global::CheatEngine.SDK.Lua.State.LuaState state);
+                              }
+                              """;
+        var compilation = CreateCompilation(source, true, SdkReferencesWithoutLuaRuntime);
+
+        Assert.False(RunGenerator(compilation));
+
+        var diagnostics = await GetDiagnosticsAsync(compilation);
+        Assert.Contains(diagnostics,
+            static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal) &&
+                        d.GetMessage(CultureInfo.InvariantCulture).Contains("parameter type", StringComparison.Ordinal));
+        Assert.Contains(diagnostics,
+            static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaGlobal, StringComparison.Ordinal) &&
+                        d.GetMessage(CultureInfo.InvariantCulture).Contains("argument type", StringComparison.Ordinal));
+    }
+
     [Theory]
     [MemberData(nameof(Shapes))]
     public async Task Generator_and_analyzer_agree_on_every_shape(string shape, string source, bool expectedValid)
@@ -366,10 +413,16 @@ public sealed class LuaBindingAnalyzerTests
 
     private static CSharpCompilation CreateCompilation(string source, bool allowUnsafe)
     {
+        return CreateCompilation(source, allowUnsafe, SdkReferences);
+    }
+
+    private static CSharpCompilation CreateCompilation(string source, bool allowUnsafe,
+        ImmutableArray<MetadataReference> sdkReferences)
+    {
         return CSharpCompilation.Create(
             "LuaBindingAnalyzerTestAssembly",
             [CSharpSyntaxTree.ParseText(TestText.Normalize(source), ParseOptions, "Test.cs")],
-            LocalFrameworkReferences.References.AddRange(SdkReferences),
+            LocalFrameworkReferences.References.AddRange(sdkReferences),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable, allowUnsafe: allowUnsafe));
     }

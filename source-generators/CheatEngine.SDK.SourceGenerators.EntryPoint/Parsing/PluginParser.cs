@@ -11,14 +11,6 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Parsing;
 /// </summary>
 internal static class PluginParser
 {
-    // Metadata names of the two optional BCL attributes the shape check needs. They are resolved per node, from the
-    // semantic model the transform already has, rather than combined with the whole compilation (which the
-    // plugin-list step already collapses to a value before anything reruns from it).
-    private const string SetsRequiredMembersAttributeMetadataName =
-        "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
-
-    private const string ObsoleteAttributeMetadataName = "System.ObsoleteAttribute";
-
     /// <summary>Builds the model of one attributed class.</summary>
     public static PluginModel Parse(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
     {
@@ -26,21 +18,41 @@ internal static class PluginParser
 
         var type = (INamedTypeSymbol)context.TargetSymbol;
         var compilation = context.SemanticModel.Compilation;
-        var attribute = context.Attributes.IsDefaultOrEmpty ? null : context.Attributes[0];
+        var symbols = EntryPointContractSymbols.Resolve(compilation);
+        var attribute = FindAttribute(context.Attributes, symbols.PluginAttribute);
 
         var issues = PluginShape.Inspect(
             type,
             attribute,
-            compilation.GetTypeByMetadataName(SetsRequiredMembersAttributeMetadataName),
-            compilation.GetTypeByMetadataName(ObsoleteAttributeMetadataName),
-            out var displayName);
+            symbols.PluginBase,
+            symbols.SetsRequiredMembersAttribute,
+            symbols.ObsoleteAttribute,
+            out var displayName,
+            out var parameterlessConstructor);
 
         // FullyQualifiedFormat: 'global::' prefix, containing types, escaped keyword identifiers. Identifiers come
         // out as declared (a non-ASCII letter is not turned into a \uXXXX escape): the generated file is UTF-8.
         return new PluginModel(
             type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             displayName,
-            EntryPointDeclaredDiagnosticIds.Collect(type),
+            EntryPointDeclaredDiagnosticIds.Collect(
+                type,
+                parameterlessConstructor,
+                symbols.ExperimentalAttribute,
+                symbols.ObsoleteAttribute),
             issues);
+    }
+
+    private static AttributeData? FindAttribute(
+        System.Collections.Immutable.ImmutableArray<AttributeData> attributes,
+        INamedTypeSymbol? pluginAttribute)
+    {
+        if (pluginAttribute is null) return null;
+
+        foreach (var attribute in attributes)
+            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, pluginAttribute))
+                return attribute;
+
+        return null;
     }
 }

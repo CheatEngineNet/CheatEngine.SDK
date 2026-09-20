@@ -19,86 +19,91 @@ public sealed class OwnedTests
     }
 
     [Fact]
-    public void The_wrapper_exposes_the_handle_until_it_is_released()
+    public void Construction_is_internal_so_a_consumer_cannot_wrap_an_arbitrary_borrowed_handle()
+    {
+        Assert.Empty(typeof(Owned<CEObject>).GetConstructors());
+    }
+
+    [Fact]
+    public void Transfer_moves_the_owner_and_abandon_returns_only_a_borrowed_handle()
     {
         CEObject handle = new(0x1234);
-        Owned<CEObject> owned = new(handle);
+        Owned<CEObject> source = new(handle);
+
+        Assert.False(source.IsDisposed);
+        Assert.Equal(handle, source.Value);
+        Assert.Equal(handle, source.Handle);
+        Assert.Equal(handle, source.ToBorrowed());
+        Assert.Equal("Owned(CEObject@0x1234)", source.ToString());
+
+        Owned<CEObject> destination = source.Transfer();
+        Assert.True(source.IsDisposed);
+        Assert.Equal("Owned(disposed)", source.ToString());
+        Assert.Throws<ObjectDisposedException>(() => source.Value);
+        Assert.Throws<ObjectDisposedException>(() => source.Handle);
+        Assert.Throws<ObjectDisposedException>(() => source.ToBorrowed());
+        Assert.Throws<ObjectDisposedException>(() => source.Transfer());
+
+        Assert.False(destination.IsDisposed);
+        Assert.Equal(handle, destination.Abandon());
+        Assert.True(destination.IsDisposed);
+        Assert.Throws<ObjectDisposedException>(() => destination.Abandon());
+    }
+
+    [Fact]
+    public void Dispose_while_detached_throws_and_retains_the_owner()
+    {
+        LuaRuntime.Detach();
+        Owned<CEObject> owned = new(new CEObject(0x1234));
+
+        Assert.Throws<InvalidOperationException>(owned.Dispose);
 
         Assert.False(owned.IsDisposed);
-        Assert.Equal(handle, owned.Value);
-        Assert.Equal(handle, owned.Handle);
-        Assert.Equal(handle, owned.ToBorrowed());
-        Assert.Equal("Owned(CEObject@0x1234)", owned.ToString());
-
-        Assert.Equal(handle, owned.Release());
-        Assert.True(owned.IsDisposed);
-        Assert.Equal("Owned(disposed)", owned.ToString());
-        Assert.Throws<ObjectDisposedException>(() => owned.Value);
-        Assert.Throws<ObjectDisposedException>(() => owned.Handle);
-        Assert.Throws<ObjectDisposedException>(() => owned.ToBorrowed());
-        Assert.Throws<ObjectDisposedException>(() => owned.Release());
+        Assert.Equal(new CEObject(0x1234), owned.Value);
+        Assert.Equal(new CEObject(0x1234), owned.Abandon());
     }
 
     [Fact]
-    public void Dispose_while_detached_marks_the_wrapper_disposed_without_touching_anything()
+    public void TryDestroy_while_detached_throws_before_touching_the_state_and_retains_the_owner()
     {
         LuaRuntime.Detach();
         Owned<CEObject> owned = new(new CEObject(0x1234));
 
-        owned.Dispose();
-
-        Assert.True(owned.IsDisposed);
-        owned.Dispose();
-        Assert.True(owned.IsDisposed);
-    }
-
-    [Fact]
-    public void TryDestroy_while_detached_throws_before_touching_the_state_and_marks_the_wrapper_disposed()
-    {
-        LuaRuntime.Detach();
-        Owned<CEObject> owned = new(new CEObject(0x1234));
-
-        // The null state view is never dereferenced: the push reports the detached runtime first.
+        // The null state view is never dereferenced: the runtime admission reports detached state first.
         Assert.Throws<InvalidOperationException>(() => owned.TryDestroy(default));
 
-        Assert.True(owned.IsDisposed);
-        Assert.True(owned.TryDestroy(default).IsOk);
+        Assert.False(owned.IsDisposed);
+        Assert.Equal(new CEObject(0x1234), owned.Abandon());
     }
 
     [Fact]
     [Trait("Category", "NativeLua")]
-    public void Destroying_from_a_worker_thread_trips_the_debug_guard_before_anything_is_touched()
+    public void A_detached_owner_can_be_retried_after_its_original_host_binding_is_reattached()
     {
         EngineTest.RequireNativeLua();
-        Assert.SkipUnless(EngineTest.IsDebugBuild,
-            "The main-thread guard of Owned<T> is a Debug assertion; Release builds have no runtime check.");
         using NativeLuaState state = new();
-        using HostScope scope = new(state); // the binding names this thread as the main thread
+        using HostScope scope = new(state);
         var L = scope.State;
         var handle = FakeHost.CreateObject(L, "Probe");
         Owned<CEObject> owned = new(handle);
 
-        var fromDispose = EngineTest.RunOnWorker(owned.Dispose);
-        var fromTryDestroy = EngineTest.RunOnWorker(() => owned.TryDestroy(L));
-
-        var guard = Assert.IsType<DebugAssertFailedException>(fromDispose);
-        Assert.Contains("main thread", guard.Message, StringComparison.Ordinal);
-        Assert.IsType<DebugAssertFailedException>(fromTryDestroy);
+        LuaRuntime.Detach();
+        Assert.Throws<InvalidOperationException>(owned.Dispose);
         Assert.False(owned.IsDisposed);
         Assert.False(FakeHost.IsDestroyed(L, handle));
-        Assert.Equal(0, FakeHost.DestroyedCount(L));
-        Assert.Equal(0, L.Top);
 
-        // Back on the main thread the same wrapper destroys normally.
+        LuaRuntime.Attach(scope.Binding);
         owned.Dispose();
+
         Assert.True(owned.IsDisposed);
         Assert.True(FakeHost.IsDestroyed(L, handle));
+        Assert.Equal(1, FakeHost.DestroyedCount(L));
         Assert.Equal(0, L.Top);
     }
 
     [Fact]
     [Trait("Category", "NativeLua")]
-    public void Dispose_with_a_binding_that_has_no_pusher_leaks_the_object_without_throwing()
+    public void Dispose_with_a_binding_that_has_no_pusher_throws_and_retains_the_owner()
     {
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
@@ -107,19 +112,18 @@ public sealed class OwnedTests
         var handle = FakeHost.CreateObject(L, "Probe");
         Owned<CEObject> owned = new(handle);
 
-        owned.Dispose();
+        Assert.Throws<InvalidOperationException>(owned.Dispose);
 
-        Assert.True(owned.IsDisposed);
+        Assert.False(owned.IsDisposed);
         Assert.False(FakeHost.IsDestroyed(L, handle));
         Assert.Equal(0, FakeHost.DestroyedCount(L));
         Assert.Equal(0, L.Top);
-        owned.Dispose();
-        Assert.True(owned.IsDisposed);
+        Assert.Equal(handle, owned.Abandon());
     }
 
     [Fact]
     [Trait("Category", "NativeLua")]
-    public void TryDestroy_with_a_binding_that_has_no_pusher_throws_and_marks_the_wrapper_disposed()
+    public void TryDestroy_with_a_binding_that_has_no_pusher_throws_and_retains_the_owner()
     {
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
@@ -130,11 +134,12 @@ public sealed class OwnedTests
 
         Assert.Throws<InvalidOperationException>(() => owned.TryDestroy(L));
 
-        Assert.True(owned.IsDisposed);
+        Assert.False(owned.IsDisposed);
         Assert.False(FakeHost.IsDestroyed(L, handle));
         Assert.Equal(0, L.Top);
-        Assert.True(owned.TryDestroy(L).IsOk);
+        Assert.Throws<InvalidOperationException>(() => owned.TryDestroy(L));
         Assert.Equal(0, L.Top);
+        Assert.Equal(handle, owned.Abandon());
     }
 
     [Fact]
@@ -243,7 +248,7 @@ public sealed class OwnedTests
 
     [Fact]
     [Trait("Category", "NativeLua")]
-    public void Release_transfers_ownership_so_only_the_new_owner_destroys()
+    public void Transfer_moves_ownership_so_only_the_destination_owner_destroys()
     {
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
@@ -252,13 +257,13 @@ public sealed class OwnedTests
         var handle = FakeHost.CreateObject(L, "Probe");
         Owned<CEObject> first = new(handle);
 
-        var released = first.Release();
+        Owned<CEObject> second = first.Transfer();
         first.Dispose();
-        Assert.Equal(handle, released);
+        Assert.True(first.IsDisposed);
         Assert.False(FakeHost.IsDestroyed(L, handle));
         Assert.Equal(0, FakeHost.DestroyedCount(L));
 
-        using (Owned<CEObject> second = new(released))
+        using (second)
         {
             Assert.Equal(handle, second.Handle);
         }
@@ -269,7 +274,7 @@ public sealed class OwnedTests
 
     [Fact]
     [Trait("Category", "NativeLua")]
-    public void Dispose_after_the_plugin_is_disabled_leaks_the_object_instead_of_calling_into_nothing()
+    public void Dispose_after_the_plugin_is_disabled_throws_and_retains_the_owner_for_explicit_abandonment()
     {
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
@@ -284,12 +289,13 @@ public sealed class OwnedTests
         }
 
         Assert.False(LuaRuntime.IsAttached);
-        owned.Dispose();
+        Assert.Throws<InvalidOperationException>(owned.Dispose);
 
-        Assert.True(owned.IsDisposed);
+        Assert.False(owned.IsDisposed);
         Assert.False(FakeHost.IsDestroyed(L, handle));
         Assert.Equal(0, FakeHost.DestroyedCount(L));
         Assert.Equal(0, L.Top);
+        Assert.Equal(handle, owned.Abandon());
     }
 
     [Fact]

@@ -20,10 +20,14 @@ internal static class LuaFunctionParser
         cancellationToken.ThrowIfCancellationRequested();
 
         var method = (IMethodSymbol)context.TargetSymbol;
-        var luaName = AttributeArguments.ReadName(context.Attributes);
+        var compilation = context.SemanticModel.Compilation;
+        var isSdkAttribute = LuaBindingSymbols.ContainsSdkAttribute(context.Attributes, compilation,
+            LuaBindingsGenerator.LuaFunctionAttributeMetadataName);
+        var luaName = LuaBindingSymbols.ReadSdkAttributeName(context.Attributes, compilation,
+            LuaBindingsGenerator.LuaFunctionAttributeMetadataName);
 
-        var issues = LuaFunctionShape.Inspect(method, out var signature);
-        if (!LuaNames.IsValidName(luaName)) issues |= LuaFunctionShapeIssues.InvalidName;
+        var issues = LuaFunctionShape.Inspect(method, LuaBindingSymbols.ResolveLuaState(compilation), out var signature);
+        if (!isSdkAttribute || !LuaNames.IsValidName(luaName)) issues |= LuaFunctionShapeIssues.InvalidName;
 
         var typeIssues = ContainingTypeShape.Inspect(method.ContainingType, cancellationToken);
         var containingType = ContainingTypeParser.Parse(method.ContainingType);
@@ -39,6 +43,21 @@ internal static class LuaFunctionParser
                 signature.ReturnKind,
                 LuaBindingsDeclaredDiagnosticIds.Collect(method));
 
-        return new LuaFunctionModel(containingType, typeIssues, luaName ?? string.Empty, issues, thunk);
+        return new LuaFunctionModel(containingType, typeIssues, luaName ?? string.Empty, issues, thunk,
+            HasGeneratedIdentityCollision(method, luaName));
+    }
+
+    // A source generator must not rely on a later CS0111/CS0102 failure to protect user code. The thunk's name is
+    // per entry; the registration pair is shared by every valid function on this containing type. When either exists
+    // already, this entry is intentionally dropped and CESDK2007 identifies the colliding source member.
+    private static bool HasGeneratedIdentityCollision(IMethodSymbol method, string? luaName)
+    {
+        var type = method.ContainingType;
+        if (type.GetMembers(LuaRegistrationEmitter.RegisterMethodName).Length != 0
+            || type.GetMembers(LuaRegistrationEmitter.UnregisterMethodName).Length != 0)
+            return true;
+
+        return LuaNames.IsValidName(luaName)
+               && type.GetMembers(LuaThunkModel.ThunkNameFor(luaName!)).Length != 0;
     }
 }

@@ -11,7 +11,6 @@ namespace CheatEngine.SDK.Benchmarks;
 ///     (<see cref="BenchGlobals.Add(long, long)" />).
 /// </summary>
 [MemoryDiagnoser(false)]
-[ShortRunJob]
 [BenchmarkCategory("GlobalCall")]
 public class GlobalCallBenchmarks : IDisposable
 {

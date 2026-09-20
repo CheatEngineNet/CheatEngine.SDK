@@ -18,7 +18,8 @@ public sealed class LocalFrameworkReferencesTests
 
         AssertNothingToRestore(test.ReferenceAssemblies);
         Assert.NotEmpty(test.TestState.AdditionalReferences);
-        Assert.NotEmpty(test.TestState.AdditionalProjects[ContractStubs.ProjectName].AdditionalReferences);
+        Assert.Contains(test.TestState.AdditionalReferences,
+            static reference => reference is PortableExecutableReference);
     }
 
     [Fact]
@@ -28,7 +29,8 @@ public sealed class LocalFrameworkReferencesTests
 
         AssertNothingToRestore(test.ReferenceAssemblies);
         Assert.NotEmpty(test.TestState.AdditionalReferences);
-        Assert.NotEmpty(test.TestState.AdditionalProjects[ContractStubs.ProjectName].AdditionalReferences);
+        Assert.Contains(test.TestState.AdditionalReferences,
+            static reference => reference is PortableExecutableReference);
     }
 
     [Fact]

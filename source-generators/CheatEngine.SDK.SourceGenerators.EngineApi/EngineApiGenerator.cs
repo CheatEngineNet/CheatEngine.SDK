@@ -16,11 +16,9 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi;
 ///     <para>
 ///         One spec file maps to at most one generated file: an <c>AdditionalText</c> that does not end in
 ///         <c>.cheatengine-sdk-api.txt</c> is ignored, and a file with zero valid entries (a broken header, every entry invalid, or
-///         a
-///         spec file that is a shell) produces no output and no diagnostic. This project's README documents the
-///         spec grammar; <c>Model/SpecFileModel.Issues</c> exists only so that this generator's own tests can assert why
-///         an
-///         entry was dropped, never as a diagnostic.
+///         a spec file that is a shell) produces no output. Every malformed header, entry, or cross-file generated
+///         identity conflict reports a <c>CESDK3xxx</c> diagnostic against the originating additional file, so a spec
+///         can never silently remove an API from the build.
 ///     </para>
 ///     <para>
 ///         The compiler may call <see cref="Initialize" /> on any thread; every pipeline callback is
@@ -50,8 +48,14 @@ public sealed class EngineApiGenerator : IIncrementalGenerator
             .SelectMany(static (specs, _) => specs.AsImmutableArray())
             .WithTrackingName(EngineApiTrackingNames.SpecFile);
 
+        context.RegisterSourceOutput(files, static (productionContext, spec) =>
+        {
+            foreach (var issue in spec.Issues)
+                productionContext.ReportDiagnostic(EngineApiDiagnostics.Create(spec, issue));
+        });
+
         var outputs = files
-            .Where(static spec => spec.Calls.Length > 0)
+            .Where(static spec => spec.Calls.Length > 0 && !spec.IsSuppressed)
             .WithTrackingName(EngineApiTrackingNames.SpecFileOutput);
 
         context.RegisterSourceOutput(outputs, static (productionContext, spec) =>

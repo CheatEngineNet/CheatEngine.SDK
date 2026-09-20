@@ -23,7 +23,8 @@ public sealed class KnownLimitationTests(RoslynFixture roslyn) : IClassFixture<R
         // The generated file names the contract as global::CheatEngine.SDK.Hosting.*, which an aliased reference does not
         // feed. No namespace CheatEngine exists in the global alias of this plugin, hence CS0400.
         var references = roslyn.Environment.FrameworkReferences
-            .Add(roslyn.Environment.StubsReference.WithAliases(["sdk"]));
+            .Add(roslyn.Environment.AnnotationsReference.WithAliases(["sdk"]))
+            .Add(roslyn.Environment.HostingReference.WithAliases(["sdk"]));
         var compilation = CSharpCompilation.Create(
             RoslynFixture.PluginAssemblyName,
             [

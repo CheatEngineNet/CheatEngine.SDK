@@ -22,13 +22,18 @@ internal static class LuaGlobalParser
         cancellationToken.ThrowIfCancellationRequested();
 
         var method = (IMethodSymbol)context.TargetSymbol;
-        var luaName = AttributeArguments.ReadName(context.Attributes);
+        var compilation = context.SemanticModel.Compilation;
+        var isSdkAttribute = LuaBindingSymbols.ContainsSdkAttribute(context.Attributes, compilation,
+            LuaBindingsGenerator.LuaGlobalAttributeMetadataName);
+        var luaName = LuaBindingSymbols.ReadSdkAttributeName(context.Attributes, compilation,
+            LuaBindingsGenerator.LuaGlobalAttributeMetadataName);
 
-        var issues = LuaGlobalShape.Inspect(method, out var signature);
-        if (!LuaNames.IsValidName(luaName)) issues |= LuaGlobalShapeIssues.InvalidName;
+        var issues = LuaGlobalShape.Inspect(method, LuaBindingSymbols.ResolveLuaState(compilation), out var signature);
+        if (!isSdkAttribute || !LuaNames.IsValidName(luaName)) issues |= LuaGlobalShapeIssues.InvalidName;
 
         var typeIssues = ContainingTypeShape.Inspect(method.ContainingType, cancellationToken);
         var containingType = ContainingTypeParser.Parse(method.ContainingType);
+        var hasGeneratedIdentityCollision = HasGeneratedIdentityCollision(method, luaName);
 
         LuaGlobalCallModel? call = null;
         if (issues == LuaGlobalShapeIssues.None && typeIssues == ContainingTypeIssues.None)
@@ -45,7 +50,8 @@ internal static class LuaGlobalParser
                 signature.ReturnIsNullable,
                 method.IsExtensionMethod);
 
-        return new LuaGlobalModel(containingType, typeIssues, issues, call, SortKey(method));
+        return new LuaGlobalModel(containingType, typeIssues, issues, call, SortKey(method),
+            hasGeneratedIdentityCollision);
     }
 
     // The implementing declaration must repeat the defining declaration's accessibility, 'new', 'static' and
@@ -107,5 +113,15 @@ internal static class LuaGlobalParser
         }
 
         return key.Append(')').ToString();
+    }
+
+    private static bool HasGeneratedIdentityCollision(IMethodSymbol method, string? luaName)
+    {
+        foreach (var parameter in method.Parameters)
+            if (parameter.Name is "__L" or "__operation" or "__top" or "__ok" or "__status" or "__result")
+                return true;
+
+        return LuaNames.IsValidName(luaName)
+               && method.ContainingType.GetMembers(LuaGlobalCallModel.CacheFieldFor(luaName!)).Length != 0;
     }
 }

@@ -15,10 +15,10 @@ internal sealed class LoadedBootstrap : IDisposable
     private readonly Func<IntPtr, int, int> _initialize;
     private readonly Type _pluginHost;
 
-    private LoadedBootstrap(AssemblyLoadContext context, Assembly stubs, Assembly plugin)
+    private LoadedBootstrap(AssemblyLoadContext context, Assembly hosting, Assembly plugin)
     {
         _context = context;
-        _pluginHost = stubs.GetType("CheatEngine.SDK.Hosting.Bootstrap.PluginHost", true)!;
+        _pluginHost = hosting.GetType("CheatEngine.SDK.Hosting.Bootstrap.PluginHost", true)!;
 
         // Same lookup as the host: type 'CESDK.CESDK' in the plugin assembly, static method 'CEPluginInitialize'.
         var entryPoint = plugin.GetType("CESDK.CESDK", true)!;
@@ -29,6 +29,9 @@ internal sealed class LoadedBootstrap : IDisposable
 
     /// <summary>Number of calls that reached the stub <c>PluginHost.InitializeManaged</c>.</summary>
     public int HostCallCount => (int)ReadHostField("CallCount")!;
+
+    /// <summary>The opaque host value handed to the hosting runtime by the generated bootstrap.</summary>
+    public int LastHostArgument => (int)ReadHostField("LastHostArgument")!;
 
     /// <summary><c>TFactory.Utf8Name</c> as seen by the stub host.</summary>
     public byte[]? LastUtf8Name => (byte[]?)ReadHostField("LastUtf8Name");
@@ -49,19 +52,25 @@ internal sealed class LoadedBootstrap : IDisposable
         pluginImage.Position = 0;
 
         AssemblyLoadContext context = new("CheatEngine.SDK.EntryPoint.Tests.Bootstrap", true);
-        using MemoryStream stubsImage = new([.. environment.StubsImage]);
-        var stubs = context.LoadFromStream(stubsImage);
+        using MemoryStream annotationsImage = new([.. environment.AnnotationsImage]);
+        var annotations = context.LoadFromStream(annotationsImage);
+        using MemoryStream hostingImage = new([.. environment.HostingImage]);
+        var hosting = context.LoadFromStream(hostingImage);
         context.Resolving += (_, name) =>
-            string.Equals(name.Name, ContractStubs.AssemblyName, StringComparison.Ordinal) ? stubs : null;
+            string.Equals(name.Name, ContractStubs.AnnotationsAssemblyName, StringComparison.Ordinal)
+                ? annotations
+                : string.Equals(name.Name, ContractStubs.HostingAssemblyName, StringComparison.Ordinal)
+                    ? hosting
+                    : null;
         var plugin = context.LoadFromStream(pluginImage);
 
-        return new LoadedBootstrap(context, stubs, plugin);
+        return new LoadedBootstrap(context, hosting, plugin);
     }
 
     /// <summary>Calls the generated <c>CESDK.CESDK.CEPluginInitialize</c>.</summary>
-    public int Initialize(IntPtr args, int size)
+    public int Initialize(IntPtr args, int opaqueArgument)
     {
-        return _initialize(args, size);
+        return _initialize(args, opaqueArgument);
     }
 
     private object? ReadHostField(string name)

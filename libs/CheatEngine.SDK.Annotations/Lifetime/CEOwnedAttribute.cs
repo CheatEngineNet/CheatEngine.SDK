@@ -19,8 +19,9 @@ namespace CheatEngine.SDK.Annotations.Lifetime;
 ///         leaves Cheat Engine with a dangling pointer.
 ///     </para>
 ///     <para>
-///         <b>Consumed by.</b> Nothing in the SDK reads this attribute. It documents ownership for callers and tools and
-///         reports no diagnostic for a violation.
+///         <b>Consumed by.</b> The SDK analyzer follows values explicitly marked as borrowed and reports direct
+///         <c>Dispose</c> or <c>DisposeAsync</c> calls on them (CESDK1003). The attribute also documents ownership for
+///         callers and tooling.
 ///     </para>
 ///     <para>
 ///         <b>Run time.</b> The attribute has no behaviour: it does not make the wrapper refuse disposal. It stays in
@@ -39,5 +40,6 @@ namespace CheatEngine.SDK.Annotations.Lifetime;
 ///         statement belongs on the API that hands the object out.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.ReturnValue | AttributeTargets.Property | AttributeTargets.Parameter)]
+[AttributeUsage(AttributeTargets.ReturnValue | AttributeTargets.Property | AttributeTargets.Parameter, Inherited = true,
+    AllowMultiple = false)]
 public sealed class CEOwnedAttribute : Attribute;

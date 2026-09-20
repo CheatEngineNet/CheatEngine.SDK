@@ -1,0 +1,15 @@
+# CheatEngine.SDK.Engine memory-scan vertical-slice manifest.
+#
+# Authoritative CE 7.7.0.10621 reference: pinned installed celua.txt corpus,
+# SHA-256 AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00,
+# lines 2506-2677. The public contracts live in
+# libs/CheatEngine.SDK.Engine/Scanning/Values/ because the current EngineApi
+# grammar cannot describe CE object handles, ownership transfer, object methods,
+# attached parent/child relationships, or state transitions.
+#
+# This intentionally valid, empty spec reserves sole ownership of the eventual
+# generated type. It must be added as an AdditionalFile only after the generator
+# gains a CEObject/Owned<T> object-method model with localized diagnostics.
+
+namespace: CheatEngine.SDK.Engine.Scanning.Values
+type: MemScanFoundListBindings

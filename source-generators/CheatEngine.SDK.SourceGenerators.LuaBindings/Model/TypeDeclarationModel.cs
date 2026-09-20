@@ -9,4 +9,8 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 ///     The identifier, keyword-escaped (<c>@class</c>) where needed. Never carries type parameters: generic
 ///     containing types are rejected.
 /// </param>
-internal sealed record TypeDeclarationModel(string Keyword, string Name);
+/// <param name="IsReadOnly">
+///     Whether the declaration is a <see langword="readonly" /> struct. Every generated partial part must repeat this
+///     modifier or the compiler rejects the split type.
+/// </param>
+internal sealed record TypeDeclarationModel(string Keyword, string Name, bool IsReadOnly = false);

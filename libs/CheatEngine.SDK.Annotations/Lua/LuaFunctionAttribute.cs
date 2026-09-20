@@ -15,8 +15,9 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         and reports failures through the SDK's managed-to-Lua error channel, plus an entry in a generated
 ///         registration table that binds the thunk to <see cref="Name" />. Which method shapes and parameter types it
 ///         accepts is documented with the generator. A method it cannot export (not static, generic, unsupported
-///         parameter types, duplicate name) is a generator-input error (CESDK2003); CESDK2001 is the error for a
-///         compilation that does not allow the unsafe code the thunks need.
+///         parameter types) is a generator-input error (CESDK2003). Two otherwise valid exports with the same name in
+///         one binding type are CESDK2005. CESDK2001 is the error for a compilation that does not allow the unsafe code
+///         the thunks need.
 ///     </para>
 ///     <para>
 ///         <b>Run time.</b> The attribute has no behaviour and nothing in the SDK reads it: registration is done by the
@@ -37,7 +38,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         can be exported; rejecting them is the generator's job, the compiler accepts them.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
 public sealed class LuaFunctionAttribute : Attribute
 {
     /// <summary>

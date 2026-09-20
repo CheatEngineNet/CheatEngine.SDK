@@ -39,8 +39,8 @@ itself for the display name):
 | `Inaccessible`                         | The class and every type it is nested in are `public`, `internal` or `protected internal`. `private`, `protected` and `private protected` hide it from the generated factory.                                                                                                                                                                                                  |
 | `FileLocal`                            | Neither the class nor a type it is nested in is a `file` type.                                                                                                                                                                                                                                                                                                                 |
 | `ReservedEntryPointName`               | The class is not, and is not nested in, the top-level type `CESDK.CESDK`. Cheat Engine dictates that name for the generated entry point type, and an assembly holds one type of a name. `MyPlugin.CESDK` and `CESDK.Samples.CESDK` are other types and fine. The namespace `CESDK` itself is what [CESDK0004](CESDK0004.md) is about.                                          |
-| `MissingParameterlessConstructor`      | If constructors are declared, one of them is callable with an empty argument list: a parameterless constructor, one whose every parameter is optional, or one ending in a `params` parameter. These are the constructors `new T()` itself binds to. A primary constructor with an empty parameter list counts.                                                                 |
-| `InaccessibleParameterlessConstructor` | At least one constructor is callable with an empty argument list, but every one of them is `private`, `protected` or `private protected`. A constructor without an accessibility keyword is `private`. When several constructors are callable with an empty argument list, only an accessible one matters: it is what `new T()` binds to.                                      |
+| `MissingParameterlessConstructor`      | If constructors are declared, one is an actual parameterless constructor. Constructors containing optional or `params` parameters do not qualify. A primary constructor with an empty parameter list counts.                                                                 |
+| `InaccessibleParameterlessConstructor` | At least one actual parameterless constructor exists, but every such constructor is `private`, `protected` or `private protected`. A constructor without an accessibility keyword is `private`. When several parameterless constructors exist, only an accessible one matters.                                      |
 | `RequiredMembers`                      | Neither the class nor a base class declares `required` fields or properties, unless the parameterless constructor carries `[SetsRequiredMembers]`. The generated `new YourPlugin()` has no object initializer, so required members would fail with CS9035. Reported next to `MissingParameterlessConstructor` when both apply: adding a plain constructor would not be enough. |
 | `ObsoleteError`                        | Neither the class, a type it is nested in, nor its parameterless constructor is marked `[Obsolete(..., error: true)]`. Naming such a symbol would be CS0619, which no `#pragma` can silence. `[Obsolete]` as a warning is fine: the generated file disables CS0612 and CS0618.                                                                                                 |
 | `InvalidName`                          | The display name passed to the attribute is not `null`, empty or white space. It is the name Cheat Engine shows in its plugin list.                                                                                                                                                                                                                                            |
@@ -49,9 +49,8 @@ A class without any declared constructor is fine: the implicit constructor is pu
 constructor is protected. Only `Abstract` is reported, because the constructor becomes public as soon as `abstract` is
 gone.
 
-One limit applies to `RequiredMembers` and `ObsoleteError`. When several constructors are callable with an empty
-argument list, both are read from one of them only. That constructor is the first accessible one, or the first one when
-none is accessible.
+One limit applies to `RequiredMembers` and `ObsoleteError`. When several parameterless constructors exist, both are
+read from one of them only. That constructor is the first accessible one, or the first one when none is accessible.
 
 Not checked, on purpose:
 
@@ -110,10 +109,10 @@ Do not suppress it in a plugin project: the diagnostic means the plugin will not
 
 If you construct the plugin yourself and have switched the generated entry point off
 (`<CheatEngineSdkGenerateEntryPoint>false</CheatEngineSdkGenerateEntryPoint>`), there is nothing to suppress: the rule
-and [CESDK0002](CESDK0002.md) are not reported, because the conditions are then yours to define. This needs the property
-to be visible to the compiler, which is what the props file of the CheatEngine.SDK package declares
-(`<CompilerVisibleProperty Include="CheatEngineSdkGenerateEntryPoint" />`). A project that consumes the analyzers without those
-props adds that item to its own project file, or, as a last resort, disables the rule for the project:
+and [CESDK0002](CESDK0002.md) are not reported, because the conditions are then yours to define. The direct package
+props make the property compiler-visible (`<CompilerVisibleProperty Include="CheatEngineSdkGenerateEntryPoint" />`). A
+project that consumes the analyzers without those props explicitly sets it to `true` when it wants generated-bootstrap
+diagnostics; otherwise generation-related rules stay silent. As a last resort, it can disable the rule for the project:
 
 ```ini
 [*.cs]

@@ -8,7 +8,7 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
 /// <summary>
 ///     A stand-in for the host's state provider, in the shape <see cref="LuaHostBinding" /> expects (a <c>stdcall</c>
 ///     <c>void*</c>-returning function): it returns the fixture state a test installed, so that generated
-///     <c>[LuaGlobal]</c> bodies calling <c>LuaRuntime.AcquireState()</c> reach that state.
+///     <c>[LuaGlobal]</c> bodies calling <c>LuaRuntime.AcquireOperation()</c> reach that state.
 /// </summary>
 internal static unsafe class HostDouble
 {

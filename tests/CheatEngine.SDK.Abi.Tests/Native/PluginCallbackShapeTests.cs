@@ -75,18 +75,13 @@ public sealed unsafe class PluginCallbackShapeTests
     }
 
     [Fact]
-    public void DisassemblerContext_popup_callback_takes_address_caption_and_show_flag()
+    public void DisassemblerContext_popup_slot_stays_opaque_until_a_live_canary_establishes_its_shape()
     {
         DisassemblerContextPluginInit init = default;
-        init.CallbackOnPopup = &FakeContextPopup;
-        byte* caption = null;
-        var show = Bool32.False;
+        delegate* unmanaged[Stdcall]<void> function = &FakeMainMenu;
+        init.CallbackOnPopup = (void*)function;
 
-        var result = init.CallbackOnPopup(0x40_0000, &caption, &show);
-
-        Assert.True(result.IsTrue);
-        Assert.Equal(0x1234, (nint)caption);
-        Assert.True(show.IsTrue);
+        Assert.Equal((nint)function, (nint)init.CallbackOnPopup);
     }
 
     [Fact]
@@ -170,14 +165,6 @@ public sealed unsafe class PluginCallbackShapeTests
     private static Bool32 FakeContextClick(nuint* selectedAddress)
     {
         *selectedAddress += 4;
-        return Bool32.True;
-    }
-
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-    private static Bool32 FakeContextPopup(nuint selectedAddress, byte** addressOfName, Bool32* show)
-    {
-        *addressOfName = (byte*)0x1234;
-        *show = selectedAddress == 0x40_0000;
         return Bool32.True;
     }
 

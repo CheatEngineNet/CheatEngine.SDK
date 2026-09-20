@@ -48,9 +48,9 @@ internal static class PluginClassProblemText
             PluginShapeIssues.ReservedEntryPointName =>
                 "must not be, or be nested in, a type named 'CESDK.CESDK': Cheat Engine dictates that name for the generated entry point type",
             PluginShapeIssues.MissingParameterlessConstructor =>
-                "must declare a public or internal constructor callable with no arguments (parameterless, or with only optional/'params' parameters): the generated entry point calls it as 'new T()'",
+                "must declare a public or internal constructor with no parameters: the generated entry point calls it as 'new T()'",
             PluginShapeIssues.InaccessibleParameterlessConstructor =>
-                "must make a constructor callable with no arguments public or internal: the generated entry point calls it as 'new T()'",
+                "must make a parameterless constructor public or internal: the generated entry point calls it as 'new T()'",
             PluginShapeIssues.RequiredMembers =>
                 "must not have required members, unless its parameterless constructor is marked [SetsRequiredMembers]: the generated entry point calls 'new' without an object initializer",
             PluginShapeIssues.ObsoleteError =>

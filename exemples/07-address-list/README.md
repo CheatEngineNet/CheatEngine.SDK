@@ -2,9 +2,9 @@
 
 # 07 · The address list
 
-**Turn found addresses into cheat table records: add, group, find, freeze and read them from C#.**
+**Read and create the typed, borrowed records in Cheat Engine's visible address list.**
 
-**Level** `Intermediate` · **Time** `30 min` · **Needs** `Guide 06`
+**Level** `Intermediate` · **Time** `20 min` · **Needs** `Guide 06`
 
 [Examples index](../README.md) · [Previous: Value scans](../06-value-scans/README.md) · [Next: Running Lua](../08-running-lua/README.md)
 
@@ -12,328 +12,155 @@
 
 ---
 
-|                            |                                                                                                                                                                                                                                      |
-|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **You build**              | A `TableEditor` for Cheat Engine's address list, and a plugin that builds a "Player" group with Health, Mana and Gold                                                                                                                |
-| **You learn**              | Borrowed handles, setting properties from C#, enum names as text, calling methods with arguments, and the main thread rule                                                                                                           |
-| **You need**               | [06 · Value scans](../06-value-scans/README.md) for the object call pattern                                                                                                                                                          |
-| **Cheat Engine functions** | `getAddressList`, and the members `createMemoryRecord`, `getMemoryRecordByDescription`, `Count` and its indexer on the list, `Description`, `Address`, `VarType`, `Value`, `Active`, `IsGroupHeader` and `appendToEntry` on a record |
+|                            |                                                                                                                                              |
+|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| **You build**              | A small typed editor that creates a record, gives it a description and selects an existing record                                           |
+| **You learn**              | `AddressList`, `MemoryRecord`, borrowed ownership, zero-based indexes, partial side effects, and the GUI-thread boundary                    |
+| **You need**               | [06 · Value scans](../06-value-scans/README.md) for scan ownership and [09 · The main thread](../09-main-thread/README.md) for dispatching |
+| **Cheat Engine surface**   | `getAddressList`, `Addresslist.getCount`, `getMemoryRecord`, `createMemoryRecord`, and the documented `MemoryRecord` properties/methods     |
 
 ## Objective
 
-Put records into the cheat table that the user sees and saves. You create a record, describe it, nest it in a group,
-freeze it and read its value, all from C#.
+Use the dedicated address-list surface instead of open-coding Lua object names. You obtain Cheat Engine's current list,
+create a record attached to it, set the safe supported properties, and read or select records by their zero-based
+position.
 
-## Why it matters
+## What is owned
 
-The address list is where a scan turns into something reusable. A plugin that finds the gold counter (guide 06) can add
-it to the table in the same call. The address list is also Cheat Engine's own user interface object, so the rules about
-who owns an object and which thread may touch it decide whether the plugin is stable.
+`AddressListAccess.TryGetCurrent` returns the GUI address list that Cheat Engine owns. A record returned from that list —
+including one that `TryCreateMemoryRecord` has just added — is also owned by Cheat Engine through the list. Both types
+are `readonly` borrowed handles. They have no `Dispose`, are never wrapped in `Owned<T>`, and can become invalid if the
+user or Cheat Engine changes the table.
 
-## How it works
+| Value | How it is obtained | Owner | What the SDK lets you do |
+|---|---|---|---|
+| `AddressList` | `AddressListAccess.TryGetCurrent` | Cheat Engine's GUI | Read it and operate on it while it remains current |
+| `MemoryRecord` from list APIs | `TryGet…`, `TryCreateMemoryRecord`, child/parent APIs | Its address list / Cheat Engine | Read and set supported values; never dispose it |
+| `Owned<T>` | An API with an explicit ownership-transfer contract | Your plugin | Dispose it deterministically on the required thread |
 
-### 1. Know who owns what
+`[CEOwned]` makes this borrowed contract visible on APIs that return or accept a CE-owned value. The analyzer's
+`CESDK1003` rule catches a direct `Dispose` or `DisposeAsync` on an explicitly marked borrowed value. It is deliberately
+not an ownership inference engine: do not use the absence of a diagnostic as permission to destroy a CE object.
 
-Guides 05 and 06 created objects, so they owned them and disposed them. Here Cheat Engine owns everything. The
-`[CEOwned]` attribute names that intent: it marks a return value, a property or a parameter as an object that Cheat
-Engine owns and you do not dispose. In your code it is a plain `CEObject` handle with no `Owned<T>` around it.
-
-| Object                  | Created by                                   | Owner        | Do you dispose it                          |
-|-------------------------|----------------------------------------------|--------------|--------------------------------------------|
-| The address list        | `getAddressList()`                           | Cheat Engine | No                                         |
-| A record                | `createMemoryRecord()` on the list           | The list     | No                                         |
-| A scan or a result list | `createMemScan()` and `createFoundList(...)` | You          | Yes, see [06](../06-value-scans/README.md) |
-
-A `CEObject` is only the native pointer. It has no `Dispose` and no destroy member, so a borrowed handle cannot free
-what Cheat Engine still uses.
-
-### 2. Write the editor
+## Create and inspect a record
 
 ```csharp
-using System.Diagnostics.CodeAnalysis;
+using CheatEngine.SDK.Engine.AddressLists;
 using CheatEngine.SDK.Engine.Enums;
-using CheatEngine.SDK.Engine.Objects;
-using CheatEngine.SDK.Lua.Marshalling;
-using CheatEngine.SDK.Lua.Runtime;
-using CheatEngine.SDK.Lua.State;
+using CheatEngine.SDK.Engine.Values;
 
 namespace TableTools;
 
+internal readonly record struct CreateRequest(
+    string Description,
+    string AddressExpression,
+    VariableType VariableType);
+
 internal static class TableEditor
 {
-    public static int Count
-    {
-        get
-        {
-            var L = LuaRuntime.AcquireState();
-            using LuaFrame frame = new(L);
-            return TryGetList(L, out var list) && list.TryGetProperty<Int32Marshaller, int>("Count"u8, out var count)
-                ? count
-                : 0;
-        }
-    }
-
-    public static bool TryAddRecord(string description, string address, VariableType type, out CEObject record)
+    public static bool TryAddRecord(
+        string description,
+        string addressExpression,
+        VariableType variableType,
+        out MemoryRecord record)
     {
         record = default;
-        var L = LuaRuntime.AcquireState();
-        using LuaFrame frame = new(L);
 
-        if (!TryGetList(L, out var list)) return false;
-        if (!list.TryCallMethod(L, "createMemoryRecord"u8, 0, 1).IsOk) return false;
-        if (!CEObject.TryRead(L, -1, out var created)) return false;
-
-        if (!created.TrySetProperty<StringMarshaller, string>("Description"u8, description)
-            || !created.TrySetProperty<StringMarshaller, string>("Address"u8, address)
-            || !created.TrySetProperty<Utf8Marshaller, ReadOnlySpan<byte>>("VarType"u8, type.ToCEName()))
+        if (!AddressListAccess.TryGetCurrent(out var addressList)
+            || !addressList.TryCreateMemoryRecord(out record))
         {
             return false;
         }
 
-        record = created;
-        return true;
+        // The record is already part of the CE list. These writes are not transactional:
+        // a later false leaves the created record in the list with the earlier changes.
+        return record.TrySetDescription(description)
+               && record.TrySetAddressExpression(addressExpression)
+               && record.TrySetVariableType(variableType);
     }
 
-    public static bool TryAddGroup(string description, out CEObject group)
+    public static bool TryDescribeAt(int zeroBasedIndex, out string? description, out Address address)
     {
-        group = default;
-        var L = LuaRuntime.AcquireState();
-        using LuaFrame frame = new(L);
+        description = null;
+        address = default;
 
-        if (!TryGetList(L, out var list)) return false;
-        if (!list.TryCallMethod(L, "createMemoryRecord"u8, 0, 1).IsOk) return false;
-        if (!CEObject.TryRead(L, -1, out var created)) return false;
-        if (!created.TrySetProperty<StringMarshaller, string>("Description"u8, description)) return false;
-
-        // A plain record still works as a parent when Cheat Engine refuses the group flag.
-        _ = created.TrySetProperty<BooleanMarshaller, bool>("IsGroupHeader"u8, true);
-
-        group = created;
-        return true;
+        return AddressListAccess.TryGetCurrent(out var addressList)
+               && addressList.TryGetMemoryRecord(zeroBasedIndex, out var record)
+               && record.TryGetDescription(out description)
+               && record.TryGetCurrentAddress(out address);
     }
 
-    public static bool TryAppend(CEObject child, CEObject parent)
+    public static bool TrySelectAt(int zeroBasedIndex)
     {
-        var L = LuaRuntime.AcquireState();
-        using LuaFrame frame = new(L);
-
-        parent.Push(L);
-        return child.TryCallMethod(L, "appendToEntry"u8, 1, 0).IsOk;
-    }
-
-    public static bool TryFind(string description, out CEObject record)
-    {
-        record = default;
-        var L = LuaRuntime.AcquireState();
-        using LuaFrame frame = new(L);
-
-        if (!TryGetList(L, out var list)) return false;
-        StringMarshaller.Push(L, description);
-        return list.TryCallMethod(L, "getMemoryRecordByDescription"u8, 1, 1).IsOk
-               && CEObject.TryRead(L, -1, out record);
-    }
-
-    public static bool TryFreeze(string description, bool frozen)
-    {
-        return TryFind(description, out var record)
-               && record.TrySetProperty<BooleanMarshaller, bool>("Active"u8, frozen);
-    }
-
-    public static bool TryReadValue(string description, [MaybeNullWhen(false)] out string value)
-    {
-        value = null;
-        return TryFind(description, out var record)
-               && record.TryGetProperty<StringMarshaller, string>("Value"u8, out value);
-    }
-
-    public static List<string> Describe()
-    {
-        List<string> lines = [];
-        var L = LuaRuntime.AcquireState();
-        using LuaFrame frame = new(L);
-        if (!TryGetList(L, out var list)) return lines;
-        if (!list.TryGetProperty<Int32Marshaller, int>("Count"u8, out var count)) return lines;
-
-        for (var i = 0; i < count; i++)
-        {
-            using LuaFrame item = new(L);
-            if (!list.TryGetIndex(L, i).IsOk || !CEObject.TryRead(L, -1, out var record)) continue;
-            if (!record.TryGetProperty<StringMarshaller, string>("Description"u8, out var description)) continue;
-
-            lines.Add(record.TryGetProperty<StringMarshaller, string>("Value"u8, out var value)
-                ? $"{description}={value}"
-                : description);
-        }
-
-        return lines;
-    }
-
-    private static bool TryGetList(LuaState L, out CEObject list)
-    {
-        list = default;
-        return L.TryGetGlobal("getAddressList"u8).IsOk
-               && L.TryCall(0, 1).IsOk
-               && CEObject.TryRead(L, -1, out list);
+        return AddressListAccess.TryGetCurrent(out var addressList)
+               && addressList.TryGetMemoryRecord(zeroBasedIndex, out var record)
+               && addressList.TrySetSelectedRecord(record);
     }
 }
 ```
 
-The table below lists the record members the editor uses and how each one travels.
+The typed façade preserves the CE vocabulary internally while making the public shape explicit:
 
-| Member                  | Kind     | Type    | How the editor sets or reads it                                                          |
-|-------------------------|----------|---------|------------------------------------------------------------------------------------------|
-| `Description`           | Property | Text    | `TrySetProperty<StringMarshaller, string>`                                               |
-| `Address`               | Property | Text    | An expression Cheat Engine interprets, such as `game.exe+2A0` or `game.exe+2A0+4`        |
-| `VarType`               | Property | Text    | The name from `CEEnumNames.ToCEName`, such as `vtDword`, pushed through `Utf8Marshaller` |
-| `Value`                 | Property | Text    | `TryGetProperty<StringMarshaller, string>`. The value in string form                     |
-| `Active`                | Property | Boolean | `true` activates the record, which freezes a value record                                |
-| `IsGroupHeader`         | Property | Boolean | Turns a record into a group header                                                       |
-| `appendToEntry(parent)` | Method   | Record  | Pushes the parent, then `TryCallMethod(L, name, 1, 0)`                                   |
-| `[index]` on the list   | Indexer  | Record  | `TryGetIndex(L, i)` with Cheat Engine's own zero based index                             |
+| Type | Supported operation | Failure shape |
+|---|---|---|
+| `AddressListAccess` | `TryGetCurrent(out AddressList)` | `false` for a missing/invalid object or protected Lua failure |
+| `AddressList` | `TryGetCount`, get a record by index or id, get/set selected record, create a record | `false`; a negative index throws `ArgumentOutOfRangeException` |
+| `MemoryRecord` | read ID/index/description/address expression/value/variable type/current address; read parent or child | `false` for `nil`, a wrong Lua kind, or a protected Lua failure |
+| `MemoryRecord` | set description, address expression, value, or variable type | `false` for a protected Lua failure; null text throws `ArgumentNullException` |
 
-### 3. Export it
+The `Address` property is an expression such as a symbol or hexadecimal text. `TryGetCurrentAddress` is different: it
+returns the resolved `Address` value for the target process. Keep those two meanings separate.
 
-```csharp
-using CheatEngine.SDK.Annotations.Lua;
-using CheatEngine.SDK.Annotations.Plugin;
-using CheatEngine.SDK.Engine.Enums;
-using CheatEngine.SDK.Hosting.Plugin;
-using CheatEngine.SDK.Lua.Runtime;
+## Indexing and partial effects
 
-namespace TableTools;
+The public index passed to `TryGetMemoryRecord`, `TryGetChild`, and `TryGetIndex` is zero based. Lua tables are normally
+one based, but the SDK keeps the conversion at the binding boundary so plugins do not add one themselves.
 
-[CheatEnginePlugin("Table Tools")]
-public sealed class TableToolsPlugin : CheatEnginePlugin
-{
-    protected override void OnEnable()
-    {
-        var status = TableFunctions.RegisterLuaFunctions(LuaRuntime.AcquireState());
-        if (!status.IsOk) throw new InvalidOperationException($"Lua registration failed: {status}.");
-    }
+Creating a record is an observable CE GUI operation. If setting a subsequent field fails, the SDK does not guess how to
+delete or roll back that record: the destruction/rollback behavior of address-list records is not part of this safe
+slice. Make the intended values valid before creation, report a partial result to the user, and reserve deletion,
+grouping, freeze/activation, hierarchy mutation, and arbitrary `MemoryRecord` members for a later capability with an
+explicit lifetime and rollback contract.
 
-    protected override void OnDisable() => TableFunctions.UnregisterLuaFunctions(LuaRuntime.AcquireState());
-}
+## Thread and lifetime boundary
 
-internal static partial class TableFunctions
-{
-    [LuaFunction("my_plugin_add_record")]
-    public static bool AddRecord(string description, string address, ReadOnlySpan<byte> typeName)
-    {
-        return CEEnumNames.TryParseCEName(typeName, out VariableType type)
-               && TableEditor.TryAddRecord(description, address, type, out _);
-    }
-
-    [LuaFunction("my_plugin_build_player_group")]
-    public static bool BuildPlayerGroup(string baseAddress)
-    {
-        if (!TableEditor.TryAddGroup("Player", out var group)) return false;
-
-        (string Name, string Offset, VariableType Type)[] fields =
-        [
-            ("Health", "+0", VariableType.Dword),
-            ("Mana", "+4", VariableType.Dword),
-            ("Gold", "+8", VariableType.Dword),
-        ];
-
-        foreach (var (name, offset, type) in fields)
-        {
-            if (!TableEditor.TryAddRecord(name, baseAddress + offset, type, out var record)) return false;
-            if (!TableEditor.TryAppend(record, group)) return false;
-        }
-
-        return true;
-    }
-
-    [LuaFunction("my_plugin_freeze")]
-    public static bool Freeze(string description, bool frozen) => TableEditor.TryFreeze(description, frozen);
-
-    [LuaFunction("my_plugin_record_value")]
-    public static string? RecordValue(string description)
-    {
-        return TableEditor.TryReadValue(description, out var value) ? value : null;
-    }
-
-    [LuaFunction("my_plugin_record_count")]
-    public static long RecordCount() => TableEditor.Count;
-
-    [LuaFunction("my_plugin_list_records")]
-    public static string ListRecords() => string.Join("; ", TableEditor.Describe());
-}
-```
-
-`my_plugin_add_record` takes the type as text, so a Lua caller writes the name Cheat Engine already uses. Reading it
-as a `ReadOnlySpan<byte>` means the name is parsed straight from the string Lua holds, and an unknown name returns
-`false`.
-
-### 4. Call it from Lua
-
-```lua
-print(my_plugin_build_player_group("game.exe+2A0"))
-print(my_plugin_freeze("Health", true))
-print(my_plugin_record_value("Health"))
-print(my_plugin_add_record("Gold found", "00007FF6A1DC4F10", "vtDword"))
-print(my_plugin_list_records())
-```
-
-| Lua call                                                            | Result                                                                          |
-|---------------------------------------------------------------------|---------------------------------------------------------------------------------|
-| `my_plugin_build_player_group("game.exe+2A0")`                      | `true` after a "Player" group with Health, Mana and Gold appears in the table   |
-| `my_plugin_freeze("Health", true)`                                  | `true` when the record exists. Use `false` as the second argument to release it |
-| `my_plugin_record_value("Health")`                                  | The value as text, or `nil` when no record has that description                 |
-| `my_plugin_add_record("Gold found", "00007FF6A1DC4F10", "vtDword")` | `true`. An unknown type name such as `"vtBogus"` gives `false`                  |
-| `my_plugin_record_count()`                                          | The number of records in the list                                               |
-| `my_plugin_list_records()`                                          | Every record as `Description=Value`, joined with `; `                           |
-
-The last step of the gold counter story from guide 06 is one call:
-`my_plugin_add_record("Gold", my_plugin_scan_result(0), "vtDword")`.
-
-## The main thread rule
-
-The address list is a window control, and Cheat Engine's objects are not thread safe. `OnEnable`, `OnDisable` and a call
-from the Lua Engine window already run on Cheat Engine's main thread, so the editor needs no extra code there. Code on
-your own thread reaches the list through `MainThread.Invoke`, which runs the work on the main thread and returns its
-result:
+The address list is a Cheat Engine GUI object. Its annotations require a plugin-enabled, main-thread call, but GUI
+affinity for the exact CE 7.7 host is currently an inferred constraint, not a completed live `synchronize` probe. Call
+this API directly only from an already main-thread context such as synchronous plugin lifecycle code. A worker can use
+the bounded synchronous dispatcher:
 
 ```csharp
 using CheatEngine.SDK.Hosting.Threading;
 
-namespace TableTools;
-
-internal static class BackgroundTable
-{
-    public static Task<int> CountAsync() => Task.Run(() => MainThread.Invoke(static _ => TableEditor.Count, 0));
-}
+var created = MainThread.Invoke(
+    static request => TableEditor.TryAddRecord(
+        request.Description,
+        request.AddressExpression,
+        request.VariableType,
+        out _),
+    new CreateRequest("Health", "game.exe+1F4A0", VariableType.Dword));
 ```
 
-Keep a check and the operation it protects inside one `Invoke`, because another thread can change the table between
-two separate calls. [09 · The main thread](../09-main-thread/README.md) covers the rules in full.
+That dispatcher verifies, in its callback thunk, that the host runs work on the captured enable thread. It refuses a
+host that violates that check and it does not expose a fire-and-forget `queue(function, ...)` route. The CE 7.7 live
+probe still has to establish the host's real `synchronize` scheduling, errors, returns, and re-entrance behavior; see
+[09 · The main thread](../09-main-thread/README.md). Treat a disabled or stopping plugin as an expected failure boundary,
+not as an opportunity to retain a borrowed record.
 
-## Good to know
+## Evidence and scope
 
-> [!TIP]
-> Look a record up when you need it instead of storing its handle. The user can delete a record at any time, and
-> `TryFind` returns `false` for a record that is gone.
-
-- **Typed members never throw for a Lua failure.** `TrySetProperty`, `TryGetProperty` and the stack level `Try` members
-  return `false` or a `LuaStatus`. Check the result, because a record created before a failed property stays in the
-  table.
-- **A group is a record.** `TryAddGroup` creates a record, flags it as a group header and returns it, and
-  `appendToEntry` moves the children under it.
-- **Saving and loading tables** with `saveTable` and `loadTable` is a separate topic. See
-  [the cheat table recipe](../recipes/cheat-tables/README.md).
-
-## Promise
-
-- A typed property or method call returns `false` instead of throwing, and keeps no Lua error message.
-- Members that push an object throw `InvalidOperationException` before the plugin is enabled.
-- The Lua stack returns to its previous height after every editor call.
-- Nothing here creates an object you must dispose, so nothing here can leak one.
+This slice is sourced from the exact CE `7.7.0.10621` x64 `celua.txt` fixture (digest recorded in the
+[source index](../../../../documentations/CheatEngine.SDK/SOURCES.md)): `getAddressList`, the `Addresslist` class, and the
+`MemoryRecord` members used above. Its protected-call tests exercise the managed boundary; they do not prove a live CE
+GUI thread contract. The classic plugin callback type 0 record is a separate ABI concern and is not this object API.
 
 ## Before you move on
 
-- [ ] `my_plugin_build_player_group` adds a group whose children appear under it in the Cheat Engine window.
-- [ ] Freezing and releasing `Health` changes the record's checkbox and nothing else.
-- [ ] Every call that runs on your own thread goes through `MainThread.Invoke`.
+- [ ] Keep `AddressList` and `MemoryRecord` as borrowed values; never manufacture ownership with `Owned<T>`.
+- [ ] Keep the record creation and its intended property writes together, and handle a partial result honestly.
+- [ ] Use zero-based indexes.
+- [ ] Keep GUI-object work on the enable thread or dispatch through `MainThread.Invoke`; do not rely on a worker-thread
+  Lua call.
 
 ---
 

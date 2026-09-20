@@ -58,6 +58,12 @@ public sealed class BootstrapModelTests
     }
 
     [Fact]
+    public void Select_user_entry_point_type_collision_yields_null()
+    {
+        Assert.Null(BootstrapModel.Select(new EquatableArray<PluginModel>([ValidA]), On, entryPointTypeCollision: true));
+    }
+
+    [Fact]
     public void PluginModel_is_valid_only_without_issues()
     {
         Assert.True(ValidA.IsValid);

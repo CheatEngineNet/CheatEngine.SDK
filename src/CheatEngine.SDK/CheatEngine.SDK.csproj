@@ -11,7 +11,7 @@
     <PackageReleaseNotes>$(PackageProjectUrl)/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <EnablePackageValidation>true</EnablePackageValidation>
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_CheatEngineSdkEmbedLibraries</TargetsForTfmSpecificBuildOutput>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_CheatEngineSdkPackRoslynComponents;_CheatEngineSdkPackLuaBridge</TargetsForTfmSpecificContentInPackage>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_CheatEngineSdkPackRoslynComponents</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
   <!-- A pack without a build sets NoBuild for referenced projects too, which then fail with NETSDK1085 when asked to build. -->
@@ -20,8 +20,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- One source file packed to both locations, so they cannot drift. -->
-    <None Update="build/CheatEngine.SDK.props" Pack="true" PackagePath="build/CheatEngine.SDK.props;buildTransitive/CheatEngine.SDK.props"/>
+    <!-- Build assets are intentionally direct-reference only: package consumers opt into generated bootstrap and defaults. -->
+    <None Update="build/CheatEngine.SDK.props" Pack="true" PackagePath="build/CheatEngine.SDK.props"/>
+    <None Update="build/CheatEngine.SDK.targets" Pack="true" PackagePath="build/CheatEngine.SDK.targets"/>
+    <!-- Deliberately a build asset, never runtimes/win-x64/native: it must not flow through an indirect PackageReference. -->
+    <None Include="../../native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll"
+          Pack="true"
+          PackagePath="build/native/cheatengine-sdk-lua-bridge.dll"/>
   </ItemGroup>
 
   <!-- PrivateAssets="all" keeps the embedded libraries out of the nuspec dependency group, so no phantom CheatEngine.SDK.Lua package is ever resolved. -->
@@ -74,16 +79,13 @@
     </ItemGroup>
   </Target>
 
-  <!-- The native protection shim is a runtime asset, not a build dependency. Consumers never need xmake or a C toolchain. -->
-  <Target Name="_CheatEngineSdkPackLuaBridge">
+  <!-- The prebuilt bridge is a direct-consumer build asset. Consumers never need xmake or a C toolchain. -->
+  <Target Name="_CheatEngineSdkRequireLuaBridgeForPack" BeforeTargets="Pack">
     <PropertyGroup>
       <_CheatEngineSdkLuaBridgePath>$(RepoRoot)native\cheatengine-sdk-lua-bridge\runtimes\win-x64\native\cheatengine-sdk-lua-bridge.dll</_CheatEngineSdkLuaBridgePath>
     </PropertyGroup>
     <Error Condition="!Exists('$(_CheatEngineSdkLuaBridgePath)')"
            Text="The prebuilt Lua protection bridge is missing at '$(_CheatEngineSdkLuaBridgePath)'. Rebuild it with xmake before packing CheatEngine.SDK."/>
-    <ItemGroup>
-      <TfmSpecificPackageFile Include="$(_CheatEngineSdkLuaBridgePath)" PackagePath="runtimes/win-x64/native"/>
-    </ItemGroup>
   </Target>
 
 </Project>

@@ -25,12 +25,10 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     <para>
 ///         Local names start with two underscores (<c>__L</c>, <c>__top</c>, <c>__ok</c>, <c>__status</c>, <c>__result</c>
 ///         ):
-///         a leading double underscore is not a reserved C# identifier form, so this is a convention that makes a
-///         collision
-///         extremely unlikely, not a guarantee. It fails loudly when broken: the signature must repeat the declaration's
-///         own
-///         parameter names verbatim, so a parameter deliberately or accidentally named the same as one of these locals
-///         (<c>nuint __L</c>) is CS0136 in the generated file, not a silent miscompile.
+///         a leading double underscore is not a reserved C# identifier form, so this is a convention rather than a
+///         language guarantee. The LuaBindings parser validates the generated local and cache identities before this
+///         emitter is reached; an annotated declaration with a colliding parameter or user field is skipped and its
+///         sibling bindings remain usable.
 ///     </para>
 /// </remarks>
 internal static class LuaGlobalCallEmitter
@@ -43,6 +41,7 @@ internal static class LuaGlobalCallEmitter
     public const int StackCheckThreshold = 16;
 
     private const string State = "__L";
+    private const string Operation = "__operation";
     private const string Top = "__top";
     private const string Ok = "__ok";
     private const string Status = "__status";
@@ -223,11 +222,30 @@ internal static class LuaGlobalCallEmitter
 
     private static void WriteStateAndTop(SourceWriter writer, LuaGlobalCallModel model)
     {
+        writer.Write("using ");
+        writer.Write(LuaApiNames.LuaRuntimeOperation);
+        writer.Write(' ');
+        writer.Write(Operation);
+        writer.Write(" = ");
+        if (model.TakesState)
+        {
+            writer.Write(LuaApiNames.LuaRuntime);
+            writer.Write(".AcquireOperation(");
+            writer.Write(model.StateParameterName);
+            writer.Write(')');
+        }
+        else
+        {
+            writer.Write(LuaApiNames.AcquireOperation);
+        }
+
+        writer.WriteLine(";");
         writer.Write(LuaApiNames.LuaState);
         writer.Write(' ');
         writer.Write(State);
         writer.Write(" = ");
-        writer.Write(model.TakesState ? model.StateParameterName : LuaApiNames.AcquireState);
+        writer.Write(Operation);
+        writer.Write(".State");
         writer.WriteLine(";");
         writer.Write("int ");
         writer.Write(Top);

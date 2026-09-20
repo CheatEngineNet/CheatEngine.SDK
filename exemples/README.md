@@ -66,7 +66,7 @@ Build it, add the DLL to Cheat Engine, and `print(greet("world"))` in the Lua En
 | Call a Cheat Engine function from C#                   | [03 · Calling Cheat Engine](03-calling-cheat-engine/README.md) |
 | Read and write a game's memory                         | [04 · Memory](04-memory/README.md)                             |
 | Find code that survives a game update                  | [05 · AOB scans](05-aob-scans/README.md)                       |
-| Find the address of a value                            | [06 · Value scans](06-value-scans/README.md)                   |
+| Understand the ownership gate before value scans       | [06 · Value scans](06-value-scans/README.md)                   |
 | Build cheat table entries from code                    | [07 · The address list](07-address-list/README.md)             |
 | Handle tables, objects and callbacks                   | [08 · Running Lua](08-running-lua/README.md)                   |
 | Work in the background without freezing Cheat Engine   | [09 · The main thread](09-main-thread/README.md)               |
@@ -105,8 +105,8 @@ flowchart LR
 | 03 | [Calling Cheat Engine](03-calling-cheat-engine/README.md) | Beginner     | 20 min | Typed bindings for the Cheat Engine functions a trainer needs             |
 | 04 | [Memory](04-memory/README.md)                             | Beginner     | 25 min | Attach to a game, change a value and follow a pointer chain               |
 | 05 | [AOB scans](05-aob-scans/README.md)                       | Intermediate | 30 min | A signature finder and a patcher that survive game updates                |
-| 06 | [Value scans](06-value-scans/README.md)                   | Intermediate | 35 min | A scanner that runs first and next scans and reads the candidates         |
-| 07 | [The address list](07-address-list/README.md)             | Intermediate | 30 min | A table editor that adds, groups, finds and freezes records               |
+| 06 | [Value scans](06-value-scans/README.md)                   | Intermediate | 10 min | The scan state machine and the ownership proof required before creation   |
+| 07 | [The address list](07-address-list/README.md)             | Intermediate | 20 min | A typed editor that creates, reads, and selects borrowed records          |
 | 08 | [Running Lua](08-running-lua/README.md)                   | Intermediate | 30 min | A script runner, a hand written call and a callback that carries state    |
 | 09 | [The main thread](09-main-thread/README.md)               | Intermediate | 25 min | A background value monitor that stays safe                                |
 | 10 | [Logging and errors](10-logging-and-errors/README.md)     | Beginner     | 20 min | A log that reaches the debugger output, a rolling file and the Lua output |
@@ -125,7 +125,7 @@ Each recipe solves one job with the smallest code that works. They assume guide 
 | [Cheat tables](recipes/cheat-tables/README.md)           | Loading and saving `.CT` files as profiles                        |
 | [Debugger](recipes/debugger/README.md)                   | Breakpoints, a hit counter, registers at a hit                    |
 | [Injection](recipes/injection/README.md)                 | Remote memory, remote calls, DLL injection                        |
-| [Structures](recipes/structures/README.md)               | Defining and listing structure layouts                            |
+| [Structures](recipes/structures/README.md)               | Deferred pending a sourced ownership and rollback contract         |
 | [Speed and hashing](recipes/speed-and-hashing/README.md) | Speed control, memory and file hashes                             |
 | [DBVM](recipes/dbvm/README.md)                           | Optional hypervisor features with a graceful fallback             |
 
@@ -165,7 +165,8 @@ Every guide repeats one or more of these. They are worth knowing before you star
 - [ ] Do nothing with the SDK in a constructor, a field initializer or a static constructor. Start in `OnEnable`.
 - [ ] Acquire the Lua state once per operation, and never store it.
 - [ ] Guard the stack with `using LuaFrame frame = new(state);` when you push values.
-- [ ] Touch Cheat Engine only from its main thread, and hop there with `MainThread.Invoke`.
+- [ ] Treat the captured enable thread as the guarded main-thread boundary, and use `MainThread.Invoke` to hop to it.
+  The exact CE 7.7 GUI/scheduling proof remains opt-in live-test work.
 - [ ] Dispose every `Owned<T>` and unregister every function before `OnDisable` returns.
 - [ ] Read a Cheat Engine function's exact signature in `celua.txt`, in the Cheat Engine folder, before you bind it.
 

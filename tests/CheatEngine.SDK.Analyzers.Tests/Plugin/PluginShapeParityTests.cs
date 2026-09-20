@@ -5,6 +5,7 @@ using CheatEngine.SDK.SourceGenerators.EntryPoint;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System.Collections.Immutable;
 
 namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 
@@ -26,7 +27,7 @@ namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 ///     snippets of <c>tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests/Generator/NoOutputTests.InvalidShapes</c> and
 ///     <c>ValidShapeTests.ValidShapes</c> (copied, not referenced: test projects do not reference each other's test
 ///     code), plus these further shapes: required members without <c>[SetsRequiredMembers]</c>,
-///     <c>[Obsolete(error: true)]</c>, a <see langword="file" /> class, an optional-parameter-only constructor,
+///     <c>[Obsolete(error: true)]</c>, a <see langword="file" /> class, optional/params-only constructors,
 ///     <see langword="internal" />/<see langword="protected internal" /> constructors, a generic container, a record, and
 ///     a primary constructor.
 /// </remarks>
@@ -78,14 +79,6 @@ public sealed class PluginShapeParityTests
         yield return (
             "extra constructors",
             $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P() {{ }} public P(int value) {{ _ = value; }} {Body[1..]}",
-            true);
-        yield return (
-            "only optional parameters",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(int value = 0) {{ _ = value; }} {Body[1..]}",
-            true);
-        yield return (
-            "trailing params constructor",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(params int[] xs) {{ _ = xs; }} {Body[1..]}",
             true);
         yield return (
             "indirect derivation",
@@ -162,6 +155,14 @@ public sealed class PluginShapeParityTests
     private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> ConstructorRejections()
     {
         yield return (
+            "only optional parameters",
+            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(int value = 0) {{ _ = value; }} {Body[1..]}",
+            false);
+        yield return (
+            "trailing params constructor",
+            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(params int[] xs) {{ _ = xs; }} {Body[1..]}",
+            false);
+        yield return (
             "no parameterless constructor",
             $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(int value) {{ _ = value; }} {Body[1..]}",
             false);
@@ -234,10 +235,9 @@ public sealed class PluginShapeParityTests
         return CSharpCompilation.Create(
             "PluginShapeParityAssembly",
             [
-                CSharpSyntaxTree.ParseText(TestText.Normalize(ContractStubs.Combined), ParseOptions, "Contracts.cs"),
                 CSharpSyntaxTree.ParseText(TestText.Normalize(pluginSource), ParseOptions, "Plugin.cs")
             ],
-            LocalFrameworkReferences.References,
+            LocalFrameworkReferences.References.AddRange(ContractStubs.References),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
     }
@@ -247,7 +247,10 @@ public sealed class PluginShapeParityTests
     private static bool RunGenerator(CSharpCompilation compilation)
     {
         GeneratorDriver driver = CSharpGeneratorDriver.Create([new EntryPointGenerator().AsSourceGenerator()],
-            parseOptions: ParseOptions);
+            [],
+            ParseOptions,
+            DirectPackageAnalyzerConfigOptions.Enabled,
+            new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, true));
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _,
             TestContext.Current.CancellationToken);
         return !driver.GetRunResult().Results.Single().GeneratedSources.IsEmpty;
@@ -255,7 +258,8 @@ public sealed class PluginShapeParityTests
 
     private static async Task<bool> AnalyzerReportsInvalidPluginClassAsync(CSharpCompilation compilation)
     {
-        var withAnalyzers = compilation.WithAnalyzers([new CheatEnginePluginAnalyzer()], options: null);
+        AnalyzerOptions options = new(ImmutableArray<AdditionalText>.Empty, DirectPackageAnalyzerConfigOptions.Enabled);
+        var withAnalyzers = compilation.WithAnalyzers([new CheatEnginePluginAnalyzer()], options);
         var diagnostics = await withAnalyzers.GetAnalyzerDiagnosticsAsync(TestContext.Current.CancellationToken)
             .ConfigureAwait(false);
         return diagnostics.Any(static diagnostic =>

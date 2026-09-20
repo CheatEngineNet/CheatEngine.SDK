@@ -10,8 +10,8 @@
 
 ## Cause
 
-A project that contains a `[CheatEnginePlugin]` class declares the namespace `CESDK` or a namespace nested under it, for
-example `CESDK.MyPlugin` or `CESDK.Tools.Deep`.
+A project with compiler-visible `CheatEngineSdkGenerateEntryPoint=true` and a `[CheatEnginePlugin]` class declares the
+namespace `CESDK` or a namespace nested under it, for example `CESDK.MyPlugin` or `CESDK.Tools.Deep`.
 
 ## Why
 
@@ -57,8 +57,9 @@ namespace of the type Cheat Engine requires.
   covered by it.
 - Not flagged: `CESDKPlugin`, `Cesdk.Tools`, `MyCompany.CESDK`, and the SDK's own namespaces under `CheatEngine.SDK`.
 - Generated code is ignored, so the generated `namespace CESDK { class CESDK }` itself never triggers the rule.
-- The rule stays on when the generated entry point is switched off (`CheatEngineSdkGenerateEntryPoint=false`): a hand-written
-  bootstrap has to provide the same `CESDK.CESDK` type.
+- The rule is active only when the compiler-visible `CheatEngineSdkGenerateEntryPoint` property is `true`. An explicit
+  `false` selects the separate manual-bootstrap contract CESDK0003; an absent property means the direct package build
+  asset did not reach this compilation and generation-related rules stay silent.
 
 The rule needs to know whether the compilation contains a plugin class, so it runs in the compilation-end phase. It
 appears in build output and in full-solution analysis where an IDE offers it, not while typing.

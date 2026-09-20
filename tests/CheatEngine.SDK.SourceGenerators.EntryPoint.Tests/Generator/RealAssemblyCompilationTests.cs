@@ -62,7 +62,10 @@ public sealed class RealAssemblyCompilationTests
 
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
             [new EntryPointGenerator().AsSourceGenerator()],
-            parseOptions: ParseOptions);
+            [],
+            ParseOptions,
+            TestAnalyzerConfigOptionsProvider.WithBuildProperty("CheatEngineSdkGenerateEntryPoint", "true"),
+            new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, true));
 
         driver = driver.RunGeneratorsAndUpdateCompilation(
             compilation,

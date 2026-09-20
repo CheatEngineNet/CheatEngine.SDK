@@ -21,10 +21,10 @@ balanced, and keeps the hot paths free of allocations.
 | Namespace                              | Types                                                                                                                                                                             | Role                                                     |
 |----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
 | `CheatEngine.SDK.Lua.State`            | `LuaState`, `LuaFrame`, `LuaType`                                                                                                                                                 | Borrowed view of a Lua state, stack guard, type tags     |
-| `CheatEngine.SDK.Lua.Runtime`          | `LuaRuntime`, `LuaHostBinding`                                                                                                                                                    | The host binding: attach, detach, acquire a state, epoch |
+| `CheatEngine.SDK.Lua.Runtime`          | `LuaRuntime`, `LuaRuntimeOperation`, `LuaHostBinding`, `LuaStateIdentity`                                                                                                         | The host binding, lifecycle admission, attachment epoch and state generation |
 | `CheatEngine.SDK.Lua.Calls`            | `LuaStatus`, `LuaError`, `LuaException`, `LuaComparison`                                                                                                                          | Results of protected operations, opt-in exceptions       |
 | `CheatEngine.SDK.Lua.Marshalling`      | `ILuaMarshaller<T>`, `Int32Marshaller`, `Int64Marshaller`, `SingleMarshaller`, `DoubleMarshaller`, `BooleanMarshaller`, `AddressMarshaller`, `Utf8Marshaller`, `StringMarshaller` | Push and read one managed type each                      |
-| `CheatEngine.SDK.Lua.References`       | `LuaRef`                                                                                                                                                                          | Registry reference stamped with an epoch                 |
+| `CheatEngine.SDK.Lua.References`       | `LuaRef`                                                                                                                                                                          | Registry reference stamped with attachment epoch and state generation |
 | `CheatEngine.SDK.Lua.Callbacks`        | `LuaNativeFunction`, `LuaCallback`, `LuaCallback<TState>`, `LuaThunk`                                                                                                             | Managed functions that Lua can call                      |
 | `CheatEngine.SDK.Lua.CompilerServices` | `LuaGlobalFunctions`, `LuaCallSupport`                                                                                                                                            | Called by generated code, hidden from IntelliSense       |
 
@@ -34,6 +34,12 @@ never run Lua code. Protected members (`TryCall`, `TryLoad`, `TryExecute`, `TryG
 such as string pushes, can still raise on memory exhaustion or through a failing `__gc` finalizer. Their documentation
 says so. `LuaState` is one partial struct in `CheatEngine.SDK.Lua.State`, split by concern over the files of the `State`
 folder.
+
+`PushUncheckedFunction` is the one narrowly audited direct closure fast path. It first calls `lua_checkstack(L, 1)` and
+throws `InvalidOperationException` without changing the stack when the reservation fails; only then does it call
+`lua_pushcclosure(L, thunk, 0)`. In CE's pinned Lua 5.3 source, zero upvalues select the non-allocating light-C-function
+branch. No other direct use of `lua_pushcclosure` is permitted, and no code may be inserted between that reservation and
+the push.
 
 Protected accessors and comparisons run a small Lua helper under `lua_pcallk`, installed once per state. A Lua function
 has no managed frame, so a raise unwinds only Lua frames. On failure every protected member leaves exactly one error
@@ -45,16 +51,31 @@ A managed callback is a static `[UnmanagedCallersOnly(CallConvs = [typeof(CallCo
 as `nint` and catches every exception. It reports failure with `LuaThunk.Fail`, which pushes a sentinel and a message. A
 Lua wrapper turns that into `error(message, 2)`, where unwinding is safe. `LuaCallback.TryCreate` attaches a state
 object that the thunk reads with `LuaThunk.TryGetState`. Lookup acquires a strong managed reference under the same gate
-as release. SDK references use a private registry table and never participate in the host registry free list. Any Lua
+as release. Its SDK-owned dispatch closure holds a `LuaRuntimeOperation` for each stateful invocation: an already
+admitted callback can finish during teardown, while a later callback returns a catchable `"the Lua runtime is stopping"`
+error without entering plugin code. SDK references use a private registry table and never participate in the host registry free list. Any Lua
 operation that may allocate is called through `cheatengine-sdk-lua-bridge.dll`, so a Lua `longjmp` cannot cross a
 managed frame.
 
-`LuaRuntime.Attach` advances an epoch. A `LuaRef` from an earlier epoch is stale: it is never pushed, and its slot is
-forgotten. `LuaRuntime.Detach` neutralizes every live callback while the state is still reachable. Nothing has a
-finalizer, because a Lua state belongs to one thread.
+`LuaRuntime` identifies a persistent Lua resource with `(attachEpoch, stateGeneration)`. `Attach` advances only the
+attachment epoch. A supported reset begins with the internal host-owned `BeginStateReset` transition: it closes
+admission, drains every `LuaRuntimeOperation`, neutralizes rooted callbacks while the old state is still reachable, then
+advances only the state generation. Its stack-only transition remains open until the host has actually replaced the
+state. `LuaRef`s and generated global caches become stale unless both components match. A stale slot is forgotten rather
+than pushed or released against a replacement registry. `Detach` follows the same close-and-drain rule before it
+neutralizes every live callback. Nothing has a finalizer, because a Lua state belongs to one thread.
 
-Never store a `LuaState`. Call `LuaRuntime.AcquireState` once per operation, and inside a callback use the state Lua
-passed. Text is UTF-8: `"..."u8` literals are the primary form, and `ReadOnlySpan<char>` overloads and
+Cheat Engine's `resetLuaState` must not be called outside the SDK-owned reset protocol. An external, unnotified reset is
+unsupported: the SDK cannot safely infer whether the old registry, callbacks, CE userdata or thread-local state still
+exist, so it deliberately does not attempt best-effort cleanup against a potentially replacement state. The deterministic
+fixture tests below prove the managed invalidation ordering only; CE 7.7 reset/thread/userdata behavior remains subject
+to the opt-in live probe.
+
+Never store a `LuaState`. Start normal work with `using var operation = LuaRuntime.AcquireOperation();` and use
+`operation.State` until that synchronous scope ends. This admission is what lets attach, detach and reset reject new
+work and drain existing work before the host changes state. `AcquireState` is an advanced legacy escape hatch only for
+code externally serialized with the host lifecycle. Inside a callback use the state Lua passed. Text is UTF-8:
+`"..."u8` literals are the primary form, and `ReadOnlySpan<char>` overloads and
 `StringMarshaller` transcode. `AddressMarshaller` accepts numbers only, and an address above `long.MaxValue` travels as
 a negative Lua integer.
 
@@ -78,7 +99,8 @@ static class MemoryReads
 
     public static bool TryReadInt32(nuint address, out int value)
     {
-        var L = LuaRuntime.AcquireState();
+        using var operation = LuaRuntime.AcquireOperation();
+        var L = operation.State;
         var top = L.Top;
         if (!LuaGlobalFunctions.TryPush(L, s_readInteger, "readInteger"u8))
             return LuaCallSupport.Fail(L, top, out value);
@@ -111,14 +133,16 @@ with `StringMarshaller`, which allocates.
   early return, exception and failed call (`LuaFrameTests`).
 - Hot paths allocate nothing: scalar pushes and reads, protected calls, callbacks and the generated call shape
   (`ZeroAllocationTests`, `ReadIntegerBindingTests`, `StringBindingTests`).
-- Stale references are detected. A `LuaRef` from an earlier epoch is never pushed
-  (`References_are_invalidated_by_detach_and_reattach`).
-- Callbacks are released deterministically. `Release` and `Detach` neutralize the closure before its state is freed
-  (`LuaCallbackTests`).
+- Stale references are detected. A `LuaRef` from an earlier attachment epoch or state generation is never pushed or
+  released into the current registry (`References_are_invalidated_by_detach_and_reattach`,
+  `A_reference_from_the_pre_reset_state_never_releases_a_current_generation_slot`).
+- Callbacks are released deterministically. `Release`, `Detach` and the exclusive SDK reset transition neutralize the
+  closure before its state is freed; lifecycle transitions wait for admitted callback creation and invocation before
+  draining the registry (`LuaCallbackTests`, `CallbackLifetimeConcurrencyTests`).
 - Scripts cannot break the helpers, even by redefining `error` and `tostring`
   (`Helpers_survive_a_script_that_redefines_error_and_tostring`).
-- A detached runtime fails cleanly: `AcquireState` throws instead of touching a stale state
-  (`AcquireState_throws_while_detached`).
+- A detached or transitioning runtime fails cleanly: `AcquireOperation` refuses to hand out a state, and the transition
+  waits for admitted work before it invalidates the old Lua universe (`LuaRuntimeTests`).
 
 ## Run the tests
 

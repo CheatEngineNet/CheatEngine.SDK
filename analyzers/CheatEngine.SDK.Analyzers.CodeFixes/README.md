@@ -25,12 +25,14 @@ so rule and fix cannot disagree. This assembly references `CheatEngine.SDK.Analy
 |--------------------------------------------------------------------------------------|----------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
 | `CheatEngine.SDK.Analyzers.CodeFixes.Plugin.PluginClassShapeCodeFixProvider`         | `CESDK0001` `Abstract`, `Static`                   | Replace `abstract` or `static` with `sealed` (`CESDK0001.MakeSealed`)                                 | No declaration of the class is editable                                                                                 |
 |                                                                                      | `CESDK0001` `MissingParameterlessConstructor`      | Add a public parameterless constructor (`CESDK0001.AddParameterlessConstructor`)                      | The class has a primary constructor or no body, or its base class has no accessible constructor that needs no arguments |
-|                                                                                      | `CESDK0001` `InaccessibleParameterlessConstructor` | Make the constructor public (`CESDK0001.MakeConstructorPublic`)                                       | The constructor takes optional parameters, or is not declared in an editable document                                   |
-| `CheatEngine.SDK.Analyzers.CodeFixes.Usage.UnmanagedCallersOnlyGuardCodeFixProvider` | `CESDK1004`                                        | Wrap the body in `try` and `catch (Exception)` returning a failure value (`CESDK1004.WrapInTryCatch`) | An expression body contains a preprocessor directive                                                                    |
+|                                                                                      | `CESDK0001` `InaccessibleParameterlessConstructor` | Make the constructor public (`CESDK0001.MakeConstructorPublic`)                                       | The parameterless constructor is not declared in an editable document                                                    |
+| `CheatEngine.SDK.Analyzers.CodeFixes.Usage.UnmanagedCallersOnlyGuardCodeFixProvider` | `CESDK1004` on `CESDK.CESDK.CEPluginInitialize`    | Wrap the bootstrap body in `try` and `catch (Exception)` returning `0` (`CESDK1004.WrapInTryCatch`)     | The signature is not exactly public static `int CEPluginInitialize(IntPtr, int)`, or an expression body contains a directive |
 
 The other `CESDK0001` problems are design decisions and get no fix. They are `Generic`, `NestedInGeneric`,
 `NotDerivedFromPluginBase`, `Inaccessible`, `FileLocal`, `ReservedEntryPointName`, `RequiredMembers`, `ObsoleteError`
-and `InvalidName`. `CESDK0002`, `CESDK0004` and `CESDK2001` to `CESDK2004` have no code fix.
+and `InvalidName`. `CESDK0002` through `CESDK0005`, `CESDK1001`, `CESDK1003`, `CESDK1005`, and `CESDK2001` through
+`CESDK2007` have no code fix. Their repairs require contract, ownership, lifecycle or naming decisions the SDK cannot
+safely infer.
 
 Edits follow the symbol, not the diagnostic location. The `sealed` fix replaces the modifier in every part of a partial
 class that carries it, in whichever document. The make-public fix edits the document that declares the constructor. The
@@ -39,32 +41,26 @@ add-constructor fix edits the part that carries the attribute. Parts in generate
 New code carries the formatter and simplifier annotations, so indentation and the spelling of `Exception` follow the
 document. Do not hard-code them.
 
-The failure value follows the return type:
-
-| Return type                                                                           | Failure value                                                                                    |
-|---------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
-| `sbyte`, `byte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double` | `0`, which is `FALSE` for Cheat Engine's `BOOL` callbacks and zero results for a `lua_CFunction` |
-| `bool`                                                                                | `false`                                                                                          |
-| `void`                                                                                | Nothing: the empty `catch` block carries a comment                                               |
-| Anything else, such as `nint`, `nuint`, `char`, pointers, enums and structs           | `default`                                                                                        |
-
-`nint` and `nuint` get `default` rather than `0`, so `IntPtr` and `UIntPtr` spellings compile under older language
-versions. A callback whose native contract treats `0` as success needs a manual change. An expression body becomes a
-block body: `=> e` turns into `return e;` (`e;` for `void`) and `=> throw ...` into a throw statement.
+The only known automatic failure value is the documented `0` from the CE bootstrap contract. A callback's return type
+alone does not describe failure: in particular, `0` may be success or a count. The provider therefore leaves all other
+`[UnmanagedCallersOnly]` entries untouched for the author to guard with their verified native convention. A bootstrap
+expression body becomes a block body: `=> e` turns into `return e;` and `=> throw ...` into a throw statement.
 
 ```csharp
 using System;
 using System.Runtime.InteropServices;
 
-internal static class Callbacks
+namespace CESDK;
+
+internal static class CESDK
 {
-    // Before the fix: private static int OnCall(nint state) => Work(state);
+    // Before the fix: public static int CEPluginInitialize(IntPtr exportedFunctions, int bootstrap) => Work(exportedFunctions);
     [UnmanagedCallersOnly]
-    private static int OnCall(nint state)
+    public static int CEPluginInitialize(IntPtr exportedFunctions, int bootstrap)
     {
         try
         {
-            return Work(state);
+            return Work(exportedFunctions);
         }
         catch (Exception)
         {
@@ -72,7 +68,7 @@ internal static class Callbacks
         }
     }
 
-    private static int Work(nint state) => 1;
+    private static int Work(IntPtr exportedFunctions) => 1;
 }
 ```
 
@@ -87,11 +83,10 @@ internal static class Callbacks
 - A fix never drops a comment or a statement the author wrote. Comments next to replaced or removed tokens move with
   them (`Comment_on_the_dropped_second_accessibility_keyword_is_kept`,
   `Comments_around_an_expression_body_move_with_the_statement`).
-- Wrapping is total. An existing `try` without a catch-all is wrapped, not edited
-  (`Existing_try_without_a_catch_all_is_wrapped_as_a_whole`).
-- Fix All works for both providers through `WellKnownFixAllProviders.BatchFixer`. An unguarded local function inside an
-  unguarded method takes a second pass (`Code_fix_providers_fix_their_rule_and_support_fix_all`,
-  `Unguarded_local_function_inside_an_unguarded_method_takes_a_second_fix_all_pass`).
+- The CESDK1004 provider only emits this known bootstrap return convention. It never proposes a generic `return 0` for
+  a callback whose ABI contract is unknown.
+- Fix All works for both providers through `WellKnownFixAllProviders.BatchFixer` when all selected CESDK1004
+  diagnostics are bootstrap entries.
 
 ## Run the tests
 

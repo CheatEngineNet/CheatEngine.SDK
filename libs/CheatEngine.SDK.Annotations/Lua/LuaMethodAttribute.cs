@@ -8,13 +8,13 @@ namespace CheatEngine.SDK.Annotations.Lua;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Consumed by.</b> Nothing in the SDK reads this attribute: it generates nothing, so a partial method that
-///         relies on it has no implementation. The attribute only supplies the external name (<see cref="Name" />) of the
-///         member of the wrapped object.
+///         <b>Consumed by.</b> The <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c> generator supplies the body of a
+///         supported partial method through the protected <c>CEObject</c> call primitives. The attribute supplies the
+///         external name (<see cref="Name" />) of the member of the wrapped object.
 ///     </para>
 ///     <para>
-///         <b>Run time.</b> The attribute has no behaviour and nothing in the SDK reads it: a generated body carries the
-///         name itself. It stays in metadata unconditionally so that tooling can read it from a compiled assembly.
+///         <b>Run time.</b> The attribute has no behaviour itself: a generated body carries the name itself. It stays in
+///         metadata unconditionally so that tooling can read it from a compiled assembly.
 ///         Instances are immutable and may be used from any thread.
 ///     </para>
 ///     <para>
@@ -27,7 +27,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         be partial; rejecting them is the generator's job, the compiler accepts them.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
 public sealed class LuaMethodAttribute : Attribute
 {
     /// <summary>

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Reflection;
+using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
@@ -18,6 +19,7 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.SharedCode;
 public sealed class LuaApiNamesTests
 {
     private static readonly Assembly LuaAssembly = typeof(LuaState).Assembly;
+    private static readonly Assembly EngineAssembly = typeof(CEObject).Assembly;
 
     [Fact]
     public void Every_CheatEngine_SDK_name_written_into_generated_code_denotes_a_real_member_of_the_lua_assembly()
@@ -36,16 +38,25 @@ public sealed class LuaApiNamesTests
             if (text.EndsWith("()", StringComparison.Ordinal))
             {
                 var dot = text.LastIndexOf('.');
-                var owner = LuaAssembly.GetType(text[..dot])
-                            ?? throw new InvalidOperationException($"{name}: no such type in CheatEngine.SDK.Lua.");
-                Assert.NotNull(owner.GetMethod(text[(dot + 1)..^2]));
+                var owner = FindType(text[..dot])
+                            ?? throw new InvalidOperationException($"{name}: no such type in the SDK assemblies.");
+                Assert.NotEmpty(owner.GetMember(
+                    text[(dot + 1)..^2],
+                    MemberTypes.Method,
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static));
             }
             else
             {
-                _ = LuaAssembly.GetType(text)
-                    ?? throw new InvalidOperationException($"{name}: no such type in CheatEngine.SDK.Lua.");
+                _ = FindType(text)
+                    ?? throw new InvalidOperationException($"{name}: no such type in the SDK assemblies.");
             }
         }
+    }
+
+    private static Type? FindType(string fullName)
+    {
+        return LuaAssembly.GetType(fullName) ?? LuaAssembly.GetType(fullName + "`1")
+            ?? EngineAssembly.GetType(fullName) ?? EngineAssembly.GetType(fullName + "`1");
     }
 
     [Fact]
@@ -61,8 +72,8 @@ public sealed class LuaApiNamesTests
         var luaState = compilation.GetTypeByMetadataName(typeof(LuaState).FullName!);
 
         Assert.NotNull(luaState);
-        Assert.True(LuaValueKindMapper.IsLuaState(luaState));
-        Assert.False(LuaValueKindMapper.IsLuaState(compilation.GetSpecialType(SpecialType.System_Int32)));
+        Assert.True(LuaValueKindMapper.IsLuaState(luaState, luaState));
+        Assert.False(LuaValueKindMapper.IsLuaState(compilation.GetSpecialType(SpecialType.System_Int32), luaState));
     }
 
     // The SDK namespaces are two segments deep (CheatEngine.SDK): a walk that stops early, starts late or forgets to end
@@ -81,11 +92,16 @@ public sealed class LuaApiNamesTests
                 CSharpSyntaxTree.ParseText($"namespace {@namespace} {{ public struct LuaState {{ }} }}",
                     cancellationToken: TestContext.Current.CancellationToken)
             ],
-            LocalFrameworkReferences.Load());
+            [
+                .. LocalFrameworkReferences.Load(),
+                MetadataReference.CreateFromFile(LuaAssembly.Location)
+            ]);
 
         var lookAlike = compilation.GetTypeByMetadataName(@namespace + ".LuaState");
+        var luaState = compilation.GetTypeByMetadataName(typeof(LuaState).FullName!);
 
         Assert.NotNull(lookAlike);
-        Assert.False(LuaValueKindMapper.IsLuaState(lookAlike));
+        Assert.NotNull(luaState);
+        Assert.False(LuaValueKindMapper.IsLuaState(lookAlike, luaState));
     }
 }

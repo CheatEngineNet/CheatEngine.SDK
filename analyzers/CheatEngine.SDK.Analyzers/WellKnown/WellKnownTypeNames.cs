@@ -46,4 +46,22 @@ internal static class WellKnownTypeNames
 
     /// <summary>Binds a partial member to a Lua global (CESDK2xxx).</summary>
     public const string LuaGlobalAttribute = AnnotationsMetadataNames.LuaGlobalAttribute;
+
+    /// <summary>Marks an API that can only run after PluginHost enables the plugin (CESDK1001).</summary>
+    public const string RequiresPluginEnabledAttribute = "CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute";
+
+    /// <summary>Marks a value that Cheat Engine owns and callers must only borrow (CESDK1003).</summary>
+    public const string CEOwnedAttribute = "CheatEngine.SDK.Annotations.Lifetime.CEOwnedAttribute";
+
+    /// <summary>Marks a Lua object handle whose implementation is emitted by LuaBindings (CESDK2006/2007).</summary>
+    public const string LuaClassAttribute = "CheatEngine.SDK.Annotations.Lua.LuaClassAttribute";
+
+    /// <summary>Marks a partial Lua object method whose body is emitted by LuaBindings (CESDK2006).</summary>
+    public const string LuaMethodAttribute = "CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute";
+
+    /// <summary>Marks a partial Lua object property whose accessors are emitted by LuaBindings (CESDK2006).</summary>
+    public const string LuaPropertyAttribute = "CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute";
+
+    /// <summary>The real Lua state symbol that LuaMethod does not accept as an argument.</summary>
+    public const string LuaState = "CheatEngine.SDK.Lua.State.LuaState";
 }

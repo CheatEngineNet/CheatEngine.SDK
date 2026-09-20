@@ -14,7 +14,7 @@ public sealed class ValidShapeTests(RoslynFixture roslyn) : IClassFixture<Roslyn
 
     public static TheoryData<string, string> ValidShapes => new()
     {
-        { "internal class", $"[CheatEnginePlugin(\"P\")] internal sealed class P : CheatEnginePlugin {{ {Members} }}" },
+        { "implicit parameterless constructor", $"[CheatEnginePlugin(\"P\")] internal sealed class P : CheatEnginePlugin {{ {Members} }}" },
         { "unsealed class", $"[CheatEnginePlugin(\"P\")] public class P : CheatEnginePlugin {{ {Members} }}" },
         {
             "internal constructor",
@@ -27,14 +27,6 @@ public sealed class ValidShapeTests(RoslynFixture roslyn) : IClassFixture<Roslyn
         {
             "extra constructors",
             $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P() {{ }} public P(int value) {{ _ = value; }} {Members} }}"
-        },
-        {
-            "only optional parameters",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(int value = 0) {{ _ = value; }} {Members} }}"
-        },
-        {
-            "trailing params constructor",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(params int[] xs) {{ _ = xs; }} {Members} }}"
         },
         {
             "indirect derivation",
@@ -127,6 +119,30 @@ public sealed class ValidShapeTests(RoslynFixture roslyn) : IClassFixture<Roslyn
                                """);
 
         Assert.Equal(ExpectedBootstrap.Text("global::P", "\"P\"u8"), run.SingleGeneratedText);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Generator_pragmas_follow_the_selected_real_parameterless_constructor_only()
+    {
+        var run = roslyn.Run($$"""
+                               {{Usings}}
+                               [CheatEnginePlugin("P")]
+                               public sealed class P : CheatEnginePlugin
+                               {
+                                   [System.Diagnostics.CodeAnalysis.Experimental("OPTIONAL01")]
+                                   public P(int ignored = 0) => _ = ignored;
+
+                                   [System.Diagnostics.CodeAnalysis.Experimental("PARAMETERLESS01")]
+                                   public P() { }
+
+                                   {{Members}}
+                               }
+                               """);
+
+        Assert.Equal(
+            ExpectedBootstrap.Text("global::P", "\"P\"u8", declaredDiagnosticIds: "PARAMETERLESS01"),
+            run.SingleGeneratedText);
         run.AssertCompilesClean();
     }
 

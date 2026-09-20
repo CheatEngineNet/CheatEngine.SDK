@@ -18,14 +18,20 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 ///     The method name and parameter types, for a deterministic order inside the file (overloads share a
 ///     name).
 /// </param>
+/// <param name="HasGeneratedIdentityCollision">
+///     Whether this declaration would collide with a local or cache-field identifier that the generated body needs.
+///     It is kept separate from shape issues so the analyzer can report CESDK2007 rather than pretending a scalar type
+///     was unsupported.
+/// </param>
 internal sealed record LuaGlobalModel(
     ContainingTypeModel ContainingType,
     ContainingTypeIssues ContainingTypeIssues,
     LuaGlobalShapeIssues Issues,
     LuaGlobalCallModel? Call,
-    string SortKey)
+    string SortKey,
+    bool HasGeneratedIdentityCollision = false)
 {
     /// <summary><see langword="true" /> when a body can be emitted for this method.</summary>
     public bool IsValid => Issues == LuaGlobalShapeIssues.None && ContainingTypeIssues == ContainingTypeIssues.None &&
-                           Call is not null;
+                           Call is not null && !HasGeneratedIdentityCollision;
 }

@@ -12,7 +12,6 @@ namespace CheatEngine.SDK.Benchmarks;
 ///     every marshaller but <see cref="PushReadString" /> is documented allocation-free; the benchmark is the proof.
 /// </summary>
 [MemoryDiagnoser(false)]
-[ShortRunJob]
 [BenchmarkCategory("Transition", "Strings")]
 public class MarshallerBenchmarks : IDisposable
 {

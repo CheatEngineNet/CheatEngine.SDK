@@ -9,16 +9,16 @@ using CheatEngine.SDK.Lua.State;
 namespace CheatEngine.SDK.Lua.References;
 
 /// <summary>
-///     A reference to a Lua value held in an SDK-private registry table, stamped with the <see cref="LuaRuntime.Epoch" />
-///     it was created in. The way this SDK keeps a Lua value alive and reachable across calls without leaving it on the
-///     stack: cached global functions, host objects owned by managed code, bound method closures.
+///     A reference to a Lua value held in an SDK-private registry table, stamped with the
+///     <see cref="LuaRuntime.CurrentStateIdentity" /> it was created in. The way this SDK keeps a Lua value alive and
+///     reachable across calls without leaving it on the stack: cached global functions, host objects owned by managed
+///     code, bound method closures.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Epoch invalidation.</b> The registry belongs to the Lua state; when the host detaches and re-attaches
-///         (plugin disabled and enabled again, or the state reset in between) the epoch advances and every reference
-///         created
-///         before is <i>stale</i>: <see cref="IsCurrent" /> is <see langword="false" />,
+///         <b>Identity invalidation.</b> The registry belongs to one Lua state. When the host detaches and re-attaches,
+///         its attach epoch changes; when the SDK prepares a supported in-place state replacement, its state generation
+///         changes. In either case every older reference is <i>stale</i>: <see cref="IsCurrent" /> is <see langword="false" />,
 ///         <see cref="LuaState.TryPushRef" />
 ///         pushes nothing, and releasing it does nothing, because its slot number may now designate another value in
 ///         another registry. Code that caches a reference re-resolves it when it finds it stale.
@@ -31,19 +31,19 @@ namespace CheatEngine.SDK.Lua.References;
 ///         as this type is concerned; the state passed to it follows the usual rule (the calling thread's state).
 ///     </para>
 ///     <para>
-///         <b>Representation.</b> Slot number and epoch are packed in one 64-bit field written atomically, so a reader on
-///         another thread never sees a slot from one epoch paired with the stamp of another. Unresolved and released
-///         references hold <c>LUA_NOREF</c>. Pushing and releasing use the same gate; creating one allocates this object and
-///         a
-///         registry slot, which is why references are created once and reused, never per call.
+///         <b>Representation.</b> Slot number and complete identity are published together in one immutable binding, so a
+///         reader on another thread never sees a slot from one state paired with a stamp from another. Unresolved and
+///         released references hold <c>LUA_NOREF</c>. Pushing and releasing use the same gate; creating one allocates
+///         this object and a registry slot, which is why references are created once and reused, never per call.
 ///     </para>
 /// </remarks>
 public sealed class LuaRef : IDisposable
 {
     private const int NoReference = LuaApi.LUA_NOREF;
 
-    // High 32 bits: epoch. Low 32 bits: registry slot (LUA_NOREF when unresolved or released).
-    private long _packed;
+    // A reference write publishes slot and both identity components together. The hot path only reads the immutable
+    // object; rebinding and releasing are already cold, serialized paths.
+    private LuaRefBinding? _binding;
 
     /// <summary>
     ///     Creates an unresolved reference: <see cref="IsResolved" /> is <see langword="false" /> until code binds it
@@ -52,39 +52,51 @@ public sealed class LuaRef : IDisposable
     /// <remarks>Runs no Lua code, so it may be a static field initializer of a class that binds globals lazily.</remarks>
     public LuaRef()
     {
-        _packed = Pack(NoReference, 0);
+        _binding = null;
     }
 
-    internal LuaRef(int reference, int epoch)
+    internal LuaRef(int reference, LuaStateIdentity identity)
     {
-        _packed = Pack(reference, epoch);
+        _binding = new LuaRefBinding(reference, identity);
     }
 
     /// <summary>
     ///     Gets the slot in the SDK's private reference table, or <c>LUA_NOREF</c> (-2) when unresolved or released. <c>LUA_REFNIL</c> (-1) is a
     ///     valid reference to <c>nil</c>.
     /// </summary>
-    public int Reference => Unpack(Volatile.Read(ref _packed), out _);
+    public int Reference => Volatile.Read(ref _binding)?.Reference ?? NoReference;
 
-    /// <summary>Gets the <see cref="LuaRuntime.Epoch" /> the reference was created in; 0 for an unresolved one.</summary>
+    /// <summary>
+    ///     Gets the complete Lua state identity the reference was created in, or the default identity for an unresolved
+    ///     or released reference.
+    /// </summary>
+    public LuaStateIdentity Identity => Volatile.Read(ref _binding)?.Identity ?? default;
+
+    /// <summary>
+    ///     Gets the attach epoch component of <see cref="Identity" />; 0 for an unresolved or released reference.
+    /// </summary>
     public int Epoch
     {
-        get
-        {
-            _ = Unpack(Volatile.Read(ref _packed), out var epoch);
-            return epoch;
-        }
+        get => Identity.AttachEpoch;
+    }
+
+    /// <summary>
+    ///     Gets the state generation component of <see cref="Identity" />; 0 for an unresolved or released reference.
+    /// </summary>
+    public int StateGeneration
+    {
+        get => Identity.StateGeneration;
     }
 
     /// <summary>
     ///     Gets a value indicating whether the reference holds a slot at all (resolved and not released), whatever its
-    ///     epoch.
+    ///     identity.
     /// </summary>
     public bool IsResolved => Reference != NoReference;
 
     /// <summary>
     ///     Gets a value indicating whether the reference holds a slot created in the current
-    ///     <see cref="LuaRuntime.Epoch" />: the only state in which it may be pushed or released.
+    ///     <see cref="LuaRuntime.CurrentStateIdentity" />: the only state in which it may be pushed or released.
     /// </summary>
     public bool IsCurrent
     {
@@ -99,27 +111,44 @@ public sealed class LuaRef : IDisposable
     /// </summary>
     public void Dispose()
     {
-        Release(LuaRuntime.TryAcquireState(out var state) ? state : default);
+        if (!LuaRuntime.TryAcquireOperation(out var operation))
+        {
+            Release(default);
+            return;
+        }
+
+        using (operation)
+        {
+            Release(operation.State);
+        }
     }
 
-    /// <summary>Reads the slot when the reference is current. One volatile read and one comparison.</summary>
+    /// <summary>Reads the slot when the reference is current. One binding read and one identity comparison.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool TryGetCurrent(out int reference)
     {
-        reference = Unpack(Volatile.Read(ref _packed), out var epoch);
-        return reference != NoReference && epoch == LuaRuntime.Epoch;
+        var binding = Volatile.Read(ref _binding);
+        reference = binding?.Reference ?? NoReference;
+        return binding is not null && reference != NoReference && binding.Identity == LuaRuntime.CurrentStateIdentity;
     }
 
     /// <summary>
-    ///     Points the reference at a slot of the given epoch. The previous slot, if any, is not released: the caller
-    ///     decides whether it still belongs to a live state.
+    ///     Points the reference at a slot of the given state identity. The previous slot, if any, is not released: the
+    ///     caller decides whether it still belongs to a live state.
     /// </summary>
-    internal void Rebind(int reference, int epoch)
+    internal void Rebind(int reference, LuaStateIdentity identity)
     {
         lock (LuaReferences.Gate)
         {
-            Volatile.Write(ref _packed, Pack(reference, epoch));
+            Volatile.Write(ref _binding, new LuaRefBinding(reference, identity));
         }
+    }
+
+    // Temporary compatibility for call sites being migrated to the complete identity. New code must capture and
+    // revalidate CurrentStateIdentity around any operation that can run Lua before using the overload above.
+    internal void Rebind(int reference, int epoch)
+    {
+        Rebind(reference, new LuaStateIdentity(epoch, LuaRuntime.StateGeneration));
     }
 
     /// <summary>
@@ -129,32 +158,37 @@ public sealed class LuaRef : IDisposable
     /// <param name="state">A state of the Lua universe the reference was created in; the calling thread's state.</param>
     public unsafe void Release(LuaState state)
     {
-        lock (LuaReferences.Gate)
+        LuaRuntimeOperation operation = state.IsNull ? default : LuaRuntime.EnterStateOperation(state);
+        try
         {
-            var packed = Interlocked.Exchange(ref _packed, Pack(NoReference, 0));
-            var reference = Unpack(packed, out var epoch);
-            if (reference != NoReference && epoch == LuaRuntime.Epoch && !state.IsNull)
-                LuaReferences.Release(state, reference);
+            lock (LuaReferences.Gate)
+            {
+                var binding = Interlocked.Exchange(ref _binding, null);
+                if (binding is not null && binding.Reference != NoReference && binding.Identity == LuaRuntime.CurrentStateIdentity &&
+                    !state.IsNull)
+                    LuaReferences.Release(state, binding.Reference);
+            }
+        }
+        finally
+        {
+            operation.Dispose();
         }
     }
 
-    /// <summary><c>LuaRef(slot, epoch N)</c>, or <c>LuaRef(unresolved)</c>.</summary>
+    /// <summary><c>LuaRef(slot, attach epoch N, state generation M)</c>, or <c>LuaRef(unresolved)</c>.</summary>
     public override string ToString()
     {
-        var reference = Unpack(Volatile.Read(ref _packed), out var epoch);
-        return reference == NoReference
+        var binding = Volatile.Read(ref _binding);
+        return binding is null || binding.Reference == NoReference
             ? "LuaRef(unresolved)"
-            : string.Create(CultureInfo.InvariantCulture, $"LuaRef({reference}, epoch {epoch})");
+            : string.Create(CultureInfo.InvariantCulture,
+                $"LuaRef({binding.Reference}, attach epoch {binding.Identity.AttachEpoch}, state generation {binding.Identity.StateGeneration})");
     }
 
-    private static long Pack(int reference, int epoch)
+    private sealed class LuaRefBinding(int reference, LuaStateIdentity identity)
     {
-        return ((long)epoch << 32) | (uint)reference;
-    }
+        internal int Reference { get; } = reference;
 
-    private static int Unpack(long packed, out int epoch)
-    {
-        epoch = (int)(packed >> 32);
-        return (int)(uint)packed;
+        internal LuaStateIdentity Identity { get; } = identity;
     }
 }

@@ -29,14 +29,29 @@ internal static class LuaApiNames
     /// <summary>What a thunk calls to report failures.</summary>
     public const string LuaThunk = "global::CheatEngine.SDK.Lua.Callbacks.LuaThunk";
 
-    /// <summary><c>AcquireState()</c>: one provider call per operation.</summary>
-    public const string AcquireState = "global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState()";
+    /// <summary>The stack-bound lifecycle lease generated calls hold through their final stack restoration.</summary>
+    public const string LuaRuntimeOperation = "global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation";
+
+    /// <summary><c>AcquireOperation()</c>: one provider call per generated call.</summary>
+    public const string AcquireOperation = "global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation()";
+
+    /// <summary>The runtime owner of a state-supplied generated call.</summary>
+    public const string LuaRuntime = "global::CheatEngine.SDK.Lua.Runtime.LuaRuntime";
 
     /// <summary>Generator-facing push of a cached global function.</summary>
     public const string LuaGlobalFunctions = "global::CheatEngine.SDK.Lua.CompilerServices.LuaGlobalFunctions";
 
     /// <summary>Generator-facing cold exits of a call body.</summary>
     public const string LuaCallSupport = "global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport";
+
+    /// <summary>The untyped, borrowed Cheat Engine object handle used by generated class wrappers.</summary>
+    public const string CEObject = "global::CheatEngine.SDK.Engine.Objects.CEObject";
+
+    /// <summary>The static-abstract borrowed-handle contract implemented by generated class wrappers.</summary>
+    public const string ICEObject = "global::CheatEngine.SDK.Engine.Objects.ICEObject";
+
+    /// <summary>The static Lua marshaller contract implemented by generated class wrappers.</summary>
+    public const string ILuaMarshaller = "global::CheatEngine.SDK.Lua.Marshalling.ILuaMarshaller";
 
     /// <summary>The attribute every thunk carries, with its <c>cdecl</c> convention.</summary>
     public const string UnmanagedCallersOnlyCdecl =

@@ -2,7 +2,7 @@ using CheatEngine.SDK.SourceGenerators.EngineApi.Tests.Infrastructure;
 
 namespace CheatEngine.SDK.SourceGenerators.EngineApi.Tests.Generator;
 
-/// <summary>Every way the generator stays silent (no diagnostic, no output for that item).</summary>
+/// <summary>Valid ignored or empty-shell inputs stay silent; malformed specs instead report a located CESDK3001 error.</summary>
 public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFixture>
 {
     [Fact]
@@ -14,11 +14,13 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
     }
 
     [Fact]
-    public void An_empty_spec_file_produces_no_output()
+    public void An_empty_spec_file_produces_no_output_and_reports_a_specification_error()
     {
         var run = roslyn.Run("empty.cheatengine-sdk-api.txt", string.Empty);
 
-        run.AssertNoOutput();
+        run.AssertNoGeneratedSource();
+        Assert.Contains(run.GeneratorDiagnostics,
+            static diagnostic => string.Equals(diagnostic.Id, "CESDK3001", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -30,7 +32,7 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
     }
 
     [Fact]
-    public void A_spec_file_whose_only_entry_is_invalid_produces_no_output()
+    public void A_spec_file_whose_only_entry_is_invalid_produces_no_output_and_reports_a_specification_error()
     {
         const string Text = """
                             namespace: Demo
@@ -46,7 +48,9 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 
         var run = roslyn.Run("bad.cheatengine-sdk-api.txt", Text);
 
-        run.AssertNoOutput();
+        run.AssertNoGeneratedSource();
+        Assert.Contains(run.GeneratorDiagnostics,
+            static diagnostic => string.Equals(diagnostic.Id, "CESDK3001", StringComparison.Ordinal));
     }
 
     [Fact]

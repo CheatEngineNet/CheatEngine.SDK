@@ -131,7 +131,7 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
     }
 
     [Fact]
-    public void Generator_leading_state_parameter_replaces_the_acquisition()
+    public void Generator_leading_state_parameter_acquires_an_atomic_operation_lease()
     {
         var run = roslyn.Run(BindingSources.GlobalSuite);
 
@@ -139,12 +139,20 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
         var throwing = Section(text,
             "public static partial long AddOn(global::CheatEngine.SDK.Lua.State.LuaState state, long a, long b)",
             "\n        }\n");
-        Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState __L = state;", throwing, StringComparison.Ordinal);
+        Assert.Contains(
+            "using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation(state);",
+            throwing,
+            StringComparison.Ordinal);
+        Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState __L = __operation.State;", throwing,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("AcquireState", throwing, StringComparison.Ordinal);
         var tryForm = Section(text,
             "public static partial bool TryAddOn(global::CheatEngine.SDK.Lua.State.LuaState state, long a, long b, out long sum)",
             "\n        }\n");
-        Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState __L = state;", tryForm, StringComparison.Ordinal);
+        Assert.Contains(
+            "using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation(state);",
+            tryForm,
+            StringComparison.Ordinal);
     }
 
     [Fact]

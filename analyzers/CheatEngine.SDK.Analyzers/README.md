@@ -4,8 +4,9 @@ Roslyn analyzers that explain in the editor why Cheat Engine would refuse a Chea
 
 ## Objective
 
-Report every `CESDKnnnn` diagnostic about plugin code. The rules cover the plugin class shape, native callbacks that can
-throw, and Lua bindings the generators cannot implement.
+Report every `CESDKnnnn` diagnostic this assembly owns about plugin code. The rules cover the plugin class and
+bootstrap, lifecycle and ownership misuse, native callbacks that can throw, and Lua bindings the generators cannot
+implement. The EngineApi generator owns the separate `CESDK3xxx` family for malformed curated specs.
 
 ## Why it exists
 
@@ -16,38 +17,47 @@ diagnostic that names the cause and links to a page with the fix.
 ## How it works
 
 The assembly ships inside the `CheatEngine.SDK` package under `analyzers/dotnet/cs`, never as a package of its own. Its public
-surface is the `DiagnosticIds` constants (`CheatEngine.SDK.Analyzers.Diagnostics`) and three analyzers. Everything else is
+surface is the `DiagnosticIds` constants (`CheatEngine.SDK.Analyzers.Diagnostics`) and five analyzers. Everything else is
 internal.
 
 | Analyzer                                                            | Rules                                 | Subject                                                                   |
 |---------------------------------------------------------------------|---------------------------------------|---------------------------------------------------------------------------|
-| `CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer`        | `CESDK0001`, `CESDK0002`, `CESDK0004` | The `[CheatEnginePlugin]` class and the namespaces of the plugin assembly |
+| `CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer`        | `CESDK0001`–`CESDK0005` except unassigned IDs | Generated or explicitly manual bootstrap shape and identity              |
 | `CheatEngine.SDK.Analyzers.Usage.UnmanagedCallersOnlyGuardAnalyzer` | `CESDK1004`                           | Methods and local functions marked `[UnmanagedCallersOnly]`               |
-| `CheatEngine.SDK.Analyzers.Generation.LuaBindingAnalyzer`           | `CESDK2001` to `CESDK2004`            | Members marked `[LuaFunction]` or `[LuaGlobal]`                           |
+| `CheatEngine.SDK.Analyzers.Usage.PluginLifecycleAndOwnershipAnalyzer` | `CESDK1001`, `CESDK1003`, `CESDK1005` | Enabled-only startup calls, direct disposal of borrowed values, and `async void` lifecycle callbacks |
+| `CheatEngine.SDK.Analyzers.Generation.LuaBindingAnalyzer`           | `CESDK2001`–`CESDK2005`               | `[LuaFunction]` and `[LuaGlobal]` method forms and duplicate export names |
+| `CheatEngine.SDK.Analyzers.Generation.LuaObjectBindingAnalyzer`     | `CESDK2006`, `CESDK2007`              | `[LuaClass]`, `[LuaMethod]`, `[LuaProperty]`, and generated-member collisions |
 
-Identifiers follow three ranges: `CESDK0xxx` for plugin shape and bootstrap (category `CheatEngine.SDK.Plugin`), `CESDK1xxx` for
-runtime-safety usage (`CheatEngine.SDK.Usage`) and `CESDK2xxx` for generator input (`CheatEngine.SDK.Generation`). Identifiers are never
-renumbered or reused. The [rule catalog](../docs/README.md) holds one page per rule, and every descriptor's help link
-points to its page.
+Identifiers follow three ranges here: `CESDK0xxx` for plugin shape and bootstrap (category
+`CheatEngine.SDK.Plugin`), `CESDK1xxx` for runtime-safety usage (`CheatEngine.SDK.Usage`) and `CESDK2xxx` for Lua
+generator input (`CheatEngine.SDK.Generation`). `CESDK3xxx` belongs to the EngineApi generator's independently tracked
+spec diagnostics. Identifiers are never renumbered or reused. The [rule catalog](../docs/README.md) holds one page per
+analyzer descriptor, and every descriptor's help link points to its page.
 
 The shape checks are the generators' own code. `PluginShape` and the LuaBindings shape files live in [
 `CheatEngine.SDK.SourceGenerators.Shared`](../../source-generators/CheatEngine.SDK.SourceGenerators.Shared/README.md), which this assembly
 and the generators all use, so a shape that a generator skips is a shape that an analyzer reports.
 
-`CESDK0002`, `CESDK0004` and the duplicate name check of `CESDK2003` need the whole compilation. They run at compilation
-end, so they are reported in build output and in full-solution analysis where an IDE offers it, not while typing. Their
-descriptors carry the `CompilationEnd` tag that `RS1037` requires. For `CESDK2003` the tag sits on the whole descriptor,
-so an IDE defers all its checks to build or full-solution analysis.
+`CESDK0002` through `CESDK0005`, plus `CESDK2005`, need the whole compilation. They run at compilation end, so they are
+reported in build output and in full-solution analysis where an IDE offers it, not while typing. Their descriptors carry
+the `CompilationEnd` tag that `RS1037` requires. `CESDK2005` is deliberately the only Lua rule with that tag: duplicate
+export names require collecting all valid siblings of a binding type.
 
 `CESDK0004` exists because Cheat Engine requires the type `CESDK.CESDK` in the plugin assembly, and the SDK generates
-it. Inside the namespace `CESDK`, or any namespace under it, the simple name `CESDK` binds to that generated class, so
+it when the direct package build property explicitly enables generation. Inside the namespace `CESDK`, or any namespace under it, the simple name `CESDK` binds to that generated class, so
 a qualified name that starts with `CESDK.` no longer resolves to a namespace the plugin declared under `CESDK` (`CS0426`).
 The SDK itself lives under `CheatEngine.SDK` and is not affected: the rule reports a root namespace named exactly
 `CESDK` and nothing else. It reads namespace declarations through a syntax node action, so the driver skips generated
 trees. That keeps the generated `namespace CESDK` of the entry point from triggering the rule.
 
-`CheatEngineSdkGenerateEntryPoint=false` silences `CESDK0001` and `CESDK0002`, which describe what the generated entry point
-needs. `CESDK0004` stays on, because Cheat Engine looks up a type `CESDK.CESDK` either way.
+With compiler-visible `CheatEngineSdkGenerateEntryPoint=true`, `CESDK0001`, `CESDK0002`, `CESDK0004` and `CESDK0005`
+describe the generated entry point. An explicit `false` selects the manual-bootstrap contract `CESDK0003`. When the
+property is absent—for example, through an indirect package reference—the analyzer leaves generation-specific rules
+silent rather than guessing the assembly's bootstrap owner.
+
+`CESDK1002` is deliberately unassigned. A main-thread misuse diagnostic would require a proven CE 7.7 dispatcher
+contract; the current dispatcher guards wrong-thread execution at runtime, while the opt-in live probe remains the
+evidence gate for any static rule.
 
 Every analyzer is stateless, runs concurrently and skips generated code. It registers nothing unless the CheatEngine.SDK
 types it reads resolve. `CESDK1004` accepts only what provably cannot throw, and its exact definition is on
@@ -65,9 +75,9 @@ console, culture and `Random` access.
 
 ## Promise
 
-- Every rule has a descriptor in its range and category. The descriptor links to a page in `analyzers/docs` that starts
-  with the identifier. `AnalyzerReleases.Unshipped.md` holds a row for the rule. `DiagnosticCatalogTests` fails when one
-  of these is missing.
+- Every implemented rule has a descriptor in its range and category. The descriptor links to a page in `analyzers/docs` that starts
+  with the identifier. The `0.3.0` baseline is in `AnalyzerReleases.Shipped.md`; new rules are in `Unshipped.md`.
+  `DiagnosticCatalogTests` fails when a page, a tracking row or release-tracking uniqueness is missing.
 - A rule and its generator agree. `PluginShapeParityTests` and `LuaBindingAnalyzerTests` run the real generator and the
   analyzer over the same compilation. Over a matrix of shapes, the generator emits exactly when the analyzer stays
   silent.

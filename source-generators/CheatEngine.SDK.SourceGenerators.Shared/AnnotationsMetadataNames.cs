@@ -39,6 +39,24 @@ internal static class AnnotationsMetadataNames
     public const string LuaGlobalAttribute = "CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute";
 
     /// <summary>
+    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaClassAttribute</c>, which identifies a borrowed
+    ///     Cheat Engine object-handle wrapper.
+    /// </summary>
+    public const string LuaClassAttribute = "CheatEngine.SDK.Annotations.Lua.LuaClassAttribute";
+
+    /// <summary>
+    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute</c>, which binds an instance partial
+    ///     method on a generated object-handle wrapper.
+    /// </summary>
+    public const string LuaMethodAttribute = "CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute";
+
+    /// <summary>
+    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute</c>, which binds a partial property
+    ///     on a generated object-handle wrapper.
+    /// </summary>
+    public const string LuaPropertyAttribute = "CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute";
+
+    /// <summary>
     ///     Dotted metadata name of <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c>, the base class of every plugin, for
     ///     use with <c>GetTypeByMetadataName</c>.
     /// </summary>

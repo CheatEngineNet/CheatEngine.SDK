@@ -37,7 +37,7 @@ internal static class RoslynFixture
             additionalTexts: additionalTexts,
             parseOptions: ParseOptions,
             optionsProvider: null,
-            driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, true));
+            driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
     }
 
     public static CSharpCompilation CreateCompilation()

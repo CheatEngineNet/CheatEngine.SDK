@@ -15,7 +15,7 @@ public sealed class LuaThunkEmitterTests
         "global::Demo.Suite.IsInteger",
         PassesState: true,
         new EquatableArray<LuaArgumentModel>(
-            [new LuaArgumentModel("value", LuaValueKind.Double, false)]),
+            [new LuaArgumentModel("value", LuaValueKind.Double, IsNullable: false)]),
         LuaValueKind.Boolean);
 
     [Fact]

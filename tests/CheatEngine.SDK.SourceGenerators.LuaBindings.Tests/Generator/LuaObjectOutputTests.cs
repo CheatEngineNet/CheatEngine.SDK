@@ -211,15 +211,15 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
     }
 
     [Fact]
-    public void Generic_handle_accessor_helper_remains_valid()
+    public void Generic_handle_accessor_collision_skips_only_the_affected_handle()
     {
         const string source = """
                               using CheatEngine.SDK.Annotations.Lua;
 
                               namespace Demo;
 
-                              [LuaClass("Generic")]
-                              public readonly partial struct Generic
+                              [LuaClass("Bad")]
+                              public readonly partial struct Bad
                               {
                                   private global::CheatEngine.SDK.Engine.Objects.CEObject get_Handle<T>() => default;
                               }
@@ -232,11 +232,10 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
 
         var run = roslyn.Run(source);
 
-        Assert.Equal(2, run.GeneratedSources.Length);
-        Assert.Contains("Demo.Generic.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Single(run.GeneratedSources);
+        Assert.DoesNotContain("Demo.Bad.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
         Assert.Contains("Demo.Good.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
-        Assert.Null(run.Result.Exception);
-        Assert.Empty(run.GeneratorDiagnostics);
+        run.AssertCompilesClean();
     }
 
     [Fact]
@@ -273,13 +272,12 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
 
         var run = roslyn.Run(source);
 
-        Assert.Equal(3, run.GeneratedSources.Length);
+        Assert.Equal(2, run.GeneratedSources.Length);
         Assert.DoesNotContain("Demo.BadSetter.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
-        Assert.Contains("Demo.GenericSetter.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.DoesNotContain("Demo.GenericSetter.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
         Assert.Contains("Demo.DifferentSetter.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
         Assert.Contains("Demo.Good.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
-        Assert.Null(run.Result.Exception);
-        Assert.Empty(run.GeneratorDiagnostics);
+        run.AssertCompilesClean();
     }
 
     [Theory]

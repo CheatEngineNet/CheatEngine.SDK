@@ -222,7 +222,7 @@ public sealed class LuaObjectBindingAnalyzerTests
     }
 
     [Fact]
-    public async Task Generic_handle_accessor_helper_is_not_a_collision()
+    public async Task Generic_handle_accessor_collision_reports_CESDK2007()
     {
         await AnalyzerVerifier<LuaObjectBindingAnalyzer>.VerifyAsync(
             """
@@ -240,7 +240,7 @@ public sealed class LuaObjectBindingAnalyzerTests
                 [LuaClass("Object")]
                 public readonly partial struct ObjectHandle
                 {
-                    private global::CheatEngine.SDK.Engine.Objects.CEObject get_Handle<T>() => default;
+                    private global::CheatEngine.SDK.Engine.Objects.CEObject {|CESDK2007:get_Handle|}<T>() => default;
                 }
             }
             """);
@@ -266,7 +266,7 @@ public sealed class LuaObjectBindingAnalyzerTests
                 public readonly partial struct ObjectHandle
                 {
                     private void {|CESDK2007:set_Handle|}(global::CheatEngine.SDK.Engine.Objects.CEObject value) { }
-                    private void set_Handle<T>(global::CheatEngine.SDK.Engine.Objects.CEObject value) { }
+                    private void {|CESDK2007:set_Handle|}<T>(global::CheatEngine.SDK.Engine.Objects.CEObject value) { }
                     private void set_Handle(int value) { }
                 }
             }

@@ -22,7 +22,6 @@ internal static class LuaClassGeneratedNames
     public static bool IsGeneratedAccessorCollision(IMethodSymbol method, INamedTypeSymbol? ceObject)
     {
         return method.MethodKind == MethodKind.Ordinary
-               && method.Arity == 0
                && ((string.Equals(method.Name, "get_Handle", StringComparison.Ordinal)
                     && method.Parameters.Length == 0)
                    || (string.Equals(method.Name, "set_Handle", StringComparison.Ordinal)

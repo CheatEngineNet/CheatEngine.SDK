@@ -10,7 +10,7 @@ on:
       organization:
         description: SonarQube Cloud organization key.
         type: string
-        default: shadowninex
+        default: cheatenginenet
       wait-quality-gate:
         description: Fail the job when the quality gate fails.
         type: boolean

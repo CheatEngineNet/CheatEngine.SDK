@@ -318,7 +318,7 @@ public static unsafe partial class PluginHost
         // begins. Waiting blindly on the GUI thread would deadlock it. When the host supplied CheckSynchronize, pump
         // its queue until the last admitted work item releases its lease. MainThread.Invoke refuses worker dispatches
         // without that slot, so an admitted GUI-bound work item always has this drain route.
-        while (!SNoAdmittedMainThreadWork.Wait(0))
+        while (!SNoAdmittedMainThreadWork.Wait(0, CancellationToken.None))
         {
             if (context is not null && context.IsMainThread)
             {
@@ -331,7 +331,7 @@ public static unsafe partial class PluginHost
                 }
             }
 
-            SNoAdmittedMainThreadWork.Wait();
+            SNoAdmittedMainThreadWork.Wait(CancellationToken.None);
         }
     }
 

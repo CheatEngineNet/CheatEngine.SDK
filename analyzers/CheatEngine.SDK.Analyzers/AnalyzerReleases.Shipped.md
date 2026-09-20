@@ -6,7 +6,7 @@
 ### New Rules
 
  Rule ID   | Category                   | Severity | Notes
------------|----------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------
+-----------|----------------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------
  CESDK0001 | CheatEngine.SDK.Plugin     | Error    | CheatEnginePluginAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK0001.md)
  CESDK0002 | CheatEngine.SDK.Plugin     | Error    | CheatEnginePluginAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK0002.md)
  CESDK0004 | CheatEngine.SDK.Plugin     | Warning  | CheatEnginePluginAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK0004.md)

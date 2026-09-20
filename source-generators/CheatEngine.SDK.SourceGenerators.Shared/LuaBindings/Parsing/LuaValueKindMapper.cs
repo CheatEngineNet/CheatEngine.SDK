@@ -5,8 +5,10 @@ using Microsoft.CodeAnalysis;
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 
 /// <summary>
-///     Maps a type symbol to the <see cref="LuaValueKind" /> a marshaller of <c>CheatEngine.SDK.Lua</c> handles, and recognises
-///     the three other types the binding shapes know: <c>CheatEngine.SDK.Lua.State.LuaState</c>, <c>ReadOnlySpan&lt;byte&gt;</c> and
+///     Maps a type symbol to the <see cref="LuaValueKind" /> a marshaller of <c>CheatEngine.SDK.Lua</c> handles, and
+///     recognises
+///     the three other types the binding shapes know: <c>CheatEngine.SDK.Lua.State.LuaState</c>,
+///     <c>ReadOnlySpan&lt;byte&gt;</c> and
 ///     <c>Span&lt;byte&gt;</c>. Part of the shape-validation source that the CESDK2xxx analyzer links.
 /// </summary>
 /// <remarks>

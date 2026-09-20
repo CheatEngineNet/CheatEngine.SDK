@@ -78,7 +78,10 @@ public static class EngineInspection
     ///     <see cref="InspectionStatus.Success" />, <see cref="InspectionStatus.DestinationTooSmall" /> before any
     ///     element is written, or a binding failure.
     /// </returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="processId" /> is the default or otherwise non-positive identifier.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     <paramref name="processId" /> is the default or otherwise non-positive
+    ///     identifier.
+    /// </exception>
     /// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
     [RequiresPluginEnabled]
     public static InspectionStatus EnumerateModules(TargetProcessId processId, Span<ModuleInfo> destination,
@@ -88,7 +91,10 @@ public static class EngineInspection
         return EnumerateModulesCore(destination, out written, processId, true);
     }
 
-    /// <summary>Copies the sections of the module loaded at <paramref name="moduleBase" /> into <paramref name="destination" />.</summary>
+    /// <summary>
+    ///     Copies the sections of the module loaded at <paramref name="moduleBase" /> into
+    ///     <paramref name="destination" />.
+    /// </summary>
     /// <param name="moduleBase">The target-process base address passed as the first form of CE's module selector.</param>
     /// <param name="destination">The destination for copied section snapshots.</param>
     /// <param name="written">The total section count on success; 0 for any other status.</param>
@@ -102,8 +108,8 @@ public static class EngineInspection
     public static InspectionStatus EnumerateSections(Address moduleBase, Span<ModuleSectionInfo> destination,
         out int written)
     {
-        using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-        LuaState state = operation.State;
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
         written = 0;
         try
@@ -140,8 +146,8 @@ public static class EngineInspection
         out int written)
     {
         ValidateModuleName(moduleName);
-        using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-        LuaState state = operation.State;
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
         written = 0;
         try
@@ -177,8 +183,8 @@ public static class EngineInspection
         out Address address)
     {
         ValidateSymbolExpression(expression);
-        using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-        LuaState state = operation.State;
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
         address = Address.Zero;
         try
@@ -219,8 +225,8 @@ public static class EngineInspection
     public static InspectionStatus GetSymbolInfo(SymbolExpression expression, out SymbolInfo symbol)
     {
         ValidateSymbolExpression(expression);
-        using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-        LuaState state = operation.State;
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
         symbol = default;
         try
@@ -257,8 +263,8 @@ public static class EngineInspection
     [RequiresPluginEnabled]
     public static InspectionStatus EnumerateMemoryRegions(Span<MemoryRegionInfo> destination, out int written)
     {
-        using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-        LuaState state = operation.State;
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
         written = 0;
         try
@@ -283,14 +289,15 @@ public static class EngineInspection
     /// <param name="region">The copied region snapshot on success; <see langword="default" /> otherwise.</param>
     /// <returns>
     ///     <see cref="InspectionStatus.Success" /> only for a complete CE table. The CE 7.7 text does not document
-    ///     a nil absence return for <c>getMemoryRegionInfo</c>, so a nil result is <see cref="InspectionStatus.InvalidResult" />.
+    ///     a nil absence return for <c>getMemoryRegionInfo</c>, so a nil result is
+    ///     <see cref="InspectionStatus.InvalidResult" />.
     /// </returns>
     /// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
     [RequiresPluginEnabled]
     public static InspectionStatus GetMemoryRegionInfo(Address address, out MemoryRegionInfo region)
     {
-        using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-        LuaState state = operation.State;
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
         region = default;
         try
@@ -318,8 +325,8 @@ public static class EngineInspection
     private static InspectionStatus EnumerateModulesCore(Span<ModuleInfo> destination, out int written,
         TargetProcessId processId, bool hasProcessId)
     {
-        using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-        LuaState state = operation.State;
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
         written = 0;
         try
@@ -376,10 +383,11 @@ public static class EngineInspection
 
         if (sequenceCount == 0) return InspectionStatus.Success;
 
-        ModuleInfo[] snapshot = new ModuleInfo[sequenceCount];
+        var snapshot = new ModuleInfo[sequenceCount];
         for (var index = 0; index < sequenceCount; index++)
         {
-            if (state.RawGetSequenceItem(tableIndex, index) != LuaType.Table || !TryReadModuleInfo(state, -1, out snapshot[index]))
+            if (state.RawGetSequenceItem(tableIndex, index) != LuaType.Table ||
+                !TryReadModuleInfo(state, -1, out snapshot[index]))
                 return InspectionStatus.InvalidResult;
 
             state.Pop(1);
@@ -401,7 +409,7 @@ public static class EngineInspection
 
         if (sequenceCount == 0) return InspectionStatus.Success;
 
-        ModuleSectionInfo[] snapshot = new ModuleSectionInfo[sequenceCount];
+        var snapshot = new ModuleSectionInfo[sequenceCount];
         for (var index = 0; index < sequenceCount; index++)
         {
             if (state.RawGetSequenceItem(tableIndex, index) != LuaType.Table ||
@@ -427,7 +435,7 @@ public static class EngineInspection
 
         if (sequenceCount == 0) return InspectionStatus.Success;
 
-        MemoryRegionInfo[] snapshot = new MemoryRegionInfo[sequenceCount];
+        var snapshot = new MemoryRegionInfo[sequenceCount];
         for (var index = 0; index < sequenceCount; index++)
         {
             if (state.RawGetSequenceItem(tableIndex, index) != LuaType.Table ||

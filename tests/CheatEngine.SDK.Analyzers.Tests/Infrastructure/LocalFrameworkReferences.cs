@@ -24,7 +24,8 @@ namespace CheatEngine.SDK.Analyzers.Tests.Infrastructure;
 ///         host's trusted-platform-assembly list.
 ///     </para>
 ///     <para>
-///         Same algorithm as <c>LocalFrameworkReferences</c> of <c>CheatEngine.SDK.SourceGenerators.EntryPoint.Tests</c>; the two
+///         Same algorithm as <c>LocalFrameworkReferences</c> of <c>CheatEngine.SDK.SourceGenerators.EntryPoint.Tests</c>;
+///         the two
 ///         copies are candidates for one file in <c>tests/CheatEngine.SDK.Tests.Shared</c>.
 ///     </para>
 /// </remarks>

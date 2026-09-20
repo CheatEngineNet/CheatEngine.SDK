@@ -1,7 +1,9 @@
-using CheatEngine.SDK.Engine.Objects;
+using System.Reflection;
 using CheatEngine.SDK.Annotations.Threading;
-using CheatEngine.SDK.Engine.AddressLists;
-using EngineAddressList = CheatEngine.SDK.Engine.AddressLists.AddressList;
+using CheatEngine.SDK.Engine.AddressList;
+using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Engine.Scanning.Values;
+using EngineAddressList = CheatEngine.SDK.Engine.AddressList.AddressList;
 
 namespace CheatEngine.SDK.Engine.Tests.AddressList;
 
@@ -58,12 +60,12 @@ public sealed class AddressListValueTests
         Assert.False(HasMainThreadOnly(typeof(AddressListAccess).GetMethod(nameof(AddressListAccess.TryGetCurrent))));
         Assert.False(HasMainThreadOnly(typeof(EngineAddressList).GetMethod(nameof(EngineAddressList.TryGetCount))));
         Assert.False(HasMainThreadOnly(typeof(MemoryRecord).GetMethod(nameof(MemoryRecord.TryGetId))));
-        Assert.Null(typeof(CheatEngine.SDK.Engine.Scanning.Values.MemScan).GetMethod("TryGetFoundCount"));
-        Assert.False(HasMainThreadOnly(typeof(CheatEngine.SDK.Engine.Scanning.Values.FoundList)
-            .GetMethod(nameof(CheatEngine.SDK.Engine.Scanning.Values.FoundList.TryGetCount))));
+        Assert.Null(typeof(MemScan).GetMethod("TryGetFoundCount"));
+        Assert.False(HasMainThreadOnly(typeof(FoundList)
+            .GetMethod(nameof(FoundList.TryGetCount))));
     }
 
-    private static bool HasMainThreadOnly(System.Reflection.MethodInfo? method)
+    private static bool HasMainThreadOnly(MethodInfo? method)
     {
         Assert.NotNull(method);
         return Attribute.IsDefined(method!, typeof(MainThreadOnlyAttribute));

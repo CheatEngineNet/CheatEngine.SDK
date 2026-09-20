@@ -1,6 +1,6 @@
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Reflection;
 using System.Text;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Lua.Callbacks;
@@ -191,66 +191,10 @@ internal static unsafe class FakeHost
         Assert.Equal(LuaType.Table, L.RawGetPointer(-1, scan.Value));
         Assert.True(L.TryGetField(-1, "props"u8).IsOk);
         L.PushString("waitTillDone"u8);
-        L.PushUncheckedFunction(new LuaNativeFunction((nint)(delegate* unmanaged[Cdecl]<lua_State*, int>)&WaitTillDone));
+        L.PushUncheckedFunction(
+            new LuaNativeFunction((nint)(delegate* unmanaged[Cdecl]<lua_State*, int>)&WaitTillDone));
         Assert.True(L.TryRawSet(-3));
         return new PCallProbe();
-    }
-
-    /// <summary>Captures protected calls specifically to the fake no-result <c>waitTillDone</c> function.</summary>
-    internal sealed class PCallProbe : IDisposable
-    {
-        private readonly object _table;
-        private readonly FieldInfo _pcallField;
-        private int _waitCallCount;
-        private int _waitArgumentCount;
-        private int _waitResultCount;
-
-        internal PCallProbe()
-        {
-            if (s_activePCallProbe is not null)
-                throw new InvalidOperationException("Only one fake-host protected-call probe can be active.");
-
-            var tableField = typeof(LuaApi).GetField("s_table", BindingFlags.Static | BindingFlags.NonPublic)
-                             ?? throw new InvalidOperationException("The Lua API table was not available for probing.");
-            _table = tableField.GetValue(null)
-                     ?? throw new InvalidOperationException("The Lua API table was not initialized for probing.");
-            _pcallField = _table.GetType().GetField("lua_pcallk", BindingFlags.Instance | BindingFlags.NonPublic)
-                          ?? throw new InvalidOperationException("The Lua protected-call slot was not available for probing.");
-            s_forwardedPCall = (nint)(_pcallField.GetValue(_table)
-                                       ?? throw new InvalidOperationException("The Lua protected-call slot was null."));
-            _pcallField.SetValue(_table,
-                (nint)(delegate* unmanaged[Cdecl]<lua_State*, int, int, int, nint, nint, int>)&ObservePCall);
-            tableField.SetValue(null, _table);
-            s_activePCallProbe = this;
-        }
-
-        /// <summary>Gets how many protected calls reached the probe's <c>waitTillDone</c> function.</summary>
-        public int WaitCallCount => _waitCallCount;
-
-        /// <summary>Gets the Lua argument count of the observed <c>waitTillDone</c> call.</summary>
-        public int WaitArgumentCount => _waitArgumentCount;
-
-        /// <summary>Gets the Lua result count of the observed <c>waitTillDone</c> call.</summary>
-        public int WaitResultCount => _waitResultCount;
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            if (s_activePCallProbe != this) return;
-
-            _pcallField.SetValue(_table, s_forwardedPCall);
-            var tableField = typeof(LuaApi).GetField("s_table", BindingFlags.Static | BindingFlags.NonPublic)!;
-            tableField.SetValue(null, _table);
-            s_forwardedPCall = 0;
-            s_activePCallProbe = null;
-        }
-
-        internal void Observe(int argumentCount, int resultCount)
-        {
-            _waitCallCount++;
-            _waitArgumentCount = argumentCount;
-            _waitResultCount = resultCount;
-        }
     }
 
     private static void Install(LuaState L)
@@ -314,7 +258,7 @@ internal static unsafe class FakeHost
     {
         var probe = s_activePCallProbe;
         if (probe is not null &&
-            (nint)LuaApi.lua_tocfunction(state, -argumentCount - 1) ==
+            (nint)lua_tocfunction(state, -argumentCount - 1) ==
             (nint)(delegate* unmanaged[Cdecl]<lua_State*, int>)&WaitTillDone)
             probe.Observe(argumentCount, resultCount);
 
@@ -325,5 +269,60 @@ internal static unsafe class FakeHost
             errorFunction,
             context,
             continuation);
+    }
+
+    /// <summary>Captures protected calls specifically to the fake no-result <c>waitTillDone</c> function.</summary>
+    internal sealed class PCallProbe : IDisposable
+    {
+        private readonly FieldInfo _pcallField;
+        private readonly object _table;
+
+        internal PCallProbe()
+        {
+            if (s_activePCallProbe is not null)
+                throw new InvalidOperationException("Only one fake-host protected-call probe can be active.");
+
+            var tableField = typeof(LuaApi).GetField("s_table", BindingFlags.Static | BindingFlags.NonPublic)
+                             ?? throw new InvalidOperationException("The Lua API table was not available for probing.");
+            _table = tableField.GetValue(null)
+                     ?? throw new InvalidOperationException("The Lua API table was not initialized for probing.");
+            _pcallField = _table.GetType().GetField("lua_pcallk", BindingFlags.Instance | BindingFlags.NonPublic)
+                          ?? throw new InvalidOperationException(
+                              "The Lua protected-call slot was not available for probing.");
+            s_forwardedPCall = (nint)(_pcallField.GetValue(_table)
+                                      ?? throw new InvalidOperationException("The Lua protected-call slot was null."));
+            _pcallField.SetValue(_table,
+                (nint)(delegate* unmanaged[Cdecl]<lua_State*, int, int, int, nint, nint, int>)&ObservePCall);
+            tableField.SetValue(null, _table);
+            s_activePCallProbe = this;
+        }
+
+        /// <summary>Gets how many protected calls reached the probe's <c>waitTillDone</c> function.</summary>
+        public int WaitCallCount { get; private set; }
+
+        /// <summary>Gets the Lua argument count of the observed <c>waitTillDone</c> call.</summary>
+        public int WaitArgumentCount { get; private set; }
+
+        /// <summary>Gets the Lua result count of the observed <c>waitTillDone</c> call.</summary>
+        public int WaitResultCount { get; private set; }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (s_activePCallProbe != this) return;
+
+            _pcallField.SetValue(_table, s_forwardedPCall);
+            var tableField = typeof(LuaApi).GetField("s_table", BindingFlags.Static | BindingFlags.NonPublic)!;
+            tableField.SetValue(null, _table);
+            s_forwardedPCall = 0;
+            s_activePCallProbe = null;
+        }
+
+        internal void Observe(int argumentCount, int resultCount)
+        {
+            WaitCallCount++;
+            WaitArgumentCount = argumentCount;
+            WaitResultCount = resultCount;
+        }
     }
 }

@@ -1,11 +1,11 @@
-using CheatEngine.SDK.Engine.AddressLists;
-using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Engine.AddressList;
 using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Tests.Support;
-using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Marshalling;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
-using EngineAddressList = CheatEngine.SDK.Engine.AddressLists.AddressList;
+using EngineAddressList = CheatEngine.SDK.Engine.AddressList.AddressList;
 
 namespace CheatEngine.SDK.Engine.Tests.AddressList;
 
@@ -167,11 +167,11 @@ public sealed class AddressListLuaTests
     }
 
     private static void SetGlobal<T>(LuaState state, ReadOnlySpan<byte> name, T value)
-        where T : struct, CheatEngine.SDK.Lua.Marshalling.ILuaMarshaller<T>
+        where T : struct, ILuaMarshaller<T>
     {
         using LuaFrame frame = new(state);
         T.Push(state, value);
-        LuaStatus status = state.TrySetGlobal(name);
+        var status = state.TrySetGlobal(name);
         if (!status.IsOk) Assert.Fail("Setting the test global failed: " + EngineTest.ErrorMessage(state, status));
     }
 
@@ -205,16 +205,16 @@ public sealed class AddressListLuaTests
         Assert.True(record.TrySetAddressExpression("game+20"));
         Assert.True(record.TrySetValue("101"));
         Assert.True(record.TrySetVariableType(VariableType.Qword));
-        Assert.True(recordObject.TryGetProperty<CheatEngine.SDK.Lua.Marshalling.StringMarshaller, string>("Description"u8,
+        Assert.True(recordObject.TryGetProperty<StringMarshaller, string>("Description"u8,
             out var changedDescription));
         Assert.Equal("mana", changedDescription);
-        Assert.True(recordObject.TryGetProperty<CheatEngine.SDK.Lua.Marshalling.StringMarshaller, string>("Address"u8,
+        Assert.True(recordObject.TryGetProperty<StringMarshaller, string>("Address"u8,
             out var changedAddress));
         Assert.Equal("game+20", changedAddress);
-        Assert.True(recordObject.TryGetProperty<CheatEngine.SDK.Lua.Marshalling.StringMarshaller, string>("Value"u8,
+        Assert.True(recordObject.TryGetProperty<StringMarshaller, string>("Value"u8,
             out var changedValue));
         Assert.Equal("101", changedValue);
-        Assert.True(recordObject.TryGetProperty<CheatEngine.SDK.Engine.Enums.EnumMarshaller<VariableType>, VariableType>(
+        Assert.True(recordObject.TryGetProperty<EnumMarshaller<VariableType>, VariableType>(
             "Type"u8, out var changedType));
         Assert.Equal(VariableType.Qword, changedType);
     }

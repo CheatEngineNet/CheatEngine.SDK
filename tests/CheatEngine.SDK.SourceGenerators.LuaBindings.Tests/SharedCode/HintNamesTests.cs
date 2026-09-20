@@ -1,3 +1,4 @@
+using System.Globalization;
 using CheatEngine.SDK.SourceGenerators.Shared;
 
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.SharedCode;
@@ -88,7 +89,7 @@ public sealed class HintNamesTests
 
     private static string WithOrdinal(string hintName, string suffix, int ordinal)
     {
-        return hintName[..^suffix.Length] + "_" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        return hintName[..^suffix.Length] + "_" + ordinal.ToString(CultureInfo.InvariantCulture) +
                suffix;
     }
 }

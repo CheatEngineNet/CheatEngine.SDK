@@ -51,7 +51,10 @@ public sealed class DiagnosticCatalogTests
 
         Assert.Equal(expected, SortedIds(AllDescriptors()), StringComparer.Ordinal);
         Assert.Equal(
-            ["CESDK0001", "CESDK0002", "CESDK0003", "CESDK0004", "CESDK0005", "CESDK1001", "CESDK1003", "CESDK1004", "CESDK1005", "CESDK2001", "CESDK2002", "CESDK2003", "CESDK2004", "CESDK2005", "CESDK2006", "CESDK2007"],
+            [
+                "CESDK0001", "CESDK0002", "CESDK0003", "CESDK0004", "CESDK0005", "CESDK1001", "CESDK1003", "CESDK1004",
+                "CESDK1005", "CESDK2001", "CESDK2002", "CESDK2003", "CESDK2004", "CESDK2005", "CESDK2006", "CESDK2007"
+            ],
             expected,
             StringComparer.Ordinal);
     }
@@ -91,9 +94,11 @@ public sealed class DiagnosticCatalogTests
         Assert.StartsWith($"# {id}", File.ReadAllText(page), StringComparison.Ordinal);
 
         var unshipped =
-            File.ReadAllText(RepositoryLayout.PathOf("analyzers/CheatEngine.SDK.Analyzers/AnalyzerReleases.Unshipped.md"));
+            File.ReadAllText(
+                RepositoryLayout.PathOf("analyzers/CheatEngine.SDK.Analyzers/AnalyzerReleases.Unshipped.md"));
         var shipped =
-            File.ReadAllText(RepositoryLayout.PathOf("analyzers/CheatEngine.SDK.Analyzers/AnalyzerReleases.Shipped.md"));
+            File.ReadAllText(
+                RepositoryLayout.PathOf("analyzers/CheatEngine.SDK.Analyzers/AnalyzerReleases.Shipped.md"));
         Assert.True(
             HasRow(unshipped, descriptor) || HasRow(shipped, descriptor),
             $"No release-tracking row starts with '{id} | {descriptor.Category} | {descriptor.DefaultSeverity} |'.");

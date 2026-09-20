@@ -218,7 +218,8 @@ public sealed class LuaObjectBindingAnalyzerTests
 
         var diagnostic = Assert.Single(diagnostics,
             static candidate => string.Equals(candidate.Id, "CESDK2006", StringComparison.Ordinal));
-        Assert.Contains("partial property", diagnostic.GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+        Assert.Contains("partial property", diagnostic.GetMessage(CultureInfo.InvariantCulture),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -239,7 +240,7 @@ public sealed class LuaObjectBindingAnalyzerTests
 
     private static Task<ImmutableArray<Diagnostic>> AnalyzeAsync(string source)
     {
-        CSharpCompilation compilation = CSharpCompilation.Create(
+        var compilation = CSharpCompilation.Create(
             "LuaObjectBindingAnalyzerTestAssembly",
             [CSharpSyntaxTree.ParseText(TestText.Normalize(source), ParseOptions, "Test.cs")],
             LocalFrameworkReferences.References.AddRange(ContractStubs.References),

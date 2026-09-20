@@ -42,7 +42,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///     than it pops, negative when it pops more than it pushes, zero when it leaves the height unchanged. Every value
 ///     is accepted: the number is a claim for static analysis, there is nothing to validate it against here.
 /// </param>
-[AttributeUsage(AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Method)]
 public sealed class LuaStackEffectAttribute(int delta) : Attribute
 {
     /// <summary>

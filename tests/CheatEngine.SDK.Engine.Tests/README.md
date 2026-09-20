@@ -20,13 +20,13 @@ Tests tagged `Category=NativeLua` run against the Lua DLL of Cheat Engine 7.7 ke
 native code. See [
 `tests/CheatEngine.SDK.Tests.Shared/README.md`](../CheatEngine.SDK.Tests.Shared/README.md).
 
-| Piece                         | Role                                                                                                                                                                                                                       |
-|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Piece                         | Role                                                                                                                                                                                                                           |
+|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Support/FakeHost.cs`         | Stands in for `GetLuaState` and `LuaPushClassInstance`, not for Lua. A Lua model supplies object, list, scanner and address-list stand-ins, getters and setters that can raise, zero-based `obj[i]` and `destroy` bookkeeping. |
-| `Support/HostScope.cs`        | Attaches `LuaRuntime` to a fixture state for one test and detaches on dispose. Tests attach the runtime only through it, and tests that need it unattached call `LuaRuntime.Detach()` first.                               |
-| `Support/DebugAssertScope.cs` | Turns a failed `Debug.Assert` into an exception, so the Debug-only main-thread guard of `Owned<T>` is testable. That test skips in Release.                                                                                |
-| `Support/EngineTest.cs`       | `RequireNativeLua()` skips without a Lua library. `RunOnWorker` runs work on a fresh thread and returns what it threw.                                                                                                     |
-| `AssemblyInfo.cs`             | Runs tests sequentially, because `LuaRuntime` and the fake host are process-wide.                                                                                                                                          |
+| `Support/HostScope.cs`        | Attaches `LuaRuntime` to a fixture state for one test and detaches on dispose. Tests attach the runtime only through it, and tests that need it unattached call `LuaRuntime.Detach()` first.                                   |
+| `Support/DebugAssertScope.cs` | Turns a failed `Debug.Assert` into an exception, so the Debug-only main-thread guard of `Owned<T>` is testable. That test skips in Release.                                                                                    |
+| `Support/EngineTest.cs`       | `RequireNativeLua()` skips without a Lua library. `RunOnWorker` runs work on a fresh thread and returns what it threw.                                                                                                         |
+| `AssemblyInfo.cs`             | Runs tests sequentially, because `LuaRuntime` and the fake host are process-wide.                                                                                                                                              |
 
 Each fake object is a Lua table found by its pointer, so every push of one pointer finds the same state. Pointers are
 synthetic and never dereferenced. The double follows the assumed userdata layout, so the suite cannot prove that Cheat

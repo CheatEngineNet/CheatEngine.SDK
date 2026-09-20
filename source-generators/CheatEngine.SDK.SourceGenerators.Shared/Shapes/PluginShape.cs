@@ -5,7 +5,8 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 /// <summary>
 ///     Decides whether the generated entry point can construct a <c>[CheatEnginePlugin]</c> class, that is whether
 ///     <c>new global::&lt;type&gt;()</c> compiles inside a top-level type of the same assembly, in another file, and
-///     yields the supplied <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> symbol. "Compiles" includes the two errors that no accessibility
+///     yields the supplied <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> symbol. "Compiles" includes the two
+///     errors that no accessibility
 ///     check
 ///     finds: CS9035 (required members without an object initializer) and CS0619 (<c>[Obsolete]</c> as an error).
 /// </summary>
@@ -14,7 +15,8 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 ///         The single place the rule lives: both <c>CheatEngine.SDK.SourceGenerators.EntryPoint</c>
 ///         (which only tests <see cref="PluginShapeIssues.None" /> to decide whether to emit) and analyzer rule CESDK0001
 ///         in
-///         <c>CheatEngine.SDK.Analyzers</c> (which explains every flag that is set) call this type instead of keeping their own
+///         <c>CheatEngine.SDK.Analyzers</c> (which explains every flag that is set) call this type instead of keeping
+///         their own
 ///         copy.
 ///     </para>
 ///     <para>
@@ -171,7 +173,9 @@ internal static class PluginShape
     private static bool DerivesFromPluginBase(INamedTypeSymbol type, INamedTypeSymbol? pluginBase)
     {
         for (var current = type.BaseType; current is not null; current = current.BaseType)
-            if (pluginBase is null ? IsPluginBaseFallback(current) : SymbolEqualityComparer.Default.Equals(current, pluginBase))
+            if (pluginBase is null
+                    ? IsPluginBaseFallback(current)
+                    : SymbolEqualityComparer.Default.Equals(current, pluginBase))
                 return true;
 
         return false;

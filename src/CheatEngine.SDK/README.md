@@ -99,8 +99,9 @@ Windows x64-only. These build assets never flow through an intermediate NuGet pa
 ## Promise
 
 - The package has no NuGet dependencies, so one direct `PackageReference` is enough (`NuspecDependencyTests`).
-- `analyzers/dotnet/cs` holds only the shipping analyzers, generators and their shared loader dependency, never the `EngineApi` generator
-  (`PackageContentsTests`). Its build props, targets and native bridge are direct-reference-only: a real relay package
+- `analyzers/dotnet/cs` holds only the shipping analyzers, generators and their shared loader dependency, never the
+  `EngineApi` generator (`PackageContentsTests`). Its build props, targets and native bridge are direct-reference-only:
+  a real relay package
   cannot apply them to the relay's consumer (`DirectReferenceIsolationTests`).
 - A plugin project with one `[CheatEnginePlugin]` class gets the generated `CESDK.CESDK.CEPluginInitialize` from the
   package reference alone. `CheatEngineSdkGenerateEntryPoint=false` switches it off (`EntryPointTests`).
@@ -126,7 +127,8 @@ metadata. `tests/CheatEngine.SDK.AotProbe` is a standalone Windows x64 executabl
 graph with Native AOT. A successful probe establishes only the analysed graph and that publish invocation; it is not a
 Cheat Engine plugin and says nothing about whether CE can host or unload a Native AOT artifact. In particular, Native
 AOT class-library exports require explicit `UnmanagedCallersOnly` exports and Native AOT DLLs do not support
-`FreeLibrary` unloading. [Microsoft's Native AOT library guidance](https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries)
+`FreeLibrary`
+unloading. [Microsoft's Native AOT library guidance](https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries)
 and [single-file deployment guidance](https://learn.microsoft.com/dotnet/core/deploying/single-file/overview) describe
 different deployment models from this framework-dependent plugin folder.
 

@@ -166,7 +166,6 @@ internal static class LuaObjectMembersFileEmitter
             WriteTryResults(writer, model);
         else
             WriteThrowingResult(writer, model);
-
     }
 
     private static void WriteStackCheck(SourceWriter writer, LuaObjectMethodModel model, int requiredSlots)
@@ -198,7 +197,7 @@ internal static class LuaObjectMembersFileEmitter
             writer.Write('(');
             writer.Write(CSharpLiteral.ToStringLiteral(
                 "The Lua stack could not grow by " + requiredSlots.ToString(CultureInfo.InvariantCulture)
-                + " slots to call '" + model.LuaName + "'."));
+                                                   + " slots to call '" + model.LuaName + "'."));
             writer.WriteLine(");");
         }
 

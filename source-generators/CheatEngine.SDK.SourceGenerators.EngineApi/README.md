@@ -5,24 +5,29 @@ inside `CheatEngine.SDK.Engine`. It never ships in the `CheatEngine.SDK` package
 
 ## Objective
 
-Read every additional file named `*.cheatengine-sdk-api.txt` and emit one complete wrapper method per spec entry. Each wrapper
+Read every additional file named `*.cheatengine-sdk-api.txt` and emit one complete wrapper method per spec entry. Each
+wrapper
 calls one Cheat Engine Lua global through the protected call shape that `CheatEngine.SDK.Lua` defines.
 
 ## Why it exists
 
-`CheatEngine.SDK.Engine` wraps Cheat Engine's own Lua functions. Every wrapper needs the same body: acquire the state, push, call,
+`CheatEngine.SDK.Engine` wraps Cheat Engine's own Lua functions. Every wrapper needs the same body: acquire the state,
+push, call,
 read the results, restore the stack. A spec states each wrapper once in text. The generator writes the body, so all
 wrappers share one shape and one set of failure rules.
 
 The generator uses the emitter behind `[LuaGlobal]` (`LuaGlobalCallEmitter`, described in [
-`../CheatEngine.SDK.SourceGenerators.Shared/README.md`](../CheatEngine.SDK.SourceGenerators.Shared/README.md)) through the shared assembly,
+`../CheatEngine.SDK.SourceGenerators.Shared/README.md`](../CheatEngine.SDK.SourceGenerators.Shared/README.md)) through
+the shared assembly,
 never through the LuaBindings generator. It cannot reuse the output of
-`CheatEngine.SDK.SourceGenerators.LuaBindings`, because source generators do not see each other's output. It therefore writes
+`CheatEngine.SDK.SourceGenerators.LuaBindings`, because source generators do not see each other's output. It therefore
+writes
 complete declarations, never the body half of a partial method.
 
 ## How it works
 
-`libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj` loads the generator as an analyzer and passes the spec as an additional file:
+`libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj` loads the generator as an analyzer and passes the spec as an
+additional file:
 
 ```xml
 <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/CheatEngine.SDK.SourceGenerators.EngineApi.csproj"
@@ -37,7 +42,8 @@ represent, or candidates awaiting an explicit reviewed inclusion. They are not s
 does not imply a wrapper exists. Their manual vertical-slice APIs document their own evidence and ownership/thread
 boundaries.
 
-1. The generator keeps additional files whose name ends in `.cheatengine-sdk-api.txt`, ignoring case, and parses each one into a
+1. The generator keeps additional files whose name ends in `.cheatengine-sdk-api.txt`, ignoring case, and parses each
+   one into a
    model of strings and enums.
 2. It reports every malformed header or entry as a localized `CESDK3001` error on the originating additional file, then
    drops only that invalid entry. A valid sibling entry still generates normally.
@@ -45,7 +51,8 @@ boundaries.
    reports `CESDK3002` on every participating file and emits none of the conflicting files.
 4. Each remaining file becomes one generated source that compiles into `CheatEngine.SDK.Engine.dll`.
 
-`EngineApiGenerator`, in namespace `CheatEngine.SDK.SourceGenerators.EngineApi`, is the only public type. The parser uses no
+`EngineApiGenerator`, in namespace `CheatEngine.SDK.SourceGenerators.EngineApi`, is the only public type. The parser
+uses no
 Roslyn type, so tests call it with plain strings. It has no JSON dependency because NuGet does not resolve an analyzer's
 dependencies and `System.Text.Json` is not part of `netstandard2.0`.
 
@@ -55,25 +62,25 @@ A spec file is plain text made of `key: value` lines. Blank lines separate block
 every later block is one entry. A line that starts with `#` is a comment and never separates blocks. Indentation and
 CRLF line endings are tolerated.
 
-| Key         | Block  | Count              | Meaning                                                                                                                                    |
-|-------------|--------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| `namespace` | header | 1                  | Namespace of the generated type. An empty value means the global namespace.                                                                |
-| `type`      | header | 1                  | Name of the one `public static partial class` the file emits.                                                                              |
-| `contract`  | header | 0 or 1             | `ce77` opts into the mandatory, machine-validated CE 7.7 evidence contract below.                                                         |
-| `provenance`| header | with `contract`    | A proof status followed by `: ` and an immutable source reference.                                                                         |
-| `minimum-ce`| header | with `contract`    | Exact four-part minimum CE version, for example `7.7.0.10621`.                                                                             |
-| `architecture`| header | with `contract`  | `x64`; this generator makes no public target-address claim on another architecture.                                                       |
-| `thread`    | header | with `contract`    | `any`, `main`, or `unknown`; `unknown` records absent proof rather than granting thread safety.                                          |
-| `ownership` | header | with `contract`    | `none`, `borrowed`, or `owned`. Object contracts remain deliberately outside the scalar grammar.                                          |
-| `global`    | entry  | 1                  | The Lua global to call: an ASCII identifier that is not a Lua 5.3 reserved word.                                                           |
-| `method`    | entry  | 1                  | The C# method name. A C# reserved word gets an `@` prefix.                                                                                 |
-| `form`      | entry  | 1                  | `try` returns `bool` and writes `out` results. `throwing` returns the value, or `void`, and raises `LuaException` when the Lua call fails. |
-| `doc`       | entry  | 1                  | One line of original English, emitted as the XML `<summary>`. Never copy Cheat Engine documentation.                                       |
-| `arg`       | entry  | 0 or more          | `name:kind`, one pushed argument, in order.                                                                                                |
-| `fixed`     | entry  | 0 or more          | `boolean:true` or `boolean:false`, one host-required Lua argument omitted from the C# signature, after all `arg` values.                |
-| `result`    | entry  | `try`: 1 or more   | `name:kind`, one `out` result, in read order. Not allowed in a `throwing` entry.                                                           |
-| `return`    | entry  | `throwing`: 0 or 1 | The kind of the returned value. Omit it for `void`. Not allowed in a `try` entry.                                                          |
-| `nil`       | entry  | with `contract`    | `none`, `absence`, `expected-failure`, or `lua-error`: CE result semantics after a protected call succeeds.                              |
+| Key            | Block  | Count              | Meaning                                                                                                                                    |
+|----------------|--------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `namespace`    | header | 1                  | Namespace of the generated type. An empty value means the global namespace.                                                                |
+| `type`         | header | 1                  | Name of the one `public static partial class` the file emits.                                                                              |
+| `contract`     | header | 0 or 1             | `ce77` opts into the mandatory, machine-validated CE 7.7 evidence contract below.                                                          |
+| `provenance`   | header | with `contract`    | A proof status followed by `: ` and an immutable source reference.                                                                         |
+| `minimum-ce`   | header | with `contract`    | Exact four-part minimum CE version, for example `7.7.0.10621`.                                                                             |
+| `architecture` | header | with `contract`    | `x64`; this generator makes no public target-address claim on another architecture.                                                        |
+| `thread`       | header | with `contract`    | `any`, `main`, or `unknown`; `unknown` records absent proof rather than granting thread safety.                                            |
+| `ownership`    | header | with `contract`    | `none`, `borrowed`, or `owned`. Object contracts remain deliberately outside the scalar grammar.                                           |
+| `global`       | entry  | 1                  | The Lua global to call: an ASCII identifier that is not a Lua 5.3 reserved word.                                                           |
+| `method`       | entry  | 1                  | The C# method name. A C# reserved word gets an `@` prefix.                                                                                 |
+| `form`         | entry  | 1                  | `try` returns `bool` and writes `out` results. `throwing` returns the value, or `void`, and raises `LuaException` when the Lua call fails. |
+| `doc`          | entry  | 1                  | One line of original English, emitted as the XML `<summary>`. Never copy Cheat Engine documentation.                                       |
+| `arg`          | entry  | 0 or more          | `name:kind`, one pushed argument, in order.                                                                                                |
+| `fixed`        | entry  | 0 or more          | `boolean:true` or `boolean:false`, one host-required Lua argument omitted from the C# signature, after all `arg` values.                   |
+| `result`       | entry  | `try`: 1 or more   | `name:kind`, one `out` result, in read order. Not allowed in a `throwing` entry.                                                           |
+| `return`       | entry  | `throwing`: 0 or 1 | The kind of the returned value. Omit it for `void`. Not allowed in a `try` entry.                                                          |
+| `nil`          | entry  | with `contract`    | `none`, `absence`, `expected-failure`, or `lua-error`: CE result semantics after a protected call succeeds.                                |
 
 The kinds are `int32`, `int64`, `single`, `double`, `boolean`, `address`, `utf8`, `string` and `string?`. A `utf8` value
 is valid only as an argument, because a span result would dangle once the wrapper restores the stack. Two entries may
@@ -136,9 +143,9 @@ shape, then include that one file and add semantic, fixture and live-opt-in cove
 | You can rely on                                                                                                                                               | Backed by                                                                                                                                          |
 |---------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | The generator never ships.                                                                                                                                    | `src/CheatEngine.SDK/CheatEngine.SDK.csproj` packs only the analyzer references it marks `PackAsAnalyzer`, and it does not reference this project. |
-| Every invalid spec issue is a localized `CESDK3001` error; an unrelated valid entry still emits.                                                            | `Parsing/SpecFileParserTests.cs`, `Generator/DiagnosticsTests.cs`                                                                                   |
-| A ce77 spec carries validated provenance/version/architecture/thread/ownership/return/nil facts on every entry and projects them into XML documentation.  | `Parsing/SpecFileParserTests.cs`, `Generator/EmissionTests.cs`                                                                                       |
-| A spec file exclusively owns its generated type; duplicate type/member/cache identities are `CESDK3002` errors at each exact field and emit neither file. | `Generator/DiagnosticsTests.cs`                                                                                                                       |
+| Every invalid spec issue is a localized `CESDK3001` error; an unrelated valid entry still emits.                                                              | `Parsing/SpecFileParserTests.cs`, `Generator/DiagnosticsTests.cs`                                                                                  |
+| A ce77 spec carries validated provenance/version/architecture/thread/ownership/return/nil facts on every entry and projects them into XML documentation.      | `Parsing/SpecFileParserTests.cs`, `Generator/EmissionTests.cs`                                                                                     |
+| A spec file exclusively owns its generated type; duplicate type/member/cache identities are `CESDK3002` errors at each exact field and emit neither file.     | `Generator/DiagnosticsTests.cs`                                                                                                                    |
 | Emitted code compiles without errors or warnings against the real `CheatEngine.SDK.Annotations`, `CheatEngine.SDK.Lua.Interop` and `CheatEngine.SDK.Lua`.     | `Generator/EmissionTests.cs`                                                                                                                       |
 | Editing one spec file re-emits only that file. An unrelated compilation edit recomputes nothing.                                                              | `Generator/IncrementalityTests.cs`                                                                                                                 |
 | No parsed model in the pipeline holds a Roslyn object.                                                                                                        | `Pipeline_step_values_hold_no_roslyn_objects` in `Generator/IncrementalityTests.cs`                                                                |

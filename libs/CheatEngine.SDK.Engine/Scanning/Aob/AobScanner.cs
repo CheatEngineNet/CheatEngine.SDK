@@ -49,7 +49,8 @@ public static class AobScanner
     /// <returns><see langword="true" /> when CE returned a non-null host object.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
     [RequiresPluginEnabled]
-    public static bool TryScan(string pattern, AobScanOptions options, [NotNullWhen(true)] out Owned<StringList>? results)
+    public static bool TryScan(string pattern, AobScanOptions options,
+        [NotNullWhen(true)] out Owned<StringList>? results)
     {
         ArgumentNullException.ThrowIfNull(pattern);
 

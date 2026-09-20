@@ -67,7 +67,8 @@ public readonly unsafe partial struct LuaState
     {
         if (thunk.IsNull) throw new ArgumentException("The thunk is the null function.", nameof(thunk));
         if (lua_checkstack(Pointer, 1) == 0)
-            throw new InvalidOperationException("Lua could not reserve one stack slot for the bare C function; the stack is unchanged.");
+            throw new InvalidOperationException(
+                "Lua could not reserve one stack slot for the bare C function; the stack is unchanged.");
 
         lua_pushcclosure(Pointer, thunk.Pointer, 0);
     }

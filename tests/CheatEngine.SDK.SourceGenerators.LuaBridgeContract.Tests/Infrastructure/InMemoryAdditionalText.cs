@@ -13,5 +13,8 @@ internal sealed class InMemoryAdditionalText(string path, string text) : Additio
     public override string Path { get; } = path;
 
     /// <inheritdoc />
-    public override SourceText GetText(CancellationToken cancellationToken = default) => _text;
+    public override SourceText GetText(CancellationToken cancellationToken = default)
+    {
+        return _text;
+    }
 }

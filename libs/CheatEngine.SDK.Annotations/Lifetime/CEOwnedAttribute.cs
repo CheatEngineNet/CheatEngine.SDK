@@ -40,6 +40,5 @@ namespace CheatEngine.SDK.Annotations.Lifetime;
 ///         statement belongs on the API that hands the object out.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.ReturnValue | AttributeTargets.Property | AttributeTargets.Parameter, Inherited = true,
-    AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.ReturnValue | AttributeTargets.Property | AttributeTargets.Parameter)]
 public sealed class CEOwnedAttribute : Attribute;

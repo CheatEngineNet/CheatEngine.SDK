@@ -11,7 +11,8 @@ namespace CheatEngine.SDK.Hosting.Diagnostics;
 /// </summary>
 /// <remarks>
 ///     Format: <c>[CheatEngine.SDK.Hosting] Error: message</c>, followed by the exception's text on the next lines when
-///     there is one. Thread-safe (the OS call is), never throws, allocates the formatted string per entry (error paths only).
+///     there is one. Thread-safe (the OS call is), never throws, allocates the formatted string per entry (error paths
+///     only).
 /// </remarks>
 public sealed partial class DebugOutputLogSink : IHostLogSink
 {

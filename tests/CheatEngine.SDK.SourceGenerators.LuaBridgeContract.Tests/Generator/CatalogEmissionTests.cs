@@ -18,7 +18,8 @@ public sealed class CatalogEmissionTests
         Assert.True(generated.IndexOf("PushBytes = 0", StringComparison.Ordinal)
                     < generated.IndexOf("PushHostObject = 10", StringComparison.Ordinal));
         Assert.Contains("internal const int Count = 2;", generated, StringComparison.Ordinal);
-        Assert.Contains("internal const ulong RequiredBitmap = 0x0000000000000401UL;", generated, StringComparison.Ordinal);
+        Assert.Contains("internal const ulong RequiredBitmap = 0x0000000000000401UL;", generated,
+            StringComparison.Ordinal);
         Assert.Contains("opcode < 64", generated, StringComparison.Ordinal);
     }
 
@@ -48,13 +49,15 @@ public sealed class CatalogEmissionTests
             Assert.Contains(expectedMembers[i], generated, StringComparison.Ordinal);
 
         Assert.Contains("internal const int Count = 12;", generated, StringComparison.Ordinal);
-        Assert.Contains("internal const ulong RequiredBitmap = 0x0000000000000FFFUL;", generated, StringComparison.Ordinal);
+        Assert.Contains("internal const ulong RequiredBitmap = 0x0000000000000FFFUL;", generated,
+            StringComparison.Ordinal);
     }
 
     [Fact]
     public void Catalog_an_identical_rerun_is_deterministic()
     {
-        var additionalText = new InMemoryAdditionalText("eng/lua-bridge/protected-operations.json", CatalogSources.ReverseOpcodeOrder);
+        var additionalText = new InMemoryAdditionalText("eng/lua-bridge/protected-operations.json",
+            CatalogSources.ReverseOpcodeOrder);
         var compilation = RoslynFixture.CreateCompilation();
         var first = GeneratorRun.Execute(RoslynFixture.CreateDriver(additionalText), compilation);
         var second = GeneratorRun.Execute(first.Driver, compilation);
@@ -67,7 +70,8 @@ public sealed class CatalogEmissionTests
     [Fact]
     public void Replacing_a_valid_catalogue_updates_members_and_the_required_bitmap_without_stale_source()
     {
-        var original = new InMemoryAdditionalText("eng/lua-bridge/protected-operations.json", CatalogSources.ReverseOpcodeOrder);
+        var original = new InMemoryAdditionalText("eng/lua-bridge/protected-operations.json",
+            CatalogSources.ReverseOpcodeOrder);
         var compilation = RoslynFixture.CreateCompilation();
         var first = GeneratorRun.Execute(RoslynFixture.CreateDriver(original), compilation);
         var replacement = new InMemoryAdditionalText(
@@ -81,7 +85,8 @@ public sealed class CatalogEmissionTests
         second.AssertCompilesClean();
         var generated = second.SingleGeneratedText;
         Assert.Contains("PushHostObject = 4", generated, StringComparison.Ordinal);
-        Assert.Contains("internal const ulong RequiredBitmap = 0x0000000000000011UL;", generated, StringComparison.Ordinal);
+        Assert.Contains("internal const ulong RequiredBitmap = 0x0000000000000011UL;", generated,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("PushHostObject = 10", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("0x0000000000000401UL", generated, StringComparison.Ordinal);
     }
@@ -89,12 +94,14 @@ public sealed class CatalogEmissionTests
     [Fact]
     public void Replacing_a_valid_catalogue_with_an_invalid_one_removes_generated_source()
     {
-        var original = new InMemoryAdditionalText("eng/lua-bridge/protected-operations.json", CatalogSources.ReverseOpcodeOrder);
+        var original = new InMemoryAdditionalText("eng/lua-bridge/protected-operations.json",
+            CatalogSources.ReverseOpcodeOrder);
         var compilation = RoslynFixture.CreateCompilation();
         var first = GeneratorRun.Execute(RoslynFixture.CreateDriver(original), compilation);
         var replacement = new InMemoryAdditionalText(
             original.Path,
-            CatalogSources.ReverseOpcodeOrder.Replace("0x0000000000000401", "0x0000000000000001", StringComparison.Ordinal));
+            CatalogSources.ReverseOpcodeOrder.Replace("0x0000000000000401", "0x0000000000000001",
+                StringComparison.Ordinal));
 
         var second = GeneratorRun.Execute(first.Driver.ReplaceAdditionalText(original, replacement), compilation);
 

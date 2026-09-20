@@ -26,7 +26,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         one Cheat Engine property.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Property)]
 public sealed class LuaPropertyAttribute : Attribute
 {
     /// <summary>

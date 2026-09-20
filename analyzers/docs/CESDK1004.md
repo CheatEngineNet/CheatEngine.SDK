@@ -1,12 +1,12 @@
 # CESDK1004: Exception can escape an [UnmanagedCallersOnly] method
 
-|                    |                                                                          |
-|--------------------|--------------------------------------------------------------------------|
-| Category           | `CheatEngine.SDK.Usage`                                                  |
-| Default severity   | Warning                                                                  |
-| Enabled by default | Yes                                                                      |
+|                    |                                                                                               |
+|--------------------|-----------------------------------------------------------------------------------------------|
+| Category           | `CheatEngine.SDK.Usage`                                                                       |
+| Default severity   | Warning                                                                                       |
+| Enabled by default | Yes                                                                                           |
 | Code fix           | Only for the exact CE bootstrap convention; other callbacks require a manual failure contract |
-| Reported           | While typing and in build                                                |
+| Reported           | While typing and in build                                                                     |
 
 In short: put the whole body of the method in one `try` statement, catch `Exception`, and return the failure value
 specified by that callback's native contract. The code fix is deliberately narrower: it is offered only for the exact
@@ -105,7 +105,8 @@ Scope:
 
 - Methods and local functions with the attribute, block or expression bodied. A local function is analyzed on its own.
 - Generated code is not analyzed.
-- The analyzer only runs in projects where a CheatEngine.SDK contract type (`CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute`
+- The analyzer only runs in projects where a CheatEngine.SDK contract type
+  (`CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute`
   or `CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin`) can be resolved.
 
 ## Example

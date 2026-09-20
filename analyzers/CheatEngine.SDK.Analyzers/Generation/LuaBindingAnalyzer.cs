@@ -11,7 +11,8 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace CheatEngine.SDK.Analyzers.Generation;
 
 /// <summary>
-///     The generator-input rules for <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>. CESDK2001: a <c>[LuaFunction]</c> or
+///     The generator-input rules for <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>. CESDK2001: a
+///     <c>[LuaFunction]</c> or
 ///     <c>[LuaGlobal]</c> member exists but the compilation does not allow unsafe code. CESDK2002: the type that
 ///     declares such a member cannot receive a generated part. CESDK2003: a <c>[LuaFunction]</c> method cannot be
 ///     exported by a generated thunk. CESDK2004: a <c>[LuaGlobal]</c> method cannot receive a generated body.
@@ -29,7 +30,8 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 ///     <para>
 ///         Stateless and safe for concurrent execution. Everything that lives as long as a compilation is created in the
 ///         compilation-start action. When neither <c>CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute</c> nor
-///         <c>CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute</c> can be resolved, nothing is registered. CESDK2001, CESDK2002
+///         <c>CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute</c> can be resolved, nothing is registered. CESDK2001,
+///         CESDK2002
 ///         and CESDK2004 are reported from a symbol action and show up while typing. CESDK2005 is the one exception:
 ///         duplicate exported names need every valid sibling member of a containing type, so a second compilation-end
 ///         registration (<see cref="LuaFunctionDuplicateState" />) decides it. Its own descriptor carries the
@@ -59,8 +61,10 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 
     private static void OnCompilationStart(CompilationStartAnalysisContext context)
     {
-        var luaFunctionAttribute = SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaFunctionAttribute);
-        var luaGlobalAttribute = SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaGlobalAttribute);
+        var luaFunctionAttribute =
+            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaFunctionAttribute);
+        var luaGlobalAttribute =
+            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaGlobalAttribute);
         if (luaFunctionAttribute is null && luaGlobalAttribute is null) return;
 
         LuaBindingContractSymbols symbols = new(

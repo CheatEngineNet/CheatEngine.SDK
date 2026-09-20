@@ -82,7 +82,10 @@ internal sealed class GeneratorRun
         Assert.Empty(GeneratedSources);
     }
 
-    /// <summary>Asserts that an invalid or conflicted spec emitted no source, while leaving diagnostic assertions to the caller.</summary>
+    /// <summary>
+    ///     Asserts that an invalid or conflicted spec emitted no source, while leaving diagnostic assertions to the
+    ///     caller.
+    /// </summary>
     public void AssertNoGeneratedSource()
     {
         Assert.Null(Result.Exception);

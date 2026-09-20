@@ -58,8 +58,10 @@ The installed x64 host baseline is Cheat Engine `7.7.0.10621`, executable SHA-25
 `9727076DA50924E4A097B49A02155E4B34759269C3017FF31375364B8826EB4D`. The classic declarations used here come from
 the installed `cepluginsdk.h` (SHA-256 `9C0E31BB753D782CE20710D19828F4E97B4371C8733ABD0C5C6F7F485306FB28`) and
 `cepluginsdk.pas` (SHA-256 `CDA5269F441120E5A3BFF2F87E289CD71DE9158CA2A619C7D0A734EB98EE6052`), compared with the
-official [pinned `cepluginsdk.h`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/plugin/cepluginsdk.h)
-and [pinned `plugin.pas`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/plugin.pas).
+official [pinned
+`cepluginsdk.h`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/plugin/cepluginsdk.h)
+and [pinned
+`plugin.pas`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/plugin.pas).
 
 Field order, field widths, and the direct classic callback conventions are `ExactInstalledFile`. The x64 sizes and
 offsets asserted for the three new internal classic mirrors use natural Windows x64 C layout and are

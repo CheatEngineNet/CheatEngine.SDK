@@ -35,7 +35,7 @@ public sealed class EngineInspectionTests
                           """u8);
 
         var top = L.Top;
-        ModuleInfo[] current = new ModuleInfo[2];
+        var current = new ModuleInfo[2];
         var status = EngineInspection.EnumerateModules(current, out var currentCount);
 
         Assert.Equal(InspectionStatus.Success, status);
@@ -48,7 +48,7 @@ public sealed class EngineInspectionTests
         Assert.Equal("C:/games/game.exe", current[0].PathToFile);
         Assert.Equal(top, L.Top);
 
-        ModuleInfo[] explicitProcess = new ModuleInfo[1];
+        var explicitProcess = new ModuleInfo[1];
         status = EngineInspection.EnumerateModules(new TargetProcessId(4242), explicitProcess, out var explicitCount);
 
         Assert.Equal(InspectionStatus.Success, status);
@@ -73,7 +73,7 @@ public sealed class EngineInspectionTests
                           end
                           """u8);
 
-        ModuleInfo[] modules = new ModuleInfo[1];
+        var modules = new ModuleInfo[1];
         var top = L.Top;
         var status = EngineInspection.EnumerateModules(modules, out var written);
 
@@ -159,9 +159,9 @@ public sealed class EngineInspectionTests
                           end
                           """u8);
 
-        ModuleSectionInfo[] sections = new ModuleSectionInfo[1];
+        var sections = new ModuleSectionInfo[1];
         var top = L.Top;
-        var status = EngineInspection.EnumerateSections((Address)0x140000000UL, sections, out var written);
+        var status = EngineInspection.EnumerateSections(0x140000000UL, sections, out var written);
 
         Assert.Equal(InspectionStatus.Success, status);
         Assert.Equal(1, written);
@@ -298,7 +298,7 @@ public sealed class EngineInspectionTests
                           end
                           """u8);
 
-        MemoryRegionInfo[] regions = new MemoryRegionInfo[2];
+        var regions = new MemoryRegionInfo[2];
         var top = L.Top;
         var status = EngineInspection.EnumerateMemoryRegions(regions, out var written);
 
@@ -312,17 +312,17 @@ public sealed class EngineInspectionTests
         Assert.Null(regions[1].Extra);
         Assert.Equal(top, L.Top);
 
-        status = EngineInspection.GetMemoryRegionInfo((Address)0x140000000UL, out var one);
+        status = EngineInspection.GetMemoryRegionInfo(0x140000000UL, out var one);
         Assert.Equal(InspectionStatus.Success, status);
         Assert.Equal(regions[0], one);
         Assert.Equal(top, L.Top);
 
-        status = EngineInspection.GetMemoryRegionInfo((Address)0x1234UL, out one);
+        status = EngineInspection.GetMemoryRegionInfo(0x1234UL, out one);
         Assert.Equal(InspectionStatus.InvalidResult, status);
         Assert.Equal(default, one);
         Assert.Equal(top, L.Top);
 
-        status = EngineInspection.GetMemoryRegionInfo((Address)0x9999UL, out one);
+        status = EngineInspection.GetMemoryRegionInfo(0x9999UL, out one);
         Assert.Equal(InspectionStatus.InvalidResult, status);
         Assert.Equal(default, one);
         Assert.Equal(top, L.Top);

@@ -1,8 +1,9 @@
 using System.Reflection;
 using CheatEngine.SDK.Annotations.Lifetime;
+using CheatEngine.SDK.Annotations.Threading;
 using CheatEngine.SDK.Engine.Allocation;
-using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Calls;
 
@@ -21,7 +22,7 @@ public sealed class TargetMemoryAllocatorTests
         TargetAllocationRequest request = new(new TargetAllocationSize(8192), new Address(0x7FF6_1200_0000),
             MemoryProtection.ExecuteReadWrite);
 
-        using AllocatedRegion region = allocator.Allocate(request);
+        using var region = allocator.Allocate(request);
 
         Assert.Equal(new Address(0x7FF6_1234_0000), region.Address);
         Assert.Equal(new TargetAllocationSize(8192), region.Size);
@@ -35,8 +36,8 @@ public sealed class TargetMemoryAllocatorTests
         AllocationOperationsFake operations = new() { AllocationResult = false, AllocatedAddress = Address.Zero };
         TargetMemoryAllocator allocator = new(operations);
 
-        EngineOperationFailedException exception = Assert.Throws<EngineOperationFailedException>(
-            () => allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+        var exception = Assert.Throws<EngineOperationFailedException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
 
         Assert.Equal("TargetMemoryAllocate", exception.Operation);
         Assert.Null(exception.InnerException);
@@ -52,8 +53,8 @@ public sealed class TargetMemoryAllocatorTests
         if (!result) operations.AllocatedAddress = new Address(0x1234);
         TargetMemoryAllocator allocator = new(operations);
 
-        EngineMarshallingException exception = Assert.Throws<EngineMarshallingException>(
-            () => allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+        var exception = Assert.Throws<EngineMarshallingException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
 
         Assert.Equal("TargetMemoryAllocate", exception.Operation);
         Assert.Equal(1, operations.AllocateCalls);
@@ -67,8 +68,8 @@ public sealed class TargetMemoryAllocatorTests
         AllocationOperationsFake operations = new() { AllocationException = failure };
         TargetMemoryAllocator allocator = new(operations);
 
-        EngineBindingException thrown = Assert.Throws<EngineBindingException>(
-            () => allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+        var thrown = Assert.Throws<EngineBindingException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
 
         Assert.Same(failure, thrown);
     }
@@ -80,8 +81,8 @@ public sealed class TargetMemoryAllocatorTests
         AllocationOperationsFake operations = new() { AllocationException = failure };
         TargetMemoryAllocator allocator = new(operations);
 
-        EngineGlobalUnavailableException thrown = Assert.Throws<EngineGlobalUnavailableException>(
-            () => allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+        var thrown = Assert.Throws<EngineGlobalUnavailableException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
 
         Assert.Same(failure, thrown);
         Assert.Equal(EngineFailureKind.GlobalUnavailable, thrown.Kind);
@@ -94,8 +95,8 @@ public sealed class TargetMemoryAllocatorTests
         AllocationOperationsFake operations = new() { AllocationException = failure };
         TargetMemoryAllocator allocator = new(operations);
 
-        EngineLuaException thrown = Assert.Throws<EngineLuaException>(
-            () => allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+        var thrown = Assert.Throws<EngineLuaException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
 
         Assert.Same(failure, thrown);
     }
@@ -103,13 +104,13 @@ public sealed class TargetMemoryAllocatorTests
     [Fact]
     public void Public_target_memory_operations_carry_enabled_lifecycle_metadata_without_an_unproven_thread_claim()
     {
-        MethodInfo allocate = typeof(TargetMemoryAllocator)
+        var allocate = typeof(TargetMemoryAllocator)
             .GetMethod(nameof(TargetMemoryAllocator.Allocate))!;
-        MethodInfo release = typeof(AllocatedRegion).GetMethod(nameof(AllocatedRegion.Release))!;
-        MethodInfo dispose = typeof(AllocatedRegion).GetMethod(nameof(AllocatedRegion.Dispose))!;
-        MethodInfo tryAllocate = typeof(ITargetMemoryAllocationOperations)
+        var release = typeof(AllocatedRegion).GetMethod(nameof(AllocatedRegion.Release))!;
+        var dispose = typeof(AllocatedRegion).GetMethod(nameof(AllocatedRegion.Dispose))!;
+        var tryAllocate = typeof(ITargetMemoryAllocationOperations)
             .GetMethod(nameof(ITargetMemoryAllocationOperations.TryAllocate))!;
-        MethodInfo tryDeallocate = typeof(ITargetMemoryAllocationOperations).GetMethod(
+        var tryDeallocate = typeof(ITargetMemoryAllocationOperations).GetMethod(
             nameof(ITargetMemoryAllocationOperations.TryDeallocate))!;
 
         AssertHasLifecycleMetadata(allocate);
@@ -122,6 +123,6 @@ public sealed class TargetMemoryAllocatorTests
     private static void AssertHasLifecycleMetadata(MethodInfo method)
     {
         Assert.True(Attribute.IsDefined(method, typeof(RequiresPluginEnabledAttribute)));
-        Assert.False(Attribute.IsDefined(method, typeof(CheatEngine.SDK.Annotations.Threading.MainThreadOnlyAttribute)));
+        Assert.False(Attribute.IsDefined(method, typeof(MainThreadOnlyAttribute)));
     }
 }

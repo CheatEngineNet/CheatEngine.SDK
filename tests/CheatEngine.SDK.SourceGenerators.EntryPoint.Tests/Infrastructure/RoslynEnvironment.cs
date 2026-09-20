@@ -36,7 +36,8 @@ internal sealed class RoslynEnvironment
         AnnotationsReference = MetadataReference.CreateFromImage(
             annotationsImage,
             filePath: ContractStubs.AnnotationsAssemblyName + ".dll");
-        HostingReference = MetadataReference.CreateFromImage(hostingImage, filePath: ContractStubs.HostingAssemblyName + ".dll");
+        HostingReference =
+            MetadataReference.CreateFromImage(hostingImage, filePath: ContractStubs.HostingAssemblyName + ".dll");
     }
 
     /// <summary>The process-wide environment over <see cref="LocalFrameworkReferences.Load" />.</summary>
@@ -88,7 +89,8 @@ internal sealed class RoslynEnvironment
         var result = compilation.Emit(image);
         if (!result.Success)
             throw new InvalidOperationException(
-                "The " + assemblyName + " contract stubs do not compile: " + string.Join(Environment.NewLine, result.Diagnostics));
+                "The " + assemblyName + " contract stubs do not compile: " +
+                string.Join(Environment.NewLine, result.Diagnostics));
 
         return [.. image.ToArray()];
     }

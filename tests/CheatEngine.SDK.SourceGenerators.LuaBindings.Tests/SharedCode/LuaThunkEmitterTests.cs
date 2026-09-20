@@ -52,13 +52,16 @@ public sealed class LuaThunkEmitterTests
         var text = Emit(IsInteger);
 
         Assert.Contains("if (__L.Top != 1)\n", text, StringComparison.Ordinal);
-        Assert.Contains("if (!global::CheatEngine.SDK.Lua.Marshalling.DoubleMarshaller.TryRead(__L, 1, out double __arg0))\n",
+        Assert.Contains(
+            "if (!global::CheatEngine.SDK.Lua.Marshalling.DoubleMarshaller.TryRead(__L, 1, out double __arg0))\n",
             text,
             StringComparison.Ordinal);
-        Assert.Contains("return global::CheatEngine.SDK.Lua.Callbacks.LuaThunk.FailBadArgument(__L, 1, \"number\"u8);\n", text,
+        Assert.Contains(
+            "return global::CheatEngine.SDK.Lua.Callbacks.LuaThunk.FailBadArgument(__L, 1, \"number\"u8);\n", text,
             StringComparison.Ordinal);
         Assert.Contains("bool __result = global::Demo.Suite.IsInteger(__L, __arg0);\n", text, StringComparison.Ordinal);
-        Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.BooleanMarshaller.Push(__L, __result);\n        return 1;\n",
+        Assert.Contains(
+            "global::CheatEngine.SDK.Lua.Marshalling.BooleanMarshaller.Push(__L, __result);\n        return 1;\n",
             text,
             StringComparison.Ordinal);
     }
@@ -84,7 +87,8 @@ public sealed class LuaThunkEmitterTests
         Assert.Contains(
             "public static global::CheatEngine.SDK.Lua.Calls.LuaStatus UnregisterLuaFunctions(global::CheatEngine.SDK.Lua.State.LuaState state)\n",
             text, StringComparison.Ordinal);
-        Assert.Contains("state.TryPushFunction(new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_isint));",
+        Assert.Contains(
+            "state.TryPushFunction(new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_isint));",
             text,
             StringComparison.Ordinal);
         Assert.True(
@@ -102,9 +106,11 @@ public sealed class LuaThunkEmitterTests
         LuaRegistrationEmitter.Emit(writer, new EquatableArray<LuaThunkModel>([Ping]), "[Marker]");
         var text = writer.ToString();
 
-        Assert.Contains("[Marker]\npublic static unsafe global::CheatEngine.SDK.Lua.Calls.LuaStatus RegisterLuaFunctions", text,
+        Assert.Contains(
+            "[Marker]\npublic static unsafe global::CheatEngine.SDK.Lua.Calls.LuaStatus RegisterLuaFunctions", text,
             StringComparison.Ordinal);
-        Assert.Contains("[Marker]\npublic static global::CheatEngine.SDK.Lua.Calls.LuaStatus UnregisterLuaFunctions", text,
+        Assert.Contains("[Marker]\npublic static global::CheatEngine.SDK.Lua.Calls.LuaStatus UnregisterLuaFunctions",
+            text,
             StringComparison.Ordinal);
     }
 

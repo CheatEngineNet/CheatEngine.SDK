@@ -26,7 +26,8 @@ package and one class.
 ## Why it matters
 
 Cheat Engine finds a managed plugin by a hard-coded name, and it refuses a plugin whose entry point has the wrong shape
-without saying why. CheatEngine.SDK generates that entry point for you. Your project holds only your code, and a mistake shows up
+without saying why. CheatEngine.SDK generates that entry point for you. Your project holds only your code, and a mistake
+shows up
 as a compiler message before Cheat Engine ever starts.
 
 ## How it works
@@ -40,7 +41,8 @@ dotnet add package CheatEngine.SDK --prerelease
 Remove-Item Class1.cs
 ```
 
-Then open `MyPlugin.csproj` and add the `PlatformTarget` and `AllowUnsafeBlocks` lines. The finished file looks like this:
+Then open `MyPlugin.csproj` and add the `PlatformTarget` and `AllowUnsafeBlocks` lines. The finished file looks like
+this:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -86,16 +88,17 @@ internal static partial class Commands
 }
 ```
 
-| Piece                              | What it does                                                                                  |
-|------------------------------------|-----------------------------------------------------------------------------------------------|
-| `[CheatEnginePlugin("My Plugin")]` | Marks the one plugin class and sets the name Cheat Engine lists in its plugin settings        |
+| Piece                              | What it does                                                                                     |
+|------------------------------------|--------------------------------------------------------------------------------------------------|
+| `[CheatEnginePlugin("My Plugin")]` | Marks the one plugin class and sets the name Cheat Engine lists in its plugin settings           |
 | `CheatEnginePlugin`                | The base class. `OnEnable` and `OnDisable` are abstract and run on the captured lifecycle thread |
-| `LuaRuntime.AcquireState()`        | Acquires the host state for this operation. Call it once per operation and never store it     |
-| `[LuaFunction("greet")]`           | Exports a static method as the Lua global `greet`                                             |
-| `partial` on `Commands`            | Lets the generator add `RegisterLuaFunctions` and `UnregisterLuaFunctions` to your type       |
+| `LuaRuntime.AcquireState()`        | Acquires the host state for this operation. Call it once per operation and never store it        |
+| `[LuaFunction("greet")]`           | Exports a static method as the Lua global `greet`                                                |
+| `partial` on `Commands`            | Lets the generator add `RegisterLuaFunctions` and `UnregisterLuaFunctions` to your type          |
 
 > [!IMPORTANT]
-> Do not touch CheatEngine.SDK from a constructor, a field initializer or a static constructor. The Lua runtime attaches after
+> Do not touch CheatEngine.SDK from a constructor, a field initializer or a static constructor. The Lua runtime attaches
+after
 > the plugin is constructed, so anything you call there throws. Do your setup in `OnEnable`.
 
 > [!WARNING]
@@ -199,13 +202,13 @@ still opt-in evidence work.
 <details>
 <summary><strong>If nothing happens</strong></summary>
 
-| Symptom                                    | Likely cause                                                                            | Fix                                                                                                                  |
-|--------------------------------------------|-----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| The plugin is not listed after **Add new** | The plugin DLL is separated from CheatEngine.SDK dependencies                           | Keep the whole `bin/Release/net10.0` folder together                                                                 |
-| Cheat Engine refuses the DLL               | No generated entry point                                                                | Check for `CESDK0001` or `CESDK0002` in the build output, and that `CheatEngineSdkGenerateEntryPoint` is not `false` |
-| The plugin ticks and `greet` is `nil`      | `OnEnable` threw, so Cheat Engine was told the enable failed                            | Read the log below: the host logs every failed enable                                                                |
-| Cheat Engine cannot start the runtime      | The controlled host's required x64 .NET frameworks are unavailable or its local configuration is incompatible | Run `dotnet --list-runtimes`; review and record the local host policy from step 4                                  |
-| `CS9057` in the build                      | The .NET SDK is older than 10.0.401                                                     | Update the SDK. The generators are built against Roslyn 5.9                                                          |
+| Symptom                                    | Likely cause                                                                                                  | Fix                                                                                                                  |
+|--------------------------------------------|---------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| The plugin is not listed after **Add new** | The plugin DLL is separated from CheatEngine.SDK dependencies                                                 | Keep the whole `bin/Release/net10.0` folder together                                                                 |
+| Cheat Engine refuses the DLL               | No generated entry point                                                                                      | Check for `CESDK0001` or `CESDK0002` in the build output, and that `CheatEngineSdkGenerateEntryPoint` is not `false` |
+| The plugin ticks and `greet` is `nil`      | `OnEnable` threw, so Cheat Engine was told the enable failed                                                  | Read the log below: the host logs every failed enable                                                                |
+| Cheat Engine cannot start the runtime      | The controlled host's required x64 .NET frameworks are unavailable or its local configuration is incompatible | Run `dotnet --list-runtimes`; review and record the local host policy from step 4                                    |
+| `CS9057` in the build                      | The .NET SDK is older than 10.0.401                                                                           | Update the SDK. The generators are built against Roslyn 5.9                                                          |
 
 To see the host's log, start Sysinternals DebugView, turn on **Capture > Capture Global Win32** and filter for
 `CheatEngine.SDK`. Entries start with `[CheatEngine.SDK.Hosting] Information:` or `[CheatEngine.SDK.Hosting] Error:`.

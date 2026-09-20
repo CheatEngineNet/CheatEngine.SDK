@@ -112,7 +112,7 @@ public sealed class RuntimeContractsTests
                 RuntimeCapabilityContract.Unknown)
         ];
 
-        RuntimeCapabilities capabilities = RuntimeCapabilities.Create(source);
+        var capabilities = RuntimeCapabilities.Create(source);
         source[0] = new RuntimeCapabilityAvailability(RuntimeCapabilityId.TargetArchitecture,
             RuntimeCapabilityAvailabilityState.Unknown, RuntimeCapabilityContract.Unknown);
 
@@ -139,7 +139,7 @@ public sealed class RuntimeContractsTests
     public void RuntimeCapabilities_empty_or_duplicate_identifiers_are_rejected()
     {
         RuntimeCapabilityAvailability[] emptyIdentifier =
-        [new(default, RuntimeCapabilityAvailabilityState.Unknown, RuntimeCapabilityContract.Unknown)];
+            [new(default, RuntimeCapabilityAvailabilityState.Unknown, RuntimeCapabilityContract.Unknown)];
         RuntimeCapabilityAvailability[] duplicateIdentifier =
         [
             new(RuntimeCapabilityId.TargetAbi, RuntimeCapabilityAvailabilityState.Available,
@@ -156,7 +156,7 @@ public sealed class RuntimeContractsTests
     [Fact]
     public void RuntimeInfo_constructor_preserves_explicit_runtime_facts_without_normalization()
     {
-        RuntimeCapabilities capabilities = RuntimeCapabilities.Create(
+        var capabilities = RuntimeCapabilities.Create(
         [
             new RuntimeCapabilityAvailability(RuntimeCapabilityId.SystemArchitecture,
                 RuntimeCapabilityAvailabilityState.Available, RuntimeCapabilityContract.Unknown)

@@ -12,11 +12,11 @@
 
 ---
 
-|                            |                                                                                                                                                                                                        |
-|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **You learn**              | Why a MemScan and its FoundList form one parent/child state machine, and why an object pointer is not enough to establish ownership                                                                      |
-| **Cheat Engine surface**   | `createMemScan`, `createFoundList`, `firstScan`, `nextScan`, `newScan`, `waitTillDone`, `initialize`, and `deinitialize`                                                                              |
-| **Current SDK boundary**   | The typed session owns an explicitly transferred parent/child pair; public creation remains deferred pending CE 7.7 ownership evidence                                                                  |
+|                          |                                                                                                                                        |
+|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| **You learn**            | Why a MemScan and its FoundList form one parent/child state machine, and why an object pointer is not enough to establish ownership    |
+| **Cheat Engine surface** | `createMemScan`, `createFoundList`, `firstScan`, `nextScan`, `newScan`, `waitTillDone`, `initialize`, and `deinitialize`               |
+| **Current SDK boundary** | The typed session owns an explicitly transferred parent/child pair; public creation remains deferred pending CE 7.7 ownership evidence |
 
 ## Status
 
@@ -45,12 +45,12 @@ stateDiagram-v2
     Invalidated --> Disposed: deterministic teardown only
 ```
 
-| State | Operations that are safe by the session contract | Why |
-|---|---|---|
-| `New` | First scan or disposal | There is no readable result view yet |
-| `Scanning` | Wait for completion or disposal | The list must not be read while CE updates it |
-| `ResultsReady` | Read results, next scan, reset, or disposal | The same initialized FoundList represents this completed scan |
-| `Invalidated` | Disposal | A protected error leaves the native scan state ambiguous, so the SDK does not invent recovery |
+| State          | Operations that are safe by the session contract | Why                                                                                           |
+|----------------|--------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| `New`          | First scan or disposal                           | There is no readable result view yet                                                          |
+| `Scanning`     | Wait for completion or disposal                  | The list must not be read while CE updates it                                                 |
+| `ResultsReady` | Read results, next scan, reset, or disposal      | The same initialized FoundList represents this completed scan                                 |
+| `Invalidated`  | Disposal                                         | A protected error leaves the native scan state ambiguous, so the SDK does not invent recovery |
 
 The important order is `deinitialize` before a next scan/reset, and `waitTillDone` followed by `initialize` before
 reading. Disposal has to release the child view before destroying the child, then the parent. These are conservative

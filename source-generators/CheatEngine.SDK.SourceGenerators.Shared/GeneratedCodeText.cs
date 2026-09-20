@@ -4,7 +4,8 @@ using System.Reflection;
 namespace CheatEngine.SDK.SourceGenerators.Shared;
 
 /// <summary>
-///     The fixed pieces every generated file starts with, so that all CheatEngine.SDK generators mark their output the same way.
+///     The fixed pieces every generated file starts with, so that all CheatEngine.SDK generators mark their output the
+///     same way.
 /// </summary>
 /// <remarks>
 ///     <list type="bullet">

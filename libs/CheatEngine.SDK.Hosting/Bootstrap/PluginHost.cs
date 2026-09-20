@@ -46,7 +46,7 @@ public static unsafe partial class PluginHost
 {
     private static readonly Lock SGate = new();
     private static readonly Lock SAdmissionGate = new();
-    private static readonly ManualResetEventSlim SNoAdmittedMainThreadWork = new(initialState: true);
+    private static readonly ManualResetEventSlim SNoAdmittedMainThreadWork = new(true);
 
     // Written once by the first successful InitializeManaged, never cleared in production.
     private static PluginDescriptor? s_descriptor;
@@ -281,7 +281,8 @@ public static unsafe partial class PluginHost
         lock (SAdmissionGate)
         {
             if (!ReferenceEquals(s_shutdown, shutdown))
-                throw new InvalidOperationException("The lifecycle shutdown source was replaced before work admission opened.");
+                throw new InvalidOperationException(
+                    "The lifecycle shutdown source was replaced before work admission opened.");
 
             Volatile.Write(ref s_acceptingMainThreadWork, 1);
         }
@@ -299,12 +300,13 @@ public static unsafe partial class PluginHost
         if (shutdown is not null)
             try
             {
-                shutdown.Cancel(throwOnFirstException: false);
+                shutdown.Cancel(false);
             }
             catch (Exception exception)
             {
                 // A cancellation registration is plugin code. It cannot prevent the required drain and detach.
-                HostLog.Error("A plugin shutdown callback threw while DisablePlugin was signalling shutdown.", exception);
+                HostLog.Error("A plugin shutdown callback threw while DisablePlugin was signalling shutdown.",
+                    exception);
             }
 
         DrainAdmittedMainThreadWork(context);
@@ -358,6 +360,14 @@ public static unsafe partial class PluginHost
         }
     }
 
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowNotEnabled()
+    {
+        throw new InvalidOperationException(
+            "The plugin is not enabled: Cheat Engine has not called EnablePlugin, or has called DisablePlugin since.");
+    }
+
     /// <summary>A single admitted main-thread dispatch. Internal so only Hosting can close the lifecycle work gate.</summary>
     internal sealed class MainThreadWorkAdmission : IDisposable
     {
@@ -368,13 +378,5 @@ public static unsafe partial class PluginHost
         {
             if (Interlocked.Exchange(ref _released, 1) == 0) ReleaseMainThreadWorkAdmission();
         }
-    }
-
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowNotEnabled()
-    {
-        throw new InvalidOperationException(
-            "The plugin is not enabled: Cheat Engine has not called EnablePlugin, or has called DisablePlugin since.");
     }
 }

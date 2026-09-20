@@ -3,7 +3,8 @@ using CheatEngine.SDK.Analyzers.Plugin;
 using CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 using Microsoft.CodeAnalysis.Testing;
 using Verifier =
-    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
+    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<
+        CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
 
 namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 
@@ -238,19 +239,19 @@ public sealed class PluginClassShapeTests
     {
         await Verifier.VerifyAsync(
             """
-                                   using CheatEngine.SDK.Annotations.Plugin;
-                                   using CheatEngine.SDK.Hosting.Plugin;
+            using CheatEngine.SDK.Annotations.Plugin;
+            using CheatEngine.SDK.Hosting.Plugin;
 
-                                   namespace MyPlugin;
+            namespace MyPlugin;
 
-                                   [CheatEnginePlugin("Demo")]
-                                   public sealed class {|#0:DemoPlugin|} : CheatEnginePlugin
-                                   {
-                                       public DemoPlugin(int value = 0) { }
-                                       protected override void OnEnable() { }
-                                       protected override void OnDisable() { }
-                                   }
-                                   """,
+            [CheatEnginePlugin("Demo")]
+            public sealed class {|#0:DemoPlugin|} : CheatEnginePlugin
+            {
+                public DemoPlugin(int value = 0) { }
+                protected override void OnEnable() { }
+                protected override void OnDisable() { }
+            }
+            """,
             Problem(0, "DemoPlugin", PluginShapeIssues.MissingParameterlessConstructor));
     }
 
@@ -259,19 +260,19 @@ public sealed class PluginClassShapeTests
     {
         await Verifier.VerifyAsync(
             """
-                                   using CheatEngine.SDK.Annotations.Plugin;
-                                   using CheatEngine.SDK.Hosting.Plugin;
+            using CheatEngine.SDK.Annotations.Plugin;
+            using CheatEngine.SDK.Hosting.Plugin;
 
-                                   namespace MyPlugin;
+            namespace MyPlugin;
 
-                                   [CheatEnginePlugin("Demo")]
-                                   public sealed class {|#0:DemoPlugin|} : CheatEnginePlugin
-                                   {
-                                       public DemoPlugin(params int[] xs) { }
-                                       protected override void OnEnable() { }
-                                       protected override void OnDisable() { }
-                                   }
-                                   """,
+            [CheatEnginePlugin("Demo")]
+            public sealed class {|#0:DemoPlugin|} : CheatEnginePlugin
+            {
+                public DemoPlugin(params int[] xs) { }
+                protected override void OnEnable() { }
+                protected override void OnDisable() { }
+            }
+            """,
             Problem(0, "DemoPlugin", PluginShapeIssues.MissingParameterlessConstructor));
     }
 
@@ -280,20 +281,20 @@ public sealed class PluginClassShapeTests
     {
         await Verifier.VerifyAsync(
             """
-                                   using CheatEngine.SDK.Annotations.Plugin;
-                                   using CheatEngine.SDK.Hosting.Plugin;
+            using CheatEngine.SDK.Annotations.Plugin;
+            using CheatEngine.SDK.Hosting.Plugin;
 
-                                   namespace MyPlugin;
+            namespace MyPlugin;
 
-                                   [CheatEnginePlugin("Demo")]
-                                   public sealed class {|#0:DemoPlugin|} : CheatEnginePlugin
-                                   {
-                                       private DemoPlugin(int value = 0) { }
-                                       internal DemoPlugin(string text = "") { }
-                                       protected override void OnEnable() { }
-                                       protected override void OnDisable() { }
-                                   }
-                                   """,
+            [CheatEnginePlugin("Demo")]
+            public sealed class {|#0:DemoPlugin|} : CheatEnginePlugin
+            {
+                private DemoPlugin(int value = 0) { }
+                internal DemoPlugin(string text = "") { }
+                protected override void OnEnable() { }
+                protected override void OnDisable() { }
+            }
+            """,
             Problem(0, "DemoPlugin", PluginShapeIssues.MissingParameterlessConstructor));
     }
 
@@ -613,21 +614,23 @@ public sealed class PluginClassShapeTests
 
         await Verifier.VerifyAsync(
             $$"""
-              using CheatEngine.SDK.Annotations.Plugin;
-              using CheatEngine.SDK.Hosting.Plugin;
+                using CheatEngine.SDK.Annotations.Plugin;
+                using CheatEngine.SDK.Hosting.Plugin;
 
-              namespace {|#1:CESDK|}
-              {
-                  {{declaration}}
-              }
-            """,
+                namespace {|#1:CESDK|}
+                {
+                    {{declaration}}
+                }
+              """,
             directCollision
-                ? [
+                ?
+                [
                     Verifier.Diagnostic(DiagnosticDescriptors.ReservedNamespace).WithLocation(1).WithArguments("CESDK"),
                     reservedName,
                     collision
                 ]
-                : [
+                :
+                [
                     Verifier.Diagnostic(DiagnosticDescriptors.ReservedNamespace).WithLocation(1).WithArguments("CESDK"),
                     collision,
                     reservedName
@@ -819,22 +822,22 @@ public sealed class PluginClassShapeTests
     public async Task Project_without_a_cheatengine_sdk_reference_is_not_analysed()
     {
         await Verifier.VerifyWithoutCheatEngineSdkAsync("""
-                                               using System;
+                                                        using System;
 
-                                               namespace CESDK.Lookalike
-                                               {
-                                                   [AttributeUsage(AttributeTargets.Class)]
-                                                   public sealed class CheatEnginePluginAttribute(string name) : Attribute
-                                                   {
-                                                       public string Name { get; } = name;
-                                                   }
+                                                        namespace CESDK.Lookalike
+                                                        {
+                                                            [AttributeUsage(AttributeTargets.Class)]
+                                                            public sealed class CheatEnginePluginAttribute(string name) : Attribute
+                                                            {
+                                                                public string Name { get; } = name;
+                                                            }
 
-                                                   [CheatEnginePlugin("Demo")]
-                                                   public abstract class DemoPlugin
-                                                   {
-                                                   }
-                                               }
-                                               """);
+                                                            [CheatEnginePlugin("Demo")]
+                                                            public abstract class DemoPlugin
+                                                            {
+                                                            }
+                                                        }
+                                                        """);
     }
 
     private static DiagnosticResult Problem(int location, string className, PluginShapeIssues problem)

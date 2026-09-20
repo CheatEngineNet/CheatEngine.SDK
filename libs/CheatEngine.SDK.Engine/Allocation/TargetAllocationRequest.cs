@@ -51,5 +51,4 @@ public readonly record struct TargetAllocationRequest
     ///     Gets the optional initial page protection.
     /// </summary>
     public MemoryProtection? Protection { get; }
-
 }

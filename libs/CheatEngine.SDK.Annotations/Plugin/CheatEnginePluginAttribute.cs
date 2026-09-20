@@ -36,7 +36,7 @@ namespace CheatEngine.SDK.Annotations.Plugin;
 ///         Cheat Engine has room for exactly one name.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class CheatEnginePluginAttribute : Attribute
 {
     /// <summary>

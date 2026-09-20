@@ -4,7 +4,7 @@
 ### New Rules
 
  Rule ID   | Category                   | Severity | Notes
------------|----------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------
+-----------|----------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------
  CESDK0003 | CheatEngine.SDK.Plugin     | Error    | CheatEnginePluginAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK0003.md)
  CESDK0005 | CheatEngine.SDK.Plugin     | Error    | CheatEnginePluginAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK0005.md)
  CESDK1001 | CheatEngine.SDK.Usage      | Error    | PluginLifecycleAndOwnershipAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK1001.md)

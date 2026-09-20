@@ -133,14 +133,14 @@ flowchart LR
     E --> F["List of Address<br/>plain managed data"]
 ```
 
-| Step                            | Why                                                                                      |
-|---------------------------------|------------------------------------------------------------------------------------------|
-| `AobScanner.TryScan`            | Performs the protected CE call and provides an owner only when CE returned a valid list  |
-| `Owned<StringList>`             | Is the factory-issued ownership proof; `Dispose` executes the documented destroy path once |
-| `StringList.TryGetCount`        | Reads the list's count through a protected object call                                    |
-| `StringList.TryGetItem(i)`      | Uses Cheat Engine's zero-based index and copies one address string                       |
-| `Address.TryParse`              | Decodes CE's hexadecimal address text into the target-address type                       |
-| `using (owner)`                 | Releases the list before it can escape as a stale native handle                           |
+| Step                       | Why                                                                                        |
+|----------------------------|--------------------------------------------------------------------------------------------|
+| `AobScanner.TryScan`       | Performs the protected CE call and provides an owner only when CE returned a valid list    |
+| `Owned<StringList>`        | Is the factory-issued ownership proof; `Dispose` executes the documented destroy path once |
+| `StringList.TryGetCount`   | Reads the list's count through a protected object call                                     |
+| `StringList.TryGetItem(i)` | Uses Cheat Engine's zero-based index and copies one address string                         |
+| `Address.TryParse`         | Decodes CE's hexadecimal address text into the target-address type                         |
+| `using (owner)`            | Releases the list before it can escape as a stale native handle                            |
 
 ### 4. Export it and patch with it
 
@@ -250,7 +250,8 @@ A signature that survives updates follows a few habits:
 
 - **Lifetime and thread.** Dispose the factory-issued owner before disable, on the host thread required by its ownership
   contract. The AOB catalog itself does not prove a CE GUI-thread rule; use the guarded `MainThread.Invoke` boundary
-  when the surrounding feature requires the captured enable thread (see [09 · The main thread](../09-main-thread/README.md)).
+  when the surrounding feature requires the captured enable thread
+  (see [09 · The main thread](../09-main-thread/README.md)).
 - **A scan takes time.** A full memory scan blocks the thread that runs it. Narrow it with a module, `+X` or an
   alignment before you scan a large process.
 - **Nothing found.** Cheat Engine may return no list at all, or an empty one. `Signatures.Scan` returns an empty list in

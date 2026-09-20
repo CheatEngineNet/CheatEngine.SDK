@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using CheatEngine.SDK.SourceGenerators.Shared;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 
@@ -45,7 +46,7 @@ internal static class SpecFiles
                 while (!used.Add(hintName))
                 {
                     hintName = HintNames.ForType(
-                        sourceIdentity + "." + disambiguator.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        sourceIdentity + "." + disambiguator.ToString(CultureInfo.InvariantCulture),
                         SpecFileModel.HintSuffix);
                     disambiguator++;
                 }
@@ -92,7 +93,8 @@ internal static class SpecFiles
         {
             var spec = specs[index];
             AddConflict(ref spec, spec.TypeLine, spec.TypeColumn,
-                "Generated type '" + QualifiedTypeName(spec) + "' is declared by multiple Engine API spec files; one spec file must own a generated type.");
+                "Generated type '" + QualifiedTypeName(spec) +
+                "' is declared by multiple Engine API spec files; one spec file must own a generated type.");
             specs[index] = spec;
         }
     }
@@ -101,12 +103,12 @@ internal static class SpecFiles
     {
         Dictionary<string, List<(int FileIndex, int Line, int Column)>> owners = new(StringComparer.Ordinal);
         foreach (var index in indices)
-            foreach (var call in specs[index].Calls)
-            {
-                AddOwner(owners, call.Call.MethodName, (index, call.MethodLine, call.MethodColumn));
-                if (UsesAddressFacade(call.Call))
-                    AddOwner(owners, CoreMethodName(call.Call.MethodName), (index, call.MethodLine, call.MethodColumn));
-            }
+        foreach (var call in specs[index].Calls)
+        {
+            AddOwner(owners, call.Call.MethodName, (index, call.MethodLine, call.MethodColumn));
+            if (UsesAddressFacade(call.Call))
+                AddOwner(owners, CoreMethodName(call.Call.MethodName), (index, call.MethodLine, call.MethodColumn));
+        }
 
         foreach (var entry in owners)
         {
@@ -116,7 +118,8 @@ internal static class SpecFiles
             {
                 var spec = specs[fileIndex];
                 AddConflict(ref spec, line, column,
-                    "Generated member '" + entry.Key + "' is declared by multiple Engine API spec files for type '" + QualifiedTypeName(spec) + "'.");
+                    "Generated member '" + entry.Key + "' is declared by multiple Engine API spec files for type '" +
+                    QualifiedTypeName(spec) + "'.");
                 specs[fileIndex] = spec;
             }
         }
@@ -144,13 +147,15 @@ internal static class SpecFiles
             {
                 var spec = specs[fileIndex];
                 AddConflict(ref spec, line, column,
-                    "Generated cache field '" + entry.Key + "' is declared by multiple Engine API spec files for type '" + QualifiedTypeName(spec) + "'.");
+                    "Generated cache field '" + entry.Key +
+                    "' is declared by multiple Engine API spec files for type '" + QualifiedTypeName(spec) + "'.");
                 specs[fileIndex] = spec;
             }
         }
     }
 
-    private static void AddOwner(Dictionary<string, List<(int FileIndex, int Line, int Column)>> owners, string identity,
+    private static void AddOwner(Dictionary<string, List<(int FileIndex, int Line, int Column)>> owners,
+        string identity,
         (int FileIndex, int Line, int Column) owner)
     {
         if (!owners.TryGetValue(identity, out var values))
@@ -200,7 +205,7 @@ internal static class SpecFiles
         var hash = 2166136261u;
         foreach (var c in sourcePath) hash = unchecked((hash ^ c) * 16777619u);
 
-        return hash.ToString("x8", System.Globalization.CultureInfo.InvariantCulture);
+        return hash.ToString("x8", CultureInfo.InvariantCulture);
     }
 
     // The file name only (no directory), without touching the file system: AdditionalText.Path is a string the

@@ -69,7 +69,6 @@ internal static class HintNames
     ///     that name is already reserved too, ordinal suffixes beginning at two are tried until
     ///     <see cref="HashSet{T}.Add(T)" /> succeeds. The supplied set must use
     ///     <see cref="StringComparer.OrdinalIgnoreCase" /> so the reservation matches Roslyn's rule.
-    ///
     ///     The Engine API generator currently needs a source-path identity in addition to a type name. Its allocator
     ///     remains intentionally separate until that identity rule is reconciled with this shared helper.
     /// </remarks>
@@ -78,7 +77,8 @@ internal static class HintNames
         if (used is null) throw new ArgumentNullException(nameof(used));
 
         if (!StringComparer.OrdinalIgnoreCase.Equals(used.Comparer))
-            throw new ArgumentException("Hint names must be reserved with StringComparer.OrdinalIgnoreCase.", nameof(used));
+            throw new ArgumentException("Hint names must be reserved with StringComparer.OrdinalIgnoreCase.",
+                nameof(used));
 
         var readable = ForType(typeName, suffix);
         if (used.Add(readable)) return readable;

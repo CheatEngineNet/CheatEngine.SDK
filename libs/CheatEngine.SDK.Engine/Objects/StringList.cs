@@ -19,7 +19,8 @@ namespace CheatEngine.SDK.Engine.Objects;
 ///         it is never a managed collection, and every operation uses <see cref="CEObject" />'s protected primitives.
 ///     </para>
 ///     <para>
-///         A successful <c>Try*</c> method has restored the Lua stack before returning. It returns <see langword="false" />
+///         A successful <c>Try*</c> method has restored the Lua stack before returning. It returns
+///         <see langword="false" />
 ///         when a Lua member raises, is missing, or gives a value of the wrong kind; a detached runtime still throws
 ///         <see cref="InvalidOperationException" />. CE's published documentation does not state a thread affinity for
 ///         this class, so this wrapper deliberately has no <c>MainThreadOnly</c> claim pending the CE 7.7 live probe. It

@@ -22,7 +22,7 @@ public sealed class AobScannerTests
         AobStringListTestHost.InstallAobScan(L, handle);
 
         Assert.True(AobScanner.TryScan("48 8B ?? 89", out var results));
-        Owned<StringList> owned = Assert.IsType<Owned<StringList>>(results);
+        var owned = Assert.IsType<Owned<StringList>>(results);
         Assert.True(owned.Value.TryGetCount(out var count));
         Assert.Equal(2, count);
         Assert.True(owned.Value.TryGetItem(1, out var second));
@@ -53,7 +53,7 @@ public sealed class AobScannerTests
         AobScanOptions options = new(null, FastScanMethod.Aligned, "16");
 
         Assert.True(AobScanner.TryScan("90 90", options, out var results));
-        Owned<StringList> owned = Assert.IsType<Owned<StringList>>(results);
+        var owned = Assert.IsType<Owned<StringList>>(results);
         EngineTest.Run(L, "return aob_argument_count, aob_protection, aob_alignment, aob_alignment_parameter"u8, 4);
         Assert.Equal(4, EngineTest.ReadInteger(L, -4));
         Assert.True(L.IsNil(-3));
@@ -77,7 +77,7 @@ public sealed class AobScannerTests
         AobScanOptions options = new("+X-C-W", FastScanMethod.NotAligned, null);
 
         Assert.True(AobScanner.TryScan("CC", options, out var results));
-        Owned<StringList> owned = Assert.IsType<Owned<StringList>>(results);
+        var owned = Assert.IsType<Owned<StringList>>(results);
         EngineTest.Run(L, "return aob_argument_count, aob_protection, aob_alignment"u8, 3);
         Assert.Equal(2, EngineTest.ReadInteger(L, -3));
         Assert.Equal("+X-C-W", EngineTest.ReadString(L, -2));

@@ -68,7 +68,8 @@ public sealed class LuaFunctionOutputTests(RoslynFixture roslyn) : IClassFixture
             StringComparison.Ordinal);
         Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.Utf8Marshaller.Push(__L, __result);", text,
             StringComparison.Ordinal);
-        Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.AddressMarshaller.TryRead(__L, 1, out nuint __arg0)", text,
+        Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.AddressMarshaller.TryRead(__L, 1, out nuint __arg0)",
+            text,
             StringComparison.Ordinal);
     }
 

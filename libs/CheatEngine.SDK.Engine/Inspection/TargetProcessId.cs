@@ -3,7 +3,10 @@ using System.Globalization;
 
 namespace CheatEngine.SDK.Engine.Inspection;
 
-/// <summary>A positive Windows process identifier supplied to Cheat Engine's optional <c>enumModules(processid)</c> argument.</summary>
+/// <summary>
+///     A positive Windows process identifier supplied to Cheat Engine's optional <c>enumModules(processid)</c>
+///     argument.
+/// </summary>
 /// <remarks>
 ///     This is intentionally distinct from an address and from a host handle. It is a copied scalar, owns no operating
 ///     system resource, and can be used from any thread; the Lua operation that consumes it is main-thread-only.
@@ -15,7 +18,9 @@ public readonly struct TargetProcessId : IEquatable<TargetProcessId>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="value" /> is zero or negative.</exception>
     public TargetProcessId(int value)
     {
-        if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value), value, "A target process identifier must be positive.");
+        if (value <= 0)
+            throw new ArgumentOutOfRangeException(nameof(value), value,
+                "A target process identifier must be positive.");
 
         Value = value;
     }

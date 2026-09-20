@@ -25,5 +25,5 @@ public enum PluginHostLifecyclePhase
     Enabled = 3,
 
     /// <summary>The host closed admission, signalled shutdown, or is running <c>OnDisable</c> and cleanup.</summary>
-    Disabling = 4,
+    Disabling = 4
 }

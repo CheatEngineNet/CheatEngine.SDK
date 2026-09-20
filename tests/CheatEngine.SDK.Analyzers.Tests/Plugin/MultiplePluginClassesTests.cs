@@ -3,7 +3,8 @@ using CheatEngine.SDK.Analyzers.Plugin;
 using CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 using Microsoft.CodeAnalysis.Testing;
 using Verifier =
-    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
+    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<
+        CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
 
 namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 

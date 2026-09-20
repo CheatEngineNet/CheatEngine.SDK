@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.Analyzers.Plugin;
 using CheatEngine.SDK.Analyzers.Tests.Infrastructure;
@@ -5,15 +6,16 @@ using CheatEngine.SDK.SourceGenerators.EntryPoint;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
-using System.Collections.Immutable;
 
 namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 
 /// <summary>
 ///     The plugin-shape predicate that both the entry-point generator and CESDK0001 call
-///     (<c>source-generators/CheatEngine.SDK.SourceGenerators.Shared/Shapes/PluginShape.cs</c>) is exercised here through its two
+///     (<c>source-generators/CheatEngine.SDK.SourceGenerators.Shared/Shapes/PluginShape.cs</c>) is exercised here through
+///     its two
 ///     real call sites -
-///     <c>CheatEngine.SDK.SourceGenerators.EntryPoint.EntryPointGenerator</c> and <c>CheatEnginePluginAnalyzer</c> - run over the
+///     <c>CheatEngine.SDK.SourceGenerators.EntryPoint.EntryPointGenerator</c> and <c>CheatEnginePluginAnalyzer</c> - run
+///     over the
 ///     exact same compilation, and the two verdicts are asserted to agree for every shape of the matrix: the generator
 ///     emits an entry point for a plugin class if and only if CESDK0001 says nothing about it.
 /// </summary>
@@ -24,7 +26,8 @@ namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 ///     entry-point generator project is the one additional normal reference this parity matrix needs (its own tests
 ///     do the equivalent for the analyzer's side: <c>DefaultVerifierTests</c> runs the generator under
 ///     <c>CSharpSourceGeneratorTest&lt;,DefaultVerifier&gt;</c>). The shape matrix below copies the exact source
-///     snippets of <c>tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests/Generator/NoOutputTests.InvalidShapes</c> and
+///     snippets of <c>tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests/Generator/NoOutputTests.InvalidShapes</c>
+///     and
 ///     <c>ValidShapeTests.ValidShapes</c> (copied, not referenced: test projects do not reference each other's test
 ///     code), plus these further shapes: required members without <c>[SetsRequiredMembers]</c>,
 ///     <c>[Obsolete(error: true)]</c>, a <see langword="file" /> class, optional/params-only constructors,

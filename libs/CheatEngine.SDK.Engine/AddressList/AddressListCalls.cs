@@ -7,14 +7,16 @@ using CheatEngine.SDK.Lua.Marshalling;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
 
-namespace CheatEngine.SDK.Engine.AddressLists;
+namespace CheatEngine.SDK.Engine.AddressList;
 
 /// <summary>Protected call shapes used only by the address-list object wrappers.</summary>
 /// <remarks>
-/// The current EngineApi generator has no object result, object argument, or instance-method specification form. Keeping
-/// the three shapes here makes that gap explicit while preserving the generator's stack and failure contract: a failed
-/// lookup, protected call, <c>nil</c> result, or result of the wrong kind returns <see langword="false" />, defaults the
-/// result, and restores the stack.
+///     The current EngineApi generator has no object result, object argument, or instance-method specification form.
+///     Keeping
+///     the three shapes here makes that gap explicit while preserving the generator's stack and failure contract: a failed
+///     lookup, protected call, <c>nil</c> result, or result of the wrong kind returns <see langword="false" />, defaults
+///     the
+///     result, and restores the stack.
 /// </remarks>
 internal static class AddressListCalls
 {
@@ -27,10 +29,7 @@ internal static class AddressListCalls
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, global))
-                return LuaCallSupport.Fail(state, top, out result);
-
-            if (!state.TryCall(0, 1).IsOk || !TMarshaller.TryRead(state, -1, out result))
+            if (!LuaGlobalFunctions.TryPush(state, cache, global) || !state.TryCall(0, 1).IsOk || !TMarshaller.TryRead(state, -1, out result))
                 return LuaCallSupport.Fail(state, top, out result);
 
             return true;

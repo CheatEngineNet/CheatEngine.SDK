@@ -255,7 +255,8 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
 
         Assert.True(stackCheck >= 0 && stackCheck < receiverPush,
             "The object receiver, function and all arguments must be preflighted before the first push.");
-        Assert.Contains("return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__ceState, __ceTop, out total);",
+        Assert.Contains(
+            "return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__ceState, __ceTop, out total);",
             members, StringComparison.Ordinal);
         Assert.Contains("if (!__ceState.TryEnsureStack(18))", members, StringComparison.Ordinal);
         Assert.Contains("__ceState.TryCall(15, 1)", members, StringComparison.Ordinal);

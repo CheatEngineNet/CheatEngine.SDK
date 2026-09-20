@@ -292,7 +292,7 @@ public sealed class LuaCallbackTests
     public async Task Detach_closes_admission_and_drains_callback_creation_before_registry_publication()
     {
         LuaTest.RequireNativeLua();
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
@@ -311,7 +311,7 @@ public sealed class LuaCallbackTests
 
         try
         {
-            Task<LuaCallback<Counter>?> creation = Task.Factory.StartNew(() =>
+            var creation = Task.Factory.StartNew(() =>
             {
                 var status = LuaCallback.TryCreate(L, Thunks.Count, counter, out var callback);
                 Assert.True(status.IsOk);
@@ -320,7 +320,7 @@ public sealed class LuaCallbackTests
             Assert.True(creationPaused.Wait(TimeSpan.FromSeconds(5), cancellationToken),
                 "Callback creation did not reach its pre-registry barrier.");
 
-            Task detach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken, TaskCreationOptions.LongRunning,
+            var detach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken, TaskCreationOptions.LongRunning,
                 TaskScheduler.Default);
             Assert.True(admissionClosed.Wait(TimeSpan.FromSeconds(5), cancellationToken),
                 "Detach did not close Lua operation admission.");
@@ -330,7 +330,7 @@ public sealed class LuaCallbackTests
                 "Detach completed while an admitted callback creation had not published to the registry.");
 
             allowPublication.Set();
-            LuaCallback<Counter>? callback = await creation.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+            var callback = await creation.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
             await detach.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
 
             Assert.NotNull(callback);
@@ -350,7 +350,7 @@ public sealed class LuaCallbackTests
     public async Task Dispose_after_detach_closes_admission_defers_to_callback_neutralization()
     {
         LuaTest.RequireNativeLua();
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
@@ -370,7 +370,7 @@ public sealed class LuaCallbackTests
 
         try
         {
-            Task detach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken, TaskCreationOptions.LongRunning,
+            var detach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken, TaskCreationOptions.LongRunning,
                 TaskScheduler.Default);
             Assert.True(admissionClosed.Wait(TimeSpan.FromSeconds(5), cancellationToken),
                 "Detach did not close operation admission.");
@@ -405,7 +405,7 @@ public sealed class LuaCallbackTests
     public async Task Dispose_observing_closed_admission_remains_linked_when_detach_failure_reopens_it()
     {
         LuaTest.RequireNativeLua();
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
@@ -415,12 +415,12 @@ public sealed class LuaCallbackTests
         Assert.True(LuaCallback.TryCreate(L, Thunks.Count, new Counter(), out var second).IsOk);
         Assert.True(second!.TryRegister(L, "second"u8).IsOk);
 
-        Task detach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken, TaskCreationOptions.LongRunning,
+        var detach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken, TaskCreationOptions.LongRunning,
             TaskScheduler.Default);
         Assert.True(race.AdmissionClosed.Wait(TimeSpan.FromSeconds(5), cancellationToken),
             "Detach did not close operation admission.");
 
-        Task dispose = Task.Factory.StartNew(first.Dispose, cancellationToken, TaskCreationOptions.LongRunning,
+        var dispose = Task.Factory.StartNew(first.Dispose, cancellationToken, TaskCreationOptions.LongRunning,
             TaskScheduler.Default);
         Assert.True(race.DisposeObservedRefusal.Wait(TimeSpan.FromSeconds(5), cancellationToken),
             "Dispose did not observe the closed admission gate.");
@@ -510,7 +510,7 @@ public sealed class LuaCallbackTests
         Counter counter = new();
         Assert.True(LuaCallback.TryCreate(L, Thunks.Count, counter, out var callback).IsOk);
         Assert.NotNull(callback);
-        var replacement = HostDouble.CreateBinding(state.L, true);
+        var replacement = HostDouble.CreateBinding(state.L);
         LuaCallbackRegistry.AfterReleaseForTesting = static () =>
             throw new InvalidOperationException("deterministic callback cleanup failure");
 
@@ -703,6 +703,12 @@ public sealed class LuaCallbackTests
         callback.Release(L);
     }
 
+    private static void Register(LuaState L, LuaNativeFunction thunk, ReadOnlySpan<byte> name)
+    {
+        Assert.True(L.TryPushFunction(thunk).IsOk);
+        Assert.True(L.TrySetGlobal(name).IsOk);
+    }
+
     private sealed class DisposeAdmissionFailureRace : IDisposable
     {
         private readonly CancellationToken _cancellationToken;
@@ -723,13 +729,6 @@ public sealed class LuaCallbackTests
 
         public ManualResetEventSlim AllowDisposeToReturn { get; } = new(false);
 
-        public static void DisableFailureSeams()
-        {
-            LuaRuntime.OperationAdmissionClosedForTesting = null;
-            LuaCallback.DisposeAdmissionRefusedForTesting = null;
-            LuaCallbackRegistry.AfterReleaseForTesting = null;
-        }
-
         public void Dispose()
         {
             DisableFailureSeams();
@@ -739,6 +738,13 @@ public sealed class LuaCallbackTests
             AllowDetachCleanup.Dispose();
             DisposeObservedRefusal.Dispose();
             AllowDisposeToReturn.Dispose();
+        }
+
+        public static void DisableFailureSeams()
+        {
+            LuaRuntime.OperationAdmissionClosedForTesting = null;
+            LuaCallback.DisposeAdmissionRefusedForTesting = null;
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
         }
 
         private void OnAdmissionClosed()
@@ -759,11 +765,5 @@ public sealed class LuaCallbackTests
         {
             throw new InvalidOperationException("deterministic callback cleanup failure");
         }
-    }
-
-    private static void Register(LuaState L, LuaNativeFunction thunk, ReadOnlySpan<byte> name)
-    {
-        Assert.True(L.TryPushFunction(thunk).IsOk);
-        Assert.True(L.TrySetGlobal(name).IsOk);
     }
 }

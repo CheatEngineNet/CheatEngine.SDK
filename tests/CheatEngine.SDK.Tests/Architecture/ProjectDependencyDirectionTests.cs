@@ -6,7 +6,8 @@ namespace CheatEngine.SDK.Tests.Architecture;
 
 /// <summary>
 ///     Guards the project-file dependency direction that keeps the SDK independent from its public Client and MCP layers.
-///     These tests intentionally inspect the checked-in MSBuild graph instead of a restored dependency graph, so an invalid
+///     These tests intentionally inspect the checked-in MSBuild graph instead of a restored dependency graph, so an
+///     invalid
 ///     edge is reported before it can be hidden by transitive assets.
 /// </summary>
 public sealed class ProjectDependencyDirectionTests
@@ -44,9 +45,9 @@ public sealed class ProjectDependencyDirectionTests
     {
         List<string> missingReadmes = [];
 
-        foreach (string projectPath in EnumerateRepositoryFiles("*.csproj"))
+        foreach (var projectPath in EnumerateRepositoryFiles("*.csproj"))
         {
-            string? projectDirectory = Path.GetDirectoryName(projectPath);
+            var projectDirectory = Path.GetDirectoryName(projectPath);
             if (projectDirectory is null)
             {
                 missingReadmes.Add(GetRepositoryRelativePath(projectPath));
@@ -66,21 +67,21 @@ public sealed class ProjectDependencyDirectionTests
         List<string> violations = [];
         HashSet<string> discoveredLibraryProjects = new(StringComparer.Ordinal);
 
-        foreach (string projectPath in EnumerateRepositoryFiles("*.csproj"))
+        foreach (var projectPath in EnumerateRepositoryFiles("*.csproj"))
         {
-            string projectRelativePath = GetRepositoryRelativePath(projectPath);
+            var projectRelativePath = GetRepositoryRelativePath(projectPath);
             if (!projectRelativePath.StartsWith("libs/", StringComparison.Ordinal))
                 continue;
 
             discoveredLibraryProjects.Add(projectRelativePath);
-            if (!ExpectedLibraryRuntimeDependencies.TryGetValue(projectRelativePath, out string[]? expectedDependencies))
+            if (!ExpectedLibraryRuntimeDependencies.TryGetValue(projectRelativePath, out var expectedDependencies))
             {
                 violations.Add($"{projectRelativePath}: is not declared in the shipping library graph.");
                 continue;
             }
 
             SortedSet<string> actualDependencies = new(StringComparer.Ordinal);
-            foreach (ProjectReferenceInfo reference in ReadProjectReferences(projectPath))
+            foreach (var reference in ReadProjectReferences(projectPath))
             {
                 if (IsRoslynComponent(reference.TargetRelativePath))
                     continue;
@@ -94,11 +95,9 @@ public sealed class ProjectDependencyDirectionTests
                 actualDependencies);
         }
 
-        foreach (string expectedProject in ExpectedLibraryRuntimeDependencies.Keys)
-        {
+        foreach (var expectedProject in ExpectedLibraryRuntimeDependencies.Keys)
             if (!discoveredLibraryProjects.Contains(expectedProject))
                 violations.Add($"{expectedProject}: expected shipping library project was not found.");
-        }
 
         AssertNoViolations("Shipping libraries must reference only their declared lower-layer runtime dependencies.",
             violations);
@@ -107,22 +106,21 @@ public sealed class ProjectDependencyDirectionTests
     [Fact]
     public void Umbrella_runtime_references_are_limited_to_shipping_libraries()
     {
-        string umbrellaPath = RepositoryLayout.PathOf(UmbrellaProject);
+        var umbrellaPath = RepositoryLayout.PathOf(UmbrellaProject);
         List<string> violations = [];
 
-        foreach (ProjectReferenceInfo reference in ReadProjectReferences(umbrellaPath))
+        foreach (var reference in ReadProjectReferences(umbrellaPath))
         {
             if (IsRoslynComponent(reference.TargetRelativePath))
                 continue;
 
             if (!reference.TargetRelativePath.StartsWith("libs/", StringComparison.Ordinal))
-            {
                 violations.Add(
                     $"{UmbrellaProject}: runtime ProjectReference '{reference.Include}' targets '{reference.TargetRelativePath}', not libs/.");
-            }
         }
 
-        AssertNoViolations("The umbrella package may compose lower shipping libraries but not a higher layer.", violations);
+        AssertNoViolations("The umbrella package may compose lower shipping libraries but not a higher layer.",
+            violations);
     }
 
     [Fact]
@@ -130,32 +128,29 @@ public sealed class ProjectDependencyDirectionTests
     {
         List<string> violations = [];
 
-        foreach (string projectPath in EnumerateRepositoryFiles("*.csproj"))
+        foreach (var projectPath in EnumerateRepositoryFiles("*.csproj"))
         {
-            string projectRelativePath = GetRepositoryRelativePath(projectPath);
+            var projectRelativePath = GetRepositoryRelativePath(projectPath);
             if (!IsShippingProject(projectRelativePath))
                 continue;
 
-            foreach (ProjectReferenceInfo reference in ReadProjectReferences(projectPath))
+            foreach (var reference in ReadProjectReferences(projectPath))
             {
                 if (!IsRoslynComponent(reference.TargetRelativePath))
                     continue;
 
                 if (!string.Equals(reference.OutputItemType, "Analyzer", StringComparison.Ordinal))
-                {
                     violations.Add(
                         $"{projectRelativePath}: Roslyn component '{reference.TargetRelativePath}' must set OutputItemType=\"Analyzer\".");
-                }
 
                 if (!string.Equals(reference.ReferenceOutputAssembly, "false", StringComparison.OrdinalIgnoreCase))
-                {
                     violations.Add(
                         $"{projectRelativePath}: Roslyn component '{reference.TargetRelativePath}' must set ReferenceOutputAssembly=\"false\".");
-                }
             }
         }
 
-        AssertNoViolations("Shipping projects must consume analyzers and generators without runtime assembly references.",
+        AssertNoViolations(
+            "Shipping projects must consume analyzers and generators without runtime assembly references.",
             violations);
     }
 
@@ -165,9 +160,9 @@ public sealed class ProjectDependencyDirectionTests
         const string hostingProject = "libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj";
         const string analyzerProject = "analyzers/CheatEngine.SDK.Analyzers/CheatEngine.SDK.Analyzers.csproj";
         List<string> violations = [];
-        bool foundAnalyzer = false;
+        var foundAnalyzer = false;
 
-        foreach (ProjectReferenceInfo reference in ReadProjectReferences(RepositoryLayout.PathOf(hostingProject)))
+        foreach (var reference in ReadProjectReferences(RepositoryLayout.PathOf(hostingProject)))
         {
             if (!string.Equals(reference.TargetRelativePath, analyzerProject, StringComparison.Ordinal))
                 continue;
@@ -191,10 +186,10 @@ public sealed class ProjectDependencyDirectionTests
     {
         List<string> violations = [];
 
-        foreach (string metadataPath in EnumerateBuildMetadataFiles())
+        foreach (var metadataPath in EnumerateBuildMetadataFiles())
         {
-            XmlDocument document = LoadProjectDocument(metadataPath);
-            XmlNodeList? nodes = document.SelectNodes("//*[@Include or @Update or @Remove]");
+            var document = LoadProjectDocument(metadataPath);
+            var nodes = document.SelectNodes("//*[@Include or @Update or @Remove]");
             if (nodes is null)
                 continue;
 
@@ -206,22 +201,16 @@ public sealed class ProjectDependencyDirectionTests
             }
         }
 
-        foreach (string projectPath in EnumerateRepositoryFiles("*.csproj"))
+        foreach (var projectPath in EnumerateRepositoryFiles("*.csproj"))
+        foreach (var reference in ReadProjectReferences(projectPath))
         {
-            foreach (ProjectReferenceInfo reference in ReadProjectReferences(projectPath))
-            {
-                if (reference.Include.Contains("$(", StringComparison.Ordinal))
-                {
-                    violations.Add(
-                        $"{GetRepositoryRelativePath(projectPath)}: ProjectReference '{reference.Include}' is dynamic and cannot be checked for a higher-layer dependency.");
-                }
+            if (reference.Include.Contains("$(", StringComparison.Ordinal))
+                violations.Add(
+                    $"{GetRepositoryRelativePath(projectPath)}: ProjectReference '{reference.Include}' is dynamic and cannot be checked for a higher-layer dependency.");
 
-                if (reference.TargetRelativePath.StartsWith("../", StringComparison.Ordinal))
-                {
-                    violations.Add(
-                        $"{GetRepositoryRelativePath(projectPath)}: ProjectReference '{reference.Include}' escapes the SDK repository.");
-                }
-            }
+            if (reference.TargetRelativePath.StartsWith("../", StringComparison.Ordinal))
+                violations.Add(
+                    $"{GetRepositoryRelativePath(projectPath)}: ProjectReference '{reference.Include}' escapes the SDK repository.");
         }
 
         AssertNoViolations("The SDK build graph must not take a Client or MCP dependency.", violations);
@@ -230,27 +219,23 @@ public sealed class ProjectDependencyDirectionTests
     private static void AddForbiddenDependencyViolations(List<string> violations, string metadataPath, XmlNode node,
         string attributeName)
     {
-        string? value = GetAttribute(node, attributeName);
+        var value = GetAttribute(node, attributeName);
         if (string.IsNullOrWhiteSpace(value))
             return;
 
         if (value.Contains("CheatEngine.Client", StringComparison.OrdinalIgnoreCase) ||
             value.Contains("CheatEngine.Mcp", StringComparison.OrdinalIgnoreCase))
-        {
             violations.Add(
                 $"{GetRepositoryRelativePath(metadataPath)}: {node.LocalName} {attributeName}='{value}' references a higher layer.");
-        }
     }
 
     private static void AddSetDifference(List<string> violations, string projectRelativePath, string violationName,
         IEnumerable<string> source, IEnumerable<string> valuesToRemove)
     {
         HashSet<string> valuesToRemoveSet = new(valuesToRemove, StringComparer.Ordinal);
-        foreach (string value in source)
-        {
+        foreach (var value in source)
             if (!valuesToRemoveSet.Contains(value))
                 violations.Add($"{projectRelativePath}: {violationName} '{value}'.");
-        }
     }
 
     private static void AssertNoViolations(string expectation, List<string> violations)
@@ -260,7 +245,7 @@ public sealed class ProjectDependencyDirectionTests
 
         StringBuilder message = new(expectation);
         message.AppendLine();
-        for (int index = 0; index < violations.Count; index++)
+        for (var index = 0; index < violations.Count; index++)
             message.Append(" - ").AppendLine(violations[index]);
 
         Assert.Fail(message.ToString());
@@ -268,24 +253,25 @@ public sealed class ProjectDependencyDirectionTests
 
     private static IEnumerable<string> EnumerateBuildMetadataFiles()
     {
-        foreach (string projectPath in EnumerateRepositoryFiles("*.csproj"))
+        foreach (var projectPath in EnumerateRepositoryFiles("*.csproj"))
             yield return projectPath;
 
-        foreach (string propsPath in EnumerateRepositoryFiles("*.props"))
+        foreach (var propsPath in EnumerateRepositoryFiles("*.props"))
             yield return propsPath;
 
-        foreach (string targetsPath in EnumerateRepositoryFiles("*.targets"))
+        foreach (var targetsPath in EnumerateRepositoryFiles("*.targets"))
             yield return targetsPath;
 
-        foreach (string solutionPath in EnumerateRepositoryFiles("*.slnx"))
+        foreach (var solutionPath in EnumerateRepositoryFiles("*.slnx"))
             yield return solutionPath;
     }
 
     private static IEnumerable<string> EnumerateRepositoryFiles(string searchPattern)
     {
-        foreach (string path in Directory.EnumerateFiles(RepositoryLayout.Root, searchPattern, SearchOption.AllDirectories))
+        foreach (var path in
+                 Directory.EnumerateFiles(RepositoryLayout.Root, searchPattern, SearchOption.AllDirectories))
         {
-            string relativePath = GetRepositoryRelativePath(path);
+            var relativePath = GetRepositoryRelativePath(path);
             if (!IsGeneratedPath(relativePath))
                 yield return path;
         }
@@ -293,7 +279,7 @@ public sealed class ProjectDependencyDirectionTests
 
     private static string GetAttribute(XmlNode node, string attributeName)
     {
-        XmlAttribute? attribute = node.Attributes?[attributeName];
+        var attribute = node.Attributes?[attributeName];
         return attribute?.Value ?? string.Empty;
     }
 
@@ -330,19 +316,19 @@ public sealed class ProjectDependencyDirectionTests
 
     private static IEnumerable<ProjectReferenceInfo> ReadProjectReferences(string projectPath)
     {
-        XmlDocument document = LoadProjectDocument(projectPath);
-        XmlNodeList? nodes = document.SelectNodes("//*[local-name()='ProjectReference']");
+        var document = LoadProjectDocument(projectPath);
+        var nodes = document.SelectNodes("//*[local-name()='ProjectReference']");
         if (nodes is null)
             yield break;
 
         foreach (XmlNode node in nodes)
         {
-            string include = GetAttribute(node, "Include");
+            var include = GetAttribute(node, "Include");
             if (string.IsNullOrWhiteSpace(include))
                 continue;
 
-            string projectDirectory = Path.GetDirectoryName(projectPath)!;
-            string targetPath = Path.GetFullPath(Path.Combine(projectDirectory, include));
+            var projectDirectory = Path.GetDirectoryName(projectPath)!;
+            var targetPath = Path.GetFullPath(Path.Combine(projectDirectory, include));
             yield return new ProjectReferenceInfo(
                 include,
                 GetRepositoryRelativePath(targetPath),
@@ -351,6 +337,9 @@ public sealed class ProjectDependencyDirectionTests
         }
     }
 
-    private readonly record struct ProjectReferenceInfo(string Include, string TargetRelativePath, string OutputItemType,
+    private readonly record struct ProjectReferenceInfo(
+        string Include,
+        string TargetRelativePath,
+        string OutputItemType,
         string ReferenceOutputAssembly);
 }

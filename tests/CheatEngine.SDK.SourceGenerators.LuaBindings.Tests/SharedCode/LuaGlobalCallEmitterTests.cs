@@ -127,7 +127,8 @@ public sealed class LuaGlobalCallEmitterTests
 
         var text = Emit(model);
         Assert.StartsWith(
-            "public static string? ReadString(global::CheatEngine.SDK.Lua.State.LuaState L, nuint address, string? text)\n", text,
+            "public static string? ReadString(global::CheatEngine.SDK.Lua.State.LuaState L, nuint address, string? text)\n",
+            text,
             StringComparison.Ordinal);
         Assert.Contains(
             "using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation(L);\n",
@@ -137,7 +138,8 @@ public sealed class LuaGlobalCallEmitterTests
             StringComparison.Ordinal);
         Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller.Push(__L, text);\n", text,
             StringComparison.Ordinal);
-        Assert.Contains("if (!global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller.TryRead(__L, -1, out string? __result))\n",
+        Assert.Contains(
+            "if (!global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller.TryRead(__L, -1, out string? __result))\n",
             text,
             StringComparison.Ordinal);
         Assert.Contains("ThrowUnexpectedResult(__L, __top, -1, \"readString\", \"a string\");", text,

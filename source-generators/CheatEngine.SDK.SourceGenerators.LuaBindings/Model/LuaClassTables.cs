@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using CheatEngine.SDK.SourceGenerators.LuaBindings.Emit;
 using CheatEngine.SDK.SourceGenerators.Shared;
 
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
@@ -32,7 +33,7 @@ internal static class LuaClassTables
             var baseName = models[i].ContainingType.HintBaseName;
             models[i] = models[i] with
             {
-                HintName = HintNames.AllocateUnique(baseName, Emit.LuaClassFileEmitter.HintSuffix, used)
+                HintName = HintNames.AllocateUnique(baseName, LuaClassFileEmitter.HintSuffix, used)
             };
         }
 

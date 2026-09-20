@@ -10,7 +10,8 @@
 
 ## Cause
 
-Two or more classes of the same project carry `[CheatEngine.SDK.Annotations.Plugin.CheatEnginePlugin]`. The diagnostic is reported
+Two or more classes of the same project carry `[CheatEngine.SDK.Annotations.Plugin.CheatEnginePlugin]`. The diagnostic
+is reported
 on each of them, with the total count.
 
 ## Why
@@ -26,7 +27,8 @@ once, however many files it spans, and a nested plugin class counts like a top-l
 in the part that carries the attribute. Classes in generated code are neither counted nor reported.
 
 Two cases report nothing. A project that switches the generated entry point off
-(`<CheatEngineSdkGenerateEntryPoint>false</CheatEngineSdkGenerateEntryPoint>`) is not reported, because hand-written bootstrap code then
+(`<CheatEngineSdkGenerateEntryPoint>false</CheatEngineSdkGenerateEntryPoint>`) is not reported, because hand-written
+bootstrap code then
 decides which class gets constructed. A project without any plugin class is not reported either.
 
 Because the answer needs the whole compilation, the rule runs in the compilation-end phase. Such diagnostics appear in

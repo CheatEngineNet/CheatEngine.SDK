@@ -7,10 +7,11 @@ using CheatEngine.SDK.Lua.Runtime;
 namespace CheatEngine.SDK.Lua.State;
 
 // References use a private registry table. The host and other plugins own separate free lists.
-public readonly unsafe partial struct LuaState
+public readonly partial struct LuaState
 {
     /// <summary>
-    ///     Pops the value on top and stores it in this SDK's private registry table, returning a reference stamped with the current
+    ///     Pops the value on top and stores it in this SDK's private registry table, returning a reference stamped with the
+    ///     current
     ///     <see cref="LuaRuntime.CurrentStateIdentity" /> (<c>luaL_ref</c>).
     /// </summary>
     /// <returns>A new, resolved reference; the caller owns it and releases it with <see cref="LuaRef.Release" />.</returns>

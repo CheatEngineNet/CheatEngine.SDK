@@ -27,7 +27,7 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 ///     </para>
 /// </remarks>
 [LuaClass("MemScan")]
-public readonly partial struct MemScan : ICEObject<MemScan>, IEquatable<MemScan>
+public readonly struct MemScan : ICEObject<MemScan>, IEquatable<MemScan>
 {
     private readonly CEObject _handle;
 

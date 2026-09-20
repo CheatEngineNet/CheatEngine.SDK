@@ -120,7 +120,8 @@ public sealed class LuaBindingsGenerator : IIncrementalGenerator
             .ForAttributeWithMetadataName(
                 LuaClassAttributeMetadataName,
                 static (node, _) => node is StructDeclarationSyntax or RecordDeclarationSyntax,
-                static (attributeContext, cancellationToken) => LuaClassParser.Parse(attributeContext, cancellationToken))
+                static (attributeContext, cancellationToken) =>
+                    LuaClassParser.Parse(attributeContext, cancellationToken))
             .WithTrackingName(LuaBindingsTrackingNames.LuaClass)
             .Collect()
             .WithTrackingName(LuaBindingsTrackingNames.CollectedLuaClasses)
@@ -139,7 +140,8 @@ public sealed class LuaBindingsGenerator : IIncrementalGenerator
             .ForAttributeWithMetadataName(
                 LuaMethodAttributeMetadataName,
                 static (node, _) => node is MethodDeclarationSyntax,
-                static (attributeContext, cancellationToken) => LuaObjectMethodParser.Parse(attributeContext, cancellationToken))
+                static (attributeContext, cancellationToken) =>
+                    LuaObjectMethodParser.Parse(attributeContext, cancellationToken))
             .WithTrackingName(LuaBindingsTrackingNames.LuaMethod)
             .Collect()
             .WithTrackingName(LuaBindingsTrackingNames.CollectedLuaMethods);
@@ -148,7 +150,8 @@ public sealed class LuaBindingsGenerator : IIncrementalGenerator
             .ForAttributeWithMetadataName(
                 LuaPropertyAttributeMetadataName,
                 static (node, _) => node is PropertyDeclarationSyntax,
-                static (attributeContext, cancellationToken) => LuaObjectPropertyParser.Parse(attributeContext, cancellationToken))
+                static (attributeContext, cancellationToken) =>
+                    LuaObjectPropertyParser.Parse(attributeContext, cancellationToken))
             .WithTrackingName(LuaBindingsTrackingNames.LuaProperty)
             .Collect()
             .WithTrackingName(LuaBindingsTrackingNames.CollectedLuaProperties);
@@ -162,6 +165,7 @@ public sealed class LuaBindingsGenerator : IIncrementalGenerator
             .WithTrackingName(LuaBindingsTrackingNames.LuaObjectMembersOutput);
 
         context.RegisterSourceOutput(objectMemberTables, static (productionContext, table) =>
-            productionContext.AddSource(LuaObjectMembersFileEmitter.HintName(table), LuaObjectMembersFileEmitter.Emit(table)));
+            productionContext.AddSource(LuaObjectMembersFileEmitter.HintName(table),
+                LuaObjectMembersFileEmitter.Emit(table)));
     }
 }

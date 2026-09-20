@@ -16,9 +16,12 @@ namespace CheatEngine.SDK.Analyzers.Tests.Generation;
 /// <summary>
 ///     CESDK2001 (AllowUnsafeBlocks), CESDK2002 (containing type), CESDK2003 (<c>[LuaFunction]</c>), CESDK2004
 ///     (<c>[LuaGlobal]</c>) and CESDK2005 (duplicate valid export name): the <c>LuaBindingAnalyzer</c> rules, which link
-///     <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>'s own shape-validation source instead of a hand-written copy. Test
-///     compilations reference the REAL <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c>
-///     assemblies (not stubs: <c>CheatEngine.SDK.Lua.State.LuaState</c> is part of the shape the rules recognise), mirroring
+///     <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>'s own shape-validation source instead of a hand-written copy.
+///     Test
+///     compilations reference the REAL <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and
+///     <c>CheatEngine.SDK.Lua</c>
+///     assemblies (not stubs: <c>CheatEngine.SDK.Lua.State.LuaState</c> is part of the shape the rules recognise),
+///     mirroring
 ///     <c>tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests</c>' own approach.
 /// </summary>
 /// <remarks>
@@ -385,7 +388,8 @@ public sealed class LuaBindingAnalyzerTests
         var diagnostics = await GetDiagnosticsAsync(compilation);
         Assert.Contains(diagnostics,
             static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal) &&
-                        d.GetMessage(CultureInfo.InvariantCulture).Contains("parameter type", StringComparison.Ordinal));
+                        d.GetMessage(CultureInfo.InvariantCulture)
+                            .Contains("parameter type", StringComparison.Ordinal));
         Assert.Contains(diagnostics,
             static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaGlobal, StringComparison.Ordinal) &&
                         d.GetMessage(CultureInfo.InvariantCulture).Contains("argument type", StringComparison.Ordinal));

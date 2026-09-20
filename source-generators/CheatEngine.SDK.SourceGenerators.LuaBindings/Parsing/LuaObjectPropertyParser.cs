@@ -13,7 +13,8 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Parsing;
 internal static class LuaObjectPropertyParser
 {
     /// <summary>Builds one value-only property model; malformed properties are not emitted.</summary>
-    public static LuaObjectPropertyModel Parse(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
+    public static LuaObjectPropertyModel Parse(GeneratorAttributeSyntaxContext context,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -26,8 +27,9 @@ internal static class LuaObjectPropertyParser
             LuaBindingsGenerator.LuaPropertyAttributeMetadataName);
         var described = TryDescribe(property, declaration, out var model);
         var valid = isSdkAttribute && LuaNames.IsValidName(luaName)
-                    && LuaClassParser.IsGeneratedHandle(property.ContainingType, compilation, cancellationToken)
-                    && described;
+                                   && LuaClassParser.IsGeneratedHandle(property.ContainingType, compilation,
+                                       cancellationToken)
+                                   && described;
 
         if (valid)
             return model with { LuaName = luaName!, IsValid = true };
@@ -114,7 +116,7 @@ internal static class LuaObjectPropertyParser
         ref string getterModifiers, ref bool hasSetter, ref string setterModifiers)
     {
         if (accessor.Body is not null || accessor.ExpressionBody is not null
-                                  || !TryAccessorModifiers(accessor, out var modifiers))
+                                      || !TryAccessorModifiers(accessor, out var modifiers))
             return false;
 
         switch (accessor.Kind())

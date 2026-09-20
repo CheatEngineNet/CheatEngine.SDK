@@ -43,7 +43,8 @@ namespace CheatEngine.SDK.Engine.Objects;
 ///     <para>
 ///         <b>Failure modes.</b> When the destroy call raises (the object is already gone, or its class refuses), the
 ///         wrapper is still marked empty: a destroy is never retried, because the object may be half freed.
-///         <see cref="TryDestroy" /> returns that status with the message on the stack; <see cref="Dispose" /> intentionally
+///         <see cref="TryDestroy" /> returns that status with the message on the stack; <see cref="Dispose" />
+///         intentionally
 ///         discards it after an invocation began. By contrast, a detached runtime, a missing pusher, or a state that is
 ///         unavailable on the calling thread prevents an invocation from beginning. Those cases throw and retain this
 ///         owner, so the plugin can retry before disable finishes or explicitly <see cref="Abandon" /> it. They never

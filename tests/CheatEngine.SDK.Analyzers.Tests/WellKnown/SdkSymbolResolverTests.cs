@@ -14,6 +14,15 @@ public sealed class SdkSymbolResolverTests
     private const string RequiresPluginEnabledAttribute =
         "CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute";
 
+    private const string LookalikeAttributeSource = """
+                                                    namespace CheatEngine.SDK.Annotations.Lifetime
+                                                    {
+                                                        public sealed class RequiresPluginEnabledAttribute : global::System.Attribute
+                                                        {
+                                                        }
+                                                    }
+                                                    """;
+
     private static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14);
 
     private static readonly CSharpCompilationOptions CompilationOptions = new(
@@ -69,13 +78,4 @@ public sealed class SdkSymbolResolverTests
 
         return MetadataReference.CreateFromImage([.. image.ToArray()], filePath: assemblyName + ".dll");
     }
-
-    private const string LookalikeAttributeSource = """
-        namespace CheatEngine.SDK.Annotations.Lifetime
-        {
-            public sealed class RequiresPluginEnabledAttribute : global::System.Attribute
-            {
-            }
-        }
-        """;
 }

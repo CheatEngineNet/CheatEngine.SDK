@@ -19,7 +19,7 @@ public sealed class StringListTests
         using HostScope scope = new(state);
         var L = scope.State;
         var handle = AobStringListTestHost.CreateList(L);
-        StringList list = StringList.FromHandle(handle);
+        var list = StringList.FromHandle(handle);
 
         Assert.Equal(list, StringList.FromHandle(handle));
         Assert.False(list.IsNull);
@@ -51,7 +51,7 @@ public sealed class StringListTests
         using NativeLuaState state = new();
         using HostScope scope = new(state);
         var L = scope.State;
-        StringList list = StringList.FromHandle(AobStringListTestHost.CreateList(L));
+        var list = StringList.FromHandle(AobStringListTestHost.CreateList(L));
 
         Assert.True(list.TryAdd("00403000", out var addedIndex));
         Assert.Equal(2, addedIndex);
@@ -84,7 +84,7 @@ public sealed class StringListTests
         using NativeLuaState state = new();
         using HostScope scope = new(state);
         var L = scope.State;
-        StringList list = StringList.FromHandle(AobStringListTestHost.CreateList(L));
+        var list = StringList.FromHandle(AobStringListTestHost.CreateList(L));
 
         Assert.True(list.TryGetDuplicates(out var duplicates));
         Assert.Equal(DuplicateHandling.Accept, duplicates);
@@ -103,7 +103,7 @@ public sealed class StringListTests
         using NativeLuaState state = new();
         using HostScope scope = new(state);
         var L = scope.State;
-        StringList list = StringList.FromHandle(AobStringListTestHost.CreateList(L));
+        var list = StringList.FromHandle(AobStringListTestHost.CreateList(L));
         var providerCalls = FakeHost.ProviderCalls;
         var pusherCalls = FakeHost.PusherCalls;
 
@@ -121,7 +121,7 @@ public sealed class StringListTests
         using NativeLuaState state = new();
         using HostScope scope = new(state);
         var L = scope.State;
-        StringList list = StringList.FromHandle(AobStringListTestHost.CreateList(L));
+        var list = StringList.FromHandle(AobStringListTestHost.CreateList(L));
 
         Assert.Throws<ArgumentOutOfRangeException>(() => list.TryGetItem(-1, out _));
         Assert.Throws<ArgumentOutOfRangeException>(() => list.TrySetItem(-1, "x"));
@@ -140,7 +140,7 @@ public sealed class StringListTests
         AobStringListTestHost.InstallStringListFactory(L, handle);
 
         Assert.True(StringLists.TryCreate(out var created));
-        Owned<StringList> owned = Assert.IsType<Owned<StringList>>(created);
+        var owned = Assert.IsType<Owned<StringList>>(created);
         Assert.Equal(handle, owned.Handle);
         owned.Dispose();
 

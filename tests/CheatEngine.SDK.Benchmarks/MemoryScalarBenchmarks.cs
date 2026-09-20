@@ -26,12 +26,36 @@ public class MemoryScalarBenchmarks : IDisposable
 
     private static readonly Address Address64 = Address.FromUInt64(0x0000_0001_00CE_7700);
 
-    private static readonly HostAddress HostAddress32 = new((nuint)0x0000_0000_00CE_7700);
+    private static readonly HostAddress HostAddress32 = new(0x0000_0000_00CE_7700);
 
     // The plugin host is x64, but this project still compiles its source without an x64-only constant evaluator.
     private static readonly HostAddress HostAddress64 = new(unchecked((nuint)0x0000_0001_00CE_7700UL));
 
     private NativeLuaState? _state;
+
+    // Stand-ins intentionally mirror the CE Lua return shapes only. They have no authorization to read another process.
+    private static ReadOnlySpan<byte> ScalarStandIns => """
+                                                        local mem32 = {}
+                                                        local mem64 = {}
+                                                        function readInteger(address, signed)
+                                                            local value = mem32[address]
+                                                            if value == nil or signed then return value end
+                                                            return value < 0 and value + 4294967296 or value
+                                                        end
+                                                        function writeInteger(address, value) mem32[address] = value; return true end
+                                                        function readQword(address) return mem64[address] end
+                                                        function writeQword(address, value) mem64[address] = value; return true end
+                                                        local host32 = {}
+                                                        local host64 = {}
+                                                        function readIntegerLocal(address, signed)
+                                                            local value = host32[address]
+                                                            if value == nil or signed then return value end
+                                                            return value < 0 and value + 4294967296 or value
+                                                        end
+                                                        function writeIntegerLocal(address, value) host32[address] = value; return true end
+                                                        function readQwordLocal(address) return host64[address] end
+                                                        function writeQwordLocal(address, value) host64[address] = value; return true end
+                                                        """u8;
 
     /// <inheritdoc />
     public void Dispose()
@@ -150,28 +174,4 @@ public class MemoryScalarBenchmarks : IDisposable
     {
         return HostMemory.TryWriteInt64(HostAddress64, 0x1_0000_0000L, out _);
     }
-
-    // Stand-ins intentionally mirror the CE Lua return shapes only. They have no authorization to read another process.
-    private static ReadOnlySpan<byte> ScalarStandIns => """
-                                                     local mem32 = {}
-                                                     local mem64 = {}
-                                                     function readInteger(address, signed)
-                                                         local value = mem32[address]
-                                                         if value == nil or signed then return value end
-                                                         return value < 0 and value + 4294967296 or value
-                                                     end
-                                                     function writeInteger(address, value) mem32[address] = value; return true end
-                                                     function readQword(address) return mem64[address] end
-                                                     function writeQword(address, value) mem64[address] = value; return true end
-                                                     local host32 = {}
-                                                     local host64 = {}
-                                                     function readIntegerLocal(address, signed)
-                                                         local value = host32[address]
-                                                         if value == nil or signed then return value end
-                                                         return value < 0 and value + 4294967296 or value
-                                                     end
-                                                     function writeIntegerLocal(address, value) host32[address] = value; return true end
-                                                     function readQwordLocal(address) return host64[address] end
-                                                     function writeQwordLocal(address, value) host64[address] = value; return true end
-                                                     """u8;
 }

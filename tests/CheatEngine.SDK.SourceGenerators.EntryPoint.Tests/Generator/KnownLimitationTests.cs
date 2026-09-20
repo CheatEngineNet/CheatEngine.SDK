@@ -7,7 +7,8 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.Generator;
 /// <summary>
 ///     Inputs for which the generator still emits although the emitted <c>new T()</c> cannot compile. They are the
 ///     remaining exceptions to "whatever is emitted compiles": staying silent would need a CESDK0001 case in
-///     <c>CheatEngine.SDK.Analyzers</c> to explain the silence. These tests pin that behaviour; the cases that have an analyzer
+///     <c>CheatEngine.SDK.Analyzers</c> to explain the silence. These tests pin that behaviour; the cases that have an
+///     analyzer
 ///     rule (required members without <c>[SetsRequiredMembers]</c>, <c>[Obsolete(error: true)]</c>) are covered in
 ///     <see cref="NoOutputTests" /> instead.
 /// </summary>

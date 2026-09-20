@@ -127,7 +127,7 @@ Each recipe solves one job with the smallest code that works. They assume guide 
 | [Cheat tables](recipes/cheat-tables/README.md)           | Loading and saving `.CT` files as profiles                        |
 | [Debugger](recipes/debugger/README.md)                   | Breakpoints, a hit counter, registers at a hit                    |
 | [Injection](recipes/injection/README.md)                 | Remote memory, remote calls, DLL injection                        |
-| [Structures](recipes/structures/README.md)               | Deferred pending a sourced ownership and rollback contract         |
+| [Structures](recipes/structures/README.md)               | Deferred pending a sourced ownership and rollback contract        |
 | [Speed and hashing](recipes/speed-and-hashing/README.md) | Speed control, memory and file hashes                             |
 | [DBVM](recipes/dbvm/README.md)                           | Optional hypervisor features with a graceful fallback             |
 

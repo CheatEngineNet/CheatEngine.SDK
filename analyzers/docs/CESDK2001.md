@@ -15,7 +15,8 @@ compile with `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>`.
 
 ## Why
 
-The LuaBindings generator (`CheatEngine.SDK.SourceGenerators.LuaBindings`) emits, for `[LuaFunction]`, an `[UnmanagedCallersOnly]`
+The LuaBindings generator (`CheatEngine.SDK.SourceGenerators.LuaBindings`) emits, for `[LuaFunction]`, an
+`[UnmanagedCallersOnly]`
 thunk and a registration table that takes the address of that thunk. That needs unsafe code. The generator reads
 `CSharpCompilationOptions.AllowUnsafe` once per compilation. When it is off, the generator emits no function file.
 Without this rule the only symptom would be a plugin whose Lua functions silently do not exist at run time.
@@ -30,7 +31,8 @@ The package deliberately does not change `AllowUnsafeBlocks`: a project that con
 The rule reports one diagnostic per attributed method, at the method's own location, whatever other problems the method
 has. CESDK2002 through CESDK2004 explain those independently, so one method can be reported by several rules. The rule
 does not check whether the attribute application itself is well formed: a missing or mistyped attribute argument is
-already a compiler error. In projects that do not reference `CheatEngine.SDK.Annotations` the analyzer registers nothing.
+already a compiler error. In projects that do not reference `CheatEngine.SDK.Annotations` the analyzer registers
+nothing.
 
 ## Example
 

@@ -19,18 +19,18 @@ A project reference proves that the source compiles, not that the installed pack
 2. It restores the consumers below from that feed and builds them in Release.
 3. The tests read the `.nupkg` and, per consumer, what the table lists.
 
-| Consumer                      | What it sets                               | What the tests read                                                                                 |
-|-------------------------------|--------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| `DefaultConsumer`             | Nothing, so it takes every package default | Build properties, entry point, atomic build/publish deployment folder                              |
-| `ExplicitUnsafeFalseConsumer` | `AllowUnsafeBlocks=false`                  | `AllowUnsafeBlocks`                                                                                 |
-| `LuaFunctionOptInConsumer`    | `[LuaFunction]` + `AllowUnsafeBlocks=true` | The documented explicit unsafe opt-in compiles the generated registration thunk                     |
-| `LuaFunctionWithoutUnsafeConsumer` | `[LuaFunction]`, no unsafe opt-in      | The package analyzer rejects the project with `CESDK2001`                                           |
-| `EntryPointOffConsumer`       | `CheatEngineSdkGenerateEntryPoint=false` + manual bootstrap | The author-owned entry point                                                            |
-| `IndirectConsumer`            | Only a reference to a temporary relay pkg  | Direct-only build properties, bootstrap and native bridge stay absent                              |
-| `UnsetPlatformTargetConsumer` | `PlatformTarget` empty                    | The direct package target accepts the host-selected x64 architecture                               |
-| `AnyCpuPlatformTargetConsumer`| `PlatformTarget=AnyCPU`                   | The direct package target accepts a managed library loadable in the x64 CE host                    |
-| `X64PlatformTargetConsumer`   | `PlatformTarget=x64`                      | The direct package target accepts the explicit supported architecture                               |
-| `X86/Arm/Arm64/Itanium/UnsupportedPlatformTargetConsumer` | Explicit unsupported target | The direct package target rejects every unsupported architecture with `CESDK9101` |
+| Consumer                                                  | What it sets                                                | What the tests read                                                               |
+|-----------------------------------------------------------|-------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| `DefaultConsumer`                                         | Nothing, so it takes every package default                  | Build properties, entry point, atomic build/publish deployment folder             |
+| `ExplicitUnsafeFalseConsumer`                             | `AllowUnsafeBlocks=false`                                   | `AllowUnsafeBlocks`                                                               |
+| `LuaFunctionOptInConsumer`                                | `[LuaFunction]` + `AllowUnsafeBlocks=true`                  | The documented explicit unsafe opt-in compiles the generated registration thunk   |
+| `LuaFunctionWithoutUnsafeConsumer`                        | `[LuaFunction]`, no unsafe opt-in                           | The package analyzer rejects the project with `CESDK2001`                         |
+| `EntryPointOffConsumer`                                   | `CheatEngineSdkGenerateEntryPoint=false` + manual bootstrap | The author-owned entry point                                                      |
+| `IndirectConsumer`                                        | Only a reference to a temporary relay pkg                   | Direct-only build properties, bootstrap and native bridge stay absent             |
+| `UnsetPlatformTargetConsumer`                             | `PlatformTarget` empty                                      | The direct package target accepts the host-selected x64 architecture              |
+| `AnyCpuPlatformTargetConsumer`                            | `PlatformTarget=AnyCPU`                                     | The direct package target accepts a managed library loadable in the x64 CE host   |
+| `X64PlatformTargetConsumer`                               | `PlatformTarget=x64`                                        | The direct package target accepts the explicit supported architecture             |
+| `X86/Arm/Arm64/Itanium/UnsupportedPlatformTargetConsumer` | Explicit unsupported target                                 | The direct package target rejects every unsupported architecture with `CESDK9101` |
 
 Each consumer is a `net10.0` class library with one valid plugin class, in a temporary directory outside the
 repository. The normal consumers use x64; the `PlatformTarget` cases deliberately use the permitted and rejected
@@ -79,7 +79,7 @@ dotnet test --project tests/CheatEngine.SDK.Tests
   assemblies, `.deps.json`, `.runtimeconfig.json` and the native bridge (`DeploymentLayoutTests`).
 - The checked-in C11 Lua protection bridge is parsed as PE/COFF without loading it: it is PE32+ AMD64, exports exactly
   four symbols, imports only its reviewed CRT/Kernel32 contract, has no delay-load table and cannot acquire a Lua
-  module. Its build and publish copies are SHA-256-identical to the audited source asset
-  (`NativeBridgePeAuditTests` and `NativeBridgePackagingAuditTests`; the detailed contract is
+  module. Its build and publish copies are SHA-256-identical to the audited source asset (`NativeBridgePeAuditTests` and
+  `NativeBridgePackagingAuditTests`; the detailed contract is
   `native/cheatengine-sdk-lua-bridge/AUDIT.md`).
 - Consumers build against the package packed by this run, never an earlier extraction (`RestoreIsolationTests`).

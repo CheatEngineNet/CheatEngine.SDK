@@ -5,7 +5,8 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Tests.Infrastructure;
 
 /// <summary>
 ///     Emits a generator run's output compilation (the generated wrappers) and loads it into its own
-///     <see cref="AssemblyLoadContext" />, where <c>CheatEngine.SDK.Lua</c> and the other SDK assemblies resolve to the copies this
+///     <see cref="AssemblyLoadContext" />, where <c>CheatEngine.SDK.Lua</c> and the other SDK assemblies resolve to the
+///     copies this
 ///     test process already runs: the generated code then talks to the same <c>LuaRuntime</c> the test attaches.
 /// </summary>
 internal sealed class GeneratedAssembly

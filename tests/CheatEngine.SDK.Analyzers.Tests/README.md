@@ -1,11 +1,13 @@
 # CheatEngine.SDK.Analyzers.Tests
 
-Tests for `CheatEngine.SDK.Analyzers` and `CheatEngine.SDK.Analyzers.CodeFixes`: every diagnostic, every code fix, and agreement with the
+Tests for `CheatEngine.SDK.Analyzers` and `CheatEngine.SDK.Analyzers.CodeFixes`: every diagnostic, every code fix, and
+agreement with the
 generators.
 
 ## Objective
 
-Prove that each CheatEngine.SDK diagnostic reports where it should and stays silent elsewhere. Prove that each code fix produces
+Prove that each CheatEngine.SDK diagnostic reports where it should and stays silent elsewhere. Prove that each code fix
+produces
 the expected source. Prove that the analyzers agree with the generators they mirror.
 
 ## Why it exists

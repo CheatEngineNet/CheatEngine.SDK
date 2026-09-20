@@ -396,18 +396,17 @@ public sealed unsafe class CEObjectTests
         L.PushInteger(0x1234);
         var top = L.Top;
 
-        Assert.Throws<InvalidOperationException>(
-            () => probe.TrySetProperty<ThrowingPushMarshaller, int>("Count"u8, 4));
+        Assert.Throws<InvalidOperationException>(() => probe.TrySetProperty<ThrowingPushMarshaller, int>("Count"u8, 4));
         Assert.Equal(top, L.Top);
         Assert.Equal(0x1234, EngineTest.ReadInteger(L, -1));
 
-        Assert.Throws<InvalidOperationException>(
-            () => probe.TryGetProperty<ThrowingReadMarshaller, int>("Count"u8, out _));
+        Assert.Throws<InvalidOperationException>(() =>
+            probe.TryGetProperty<ThrowingReadMarshaller, int>("Count"u8, out _));
         Assert.Equal(top, L.Top);
         Assert.Equal(0x1234, EngineTest.ReadInteger(L, -1));
 
-        Assert.Throws<InvalidOperationException>(
-            () => probe.TryCallMethod<ThrowingReadMarshaller, int>("getCount"u8, out _));
+        Assert.Throws<InvalidOperationException>(() =>
+            probe.TryCallMethod<ThrowingReadMarshaller, int>("getCount"u8, out _));
         Assert.Equal(top, L.Top);
         Assert.Equal(0x1234, EngineTest.ReadInteger(L, -1));
     }

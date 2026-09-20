@@ -1,5 +1,5 @@
-using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CheatEngine.SDK.Abi;
 using CheatEngine.SDK.Hosting.Bootstrap;
@@ -54,8 +54,12 @@ public sealed unsafe class DisablePluginTests
 
     [Fact]
     [Trait("Category", "NativeLua")]
-    [SuppressMessage("Meziantou.Analyzer", "MA0051", Justification = "This test deliberately covers the complete close-drain-detach sequence in one deterministic scenario.")]
-    [SuppressMessage("xUnit.Analyzers", "xUnit1051", Justification = "The bounded host-thread barrier is a deterministic synchronization point independent of test cancellation.")]
+    [SuppressMessage("Meziantou.Analyzer", "MA0051",
+        Justification =
+            "This test deliberately covers the complete close-drain-detach sequence in one deterministic scenario.")]
+    [SuppressMessage("xUnit.Analyzers", "xUnit1051",
+        Justification =
+            "The bounded host-thread barrier is a deterministic synchronization point independent of test cancellation.")]
     public void Disable_on_the_GUI_thread_pumps_admitted_worker_work_before_detaching()
     {
         HostingTest.RequireNativeLua();
@@ -64,8 +68,8 @@ public sealed unsafe class DisablePluginTests
         using HostSimulator host = new();
         HostingTest.Enable(host, state);
         var context = PluginHost.Context!;
-        using ManualResetEventSlim queued = new(initialState: false);
-        using ManualResetEventSlim workExecuted = new(initialState: false);
+        using ManualResetEventSlim queued = new(false);
+        using ManualResetEventSlim workExecuted = new(false);
         StrongBox<MainThreadWorkItem?> queuedWork = new();
         Exception? workerFailure = null;
         var observedShutdown = false;

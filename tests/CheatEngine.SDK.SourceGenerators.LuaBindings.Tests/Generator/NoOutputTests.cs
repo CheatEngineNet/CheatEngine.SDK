@@ -12,7 +12,8 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Generator;
 /// </summary>
 public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFixture>
 {
-    private const string Usings = "using System; using CheatEngine.SDK.Annotations.Lua; using CheatEngine.SDK.Lua.State;\n";
+    private const string Usings =
+        "using System; using CheatEngine.SDK.Annotations.Lua; using CheatEngine.SDK.Lua.State;\n";
 
     public static TheoryData<string, string> InvalidFunctions
     {
@@ -342,7 +343,7 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
     [Fact]
     public void Generator_same_name_source_LuaState_without_the_sdk_runtime_emits_nothing()
     {
-        ImmutableArray<MetadataReference>.Builder references = ImmutableArray.CreateBuilder<MetadataReference>();
+        var references = ImmutableArray.CreateBuilder<MetadataReference>();
         references.AddRange(roslyn.Environment.FrameworkReferences);
         foreach (var reference in roslyn.Environment.SdkReferences)
         {

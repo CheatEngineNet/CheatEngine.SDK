@@ -37,6 +37,9 @@ internal static class EntryPointTrackingNames
 
     /// <summary>All of the above, for tests that must not miss a step.</summary>
     public static readonly ImmutableArray<string> All =
-        [Plugin, CollectedPlugins, Plugins, Options, PluginsAndOptions, EntryPointTypeCollision, PluginsOptionsAndCollision,
-            Bootstrap];
+    [
+        Plugin, CollectedPlugins, Plugins, Options, PluginsAndOptions, EntryPointTypeCollision,
+        PluginsOptionsAndCollision,
+        Bootstrap
+    ];
 }

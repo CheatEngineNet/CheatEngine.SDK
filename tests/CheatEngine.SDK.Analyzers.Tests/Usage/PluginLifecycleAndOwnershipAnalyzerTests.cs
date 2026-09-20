@@ -1,5 +1,5 @@
-using CheatEngine.SDK.Analyzers.Usage;
 using CheatEngine.SDK.Analyzers.Tests.Infrastructure;
+using CheatEngine.SDK.Analyzers.Usage;
 
 namespace CheatEngine.SDK.Analyzers.Tests.Usage;
 

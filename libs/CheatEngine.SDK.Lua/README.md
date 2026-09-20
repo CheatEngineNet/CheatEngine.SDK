@@ -18,15 +18,15 @@ balanced, and keeps the hot paths free of allocations.
 
 ## How it works
 
-| Namespace                              | Types                                                                                                                                                                             | Role                                                     |
-|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
-| `CheatEngine.SDK.Lua.State`            | `LuaState`, `LuaFrame`, `LuaType`                                                                                                                                                 | Borrowed view of a Lua state, stack guard, type tags     |
+| Namespace                              | Types                                                                                                                                                                             | Role                                                                         |
+|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| `CheatEngine.SDK.Lua.State`            | `LuaState`, `LuaFrame`, `LuaType`                                                                                                                                                 | Borrowed view of a Lua state, stack guard, type tags                         |
 | `CheatEngine.SDK.Lua.Runtime`          | `LuaRuntime`, `LuaRuntimeOperation`, `LuaHostBinding`, `LuaStateIdentity`                                                                                                         | The host binding, lifecycle admission, attachment epoch and state generation |
-| `CheatEngine.SDK.Lua.Calls`            | `LuaStatus`, `LuaError`, `LuaException`, `LuaComparison`                                                                                                                          | Results of protected operations, opt-in exceptions       |
-| `CheatEngine.SDK.Lua.Marshalling`      | `ILuaMarshaller<T>`, `Int32Marshaller`, `Int64Marshaller`, `SingleMarshaller`, `DoubleMarshaller`, `BooleanMarshaller`, `AddressMarshaller`, `Utf8Marshaller`, `StringMarshaller` | Push and read one managed type each                      |
-| `CheatEngine.SDK.Lua.References`       | `LuaRef`                                                                                                                                                                          | Registry reference stamped with attachment epoch and state generation |
-| `CheatEngine.SDK.Lua.Callbacks`        | `LuaNativeFunction`, `LuaCallback`, `LuaCallback<TState>`, `LuaThunk`                                                                                                             | Managed functions that Lua can call                      |
-| `CheatEngine.SDK.Lua.CompilerServices` | `LuaGlobalFunctions`, `LuaCallSupport`                                                                                                                                            | Called by generated code, hidden from IntelliSense       |
+| `CheatEngine.SDK.Lua.Calls`            | `LuaStatus`, `LuaError`, `LuaException`, `LuaComparison`                                                                                                                          | Results of protected operations, opt-in exceptions                           |
+| `CheatEngine.SDK.Lua.Marshalling`      | `ILuaMarshaller<T>`, `Int32Marshaller`, `Int64Marshaller`, `SingleMarshaller`, `DoubleMarshaller`, `BooleanMarshaller`, `AddressMarshaller`, `Utf8Marshaller`, `StringMarshaller` | Push and read one managed type each                                          |
+| `CheatEngine.SDK.Lua.References`       | `LuaRef`                                                                                                                                                                          | Registry reference stamped with attachment epoch and state generation        |
+| `CheatEngine.SDK.Lua.Callbacks`        | `LuaNativeFunction`, `LuaCallback`, `LuaCallback<TState>`, `LuaThunk`                                                                                                             | Managed functions that Lua can call                                          |
+| `CheatEngine.SDK.Lua.CompilerServices` | `LuaGlobalFunctions`, `LuaCallSupport`                                                                                                                                            | Called by generated code, hidden from IntelliSense                           |
 
 `LuaState` is a pointer-sized `readonly struct` over a borrowed `lua_State*`. Raw members make one or two C calls and
 never run Lua code. Protected members (`TryCall`, `TryLoad`, `TryExecute`, `TryGetGlobal`, `TryGetField`, `TryLength`,
@@ -53,7 +53,8 @@ Lua wrapper turns that into `error(message, 2)`, where unwinding is safe. `LuaCa
 object that the thunk reads with `LuaThunk.TryGetState`. Lookup acquires a strong managed reference under the same gate
 as release. Its SDK-owned dispatch closure holds a `LuaRuntimeOperation` for each stateful invocation: an already
 admitted callback can finish during teardown, while a later callback returns a catchable `"the Lua runtime is stopping"`
-error without entering plugin code. SDK references use a private registry table and never participate in the host registry free list. Any Lua
+error without entering plugin code. SDK references use a private registry table and never participate in the host
+registry free list. Any Lua
 operation that may allocate is called through `cheatengine-sdk-lua-bridge.dll`, so a Lua `longjmp` cannot cross a
 managed frame.
 
@@ -67,7 +68,8 @@ neutralizes every live callback. Nothing has a finalizer, because a Lua state be
 
 Cheat Engine's `resetLuaState` must not be called outside the SDK-owned reset protocol. An external, unnotified reset is
 unsupported: the SDK cannot safely infer whether the old registry, callbacks, CE userdata or thread-local state still
-exist, so it deliberately does not attempt best-effort cleanup against a potentially replacement state. The deterministic
+exist, so it deliberately does not attempt best-effort cleanup against a potentially replacement state. The
+deterministic
 fixture tests below prove the managed invalidation ordering only; CE 7.7 reset/thread/userdata behavior remains subject
 to the opt-in live probe.
 

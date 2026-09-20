@@ -22,89 +22,6 @@ namespace CheatEngine.SDK.Benchmarks;
 [BenchmarkCategory("SourceGenerator", "Incremental", "EngineApi")]
 public class EngineApiIncrementalBenchmarks
 {
-    private BenchmarkAdditionalText? _editedFirstSpec;
-
-    private BenchmarkAdditionalText? _firstSpec;
-
-    private CSharpCompilation? _compilation;
-
-    private BenchmarkAdditionalText? _secondSpec;
-
-    private GeneratorDriver? _warmDriver;
-
-    /// <summary>Constructs and warms the driver that the incremental cases reuse.</summary>
-    [GlobalSetup]
-    public void Setup()
-    {
-        _compilation = CSharpCompilation.Create("CheatEngine.SDK.Benchmarks.EngineApiWorkload");
-        _firstSpec = new BenchmarkAdditionalText("memory-a.cheatengine-sdk-api.txt", FirstSpec);
-        _secondSpec = new BenchmarkAdditionalText("memory-b.cheatengine-sdk-api.txt", SecondSpec);
-        _editedFirstSpec = new BenchmarkAdditionalText("memory-a.cheatengine-sdk-api.txt", EditedFirstSpec);
-        _warmDriver = CreateDriver(_firstSpec, _secondSpec).RunGenerators(_compilation);
-    }
-
-    /// <summary>Creates a fresh driver and generates both curated-spec shapes.</summary>
-    [Benchmark(Baseline = true)]
-    public int ColdTwoSpecs()
-    {
-        return GeneratedSourceCount(CreateDriver(First(), Second()).RunGenerators(Compilation()));
-    }
-
-    /// <summary>Re-runs an already warmed driver without changing either additional file.</summary>
-    [Benchmark]
-    public int CachedNoInputChange()
-    {
-        return GeneratedSourceCount(WarmDriver().RunGenerators(Compilation()));
-    }
-
-    /// <summary>Replaces one spec in the warmed driver and generates the two resulting files.</summary>
-    [Benchmark]
-    public int OneSpecModified()
-    {
-        var updated = WarmDriver().ReplaceAdditionalText(First(), EditedFirst());
-        return GeneratedSourceCount(updated.RunGenerators(Compilation()));
-    }
-
-    private static CSharpGeneratorDriver CreateDriver(params AdditionalText[] specs)
-    {
-        return CSharpGeneratorDriver.Create(
-            [new EngineApiGenerator().AsSourceGenerator()],
-            specs,
-            new CSharpParseOptions(LanguageVersion.CSharp14),
-            null,
-            new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, false));
-    }
-
-    private static int GeneratedSourceCount(GeneratorDriver driver)
-    {
-        return driver.GetRunResult().Results[0].GeneratedSources.Length;
-    }
-
-    private CSharpCompilation Compilation()
-    {
-        return _compilation ?? throw new InvalidOperationException("Benchmark setup did not create a compilation.");
-    }
-
-    private BenchmarkAdditionalText First()
-    {
-        return _firstSpec ?? throw new InvalidOperationException("Benchmark setup did not create the first spec.");
-    }
-
-    private BenchmarkAdditionalText Second()
-    {
-        return _secondSpec ?? throw new InvalidOperationException("Benchmark setup did not create the second spec.");
-    }
-
-    private BenchmarkAdditionalText EditedFirst()
-    {
-        return _editedFirstSpec ?? throw new InvalidOperationException("Benchmark setup did not create the edited spec.");
-    }
-
-    private GeneratorDriver WarmDriver()
-    {
-        return _warmDriver ?? throw new InvalidOperationException("Benchmark setup did not warm the generator driver.");
-    }
-
     private const string FirstSpec = """
                                      namespace: Bench.Engine
                                      type: MemoryScalars
@@ -187,6 +104,89 @@ public class EngineApiIncrementalBenchmarks
                                       return: int32
                                       doc: Reads a runtime version value.
                                       """;
+
+    private CSharpCompilation? _compilation;
+    private BenchmarkAdditionalText? _editedFirstSpec;
+
+    private BenchmarkAdditionalText? _firstSpec;
+
+    private BenchmarkAdditionalText? _secondSpec;
+
+    private GeneratorDriver? _warmDriver;
+
+    /// <summary>Constructs and warms the driver that the incremental cases reuse.</summary>
+    [GlobalSetup]
+    public void Setup()
+    {
+        _compilation = CSharpCompilation.Create("CheatEngine.SDK.Benchmarks.EngineApiWorkload");
+        _firstSpec = new BenchmarkAdditionalText("memory-a.cheatengine-sdk-api.txt", FirstSpec);
+        _secondSpec = new BenchmarkAdditionalText("memory-b.cheatengine-sdk-api.txt", SecondSpec);
+        _editedFirstSpec = new BenchmarkAdditionalText("memory-a.cheatengine-sdk-api.txt", EditedFirstSpec);
+        _warmDriver = CreateDriver(_firstSpec, _secondSpec).RunGenerators(_compilation);
+    }
+
+    /// <summary>Creates a fresh driver and generates both curated-spec shapes.</summary>
+    [Benchmark(Baseline = true)]
+    public int ColdTwoSpecs()
+    {
+        return GeneratedSourceCount(CreateDriver(First(), Second()).RunGenerators(Compilation()));
+    }
+
+    /// <summary>Re-runs an already warmed driver without changing either additional file.</summary>
+    [Benchmark]
+    public int CachedNoInputChange()
+    {
+        return GeneratedSourceCount(WarmDriver().RunGenerators(Compilation()));
+    }
+
+    /// <summary>Replaces one spec in the warmed driver and generates the two resulting files.</summary>
+    [Benchmark]
+    public int OneSpecModified()
+    {
+        var updated = WarmDriver().ReplaceAdditionalText(First(), EditedFirst());
+        return GeneratedSourceCount(updated.RunGenerators(Compilation()));
+    }
+
+    private static CSharpGeneratorDriver CreateDriver(params AdditionalText[] specs)
+    {
+        return CSharpGeneratorDriver.Create(
+            [new EngineApiGenerator().AsSourceGenerator()],
+            specs,
+            new CSharpParseOptions(LanguageVersion.CSharp14),
+            null,
+            new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, false));
+    }
+
+    private static int GeneratedSourceCount(GeneratorDriver driver)
+    {
+        return driver.GetRunResult().Results[0].GeneratedSources.Length;
+    }
+
+    private CSharpCompilation Compilation()
+    {
+        return _compilation ?? throw new InvalidOperationException("Benchmark setup did not create a compilation.");
+    }
+
+    private BenchmarkAdditionalText First()
+    {
+        return _firstSpec ?? throw new InvalidOperationException("Benchmark setup did not create the first spec.");
+    }
+
+    private BenchmarkAdditionalText Second()
+    {
+        return _secondSpec ?? throw new InvalidOperationException("Benchmark setup did not create the second spec.");
+    }
+
+    private BenchmarkAdditionalText EditedFirst()
+    {
+        return _editedFirstSpec ??
+               throw new InvalidOperationException("Benchmark setup did not create the edited spec.");
+    }
+
+    private GeneratorDriver WarmDriver()
+    {
+        return _warmDriver ?? throw new InvalidOperationException("Benchmark setup did not warm the generator driver.");
+    }
 
     private sealed class BenchmarkAdditionalText(string path, string text) : AdditionalText
     {

@@ -1,7 +1,8 @@
 namespace CheatEngine.SDK.Tests.Infrastructure;
 
 /// <summary>
-///     Packs <c>src/CheatEngine.SDK/CheatEngine.SDK.csproj</c> once, to a throwaway local feed, then restores + builds direct
+///     Packs <c>src/CheatEngine.SDK/CheatEngine.SDK.csproj</c> once, to a throwaway local feed, then restores + builds
+///     direct
 ///     and indirect plugin consumers against it: a default one that takes every package default, one that sets
 ///     <c>AllowUnsafeBlocks=false</c> itself, one that sets <c>CheatEngineSdkGenerateEntryPoint=false</c>, and one that
 ///     reaches the umbrella only through a second packed package. It also builds direct consumers for every supported
@@ -30,6 +31,7 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
     private static readonly TimeSpan RestoreTimeout = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan BuildTimeout = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan PublishTimeout = TimeSpan.FromMinutes(2);
+
     private static readonly (string Key, string ConsumerName, string? PlatformTarget)[] PlatformTargetConsumers =
     [
         ("Unset", "UnsetPlatformTargetConsumer", null),
@@ -42,10 +44,11 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         ("Unsupported", "UnsupportedPlatformTargetConsumer", "Unsupported")
     ];
 
-    private DirectoryInfo? _tempRoot;
-    private readonly Dictionary<string, bool> _platformTargetConsumerBuildSucceeded = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _platformTargetConsumerBuildOutput = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, bool> _platformTargetConsumerBuildSucceeded = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _platformTargetConsumerEffectiveValues = new(StringComparer.Ordinal);
+
+    private DirectoryInfo? _tempRoot;
 
     /// <summary>The <c>PackageVersion</c> MinVer gave the packed <c>.nupkg</c> (read back from its file name).</summary>
     public string PackageVersion { get; private set; } = "";
@@ -134,7 +137,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
     ///     keys are <c>Unset</c>, <c>AnyCPU</c>, <c>x64</c>, <c>x86</c>, <c>ARM</c>, <c>ARM64</c>, <c>Itanium</c> and
     ///     <c>Unsupported</c>.
     /// </summary>
-    public IReadOnlyDictionary<string, bool> PlatformTargetConsumerBuildSucceeded => _platformTargetConsumerBuildSucceeded;
+    public IReadOnlyDictionary<string, bool> PlatformTargetConsumerBuildSucceeded =>
+        _platformTargetConsumerBuildSucceeded;
 
     /// <summary>Diagnostic output from each named <c>PlatformTarget</c> consumer build.</summary>
     public IReadOnlyDictionary<string, string> PlatformTargetConsumerBuildOutput => _platformTargetConsumerBuildOutput;
@@ -142,7 +146,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
     /// <summary>
     ///     The evaluated <c>PlatformTarget</c> property for each named consumer, captured before its build target runs.
     /// </summary>
-    public IReadOnlyDictionary<string, string> PlatformTargetConsumerEffectiveValues => _platformTargetConsumerEffectiveValues;
+    public IReadOnlyDictionary<string, string> PlatformTargetConsumerEffectiveValues =>
+        _platformTargetConsumerEffectiveValues;
 
     /// <inheritdoc />
     public async ValueTask InitializeAsync()
@@ -157,14 +162,16 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         await PackUmbrellaAsync(feedDirectory).ConfigureAwait(false);
         ReadPackedNupkg(feedDirectory);
 
-        await InitializeDefaultConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory).ConfigureAwait(false);
+        await InitializeDefaultConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
+            .ConfigureAwait(false);
         await InitializeExplicitUnsafeFalseConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
             .ConfigureAwait(false);
         await InitializeEntryPointOffConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
             .ConfigureAwait(false);
         await InitializeLuaFunctionConsumersAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
             .ConfigureAwait(false);
-        await InitializeIndirectConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory).ConfigureAwait(false);
+        await InitializeIndirectConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
+            .ConfigureAwait(false);
         await InitializePlatformTargetConsumersAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
             .ConfigureAwait(false);
     }
@@ -265,13 +272,13 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         // host lookup identity to the plugin author. If the generator ignored the false switch, this source would also
         // make the consumer fail with the duplicate CESDK.CESDK type - so a successful build proves both contracts.
         File.WriteAllText(Path.Combine(consumer.Directory, "ManualBootstrap.cs"), """
-                                                                           namespace CESDK;
+            namespace CESDK;
 
-                                                                           public static class CESDK
-                                                                           {
-                                                                               public static int CEPluginInitialize(System.IntPtr bootstrap, int opaqueArgument) => 1;
-                                                                           }
-                                                                           """);
+            public static class CESDK
+            {
+                public static int CEPluginInitialize(System.IntPtr bootstrap, int opaqueArgument) => 1;
+            }
+            """);
         await RestoreAndBuildAsync(consumer, packagesDirectory).ConfigureAwait(false);
         (EntryPointOffTypeExists, EntryPointOffMethodExists) = EntryPointProbe.Probe(consumer.AssemblyPath);
     }
@@ -279,7 +286,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
     private async Task InitializeLuaFunctionConsumersAsync(string tempRoot, string feedDirectory,
         string packagesDirectory)
     {
-        var optInConsumer = ThrowawayConsumer.Create(tempRoot, "LuaFunctionOptInConsumer", PackageVersion, feedDirectory,
+        var optInConsumer = ThrowawayConsumer.Create(tempRoot, "LuaFunctionOptInConsumer", PackageVersion,
+            feedDirectory,
             "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n", includeLuaFunction: true);
         var optInRestore = await optInConsumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
         EnsureSucceeded(optInRestore, "dotnet restore", optInConsumer.ProjectPath);
@@ -287,7 +295,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         LuaFunctionOptInConsumerBuildSucceeded = optInBuild.ExitCode == 0;
         EnsureSucceeded(optInBuild, "dotnet build", optInConsumer.ProjectPath);
 
-        var withoutUnsafeConsumer = ThrowawayConsumer.Create(tempRoot, "LuaFunctionWithoutUnsafeConsumer", PackageVersion,
+        var withoutUnsafeConsumer = ThrowawayConsumer.Create(tempRoot, "LuaFunctionWithoutUnsafeConsumer",
+            PackageVersion,
             feedDirectory, includeLuaFunction: true);
         var restore = await withoutUnsafeConsumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
         EnsureSucceeded(restore, "dotnet restore", withoutUnsafeConsumer.ProjectPath);
@@ -308,7 +317,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         var consumer = ThrowawayConsumer.CreateIndirect(tempRoot, ThrowawayPackageCarrier.PackageId,
             ThrowawayPackageCarrier.PackageVersion, feedDirectory);
         await RestoreAndBuildAsync(consumer, packagesDirectory).ConfigureAwait(false);
-        IndirectProperties = await consumer.GetPropertiesAsync(BuildTimeout, "AllowUnsafeBlocks", "EnableDynamicLoading",
+        IndirectProperties = await consumer.GetPropertiesAsync(BuildTimeout, "AllowUnsafeBlocks",
+                "EnableDynamicLoading",
                 "CheatEngineSdkGenerateEntryPoint")
             .ConfigureAwait(false);
         (IndirectEntryPointTypeExists, _) = EntryPointProbe.Probe(consumer.AssemblyPath);

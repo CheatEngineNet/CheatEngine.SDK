@@ -13,7 +13,8 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.SharedCode;
 /// <summary>
 ///     What the generators write into generated code (<c>LuaApiNames</c>) and what the parsers recognise in symbols
 ///     (<c>LuaValueKindMapper.IsLuaState</c>) denotes the real types of <c>CheatEngine.SDK.Lua</c>. A namespace change in
-///     <c>CheatEngine.SDK.Lua</c> that leaves a string behind still compiles here, and only fails in a consumer, so it has to
+///     <c>CheatEngine.SDK.Lua</c> that leaves a string behind still compiles here, and only fails in a consumer, so it has
+///     to
 ///     fail in this test.
 /// </summary>
 public sealed class LuaApiNamesTests

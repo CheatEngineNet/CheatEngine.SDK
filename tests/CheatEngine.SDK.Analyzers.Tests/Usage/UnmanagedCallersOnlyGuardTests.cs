@@ -1,7 +1,8 @@
 using CheatEngine.SDK.Analyzers.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
 using Verifier =
-    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<CheatEngine.SDK.Analyzers.Usage.UnmanagedCallersOnlyGuardAnalyzer>;
+    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<
+        CheatEngine.SDK.Analyzers.Usage.UnmanagedCallersOnlyGuardAnalyzer>;
 
 namespace CheatEngine.SDK.Analyzers.Tests.Usage;
 
@@ -200,12 +201,12 @@ public sealed class UnmanagedCallersOnlyGuardTests
     public async Task Project_without_a_cheatengine_sdk_reference_is_not_analysed()
     {
         await Verifier.VerifyWithoutCheatEngineSdkAsync(Callbacks("""
-                                                         [UnmanagedCallersOnly]
-                                                         private static int OnCall(nint state)
-                                                         {
-                                                             return Work(state);
-                                                         }
-                                                         """));
+                                                                  [UnmanagedCallersOnly]
+                                                                  private static int OnCall(nint state)
+                                                                  {
+                                                                      return Work(state);
+                                                                  }
+                                                                  """));
     }
 
     [Fact]

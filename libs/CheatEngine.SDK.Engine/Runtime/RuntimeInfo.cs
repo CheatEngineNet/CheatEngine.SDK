@@ -1,3 +1,5 @@
+using System;
+
 namespace CheatEngine.SDK.Engine.Runtime;
 
 /// <summary>
@@ -32,7 +34,7 @@ public sealed class RuntimeInfo
         TargetArchitecture = targetArchitecture;
         PointerSize = pointerSize;
         TargetAbi = targetAbi;
-        Capabilities = capabilities ?? throw new System.ArgumentNullException(nameof(capabilities));
+        Capabilities = capabilities ?? throw new ArgumentNullException(nameof(capabilities));
     }
 
     /// <summary>Gets the complete CE file version supplied for this snapshot.</summary>

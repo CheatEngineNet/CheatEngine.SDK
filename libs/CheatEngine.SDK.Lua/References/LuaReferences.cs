@@ -1,8 +1,8 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 using CheatEngine.SDK.Lua.Calls;
-using CheatEngine.SDK.Lua.Interop.Protected;
 using CheatEngine.SDK.Lua.Interop.Api;
+using CheatEngine.SDK.Lua.Interop.Protected;
 using CheatEngine.SDK.Lua.State;
 
 namespace CheatEngine.SDK.Lua.References;

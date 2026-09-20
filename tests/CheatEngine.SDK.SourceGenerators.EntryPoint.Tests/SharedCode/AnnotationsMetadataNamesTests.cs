@@ -8,7 +8,8 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.SharedCode;
 /// <summary>
 ///     The metadata names the generators and analyzers look the attributes and the plugin base class up by
 ///     (<c>AnnotationsMetadataNames</c>) are the full names of the real types. A namespace change in
-///     <c>CheatEngine.SDK.Annotations</c> or <c>CheatEngine.SDK.Hosting</c> that leaves a string behind still compiles, and it silently
+///     <c>CheatEngine.SDK.Annotations</c> or <c>CheatEngine.SDK.Hosting</c> that leaves a string behind still compiles,
+///     and it silently
 ///     switches the generators and the rules off, so it has to fail here.
 /// </summary>
 public sealed class AnnotationsMetadataNamesTests

@@ -46,7 +46,5 @@ namespace CheatEngine.SDK.Annotations.Threading;
     | AttributeTargets.Constructor
     | AttributeTargets.Class
     | AttributeTargets.Struct
-    | AttributeTargets.Interface,
-    Inherited = true,
-    AllowMultiple = false)]
+    | AttributeTargets.Interface)]
 public sealed class MainThreadOnlyAttribute : Attribute;

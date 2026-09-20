@@ -693,7 +693,8 @@ public sealed class SpecFileParserTests
     [Fact]
     public void An_invalid_ce77_provenance_records_the_provenance_value_location()
     {
-        const string Text = "namespace: Demo\ntype: T\ncontract: ce77\nprovenance: unverified note\nminimum-ce: 7.7.0.10621\narchitecture: x64\nthread: unknown\nownership: none\n";
+        const string Text =
+            "namespace: Demo\ntype: T\ncontract: ce77\nprovenance: unverified note\nminimum-ce: 7.7.0.10621\narchitecture: x64\nthread: unknown\nownership: none\n";
 
         var spec = SpecFileParser.Parse("contract.cheatengine-sdk-api.txt", Text);
 
@@ -707,7 +708,8 @@ public sealed class SpecFileParserTests
     [Fact]
     public void Invalid_ce77_contract_facts_report_each_exact_value_location()
     {
-        const string Text = "namespace: Demo\ntype: T\ncontract: ce77\nprovenance: not proof\nminimum-ce: seven\narchitecture: x86\nthread: worker\nownership: shared\n";
+        const string Text =
+            "namespace: Demo\ntype: T\ncontract: ce77\nprovenance: not proof\nminimum-ce: seven\narchitecture: x86\nthread: worker\nownership: shared\n";
 
         var spec = SpecFileParser.Parse("contract.cheatengine-sdk-api.txt", Text);
 
@@ -723,7 +725,8 @@ public sealed class SpecFileParserTests
     [Fact]
     public void An_invalid_argument_kind_records_its_value_column()
     {
-        const string Text = "namespace: Demo\ntype: T\n\n    global: readInteger\n    method: M\n    form: try\n    arg: address:notakind\n    result: value:int32\n    doc: d.\n";
+        const string Text =
+            "namespace: Demo\ntype: T\n\n    global: readInteger\n    method: M\n    form: try\n    arg: address:notakind\n    result: value:int32\n    doc: d.\n";
 
         var spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
 
@@ -736,7 +739,8 @@ public sealed class SpecFileParserTests
     [Fact]
     public void Parameter_and_generated_member_identity_collisions_drop_the_affected_entries()
     {
-        const string Text = "namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: BadParameter\nform: try\narg: __L:int32\nresult: value:int32\ndoc: bad.\n\nglobal: readInteger\nmethod: Read\nform: try\narg: address:address\nresult: value:int32\ndoc: raw core.\n\nglobal: readQword\nmethod: __ReadRaw\nform: try\nresult: value:int64\ndoc: collision.\n";
+        const string Text =
+            "namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: BadParameter\nform: try\narg: __L:int32\nresult: value:int32\ndoc: bad.\n\nglobal: readInteger\nmethod: Read\nform: try\narg: address:address\nresult: value:int32\ndoc: raw core.\n\nglobal: readQword\nmethod: __ReadRaw\nform: try\nresult: value:int64\ndoc: collision.\n";
 
         var spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
 
@@ -750,7 +754,8 @@ public sealed class SpecFileParserTests
     [Fact]
     public void A_parameter_named_operation_is_rejected_as_an_emitter_local_collision()
     {
-        const string Text = "namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: BadOperation\nform: try\narg: __operation:int32\nresult: value:int32\ndoc: bad.\n";
+        const string Text =
+            "namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: BadOperation\nform: try\narg: __operation:int32\nresult: value:int32\ndoc: bad.\n";
 
         var spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
 

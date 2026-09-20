@@ -10,7 +10,8 @@ public sealed class EngineExceptionTests
     public void Operation_failure_exposes_its_category_operation_and_inner_cause()
     {
         var cause = new InvalidOperationException("The target address was unreadable.");
-        var exception = new EngineOperationFailedException("TargetMemory.ReadInt32", "The read could not complete.", cause);
+        var exception =
+            new EngineOperationFailedException("TargetMemory.ReadInt32", "The read could not complete.", cause);
 
         Assert.Equal(EngineFailureKind.ExpectedOperationFailure, exception.Kind);
         Assert.Equal("TargetMemory.ReadInt32", exception.Operation);
@@ -76,7 +77,8 @@ public sealed class EngineExceptionTests
 
         Assert.Equal(EngineFailureKind.BindingFailure, exception.Kind);
         Assert.Equal("MemoryScalars.ReadInt32", exception.Binding);
-        Assert.Equal("The Cheat Engine binding 'MemoryScalars.ReadInt32' cannot uphold its contract.", exception.Message);
+        Assert.Equal("The Cheat Engine binding 'MemoryScalars.ReadInt32' cannot uphold its contract.",
+            exception.Message);
     }
 
     [Fact]

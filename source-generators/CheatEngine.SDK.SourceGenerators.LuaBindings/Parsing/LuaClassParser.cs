@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Threading;
 using CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
@@ -24,7 +25,7 @@ internal static class LuaClassParser
         var luaName = LuaBindingSymbols.ReadSdkAttributeName(context.Attributes, compilation,
             LuaBindingsGenerator.LuaClassAttributeMetadataName);
         var isValid = isSdkAttribute && LuaNames.IsValidName(luaName)
-                      && IsBorrowedHandleShape(type, compilation, cancellationToken);
+                                     && IsBorrowedHandleShape(type, compilation, cancellationToken);
 
         return new LuaClassModel(ContainingTypeParser.Parse(type), luaName ?? string.Empty, isValid);
     }
@@ -47,13 +48,14 @@ internal static class LuaClassParser
     }
 
     /// <summary>Whether the type carries the actual SDK <c>[LuaClass]</c> marker and can receive generated members.</summary>
-    internal static bool IsGeneratedHandle(INamedTypeSymbol type, Compilation compilation, CancellationToken cancellationToken)
+    internal static bool IsGeneratedHandle(INamedTypeSymbol type, Compilation compilation,
+        CancellationToken cancellationToken)
     {
         if (!IsBorrowedHandleShape(type, compilation, cancellationToken)) return false;
 
         foreach (var attribute in type.GetAttributes())
         {
-            var attributes = System.Collections.Immutable.ImmutableArray.Create(attribute);
+            var attributes = ImmutableArray.Create(attribute);
             if (LuaBindingSymbols.ContainsSdkAttribute(attributes, compilation,
                     LuaBindingsGenerator.LuaClassAttributeMetadataName))
                 return LuaNames.IsValidName(LuaBindingSymbols.ReadSdkAttributeName(

@@ -19,13 +19,14 @@ namespace CheatEngine.SDK.Benchmarks;
 [BenchmarkCategory("Transition", "Utf8")]
 public class Utf8MarshallerBenchmarks : IDisposable
 {
-    private LuaState _state;
-
     private NativeLuaState? _nativeState;
+    private LuaState _state;
 
     /// <summary>Number of UTF-8 bytes in the valid, non-ASCII payload.</summary>
     [Params(16, 64, 1024)]
     public int ByteCount { get; set; }
+
+    private byte[] Payload { get; set; } = [];
 
     /// <inheritdoc />
     public void Dispose()
@@ -70,6 +71,4 @@ public class Utf8MarshallerBenchmarks : IDisposable
         _state.SetTop(top);
         return length;
     }
-
-    private byte[] Payload { get; set; } = [];
 }

@@ -36,7 +36,7 @@ public sealed class OwnedTests
         Assert.Equal(handle, source.ToBorrowed());
         Assert.Equal("Owned(CEObject@0x1234)", source.ToString());
 
-        Owned<CEObject> destination = source.Transfer();
+        var destination = source.Transfer();
         Assert.True(source.IsDisposed);
         Assert.Equal("Owned(disposed)", source.ToString());
         Assert.Throws<ObjectDisposedException>(() => source.Value);
@@ -257,7 +257,7 @@ public sealed class OwnedTests
         var handle = FakeHost.CreateObject(L, "Probe");
         Owned<CEObject> first = new(handle);
 
-        Owned<CEObject> second = first.Transfer();
+        var second = first.Transfer();
         first.Dispose();
         Assert.True(first.IsDisposed);
         Assert.False(FakeHost.IsDestroyed(L, handle));

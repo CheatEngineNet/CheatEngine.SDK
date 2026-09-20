@@ -20,7 +20,8 @@ public sealed class EngineMarshallingException : EngineException
     /// <param name="actual">The type or shape the binding observed.</param>
     public EngineMarshallingException(string operation, EngineMarshallingDirection direction, string expected,
         string actual)
-        : this(operation, direction, expected, actual, CreateDefaultMessage(operation, direction, expected, actual), null)
+        : this(operation, direction, expected, actual, CreateDefaultMessage(operation, direction, expected, actual),
+            null)
     {
     }
 
@@ -80,9 +81,8 @@ public sealed class EngineMarshallingException : EngineException
     private static EngineMarshallingDirection ValidateDirection(EngineMarshallingDirection direction)
     {
         if (direction != EngineMarshallingDirection.Argument && direction != EngineMarshallingDirection.Result)
-        {
-            throw new ArgumentOutOfRangeException(nameof(direction), direction, "The marshalling direction is not defined.");
-        }
+            throw new ArgumentOutOfRangeException(nameof(direction), direction,
+                "The marshalling direction is not defined.");
 
         return direction;
     }

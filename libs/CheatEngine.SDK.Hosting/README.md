@@ -25,23 +25,25 @@ the same metadata; the standalone publication probe is
 ## How it works
 
 The entry point that `CheatEngine.SDK.SourceGenerators.EntryPoint` generates calls
-`PluginHost.InitializeManaged<TFactory>(args, hostArgument)`, where the generated `TFactory` implements `IPluginFactory`. Cheat
+`PluginHost.InitializeManaged<TFactory>(args, hostArgument)`, where the generated `TFactory` implements
+`IPluginFactory`. Cheat
 Engine calls it more than once per load, and every call writes the same values, including the same name pointer. It
 refuses a null record and a non-x64 process. The second integer is an opaque raw host argument: CE 7.7 live probing has
 not established whether it is a size, version, or another discriminator, so Hosting records it as
 `PluginHost.LastInitRecordArgument` without deriving behavior from it. This library writes the 36 packed bytes of
-`PluginInitRecord` from [`CheatEngine.SDK.Abi`](../CheatEngine.SDK.Abi/README.md). It copies the plugin name once into native memory that is
+`PluginInitRecord` from [`CheatEngine.SDK.Abi`](../CheatEngine.SDK.Abi/README.md). It copies the plugin name once into
+native memory that is
 never freed. ASCII is copied exactly. Other characters go through the process ANSI code page, and an unrepresentable
 one becomes `?`. A plugin that wants the same name on every machine keeps it ASCII. The library also builds on [
 `CheatEngine.SDK.Lua`](../CheatEngine.SDK.Lua/README.md) and ships inside the `CheatEngine.SDK` package.
 
-| Type                                                                                                    | Role                                                                                                                                                                |
-|---------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `CheatEnginePlugin`, `IPluginFactory` (`CheatEngine.SDK.Hosting.Plugin`)                                | The base class you derive from, and the factory contract the generated entry point implements                                                                       |
-| `PluginHost` (`CheatEngine.SDK.Hosting.Bootstrap`)                                                      | `InitializeManaged<TFactory>`, the three native callbacks, and the lock-free readers `Phase`, `IsInitialized`, `IsEnabled` and `Context` |
+| Type                                                                                                    | Role                                                                                                                                                                                 |
+|---------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `CheatEnginePlugin`, `IPluginFactory` (`CheatEngine.SDK.Hosting.Plugin`)                                | The base class you derive from, and the factory contract the generated entry point implements                                                                                        |
+| `PluginHost` (`CheatEngine.SDK.Hosting.Bootstrap`)                                                      | `InitializeManaged<TFactory>`, the three native callbacks, and the lock-free readers `Phase`, `IsInitialized`, `IsEnabled` and `Context`                                             |
 | `PluginContext` (`CheatEngine.SDK.Hosting.Context`)                                                     | Immutable facts of one enable: `PluginId`, `Epoch`, `MainThreadId`, `ShutdownToken`, `IsMainThread`, `IsCurrent`, `ReportedExportsSize`, `HasProcessMessages`, `HasCheckSynchronize` |
-| `MainThread` (`CheatEngine.SDK.Hosting.Threading`)                                                      | `IsMainThread`, `ProcessMessages()`, `CheckSynchronize(int)` and `Invoke`                                                                                           |
-| `HostLog`, `IHostLogSink`, `HostLogLevel`, `DebugOutputLogSink` (`CheatEngine.SDK.Hosting.Diagnostics`) | The logging seam                                                                                                                                                    |
+| `MainThread` (`CheatEngine.SDK.Hosting.Threading`)                                                      | `IsMainThread`, `ProcessMessages()`, `CheckSynchronize(int)` and `Invoke`                                                                                                            |
+| `HostLog`, `IHostLogSink`, `HostLogLevel`, `DebugOutputLogSink` (`CheatEngine.SDK.Hosting.Diagnostics`) | The logging seam                                                                                                                                                                     |
 
 The lifecycle state machine is `Uninitialized → Registered → Enabling → Enabled → Disabling → Registered`.
 `PluginHost.IsEnabled` is true only in stable `Enabled`. `Context` is deliberately available during `Enabling` and
@@ -52,7 +54,8 @@ The lifecycle state machine is `Uninitialized → Registered → Enabling → En
 1. Copy the host's exports record. A record smaller than 48 bytes, or without `GetLuaState`, fails.
 2. Bind the Lua API to the `lua53-64.dll` already loaded in the process, and check that the state's registry is a table.
 3. Construct the plugin on the first enable, before `LuaRuntime` is attached. A constructor call that needs Cheat
-   Engine, such as `LuaRuntime.AcquireOperation()` or `CheatEnginePlugin.Context`, throws `InvalidOperationException`, because
+   Engine, such as `LuaRuntime.AcquireOperation()` or `CheatEnginePlugin.Context`, throws `InvalidOperationException`,
+   because
    `LuaRuntime` attaches after construction.
 4. Attach `LuaRuntime` with a new epoch and publish the `PluginContext`. The enabling thread becomes the main thread of
    this enable. The phase is `Enabling`, so `IsEnabled` remains false and worker dispatch admission remains closed.
@@ -70,15 +73,15 @@ the plugin instance with a new epoch, so a `PluginContext` or Lua reference from
 `PluginContext.IsCurrent` tells a kept context from the live one. While the plugin is disabled, `PluginHost.Context`
 returns `null` and `CheatEnginePlugin.Context` throws.
 
-| Situation                                                                                                                                    | Cheat Engine receives | Afterward                                             |
-|----------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|-------------------------------------------------------|
-| `OnEnable` throws                                                                                                                            | `FALSE`               | Shutdown signalled, runtime detached in `finally`, context withdrawn, exception logged |
-| Constructor throws, or the factory returns `null`                                                                                            | `FALSE`               | Plugin disabled, the next enable retries              |
-| Exports record too small, no `GetLuaState`, no Lua module, or a failed registry check                                                        | `FALSE`               | Plugin disabled, reason logged                        |
-| `OnDisable` throws                                                                                                                           | `TRUE`                | Failure logged; plugin disabled                        |
-| Enable while enabled, or disable while disabled                                                                                              | `TRUE`                | Nothing changes, warning logged                       |
-| Lifecycle callback nested in a transition or concurrent with one                                                                            | `FALSE`               | It does not wait; the outer transition decides the state |
-| Disable delivered on a thread other than the captured main thread                                                                            | `FALSE`               | No cleanup starts; the current enable remains usable   |
+| Situation                                                                             | Cheat Engine receives | Afterward                                                                              |
+|---------------------------------------------------------------------------------------|-----------------------|----------------------------------------------------------------------------------------|
+| `OnEnable` throws                                                                     | `FALSE`               | Shutdown signalled, runtime detached in `finally`, context withdrawn, exception logged |
+| Constructor throws, or the factory returns `null`                                     | `FALSE`               | Plugin disabled, the next enable retries                                               |
+| Exports record too small, no `GetLuaState`, no Lua module, or a failed registry check | `FALSE`               | Plugin disabled, reason logged                                                         |
+| `OnDisable` throws                                                                    | `TRUE`                | Failure logged; plugin disabled                                                        |
+| Enable while enabled, or disable while disabled                                       | `TRUE`                | Nothing changes, warning logged                                                        |
+| Lifecycle callback nested in a transition or concurrent with one                      | `FALSE`               | It does not wait; the outer transition decides the state                               |
+| Disable delivered on a thread other than the captured main thread                     | `FALSE`               | No cleanup starts; the current enable remains usable                                   |
 
 `MainThread.IsMainThread` is `false` while the plugin is disabled. `ProcessMessages()` and `CheckSynchronize(int)` call
 the host's functions and throw `InvalidOperationException` on another thread or when the host left the function out.
@@ -128,8 +131,8 @@ from a simulated host record.
    construction retries on the next enable. A failed `OnEnable` leaves the runtime detached and the context withdrawn
    (`EnablePluginTests`).
 4. `OnDisable` closes admission, signals shutdown, drains already admitted GUI work, runs while attached, closes and
-   drains ordinary Lua operations, and still detaches/neutralizes callbacks after a throwing `OnDisable`. A later enable reuses the instance with a new epoch
-   (`DisablePluginTests`).
+   drains ordinary Lua operations, and still detaches/neutralizes callbacks after a throwing `OnDisable`. A later enable
+   reuses the instance with a new epoch (`DisablePluginTests`).
 5. Nested and concurrent lifecycle callbacks are refused without waiting, and the outer transition stands
    (`ReentrancyTests`).
 6. `ProcessMessages`, `CheckSynchronize` and `Invoke` throw before the plugin is enabled, the two pumps refuse worker

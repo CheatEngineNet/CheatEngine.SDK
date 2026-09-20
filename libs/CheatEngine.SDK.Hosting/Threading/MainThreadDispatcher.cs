@@ -53,7 +53,7 @@ internal static unsafe class MainThreadDispatcher
             return;
         }
 
-        using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+        using var operation = LuaRuntime.AcquireOperation();
         var l = operation.State;
         using LuaFrame frame = new(l);
 

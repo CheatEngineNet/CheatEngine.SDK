@@ -18,8 +18,10 @@ internal readonly struct EntryPointContractSymbols
 {
     private const string AnnotationsAssemblyName = "CheatEngine.SDK.Annotations";
     private const string HostingAssemblyName = "CheatEngine.SDK.Hosting";
+
     private const string SetsRequiredMembersAttributeMetadataName =
         "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
+
     private const string ObsoleteAttributeMetadataName = "System.ObsoleteAttribute";
     private const string ExperimentalAttributeMetadataName = "System.Diagnostics.CodeAnalysis.ExperimentalAttribute";
 

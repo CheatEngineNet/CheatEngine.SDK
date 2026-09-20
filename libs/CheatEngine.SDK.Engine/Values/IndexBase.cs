@@ -13,7 +13,8 @@ namespace CheatEngine.SDK.Engine.Values;
 /// <remarks>
 ///     <para>
 ///         <b>The rule this assembly follows.</b> Every public API in <c>CheatEngine.SDK.Engine</c> takes and returns
-///         zero-based indices, whatever the Lua side counts from: an index into a Cheat Engine object is passed through unchanged, an
+///         zero-based indices, whatever the Lua side counts from: an index into a Cheat Engine object is passed through
+///         unchanged, an
 ///         index into a returned Lua sequence is converted here, in one place, by the members of this class and the
 ///         <see cref="LuaSequence" /> extensions built on them. Code outside this class never writes <c>+ 1</c> or
 ///         <c>- 1</c> to change base.

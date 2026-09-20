@@ -1,3 +1,4 @@
+using System.Globalization;
 using CheatEngine.SDK.SourceGenerators.EngineApi.Model;
 using CheatEngine.SDK.SourceGenerators.Shared;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
@@ -11,7 +12,8 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Emit;
 ///     namespace and a single <c>public static partial class</c>.
 /// </summary>
 /// <remarks>
-///     Unlike <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>'s <c>Emit/LuaGlobalFileEmitter.cs</c>, this emitter writes
+///     Unlike <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>'s <c>Emit/LuaGlobalFileEmitter.cs</c>, this emitter
+///     writes
 ///     <b>complete</b> declarations, never the implementing half of a partial method someone else declares: source
 ///     generators cannot see each other's output, so there is no author-written defining declaration to repeat
 ///     modifiers or parameter names from. It also opens exactly one <c>partial class</c> (no nested-type chain): the
@@ -138,7 +140,8 @@ internal static class EngineApiFileEmitter
                 return true;
 
         foreach (var result in call.Results)
-            if (result.Kind == LuaValueKind.Address) return true;
+            if (result.Kind == LuaValueKind.Address)
+                return true;
 
         return call.ReturnKind == LuaValueKind.Address;
     }
@@ -336,6 +339,6 @@ internal static class EngineApiFileEmitter
 
     private static string RawResultName(int index)
     {
-        return "__engineApiRawResult" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return "__engineApiRawResult" + index.ToString(CultureInfo.InvariantCulture);
     }
 }

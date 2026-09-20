@@ -5,12 +5,15 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 /// <summary>
 ///     Every independent reason a class marked <c>[CheatEnginePlugin]</c> cannot be constructed by the generated entry
 ///     point: <c>new global::&lt;type&gt;()</c>, evaluated from a top-level type of the same assembly, in another file,
-///     must compile without an object initializer and must yield a <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c>.
+///     must compile without an object initializer and must yield a <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c>
+///     .
 /// </summary>
 /// <remarks>
 ///     The single source of truth for both consumers of <see cref="PluginShape" />: the
-///     <c>CheatEngine.SDK.SourceGenerators.EntryPoint</c> generator only tests <see cref="None" /> to decide whether to stay
-///     silent, and analyzer rule CESDK0001 (<c>CheatEngine.SDK.Analyzers</c>) reports one diagnostic per flag that is set, in a
+///     <c>CheatEngine.SDK.SourceGenerators.EntryPoint</c> generator only tests <see cref="None" /> to decide whether to
+///     stay
+///     silent, and analyzer rule CESDK0001 (<c>CheatEngine.SDK.Analyzers</c>) reports one diagnostic per flag that is set,
+///     in a
 ///     fixed order, with its own message text per flag. A flags enum (not a list of diagnostics) keeps the shared
 ///     predicate free of anything analyzer- or generator-specific.
 /// </remarks>

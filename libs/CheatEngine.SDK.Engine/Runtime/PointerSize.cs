@@ -1,7 +1,9 @@
+using System;
+
 namespace CheatEngine.SDK.Engine.Runtime;
 
 /// <summary>A pointer width that is valid for the supported 32-bit or 64-bit Cheat Engine process models.</summary>
-public readonly struct PointerSize : System.IEquatable<PointerSize>
+public readonly struct PointerSize : IEquatable<PointerSize>
 {
     private readonly byte _bytes;
 
@@ -20,7 +22,8 @@ public readonly struct PointerSize : System.IEquatable<PointerSize>
     public PointerSize(int bytes)
     {
         if (bytes is not 4 and not 8)
-            throw new System.ArgumentOutOfRangeException(nameof(bytes), bytes, "A Cheat Engine pointer size must be 4 or 8 bytes.");
+            throw new ArgumentOutOfRangeException(nameof(bytes), bytes,
+                "A Cheat Engine pointer size must be 4 or 8 bytes.");
         _bytes = (byte)bytes;
     }
 
@@ -47,23 +50,38 @@ public readonly struct PointerSize : System.IEquatable<PointerSize>
     }
 
     /// <inheritdoc />
-    public bool Equals(PointerSize other) => _bytes == other._bytes;
+    public bool Equals(PointerSize other)
+    {
+        return _bytes == other._bytes;
+    }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => obj is PointerSize other && Equals(other);
+    public override bool Equals(object? obj)
+    {
+        return obj is PointerSize other && Equals(other);
+    }
 
     /// <inheritdoc />
-    public override int GetHashCode() => _bytes.GetHashCode();
+    public override int GetHashCode()
+    {
+        return _bytes.GetHashCode();
+    }
 
     /// <summary>Tests two pointer widths for equality.</summary>
     /// <param name="left">The first width.</param>
     /// <param name="right">The second width.</param>
     /// <returns><see langword="true" /> when the widths are equal.</returns>
-    public static bool operator ==(PointerSize left, PointerSize right) => left.Equals(right);
+    public static bool operator ==(PointerSize left, PointerSize right)
+    {
+        return left.Equals(right);
+    }
 
     /// <summary>Tests two pointer widths for inequality.</summary>
     /// <param name="left">The first width.</param>
     /// <param name="right">The second width.</param>
     /// <returns><see langword="true" /> when the widths differ.</returns>
-    public static bool operator !=(PointerSize left, PointerSize right) => !left.Equals(right);
+    public static bool operator !=(PointerSize left, PointerSize right)
+    {
+        return !left.Equals(right);
+    }
 }

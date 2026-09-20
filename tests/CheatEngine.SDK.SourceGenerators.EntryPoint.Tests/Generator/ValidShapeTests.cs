@@ -14,7 +14,10 @@ public sealed class ValidShapeTests(RoslynFixture roslyn) : IClassFixture<Roslyn
 
     public static TheoryData<string, string> ValidShapes => new()
     {
-        { "implicit parameterless constructor", $"[CheatEnginePlugin(\"P\")] internal sealed class P : CheatEnginePlugin {{ {Members} }}" },
+        {
+            "implicit parameterless constructor",
+            $"[CheatEnginePlugin(\"P\")] internal sealed class P : CheatEnginePlugin {{ {Members} }}"
+        },
         { "unsealed class", $"[CheatEnginePlugin(\"P\")] public class P : CheatEnginePlugin {{ {Members} }}" },
         {
             "internal constructor",

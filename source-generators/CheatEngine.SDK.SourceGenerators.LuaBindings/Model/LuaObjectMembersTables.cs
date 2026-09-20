@@ -47,7 +47,8 @@ internal static class LuaObjectMembersTables
         }
     }
 
-    private static void AddProperties(Dictionary<string, Members> groups, ImmutableArray<LuaObjectPropertyModel> properties)
+    private static void AddProperties(Dictionary<string, Members> groups,
+        ImmutableArray<LuaObjectPropertyModel> properties)
     {
         foreach (var property in properties)
         {

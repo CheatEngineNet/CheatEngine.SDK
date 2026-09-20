@@ -26,7 +26,8 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 ///     </para>
 ///     <para>
 ///         A session accepts <c>firstScan</c> only from <see cref="MemoryScanState.New" />, <c>nextScan</c> only from
-///         <see cref="MemoryScanState.ResultsReady" />, and reads only after <c>waitTillDone</c> completed successfully followed
+///         <see cref="MemoryScanState.ResultsReady" />, and reads only after <c>waitTillDone</c> completed successfully
+///         followed
 ///         by <c>FoundList.initialize</c>. It uses <c>FoundList.deinitialize</c> before its own next scan and reset to
 ///         release the readable view; this is a session invariant, not a claim that CE rejects every other raw sequence.
 ///     </para>
@@ -39,10 +40,6 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 /// </remarks>
 public sealed class MemoryScanSession : IDisposable
 {
-    private Owned<MemScan>? _scanner;
-    private Owned<FoundList>? _foundList;
-    private MemoryScanState _state;
-
     // These are public exception identifiers. Keep CE's exact member names at the private call sites instead.
     private const string FirstScanOperation = "MemoryScan.FirstScan";
     private const string NextScanOperation = "MemoryScan.NextScan";
@@ -53,42 +50,18 @@ public sealed class MemoryScanSession : IDisposable
     private const string ResultCountOperation = "MemoryScan.ResultCount";
     private const string ResultAddressOperation = "MemoryScan.ResultAddress";
     private const string ResultValueOperation = "MemoryScan.ResultValue";
+    private Owned<FoundList>? _foundList;
+    private Owned<MemScan>? _scanner;
 
     private MemoryScanSession(Owned<MemScan> scanner, Owned<FoundList> foundList)
     {
         _scanner = scanner;
         _foundList = foundList;
-        _state = MemoryScanState.New;
-    }
-
-    /// <summary>
-    ///     Transfers two explicit ownership wrappers into a session. The source wrappers become empty; the returned
-    ///     session is then their only intended destroy owner.
-    /// </summary>
-    /// <param name="scanner">An owned scanner whose ownership has been proven by the caller's binding.</param>
-    /// <param name="foundList">An owned result-list child attached to <paramref name="scanner" />.</param>
-    /// <returns>A new session in <see cref="MemoryScanState.New" />.</returns>
-    /// <exception cref="ArgumentNullException">Either ownership wrapper is <see langword="null" />.</exception>
-    /// <exception cref="ObjectDisposedException">Either ownership wrapper was already released or disposed.</exception>
-    /// <remarks>
-    ///     The method deliberately does not call <c>createMemScan</c> or <c>createFoundList</c>. Until the CE source
-    ///     matrix records ownership for those APIs, a convenience factory would turn an undocumented ownership assumption
-    ///     into a public destruction contract.
-    /// </remarks>
-    public static MemoryScanSession Adopt(Owned<MemScan> scanner, Owned<FoundList> foundList)
-    {
-        ArgumentNullException.ThrowIfNull(scanner);
-        ArgumentNullException.ThrowIfNull(foundList);
-
-        // Value validates each source wrapper before either Transfer changes it. The wrappers are deliberately
-        // single-owner and unsynchronized, exactly like Owned<T>; callers must not concurrently dispose them.
-        _ = scanner.Value;
-        _ = foundList.Value;
-        return new MemoryScanSession(scanner.Transfer(), foundList.Transfer());
+        State = MemoryScanState.New;
     }
 
     /// <summary>Gets the session's conservative, managed state.</summary>
-    public MemoryScanState State => _state;
+    public MemoryScanState State { get; private set; }
 
     /// <summary>
     ///     Gets the scanner as a borrowed handle. Direct raw operations on this value bypass the session's state checks;
@@ -140,6 +113,83 @@ public sealed class MemoryScanSession : IDisposable
         }
     }
 
+    /// <summary>
+    ///     Releases the readable list when necessary, then destroys the owned found-list child before the owned scanner
+    ///     parent. Never retries a destruction and is safe to call more than once.
+    /// </summary>
+    /// <remarks>
+    ///     If the runtime cannot admit cleanup, this method throws without releasing either owner or changing the session
+    ///     state, so the plugin can retry before its disable callback returns. Once destruction begins, it follows
+    ///     <see cref="Owned{T}.Dispose" /> and does not retry a protected CE failure.
+    /// </remarks>
+    [MainThreadOnly]
+    public void Dispose()
+    {
+        if (State == MemoryScanState.Disposed) return;
+
+        // Detached cleanup deliberately follows Owned<T>: it marks the wrappers disposed and leaks the CE objects,
+        // because no state can be acquired. An attached worker thread is different: attempting CE cleanup there is
+        // unsafe, so reject it before changing local ownership or touching the Lua stack.
+        if (LuaRuntime.IsAttached && !LuaRuntime.IsMainThread)
+            throw new InvalidOperationException(
+                "Memory scan disposal must run on Cheat Engine's main thread while the plugin is attached.");
+
+        // Admit the complete cleanup before publishing any lifetime change. Owned<T> retains an owner when it cannot
+        // begin destroy(), so this session must retain both owners in that case as well.
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
+        var foundList = _foundList!;
+        var scanner = _scanner!;
+
+        if (State == MemoryScanState.ResultsReady)
+        {
+            using LuaFrame frame = new(state);
+            _ = foundList.Value.Handle.TryCallMethod(state, "deinitialize"u8, 0, 0);
+        }
+
+        // Each frame removes a protected-call error before the next destroy. TryDestroy consumes an owner only once its
+        // protected invocation begins; the outer admitted operation keeps the binding stable for both child and parent.
+        using (LuaFrame frame = new(state))
+        {
+            _ = foundList.TryDestroy(state);
+        }
+
+        using (LuaFrame frame = new(state))
+        {
+            _ = scanner.TryDestroy(state);
+        }
+
+        _foundList = null;
+        _scanner = null;
+        State = MemoryScanState.Disposed;
+    }
+
+    /// <summary>
+    ///     Transfers two explicit ownership wrappers into a session. The source wrappers become empty; the returned
+    ///     session is then their only intended destroy owner.
+    /// </summary>
+    /// <param name="scanner">An owned scanner whose ownership has been proven by the caller's binding.</param>
+    /// <param name="foundList">An owned result-list child attached to <paramref name="scanner" />.</param>
+    /// <returns>A new session in <see cref="MemoryScanState.New" />.</returns>
+    /// <exception cref="ArgumentNullException">Either ownership wrapper is <see langword="null" />.</exception>
+    /// <exception cref="ObjectDisposedException">Either ownership wrapper was already released or disposed.</exception>
+    /// <remarks>
+    ///     The method deliberately does not call <c>createMemScan</c> or <c>createFoundList</c>. Until the CE source
+    ///     matrix records ownership for those APIs, a convenience factory would turn an undocumented ownership assumption
+    ///     into a public destruction contract.
+    /// </remarks>
+    public static MemoryScanSession Adopt(Owned<MemScan> scanner, Owned<FoundList> foundList)
+    {
+        ArgumentNullException.ThrowIfNull(scanner);
+        ArgumentNullException.ThrowIfNull(foundList);
+
+        // Value validates each source wrapper before either Transfer changes it. The wrappers are deliberately
+        // single-owner and unsynchronized, exactly like Owned<T>; callers must not concurrently dispose them.
+        _ = scanner.Value;
+        _ = foundList.Value;
+        return new MemoryScanSession(scanner.Transfer(), foundList.Transfer());
+    }
+
     /// <summary>Begins a CE first scan with all fourteen documented positional arguments.</summary>
     /// <param name="request">The complete first-scan request.</param>
     /// <exception cref="MemoryScanStateException">The session is not new.</exception>
@@ -156,9 +206,9 @@ public sealed class MemoryScanSession : IDisposable
         ValidateFirstRequest(in request);
 
         // A CE error may happen after it accepts some scan setup. Do not report the old New state after a partial call.
-        _state = MemoryScanState.Invalidated;
+        State = MemoryScanState.Invalidated;
         CallFirstScan(_scanner!.Value, in request);
-        _state = MemoryScanState.Scanning;
+        State = MemoryScanState.Scanning;
     }
 
     /// <summary>Begins a CE next scan over the previous readable result set.</summary>
@@ -178,10 +228,10 @@ public sealed class MemoryScanSession : IDisposable
 
         // The list stops being readable as soon as this session releases it. A failed deinitialize or nextScan leaves
         // the conservative Invalidated state, from which Reset is the only recovery.
-        _state = MemoryScanState.Invalidated;
+        State = MemoryScanState.Invalidated;
         CallNoResult(_foundList!.Value.Handle, "deinitialize"u8, DeinitializeResultsOperation);
         CallNextScan(_scanner!.Value, in request);
-        _state = MemoryScanState.Scanning;
+        State = MemoryScanState.Scanning;
     }
 
     /// <summary>
@@ -202,15 +252,15 @@ public sealed class MemoryScanSession : IDisposable
         {
             CallWaitTillDone(_scanner!.Value);
 
-            _state = MemoryScanState.Invalidated;
+            State = MemoryScanState.Invalidated;
             CallNoResult(_foundList!.Value.Handle, "initialize"u8, InitializeResultsOperation);
-            _state = MemoryScanState.ResultsReady;
+            State = MemoryScanState.ResultsReady;
         }
         catch
         {
             // A wait error may mean CE is still scanning, completed, or left a partially materialized result set.
             // Never leave the session in Scanning when it cannot safely decide which of those is true.
-            _state = MemoryScanState.Invalidated;
+            State = MemoryScanState.Invalidated;
             throw;
         }
     }
@@ -228,13 +278,13 @@ public sealed class MemoryScanSession : IDisposable
     {
         RequireEnabledMainThread();
         ThrowIfDisposed();
-        if (_state == MemoryScanState.New) return;
-        if (_state == MemoryScanState.Scanning) ThrowWrongState("Reset");
+        if (State == MemoryScanState.New) return;
+        if (State == MemoryScanState.Scanning) ThrowWrongState("Reset");
 
-        _state = MemoryScanState.Invalidated;
+        State = MemoryScanState.Invalidated;
         CallNoResult(_foundList!.Value.Handle, "deinitialize"u8, DeinitializeResultsOperation);
         CallNoResult(_scanner!.Value.Handle, "newScan"u8, ResetOperation);
-        _state = MemoryScanState.New;
+        State = MemoryScanState.New;
     }
 
     /// <summary>Attempts to read the parsed target address at a zero-based result index.</summary>
@@ -296,56 +346,6 @@ public sealed class MemoryScanSession : IDisposable
         return true;
     }
 
-    /// <summary>
-    ///     Releases the readable list when necessary, then destroys the owned found-list child before the owned scanner
-    ///     parent. Never retries a destruction and is safe to call more than once.
-    /// </summary>
-    /// <remarks>
-    ///     If the runtime cannot admit cleanup, this method throws without releasing either owner or changing the session
-    ///     state, so the plugin can retry before its disable callback returns. Once destruction begins, it follows
-    ///     <see cref="Owned{T}.Dispose" /> and does not retry a protected CE failure.
-    /// </remarks>
-    [MainThreadOnly]
-    public void Dispose()
-    {
-        if (_state == MemoryScanState.Disposed) return;
-
-        // Detached cleanup deliberately follows Owned<T>: it marks the wrappers disposed and leaks the CE objects,
-        // because no state can be acquired. An attached worker thread is different: attempting CE cleanup there is
-        // unsafe, so reject it before changing local ownership or touching the Lua stack.
-        if (LuaRuntime.IsAttached && !LuaRuntime.IsMainThread)
-            throw new InvalidOperationException(
-                "Memory scan disposal must run on Cheat Engine's main thread while the plugin is attached.");
-
-        // Admit the complete cleanup before publishing any lifetime change. Owned<T> retains an owner when it cannot
-        // begin destroy(), so this session must retain both owners in that case as well.
-        using var operation = LuaRuntime.AcquireOperation();
-        var state = operation.State;
-        var foundList = _foundList!;
-        var scanner = _scanner!;
-
-        if (_state == MemoryScanState.ResultsReady)
-        {
-            using LuaFrame frame = new(state);
-            _ = foundList.Value.Handle.TryCallMethod(state, "deinitialize"u8, 0, 0);
-        }
-
-        // Each frame removes a protected-call error before the next destroy. TryDestroy consumes an owner only once its
-        // protected invocation begins; the outer admitted operation keeps the binding stable for both child and parent.
-        using (LuaFrame frame = new(state))
-        {
-            _ = foundList.TryDestroy(state);
-        }
-        using (LuaFrame frame = new(state))
-        {
-            _ = scanner.TryDestroy(state);
-        }
-
-        _foundList = null;
-        _scanner = null;
-        _state = MemoryScanState.Disposed;
-    }
-
     private FoundList RequireResults()
     {
         RequireState("results", MemoryScanState.ResultsReady);
@@ -355,19 +355,19 @@ public sealed class MemoryScanSession : IDisposable
     private void RequireState(string operation, MemoryScanState expected)
     {
         ThrowIfDisposed();
-        if (_state != expected) ThrowWrongState(operation);
+        if (State != expected) ThrowWrongState(operation);
     }
 
     private void ThrowIfDisposed()
     {
-        if (_state == MemoryScanState.Disposed)
+        if (State == MemoryScanState.Disposed)
             throw new ObjectDisposedException(nameof(MemoryScanSession), "The memory-scan session was disposed.");
     }
 
     [DoesNotReturn]
     private void ThrowWrongState(string operation)
     {
-        throw new MemoryScanStateException(operation, _state);
+        throw new MemoryScanStateException(operation, State);
     }
 
     private static void RequireEnabledMainThread()
@@ -391,11 +391,13 @@ public sealed class MemoryScanSession : IDisposable
         ArgumentNullException.ThrowIfNull(request.AlignmentParameter, nameof(request));
 
         if (request.ScanOption is < ScanOption.UnknownValue or > ScanOption.SmallerThan)
-            throw new ArgumentException("A first scan only accepts UnknownValue, ExactValue, ValueBetween, BiggerThan or SmallerThan.",
+            throw new ArgumentException(
+                "A first scan only accepts UnknownValue, ExactValue, ValueBetween, BiggerThan or SmallerThan.",
                 nameof(request));
         // CE 7.7 celua.txt line 2587 lists vtGrouped in addition to the contiguous Byte..All range.
         if ((uint)request.VariableType > (uint)VariableType.All && request.VariableType != VariableType.Grouped)
-            throw new ArgumentException("The CE 7.7 firstScan contract accepts Byte through All and Grouped.", nameof(request));
+            throw new ArgumentException("The CE 7.7 firstScan contract accepts Byte through All and Grouped.",
+                nameof(request));
         if (request.RoundingType is < RoundingType.Rounded or > RoundingType.Truncated)
             throw new ArgumentException("The rounding type is not a CE 7.7 value.", nameof(request));
         if (request.FastScanMethod is < FastScanMethod.NotAligned or > FastScanMethod.LastDigits)

@@ -48,7 +48,8 @@ internal static class WellKnownTypeNames
     public const string LuaGlobalAttribute = AnnotationsMetadataNames.LuaGlobalAttribute;
 
     /// <summary>Marks an API that can only run after PluginHost enables the plugin (CESDK1001).</summary>
-    public const string RequiresPluginEnabledAttribute = "CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute";
+    public const string RequiresPluginEnabledAttribute =
+        "CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute";
 
     /// <summary>Marks a value that Cheat Engine owns and callers must only borrow (CESDK1003).</summary>
     public const string CEOwnedAttribute = "CheatEngine.SDK.Annotations.Lifetime.CEOwnedAttribute";

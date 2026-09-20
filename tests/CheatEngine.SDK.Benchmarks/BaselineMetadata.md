@@ -7,13 +7,13 @@ the established unit-test allocation gates remain the correctness authority.
 
 ## Baseline schema 1
 
-| Identifier | Workload and comparison | Fixture / required state | Allocation expectation | Status |
-|---|---|---|---|---|
-| `lua-callback-stateful-v1` | `CallbackBenchmarks.RoundTrip`: one protected Lua loop containing 1,000 chained calls to a registered generated thunk, reported per callback | Pinned CE 7.7 Lua 5.3 DLL; one attached ambient state | Zero after warm-up | Active |
-| `lua-utf8-scale-v1` | `Utf8MarshallerBenchmarks.PushReadUtf8`: valid non-ASCII UTF-8 at 16, 64 and 1,024 bytes | Pinned CE 7.7 Lua 5.3 DLL; independent state per parameter | Zero after warm-up | Active |
-| `target-scalars-fixture-v1` | `MemoryScalarBenchmarks`: public `TargetMemory` signed 32/64-bit read/write paths | Pinned CE 7.7 Lua 5.3 DLL; Lua table stand-ins, never a live target process | Zero after warm-up | Active |
-| `host-scalars-fixture-v1` | `MemoryScalarBenchmarks`: public `HostMemory` signed 32/64-bit read/write paths | Pinned CE 7.7 Lua 5.3 DLL; separate Lua table stand-ins, never the Cheat Engine host process | Zero after warm-up | Active |
-| `engineapi-incremental-v1` | `EngineApiIncrementalBenchmarks`: cold two-spec generation, unchanged re-run, and one-spec replacement | In-process Roslyn EngineApi generator; no compilation or MSBuild work | Informational; generator allocations are expected | Active |
+| Identifier                  | Workload and comparison                                                                                                                      | Fixture / required state                                                                     | Allocation expectation                            | Status |
+|-----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|---------------------------------------------------|--------|
+| `lua-callback-stateful-v1`  | `CallbackBenchmarks.RoundTrip`: one protected Lua loop containing 1,000 chained calls to a registered generated thunk, reported per callback | Pinned CE 7.7 Lua 5.3 DLL; one attached ambient state                                        | Zero after warm-up                                | Active |
+| `lua-utf8-scale-v1`         | `Utf8MarshallerBenchmarks.PushReadUtf8`: valid non-ASCII UTF-8 at 16, 64 and 1,024 bytes                                                     | Pinned CE 7.7 Lua 5.3 DLL; independent state per parameter                                   | Zero after warm-up                                | Active |
+| `target-scalars-fixture-v1` | `MemoryScalarBenchmarks`: public `TargetMemory` signed 32/64-bit read/write paths                                                            | Pinned CE 7.7 Lua 5.3 DLL; Lua table stand-ins, never a live target process                  | Zero after warm-up                                | Active |
+| `host-scalars-fixture-v1`   | `MemoryScalarBenchmarks`: public `HostMemory` signed 32/64-bit read/write paths                                                              | Pinned CE 7.7 Lua 5.3 DLL; separate Lua table stand-ins, never the Cheat Engine host process | Zero after warm-up                                | Active |
+| `engineapi-incremental-v1`  | `EngineApiIncrementalBenchmarks`: cold two-spec generation, unchanged re-run, and one-spec replacement                                       | In-process Roslyn EngineApi generator; no compilation or MSBuild work                        | Informational; generator allocations are expected | Active |
 
 `MarshallerBenchmarks`, `GlobalCallBenchmarks` and `ObjectPropertyBenchmarks` predate this schema and remain active
 coverage. `PushReadString` is intentionally excluded from the zero-allocation expectation because reading makes a
@@ -38,8 +38,8 @@ one series.
 
 ## Deliberately deferred workload designs
 
-| Domain | Why no executable benchmark exists yet | Add when the contract is available |
-|---|---|---|
+| Domain                                | Why no executable benchmark exists yet                                                                   | Add when the contract is available                                                                                                            |
+|---------------------------------------|----------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
 | Scalar widths beyond signed 32/64-bit | The public target and host APIs exist, but this baseline deliberately avoids multiplying benchmark cases | One representative signed/unsigned/float/pointer operation per return shape, with CE-return semantics and fixture plus opt-in live validation |
-| Byte and string memory I/O | Public span/string APIs exist, but their bulk and encoding caller shapes need a dedicated scenario | Small and page-scale buffers, distinct binary and encoding cases, and explicit batch-order semantics |
-| Live Cheat Engine target-memory calls | Normal CI must not attach to or mutate a process | Opt-in CE 7.7 x64 test against an authorized disposable target, recorded separately from fixture numbers |
+| Byte and string memory I/O            | Public span/string APIs exist, but their bulk and encoding caller shapes need a dedicated scenario       | Small and page-scale buffers, distinct binary and encoding cases, and explicit batch-order semantics                                          |
+| Live Cheat Engine target-memory calls | Normal CI must not attach to or mutate a process                                                         | Opt-in CE 7.7 x64 test against an authorized disposable target, recorded separately from fixture numbers                                      |

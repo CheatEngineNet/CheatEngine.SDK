@@ -26,7 +26,8 @@ internal static class LuaFunctionParser
         var luaName = LuaBindingSymbols.ReadSdkAttributeName(context.Attributes, compilation,
             LuaBindingsGenerator.LuaFunctionAttributeMetadataName);
 
-        var issues = LuaFunctionShape.Inspect(method, LuaBindingSymbols.ResolveLuaState(compilation), out var signature);
+        var issues =
+            LuaFunctionShape.Inspect(method, LuaBindingSymbols.ResolveLuaState(compilation), out var signature);
         if (!isSdkAttribute || !LuaNames.IsValidName(luaName)) issues |= LuaFunctionShapeIssues.InvalidName;
 
         var typeIssues = ContainingTypeShape.Inspect(method.ContainingType, cancellationToken);

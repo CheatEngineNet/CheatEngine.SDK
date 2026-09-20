@@ -1,7 +1,7 @@
-using CheatEngine.SDK.Tests.Infrastructure;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using CheatEngine.SDK.Tests.Infrastructure;
 
 namespace CheatEngine.SDK.Tests.Packaging;
 
@@ -16,9 +16,6 @@ namespace CheatEngine.SDK.Tests.Packaging;
 [Collection(PackagedUmbrellaSuite.Name)]
 public sealed class EntryPointTests(PackagedUmbrellaFixture fixture)
 {
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate uint BridgeVersion();
-
     [Fact]
     public void Default_consumer_gets_the_generated_entry_point_type()
     {
@@ -88,26 +85,27 @@ public sealed class EntryPointTests(PackagedUmbrellaFixture fixture)
         {
             var hostingAssembly = context.LoadFromAssemblyPath(hostingAssemblyPath);
             var consumerAssembly = context.LoadFromAssemblyPath(consumerAssemblyPath);
-            var entryPointType = consumerAssembly.GetType("CESDK.CESDK", throwOnError: true)!;
+            var entryPointType = consumerAssembly.GetType("CESDK.CESDK", true)!;
             var initialize = entryPointType.GetMethod("CEPluginInitialize", BindingFlags.Public | BindingFlags.Static)
                              ?? throw new MissingMethodException("CESDK.CESDK", "CEPluginInitialize");
 
             var record = Marshal.AllocHGlobal(recordSize + sizeof(int));
             try
             {
-                byte[] initialBytes = new byte[recordSize + sizeof(int)];
+                var initialBytes = new byte[recordSize + sizeof(int)];
                 Array.Fill(initialBytes, canary);
                 Marshal.Copy(initialBytes, 0, record, initialBytes.Length);
 
                 var result = initialize.Invoke(null, [record, opaqueArgument]);
                 Assert.Equal(1, Assert.IsType<int>(result));
 
-                var pluginHost = hostingAssembly.GetType("CheatEngine.SDK.Hosting.Bootstrap.PluginHost", throwOnError: true)!;
-                var lastArgument = pluginHost.GetProperty("LastInitRecordArgument", BindingFlags.Public | BindingFlags.Static)
-                                   ?? throw new MissingMemberException(pluginHost.FullName, "LastInitRecordArgument");
+                var pluginHost = hostingAssembly.GetType("CheatEngine.SDK.Hosting.Bootstrap.PluginHost", true)!;
+                var lastArgument =
+                    pluginHost.GetProperty("LastInitRecordArgument", BindingFlags.Public | BindingFlags.Static)
+                    ?? throw new MissingMemberException(pluginHost.FullName, "LastInitRecordArgument");
                 Assert.Equal(opaqueArgument, Assert.IsType<int>(lastArgument.GetValue(null)));
 
-                byte[] actualBytes = new byte[recordSize + sizeof(int)];
+                var actualBytes = new byte[recordSize + sizeof(int)];
                 Marshal.Copy(record, actualBytes, 0, actualBytes.Length);
                 Assert.NotEqual(0L, BitConverter.ToInt64(actualBytes, 0));
                 for (var index = recordSize; index < actualBytes.Length; index++)
@@ -123,6 +121,9 @@ public sealed class EntryPointTests(PackagedUmbrellaFixture fixture)
             context.Unload();
         }
     }
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate uint BridgeVersion();
 
     private sealed class PluginAssemblyLoadContext(string deploymentDirectory) : AssemblyLoadContext(true)
     {

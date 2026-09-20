@@ -16,7 +16,8 @@ public sealed unsafe class LuaBridgeContractBoundaryTests
     private const int PushByteTableOperation = 11;
     private static nint s_forwardedPCall;
     private static int s_pcallCallCount;
-    private static readonly string[] s_protectedExportNames =
+
+    private static readonly string[] SProtectedExportNames =
     [
         "lua_gettop", "lua_settop", "lua_checkstack", "lua_rotate", "lua_pushlstring",
         "lua_pushinteger", "lua_createtable", "lua_newuserdata", "lua_pushcclosure",
@@ -69,23 +70,24 @@ public sealed unsafe class LuaBridgeContractBoundaryTests
     {
         LuaTest.RequireNativeLua();
         using NativeLuaState state = new(false);
-        lua_State* luaState = state.L;
+        var luaState = state.L;
         LuaApi.lua_pushinteger(luaState, 0x1CEB_00DA_5EED_1234);
         var top = LuaApi.lua_gettop(luaState);
 
         var path = Path.Combine(AppContext.BaseDirectory, "cheatengine-sdk-lua-bridge.dll");
         Assert.True(File.Exists(path), $"The native Lua bridge was not copied to '{path}'.");
 
-        nint module = NativeLibrary.Load(path);
+        var module = NativeLibrary.Load(path);
         try
         {
             var protectedOperation =
-                (delegate* unmanaged[Cdecl]<lua_State*, nint*, int, int, void*, nuint, nint, nint, int>)NativeLibrary.GetExport(
-                    module,
-                    "cheatengine_sdk_lua_protected");
-            nint* completeExports = stackalloc nint[ProtectedExportCount];
+                (delegate* unmanaged[Cdecl]<lua_State*, nint*, int, int, void*, nuint, nint, nint, int>)NativeLibrary
+                    .GetExport(
+                        module,
+                        "cheatengine_sdk_lua_protected");
+            var completeExports = stackalloc nint[ProtectedExportCount];
             PopulateProtectedExports(LuaApi.ModuleHandle, completeExports);
-            nint* incompleteExports = stackalloc nint[ProtectedExportCount];
+            var incompleteExports = stackalloc nint[ProtectedExportCount];
             for (var i = 0; i < ProtectedExportCount; i++) incompleteExports[i] = completeExports[i];
             incompleteExports[17] = 0; // lua_error is required before the bridge can enter lua_pcallk.
 
@@ -110,21 +112,22 @@ public sealed unsafe class LuaBridgeContractBoundaryTests
     {
         LuaTest.RequireNativeLua();
         using NativeLuaState state = new(false);
-        lua_State* luaState = state.L;
-        byte[] bytes = new byte[4096];
+        var luaState = state.L;
+        var bytes = new byte[4096];
         for (var index = 0; index < bytes.Length; index++) bytes[index] = (byte)index;
 
         var path = Path.Combine(AppContext.BaseDirectory, "cheatengine-sdk-lua-bridge.dll");
         Assert.True(File.Exists(path), $"The native Lua bridge was not copied to '{path}'.");
 
-        nint module = NativeLibrary.Load(path);
+        var module = NativeLibrary.Load(path);
         try
         {
             var protectedOperation =
-                (delegate* unmanaged[Cdecl]<lua_State*, nint*, int, int, void*, nuint, nint, nint, int>)NativeLibrary.GetExport(
-                    module,
-                    "cheatengine_sdk_lua_protected");
-            nint* exports = stackalloc nint[ProtectedExportCount];
+                (delegate* unmanaged[Cdecl]<lua_State*, nint*, int, int, void*, nuint, nint, nint, int>)NativeLibrary
+                    .GetExport(
+                        module,
+                        "cheatengine_sdk_lua_protected");
+            var exports = stackalloc nint[ProtectedExportCount];
             PopulateProtectedExports(LuaApi.ModuleHandle, exports);
             s_forwardedPCall = exports[16];
             s_pcallCallCount = 0;
@@ -166,9 +169,9 @@ public sealed unsafe class LuaBridgeContractBoundaryTests
 
     private static void PopulateProtectedExports(nint luaModule, nint* exports)
     {
-        Assert.Equal(ProtectedExportCount, s_protectedExportNames.Length);
-        for (var i = 0; i < s_protectedExportNames.Length; i++)
-            exports[i] = NativeLibrary.GetExport(luaModule, s_protectedExportNames[i]);
+        Assert.Equal(ProtectedExportCount, SProtectedExportNames.Length);
+        for (var i = 0; i < SProtectedExportNames.Length; i++)
+            exports[i] = NativeLibrary.GetExport(luaModule, SProtectedExportNames[i]);
     }
 
     private static void AssertStackIsUnchanged(lua_State* luaState, int expectedTop)

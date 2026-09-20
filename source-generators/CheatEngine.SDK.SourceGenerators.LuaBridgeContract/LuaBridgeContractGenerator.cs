@@ -38,7 +38,8 @@ public sealed class LuaBridgeContractGenerator : IIncrementalGenerator
                 productionContext.ReportDiagnostic(LuaBridgeContractDiagnostics.Create(plan.Diagnostics[i]));
 
             if (plan.Catalog is not null)
-                productionContext.AddSource(LuaProtectedOperationEmitter.HintName, LuaProtectedOperationEmitter.Emit(plan.Catalog));
+                productionContext.AddSource(LuaProtectedOperationEmitter.HintName,
+                    LuaProtectedOperationEmitter.Emit(plan.Catalog));
         });
     }
 }

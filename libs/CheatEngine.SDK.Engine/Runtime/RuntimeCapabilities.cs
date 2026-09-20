@@ -1,7 +1,9 @@
+using System;
+
 namespace CheatEngine.SDK.Engine.Runtime;
 
 /// <summary>An immutable set of optional capability observations for one Cheat Engine runtime snapshot.</summary>
-public sealed class RuntimeCapabilities : System.IEquatable<RuntimeCapabilities>
+public sealed class RuntimeCapabilities : IEquatable<RuntimeCapabilities>
 {
     private readonly RuntimeCapabilityAvailability[] _entries;
 
@@ -11,31 +13,43 @@ public sealed class RuntimeCapabilities : System.IEquatable<RuntimeCapabilities>
     }
 
     /// <summary>Gets an empty capability set.</summary>
-    public static RuntimeCapabilities Empty { get; } = new(System.Array.Empty<RuntimeCapabilityAvailability>());
+    public static RuntimeCapabilities Empty { get; } = new(Array.Empty<RuntimeCapabilityAvailability>());
 
     /// <summary>Gets the number of explicit capability observations.</summary>
     public int Count => _entries.Length;
 
     /// <summary>Gets the ordered observations as a read-only span.</summary>
-    public System.ReadOnlySpan<RuntimeCapabilityAvailability> Entries => _entries;
+    public ReadOnlySpan<RuntimeCapabilityAvailability> Entries => _entries;
+
+    /// <inheritdoc />
+    public bool Equals(RuntimeCapabilities? other)
+    {
+        if (ReferenceEquals(this, other)) return true;
+        if (other is null || _entries.Length != other._entries.Length) return false;
+        for (var i = 0; i < _entries.Length; i++)
+            if (_entries[i] != other._entries[i])
+                return false;
+        return true;
+    }
 
     /// <summary>Creates an immutable capability set by copying the supplied observations.</summary>
     /// <param name="entries">The observations to copy. Each capability identifier must be non-empty and unique.</param>
     /// <returns>The independent, immutable capability set.</returns>
     /// <exception cref="System.ArgumentException">An identifier is empty or occurs more than once.</exception>
-    public static RuntimeCapabilities Create(System.ReadOnlySpan<RuntimeCapabilityAvailability> entries)
+    public static RuntimeCapabilities Create(ReadOnlySpan<RuntimeCapabilityAvailability> entries)
     {
         if (entries.IsEmpty) return Empty;
 
-        RuntimeCapabilityAvailability[] copy = entries.ToArray();
+        var copy = entries.ToArray();
         for (var i = 0; i < copy.Length; i++)
         {
             if (copy[i].Capability.IsEmpty)
-                throw new System.ArgumentException("A runtime capability identifier cannot be empty.", nameof(entries));
+                throw new ArgumentException("A runtime capability identifier cannot be empty.", nameof(entries));
 
             for (var previous = 0; previous < i; previous++)
                 if (copy[previous].Capability == copy[i].Capability)
-                    throw new System.ArgumentException("A runtime capability identifier occurs more than once.", nameof(entries));
+                    throw new ArgumentException("A runtime capability identifier occurs more than once.",
+                        nameof(entries));
         }
 
         return new RuntimeCapabilities(copy);
@@ -69,22 +83,15 @@ public sealed class RuntimeCapabilities : System.IEquatable<RuntimeCapabilities>
     }
 
     /// <inheritdoc />
-    public bool Equals(RuntimeCapabilities? other)
+    public override bool Equals(object? obj)
     {
-        if (object.ReferenceEquals(this, other)) return true;
-        if (other is null || _entries.Length != other._entries.Length) return false;
-        for (var i = 0; i < _entries.Length; i++)
-            if (_entries[i] != other._entries[i]) return false;
-        return true;
+        return obj is RuntimeCapabilities other && Equals(other);
     }
-
-    /// <inheritdoc />
-    public override bool Equals(object? obj) => obj is RuntimeCapabilities other && Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode()
     {
-        var hash = new System.HashCode();
+        var hash = new HashCode();
         for (var i = 0; i < _entries.Length; i++) hash.Add(_entries[i]);
         return hash.ToHashCode();
     }

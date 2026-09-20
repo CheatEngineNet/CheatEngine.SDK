@@ -13,15 +13,19 @@ namespace CheatEngine.SDK.Lua.FailureProbe;
 internal static unsafe class Program
 {
     private const string CheckStackGrowthMode = "--checkstack-growth";
+
     private const int CheckStackGrowthSlots = 4096;
+
     // Exact C11 CHEATENGINE_SDK_NO_ERROR sentinel. The internal production alias is LuaProtectedApi.NoErrorStatus.
     private const int BridgeNoErrorStatus = -100;
     private const int PushBytesOperation = 0;
     private const int PushHostObjectOperation = 10;
     private const int ProtectedExportCount = 20;
     private const long StackSentinel = 0x1CEB_00DA_5EED_1234;
+
     private const string UncheckedFunctionReservationFailureMessage =
         "Lua could not reserve one stack slot for the bare C function; the stack is unchanged.";
+
     private static delegate* unmanaged[Cdecl]<void*, void*, nuint, nuint, void*> s_originalAllocator;
     private static void* s_originalAllocatorData;
     private static lua_State* s_runtimeState;
@@ -92,7 +96,8 @@ internal static unsafe class Program
         if (ProbeHostObjectPusherLongJump(state, luaModule) != 0) return 1;
 
         var recoveryStatus = state.TryExecute("return 6 * 7"u8, 1, "=post-failure-recovery"u8);
-        if (!recoveryStatus.IsOk) return Fail("the Lua state could not execute a new protected call after the failures");
+        if (!recoveryStatus.IsOk)
+            return Fail("the Lua state could not execute a new protected call after the failures");
         if (!state.TryReadInteger(-1, out var recoveryValue) || recoveryValue != 42)
             return Fail("the Lua state returned an unexpected post-failure recovery value");
         state.Pop(1);
@@ -106,8 +111,15 @@ internal static unsafe class Program
         if (PushSentinel(state, "TryPushString") != 0) return 1;
         LuaStatus status;
         Volatile.Write(ref s_rejectAllocations, 1);
-        try { status = state.TryPushString(message); }
-        finally { Volatile.Write(ref s_rejectAllocations, 0); }
+        try
+        {
+            status = state.TryPushString(message);
+        }
+        finally
+        {
+            Volatile.Write(ref s_rejectAllocations, 0);
+        }
+
         if (status != LuaStatus.MemoryError) return Fail("TryPushString did not return LUA_ERRMEM");
         return AssertErrorThenRestoreSentinel(state, "TryPushString");
     }
@@ -121,10 +133,17 @@ internal static unsafe class Program
         Volatile.Write(ref s_rejectAllocations, 1);
         // Deliberately call the current managed binding without LuaProtectedApi: this is the pre-bridge path whose
         // fixture behavior we must observe under an allocation failure.
-        try { reserved = state.TryEnsureStack(CheckStackGrowthSlots); }
-        finally { Volatile.Write(ref s_rejectAllocations, 0); }
+        try
+        {
+            reserved = state.TryEnsureStack(CheckStackGrowthSlots);
+        }
+        finally
+        {
+            Volatile.Write(ref s_rejectAllocations, 0);
+        }
 
-        if (reserved) return Fail("lua_checkstack unexpectedly reserved 4096 slots while the allocator rejected growth");
+        if (reserved)
+            return Fail("lua_checkstack unexpectedly reserved 4096 slots while the allocator rejected growth");
         if (state.Top != 0) return Fail("lua_checkstack changed the stack after rejected growth");
         WriteMarker("MARK lua_checkstack-direct-growth-returned-zero");
 
@@ -155,10 +174,11 @@ internal static unsafe class Program
         try
         {
             var protectedOperation =
-                (delegate* unmanaged[Cdecl]<lua_State*, nint*, int, int, void*, nuint, nint, nint, int>)NativeLibrary.GetExport(
-                    bridge,
-                    "cheatengine_sdk_lua_protected");
-            nint* exports = stackalloc nint[ProtectedExportCount];
+                (delegate* unmanaged[Cdecl]<lua_State*, nint*, int, int, void*, nuint, nint, nint, int>)NativeLibrary
+                    .GetExport(
+                        bridge,
+                        "cheatengine_sdk_lua_protected");
+            var exports = stackalloc nint[ProtectedExportCount];
             PopulateProtectedExports(LuaApi.ModuleHandle, exports);
 
             var initialTop = state.Top;
@@ -195,7 +215,8 @@ internal static unsafe class Program
 
             state.SetTop(initialTop);
             if (state.Top != initialTop) return Fail("the full-stack bridge probe could not restore the Lua stack");
-            if (!state.TryEnsureStack(1)) return Fail("lua_checkstack could not reserve a slot after bridge-stack recovery");
+            if (!state.TryEnsureStack(1))
+                return Fail("lua_checkstack could not reserve a slot after bridge-stack recovery");
             WriteMarker("MARK lua_checkstack-bridge-stack-restored");
             return 0;
         }
@@ -239,7 +260,8 @@ internal static unsafe class Program
             }
             catch (InvalidOperationException exception)
             {
-                if (!string.Equals(exception.Message, UncheckedFunctionReservationFailureMessage, StringComparison.Ordinal))
+                if (!string.Equals(exception.Message, UncheckedFunctionReservationFailureMessage,
+                        StringComparison.Ordinal))
                     return Fail("PushUncheckedFunction returned an unstable reservation failure message");
             }
 
@@ -271,8 +293,15 @@ internal static unsafe class Program
         if (PushSentinel(state, "LuaThunk.Fail") != 0) return 1;
         int results;
         Volatile.Write(ref s_rejectAllocations, 1);
-        try { results = LuaThunk.Fail(state, message); }
-        finally { Volatile.Write(ref s_rejectAllocations, 0); }
+        try
+        {
+            results = LuaThunk.Fail(state, message);
+        }
+        finally
+        {
+            Volatile.Write(ref s_rejectAllocations, 0);
+        }
+
         if (results != LuaThunk.FailureResultCount) return Fail("LuaThunk.Fail returned the wrong result count");
         return AssertResultsThenRestoreSentinel(state, LuaThunk.FailureResultCount, "LuaThunk.Fail");
     }
@@ -362,7 +391,8 @@ internal static unsafe class Program
             var status = ReleaseWithRejectedAllocator(reference, state);
 
             if (!status.IsOk && status != LuaStatus.MemoryError)
-                return Fail("LuaRef.Release returned an unexpected status while allocator rejection was active: " + status);
+                return Fail("LuaRef.Release returned an unexpected status while allocator rejection was active: " +
+                            status);
             if (reference.IsResolved || state.TryPushRef(reference))
                 return Fail("LuaRef.Release left its released private reference usable");
             if (AssertOnlySentinelRemains(state, "LuaRef.Release") != 0) return 1;
@@ -421,8 +451,15 @@ internal static unsafe class Program
         LuaCallback<object>? callback;
         var function = new LuaNativeFunction(&NoOp);
         Volatile.Write(ref s_rejectAllocations, 1);
-        try { status = LuaCallback.TryCreate(state, function, new object(), out callback); }
-        finally { Volatile.Write(ref s_rejectAllocations, 0); }
+        try
+        {
+            status = LuaCallback.TryCreate(state, function, new object(), out callback);
+        }
+        finally
+        {
+            Volatile.Write(ref s_rejectAllocations, 0);
+        }
+
         if (status != LuaStatus.MemoryError) return Fail("LuaCallback.TryCreate did not return LUA_ERRMEM");
         if (callback is not null) return Fail("LuaCallback.TryCreate returned a callback after failure");
         return AssertErrorThenRestoreSentinel(state, "LuaCallback.TryCreate");
@@ -441,12 +478,10 @@ internal static unsafe class Program
             // Long strings are not interned, so each protected push gives the incremental collector work to do.
             message[0] = (byte)(attempt & 0x7f);
             var status = state.TryPushString(message);
-            if (status == LuaStatus.GcMetamethodError)
-            {
-                return AssertErrorThenRestoreSentinel(state, "failing __gc");
-            }
+            if (status == LuaStatus.GcMetamethodError) return AssertErrorThenRestoreSentinel(state, "failing __gc");
 
-            if (!status.IsOk) return Fail("string allocation returned an unexpected status while awaiting __gc: " + status);
+            if (!status.IsOk)
+                return Fail("string allocation returned an unexpected status while awaiting __gc: " + status);
             state.Pop(1);
         }
 
@@ -462,11 +497,12 @@ internal static unsafe class Program
         try
         {
             var protectedOperation =
-                (delegate* unmanaged[Cdecl]<lua_State*, nint*, int, int, void*, nuint, nint, nint, int>)NativeLibrary.GetExport(
-                    bridge,
-                    "cheatengine_sdk_lua_protected");
+                (delegate* unmanaged[Cdecl]<lua_State*, nint*, int, int, void*, nuint, nint, nint, int>)NativeLibrary
+                    .GetExport(
+                        bridge,
+                        "cheatengine_sdk_lua_protected");
             var luaCheckInteger = NativeLibrary.GetExport(luaModule, "luaL_checkinteger");
-            nint* exports = stackalloc nint[ProtectedExportCount];
+            var exports = stackalloc nint[ProtectedExportCount];
             PopulateProtectedExports(luaModule, exports);
 
             // Windows x64 has one native calling convention. luaL_checkinteger is an actual native Lua helper that
@@ -483,7 +519,8 @@ internal static unsafe class Program
                 0,
                 1,
                 0);
-            if (status != LuaApi.LUA_ERRRUN) return Fail("PushHostObject did not return LUA_ERRRUN after a host-pusher longjmp");
+            if (status != LuaApi.LUA_ERRRUN)
+                return Fail("PushHostObject did not return LUA_ERRRUN after a host-pusher longjmp");
             if (!state.TryReadString(-1, out var error) ||
                 !error.Contains("bad argument #1", StringComparison.Ordinal))
                 return Fail("PushHostObject did not leave the native luaL_checkinteger failure message on the stack");
@@ -548,7 +585,8 @@ internal static unsafe class Program
 
     private static int AssertErrorThenRestoreSentinel(LuaState state, string operation)
     {
-        if (state.Top != 2) return Fail(operation + " did not leave exactly one error above the pre-existing stack value");
+        if (state.Top != 2)
+            return Fail(operation + " did not leave exactly one error above the pre-existing stack value");
         state.Pop(1);
         return AssertOnlySentinelRemains(state, operation);
     }
@@ -578,10 +616,16 @@ internal static unsafe class Program
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static int NoOp(nint _) => 0;
+    private static int NoOp(nint _)
+    {
+        return 0;
+    }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-    private static void* ProvideRuntimeState() => s_runtimeState;
+    private static void* ProvideRuntimeState()
+    {
+        return s_runtimeState;
+    }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void* RejectingAllocator(void* _, void* pointer, nuint oldSize, nuint newSize)

@@ -5,32 +5,29 @@ using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Lua.Marshalling;
 using CheatEngine.SDK.Lua.State;
 
-namespace CheatEngine.SDK.Engine.AddressLists;
+namespace CheatEngine.SDK.Engine.AddressList;
 
 /// <summary>A Cheat Engine memory-record identifier, distinct from its zero-based position in an address list.</summary>
 /// <remarks>
-/// <para>
-/// CE 7.7's <c>MemoryRecord.ID</c> is documented as a unique integer, while <c>MemoryRecord.Index</c> is the record's
-/// position. This type preserves that distinction at the API boundary without imposing a range CE does not document.
-/// </para>
-/// <para>
-/// <b>Evidence.</b> Exact installed CE 7.7.0.10621 x64 <c>celua.txt</c>, SHA-256
-/// <c>AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00</c>, line 2332. The documentation's integer
-/// representation is mapped through a checked 32-bit Lua integer marshaller.
-/// </para>
+///     <para>
+///         CE 7.7's <c>MemoryRecord.ID</c> is documented as a unique integer, while <c>MemoryRecord.Index</c> is the
+///         record's
+///         position. This type preserves that distinction at the API boundary without imposing a range CE does not
+///         document.
+///     </para>
+///     <para>
+///         <b>Evidence.</b> Exact installed CE 7.7.0.10621 x64 <c>celua.txt</c>, SHA-256
+///         <c>AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00</c>, line 2332. The documentation's integer
+///         representation is mapped through a checked 32-bit Lua integer marshaller.
+///     </para>
 /// </remarks>
-public readonly struct MemoryRecordId : IEquatable<MemoryRecordId>, IComparable<MemoryRecordId>, IComparable,
+/// <remarks>Creates an identifier from the integer CE exposes.</remarks>
+/// <param name="value">The raw identifier; CE documents no invalid sentinel.</param>
+public readonly struct MemoryRecordId(int value) : IEquatable<MemoryRecordId>, IComparable<MemoryRecordId>, IComparable,
     ILuaMarshaller<MemoryRecordId>
 {
-    /// <summary>Creates an identifier from the integer CE exposes.</summary>
-    /// <param name="value">The raw identifier; CE documents no invalid sentinel.</param>
-    public MemoryRecordId(int value)
-    {
-        Value = value;
-    }
-
     /// <summary>Gets the integer carried by Cheat Engine's <c>ID</c> property.</summary>
-    public int Value { get; }
+    public int Value { get; } = value;
 
     /// <summary>Compares two identifiers by their numeric value.</summary>
     /// <param name="left">The first identifier.</param>

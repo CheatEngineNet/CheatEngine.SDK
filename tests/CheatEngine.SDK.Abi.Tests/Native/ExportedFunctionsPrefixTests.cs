@@ -43,16 +43,16 @@ public sealed unsafe class ExportedFunctionsPrefixTests
     [Fact]
     public void Direct_function_slots_are_explicitly_stdcall()
     {
-        FieldInfo[] fields = typeof(ExportedFunctionsPrefix).GetFields(BindingFlags.Instance | BindingFlags.Public);
+        var fields = typeof(ExportedFunctionsPrefix).GetFields(BindingFlags.Instance | BindingFlags.Public);
         var functionPointerCount = 0;
 
-        foreach (FieldInfo field in fields)
+        foreach (var field in fields)
         {
-            Type fieldType = field.GetModifiedFieldType();
+            var fieldType = field.GetModifiedFieldType();
             if (!fieldType.UnderlyingSystemType.IsFunctionPointer) continue;
 
             functionPointerCount++;
-            Type[] conventions = fieldType.GetFunctionPointerCallingConventions();
+            var conventions = fieldType.GetFunctionPointerCallingConventions();
             Assert.Single(conventions);
             Assert.Equal(typeof(CallConvStdcall), conventions[0]);
         }
@@ -77,9 +77,10 @@ public sealed unsafe class ExportedFunctionsPrefixTests
     [Fact]
     public void Prefix_stops_before_the_pointer_to_pointer_hook_suffix()
     {
-        FieldInfo[] fields = typeof(ExportedFunctionsPrefix).GetFields(BindingFlags.Instance | BindingFlags.Public);
+        var fields = typeof(ExportedFunctionsPrefix).GetFields(BindingFlags.Instance | BindingFlags.Public);
 
-        Assert.Null(typeof(ExportedFunctionsPrefix).GetField("ReadProcessMemory", BindingFlags.Instance | BindingFlags.Public));
+        Assert.Null(typeof(ExportedFunctionsPrefix).GetField("ReadProcessMemory",
+            BindingFlags.Instance | BindingFlags.Public));
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]

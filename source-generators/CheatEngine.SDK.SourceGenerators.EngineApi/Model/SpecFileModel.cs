@@ -3,7 +3,8 @@ using CheatEngine.SDK.SourceGenerators.Shared;
 namespace CheatEngine.SDK.SourceGenerators.EngineApi.Model;
 
 /// <summary>
-///     The unit of output for one <c>*.cheatengine-sdk-api.txt</c> spec file: the type it declares, the distinct globals it binds
+///     The unit of output for one <c>*.cheatengine-sdk-api.txt</c> spec file: the type it declares, the distinct globals
+///     it binds
 ///     (one cache field each), the wrappers to emit (in emission order), and every localized issue. The source output
 ///     re-runs for a file exactly when this record changes.
 /// </summary>

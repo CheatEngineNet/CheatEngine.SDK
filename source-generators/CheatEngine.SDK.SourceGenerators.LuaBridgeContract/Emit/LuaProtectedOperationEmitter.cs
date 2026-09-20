@@ -18,7 +18,8 @@ internal static class LuaProtectedOperationEmitter
         text.AppendLine();
         text.AppendLine("namespace CheatEngine.SDK.Lua.Interop.Protected;");
         text.AppendLine();
-        text.AppendLine("// Values are the C11 operation numbers. They are generated from protected-operations.json; changing an opcode changes the ABI.");
+        text.AppendLine(
+            "// Values are the C11 operation numbers. They are generated from protected-operations.json; changing an opcode changes the ABI.");
         text.AppendLine("internal enum LuaProtectedOperation");
         text.AppendLine("{");
         for (var i = 0; i < catalog.Operations.Length; i++)
@@ -31,10 +32,12 @@ internal static class LuaProtectedOperationEmitter
 
         text.AppendLine("}");
         text.AppendLine();
-        text.AppendLine("// The bitmap mirrors the native C11 contract and supports sparse opcode assignments without an enum-order assumption.");
+        text.AppendLine(
+            "// The bitmap mirrors the native C11 contract and supports sparse opcode assignments without an enum-order assumption.");
         text.AppendLine("internal static class LuaProtectedOperationContract");
         text.AppendLine("{");
-        text.Append("    internal const int Count = ").Append(catalog.Operations.Length.ToString(CultureInfo.InvariantCulture)).AppendLine(";");
+        text.Append("    internal const int Count = ")
+            .Append(catalog.Operations.Length.ToString(CultureInfo.InvariantCulture)).AppendLine(";");
         text.Append("    internal const ulong RequiredBitmap = 0x")
             .Append(catalog.RequiredBitmap.ToString("X16", CultureInfo.InvariantCulture)).AppendLine("UL;");
         text.AppendLine();

@@ -44,7 +44,5 @@ namespace CheatEngine.SDK.Annotations.Lifetime;
     | AttributeTargets.Property
     | AttributeTargets.Constructor
     | AttributeTargets.Class
-    | AttributeTargets.Struct,
-    Inherited = true,
-    AllowMultiple = false)]
+    | AttributeTargets.Struct)]
 public sealed class RequiresPluginEnabledAttribute : Attribute;

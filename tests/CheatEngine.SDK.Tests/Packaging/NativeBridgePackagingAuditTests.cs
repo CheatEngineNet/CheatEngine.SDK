@@ -1,5 +1,5 @@
-using CheatEngine.SDK.Tests.Infrastructure;
 using System.Security.Cryptography;
+using CheatEngine.SDK.Tests.Infrastructure;
 
 namespace CheatEngine.SDK.Tests.Packaging;
 
@@ -16,9 +16,10 @@ public sealed class NativeBridgePackagingAuditTests(PackagedUmbrellaFixture fixt
     [Fact]
     public void Direct_consumer_build_and_publish_copy_the_exact_audited_bridge_asset()
     {
-        string auditedHash = CalculateSha256(RepositoryLayout.PathOf(BridgeRelativePath));
+        var auditedHash = CalculateSha256(RepositoryLayout.PathOf(BridgeRelativePath));
 
-        Assert.True(File.Exists(fixture.DefaultNativeBridgePath), "The direct consumer build did not receive the bridge.");
+        Assert.True(File.Exists(fixture.DefaultNativeBridgePath),
+            "The direct consumer build did not receive the bridge.");
         Assert.True(File.Exists(fixture.DefaultPublishedNativeBridgePath),
             "The direct consumer publish output did not receive the bridge.");
         Assert.Equal(auditedHash, CalculateSha256(fixture.DefaultNativeBridgePath));

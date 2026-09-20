@@ -12,17 +12,17 @@
     <Content Include="../../native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll"
              Link="cheatengine-sdk-lua-bridge.dll"
              CopyToOutputDirectory="PreserveNewest"
-             CopyToPublishDirectory="PreserveNewest" />
+             CopyToPublishDirectory="PreserveNewest"/>
   </ItemGroup>
 
   <ItemGroup>
     <!-- The repository-owned catalogue is the only source of generated managed operation numbers and bitmap. -->
     <AdditionalFiles Include="../../eng/lua-bridge/protected-operations.json"
-                     Link="eng/lua-bridge/protected-operations.json" />
+                     Link="eng/lua-bridge/protected-operations.json"/>
     <!-- Repo-only build input: this component is not packed and never reaches an SDK consumer. -->
     <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBridgeContract/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.csproj"
                       OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+                      ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
 </Project>

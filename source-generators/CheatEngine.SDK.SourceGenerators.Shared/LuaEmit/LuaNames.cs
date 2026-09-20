@@ -13,7 +13,8 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     <c>__LuaThunk_&lt;name&gt;</c>), so the rule keeps both sides simple. Lua is locale-independent here: only
 ///     ASCII letters count, as in the reference implementation's default build. No length limit: a name only ever
 ///     becomes a compile-time <c>"..."u8</c> literal (<c>CSharpLiteral.ToUtf8Literal</c>) and a C# identifier suffix,
-///     never a run-time UTF-8 transcode, so it never reaches <c>CheatEngine.SDK.Lua.Text.Utf8Scratch</c>'s <c>stackalloc</c>/pool
+///     never a run-time UTF-8 transcode, so it never reaches <c>CheatEngine.SDK.Lua.Text.Utf8Scratch</c>'s
+///     <c>stackalloc</c>/pool
 ///     path (that path is for the run-time <em>content</em> of a <see cref="LuaValueKind.String" /> value, an unrelated,
 ///     already length-agnostic concern of the <c>CheatEngine.SDK.Lua</c> layer).
 /// </remarks>

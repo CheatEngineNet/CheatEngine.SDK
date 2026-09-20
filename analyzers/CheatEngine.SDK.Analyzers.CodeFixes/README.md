@@ -11,22 +11,24 @@ constructible) and `CESDK1004` (guard a native callback).
 
 A code fix needs `Microsoft.CodeAnalysis.Workspaces`. The command-line compiler never loads workspace types, so an
 analyzer assembly that references them fails at build time (`RS1038`). The fixes live in their own assembly, packed next
-to `CheatEngine.SDK.Analyzers.dll` under `analyzers/dotnet/cs`. The compiler finds no analyzer in it, and IDEs discover the
+to `CheatEngine.SDK.Analyzers.dll` under `analyzers/dotnet/cs`. The compiler finds no analyzer in it, and IDEs discover
+the
 `[ExportCodeFixProvider]` types. This is the only shipping component that references
 `Microsoft.CodeAnalysis.CSharp.Workspaces`.
 
 ## How it works
 
 The analyzer decides and the fix edits. `CheatEngine.SDK.Analyzers` writes the problem name into
-`Diagnostic.Properties["CheatEngine.SDK.PluginClassProblem"]`. The provider reads it and offers at most one action per diagnostic,
+`Diagnostic.Properties["CheatEngine.SDK.PluginClassProblem"]`. The provider reads it and offers at most one action per
+diagnostic,
 so rule and fix cannot disagree. This assembly references `CheatEngine.SDK.Analyzers`, never the reverse.
 
-| Provider                                                                             | Problem                                            | Action (equivalence key)                                                                              | Not offered when                                                                                                        |
-|--------------------------------------------------------------------------------------|----------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| `CheatEngine.SDK.Analyzers.CodeFixes.Plugin.PluginClassShapeCodeFixProvider`         | `CESDK0001` `Abstract`, `Static`                   | Replace `abstract` or `static` with `sealed` (`CESDK0001.MakeSealed`)                                 | No declaration of the class is editable                                                                                 |
-|                                                                                      | `CESDK0001` `MissingParameterlessConstructor`      | Add a public parameterless constructor (`CESDK0001.AddParameterlessConstructor`)                      | The class has a primary constructor or no body, or its base class has no accessible constructor that needs no arguments |
-|                                                                                      | `CESDK0001` `InaccessibleParameterlessConstructor` | Make the constructor public (`CESDK0001.MakeConstructorPublic`)                                       | The parameterless constructor is not declared in an editable document                                                    |
-| `CheatEngine.SDK.Analyzers.CodeFixes.Usage.UnmanagedCallersOnlyGuardCodeFixProvider` | `CESDK1004` on `CESDK.CESDK.CEPluginInitialize`    | Wrap the bootstrap body in `try` and `catch (Exception)` returning `0` (`CESDK1004.WrapInTryCatch`)     | The signature is not exactly public static `int CEPluginInitialize(IntPtr, int)`, or an expression body contains a directive |
+| Provider                                                                             | Problem                                            | Action (equivalence key)                                                                            | Not offered when                                                                                                             |
+|--------------------------------------------------------------------------------------|----------------------------------------------------|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| `CheatEngine.SDK.Analyzers.CodeFixes.Plugin.PluginClassShapeCodeFixProvider`         | `CESDK0001` `Abstract`, `Static`                   | Replace `abstract` or `static` with `sealed` (`CESDK0001.MakeSealed`)                               | No declaration of the class is editable                                                                                      |
+|                                                                                      | `CESDK0001` `MissingParameterlessConstructor`      | Add a public parameterless constructor (`CESDK0001.AddParameterlessConstructor`)                    | The class has a primary constructor or no body, or its base class has no accessible constructor that needs no arguments      |
+|                                                                                      | `CESDK0001` `InaccessibleParameterlessConstructor` | Make the constructor public (`CESDK0001.MakeConstructorPublic`)                                     | The parameterless constructor is not declared in an editable document                                                        |
+| `CheatEngine.SDK.Analyzers.CodeFixes.Usage.UnmanagedCallersOnlyGuardCodeFixProvider` | `CESDK1004` on `CESDK.CESDK.CEPluginInitialize`    | Wrap the bootstrap body in `try` and `catch (Exception)` returning `0` (`CESDK1004.WrapInTryCatch`) | The signature is not exactly public static `int CEPluginInitialize(IntPtr, int)`, or an expression body contains a directive |
 
 The other `CESDK0001` problems are design decisions and get no fix. They are `Generic`, `NestedInGeneric`,
 `NotDerivedFromPluginBase`, `Inaccessible`, `FileLocal`, `ReservedEntryPointName`, `RequiredMembers`, `ObsoleteError`
@@ -90,7 +92,8 @@ internal static class CESDK
 
 ## Run the tests
 
-The fixes are tested in [`tests/CheatEngine.SDK.Analyzers.Tests`](../../tests/CheatEngine.SDK.Analyzers.Tests/README.md):
+The fixes are tested in [
+`tests/CheatEngine.SDK.Analyzers.Tests`](../../tests/CheatEngine.SDK.Analyzers.Tests/README.md):
 `Plugin/PluginClassShapeCodeFixTests.cs` and `Usage/UnmanagedCallersOnlyGuardCodeFixTests.cs`. There is no separate code
 fix test project.
 

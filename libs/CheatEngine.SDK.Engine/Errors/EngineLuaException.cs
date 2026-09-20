@@ -9,7 +9,8 @@ namespace CheatEngine.SDK.Engine.Errors;
 /// <remarks>
 ///     The public message identifies only the Engine operation and <see cref="Status" />. In particular, it does not
 ///     copy a Lua error object or its stack text into the stable Engine error surface. If a lower-level SDK exception is
-///     useful for diagnostics, retain it as <see cref="Exception.InnerException" /> and consumers can inspect it explicitly.
+///     useful for diagnostics, retain it as <see cref="Exception.InnerException" /> and consumers can inspect it
+///     explicitly.
 /// </remarks>
 public sealed class EngineLuaException : EngineException
 {
@@ -41,7 +42,8 @@ public sealed class EngineLuaException : EngineException
     public EngineLuaException(string operation, LuaStatus status, string message, Exception? innerException)
         : base(message, innerException)
     {
-        if (status.IsOk) throw new ArgumentException("A successful Lua status cannot describe a failure.", nameof(status));
+        if (status.IsOk)
+            throw new ArgumentException("A successful Lua status cannot describe a failure.", nameof(status));
 
         Operation = RequireText(operation, nameof(operation));
         Status = status;
@@ -58,7 +60,8 @@ public sealed class EngineLuaException : EngineException
 
     private static string CreateDefaultMessage(string operation, LuaStatus status)
     {
-        if (status.IsOk) throw new ArgumentException("A successful Lua status cannot describe a failure.", nameof(status));
+        if (status.IsOk)
+            throw new ArgumentException("A successful Lua status cannot describe a failure.", nameof(status));
 
         return "The protected Lua operation '" + RequireText(operation, nameof(operation)) + "' failed with status " +
                status + ".";

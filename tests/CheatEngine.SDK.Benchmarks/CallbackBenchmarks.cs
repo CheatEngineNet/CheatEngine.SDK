@@ -49,7 +49,8 @@ public class CallbackBenchmarks : IDisposable
             "function cheatengine_sdk_bench_loop(n) local s = 0 for i = 1, n do s = cheatengine_sdk_bench_touch(s) end return s end"u8,
             0);
         if (!defined.IsOk)
-            throw new InvalidOperationException("Defining cheatengine_sdk_bench_loop failed: " + LuaError.FromStack(_l, defined));
+            throw new InvalidOperationException("Defining cheatengine_sdk_bench_loop failed: " +
+                                                LuaError.FromStack(_l, defined));
     }
 
     /// <summary>

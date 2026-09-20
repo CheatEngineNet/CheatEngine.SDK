@@ -11,7 +11,8 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.Generator;
 /// </summary>
 public sealed class ContractIdentityTests(RoslynFixture roslyn) : IClassFixture<RoslynFixture>
 {
-    private const string LifecycleOverrides = "protected override void OnEnable() { } protected override void OnDisable() { }";
+    private const string LifecycleOverrides =
+        "protected override void OnEnable() { } protected override void OnDisable() { }";
 
     [Fact]
     public void Generator_sdk_contract_symbols_from_the_expected_assemblies_emit_the_bootstrap()
@@ -172,6 +173,7 @@ public sealed class ContractIdentityTests(RoslynFixture roslyn) : IClassFixture<
             run.OutputCompilation.GetDiagnostics(TestContext.Current.CancellationToken),
             static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error
                                  && (diagnostic.Location.SourceTree is null
-                                     || !diagnostic.Location.SourceTree.FilePath.EndsWith(".g.cs", StringComparison.Ordinal)));
+                                     || !diagnostic.Location.SourceTree.FilePath.EndsWith(".g.cs",
+                                         StringComparison.Ordinal)));
     }
 }

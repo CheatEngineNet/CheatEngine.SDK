@@ -3,8 +3,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CheatEngine.SDK.Lua.Callbacks;
 using CheatEngine.SDK.Lua.Calls;
-using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.Interop.Protected;
+using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.State;
 using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
 

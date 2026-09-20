@@ -127,7 +127,7 @@ public sealed class LuaRuntimeTests
     }
 
     [Fact]
-    public unsafe void PushHostObject_uses_the_protected_bridge_to_call_the_pusher_with_the_object_pointer()
+    public void PushHostObject_uses_the_protected_bridge_to_call_the_pusher_with_the_object_pointer()
     {
         LuaTest.RequireNativeLua();
         using NativeLuaState state = new(false);
@@ -145,7 +145,7 @@ public sealed class LuaRuntimeTests
     }
 
     [Fact]
-    public unsafe void PushHostObject_without_a_pusher_throws_instead_of_jumping_to_zero()
+    public void PushHostObject_without_a_pusher_throws_instead_of_jumping_to_zero()
     {
         LuaTest.RequireNativeLua();
         using NativeLuaState state = new(false);
@@ -186,7 +186,7 @@ public sealed class LuaRuntimeTests
     public async Task BeginStateReset_rejects_new_operations_and_waits_for_an_admitted_operation_to_leave()
     {
         LuaTest.RequireNativeLua();
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         using NativeLuaState state = new(false);
         using RuntimeScope scope = new(state);
         using ManualResetEventSlim workerAdmitted = new(false);
@@ -197,7 +197,7 @@ public sealed class LuaRuntimeTests
 
         try
         {
-            Task worker = Task.Factory.StartNew(() =>
+            var worker = Task.Factory.StartNew(() =>
             {
                 using var operation = LuaRuntime.AcquireOperation();
                 workerAdmitted.Set();
@@ -207,7 +207,7 @@ public sealed class LuaRuntimeTests
             Assert.True(workerAdmitted.Wait(TimeSpan.FromSeconds(5), cancellationToken),
                 "The worker did not acquire a Lua operation admission.");
 
-            Task reset = Task.Factory.StartNew(() =>
+            var reset = Task.Factory.StartNew(() =>
             {
                 using var transition = LuaRuntime.BeginStateReset();
             }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);

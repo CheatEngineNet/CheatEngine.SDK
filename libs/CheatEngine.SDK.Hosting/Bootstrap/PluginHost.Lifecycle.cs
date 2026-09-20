@@ -181,7 +181,8 @@ public static unsafe partial class PluginHost
             descriptor = s_descriptor;
             if (descriptor is null)
             {
-                HostLog.Error("EnablePlugin: the bootstrap has not run (InitializeManaged was never called successfully).");
+                HostLog.Error(
+                    "EnablePlugin: the bootstrap has not run (InitializeManaged was never called successfully).");
                 return LifecycleStart.Refused;
             }
 

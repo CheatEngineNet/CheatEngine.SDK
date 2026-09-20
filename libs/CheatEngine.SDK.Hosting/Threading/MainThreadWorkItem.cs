@@ -15,8 +15,8 @@ namespace CheatEngine.SDK.Hosting.Threading;
 /// </remarks>
 internal abstract class MainThreadWorkItem
 {
-    private Exception? _failure;
     private int _claimed;
+    private Exception? _failure;
     private int _hasRun;
 
     /// <summary>Gets a value indicating whether the work ran (successfully or not).</summary>

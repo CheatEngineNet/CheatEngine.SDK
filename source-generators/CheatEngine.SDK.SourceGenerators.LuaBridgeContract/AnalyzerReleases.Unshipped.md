@@ -3,7 +3,7 @@
 
 ### New Rules
 
- Rule ID   | Category                      | Severity | Notes
------------|-------------------------------|----------|-------------------------------------------------------
- CESDK4001 | CheatEngine.SDK.LuaBridge     | Error    | LuaBridgeContractGenerator, invalid operation catalogue
- CESDK4002 | CheatEngine.SDK.LuaBridge     | Error    | LuaBridgeContractGenerator, ambiguous operation catalogue
+ Rule ID   | Category                  | Severity | Notes
+-----------|---------------------------|----------|-----------------------------------------------------------
+ CESDK4001 | CheatEngine.SDK.LuaBridge | Error    | LuaBridgeContractGenerator, invalid operation catalogue
+ CESDK4002 | CheatEngine.SDK.LuaBridge | Error    | LuaBridgeContractGenerator, ambiguous operation catalogue

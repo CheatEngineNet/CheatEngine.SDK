@@ -55,7 +55,7 @@ public static class HostMemory
     /// <summary>Reads a signed 8-bit value through CE's documented local byte-table operation.</summary>
     public static bool TryReadInt8(HostAddress address, out sbyte value, out MemoryAccessFailure failure)
     {
-        if (!TryReadUInt8(address, out byte raw, out failure))
+        if (!TryReadUInt8(address, out var raw, out failure))
         {
             value = default;
             return false;
@@ -69,7 +69,7 @@ public static class HostMemory
     public static bool TryReadUInt16(HostAddress address, out ushort value, out MemoryAccessFailure failure)
     {
         if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallIntegerLocal"u8, address.ToInt64(), false, true,
-                out long raw, out failure) || raw < 0 || raw > ushort.MaxValue)
+                out var raw, out failure) || raw < 0 || raw > ushort.MaxValue)
         {
             value = default;
             if (failure == MemoryAccessFailure.None) failure = MemoryAccessFailure.InvalidResult;
@@ -84,7 +84,7 @@ public static class HostMemory
     public static bool TryReadInt16(HostAddress address, out short value, out MemoryAccessFailure failure)
     {
         if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallIntegerLocal"u8, address.ToInt64(), true, true,
-                out long raw, out failure) || raw < short.MinValue || raw > short.MaxValue)
+                out var raw, out failure) || raw < short.MinValue || raw > short.MaxValue)
         {
             value = default;
             if (failure == MemoryAccessFailure.None) failure = MemoryAccessFailure.InvalidResult;
@@ -98,7 +98,7 @@ public static class HostMemory
     /// <summary>Reads an unsigned 32-bit value from Cheat Engine's process.</summary>
     public static bool TryReadUInt32(HostAddress address, out uint value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadInteger, "readIntegerLocal"u8, address.ToInt64(), false, true, out long raw,
+        if (!MemoryLua.TryReadInteger(SReadInteger, "readIntegerLocal"u8, address.ToInt64(), false, true, out var raw,
                 out failure) || raw < 0 || (ulong)raw > uint.MaxValue)
         {
             value = default;
@@ -113,7 +113,7 @@ public static class HostMemory
     /// <summary>Reads a signed 32-bit value from Cheat Engine's process.</summary>
     public static bool TryReadInt32(HostAddress address, out int value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadInteger, "readIntegerLocal"u8, address.ToInt64(), true, true, out long raw,
+        if (!MemoryLua.TryReadInteger(SReadInteger, "readIntegerLocal"u8, address.ToInt64(), true, true, out var raw,
                 out failure) || raw < int.MinValue || raw > int.MaxValue)
         {
             value = default;
@@ -128,7 +128,7 @@ public static class HostMemory
     /// <summary>Reads an unsigned 64-bit value from Cheat Engine's process without changing its bits.</summary>
     public static bool TryReadUInt64(HostAddress address, out ulong value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadQword, "readQwordLocal"u8, address.ToInt64(), false, false, out long raw,
+        if (!MemoryLua.TryReadInteger(SReadQword, "readQwordLocal"u8, address.ToInt64(), false, false, out var raw,
                 out failure))
         {
             value = default;
@@ -142,13 +142,14 @@ public static class HostMemory
     /// <summary>Reads a signed 64-bit value from Cheat Engine's process.</summary>
     public static bool TryReadInt64(HostAddress address, out long value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryReadInteger(SReadQword, "readQwordLocal"u8, address.ToInt64(), false, false, out value, out failure);
+        return MemoryLua.TryReadInteger(SReadQword, "readQwordLocal"u8, address.ToInt64(), false, false, out value,
+            out failure);
     }
 
     /// <summary>Reads a host-width pointer from Cheat Engine's process.</summary>
     public static bool TryReadPointer(HostAddress address, out HostAddress value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadPointer, "readPointerLocal"u8, address.ToInt64(), false, false, out long raw,
+        if (!MemoryLua.TryReadInteger(SReadPointer, "readPointerLocal"u8, address.ToInt64(), false, false, out var raw,
                 out failure))
         {
             value = default;
@@ -162,7 +163,7 @@ public static class HostMemory
     /// <summary>Reads a single-precision floating-point value from Cheat Engine's process.</summary>
     public static bool TryReadSingle(HostAddress address, out float value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadNumber(SReadFloat, "readFloatLocal"u8, address.ToInt64(), out double raw, out failure))
+        if (!MemoryLua.TryReadNumber(SReadFloat, "readFloatLocal"u8, address.ToInt64(), out var raw, out failure))
         {
             value = default;
             return false;
@@ -195,13 +196,15 @@ public static class HostMemory
     /// <summary>Writes an unsigned 16-bit value to Cheat Engine's process.</summary>
     public static bool TryWriteUInt16(HostAddress address, ushort value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteInteger(SWriteSmallInteger, "writeSmallIntegerLocal"u8, address.ToInt64(), value, out failure);
+        return MemoryLua.TryWriteInteger(SWriteSmallInteger, "writeSmallIntegerLocal"u8, address.ToInt64(), value,
+            out failure);
     }
 
     /// <summary>Writes a signed 16-bit value to Cheat Engine's process.</summary>
     public static bool TryWriteInt16(HostAddress address, short value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteInteger(SWriteSmallInteger, "writeSmallIntegerLocal"u8, address.ToInt64(), value, out failure);
+        return MemoryLua.TryWriteInteger(SWriteSmallInteger, "writeSmallIntegerLocal"u8, address.ToInt64(), value,
+            out failure);
     }
 
     /// <summary>Writes an unsigned 32-bit value to Cheat Engine's process.</summary>
@@ -219,7 +222,8 @@ public static class HostMemory
     /// <summary>Writes an unsigned 64-bit value to Cheat Engine's process without changing its bits.</summary>
     public static bool TryWriteUInt64(HostAddress address, ulong value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteInteger(SWriteQword, "writeQwordLocal"u8, address.ToInt64(), unchecked((long)value), out failure);
+        return MemoryLua.TryWriteInteger(SWriteQword, "writeQwordLocal"u8, address.ToInt64(), unchecked((long)value),
+            out failure);
     }
 
     /// <summary>Writes a signed 64-bit value to Cheat Engine's process.</summary>
@@ -231,7 +235,8 @@ public static class HostMemory
     /// <summary>Writes a host-width pointer to Cheat Engine's process.</summary>
     public static bool TryWritePointer(HostAddress address, HostAddress value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteInteger(SWritePointer, "writePointerLocal"u8, address.ToInt64(), value.ToInt64(), out failure);
+        return MemoryLua.TryWriteInteger(SWritePointer, "writePointerLocal"u8, address.ToInt64(), value.ToInt64(),
+            out failure);
     }
 
     /// <summary>Writes a single-precision floating-point value to Cheat Engine's process.</summary>
@@ -270,7 +275,8 @@ public static class HostMemory
     public static bool TryReadString(HostAddress address, int maximumLength, bool wideCharacter, out string? value,
         out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryReadString(SReadString, "readStringLocal"u8, address.ToInt64(), maximumLength, wideCharacter,
+        return MemoryLua.TryReadString(SReadString, "readStringLocal"u8, address.ToInt64(), maximumLength,
+            wideCharacter,
             out value, out failure);
     }
 
@@ -278,13 +284,15 @@ public static class HostMemory
     public static bool TryWriteUtf8(HostAddress address, ReadOnlySpan<byte> value, bool wideCharacter,
         out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteUtf8(SWriteString, "writeStringLocal"u8, address.ToInt64(), value, wideCharacter, out failure);
+        return MemoryLua.TryWriteUtf8(SWriteString, "writeStringLocal"u8, address.ToInt64(), value, wideCharacter,
+            out failure);
     }
 
     /// <summary>Writes UTF-16 text as a Lua UTF-8 string in Cheat Engine's host address space.</summary>
     public static bool TryWriteString(HostAddress address, ReadOnlySpan<char> value, bool wideCharacter,
         out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteText(SWriteString, "writeStringLocal"u8, address.ToInt64(), value, wideCharacter, out failure);
+        return MemoryLua.TryWriteText(SWriteString, "writeStringLocal"u8, address.ToInt64(), value, wideCharacter,
+            out failure);
     }
 }

@@ -19,11 +19,13 @@ public sealed class LuaGlobalFunctionsStateIdentityTests
     private static GlobalResolutionRace? s_race;
 
     [Fact]
-    [SuppressMessage("Meziantou.Analyzer", "MA0051", Justification = "The regression test must keep the admission barrier, reset, and cache publication assertions in one ordered scenario.")]
+    [SuppressMessage("Meziantou.Analyzer", "MA0051",
+        Justification =
+            "The regression test must keep the admission barrier, reset, and cache publication assertions in one ordered scenario.")]
     public async Task Resolve_holds_an_operation_lease_until_rebind_so_a_state_reset_cannot_publish_an_old_slot()
     {
         LuaTest.RequireNativeLua();
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
@@ -48,13 +50,13 @@ public sealed class LuaGlobalFunctionsStateIdentityTests
 
         try
         {
-            Task<bool> resolver = Task.Factory.StartNew(
+            var resolver = Task.Factory.StartNew(
                 () => LuaGlobalFunctions.TryPush(L, cache, "cachedAfterReset"u8), cancellationToken,
                 TaskCreationOptions.LongRunning, TaskScheduler.Default);
             Assert.True(race.ResolverPaused.Wait(TimeSpan.FromSeconds(5), cancellationToken),
                 "The global resolution did not reach its Lua barrier.");
 
-            Task reset = Task.Factory.StartNew(BeginAndCompleteStateReset, cancellationToken,
+            var reset = Task.Factory.StartNew(BeginAndCompleteStateReset, cancellationToken,
                 TaskCreationOptions.LongRunning, TaskScheduler.Default);
             Assert.True(race.AdmissionClosed.Wait(TimeSpan.FromSeconds(5), cancellationToken),
                 "The state reset did not close operation admission.");
@@ -90,11 +92,11 @@ public sealed class LuaGlobalFunctionsStateIdentityTests
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static unsafe int PauseResolution(nint ignored)
+    private static int PauseResolution(nint ignored)
     {
         try
         {
-            GlobalResolutionRace? race = Volatile.Read(ref s_race);
+            var race = Volatile.Read(ref s_race);
             if (race is null) return 0;
 
             race.ResolverPaused.Set();

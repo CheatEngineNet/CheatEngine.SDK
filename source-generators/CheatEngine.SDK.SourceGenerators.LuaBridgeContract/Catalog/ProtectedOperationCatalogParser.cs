@@ -57,7 +57,8 @@ internal static class ProtectedOperationCatalogParser
         if (operationsValue is not JsonArray operationsArray)
         {
             if (operationsValue is not null)
-                diagnostics.Add(reader.CreateDiagnostic(operationsValue.Span, "Property 'operations' must be a JSON array."));
+                diagnostics.Add(reader.CreateDiagnostic(operationsValue.Span,
+                    "Property 'operations' must be a JSON array."));
             return new CatalogParseResult(input.Path, null, diagnostics.ToImmutable());
         }
 
@@ -83,7 +84,8 @@ internal static class ProtectedOperationCatalogParser
         ImmutableArray<CatalogDiagnostic>.Builder diagnostics)
     {
         if (operationsArray.Items.Count == 0)
-            diagnostics.Add(reader.CreateDiagnostic(operationsArray.Span, "Property 'operations' must contain at least one protected operation."));
+            diagnostics.Add(reader.CreateDiagnostic(operationsArray.Span,
+                "Property 'operations' must contain at least one protected operation."));
 
         var operations = new List<CatalogOperation>();
         var ids = new Dictionary<string, JsonValue>(StringComparer.Ordinal);
@@ -107,7 +109,9 @@ internal static class ProtectedOperationCatalogParser
     }
 
     private static CatalogParseResult Failure(string sourcePath, CatalogDiagnostic diagnostic)
-        => new(sourcePath, null, ImmutableArray.Create(diagnostic));
+    {
+        return new CatalogParseResult(sourcePath, null, ImmutableArray.Create(diagnostic));
+    }
 
     private static void ParseOperation(
         JsonValue value,
@@ -141,9 +145,11 @@ internal static class ProtectedOperationCatalogParser
             return;
         }
 
-        if (managedConstant is not null && !string.Equals(managedConstant.Text, idValue.Text + "Operation", StringComparison.Ordinal))
+        if (managedConstant is not null &&
+            !string.Equals(managedConstant.Text, idValue.Text + "Operation", StringComparison.Ordinal))
             diagnostics.Add(reader.CreateDiagnostic(managedConstant.Span,
-                "Property 'managed.constant' must be '" + idValue.Text + "Operation' for operation '" + idValue.Text + "'."));
+                "Property 'managed.constant' must be '" + idValue.Text + "Operation' for operation '" + idValue.Text +
+                "'."));
 
         if (!int.TryParse(opcodeValue.Text, NumberStyles.None, CultureInfo.InvariantCulture, out var opcode)
             || opcode < 0
@@ -166,7 +172,8 @@ internal static class ProtectedOperationCatalogParser
         if (opcodes.TryGetValue(opcode, out var firstOpcode))
         {
             diagnostics.Add(reader.CreateDiagnostic(opcodeValue.Span,
-                "Operation opcode '" + opcode.ToString(CultureInfo.InvariantCulture) + "' duplicates an earlier operation."));
+                "Operation opcode '" + opcode.ToString(CultureInfo.InvariantCulture) +
+                "' duplicates an earlier operation."));
             diagnostics.Add(reader.CreateDiagnostic(firstOpcode.Span,
                 "Operation opcode '" + opcode.ToString(CultureInfo.InvariantCulture) + "' is duplicated."));
             return;
@@ -196,7 +203,8 @@ internal static class ProtectedOperationCatalogParser
 
         if (expected != calculatedBitmap)
             diagnostics.Add(reader.CreateDiagnostic(value.Span,
-                "Property 'bridgeContract.operationBitmap' is " + value.Text + " but the declared operation opcodes require " +
+                "Property 'bridgeContract.operationBitmap' is " + value.Text +
+                " but the declared operation opcodes require " +
                 "0x" + calculatedBitmap.ToString("X16", CultureInfo.InvariantCulture) + "."));
     }
 
@@ -314,7 +322,7 @@ internal static class ProtectedOperationCatalogParser
         for (var i = 1; i < value.Length; i++)
         {
             var character = value[i];
-            if ((character is < 'A' or > 'Z') && (character is < 'a' or > 'z') && (character is < '0' or > '9'))
+            if (character is < 'A' or > 'Z' && character is < 'a' or > 'z' && character is < '0' or > '9')
                 return false;
         }
 
@@ -448,7 +456,8 @@ internal static class ProtectedOperationCatalogParser
 
                 names.Add(name, nameSpan);
                 SkipWhitespace();
-                if (!TryRead(':')) return Fail(out value, out diagnostic, "Expected ':' after an object property name.");
+                if (!TryRead(':'))
+                    return Fail(out value, out diagnostic, "Expected ':' after an object property name.");
                 SkipWhitespace();
                 if (!TryParseValue(out var propertyValue, out diagnostic))
                 {
@@ -464,7 +473,8 @@ internal static class ProtectedOperationCatalogParser
                     return true;
                 }
 
-                if (!TryRead(',')) return Fail(out value, out diagnostic, "Expected ',' or '}' after an object property.");
+                if (!TryRead(','))
+                    return Fail(out value, out diagnostic, "Expected ',' or '}' after an object property.");
                 SkipWhitespace();
             }
         }
@@ -568,14 +578,30 @@ internal static class ProtectedOperationCatalogParser
             var escape = _text[_position++];
             switch (escape)
             {
-                case '"': builder.Append('"'); return true;
-                case '\\': builder.Append('\\'); return true;
-                case '/': builder.Append('/'); return true;
-                case 'b': builder.Append('\b'); return true;
-                case 'f': builder.Append('\f'); return true;
-                case 'n': builder.Append('\n'); return true;
-                case 'r': builder.Append('\r'); return true;
-                case 't': builder.Append('\t'); return true;
+                case '"':
+                    builder.Append('"');
+                    return true;
+                case '\\':
+                    builder.Append('\\');
+                    return true;
+                case '/':
+                    builder.Append('/');
+                    return true;
+                case 'b':
+                    builder.Append('\b');
+                    return true;
+                case 'f':
+                    builder.Append('\f');
+                    return true;
+                case 'n':
+                    builder.Append('\n');
+                    return true;
+                case 'r':
+                    builder.Append('\r');
+                    return true;
+                case 't':
+                    builder.Append('\t');
+                    return true;
                 case 'u':
                     if (TryReadUnicodeEscape(out var unicode))
                     {
@@ -598,16 +624,17 @@ internal static class ProtectedOperationCatalogParser
             for (var i = 0; i < 4; i++)
             {
                 var character = _text[_position++];
-                if (character is >= '0' and <= '9') value = (value << 4) | character - '0';
-                else if (character is >= 'a' and <= 'f') value = (value << 4) | character - 'a' + 10;
-                else if (character is >= 'A' and <= 'F') value = (value << 4) | character - 'A' + 10;
+                if (character is >= '0' and <= '9') value = (value << 4) | (character - '0');
+                else if (character is >= 'a' and <= 'f') value = (value << 4) | (character - 'a' + 10);
+                else if (character is >= 'A' and <= 'F') value = (value << 4) | (character - 'A' + 10);
                 else return false;
             }
 
             return true;
         }
 
-        private bool TryParseLiteral(string literal, bool boolean, out JsonValue value, out CatalogDiagnostic? diagnostic)
+        private bool TryParseLiteral(string literal, bool boolean, out JsonValue value,
+            out CatalogDiagnostic? diagnostic)
         {
             var start = _position;
             if (!TryReadLiteral(literal))
@@ -646,9 +673,8 @@ internal static class ProtectedOperationCatalogParser
             }
 
             if (TryRead('.'))
-            {
-                if (!TryReadDigits()) return Fail(out value, out diagnostic, "A JSON fractional part requires digits.");
-            }
+                if (!TryReadDigits())
+                    return Fail(out value, out diagnostic, "A JSON fractional part requires digits.");
 
             if (_position < _text.Length && (_text[_position] == 'e' || _text[_position] == 'E'))
             {
@@ -673,7 +699,8 @@ internal static class ProtectedOperationCatalogParser
         {
             if (_position > _text.Length - literal.Length) return false;
             for (var i = 0; i < literal.Length; i++)
-                if (_text[_position + i] != literal[i]) return false;
+                if (_text[_position + i] != literal[i])
+                    return false;
             _position += literal.Length;
             return true;
         }
@@ -695,7 +722,10 @@ internal static class ProtectedOperationCatalogParser
             return true;
         }
 
-        private static bool IsDigit(char value) => value is >= '0' and <= '9';
+        private static bool IsDigit(char value)
+        {
+            return value is >= '0' and <= '9';
+        }
 
         private bool Fail(out JsonValue value, out CatalogDiagnostic? diagnostic, string message)
         {
@@ -705,21 +735,24 @@ internal static class ProtectedOperationCatalogParser
         }
 
         private CatalogDiagnostic Error(string message)
-            => CreateDiagnostic(new TextSpan(_position, 0), message);
+        {
+            return CreateDiagnostic(new TextSpan(_position, 0), message);
+        }
 
         private LinePosition GetLinePosition(int position)
         {
             var line = 0;
             var character = 0;
             for (var i = 0; i < position; i++)
-            {
                 if (_text[i] == '\n')
                 {
                     line++;
                     character = 0;
                 }
-                else if (_text[i] != '\r') character++;
-            }
+                else if (_text[i] != '\r')
+                {
+                    character++;
+                }
 
             return new LinePosition(line, character);
         }

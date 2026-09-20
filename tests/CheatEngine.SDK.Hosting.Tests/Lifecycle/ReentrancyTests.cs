@@ -21,15 +21,16 @@ public sealed unsafe class ReentrancyTests
 {
     [Fact]
     [Trait("Category", "NativeLua")]
-    [SuppressMessage("xUnit.Analyzers", "xUnit1051", Justification = "The bounded lifecycle barrier is a deterministic host-thread synchronization point.")]
+    [SuppressMessage("xUnit.Analyzers", "xUnit1051",
+        Justification = "The bounded lifecycle barrier is a deterministic host-thread synchronization point.")]
     public void A_concurrent_disable_during_OnEnable_fails_immediately_and_the_outer_enable_decides_the_state()
     {
         HostingTest.RequireNativeLua();
         var sink = HostingTest.Reset();
         using NativeLuaState state = new();
         using HostSimulator host = new();
-        using ManualResetEventSlim entered = new(initialState: false);
-        using ManualResetEventSlim continueEnable = new(initialState: false);
+        using ManualResetEventSlim entered = new(false);
+        using ManualResetEventSlim continueEnable = new(false);
         HostingTest.UseFixture(state);
         HostingTest.Bootstrap(host);
         RecordingPlugin.OnEnableEntered = entered;
@@ -55,7 +56,8 @@ public sealed unsafe class ReentrancyTests
         Assert.False(PluginHost.IsEnabled);
         var earlyDispatch = Record.Exception(() => MainThread.Invoke(static _ => { }, 0));
         var earlyDispatchFailure = Assert.IsType<InvalidOperationException>(earlyDispatch);
-        Assert.Contains("no longer accepts new main-thread dispatch", earlyDispatchFailure.Message, StringComparison.Ordinal);
+        Assert.Contains("no longer accepts new main-thread dispatch", earlyDispatchFailure.Message,
+            StringComparison.Ordinal);
 
         // This call returns while the outer OnEnable is still blocked. It therefore proves that the lifecycle gate
         // does not wait behind plugin code, instead of relying on a timing threshold.

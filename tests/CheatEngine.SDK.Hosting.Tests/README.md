@@ -25,7 +25,7 @@ generated entry point calls. Tests tagged `Category=NativeLua` run against the L
 |------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Support/HostSimulator.cs`   | A 36-byte init record buffer at an aligned or an odd address, followed by guard bytes that catch a write past the record. Calls the bootstrap, then the three lifecycle callbacks through the record. |
 | `Support/FakeExports.cs`     | `[UnmanagedCallersOnly]` `stdcall` doubles for the exports record. `GetLuaState` hands out the fixture state.                                                                                         |
-| `Support/RecordingPlugin.cs` | Records what it observes, throws where a test says, can hold `OnEnable` at a deterministic point, and makes a nested lifecycle call from inside `OnEnable` or `OnDisable`.                              |
+| `Support/RecordingPlugin.cs` | Records what it observes, throws where a test says, can hold `OnEnable` at a deterministic point, and makes a nested lifecycle call from inside `OnEnable` or `OnDisable`.                            |
 
 Every host test starts with `HostingTest.Reset()`, which returns the host, the runtime, the doubles and the log to their
 initial state. Tests run sequentially because `PluginHost`, `LuaRuntime` and the doubles are process-wide. Declare the

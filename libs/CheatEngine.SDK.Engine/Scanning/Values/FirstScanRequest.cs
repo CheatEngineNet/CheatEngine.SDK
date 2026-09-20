@@ -5,13 +5,17 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 
 /// <summary>
 ///     The fourteen positional arguments of Cheat Engine 7.7's
-///     <c>MemScan.firstScan(scanoption, vartype, roundingtype, input1, input2, startAddress, stopAddress,
-///     protectionflags, alignmenttype, alignmentparam, isHexadecimalInput, isNotABinaryString, isunicodescan,
-///     iscasesensitive)</c> method.
+///     <c>
+///         MemScan.firstScan(scanoption, vartype, roundingtype, input1, input2, startAddress, stopAddress,
+///         protectionflags, alignmenttype, alignmentparam, isHexadecimalInput, isNotABinaryString, isunicodescan,
+///         iscasesensitive)
+///     </c>
+///     method.
 /// </summary>
 /// <remarks>
 ///     The exact order is documented in CE 7.7.0.10621 <c>celua.txt</c> lines 2568-2613. Start and stop are modelled as
-///     target <see cref="Address" /> values even though the Lua document calls them <c>integer</c>: a 64-bit target address
+///     target <see cref="Address" /> values even though the Lua document calls them <c>integer</c>: a 64-bit target
+///     address
 ///     must not be narrowed to a managed <see cref="int" />. This value intentionally does not validate every semantic
 ///     combination CE may accept; the session validates the documented first-scan option set (including CE's
 ///     non-contiguous <c>vtGrouped</c> value) and non-null string values.

@@ -1,3 +1,7 @@
+using System;
+using System.Globalization;
+using System.Runtime.InteropServices;
+
 namespace CheatEngine.SDK.Engine.Runtime;
 
 /// <summary>
@@ -10,8 +14,8 @@ namespace CheatEngine.SDK.Engine.Runtime;
 ///     not be constructed by converting <c>getCEVersion</c>'s floating-point result. It is immutable and does not query
 ///     Cheat Engine.
 /// </remarks>
-[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-public readonly struct CheatEngineVersion : System.IEquatable<CheatEngineVersion>, System.IComparable<CheatEngineVersion>
+[StructLayout(LayoutKind.Sequential)]
+public readonly struct CheatEngineVersion : IEquatable<CheatEngineVersion>, IComparable<CheatEngineVersion>
 {
     /// <summary>The CE 7.7.0.10621 build that defines this SDK's current compatibility reference.</summary>
     public static CheatEngineVersion Ce77010621 => new(7, 7, 0, 10621);
@@ -24,10 +28,10 @@ public readonly struct CheatEngineVersion : System.IEquatable<CheatEngineVersion
     /// <exception cref="System.ArgumentOutOfRangeException">At least one component is negative.</exception>
     public CheatEngineVersion(int major, int minor, int release, int build)
     {
-        System.ArgumentOutOfRangeException.ThrowIfNegative(major);
-        System.ArgumentOutOfRangeException.ThrowIfNegative(minor);
-        System.ArgumentOutOfRangeException.ThrowIfNegative(release);
-        System.ArgumentOutOfRangeException.ThrowIfNegative(build);
+        ArgumentOutOfRangeException.ThrowIfNegative(major);
+        ArgumentOutOfRangeException.ThrowIfNegative(minor);
+        ArgumentOutOfRangeException.ThrowIfNegative(release);
+        ArgumentOutOfRangeException.ThrowIfNegative(build);
         Major = major;
         Minor = minor;
         Release = release;
@@ -48,7 +52,10 @@ public readonly struct CheatEngineVersion : System.IEquatable<CheatEngineVersion
 
     /// <summary>Compares two complete file versions component by component.</summary>
     /// <param name="other">The version to compare with this value.</param>
-    /// <returns>A negative value, zero, or a positive value when this version is older than, equal to, or newer than <paramref name="other" />.</returns>
+    /// <returns>
+    ///     A negative value, zero, or a positive value when this version is older than, equal to, or newer than
+    ///     <paramref name="other" />.
+    /// </returns>
     public int CompareTo(CheatEngineVersion other)
     {
         var result = Major.CompareTo(other.Major);
@@ -74,52 +81,70 @@ public readonly struct CheatEngineVersion : System.IEquatable<CheatEngineVersion
     /// <inheritdoc />
     public override int GetHashCode()
     {
-        return System.HashCode.Combine(Major, Minor, Release, Build);
+        return HashCode.Combine(Major, Minor, Release, Build);
     }
 
     /// <summary>Formats all four file-version components using invariant decimal digits.</summary>
     /// <returns>The <c>major.minor.release.build</c> representation.</returns>
     public override string ToString()
     {
-        return Major.ToString(System.Globalization.CultureInfo.InvariantCulture) + "." +
-               Minor.ToString(System.Globalization.CultureInfo.InvariantCulture) + "." +
-               Release.ToString(System.Globalization.CultureInfo.InvariantCulture) + "." +
-               Build.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return Major.ToString(CultureInfo.InvariantCulture) + "." +
+               Minor.ToString(CultureInfo.InvariantCulture) + "." +
+               Release.ToString(CultureInfo.InvariantCulture) + "." +
+               Build.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>Tests two versions for equality.</summary>
     /// <param name="left">The first version.</param>
     /// <param name="right">The second version.</param>
     /// <returns><see langword="true" /> when every component is equal.</returns>
-    public static bool operator ==(CheatEngineVersion left, CheatEngineVersion right) => left.Equals(right);
+    public static bool operator ==(CheatEngineVersion left, CheatEngineVersion right)
+    {
+        return left.Equals(right);
+    }
 
     /// <summary>Tests two versions for inequality.</summary>
     /// <param name="left">The first version.</param>
     /// <param name="right">The second version.</param>
     /// <returns><see langword="true" /> when at least one component differs.</returns>
-    public static bool operator !=(CheatEngineVersion left, CheatEngineVersion right) => !left.Equals(right);
+    public static bool operator !=(CheatEngineVersion left, CheatEngineVersion right)
+    {
+        return !left.Equals(right);
+    }
 
     /// <summary>Tests whether the first version is older than the second.</summary>
     /// <param name="left">The first version.</param>
     /// <param name="right">The second version.</param>
     /// <returns><see langword="true" /> when <paramref name="left" /> is older.</returns>
-    public static bool operator <(CheatEngineVersion left, CheatEngineVersion right) => left.CompareTo(right) < 0;
+    public static bool operator <(CheatEngineVersion left, CheatEngineVersion right)
+    {
+        return left.CompareTo(right) < 0;
+    }
 
     /// <summary>Tests whether the first version is newer than the second.</summary>
     /// <param name="left">The first version.</param>
     /// <param name="right">The second version.</param>
     /// <returns><see langword="true" /> when <paramref name="left" /> is newer.</returns>
-    public static bool operator >(CheatEngineVersion left, CheatEngineVersion right) => left.CompareTo(right) > 0;
+    public static bool operator >(CheatEngineVersion left, CheatEngineVersion right)
+    {
+        return left.CompareTo(right) > 0;
+    }
 
     /// <summary>Tests whether the first version is not newer than the second.</summary>
     /// <param name="left">The first version.</param>
     /// <param name="right">The second version.</param>
     /// <returns><see langword="true" /> when <paramref name="left" /> is equal to or older.</returns>
-    public static bool operator <=(CheatEngineVersion left, CheatEngineVersion right) => left.CompareTo(right) <= 0;
+    public static bool operator <=(CheatEngineVersion left, CheatEngineVersion right)
+    {
+        return left.CompareTo(right) <= 0;
+    }
 
     /// <summary>Tests whether the first version is not older than the second.</summary>
     /// <param name="left">The first version.</param>
     /// <param name="right">The second version.</param>
     /// <returns><see langword="true" /> when <paramref name="left" /> is equal to or newer.</returns>
-    public static bool operator >=(CheatEngineVersion left, CheatEngineVersion right) => left.CompareTo(right) >= 0;
+    public static bool operator >=(CheatEngineVersion left, CheatEngineVersion right)
+    {
+        return left.CompareTo(right) >= 0;
+    }
 }

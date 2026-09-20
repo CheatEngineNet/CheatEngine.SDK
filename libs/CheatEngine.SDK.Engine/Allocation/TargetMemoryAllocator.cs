@@ -1,7 +1,6 @@
 using System;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Errors;
-using CheatEngine.SDK.Engine.Values;
 
 namespace CheatEngine.SDK.Engine.Allocation;
 
@@ -48,7 +47,7 @@ public sealed class TargetMemoryAllocator
             throw new ArgumentOutOfRangeException(nameof(request), request.Size.Value,
                 "An allocation request must have a positive size.");
 
-        var allocated = _operations.TryAllocate(request, out Address address);
+        var allocated = _operations.TryAllocate(request, out var address);
         if (!allocated)
         {
             if (!address.IsZero)

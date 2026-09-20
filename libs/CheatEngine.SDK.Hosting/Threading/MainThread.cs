@@ -23,8 +23,12 @@ namespace CheatEngine.SDK.Hosting.Threading;
 ///         <b>Dispatch.</b> <see cref="Invoke{TState}" /> runs the work inline when called on the main thread and
 ///         otherwise hands it to Cheat Engine's Lua <c>synchronize</c> global, which must run it on the captured main
 ///         thread and return when it has completed; an exception thrown by the work is rethrown on the caller with its
-///         original stack trace. The dispatch thunk rejects a host that invokes it on any other managed thread. <b>The
-///         actual Cheat Engine 7.7 hop remains unverified live</b>; unit tests deliberately prove that an inline stand-in
+///         original stack trace. The dispatch thunk rejects a host that invokes it on any other managed thread.
+///         <b>
+///             The
+///             actual Cheat Engine 7.7 hop remains unverified live
+///         </b>
+///         ; unit tests deliberately prove that an inline stand-in
 ///         is rejected. Deadlock rule, the
 ///         host's: a main thread that blocks on a worker which itself calls <see cref="Invoke{TState}" /> deadlocks unless
 ///         the main thread pumps queued calls with <see cref="CheckSynchronize" /> while it waits. A fire-and-forget form
@@ -132,7 +136,7 @@ public static unsafe class MainThread
                 "The host's exports record has no CheckSynchronize function; cross-thread dispatch cannot guarantee shutdown drain.");
 
         ActionWorkItem<TState> item = new(action, state);
-        using PluginHost.MainThreadWorkAdmission admission = PluginHost.AdmitMainThreadWork(context);
+        using var admission = PluginHost.AdmitMainThreadWork(context);
         MainThreadDispatcher.Dispatch(item);
         item.ThrowIfFailed();
     }
@@ -167,7 +171,7 @@ public static unsafe class MainThread
                 "The host's exports record has no CheckSynchronize function; cross-thread dispatch cannot guarantee shutdown drain.");
 
         FuncWorkItem<TState, TResult> item = new(function, state);
-        using PluginHost.MainThreadWorkAdmission admission = PluginHost.AdmitMainThreadWork(context);
+        using var admission = PluginHost.AdmitMainThreadWork(context);
         MainThreadDispatcher.Dispatch(item);
         item.ThrowIfFailed();
         return item.Result!;

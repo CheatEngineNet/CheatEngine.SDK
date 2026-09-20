@@ -22,7 +22,8 @@ internal static class LuaObjectMethodParser
     private const string ResultLocal = "__ceResult";
 
     /// <summary>Builds one value-only method model; an invalid input receives no generated implementation.</summary>
-    public static LuaObjectMethodModel Parse(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
+    public static LuaObjectMethodModel Parse(GeneratorAttributeSyntaxContext context,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -34,8 +35,9 @@ internal static class LuaObjectMethodParser
             LuaBindingsGenerator.LuaMethodAttributeMetadataName);
         var described = TryDescribe(method, context.TargetNode as MethodDeclarationSyntax, out var model);
         var valid = isSdkAttribute && LuaNames.IsValidName(luaName)
-                    && LuaClassParser.IsGeneratedHandle(method.ContainingType, compilation, cancellationToken)
-                    && described;
+                                   && LuaClassParser.IsGeneratedHandle(method.ContainingType, compilation,
+                                       cancellationToken)
+                                   && described;
 
         if (valid)
             return model with { LuaName = luaName!, IsValid = true };
@@ -95,7 +97,7 @@ internal static class LuaObjectMethodParser
         foreach (var parameter in parameters)
         {
             if (IsReserved(parameter.Name) || parameter.IsParams || parameter.IsOptional
-                                           || parameter.HasExplicitDefaultValue) valid = false;
+                || parameter.HasExplicitDefaultValue) valid = false;
 
             if (parameter.RefKind == RefKind.Out)
             {
@@ -110,8 +112,8 @@ internal static class LuaObjectMethodParser
             }
 
             if (parameter.RefKind != RefKind.None || seenResult
-                                               || !LuaValueKindMapper.TryMap(parameter.Type, out var argumentKind,
-                                                   out var argumentNullable))
+                                                  || !LuaValueKindMapper.TryMap(parameter.Type, out var argumentKind,
+                                                      out var argumentNullable))
                 valid = false;
             else
                 arguments.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), argumentKind, argumentNullable,
@@ -128,7 +130,7 @@ internal static class LuaObjectMethodParser
         returnNullable = false;
         if (form == LuaCallForm.Try)
             return method.ReturnType.SpecialType == SpecialType.System_Boolean && !method.ReturnsByRef
-                   && !method.ReturnsByRefReadonly;
+                                                                               && !method.ReturnsByRefReadonly;
 
         if (method.ReturnsVoid) return true;
 

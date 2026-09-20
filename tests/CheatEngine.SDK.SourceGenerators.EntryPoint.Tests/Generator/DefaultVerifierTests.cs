@@ -74,7 +74,8 @@ public sealed class DefaultVerifierTests
         await test.RunAsync(TestContext.Current.CancellationToken);
     }
 
-    private static CSharpSourceGeneratorTest<EntryPointGenerator, DefaultVerifier> CreateTest(bool applyDirectPackageSetting = true)
+    private static CSharpSourceGeneratorTest<EntryPointGenerator, DefaultVerifier> CreateTest(
+        bool applyDirectPackageSetting = true)
     {
         var environment = RoslynEnvironment.Shared;
 

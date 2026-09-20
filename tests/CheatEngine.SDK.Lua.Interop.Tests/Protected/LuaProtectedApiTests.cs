@@ -72,7 +72,7 @@ public sealed unsafe class LuaProtectedApiTests
     {
         var contract = CreateCompatibleContract();
 
-        contract.AbiMinor = checked((ushort)(LuaBridgeContract.MinimumMinor + 1));
+        contract.AbiMinor = checked(LuaBridgeContract.MinimumMinor + 1);
         contract.SupportedOperations |= 1UL << 63;
 
         Assert.True(contract.IsCompatible());
@@ -120,7 +120,8 @@ public sealed unsafe class LuaProtectedApiTests
         Assert.Equal(12, LuaProtectedOperationContract.Count);
         Assert.Equal((1UL << LuaProtectedOperationContract.Count) - 1, LuaProtectedOperationContract.RequiredBitmap);
         Assert.False(LuaProtectedOperationContract.IsDefined((LuaProtectedOperation)(-1)));
-        Assert.False(LuaProtectedOperationContract.IsDefined((LuaProtectedOperation)LuaProtectedOperationContract.Count));
+        Assert.False(
+            LuaProtectedOperationContract.IsDefined((LuaProtectedOperation)LuaProtectedOperationContract.Count));
     }
 
     [Fact]
@@ -197,7 +198,8 @@ public sealed unsafe class LuaProtectedApiTests
         Assert.Equal(LUA_ERRRUN, LuaProtectedApi.PushPrivateRef(pointer, stableKey, 1));
         Assert.Equal(callerTop + 1, lua_gettop(pointer));
         Assert.Equal(sentinel, lua_tointeger(pointer, 1));
-        Assert.Contains("private reference table is unavailable", LuaTest.ReadString(pointer, -1), StringComparison.Ordinal);
+        Assert.Contains("private reference table is unavailable", LuaTest.ReadString(pointer, -1),
+            StringComparison.Ordinal);
 
         lua_settop(pointer, callerTop);
         Assert.Equal(callerTop, lua_gettop(pointer));
@@ -217,7 +219,8 @@ public sealed unsafe class LuaProtectedApiTests
         Assert.Throws<InvalidOperationException>(() => LuaProtectedApi.PushClosure((lua_State*)statePointer, 1, 1));
 
         var reference = 17;
-        Assert.Throws<InvalidOperationException>(() => LuaProtectedApi.TryCreatePrivateRef((lua_State*)statePointer, 1, out reference));
+        Assert.Throws<InvalidOperationException>(() =>
+            LuaProtectedApi.TryCreatePrivateRef((lua_State*)statePointer, 1, out reference));
         Assert.Equal(17, reference);
         Assert.Equal(0, lua_gettop((lua_State*)statePointer));
     }
@@ -228,7 +231,7 @@ public sealed unsafe class LuaProtectedApiTests
     {
         LuaTest.RequireNativeLua();
         using NativeLuaState state = new(false);
-        lua_State* pointer = state.L;
+        var pointer = state.L;
         var statePointer = (nint)pointer;
         lua_pushinteger(pointer, 1);
         lua_pushinteger(pointer, 2);

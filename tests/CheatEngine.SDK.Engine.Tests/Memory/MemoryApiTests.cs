@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using CheatEngine.SDK.Engine.Memory;
 using CheatEngine.SDK.Engine.Tests.Support;
-using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
 namespace CheatEngine.SDK.Engine.Tests.Memory;
@@ -12,123 +11,123 @@ namespace CheatEngine.SDK.Engine.Tests.Memory;
 public sealed class MemoryApiTests
 {
     private static ReadOnlySpan<byte> TargetStandIn => """
-                                                        local target = {
-                                                          byte = {[16] = 255},
-                                                          word = {[17] = 65534},
-                                                          dword = {[18] = 4294967294},
-                                                          qword = {[19] = -2},
-                                                          pointer = {[20] = -16},
-                                                          single = {[21] = 1.5},
-                                                          double = {[22] = 3.25},
-                                                          bytes = {[32] = {3, 1, 4, 1}},
-                                                          text = {[48] = "target-text"},
-                                                        }
-                                                        local function signed(v, width)
-                                                          local top = 2 ^ (width - 1)
-                                                          local range = 2 ^ width
-                                                          return v >= top and v - range or v
-                                                        end
-                                                        function readByte(a) return target.byte[a] end
-                                                        function readSmallInteger(a, s)
-                                                          local v = target.word[a]
-                                                          if v == nil then return nil end
-                                                          return s and signed(v, 16) or v
-                                                        end
-                                                        function readInteger(a, s)
-                                                          local v = target.dword[a]
-                                                          if v == nil then return nil end
-                                                          return s and signed(v, 32) or v
-                                                        end
-                                                        function readQword(a) return target.qword[a] end
-                                                        function readPointer(a) return target.pointer[a] end
-                                                        function readFloat(a) return target.single[a] end
-                                                        function readDouble(a) return target.double[a] end
-                                                        function readString(a, _, _) return target.text[a] end
-                                                        function readBytes(a, count, asTable)
-                                                          local source = target.bytes[a]
-                                                          if source == nil then return nil end
-                                                          local result = {}
-                                                          for i = 1, count do
-                                                            if source[i] == nil then return nil end
-                                                            result[i] = source[i]
-                                                          end
-                                                          return asTable and result or table.unpack(result)
-                                                        end
-                                                        function writeByte(a, v) target.byte[a] = v; return true end
-                                                        function writeSmallInteger(a, v) target.word[a] = v % 65536; return true end
-                                                        function writeInteger(a, v) target.dword[a] = v % 4294967296; return a ~= 57005 end
-                                                        function writeQword(a, v) target.qword[a] = v; return true end
-                                                        function writePointer(a, v) target.pointer[a] = v; return true end
-                                                        function writeFloat(a, v) target.single[a] = v; return true end
-                                                        function writeDouble(a, v) target.double[a] = v; return true end
-                                                        function writeString(a, v, _) target.text[a] = v; return true end
-                                                        function writeBytes(a, values)
-                                                          local copy = {}
-                                                          for i = 1, #values do copy[i] = values[i] end
-                                                          target.bytes[a] = copy
-                                                          if a == 34 then return #values - 1 end
-                                                          if a == 35 then return 0 end
-                                                          return #values
-                                                        end
-                                                        """u8;
+                                                       local target = {
+                                                         byte = {[16] = 255},
+                                                         word = {[17] = 65534},
+                                                         dword = {[18] = 4294967294},
+                                                         qword = {[19] = -2},
+                                                         pointer = {[20] = -16},
+                                                         single = {[21] = 1.5},
+                                                         double = {[22] = 3.25},
+                                                         bytes = {[32] = {3, 1, 4, 1}},
+                                                         text = {[48] = "target-text"},
+                                                       }
+                                                       local function signed(v, width)
+                                                         local top = 2 ^ (width - 1)
+                                                         local range = 2 ^ width
+                                                         return v >= top and v - range or v
+                                                       end
+                                                       function readByte(a) return target.byte[a] end
+                                                       function readSmallInteger(a, s)
+                                                         local v = target.word[a]
+                                                         if v == nil then return nil end
+                                                         return s and signed(v, 16) or v
+                                                       end
+                                                       function readInteger(a, s)
+                                                         local v = target.dword[a]
+                                                         if v == nil then return nil end
+                                                         return s and signed(v, 32) or v
+                                                       end
+                                                       function readQword(a) return target.qword[a] end
+                                                       function readPointer(a) return target.pointer[a] end
+                                                       function readFloat(a) return target.single[a] end
+                                                       function readDouble(a) return target.double[a] end
+                                                       function readString(a, _, _) return target.text[a] end
+                                                       function readBytes(a, count, asTable)
+                                                         local source = target.bytes[a]
+                                                         if source == nil then return nil end
+                                                         local result = {}
+                                                         for i = 1, count do
+                                                           if source[i] == nil then return nil end
+                                                           result[i] = source[i]
+                                                         end
+                                                         return asTable and result or table.unpack(result)
+                                                       end
+                                                       function writeByte(a, v) target.byte[a] = v; return true end
+                                                       function writeSmallInteger(a, v) target.word[a] = v % 65536; return true end
+                                                       function writeInteger(a, v) target.dword[a] = v % 4294967296; return a ~= 57005 end
+                                                       function writeQword(a, v) target.qword[a] = v; return true end
+                                                       function writePointer(a, v) target.pointer[a] = v; return true end
+                                                       function writeFloat(a, v) target.single[a] = v; return true end
+                                                       function writeDouble(a, v) target.double[a] = v; return true end
+                                                       function writeString(a, v, _) target.text[a] = v; return true end
+                                                       function writeBytes(a, values)
+                                                         local copy = {}
+                                                         for i = 1, #values do copy[i] = values[i] end
+                                                         target.bytes[a] = copy
+                                                         if a == 34 then return #values - 1 end
+                                                         if a == 35 then return 0 end
+                                                         return #values
+                                                       end
+                                                       """u8;
 
     private static ReadOnlySpan<byte> HostStandIn => """
-                                                      local host = {
-                                                        word = {[65] = 65534},
-                                                        dword = {[66] = 4294967294},
-                                                        qword = {[67] = -2},
-                                                        pointer = {[68] = -32},
-                                                        single = {[69] = 2.5},
-                                                        double = {[70] = 6.5},
-                                                        bytes = {[64] = {255}, [80] = {9, 8, 7}},
-                                                        text = {[96] = "host-text"},
-                                                      }
-                                                      local function signed(v, width)
-                                                        local top = 2 ^ (width - 1)
-                                                        local range = 2 ^ width
-                                                        return v >= top and v - range or v
-                                                      end
-                                                      function readBytesLocal(a, count, asTable)
-                                                        local source = host.bytes[a]
-                                                        if source == nil then return nil end
-                                                        local result = {}
-                                                        for i = 1, count do
-                                                          if source[i] == nil then return nil end
-                                                          result[i] = source[i]
-                                                        end
-                                                        return asTable and result or table.unpack(result)
-                                                      end
-                                                      function readSmallIntegerLocal(a, s)
-                                                        local v = host.word[a]
-                                                        if v == nil then return nil end
-                                                        return s and signed(v, 16) or v
-                                                      end
-                                                      function readIntegerLocal(a, s)
-                                                        local v = host.dword[a]
-                                                        if v == nil then return nil end
-                                                        return s and signed(v, 32) or v
-                                                      end
-                                                      function readQwordLocal(a) return host.qword[a] end
-                                                      function readPointerLocal(a) return host.pointer[a] end
-                                                      function readFloatLocal(a) return host.single[a] end
-                                                      function readDoubleLocal(a) return host.double[a] end
-                                                      function readStringLocal(a, _, _) return host.text[a] end
-                                                      function writeBytesLocal(a, values)
-                                                        local copy = {}
-                                                        for i = 1, #values do copy[i] = values[i] end
-                                                        host.bytes[a] = copy
-                                                        if a == 82 then return #values - 1 end
-                                                        if a == 83 then return 0 end
-                                                        return #values
-                                                      end
-                                                      function writeSmallIntegerLocal(a, v) host.word[a] = v % 65536; return true end
-                                                      function writeIntegerLocal(a, v) host.dword[a] = v % 4294967296; return true end
-                                                      function writeQwordLocal(a, v) host.qword[a] = v; return true end
-                                                      function writePointerLocal(a, v) host.pointer[a] = v; return true end
-                                                      function writeFloatLocal(a, v) host.single[a] = v; return true end
-                                                      function writeDoubleLocal(a, v) host.double[a] = v; return true end
-                                                      function writeStringLocal(a, v, _) host.text[a] = v; return true end
-                                                      """u8;
+                                                     local host = {
+                                                       word = {[65] = 65534},
+                                                       dword = {[66] = 4294967294},
+                                                       qword = {[67] = -2},
+                                                       pointer = {[68] = -32},
+                                                       single = {[69] = 2.5},
+                                                       double = {[70] = 6.5},
+                                                       bytes = {[64] = {255}, [80] = {9, 8, 7}},
+                                                       text = {[96] = "host-text"},
+                                                     }
+                                                     local function signed(v, width)
+                                                       local top = 2 ^ (width - 1)
+                                                       local range = 2 ^ width
+                                                       return v >= top and v - range or v
+                                                     end
+                                                     function readBytesLocal(a, count, asTable)
+                                                       local source = host.bytes[a]
+                                                       if source == nil then return nil end
+                                                       local result = {}
+                                                       for i = 1, count do
+                                                         if source[i] == nil then return nil end
+                                                         result[i] = source[i]
+                                                       end
+                                                       return asTable and result or table.unpack(result)
+                                                     end
+                                                     function readSmallIntegerLocal(a, s)
+                                                       local v = host.word[a]
+                                                       if v == nil then return nil end
+                                                       return s and signed(v, 16) or v
+                                                     end
+                                                     function readIntegerLocal(a, s)
+                                                       local v = host.dword[a]
+                                                       if v == nil then return nil end
+                                                       return s and signed(v, 32) or v
+                                                     end
+                                                     function readQwordLocal(a) return host.qword[a] end
+                                                     function readPointerLocal(a) return host.pointer[a] end
+                                                     function readFloatLocal(a) return host.single[a] end
+                                                     function readDoubleLocal(a) return host.double[a] end
+                                                     function readStringLocal(a, _, _) return host.text[a] end
+                                                     function writeBytesLocal(a, values)
+                                                       local copy = {}
+                                                       for i = 1, #values do copy[i] = values[i] end
+                                                       host.bytes[a] = copy
+                                                       if a == 82 then return #values - 1 end
+                                                       if a == 83 then return 0 end
+                                                       return #values
+                                                     end
+                                                     function writeSmallIntegerLocal(a, v) host.word[a] = v % 65536; return true end
+                                                     function writeIntegerLocal(a, v) host.dword[a] = v % 4294967296; return true end
+                                                     function writeQwordLocal(a, v) host.qword[a] = v; return true end
+                                                     function writePointerLocal(a, v) host.pointer[a] = v; return true end
+                                                     function writeFloatLocal(a, v) host.single[a] = v; return true end
+                                                     function writeDoubleLocal(a, v) host.double[a] = v; return true end
+                                                     function writeStringLocal(a, v, _) host.text[a] = v; return true end
+                                                     """u8;
 
     [Fact]
     public void Target_scalars_preserve_signedness_widths_pointer_bits_and_floating_point_values()
@@ -138,28 +137,28 @@ public sealed class MemoryApiTests
         using HostScope scope = new(state);
         EngineTest.Run(scope.State, TargetStandIn);
 
-        Assert.True(TargetMemory.TryReadUInt8(16UL, out byte u8, out var failure));
+        Assert.True(TargetMemory.TryReadUInt8(16UL, out var u8, out var failure));
         Assert.Equal(MemoryAccessFailure.None, failure);
         Assert.Equal(byte.MaxValue, u8);
-        Assert.True(TargetMemory.TryReadInt8(16UL, out sbyte i8, out failure));
+        Assert.True(TargetMemory.TryReadInt8(16UL, out var i8, out failure));
         Assert.Equal(-1, i8);
-        Assert.True(TargetMemory.TryReadUInt16(17UL, out ushort u16, out failure));
+        Assert.True(TargetMemory.TryReadUInt16(17UL, out var u16, out failure));
         Assert.Equal(ushort.MaxValue - 1, u16);
-        Assert.True(TargetMemory.TryReadInt16(17UL, out short i16, out failure));
+        Assert.True(TargetMemory.TryReadInt16(17UL, out var i16, out failure));
         Assert.Equal(-2, i16);
-        Assert.True(TargetMemory.TryReadUInt32(18UL, out uint u32, out failure));
+        Assert.True(TargetMemory.TryReadUInt32(18UL, out var u32, out failure));
         Assert.Equal(uint.MaxValue - 1, u32);
-        Assert.True(TargetMemory.TryReadInt32(18UL, out int i32, out failure));
+        Assert.True(TargetMemory.TryReadInt32(18UL, out var i32, out failure));
         Assert.Equal(-2, i32);
-        Assert.True(TargetMemory.TryReadUInt64(19UL, out ulong u64, out failure));
+        Assert.True(TargetMemory.TryReadUInt64(19UL, out var u64, out failure));
         Assert.Equal(ulong.MaxValue - 1, u64);
-        Assert.True(TargetMemory.TryReadInt64(19UL, out long i64, out failure));
+        Assert.True(TargetMemory.TryReadInt64(19UL, out var i64, out failure));
         Assert.Equal(-2, i64);
-        Assert.True(TargetMemory.TryReadPointer(20UL, out Address pointer, out failure));
+        Assert.True(TargetMemory.TryReadPointer(20UL, out var pointer, out failure));
         Assert.Equal(ulong.MaxValue - 15, pointer.Value);
-        Assert.True(TargetMemory.TryReadSingle(21UL, out float single, out failure));
+        Assert.True(TargetMemory.TryReadSingle(21UL, out var single, out failure));
         Assert.Equal(1.5F, single);
-        Assert.True(TargetMemory.TryReadDouble(22UL, out double @double, out failure));
+        Assert.True(TargetMemory.TryReadDouble(22UL, out var @double, out failure));
         Assert.Equal(3.25, @double);
 
         Assert.True(TargetMemory.TryWriteInt8(16UL, -7, out failure));
@@ -195,9 +194,9 @@ public sealed class MemoryApiTests
         Assert.True(bytes.SequenceEqual(new byte[] { 2, 7, 1, 8 }));
 
         Span<byte> utf8 = stackalloc byte[16];
-        Assert.True(TargetMemory.TryReadUtf8(48UL, 100, utf8, false, out int written, out failure));
+        Assert.True(TargetMemory.TryReadUtf8(48UL, 100, utf8, false, out var written, out failure));
         Assert.True(utf8[..written].SequenceEqual("target-text"u8));
-        Assert.True(TargetMemory.TryReadString(48UL, 100, false, out string? text, out failure));
+        Assert.True(TargetMemory.TryReadString(48UL, 100, false, out var text, out failure));
         Assert.Equal("target-text", text);
         Assert.True(TargetMemory.TryWriteUtf8(49UL, "updated"u8, false, out failure));
         Assert.True(TargetMemory.TryReadString(49UL, 100, false, out text, out failure));
@@ -240,7 +239,8 @@ public sealed class MemoryApiTests
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
         using HostScope scope = new(state);
-        EngineTest.Run(scope.State, "function writeBytes(_) error('must not run') end function writeBytesLocal(_) error('must not run') end"u8);
+        EngineTest.Run(scope.State,
+            "function writeBytes(_) error('must not run') end function writeBytesLocal(_) error('must not run') end"u8);
 
         Assert.Equal(0, FakeHost.ProviderCalls);
         Assert.True(TargetMemory.TryWriteBytes(1UL, [], out var failure));
@@ -266,7 +266,9 @@ public sealed class MemoryApiTests
     }
 
     [Fact]
-    [SuppressMessage("Meziantou.Analyzer", "MA0051", Justification = "The host scalar contract is intentionally exercised end to end in one table-shaped fixture test.")]
+    [SuppressMessage("Meziantou.Analyzer", "MA0051",
+        Justification =
+            "The host scalar contract is intentionally exercised end to end in one table-shaped fixture test.")]
     public void Host_scalars_use_host_addresses_and_the_documented_local_byte_table_for_8_bit_access()
     {
         EngineTest.RequireNativeLua();
@@ -275,27 +277,27 @@ public sealed class MemoryApiTests
         EngineTest.Run(scope.State, HostStandIn);
 
         HostAddress byteAddress = new(64);
-        Assert.True(HostMemory.TryReadUInt8(byteAddress, out byte u8, out var failure));
+        Assert.True(HostMemory.TryReadUInt8(byteAddress, out var u8, out var failure));
         Assert.Equal(byte.MaxValue, u8);
-        Assert.True(HostMemory.TryReadInt8(byteAddress, out sbyte i8, out failure));
+        Assert.True(HostMemory.TryReadInt8(byteAddress, out var i8, out failure));
         Assert.Equal(-1, i8);
-        Assert.True(HostMemory.TryReadUInt16(new HostAddress(65), out ushort u16, out failure));
+        Assert.True(HostMemory.TryReadUInt16(new HostAddress(65), out var u16, out failure));
         Assert.Equal(ushort.MaxValue - 1, u16);
-        Assert.True(HostMemory.TryReadInt16(new HostAddress(65), out short i16, out failure));
+        Assert.True(HostMemory.TryReadInt16(new HostAddress(65), out var i16, out failure));
         Assert.Equal(-2, i16);
-        Assert.True(HostMemory.TryReadUInt32(new HostAddress(66), out uint u32, out failure));
+        Assert.True(HostMemory.TryReadUInt32(new HostAddress(66), out var u32, out failure));
         Assert.Equal(uint.MaxValue - 1, u32);
-        Assert.True(HostMemory.TryReadInt32(new HostAddress(66), out int i32, out failure));
+        Assert.True(HostMemory.TryReadInt32(new HostAddress(66), out var i32, out failure));
         Assert.Equal(-2, i32);
-        Assert.True(HostMemory.TryReadUInt64(new HostAddress(67), out ulong u64, out failure));
+        Assert.True(HostMemory.TryReadUInt64(new HostAddress(67), out var u64, out failure));
         Assert.Equal(ulong.MaxValue - 1, u64);
-        Assert.True(HostMemory.TryReadInt64(new HostAddress(67), out long i64, out failure));
+        Assert.True(HostMemory.TryReadInt64(new HostAddress(67), out var i64, out failure));
         Assert.Equal(-2, i64);
-        Assert.True(HostMemory.TryReadPointer(new HostAddress(68), out HostAddress pointer, out failure));
+        Assert.True(HostMemory.TryReadPointer(new HostAddress(68), out var pointer, out failure));
         Assert.Equal(unchecked((nuint)(-32)), pointer.Value);
-        Assert.True(HostMemory.TryReadSingle(new HostAddress(69), out float single, out failure));
+        Assert.True(HostMemory.TryReadSingle(new HostAddress(69), out var single, out failure));
         Assert.Equal(2.5F, single);
-        Assert.True(HostMemory.TryReadDouble(new HostAddress(70), out double @double, out failure));
+        Assert.True(HostMemory.TryReadDouble(new HostAddress(70), out var @double, out failure));
         Assert.Equal(6.5, @double);
 
         Assert.True(HostMemory.TryWriteUInt8(byteAddress, 7, out failure));
@@ -314,7 +316,7 @@ public sealed class MemoryApiTests
         Assert.True(HostMemory.TryWriteBytes(new HostAddress(81), [6, 2, 6], out failure));
         Assert.True(HostMemory.TryReadBytes(new HostAddress(81), bytes, out failure));
         Assert.True(bytes.SequenceEqual(new byte[] { 6, 2, 6 }));
-        Assert.True(HostMemory.TryReadString(new HostAddress(96), 100, false, out string? text, out failure));
+        Assert.True(HostMemory.TryReadString(new HostAddress(96), 100, false, out var text, out failure));
         Assert.Equal("host-text", text);
         Assert.True(HostMemory.TryWriteUtf8(new HostAddress(97), "host-update"u8, false, out failure));
         Assert.True(HostMemory.TryReadString(new HostAddress(97), 100, false, out text, out failure));

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -33,17 +34,17 @@ namespace CheatEngine.SDK.Lua.Runtime;
 ///         Lua can still call.
 ///     </para>
 ///     <para>
-    ///         <b>Acquiring a state.</b> Cheat Engine hands out one Lua thread per OS thread. Start every normal operation
-     ///         with <see cref="AcquireOperation()" /> and use its <see cref="LuaRuntimeOperation.State" /> only for that
-    ///         synchronous scope. The admission remains held from before the provider call through the last Lua operation,
-    ///         so a lifecycle transition can close new work and drain existing work before it invalidates resources. Inside
-    ///         a callback the state the callback received is authoritative; do not acquire another. A state must never be
-    ///         stored.
+///         <b>Acquiring a state.</b> Cheat Engine hands out one Lua thread per OS thread. Start every normal operation
+///         with <see cref="AcquireOperation()" /> and use its <see cref="LuaRuntimeOperation.State" /> only for that
+///         synchronous scope. The admission remains held from before the provider call through the last Lua operation,
+///         so a lifecycle transition can close new work and drain existing work before it invalidates resources. Inside
+///         a callback the state the callback received is authoritative; do not acquire another. A state must never be
+///         stored.
 ///     </para>
 ///     <para>
 ///         <b>Thread safety.</b> Attach and Detach are serialized by a lock and normally run on the host's main thread;
 ///         the
-     ///         readers (<see cref="IsAttached" />, <see cref="Epoch" />, <see cref="AcquireOperation()" />, ...) are lock-free
+///         readers (<see cref="IsAttached" />, <see cref="Epoch" />, <see cref="AcquireOperation()" />, ...) are lock-free
 ///         volatile
 ///         reads and may run on any thread. A reader that observes the binding while Detach runs completes with the
 ///         binding
@@ -58,14 +59,6 @@ namespace CheatEngine.SDK.Lua.Runtime;
 /// </remarks>
 public static unsafe class LuaRuntime
 {
-    /// <summary>Result of an internal callback-disposal operation acquisition.</summary>
-    internal enum LuaCallbackDisposeOperationResult
-    {
-        Acquired,
-        Unavailable,
-        AdmissionClosed
-    }
-
     private static readonly Lock SGate = new();
     private static readonly Lock SOperationGate = new();
     private static readonly ManualResetEventSlim SOperationsDrained = new(true);
@@ -73,18 +66,18 @@ public static unsafe class LuaRuntime
     private static LuaHostServices? s_services;
     private static int s_activeOperations;
     private static bool s_acceptOperations;
+
     private static bool s_resetTransitionActive;
+
     // High 32 bits: attach epoch. Low 32 bits: state generation. A single volatile read never combines either component
     // from different lifecycle transitions.
     private static long s_identity;
 
     // A transition owner is allowed to release callbacks and references after admission has closed. An active Lua
     // operation is never allowed to start a transition: doing so would wait for itself and deadlock.
-    [ThreadStatic]
-    private static int t_operationDepth;
+    [ThreadStatic] private static int t_operationDepth;
 
-    [ThreadStatic]
-    private static int t_transitionDepth;
+    [ThreadStatic] private static int t_transitionDepth;
 
     // Deterministic lifecycle-race seam used only by the SDK's friend test assembly. It is invoked after admission is
     // closed and before the drain wait, outside every runtime lock.
@@ -372,7 +365,7 @@ public static unsafe class LuaRuntime
     ///     serialized with the host lifecycle (for example, a Lua callback receiving its own state).
     /// </remarks>
     [RequiresPluginEnabled]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
     public static LuaState AcquireState()
     {
         using var operation = AcquireOperation();
@@ -511,7 +504,8 @@ public static unsafe class LuaRuntime
         lock (SGate)
         {
             if (!s_resetTransitionActive || t_transitionDepth == 0)
-                throw new InvalidOperationException("The Lua state-reset transition must be completed on its owning thread.");
+                throw new InvalidOperationException(
+                    "The Lua state-reset transition must be completed on its owning thread.");
 
             s_resetTransitionActive = false;
             EndTransition();
@@ -522,7 +516,8 @@ public static unsafe class LuaRuntime
     internal static void ExitOperation()
     {
         if (t_operationDepth <= 0)
-            throw new InvalidOperationException("A Lua runtime operation must be disposed on the thread that acquired it.");
+            throw new InvalidOperationException(
+                "A Lua runtime operation must be disposed on the thread that acquired it.");
 
         t_operationDepth--;
         lock (SOperationGate)
@@ -684,5 +679,13 @@ public static unsafe class LuaRuntime
     private static LuaStateIdentity UnpackIdentity(long packed)
     {
         return new LuaStateIdentity((int)(packed >> 32), (int)(uint)packed);
+    }
+
+    /// <summary>Result of an internal callback-disposal operation acquisition.</summary>
+    internal enum LuaCallbackDisposeOperationResult
+    {
+        Acquired,
+        Unavailable,
+        AdmissionClosed
     }
 }

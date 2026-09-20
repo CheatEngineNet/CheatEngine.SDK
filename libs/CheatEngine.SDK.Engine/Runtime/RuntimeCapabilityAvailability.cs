@@ -1,10 +1,12 @@
+using System.Runtime.InteropServices;
+
 namespace CheatEngine.SDK.Engine.Runtime;
 
 /// <summary>An immutable availability observation and its explicit contract metadata.</summary>
 /// <param name="Capability">The SDK-owned capability identifier.</param>
 /// <param name="State">The observed availability state.</param>
 /// <param name="Contract">The evidence-backed constraints and normal return semantics.</param>
-[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential)]
 public readonly record struct RuntimeCapabilityAvailability(
     RuntimeCapabilityId Capability,
     RuntimeCapabilityAvailabilityState State,

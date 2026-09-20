@@ -5,7 +5,8 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 
 /// <summary>
 ///     Writes one <c>lua_CFunction</c> thunk around a managed static method: the shape
-///     <c>CheatEngine.SDK.Lua.Callbacks.LuaThunk</c> documents, with argument-count and argument-kind checks in front of the call.
+///     <c>CheatEngine.SDK.Lua.Callbacks.LuaThunk</c> documents, with argument-count and argument-kind checks in front of
+///     the call.
 /// </summary>
 /// <remarks>
 ///     <para>

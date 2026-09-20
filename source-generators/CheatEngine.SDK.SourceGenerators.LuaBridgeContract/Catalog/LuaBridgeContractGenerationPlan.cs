@@ -3,7 +3,9 @@ using System.Collections.Immutable;
 namespace CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Catalog;
 
 /// <summary>Combines the compiler inputs into the one deterministic generation decision.</summary>
-internal sealed record LuaBridgeContractGenerationPlan(CatalogModel? Catalog, ImmutableArray<CatalogDiagnostic> Diagnostics)
+internal sealed record LuaBridgeContractGenerationPlan(
+    CatalogModel? Catalog,
+    ImmutableArray<CatalogDiagnostic> Diagnostics)
 {
     public static LuaBridgeContractGenerationPlan Create(ImmutableArray<CatalogParseResult> results)
     {

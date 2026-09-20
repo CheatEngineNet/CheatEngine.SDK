@@ -3,6 +3,7 @@ using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Scanning.Values;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
@@ -37,7 +38,8 @@ public sealed class MemoryScanSessionTests
         Assert.False(session.TryGetAddress(2, out _));
         Assert.True(session.TryGetValue(0, out var value));
         Assert.Equal("100", value);
-        Assert.Equal("scan.first:14,scan.wait,list.initialize,results.getCount,results.getCount,results.getAddress:0,results.getCount,results.getAddress:1,results.getCount,results.getCount,results.getValue:0",
+        Assert.Equal(
+            "scan.first:14,scan.wait,list.initialize,results.getCount,results.getCount,results.getAddress:0,results.getCount,results.getAddress:1,results.getCount,results.getCount,results.getValue:0",
             ReadTrace(scope.State));
     }
 
@@ -250,7 +252,7 @@ public sealed class MemoryScanSessionTests
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
         using HostScope scope = new(state);
-        using var session = CreateSession(scope.State, firstScanRaises: true);
+        using var session = CreateSession(scope.State, true);
 
         var failure = Assert.Throws<MemoryScanException>(() =>
             session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100")));
@@ -258,7 +260,7 @@ public sealed class MemoryScanSessionTests
         Assert.Equal(MemoryScanFailureKind.LuaError, failure.FailureKind);
         Assert.Equal("MemoryScan.FirstScan", failure.Operation);
         Assert.DoesNotContain("first scan rejected", failure.Message, StringComparison.Ordinal);
-        Assert.IsType<CheatEngine.SDK.Lua.Calls.LuaException>(failure.InnerException);
+        Assert.IsType<LuaException>(failure.InnerException);
         Assert.Equal(MemoryScanState.Invalidated, session.State);
         Assert.Throws<MemoryScanStateException>(() =>
             session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100")));
@@ -349,7 +351,8 @@ public sealed class MemoryScanSessionTests
         EngineTest.Run(state, "trace = {}"u8);
         var scan = FakeHost.CreateObject(state, "Object",
             ScanInitializer(firstScanRaises, waitRaises));
-        var foundList = FakeHost.CreateObject(state, "Object", FoundListInitializer(invalidAddress, resultCountLiteral));
+        var foundList =
+            FakeHost.CreateObject(state, "Object", FoundListInitializer(invalidAddress, resultCountLiteral));
         return MemoryScanSession.Adopt(
             new Owned<MemScan>(MemScan.FromHandle(scan)),
             new Owned<FoundList>(FoundList.FromHandle(foundList)));
@@ -359,11 +362,13 @@ public sealed class MemoryScanSessionTests
     {
         var raiseFirstScan = firstScanRaises ? "; error('first scan rejected')" : string.Empty;
         var raiseWait = waitRaises ? "; error('wait rejected')" : string.Empty;
-        return "o.props.firstScan = function(...) local n = select('#', ...); if n ~= 14 then error('firstScan argument count') end; local scanoption, vartype, roundingtype, input1, input2, startAddress, stopAddress, protectionflags, alignmenttype, alignmentparam, hexadecimal, nonbinary, unicode, casesensitive = ...; if scanoption ~= 1 or (vartype ~= 2 and vartype ~= 14) or roundingtype ~= 0 or input1 ~= '100' or input2 ~= '' or startAddress ~= 0 or stopAddress ~= -1 or protectionflags ~= '' or alignmenttype ~= 0 or alignmentparam ~= '' or hexadecimal ~= false or nonbinary ~= false or unicode ~= false or casesensitive ~= false then error('firstScan argument values') end; table.insert(trace, 'scan.first:' .. n)" + raiseFirstScan + " end\n" +
-               "o.props.nextScan = function(...) local n = select('#', ...); if n ~= 9 and n ~= 10 then error('nextScan argument count') end; local scanoption, roundingtype, input1, input2, hexadecimal, nonbinary, unicode, casesensitive, percentage, savedresultname = ...; if scanoption ~= 1 or roundingtype ~= 0 or input1 ~= '90' or input2 ~= '' or hexadecimal ~= false or nonbinary ~= false or unicode ~= false or casesensitive ~= false or percentage ~= false or (n == 9 and savedresultname ~= nil) or (n == 10 and savedresultname ~= 'baseline') then error('nextScan argument values') end; table.insert(trace, 'scan.next:' .. n) end\n" +
-               "o.props.waitTillDone = function() table.insert(trace, 'scan.wait')" + raiseWait + " end\n" +
-               "o.props.newScan = function() table.insert(trace, 'scan.new') end\n" +
-               "o.getters.destroy = function(o) return function() o.destroyed = true; table.insert(trace, 'scan.destroy') end end";
+        return
+            "o.props.firstScan = function(...) local n = select('#', ...); if n ~= 14 then error('firstScan argument count') end; local scanoption, vartype, roundingtype, input1, input2, startAddress, stopAddress, protectionflags, alignmenttype, alignmentparam, hexadecimal, nonbinary, unicode, casesensitive = ...; if scanoption ~= 1 or (vartype ~= 2 and vartype ~= 14) or roundingtype ~= 0 or input1 ~= '100' or input2 ~= '' or startAddress ~= 0 or stopAddress ~= -1 or protectionflags ~= '' or alignmenttype ~= 0 or alignmentparam ~= '' or hexadecimal ~= false or nonbinary ~= false or unicode ~= false or casesensitive ~= false then error('firstScan argument values') end; table.insert(trace, 'scan.first:' .. n)" +
+            raiseFirstScan + " end\n" +
+            "o.props.nextScan = function(...) local n = select('#', ...); if n ~= 9 and n ~= 10 then error('nextScan argument count') end; local scanoption, roundingtype, input1, input2, hexadecimal, nonbinary, unicode, casesensitive, percentage, savedresultname = ...; if scanoption ~= 1 or roundingtype ~= 0 or input1 ~= '90' or input2 ~= '' or hexadecimal ~= false or nonbinary ~= false or unicode ~= false or casesensitive ~= false or percentage ~= false or (n == 9 and savedresultname ~= nil) or (n == 10 and savedresultname ~= 'baseline') then error('nextScan argument values') end; table.insert(trace, 'scan.next:' .. n) end\n" +
+            "o.props.waitTillDone = function() table.insert(trace, 'scan.wait')" + raiseWait + " end\n" +
+            "o.props.newScan = function() table.insert(trace, 'scan.new') end\n" +
+            "o.getters.destroy = function(o) return function() o.destroyed = true; table.insert(trace, 'scan.destroy') end end";
     }
 
     private static string FoundListInitializer(bool invalidAddress = false, string resultCountLiteral = "2")
@@ -373,7 +378,8 @@ public sealed class MemoryScanSessionTests
                "o.props.deinitialize = function() table.insert(trace, 'list.deinitialize') end\n" +
                "o.props.Count = " + resultCountLiteral + "\n" +
                "o.props.getCount = function() table.insert(trace, 'results.getCount'); return o.props.Count end\n" +
-               "o.props.getAddress = function(index) table.insert(trace, 'results.getAddress:' .. index); if index == 0 then return " + firstAddress + " end; return 'FFFFFFFFFFFFFFFF' end\n" +
+               "o.props.getAddress = function(index) table.insert(trace, 'results.getAddress:' .. index); if index == 0 then return " +
+               firstAddress + " end; return 'FFFFFFFFFFFFFFFF' end\n" +
                "o.props.getValue = function(index) table.insert(trace, 'results.getValue:' .. index); return '100' end\n" +
                "o.getters.destroy = function(o) return function() o.destroyed = true; table.insert(trace, 'list.destroy') end end";
     }

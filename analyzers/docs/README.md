@@ -1,31 +1,33 @@
 # CheatEngine.SDK diagnostics
 
 One page per rule. The help link of every diagnostic
-(`https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/<ID>.md`) lands on the page of that rule. Each page is
+(`https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/<ID>.md`) lands on the page of that rule.
+Each page is
 written for the plugin author who just saw the message: cause, reason, exact definition, fix, when to suppress.
 
-Identifier ranges: `CESDK0xxx` plugin shape and bootstrap (category `CheatEngine.SDK.Plugin`), `CESDK1xxx` runtime-safety usage
-(`CheatEngine.SDK.Usage`), `CESDK2xxx` Lua generator input (`CheatEngine.SDK.Generation`). The separate EngineApi generator owns
+Identifier ranges: `CESDK0xxx` plugin shape and bootstrap (category `CheatEngine.SDK.Plugin`), `CESDK1xxx`
+runtime-safety usage (`CheatEngine.SDK.Usage`), `CESDK2xxx` Lua generator input (`CheatEngine.SDK.Generation`). The
+separate EngineApi generator owns
 `CESDK3xxx` for curated-spec grammar and generated-identity diagnostics. Identifiers are never renumbered or reused.
 
-| Id                        | Title                                                           | Severity | Code fix                                                                                     |
-|---------------------------|-----------------------------------------------------------------|----------|----------------------------------------------------------------------------------------------|
-| [CESDK0001](CESDK0001.md) | Plugin class cannot be constructed by the generated entry point | Error    | Replace `abstract` or `static` with `sealed`, add a constructor, make the constructor public |
-| [CESDK0002](CESDK0002.md) | More than one plugin class in the assembly                      | Error    | None                                                                                         |
-| [CESDK0003](CESDK0003.md) | Manual Cheat Engine bootstrap is missing or malformed           | Error    | Add the exact `CESDK.CESDK.CEPluginInitialize(IntPtr, int)` contract                        |
-| [CESDK0004](CESDK0004.md) | Plugin assembly declares a namespace under 'CESDK'              | Warning  | None                                                                                         |
-| [CESDK0005](CESDK0005.md) | Source type collides with the generated Cheat Engine entry point | Error   | Rename it, or explicitly own the complete manual bootstrap                                  |
-| [CESDK1001](CESDK1001.md) | Plugin startup code calls an enabled-only API                   | Error    | Move the call to `OnEnable`                                                                  |
-| [CESDK1003](CESDK1003.md) | A Cheat Engine-owned value is being destroyed                   | Error    | Keep it borrowed or use an explicit `Owned<T>` transfer                                     |
-| [CESDK1004](CESDK1004.md) | Exception can escape an [UnmanagedCallersOnly] method           | Warning  | Wrap the body in try/catch                                                                   |
-| [CESDK1005](CESDK1005.md) | Plugin lifecycle callback must not be `async void`              | Error    | Keep `OnEnable`/`OnDisable` synchronous                                                      |
-| [CESDK2001](CESDK2001.md) | Lua binding needs AllowUnsafeBlocks                             | Error    | None                                                                                         |
-| [CESDK2002](CESDK2002.md) | Type cannot receive a generated Lua binding part                | Error    | None                                                                                         |
-| [CESDK2003](CESDK2003.md) | [LuaFunction] method cannot be exported by a generated thunk    | Error    | None                                                                                         |
-| [CESDK2004](CESDK2004.md) | [LuaGlobal] method cannot receive a generated body              | Error    | None                                                                                         |
-| [CESDK2005](CESDK2005.md) | Lua function name is duplicated                                 | Error    | Give one valid export a distinct Lua name                                                    |
-| [CESDK2006](CESDK2006.md) | Lua annotation target cannot receive generated code             | Error    | Declare the supported borrowed-handle/member shape                                           |
-| [CESDK2007](CESDK2007.md) | User member collides with a generated Lua binding identity      | Error    | Rename the member or change the binding declaration                                          |
+| Id                        | Title                                                            | Severity | Code fix                                                                                     |
+|---------------------------|------------------------------------------------------------------|----------|----------------------------------------------------------------------------------------------|
+| [CESDK0001](CESDK0001.md) | Plugin class cannot be constructed by the generated entry point  | Error    | Replace `abstract` or `static` with `sealed`, add a constructor, make the constructor public |
+| [CESDK0002](CESDK0002.md) | More than one plugin class in the assembly                       | Error    | None                                                                                         |
+| [CESDK0003](CESDK0003.md) | Manual Cheat Engine bootstrap is missing or malformed            | Error    | Add the exact `CESDK.CESDK.CEPluginInitialize(IntPtr, int)` contract                         |
+| [CESDK0004](CESDK0004.md) | Plugin assembly declares a namespace under 'CESDK'               | Warning  | None                                                                                         |
+| [CESDK0005](CESDK0005.md) | Source type collides with the generated Cheat Engine entry point | Error    | Rename it, or explicitly own the complete manual bootstrap                                   |
+| [CESDK1001](CESDK1001.md) | Plugin startup code calls an enabled-only API                    | Error    | Move the call to `OnEnable`                                                                  |
+| [CESDK1003](CESDK1003.md) | A Cheat Engine-owned value is being destroyed                    | Error    | Keep it borrowed or use an explicit `Owned<T>` transfer                                      |
+| [CESDK1004](CESDK1004.md) | Exception can escape an [UnmanagedCallersOnly] method            | Warning  | Wrap the body in try/catch                                                                   |
+| [CESDK1005](CESDK1005.md) | Plugin lifecycle callback must not be `async void`               | Error    | Keep `OnEnable`/`OnDisable` synchronous                                                      |
+| [CESDK2001](CESDK2001.md) | Lua binding needs AllowUnsafeBlocks                              | Error    | None                                                                                         |
+| [CESDK2002](CESDK2002.md) | Type cannot receive a generated Lua binding part                 | Error    | None                                                                                         |
+| [CESDK2003](CESDK2003.md) | [LuaFunction] method cannot be exported by a generated thunk     | Error    | None                                                                                         |
+| [CESDK2004](CESDK2004.md) | [LuaGlobal] method cannot receive a generated body               | Error    | None                                                                                         |
+| [CESDK2005](CESDK2005.md) | Lua function name is duplicated                                  | Error    | Give one valid export a distinct Lua name                                                    |
+| [CESDK2006](CESDK2006.md) | Lua annotation target cannot receive generated code              | Error    | Declare the supported borrowed-handle/member shape                                           |
+| [CESDK2007](CESDK2007.md) | User member collides with a generated Lua binding identity       | Error    | Rename the member or change the binding declaration                                          |
 
 Configure a rule like any other analyzer diagnostic:
 
@@ -47,6 +49,7 @@ while typing.
 `CESDK1002` is intentionally unassigned until the CE 7.7 main-thread dispatcher contract has opt-in live evidence. A
 runtime guard exists today; that is not enough evidence for a static thread-affinity analyzer rule.
 
-Adding a rule: constant in `CheatEngine.SDK.Analyzers/Diagnostics/DiagnosticIds.cs`, descriptor in `DiagnosticDescriptors.cs`, row
+Adding a rule: constant in `CheatEngine.SDK.Analyzers/Diagnostics/DiagnosticIds.cs`, descriptor in
+`DiagnosticDescriptors.cs`, row
 in `AnalyzerReleases.Unshipped.md`, page here, tests. `DiagnosticCatalogTests` fails when the page, release-tracking row
 or tracking uniqueness of a descriptor is missing.

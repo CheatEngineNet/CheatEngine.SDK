@@ -12,7 +12,10 @@ namespace CheatEngine.SDK.Engine.Inspection;
 /// </remarks>
 /// <param name="Name">The module name returned by Cheat Engine.</param>
 /// <param name="BaseAddress">The target-process address at which the module is loaded.</param>
-/// <param name="ImageSize">The mapped module size in bytes when the host supplied <c>Size</c>; otherwise <see langword="null" />.</param>
+/// <param name="ImageSize">
+///     The mapped module size in bytes when the host supplied <c>Size</c>; otherwise
+///     <see langword="null" />.
+/// </param>
 /// <param name="Is64Bit">Whether Cheat Engine reports this module as a 64-bit module.</param>
 /// <param name="PathToFile">The path from which Cheat Engine reports the module was loaded.</param>
 public readonly record struct ModuleInfo(

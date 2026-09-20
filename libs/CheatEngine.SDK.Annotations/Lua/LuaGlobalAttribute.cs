@@ -38,7 +38,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         which cannot be partial; rejecting them is the generator's job, the compiler accepts them.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Method, Inherited = false)]
 public sealed class LuaGlobalAttribute : Attribute
 {
     /// <summary>

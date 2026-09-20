@@ -12,12 +12,12 @@
 
 ---
 
-|                            |                                                                                                      |
-|----------------------------|------------------------------------------------------------------------------------------------------|
-| **You build**              | A value monitor that samples on a worker thread, and a long task that keeps the window responsive    |
-| **You learn**              | `MainThread.Invoke`, `IsMainThread`, `ProcessMessages`, `CheckSynchronize`, `PluginContext`          |
-| **You need**               | The bindings from [03 · Calling Cheat Engine](../03-calling-cheat-engine/README.md)                  |
-| **Cheat Engine functions** | `getAddressSafe`, `readInteger`, `print`, and the `synchronize` route used by `MainThread.Invoke`                |
+|                            |                                                                                                   |
+|----------------------------|---------------------------------------------------------------------------------------------------|
+| **You build**              | A value monitor that samples on a worker thread, and a long task that keeps the window responsive |
+| **You learn**              | `MainThread.Invoke`, `IsMainThread`, `ProcessMessages`, `CheckSynchronize`, `PluginContext`       |
+| **You need**               | The bindings from [03 · Calling Cheat Engine](../03-calling-cheat-engine/README.md)               |
+| **Cheat Engine functions** | `getAddressSafe`, `readInteger`, `print`, and the `synchronize` route used by `MainThread.Invoke` |
 
 ## Objective
 
@@ -34,11 +34,11 @@ pending host evidence into a universal CE promise.
 
 ## Where your code runs
 
-| Code                                                                        | Thread                |
-|-----------------------------------------------------------------------------|-----------------------|
+| Code                                                                        | Thread                                                                 |
+|-----------------------------------------------------------------------------|------------------------------------------------------------------------|
 | `OnEnable` and `OnDisable`                                                  | The captured enable thread; treated as the plugin main-thread boundary |
-| A `[LuaFunction]` called from the Lua Engine window or a cheat table script | Do not assume a thread: protect the work with the same boundary             |
-| A thread you start: `Thread`, `Task.Run`, a timer callback                  | Not the captured enable thread unless you explicitly dispatch               |
+| A `[LuaFunction]` called from the Lua Engine window or a cheat table script | Do not assume a thread: protect the work with the same boundary        |
+| A thread you start: `Thread`, `Task.Run`, a timer callback                  | Not the captured enable thread unless you explicitly dispatch          |
 
 ```mermaid
 sequenceDiagram
@@ -266,15 +266,15 @@ var moduleBase = Sync.Run(() => Ce.TryGetAddress("game.exe", out var address) ? 
 
 ## The rules
 
-| Rule                                                               | Why                                                            | Where you saw it                                |
-|--------------------------------------------------------------------|----------------------------------------------------------------|-------------------------------------------------|
-| Treat CE state, objects and scanners as main-thread-only           | Their CE 7.7 thread contract is not yet proven by the live probe | `Invoke` around `ReadInt32`                   |
-| Reach the captured thread only through `MainThread.Invoke`         | It is the guarded synchronous hop, inline when you are already there | Steps 2 and 4                               |
-| Keep a check and the action it guards in the same `Invoke`         | Another thread can change Cheat Engine between two hops        | One `ReadInt32` call, one hop                   |
-| Catch every exception on a thread you start                        | An escaped exception ends the process                          | `Sample`                                        |
-| Pump when the captured thread waits or works long                  | It exercises the host queue/message slots; model re-entrance explicitly | `OnDisable` and `CountMatches`       |
-| Stop your threads in `OnDisable`                                   | After it returns, `Invoke` and the Lua state are gone          | `_stop.Cancel()` and `Join`                     |
-| Dispose an `Owned<T>` on the main thread                           | `Dispose` calls the object's `destroy()`                       | See [05 · AOB scans](../05-aob-scans/README.md) |
+| Rule                                                       | Why                                                                     | Where you saw it                                |
+|------------------------------------------------------------|-------------------------------------------------------------------------|-------------------------------------------------|
+| Treat CE state, objects and scanners as main-thread-only   | Their CE 7.7 thread contract is not yet proven by the live probe        | `Invoke` around `ReadInt32`                     |
+| Reach the captured thread only through `MainThread.Invoke` | It is the guarded synchronous hop, inline when you are already there    | Steps 2 and 4                                   |
+| Keep a check and the action it guards in the same `Invoke` | Another thread can change Cheat Engine between two hops                 | One `ReadInt32` call, one hop                   |
+| Catch every exception on a thread you start                | An escaped exception ends the process                                   | `Sample`                                        |
+| Pump when the captured thread waits or works long          | It exercises the host queue/message slots; model re-entrance explicitly | `OnDisable` and `CountMatches`                  |
+| Stop your threads in `OnDisable`                           | After it returns, `Invoke` and the Lua state are gone                   | `_stop.Cancel()` and `Join`                     |
+| Dispose an `Owned<T>` on the main thread                   | `Dispose` calls the object's `destroy()`                                | See [05 · AOB scans](../05-aob-scans/README.md) |
 
 ## Facts about the thread and the plugin
 

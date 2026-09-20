@@ -6,7 +6,8 @@ namespace LivePlugin;
 /// <summary>
 ///     The <c>[LuaFunction]</c>s this plugin registers: two Lua-callable diagnostics, reachable from Cheat Engine's
 ///     Lua console once the plugin is enabled, for a person at that console to call by hand.
-///     <see cref="CheatEngineSdkLivePlugin.OnEnable" /> registers them through the generator's <c>RegisterLuaFunctions</c>;
+///     <see cref="CheatEngineSdkLivePlugin.OnEnable" /> registers them through the generator's <c>RegisterLuaFunctions</c>
+///     ;
 ///     <see cref="CheatEngineSdkLivePlugin.OnDisable" /> unregisters them through <c>UnregisterLuaFunctions</c>.
 /// </summary>
 internal static partial class LiveFunctions

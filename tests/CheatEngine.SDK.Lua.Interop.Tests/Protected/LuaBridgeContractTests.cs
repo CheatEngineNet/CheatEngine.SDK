@@ -10,8 +10,9 @@ public sealed unsafe class LuaBridgeContractTests
 {
     private const uint ContractMagic = 0x4345534B;
     private const ushort WindowsAmd64Machine = 0x8664;
-    private static readonly uint s_exportTableSize = 20u * (uint)IntPtr.Size;
     private const ulong RequiredOperations = (1UL << 12) - 1;
+    private static readonly uint s_exportTableSize = 20u * (uint)IntPtr.Size;
+
     private static readonly string[] s_fixedExports =
     [
         "cheatengine_sdk_lua_bridge_abi_version",
@@ -19,6 +20,7 @@ public sealed unsafe class LuaBridgeContractTests
         "cheatengine_sdk_lua_bridge_source_fingerprint",
         "cheatengine_sdk_lua_protected"
     ];
+
     private static readonly string[] s_allowedImportedModules = ["KERNEL32.dll"];
 
     [Fact]
@@ -68,7 +70,8 @@ public sealed unsafe class LuaBridgeContractTests
     private static ushort ReadMachine(string path)
     {
         var image = File.ReadAllBytes(path);
-        Require(image.Length >= 0x40 && image[0] == (byte)'M' && image[1] == (byte)'Z', "The native bridge has no DOS header.");
+        Require(image.Length >= 0x40 && image[0] == (byte)'M' && image[1] == (byte)'Z',
+            "The native bridge has no DOS header.");
 
         var peOffset = checked((int)ReadUInt32(image, 0x3c));
         Require(ReadUInt32(image, peOffset) == 0x00004550, "The native bridge has no PE header.");
@@ -78,7 +81,8 @@ public sealed unsafe class LuaBridgeContractTests
     private static bool HasDelayImports(string path)
     {
         var image = File.ReadAllBytes(path);
-        Require(image.Length >= 0x40 && image[0] == (byte)'M' && image[1] == (byte)'Z', "The native bridge has no DOS header.");
+        Require(image.Length >= 0x40 && image[0] == (byte)'M' && image[1] == (byte)'Z',
+            "The native bridge has no DOS header.");
 
         var peOffset = checked((int)ReadUInt32(image, 0x3c));
         Require(ReadUInt32(image, peOffset) == 0x00004550, "The native bridge has no PE header.");
@@ -87,15 +91,16 @@ public sealed unsafe class LuaBridgeContractTests
         var directories = ReadUInt32(image, optionalOffset + 108);
         Require(directories > 13, "The native bridge has no delay-import directory slot.");
 
-        var delayImportDirectoryOffset = optionalOffset + 112 + (13 * 8);
+        var delayImportDirectoryOffset = optionalOffset + 112 + 13 * 8;
         return ReadUInt32(image, delayImportDirectoryOffset) != 0 ||
-            ReadUInt32(image, delayImportDirectoryOffset + sizeof(uint)) != 0;
+               ReadUInt32(image, delayImportDirectoryOffset + sizeof(uint)) != 0;
     }
 
     private static List<string> ReadExportedNames(string path)
     {
         var image = File.ReadAllBytes(path);
-        Require(image.Length >= 0x40 && image[0] == (byte)'M' && image[1] == (byte)'Z', "The native bridge has no DOS header.");
+        Require(image.Length >= 0x40 && image[0] == (byte)'M' && image[1] == (byte)'Z',
+            "The native bridge has no DOS header.");
 
         var peOffset = checked((int)ReadUInt32(image, 0x3c));
         Require(ReadUInt32(image, peOffset) == 0x00004550, "The native bridge has no PE header.");
@@ -116,11 +121,12 @@ public sealed unsafe class LuaBridgeContractTests
         var namesCount = ReadUInt32(image, exportOffset + 24);
         var namesRva = ReadUInt32(image, exportOffset + 32);
         var namesOffset = RvaToFileOffset(image, namesRva, sizeOfHeaders, sectionOffset, sectionCount);
-        Require(namesCount <= (uint)((image.Length - namesOffset) / sizeof(uint)), "The native bridge has a truncated export-name table.");
+        Require(namesCount <= (uint)((image.Length - namesOffset) / sizeof(uint)),
+            "The native bridge has a truncated export-name table.");
 
         for (var i = 0u; i < namesCount; i++)
         {
-            var nameRva = ReadUInt32(image, checked(namesOffset + ((int)i * sizeof(uint))));
+            var nameRva = ReadUInt32(image, checked(namesOffset + (int)i * sizeof(uint)));
             result.Add(ReadAsciiZ(image, RvaToFileOffset(image, nameRva, sizeOfHeaders, sectionOffset, sectionCount)));
         }
 
@@ -131,7 +137,8 @@ public sealed unsafe class LuaBridgeContractTests
     private static List<string> ReadImportedModules(string path)
     {
         var image = File.ReadAllBytes(path);
-        Require(image.Length >= 0x40 && image[0] == (byte)'M' && image[1] == (byte)'Z', "The native bridge has no DOS header.");
+        Require(image.Length >= 0x40 && image[0] == (byte)'M' && image[1] == (byte)'Z',
+            "The native bridge has no DOS header.");
 
         var peOffset = checked((int)ReadUInt32(image, 0x3c));
         Require(ReadUInt32(image, peOffset) == 0x00004550, "The native bridge has no PE header.");
@@ -165,20 +172,21 @@ public sealed unsafe class LuaBridgeContractTests
         }
     }
 
-    private static int RvaToFileOffset(byte[] image, uint rva, uint sizeOfHeaders, int sectionOffset, ushort sectionCount)
+    private static int RvaToFileOffset(byte[] image, uint rva, uint sizeOfHeaders, int sectionOffset,
+        ushort sectionCount)
     {
         if (rva < sizeOfHeaders) return checked((int)rva);
 
         for (var i = 0; i < sectionCount; i++)
         {
-            var offset = checked(sectionOffset + (i * 40));
+            var offset = checked(sectionOffset + i * 40);
             Require(offset <= image.Length - 40, "The native bridge has a truncated section header.");
             var virtualSize = ReadUInt32(image, offset + 8);
             var virtualAddress = ReadUInt32(image, offset + 12);
             var rawSize = ReadUInt32(image, offset + 16);
             var rawOffset = ReadUInt32(image, offset + 20);
             var sectionSize = Math.Max(virtualSize, rawSize);
-            if (rva < virtualAddress || (ulong)rva >= (ulong)virtualAddress + sectionSize) continue;
+            if (rva < virtualAddress || rva >= (ulong)virtualAddress + sectionSize) continue;
 
             var fileOffset = (ulong)rawOffset + (rva - virtualAddress);
             Require(fileOffset < (ulong)image.Length, "The native bridge has an import RVA outside its image.");

@@ -7,7 +7,8 @@ namespace CheatEngine.SDK.Benchmarks;
 
 /// <summary>
 ///     Push+read of each <c>CheatEngine.SDK.Lua</c> scalar marshaller, on a real Lua 5.3 state (categories
-///     <c>Transition</c> and <c>Strings</c>): the marshaller round trip only. Every benchmark restores the stack top it started from, so the
+///     <c>Transition</c> and <c>Strings</c>): the marshaller round trip only. Every benchmark restores the stack top it
+///     started from, so the
 ///     state never grows across the run's millions of invocations. <c>MemoryDiagnoser</c> is the headline metric here:
 ///     every marshaller but <see cref="PushReadString" /> is documented allocation-free; the benchmark is the proof.
 /// </summary>

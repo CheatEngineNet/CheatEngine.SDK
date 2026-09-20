@@ -57,13 +57,13 @@ and restores it when the block ends, on every exit: an early `return`, an except
 state-per-thread behavior remains an opt-in live probe, so the safe SDK rule is narrower: use the acquired value on the
 current operation only, and use the state passed into a Lua callback rather than acquiring another one.
 
-| Rule                                                                       | Why                                                                                 |
-|----------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| Rule                                                                       | Why                                                                                   |
+|----------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
 | Never store a `LuaState`. Acquire it once per operation                    | Its host lifetime and state generation can change during disable or a supported reset |
-| Open a `LuaFrame` before you push anything                                 | Your code cannot leave a value behind, whatever path it takes                       |
-| A `Try*` member leaves either its results or exactly one error value       | `LuaError.FromStack` reads that value without running Lua code                      |
-| Raw members (`PushInteger`, `TypeOf`, `TryReadInteger`) never run Lua code | Only the protected `Try*` members can, so only they can fail                        |
-| Inside a callback, use the state Lua passed to you                         | `AcquireState` is for code that Lua did not call                                    |
+| Open a `LuaFrame` before you push anything                                 | Your code cannot leave a value behind, whatever path it takes                         |
+| A `Try*` member leaves either its results or exactly one error value       | `LuaError.FromStack` reads that value without running Lua code                        |
+| Raw members (`PushInteger`, `TypeOf`, `TryReadInteger`) never run Lua code | Only the protected `Try*` members can, so only they can fail                          |
+| Inside a callback, use the state Lua passed to you                         | `AcquireState` is for code that Lua did not call                                      |
 
 ### 2. Run a script
 

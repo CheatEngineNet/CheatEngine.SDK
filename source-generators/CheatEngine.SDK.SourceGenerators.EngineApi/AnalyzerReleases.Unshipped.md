@@ -3,7 +3,7 @@
 
 ### New Rules
 
- Rule ID   | Category                   | Severity | Notes
------------|----------------------------|----------|-------------------------------------------------------
- CESDK3001 | CheatEngine.SDK.EngineApi  | Error    | EngineApiGenerator, invalid curated API specification
- CESDK3002 | CheatEngine.SDK.EngineApi  | Error    | EngineApiGenerator, generated-identity conflict
+ Rule ID   | Category                  | Severity | Notes
+-----------|---------------------------|----------|-------------------------------------------------------
+ CESDK3001 | CheatEngine.SDK.EngineApi | Error    | EngineApiGenerator, invalid curated API specification
+ CESDK3002 | CheatEngine.SDK.EngineApi | Error    | EngineApiGenerator, generated-identity conflict

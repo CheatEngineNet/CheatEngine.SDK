@@ -22,7 +22,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     host-required flags such as <c>readInteger</c>'s signed-result argument; binding declarations always leave it
 ///     <see langword="null" />.
 /// </param>
-internal sealed record LuaArgumentModel(string Name, LuaValueKind Kind, bool IsNullable, bool IsScoped = false,
+internal sealed record LuaArgumentModel(
+    string Name,
+    LuaValueKind Kind,
+    bool IsNullable,
+    bool IsScoped = false,
     string? FixedValue = null)
 {
     /// <summary>Whether this value is pushed directly instead of being supplied by a wrapper parameter.</summary>

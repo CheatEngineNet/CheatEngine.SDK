@@ -47,7 +47,8 @@ public sealed class UnmanagedCallersOnlyGuardCodeFixProvider : CodeFixProvider
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
-        var semanticModel = await context.Document.GetSemanticModelAsync(context.CancellationToken).ConfigureAwait(false);
+        var semanticModel =
+            await context.Document.GetSemanticModelAsync(context.CancellationToken).ConfigureAwait(false);
         if (root is null || semanticModel is null) return;
 
         foreach (var diagnostic in context.Diagnostics)
@@ -132,7 +133,8 @@ public sealed class UnmanagedCallersOnlyGuardCodeFixProvider : CodeFixProvider
 
         var containingType = method.ContainingType;
         return string.Equals(containingType.Name, "CESDK", StringComparison.Ordinal)
-            && containingType.ContainingType is null
-            && string.Equals(containingType.ContainingNamespace.ToDisplayString(), "CESDK", StringComparison.Ordinal);
+               && containingType.ContainingType is null
+               && string.Equals(containingType.ContainingNamespace.ToDisplayString(), "CESDK",
+                   StringComparison.Ordinal);
     }
 }

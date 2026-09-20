@@ -41,14 +41,14 @@ The existing address-list slice demonstrates the safe borrowed form: `AddressLis
 Before this recipe can return with code, its Engine factory and documentation must record all of the following against
 the exact CE build:
 
-| Contract | Required proof before a public API |
-|---|---|
-| Creation | Exact global name, arguments, return/null/error form, and protected-call behaviour |
-| Ownership | Whether a fresh structure is caller-owned, and exactly when adding it to a CE list transfers or retains ownership |
-| Failure | What CE leaves behind after a failed element update or failed insertion, with a rollback rule that does not destroy a host-owned value |
-| Threading | Whether the operation requires the captured enable/GUI boundary, and how it behaves during disable |
-| Lifetime | A factory-issued `Owned<T>` only if deterministic destruction is proven; otherwise a borrowed handle or no API |
-| Tests | Fixture tests for stack/cleanup plus an isolated, opt-in CE 7.7 live probe |
+| Contract  | Required proof before a public API                                                                                                     |
+|-----------|----------------------------------------------------------------------------------------------------------------------------------------|
+| Creation  | Exact global name, arguments, return/null/error form, and protected-call behaviour                                                     |
+| Ownership | Whether a fresh structure is caller-owned, and exactly when adding it to a CE list transfers or retains ownership                      |
+| Failure   | What CE leaves behind after a failed element update or failed insertion, with a rollback rule that does not destroy a host-owned value |
+| Threading | Whether the operation requires the captured enable/GUI boundary, and how it behaves during disable                                     |
+| Lifetime  | A factory-issued `Owned<T>` only if deterministic destruction is proven; otherwise a borrowed handle or no API                         |
+| Tests     | Fixture tests for stack/cleanup plus an isolated, opt-in CE 7.7 live probe                                                             |
 
 That work belongs to the evidence and capability process, not to a recipe that guesses from an object pointer. The
 [capability matrix](../../../../documentations/CheatEngine.SDK/capability-matrix.md) is the current source of truth.

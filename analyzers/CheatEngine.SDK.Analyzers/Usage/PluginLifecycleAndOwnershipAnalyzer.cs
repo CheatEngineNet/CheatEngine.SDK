@@ -45,7 +45,8 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
 
     private static void OnCompilationStart(CompilationStartAnalysisContext context)
     {
-        var pluginAttribute = SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.CheatEnginePluginAttribute);
+        var pluginAttribute =
+            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.CheatEnginePluginAttribute);
         var pluginBase = SdkSymbolResolver.Hosting(context.Compilation, WellKnownTypeNames.CheatEnginePluginBase);
         var requiresPluginEnabled =
             SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.RequiresPluginEnabledAttribute);
@@ -66,11 +67,10 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
     {
         var invocation = (IInvocationOperation)context.Operation;
         if (symbols.RequiresPluginEnabled is not null && IsTooEarly(context.ContainingSymbol, symbols.PluginAttribute)
-            && RequiresEnabled(invocation.TargetMethod, symbols.RequiresPluginEnabled))
-        {
+                                                      && RequiresEnabled(invocation.TargetMethod,
+                                                          symbols.RequiresPluginEnabled))
             context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.RequiresPluginEnabledTooEarly,
                 invocation.Syntax.GetLocation(), DisplayName(invocation.TargetMethod)));
-        }
 
         if (symbols.CEOwned is null || !IsDisposal(invocation.TargetMethod) || invocation.Instance is null) return;
 
@@ -80,9 +80,11 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
             invocation.Syntax.GetLocation(), invocation.Instance.Syntax.ToString()));
     }
 
-    private static void AnalyzePropertyReference(OperationAnalysisContext context, PluginLifecycleContractSymbols symbols)
+    private static void AnalyzePropertyReference(OperationAnalysisContext context,
+        PluginLifecycleContractSymbols symbols)
     {
-        if (symbols.RequiresPluginEnabled is null || !IsTooEarly(context.ContainingSymbol, symbols.PluginAttribute)) return;
+        if (symbols.RequiresPluginEnabled is null ||
+            !IsTooEarly(context.ContainingSymbol, symbols.PluginAttribute)) return;
 
         var property = (IPropertyReferenceOperation)context.Operation;
         if (!RequiresEnabled(property.Property, symbols.RequiresPluginEnabled)) return;
@@ -93,10 +95,12 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeObjectCreation(OperationAnalysisContext context, PluginLifecycleContractSymbols symbols)
     {
-        if (symbols.RequiresPluginEnabled is null || !IsTooEarly(context.ContainingSymbol, symbols.PluginAttribute)) return;
+        if (symbols.RequiresPluginEnabled is null ||
+            !IsTooEarly(context.ContainingSymbol, symbols.PluginAttribute)) return;
 
         var creation = (IObjectCreationOperation)context.Operation;
-        if (creation.Constructor is null || !RequiresEnabled(creation.Constructor, symbols.RequiresPluginEnabled)) return;
+        if (creation.Constructor is null ||
+            !RequiresEnabled(creation.Constructor, symbols.RequiresPluginEnabled)) return;
 
         context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.RequiresPluginEnabledTooEarly,
             creation.Syntax.GetLocation(), DisplayName(creation.Constructor)));
@@ -105,7 +109,8 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeMethod(SymbolAnalysisContext context, PluginLifecycleContractSymbols symbols)
     {
         var method = (IMethodSymbol)context.Symbol;
-        if (!method.IsAsync || !method.ReturnsVoid || !IsPluginClass(method.ContainingType, symbols.PluginAttribute)) return;
+        if (!method.IsAsync || !method.ReturnsVoid ||
+            !IsPluginClass(method.ContainingType, symbols.PluginAttribute)) return;
 
         if (!IsLifecycleOverride(method, symbols.PluginBase)) return;
 
@@ -168,19 +173,19 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
 
     private static bool IsDisposal(IMethodSymbol method)
     {
-        return (method.Name is "Dispose" or "DisposeAsync") && method.Parameters.IsEmpty && !method.IsStatic;
+        return method.Name is "Dispose" or "DisposeAsync" && method.Parameters.IsEmpty && !method.IsStatic;
     }
 
     private static bool IsExplicitlyBorrowed(IOperation operation, INamedTypeSymbol ceOwned)
     {
-        IOperation current = operation;
+        var current = operation;
         while (current is IConversionOperation or IParenthesizedOperation)
             current = current switch
-             {
-                 IConversionOperation conversion => conversion.Operand,
-                 IParenthesizedOperation parenthesized => parenthesized.Operand,
-                 _ => current
-             };
+            {
+                IConversionOperation conversion => conversion.Operand,
+                IParenthesizedOperation parenthesized => parenthesized.Operand,
+                _ => current
+            };
 
         return current switch
         {
@@ -203,11 +208,9 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
     private static bool HasOwnedReturn(IMethodSymbol method, INamedTypeSymbol ceOwned)
     {
         for (var current = method; current is not null; current = current.OverriddenMethod)
-        {
             foreach (var attribute in current.GetReturnTypeAttributes())
                 if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, ceOwned))
                     return true;
-        }
 
         return false;
     }

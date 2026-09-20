@@ -16,15 +16,15 @@ both.
 
 ## How it works
 
-| Class                      | Category                | Measures                                                                                                         |
-|----------------------------|-------------------------|------------------------------------------------------------------------------------------------------------------|
-| `MarshallerBenchmarks`     | `Transition`, `Strings` | Push and read of the `Int32`, `Int64`, `Single`, `Double`, `Boolean`, `Address`, `Utf8` and `String` marshallers |
-| `GlobalCallBenchmarks`     | `GlobalCall`            | A protected call of a Lua global with two arguments and one result                                               |
-| `CallbackBenchmarks`       | `Callbacks`             | A Lua loop that calls a registered `[LuaFunction]` thunk, reported per call                                      |
-| `Utf8MarshallerBenchmarks` | `Transition`, `Utf8`    | Push and borrowed-span read of valid non-ASCII UTF-8 at 16, 64 and 1,024 bytes                                   |
-| `ObjectPropertyBenchmarks` | `ObjectAccess`          | `CEObject.TryGetProperty<Int32Marshaller, int>` on a fake host object                                            |
-| `MemoryScalarBenchmarks`   | `EngineApi`, `TargetMemory`, `Fixture` | Public `TargetMemory` and `HostMemory` signed 32/64-bit calls against isolated Lua table stand-ins |
-| `EngineApiIncrementalBenchmarks` | `SourceGenerator`, `Incremental`, `EngineApi` | Cold, cached and one-spec-edit EngineApi generator workloads; excludes compiler/MSBuild time |
+| Class                            | Category                                      | Measures                                                                                                         |
+|----------------------------------|-----------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| `MarshallerBenchmarks`           | `Transition`, `Strings`                       | Push and read of the `Int32`, `Int64`, `Single`, `Double`, `Boolean`, `Address`, `Utf8` and `String` marshallers |
+| `GlobalCallBenchmarks`           | `GlobalCall`                                  | A protected call of a Lua global with two arguments and one result                                               |
+| `CallbackBenchmarks`             | `Callbacks`                                   | A Lua loop that calls a registered `[LuaFunction]` thunk, reported per call                                      |
+| `Utf8MarshallerBenchmarks`       | `Transition`, `Utf8`                          | Push and borrowed-span read of valid non-ASCII UTF-8 at 16, 64 and 1,024 bytes                                   |
+| `ObjectPropertyBenchmarks`       | `ObjectAccess`                                | `CEObject.TryGetProperty<Int32Marshaller, int>` on a fake host object                                            |
+| `MemoryScalarBenchmarks`         | `EngineApi`, `TargetMemory`, `Fixture`        | Public `TargetMemory` and `HostMemory` signed 32/64-bit calls against isolated Lua table stand-ins               |
+| `EngineApiIncrementalBenchmarks` | `SourceGenerator`, `Incremental`, `EngineApi` | Cold, cached and one-spec-edit EngineApi generator workloads; excludes compiler/MSBuild time                     |
 
 `BenchGlobals` and `BenchFunctions` declare a real `[LuaGlobal]` and `[LuaFunction]`. The project references the
 shipping `LuaBindings` generator as an analyzer, so the measured bodies are what a plugin gets and cannot drift from it.
@@ -49,7 +49,8 @@ values are evidence; deterministic allocation gates remain the correctness autho
 
 `MemoryScalarBenchmarks` is intentionally a fixture benchmark. It measures the SDK wrapper's state acquisition,
 cached-global push, target-or-host address conversion, protected call, scalar conversion and stack restoration; the Lua
-tables do not measure Cheat Engine's process-memory implementation. `EngineApiIncrementalBenchmarks` deliberately invokes just the
+tables do not measure Cheat Engine's process-memory implementation. `EngineApiIncrementalBenchmarks` deliberately
+invokes just the
 incremental generator against two curated in-memory specs. It measures no compiler, MSBuild or filesystem work. The
 versioned scenario identities, allocation expectations, result-recording recipe and API designs that are still deferred
 live in [BaselineMetadata.md](BaselineMetadata.md).

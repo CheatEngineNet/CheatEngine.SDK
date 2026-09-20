@@ -2,7 +2,8 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.Infrastructure;
 
 /// <summary>
 ///     Source stubs of the cross-project contract the generator targets:
-///     <c>CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute</c> and the <c>CheatEngine.SDK.Hosting</c> bootstrap types. They are
+///     <c>CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute</c> and the <c>CheatEngine.SDK.Hosting</c>
+///     bootstrap types. They are
 ///     compiled into two assemblies with the SDK's real assembly identities and referenced by the test compilations,
 ///     the way a real plugin references the SDK. The real projects are deliberately not referenced: this generator may
 ///     depend on the contract only.

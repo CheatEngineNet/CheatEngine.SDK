@@ -38,7 +38,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         can be exported; rejecting them is the generator's job, the compiler accepts them.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Method, Inherited = false)]
 public sealed class LuaFunctionAttribute : Attribute
 {
     /// <summary>

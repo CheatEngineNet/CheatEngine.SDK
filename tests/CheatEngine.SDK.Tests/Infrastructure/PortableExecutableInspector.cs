@@ -11,8 +11,8 @@ namespace CheatEngine.SDK.Tests.Infrastructure;
 /// </summary>
 internal sealed class PortableExecutableInspector
 {
-    private readonly byte[] _image;
     private readonly PEHeaders _headers;
+    private readonly byte[] _image;
 
     private PortableExecutableInspector(byte[] image, PEHeaders headers)
     {
@@ -34,7 +34,7 @@ internal sealed class PortableExecutableInspector
     {
         get
         {
-            DirectoryEntry delayImports = GetRequiredPeHeader().DelayImportTableDirectory;
+            var delayImports = GetRequiredPeHeader().DelayImportTableDirectory;
             return delayImports.RelativeVirtualAddress != 0 || delayImports.Size != 0;
         }
     }
@@ -44,8 +44,8 @@ internal sealed class PortableExecutableInspector
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        byte[] image = File.ReadAllBytes(path);
-        using var stream = new MemoryStream(image, writable: false);
+        var image = File.ReadAllBytes(path);
+        using var stream = new MemoryStream(image, false);
         using var reader = new PEReader(stream, PEStreamOptions.PrefetchEntireImage);
 
         if (reader.PEHeaders.IsCoffOnly)
@@ -57,30 +57,30 @@ internal sealed class PortableExecutableInspector
     /// <summary>Returns all named exports and their implementation RVAs.</summary>
     public IReadOnlyList<PortableExecutableExport> GetExports()
     {
-        DirectoryEntry directory = GetRequiredPeHeader().ExportTableDirectory;
+        var directory = GetRequiredPeHeader().ExportTableDirectory;
         if (directory.RelativeVirtualAddress == 0 || directory.Size == 0)
             throw new InvalidDataException("The PE image has no export directory.");
 
-        int directoryOffset = MapRva(GetDirectoryRva(directory, "export"), 40u);
-        uint numberOfFunctions = ReadUInt32(directoryOffset + 20);
-        uint numberOfNames = ReadUInt32(directoryOffset + 24);
-        uint functionsRva = ReadUInt32(directoryOffset + 28);
-        uint namesRva = ReadUInt32(directoryOffset + 32);
-        uint ordinalsRva = ReadUInt32(directoryOffset + 36);
+        var directoryOffset = MapRva(GetDirectoryRva(directory, "export"), 40u);
+        var numberOfFunctions = ReadUInt32(directoryOffset + 20);
+        var numberOfNames = ReadUInt32(directoryOffset + 24);
+        var functionsRva = ReadUInt32(directoryOffset + 28);
+        var namesRva = ReadUInt32(directoryOffset + 32);
+        var ordinalsRva = ReadUInt32(directoryOffset + 36);
 
-        int functionsOffset = MapRva(functionsRva, CheckedByteCount(numberOfFunctions, sizeof(uint)));
-        int namesOffset = MapRva(namesRva, CheckedByteCount(numberOfNames, sizeof(uint)));
-        int ordinalsOffset = MapRva(ordinalsRva, CheckedByteCount(numberOfNames, sizeof(ushort)));
+        var functionsOffset = MapRva(functionsRva, CheckedByteCount(numberOfFunctions, sizeof(uint)));
+        var namesOffset = MapRva(namesRva, CheckedByteCount(numberOfNames, sizeof(uint)));
+        var ordinalsOffset = MapRva(ordinalsRva, CheckedByteCount(numberOfNames, sizeof(ushort)));
         var exports = new List<PortableExecutableExport>(checked((int)numberOfNames));
 
         for (var index = 0u; index < numberOfNames; index++)
         {
-            uint nameRva = ReadUInt32(namesOffset + checked((int)(index * sizeof(uint))));
-            ushort ordinalIndex = ReadUInt16(ordinalsOffset + checked((int)(index * sizeof(ushort))));
+            var nameRva = ReadUInt32(namesOffset + checked((int)(index * sizeof(uint))));
+            var ordinalIndex = ReadUInt16(ordinalsOffset + checked((int)(index * sizeof(ushort))));
             if (ordinalIndex >= numberOfFunctions)
                 throw new InvalidDataException("An export ordinal points outside the export address table.");
 
-            uint implementationRva = ReadUInt32(functionsOffset + checked(ordinalIndex * sizeof(uint)));
+            var implementationRva = ReadUInt32(functionsOffset + checked(ordinalIndex * sizeof(uint)));
             exports.Add(new PortableExecutableExport(ReadAsciiZ(nameRva), implementationRva));
         }
 
@@ -90,32 +90,32 @@ internal sealed class PortableExecutableInspector
     /// <summary>Returns all normal import modules and their named or ordinal imports.</summary>
     public IReadOnlyList<PortableExecutableImport> GetImports()
     {
-        PEHeader header = GetRequiredPeHeader();
-        DirectoryEntry directory = header.ImportTableDirectory;
+        var header = GetRequiredPeHeader();
+        var directory = header.ImportTableDirectory;
         if (directory.RelativeVirtualAddress == 0 && directory.Size == 0)
             return [];
         if (directory.RelativeVirtualAddress == 0 || directory.Size == 0)
             throw new InvalidDataException("The PE import directory has an incomplete RVA/size pair.");
 
-        uint directorySize = GetDirectorySize(directory, "import");
-        int directoryOffset = MapRva(GetDirectoryRva(directory, "import"), directorySize);
-        int directoryEnd = checked(directoryOffset + (int)directorySize);
+        var directorySize = GetDirectorySize(directory, "import");
+        var directoryOffset = MapRva(GetDirectoryRva(directory, "import"), directorySize);
+        var directoryEnd = checked(directoryOffset + (int)directorySize);
         var imports = new List<PortableExecutableImport>();
 
-        for (int descriptorOffset = directoryOffset; descriptorOffset <= directoryEnd - 20; descriptorOffset += 20)
+        for (var descriptorOffset = directoryOffset; descriptorOffset <= directoryEnd - 20; descriptorOffset += 20)
         {
-            uint originalFirstThunk = ReadUInt32(descriptorOffset);
-            uint timeDateStamp = ReadUInt32(descriptorOffset + 4);
-            uint forwarderChain = ReadUInt32(descriptorOffset + 8);
-            uint nameRva = ReadUInt32(descriptorOffset + 12);
-            uint firstThunk = ReadUInt32(descriptorOffset + 16);
+            var originalFirstThunk = ReadUInt32(descriptorOffset);
+            var timeDateStamp = ReadUInt32(descriptorOffset + 4);
+            var forwarderChain = ReadUInt32(descriptorOffset + 8);
+            var nameRva = ReadUInt32(descriptorOffset + 12);
+            var firstThunk = ReadUInt32(descriptorOffset + 16);
             if (originalFirstThunk == 0 && timeDateStamp == 0 && forwarderChain == 0 && nameRva == 0 && firstThunk == 0)
                 return imports;
 
             if (nameRva == 0)
                 throw new InvalidDataException("An import descriptor has no module name.");
 
-            uint lookupTableRva = originalFirstThunk != 0 ? originalFirstThunk : firstThunk;
+            var lookupTableRva = originalFirstThunk != 0 ? originalFirstThunk : firstThunk;
             if (lookupTableRva == 0)
                 throw new InvalidDataException("An import descriptor has no lookup table.");
 
@@ -130,7 +130,7 @@ internal sealed class PortableExecutableInspector
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(exportName);
 
-        IReadOnlyList<PortableExecutableExport> exports = GetExports();
+        var exports = GetExports();
         for (var index = 0; index < exports.Count; index++)
             if (string.Equals(exports[index].Name, exportName, StringComparison.Ordinal))
                 return ReadAsciiZ(exports[index].RelativeVirtualAddress);
@@ -141,11 +141,11 @@ internal sealed class PortableExecutableInspector
     private List<string> ReadImportSymbols(uint lookupTableRva)
     {
         var symbols = new List<string>();
-        uint thunkRva = lookupTableRva;
+        var thunkRva = lookupTableRva;
         while (true)
         {
-            int thunkOffset = MapRva(thunkRva, (uint)sizeof(ulong));
-            ulong thunk = ReadUInt64(thunkOffset);
+            var thunkOffset = MapRva(thunkRva, sizeof(ulong));
+            var thunk = ReadUInt64(thunkOffset);
             if (thunk == 0)
                 return symbols;
 
@@ -159,8 +159,8 @@ internal sealed class PortableExecutableInspector
                 if (thunk > uint.MaxValue)
                     throw new InvalidDataException("A PE32+ import name RVA exceeds 32 bits.");
 
-                uint hintNameRva = (uint)thunk;
-                _ = MapRva(hintNameRva, (uint)sizeof(ushort));
+                var hintNameRva = (uint)thunk;
+                _ = MapRva(hintNameRva, sizeof(ushort));
                 symbols.Add(ReadAsciiZ(checked(hintNameRva + sizeof(ushort))));
             }
 
@@ -170,9 +170,9 @@ internal sealed class PortableExecutableInspector
 
     private string ReadAsciiZ(uint rva)
     {
-        int offset = MapRva(rva, 1u, out int bytesAvailable);
-        int end = offset;
-        int maximum = checked(offset + bytesAvailable);
+        var offset = MapRva(rva, 1u, out var bytesAvailable);
+        var end = offset;
+        var maximum = checked(offset + bytesAvailable);
         while (end < maximum && _image[end] != 0)
             end++;
 
@@ -189,11 +189,11 @@ internal sealed class PortableExecutableInspector
 
     private int MapRva(uint rva, uint byteCount, out int bytesAvailable)
     {
-        PEHeader header = GetRequiredPeHeader();
+        var header = GetRequiredPeHeader();
         if (header.SizeOfHeaders < 0)
             throw new InvalidDataException("The PE image has a negative SizeOfHeaders value.");
 
-        uint headerSize = (uint)header.SizeOfHeaders;
+        var headerSize = (uint)header.SizeOfHeaders;
         if (rva < headerSize)
         {
             if ((ulong)rva + byteCount > headerSize || (ulong)rva + byteCount > (uint)_image.Length)
@@ -203,23 +203,23 @@ internal sealed class PortableExecutableInspector
             return checked((int)rva);
         }
 
-        foreach (SectionHeader section in _headers.SectionHeaders)
+        foreach (var section in _headers.SectionHeaders)
         {
             if (section.VirtualAddress < 0 || section.SizeOfRawData < 0 || section.PointerToRawData < 0)
                 throw new InvalidDataException("The PE image has a negative section field.");
 
-            uint sectionRva = (uint)section.VirtualAddress;
-            uint rawSize = (uint)section.SizeOfRawData;
-            uint virtualSize = section.VirtualSize < 0 ? 0u : (uint)section.VirtualSize;
-            uint mappedSize = Math.Max(rawSize, virtualSize);
-            if ((ulong)rva < sectionRva || (ulong)rva >= (ulong)sectionRva + mappedSize)
+            var sectionRva = (uint)section.VirtualAddress;
+            var rawSize = (uint)section.SizeOfRawData;
+            var virtualSize = section.VirtualSize < 0 ? 0u : (uint)section.VirtualSize;
+            var mappedSize = Math.Max(rawSize, virtualSize);
+            if ((ulong)rva < sectionRva || rva >= (ulong)sectionRva + mappedSize)
                 continue;
 
-            uint delta = checked(rva - sectionRva);
+            var delta = checked(rva - sectionRva);
             if ((ulong)delta + byteCount > rawSize)
                 throw new InvalidDataException("An RVA range extends past raw bytes in its PE section.");
 
-            uint fileOffset = checked((uint)section.PointerToRawData + delta);
+            var fileOffset = checked((uint)section.PointerToRawData + delta);
             if ((ulong)fileOffset + byteCount > (uint)_image.Length)
                 throw new InvalidDataException("An RVA maps past the end of the PE image.");
 

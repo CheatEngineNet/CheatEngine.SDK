@@ -1,3 +1,5 @@
+using System;
+
 namespace CheatEngine.SDK.Engine.Runtime;
 
 /// <summary>A stable, SDK-owned identifier for one optional Engine capability.</summary>
@@ -5,7 +7,7 @@ namespace CheatEngine.SDK.Engine.Runtime;
 ///     The identifier intentionally does not expose a Lua global name. Public callers reason about a capability while
 ///     bindings retain Cheat Engine's exact spelling and call shape internally.
 /// </remarks>
-public readonly struct RuntimeCapabilityId : System.IEquatable<RuntimeCapabilityId>
+public readonly struct RuntimeCapabilityId : IEquatable<RuntimeCapabilityId>
 {
     private readonly string? _value;
 
@@ -14,7 +16,7 @@ public readonly struct RuntimeCapabilityId : System.IEquatable<RuntimeCapability
     /// <exception cref="System.ArgumentException"><paramref name="value" /> is null, empty, or white-space only.</exception>
     public RuntimeCapabilityId(string value)
     {
-        System.ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         _value = value;
     }
 
@@ -37,26 +39,44 @@ public readonly struct RuntimeCapabilityId : System.IEquatable<RuntimeCapability
     public static RuntimeCapabilityId TargetAbi => new("Runtime.TargetAbi");
 
     /// <inheritdoc />
-    public bool Equals(RuntimeCapabilityId other) => string.Equals(_value, other._value, System.StringComparison.Ordinal);
+    public bool Equals(RuntimeCapabilityId other)
+    {
+        return string.Equals(_value, other._value, StringComparison.Ordinal);
+    }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => obj is RuntimeCapabilityId other && Equals(other);
+    public override bool Equals(object? obj)
+    {
+        return obj is RuntimeCapabilityId other && Equals(other);
+    }
 
     /// <inheritdoc />
-    public override int GetHashCode() => _value is null ? 0 : System.StringComparer.Ordinal.GetHashCode(_value);
+    public override int GetHashCode()
+    {
+        return _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
+    }
 
     /// <inheritdoc />
-    public override string ToString() => Value;
+    public override string ToString()
+    {
+        return Value;
+    }
 
     /// <summary>Tests two capability identifiers for ordinal equality.</summary>
     /// <param name="left">The first identifier.</param>
     /// <param name="right">The second identifier.</param>
     /// <returns><see langword="true" /> when the identifiers have the same ordinal value.</returns>
-    public static bool operator ==(RuntimeCapabilityId left, RuntimeCapabilityId right) => left.Equals(right);
+    public static bool operator ==(RuntimeCapabilityId left, RuntimeCapabilityId right)
+    {
+        return left.Equals(right);
+    }
 
     /// <summary>Tests two capability identifiers for ordinal inequality.</summary>
     /// <param name="left">The first identifier.</param>
     /// <param name="right">The second identifier.</param>
     /// <returns><see langword="true" /> when the identifiers differ.</returns>
-    public static bool operator !=(RuntimeCapabilityId left, RuntimeCapabilityId right) => !left.Equals(right);
+    public static bool operator !=(RuntimeCapabilityId left, RuntimeCapabilityId right)
+    {
+        return !left.Equals(right);
+    }
 }

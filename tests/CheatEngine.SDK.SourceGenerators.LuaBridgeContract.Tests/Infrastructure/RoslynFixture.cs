@@ -6,8 +6,11 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Tests.Infrastructur
 /// <summary>Direct in-memory Roslyn harness: the generator receives only compiler-provided additional text.</summary>
 internal static class RoslynFixture
 {
-    private static readonly MetadataReference[] References = [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)];
+    private static readonly MetadataReference[] References =
+        [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)];
+
     private static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14, DocumentationMode.Diagnose);
+
     private static readonly CSharpCompilationOptions CompilationOptions = new(
         OutputKind.DynamicallyLinkedLibrary,
         nullableContextOptions: NullableContextOptions.Enable,
@@ -38,5 +41,7 @@ internal static class RoslynFixture
     }
 
     public static CSharpCompilation CreateCompilation()
-        => CSharpCompilation.Create("LuaBridgeContractGeneratorTest", [], References, CompilationOptions);
+    {
+        return CSharpCompilation.Create("LuaBridgeContractGeneratorTest", [], References, CompilationOptions);
+    }
 }

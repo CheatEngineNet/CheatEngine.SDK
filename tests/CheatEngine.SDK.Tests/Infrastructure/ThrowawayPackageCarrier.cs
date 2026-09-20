@@ -45,12 +45,12 @@ internal sealed class ThrowawayPackageCarrier
                                         </Project>
                                         """);
         File.WriteAllText(Path.Combine(directory, "PackageBoundary.cs"), """
-                                                                    namespace PackageAssetCarrier;
+                                                                         namespace PackageAssetCarrier;
 
-                                                                    public sealed class PackageBoundary
-                                                                    {
-                                                                    }
-                                                                    """);
+                                                                         public sealed class PackageBoundary
+                                                                         {
+                                                                         }
+                                                                         """);
         File.WriteAllText(Path.Combine(directory, "NuGet.Config"), $"""
                                                                     <?xml version="1.0" encoding="utf-8"?>
                                                                     <configuration>

@@ -100,13 +100,13 @@ steps with a larger sample and the log output to expect.
 
 ## How it works
 
-| You write                                                                      | CheatEngine.SDK provides                                                                                                 |
-|--------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `[CheatEnginePlugin("Name")]` on a class that derives from `CheatEnginePlugin` | The `CEPluginInitialize` entry point Cheat Engine looks up, generated into your assembly                                 |
-| `[LuaFunction("name")]` on a static method                                     | A Lua global with its native thunk, registered and unregistered for you                                                  |
-| `[LuaGlobal]` on a static partial method                                       | A typed, protected call into a Cheat Engine Lua function such as `readInteger`                                          |
-| An invalid plugin declaration                                                  | An actionable `CESDK` diagnostic, with [rule documentation](analyzers/docs/README.md)                                  |
-| An exception inside your plugin                                                | A logged failure instead of a crash in Cheat Engine                                                                      |
+| You write                                                                      | CheatEngine.SDK provides                                                                 |
+|--------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| `[CheatEnginePlugin("Name")]` on a class that derives from `CheatEnginePlugin` | The `CEPluginInitialize` entry point Cheat Engine looks up, generated into your assembly |
+| `[LuaFunction("name")]` on a static method                                     | A Lua global with its native thunk, registered and unregistered for you                  |
+| `[LuaGlobal]` on a static partial method                                       | A typed, protected call into a Cheat Engine Lua function such as `readInteger`           |
+| An invalid plugin declaration                                                  | An actionable `CESDK` diagnostic, with [rule documentation](analyzers/docs/README.md)    |
+| An exception inside your plugin                                                | A logged failure instead of a crash in Cheat Engine                                      |
 
 ## Requirements
 

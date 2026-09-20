@@ -40,7 +40,8 @@ internal static class PluginClassProblemText
                 "must not be generic: the generated entry point has no type arguments to give it",
             PluginShapeIssues.NestedInGeneric =>
                 "must not be nested in a generic type: the generated entry point has no type arguments to give it",
-            PluginShapeIssues.NotDerivedFromPluginBase => "must derive from 'CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin'",
+            PluginShapeIssues.NotDerivedFromPluginBase =>
+                "must derive from 'CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin'",
             PluginShapeIssues.Inaccessible =>
                 "must be reachable from generated code in the same assembly: it and every type it is nested in must be public or internal",
             PluginShapeIssues.FileLocal =>

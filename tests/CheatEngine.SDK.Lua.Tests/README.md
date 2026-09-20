@@ -14,14 +14,14 @@ error unwind a managed frame or allocates on a hot path. Only a real interpreter
 
 ## How it works
 
-| Area                           | Contract asserted                                                                                                                      |
-|--------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| Stack and protected operations | `LuaFrame` restores the stack top on every exit path; raising metamethods, syntax errors and host-object pusher exits become statuses, never a Lua unwind |
-| Marshallers                    | Values round trip exactly, and a value that does not fit is refused instead of truncated                                               |
-| References and runtime         | Every `LuaRuntime.Attach` advances the epoch, and a `LuaRef` from an earlier epoch is never pushed                                     |
+| Area                           | Contract asserted                                                                                                                                                |
+|--------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Stack and protected operations | `LuaFrame` restores the stack top on every exit path; raising metamethods, syntax errors and host-object pusher exits become statuses, never a Lua unwind        |
+| Marshallers                    | Values round trip exactly, and a value that does not fit is refused instead of truncated                                                                         |
+| References and runtime         | Every `LuaRuntime.Attach` advances the epoch, and a `LuaRef` from an earlier epoch is never pushed                                                               |
 | Callbacks                      | Test thunks follow the SDK rule (static, cdecl, catch-all), state travels in the upvalue, and `Detach` drains admitted invocations before neutralizing callbacks |
-| Allocation                     | `AllocationGate` requires exactly zero bytes allocated on the calling thread once a body is warm                                       |
-| Call shape                     | `Generated/MemoryBindings.cs` and `StringBindings.cs` hold the call shape of generated bodies, run against Lua stand-ins               |
+| Allocation                     | `AllocationGate` requires exactly zero bytes allocated on the calling thread once a body is warm                                                                 |
+| Call shape                     | `Generated/MemoryBindings.cs` and `StringBindings.cs` hold the call shape of generated bodies, run against Lua stand-ins                                         |
 
 The suite runs sequentially, because `LuaRuntime` is one ambient binding per process and every `LuaRef` reads its epoch.
 `HostDouble` stands in for the host's exported functions, and `RuntimeScope` attaches on creation and detaches on

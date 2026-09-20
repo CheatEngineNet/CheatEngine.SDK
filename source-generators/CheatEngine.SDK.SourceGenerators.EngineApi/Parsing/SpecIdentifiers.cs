@@ -7,7 +7,8 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Parsing;
 ///     keyword-escape rule for the ones that become generated identifiers.
 /// </summary>
 /// <remarks>
-///     Deliberately not the linked <c>Identifiers.Escape</c> of <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>: that file
+///     Deliberately not the linked <c>Identifiers.Escape</c> of <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>: that
+///     file
 ///     lives in the LuaBindings project, which EngineApi does not reference, and it is not part of <c>Shared/</c>.
 ///     This is an independent, equally small implementation of the same one-line rule.
 /// </remarks>

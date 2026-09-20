@@ -19,7 +19,8 @@ namespace CheatEngine.SDK.Analyzers.Plugin;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         These are the cases in which <c>CheatEngine.SDK.SourceGenerators.EntryPoint</c> stays silent or in which its output
+///         These are the cases in which <c>CheatEngine.SDK.SourceGenerators.EntryPoint</c> stays silent or in which its
+///         output
 ///         changes name binding; the generator never reports, this analyzer does. CESDK0001, CESDK0002, CESDK0004 and
 ///         CESDK0005 explain generated output, whereas CESDK0003 explains the manual replacement when the project sets
 ///         <c>build_property.CheatEngineSdkGenerateEntryPoint = false</c>.
@@ -27,7 +28,8 @@ namespace CheatEngine.SDK.Analyzers.Plugin;
 ///     <para>
 ///         Stateless and safe for concurrent execution. Everything that lives as long as a compilation is created in the
 ///         compilation-start action. When <c>CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute</c> or
-///         <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> cannot be resolved, nothing is registered. CESDK0001 is reported
+///         <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> cannot be resolved, nothing is registered. CESDK0001 is
+///         reported
 ///         from a symbol action and shows up while typing; the remaining rules need the whole compilation and are
 ///         compilation-end diagnostics (build and full-solution analysis only). Generated code is neither analysed nor
 ///         counted.
@@ -63,7 +65,8 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
 
     private static void OnCompilationStart(CompilationStartAnalysisContext context)
     {
-        var pluginAttribute = SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.CheatEnginePluginAttribute);
+        var pluginAttribute =
+            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.CheatEnginePluginAttribute);
         var pluginBase = SdkSymbolResolver.Hosting(context.Compilation, WellKnownTypeNames.CheatEnginePluginBase);
         if (pluginAttribute is null || pluginBase is null) return;
 

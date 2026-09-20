@@ -9,7 +9,8 @@ using CheatEngine.SDK.Lua.State;
 namespace CheatEngine.SDK.Lua.CompilerServices;
 
 /// <summary>
-///     Generator-facing: pushes a global function through a lazily resolved, state-identity-checked <see cref="LuaRef" />, so that
+///     Generator-facing: pushes a global function through a lazily resolved, state-identity-checked <see cref="LuaRef" />,
+///     so that
 ///     a bound global is read from the SDK's private reference table after the first call. Not meant to be called by hand.
 /// </summary>
 /// <remarks>
@@ -18,7 +19,8 @@ namespace CheatEngine.SDK.Lua.CompilerServices;
 ///         identity comparison. <b>Cold path</b> (first use, or the state identity has advanced since the reference was
 ///         resolved): a protected read of the global (<see cref="LuaState.TryGetGlobal" />), a type check (the value must
 ///         be a function) and a private-table reference, under a lock so that two threads resolving the same global do
-///         not both take a slot. A stale slot from a previous state identity is never released: its registry may be gone or
+///         not both take a slot. A stale slot from a previous state identity is never released: its registry may be gone
+///         or
 ///         reused, so it is simply forgotten.
 ///     </para>
 ///     <para>
@@ -27,7 +29,7 @@ namespace CheatEngine.SDK.Lua.CompilerServices;
 ///     </para>
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public static unsafe class LuaGlobalFunctions
+public static class LuaGlobalFunctions
 {
     private static readonly Lock SResolveGate = new();
 
@@ -91,6 +93,7 @@ public static unsafe class LuaGlobalFunctions
                     state.Remove(-2);
                     return true;
                 }
+
                 state.Pop(1);
             }
 
@@ -101,6 +104,7 @@ public static unsafe class LuaGlobalFunctions
                 state.SetTop(top);
                 return false;
             }
+
             // Use the snapshot from before TryGetGlobal. Rebinding an old slot with the current generation would make it
             // appear usable after a reset that ran from __index.
             cache.Rebind(reference, identity);

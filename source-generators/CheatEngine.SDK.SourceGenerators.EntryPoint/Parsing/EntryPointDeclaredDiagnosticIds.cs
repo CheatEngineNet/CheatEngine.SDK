@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
@@ -23,7 +24,8 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Parsing;
 ///     <para>
 ///         Named <c>EntryPointDeclaredDiagnosticIds</c>, not the bare <c>DeclaredDiagnosticIds</c>, so it greps
 ///         unambiguously against the unrelated, identically-shaped
-///         <c>CheatEngine.SDK.SourceGenerators.LuaBindings.Parsing.LuaBindingsDeclaredDiagnosticIds</c>: each generator's own,
+///         <c>CheatEngine.SDK.SourceGenerators.LuaBindings.Parsing.LuaBindingsDeclaredDiagnosticIds</c>: each generator's
+///         own,
 ///         not-shared, Roslyn-touching parsing code (see that type's remarks).
 ///     </para>
 /// </remarks>
@@ -97,7 +99,7 @@ internal static class EntryPointDeclaredDiagnosticIds
             && SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, obsoleteAttribute))
             // [Obsolete(..., DiagnosticId = "ID")]
             foreach (var argument in attribute.NamedArguments)
-                if (string.Equals(argument.Key, "DiagnosticId", System.StringComparison.Ordinal)
+                if (string.Equals(argument.Key, "DiagnosticId", StringComparison.Ordinal)
                     && argument.Value is { Kind: TypedConstantKind.Primitive, Value: string obsoleteId })
                     return obsoleteId;
 

@@ -48,19 +48,19 @@ flowchart TB
     Hosting --> CE
 ```
 
-| Namespace                                                           | You use it for                                                    | Guide                                                                                                               |
-|---------------------------------------------------------------------|-------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| `CheatEngine.SDK.Annotations.*`                                     | The attributes the generators and analyzers read                  | [01](../01-first-plugin/README.md), [02](../02-lua-functions/README.md), [03](../03-calling-cheat-engine/README.md) |
-| `CheatEngine.SDK.Hosting.Plugin`                                    | The `CheatEnginePlugin` base class                                | [01](../01-first-plugin/README.md)                                                                                  |
-| `CheatEngine.SDK.Hosting.Context`, `.Bootstrap`                     | `PluginContext` and the `PluginHost` readers                      | [09](../09-main-thread/README.md)                                                                                   |
-| `CheatEngine.SDK.Hosting.Threading`                                 | `MainThread`                                                      | [09](../09-main-thread/README.md)                                                                                   |
-| `CheatEngine.SDK.Hosting.Diagnostics`                               | `HostLog` and log sinks                                           | [10](../10-logging-and-errors/README.md)                                                                            |
-| `CheatEngine.SDK.Lua.State`, `.Runtime`, `.Calls`                   | `LuaState`, `LuaFrame`, `LuaRuntime`, `LuaStatus`, `LuaException` | [08](../08-running-lua/README.md)                                                                                   |
-| `CheatEngine.SDK.Lua.Marshalling`, `.References`, `.Callbacks`      | Marshallers, `LuaRef`, `LuaCallback`                              | [08](../08-running-lua/README.md)                                                                                   |
-| `CheatEngine.SDK.Engine.Objects`, `.Values`, `.Enums` | `CEObject`, `Owned<T>`, `Address`, enums and zero-based sequences | [04](../04-memory/README.md) to [07](../07-address-list/README.md) |
-| `CheatEngine.SDK.Engine.Runtime` | `RuntimeInfo`, `RuntimeCapabilities`, architecture/ABI/pointer-size facts | Runtime/capability vertical slice |
-| `CheatEngine.SDK.Engine.Memory`, `.Inspection`, `.Allocation` | Target/host memory, modules/sections/symbols/regions, explicit target allocations | Typed engine vertical slices |
-| `CheatEngine.SDK.Engine.Scanning`, `.AddressList` | AOB/StringList, scan sessions/results, borrowed address-list records | [05](../05-aob-scans/README.md) to [07](../07-address-list/README.md) |
+| Namespace                                                      | You use it for                                                                    | Guide                                                                                                               |
+|----------------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| `CheatEngine.SDK.Annotations.*`                                | The attributes the generators and analyzers read                                  | [01](../01-first-plugin/README.md), [02](../02-lua-functions/README.md), [03](../03-calling-cheat-engine/README.md) |
+| `CheatEngine.SDK.Hosting.Plugin`                               | The `CheatEnginePlugin` base class                                                | [01](../01-first-plugin/README.md)                                                                                  |
+| `CheatEngine.SDK.Hosting.Context`, `.Bootstrap`                | `PluginContext` and the `PluginHost` readers                                      | [09](../09-main-thread/README.md)                                                                                   |
+| `CheatEngine.SDK.Hosting.Threading`                            | `MainThread`                                                                      | [09](../09-main-thread/README.md)                                                                                   |
+| `CheatEngine.SDK.Hosting.Diagnostics`                          | `HostLog` and log sinks                                                           | [10](../10-logging-and-errors/README.md)                                                                            |
+| `CheatEngine.SDK.Lua.State`, `.Runtime`, `.Calls`              | `LuaState`, `LuaFrame`, `LuaRuntime`, `LuaStatus`, `LuaException`                 | [08](../08-running-lua/README.md)                                                                                   |
+| `CheatEngine.SDK.Lua.Marshalling`, `.References`, `.Callbacks` | Marshallers, `LuaRef`, `LuaCallback`                                              | [08](../08-running-lua/README.md)                                                                                   |
+| `CheatEngine.SDK.Engine.Objects`, `.Values`, `.Enums`          | `CEObject`, `Owned<T>`, `Address`, enums and zero-based sequences                 | [04](../04-memory/README.md) to [07](../07-address-list/README.md)                                                  |
+| `CheatEngine.SDK.Engine.Runtime`                               | `RuntimeInfo`, `RuntimeCapabilities`, architecture/ABI/pointer-size facts         | Runtime/capability vertical slice                                                                                   |
+| `CheatEngine.SDK.Engine.Memory`, `.Inspection`, `.Allocation`  | Target/host memory, modules/sections/symbols/regions, explicit target allocations | Typed engine vertical slices                                                                                        |
+| `CheatEngine.SDK.Engine.Scanning`, `.AddressList`              | AOB/StringList, scan sessions/results, borrowed address-list records              | [05](../05-aob-scans/README.md) to [07](../07-address-list/README.md)                                               |
 
 `CheatEngine.SDK.Abi` (the packed init record and host function table) and `CheatEngine.SDK.Lua.Interop` (the raw
 Lua 5.3 C API) are the foundation. A plugin author rarely calls them, and `CheatEngine.SDK.Lua.CompilerServices` is
@@ -72,34 +72,34 @@ called by generated code only.
 dotnet add package CheatEngine.SDK --prerelease
 ```
 
-| Setting                            | Default from the package | Meaning                                                                                 |
-|------------------------------------|--------------------------|-----------------------------------------------------------------------------------------|
+| Setting                            | Default from the package | Meaning                                                                                                                                                                        |
+|------------------------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `AllowUnsafeBlocks`                | Consumer opt-in          | Set `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` for `[LuaFunction]` exports, whose generated thunks take native addresses; a `[LuaGlobal]`-only project can leave it `false` |
-| `EnableDynamicLoading`             | `true` while empty       | Copies referenced assemblies next to your plugin and writes its runtime config          |
-| `CheatEngineSdkGenerateEntryPoint` | `true` while empty       | Set `false` to write `CESDK.CESDK.CEPluginInitialize` by hand                           |
-| `PlatformTarget`                   | yours                    | Must not be `x86`: the build stops with `CESDK9101`                                     |
+| `EnableDynamicLoading`             | `true` while empty       | Copies referenced assemblies next to your plugin and writes its runtime config                                                                                                 |
+| `CheatEngineSdkGenerateEntryPoint` | `true` while empty       | Set `false` to write `CESDK.CESDK.CEPluginInitialize` by hand                                                                                                                  |
+| `PlatformTarget`                   | yours                    | Must not be `x86`: the build stops with `CESDK9101`                                                                                                                            |
 
-| Requirement  | Version                                                                                               |
-|--------------|-------------------------------------------------------------------------------------------------------|
-| .NET SDK     | 10.0.401 or later (older compilers report `CS9057` and skip the generators)                           |
-| Runtimes     | .NET 10 frameworks required by the controlled framework-dependent test deployment                      |
+| Requirement  | Version                                                                                                                                                                 |
+|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| .NET SDK     | 10.0.401 or later (older compilers report `CS9057` and skip the generators)                                                                                             |
+| Runtimes     | .NET 10 frameworks required by the controlled framework-dependent test deployment                                                                                       |
 | Cheat Engine | Exact baseline: `7.7.0.10621`, Windows x64. The captured `ce.runtimeconfig.json` is `LocalModified`, not an installer contract (see [01](../01-first-plugin/README.md)) |
 
 ## Attributes
 
-| Attribute                              | Namespace   | On                                | Meaning                                                       |
-|----------------------------------------|-------------|-----------------------------------|---------------------------------------------------------------|
-| `CheatEnginePlugin(name)`              | `Plugin`    | class                             | This class is the plugin, listed under `name`                 |
-| `LuaFunction(name)`                    | `Lua`       | static method                     | Export the method as the Lua global `name`                    |
-| `LuaGlobal(name)`                      | `Lua`       | static partial method             | Generate a protected typed call into the Lua **function** `name`; variables have no `[LuaGlobal]` contract |
-| `LuaClass(name)`                       | `Lua`       | `readonly partial struct`         | Generate a borrowed `CEObject` handle, equality, `ICEObject<T>.FromHandle`, and Lua marshalling |
-| `LuaMethod(name)`                      | `Lua`       | bodyless instance partial method on a generated Lua class | Generate a protected object-method body |
-| `LuaProperty(name)`                    | `Lua`       | bodyless instance partial property on a generated Lua class | Generate protected object-property accessors |
-| `LuaStackEffect(delta)`                | `Lua`       | method                            | The method changes the Lua stack height by `delta`            |
-| `MainThreadOnly`                       | `Threading` | member or type                    | Callers must reach the captured main-thread boundary; GUI identity remains a CE 7.7 live-probe question |
-| `RunsOnMainThread`                     | `Threading` | method                            | The body runs on the main thread and restricts no caller      |
-| `RequiresPluginEnabled`                | `Lifetime`  | member or type                    | The API works only between enable and disable                 |
-| `CEOwned`                              | `Lifetime`  | return value, property, parameter | Cheat Engine owns the object: do not dispose it; direct disposal is diagnosed as `CESDK1003` |
+| Attribute                 | Namespace   | On                                                          | Meaning                                                                                                    |
+|---------------------------|-------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| `CheatEnginePlugin(name)` | `Plugin`    | class                                                       | This class is the plugin, listed under `name`                                                              |
+| `LuaFunction(name)`       | `Lua`       | static method                                               | Export the method as the Lua global `name`                                                                 |
+| `LuaGlobal(name)`         | `Lua`       | static partial method                                       | Generate a protected typed call into the Lua **function** `name`; variables have no `[LuaGlobal]` contract |
+| `LuaClass(name)`          | `Lua`       | `readonly partial struct`                                   | Generate a borrowed `CEObject` handle, equality, `ICEObject<T>.FromHandle`, and Lua marshalling            |
+| `LuaMethod(name)`         | `Lua`       | bodyless instance partial method on a generated Lua class   | Generate a protected object-method body                                                                    |
+| `LuaProperty(name)`       | `Lua`       | bodyless instance partial property on a generated Lua class | Generate protected object-property accessors                                                               |
+| `LuaStackEffect(delta)`   | `Lua`       | method                                                      | The method changes the Lua stack height by `delta`                                                         |
+| `MainThreadOnly`          | `Threading` | member or type                                              | Callers must reach the captured main-thread boundary; GUI identity remains a CE 7.7 live-probe question    |
+| `RunsOnMainThread`        | `Threading` | method                                                      | The body runs on the main thread and restricts no caller                                                   |
+| `RequiresPluginEnabled`   | `Lifetime`  | member or type                                              | The API works only between enable and disable                                                              |
+| `CEOwned`                 | `Lifetime`  | return value, property, parameter                           | Cheat Engine owns the object: do not dispose it; direct disposal is diagnosed as `CESDK1003`               |
 
 All namespaces start with `CheatEngine.SDK.Annotations.`. Attributes are immutable metadata, but they now also have
 specific consumers: `LuaClass`/`LuaMethod`/`LuaProperty` drive generated protected bindings and `CEOwned` drives the
@@ -112,21 +112,21 @@ localized diagnostic, not silently ignored.
 `CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin` is the base class. Mark one subclass with
 `[CheatEnginePlugin("Name")]`, give it a public parameterless constructor, and override two methods.
 
-| Member        | Kind                                       | Notes                                                                                                                |
-|---------------|--------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| Member        | Kind                                       | Notes                                                                                                                           |
+|---------------|--------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | `OnEnable()`  | abstract, override as `protected override` | Runs on the captured enable thread with the Lua runtime attached. Register functions, create objects. Throwing fails the enable |
 | `OnDisable()` | abstract, override as `protected override` | Runs on the captured enable thread while the runtime is still usable. Release everything `OnEnable` created                     |
-| `Context`     | `protected static`                         | The `PluginContext` of this enable. Throws while the plugin is disabled                                              |
+| `Context`     | `protected static`                         | The `PluginContext` of this enable. Throws while the plugin is disabled                                                         |
 
 `PluginContext` holds immutable facts of one enable, and you may read it from any thread.
 
-| Member                                                             | Meaning                                                                       |
-|--------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| `PluginId`                                                         | The id Cheat Engine assigned in the enable callback                           |
-| `Epoch`                                                            | Advances with every enable. A value kept from an earlier epoch is stale       |
+| Member                                                             | Meaning                                                                           |
+|--------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| `PluginId`                                                         | The id Cheat Engine assigned in the enable callback                               |
+| `Epoch`                                                            | Advances with every enable. A value kept from an earlier epoch is stale           |
 | `MainThreadId`, `IsMainThread`                                     | The managed id captured during enable, and whether the caller is on that boundary |
-| `IsCurrent`                                                        | Whether this context is the live one                                          |
-| `ReportedExportsSize`, `HasProcessMessages`, `HasCheckSynchronize` | What the host reported, for diagnostics                                       |
+| `IsCurrent`                                                        | Whether this context is the live one                                              |
+| `ReportedExportsSize`, `HasProcessMessages`, `HasCheckSynchronize` | What the host reported, for diagnostics                                           |
 
 `PluginHost` (`CheatEngine.SDK.Hosting.Bootstrap`) exposes lock-free readers: `Phase`, `IsInitialized`, `IsEnabled`, and
 `Context` (`null` while disabled). Its bootstrap diagnostic preserves the raw second `int` host argument; it is not a
@@ -191,11 +191,11 @@ parameters. Read the full rules in the [Lua functions guide](../02-lua-functions
 
 ### Runtime and state
 
-| Type         | Members                                                                                                            |
-|--------------|--------------------------------------------------------------------------------------------------------------------|
+| Type         | Members                                                                                                                          |
+|--------------|----------------------------------------------------------------------------------------------------------------------------------|
 | `LuaRuntime` | `AcquireState()`, `TryAcquireState(out state)`, `IsAttached`, `CurrentStateIdentity`, `Epoch`, `StateGeneration`, `IsMainThread` |
-| `LuaState`   | A borrowed view of a `lua_State*`. Never store it, acquire one per operation                                       |
-| `LuaFrame`   | `using LuaFrame frame = new(state);` restores the stack top on every exit. Also `Top`, `Count`, `AssertBalanced()` |
+| `LuaState`   | A borrowed view of a `lua_State*`. Never store it, acquire one per operation                                                     |
+| `LuaFrame`   | `using LuaFrame frame = new(state);` restores the stack top on every exit. Also `Top`, `Count`, `AssertBalanced()`               |
 
 ### `LuaState` members
 
@@ -223,13 +223,13 @@ Raw members make one or two C calls and never run Lua code. Protected members ru
 
 ### Marshallers, references and callbacks
 
-| Type                                                                                              | Role                                                                                                  |
-|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| `Int32Marshaller`, `Int64Marshaller`, `SingleMarshaller`, `DoubleMarshaller`, `BooleanMarshaller` | `Push(state, value)` and `TryRead(state, index, out value)` for one type each                         |
-| `StringMarshaller`, `Utf8Marshaller`, `AddressMarshaller`                                         | Text as `string`, text as UTF-8 span, an address as `nuint`                                           |
-| `EnumMarshaller<TEnum>`, `ILuaMarshaller<T>`                                                      | Enums as Lua integers, and the contract every marshaller implements                                   |
+| Type                                                                                              | Role                                                                                                                        |
+|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `Int32Marshaller`, `Int64Marshaller`, `SingleMarshaller`, `DoubleMarshaller`, `BooleanMarshaller` | `Push(state, value)` and `TryRead(state, index, out value)` for one type each                                               |
+| `StringMarshaller`, `Utf8Marshaller`, `AddressMarshaller`                                         | Text as `string`, text as UTF-8 span, an address as `nuint`                                                                 |
+| `EnumMarshaller<TEnum>`, `ILuaMarshaller<T>`                                                      | Enums as Lua integers, and the contract every marshaller implements                                                         |
 | `LuaRef`                                                                                          | A registry reference stamped with `(attachEpoch, stateGeneration)`: `Identity`, `IsResolved`, `IsCurrent`, `Release(state)` |
-| `LuaCallback`, `LuaCallback<TState>`, `LuaNativeFunction`, `LuaThunk`                             | A managed function Lua can call with a state object: `TryCreate`, `TryPush`, `TryRegister`, `Release` |
+| `LuaCallback`, `LuaCallback<TState>`, `LuaNativeFunction`, `LuaThunk`                             | A managed function Lua can call with a state object: `TryCreate`, `TryPush`, `TryRegister`, `Release`                       |
 
 Every marshaller pushes exactly one value. Use them as the `TMarshaller` argument of the typed `CEObject` members below.
 Persistent Lua resources compare both identity components. A supported SDK state replacement invalidates old callbacks,
@@ -321,19 +321,20 @@ disabled plugin (a lifecycle error) from a CE-reported failure, an unavailable g
 invalid marshalled result. Its source, CE version, architecture, thread requirement, ownership, and normal return
 semantics belong in the [capability matrix](../../../../documentations/CheatEngine.SDK/capability-matrix.md).
 
-| Domain | Public direction | Ownership and thread boundary |
-|---|---|---|
-| Runtime and capabilities | `RuntimeInfo` is an immutable explicit snapshot; `RuntimeCapabilities` preserves unavailable and unknown separately | It does not invent a capability from a version, architecture, or missing global |
-| Target and host memory | `TargetMemory` takes target `Address`; `HostMemory` takes the distinct host address type, with scalar, pointer, byte-span, and text operations | Caller owns span storage; target pointers remain target-aware and never become ambiguous `nuint` public APIs |
-| Inspection | Typed modules, sections, symbols, address resolution, and memory-region snapshots | Results are managed snapshots; no CE object/registry ownership escapes |
-| Allocation/protection | A typed request returns `AllocatedRegion` and canonical Engine failures distinguish expected CE failure from binding/Lua/marshalling errors | The region owns exactly its allocation and releases deterministically; do not assume a thread contract beyond the evidence carried by the slice |
-| AOB/StringList | AOB results and created `StringList` objects use explicit `Owned<T>` when CE documents caller ownership | Dispose the owner before disable; the wrapped handle itself stays borrowed |
-| MemScan/FoundList | A stateful session keeps parent/child lifetime and result-readiness transitions explicit | Dispose in child-before-parent order; it never hides asynchronous CE state changes |
-| Address list/records | Typed borrowed handles expose the safe address-list record slice | CE owns GUI list and records; mutations are not transactional and GUI affinity remains live-probe-sensitive |
+| Domain                   | Public direction                                                                                                                               | Ownership and thread boundary                                                                                                                   |
+|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| Runtime and capabilities | `RuntimeInfo` is an immutable explicit snapshot; `RuntimeCapabilities` preserves unavailable and unknown separately                            | It does not invent a capability from a version, architecture, or missing global                                                                 |
+| Target and host memory   | `TargetMemory` takes target `Address`; `HostMemory` takes the distinct host address type, with scalar, pointer, byte-span, and text operations | Caller owns span storage; target pointers remain target-aware and never become ambiguous `nuint` public APIs                                    |
+| Inspection               | Typed modules, sections, symbols, address resolution, and memory-region snapshots                                                              | Results are managed snapshots; no CE object/registry ownership escapes                                                                          |
+| Allocation/protection    | A typed request returns `AllocatedRegion` and canonical Engine failures distinguish expected CE failure from binding/Lua/marshalling errors    | The region owns exactly its allocation and releases deterministically; do not assume a thread contract beyond the evidence carried by the slice |
+| AOB/StringList           | AOB results and created `StringList` objects use explicit `Owned<T>` when CE documents caller ownership                                        | Dispose the owner before disable; the wrapped handle itself stays borrowed                                                                      |
+| MemScan/FoundList        | A stateful session keeps parent/child lifetime and result-readiness transitions explicit                                                       | Dispose in child-before-parent order; it never hides asynchronous CE state changes                                                              |
+| Address list/records     | Typed borrowed handles expose the safe address-list record slice                                                                               | CE owns GUI list and records; mutations are not transactional and GUI affinity remains live-probe-sensitive                                     |
 
 Advanced Auto Assembler, arbitrary execution/injection, debugger, DBK/DBVM, UI/D3D, network, and SQL domains are
 intentionally opt-in and remain outside the ordinary API path until they have a capability, authorization, lifetime,
-rollback, and live-test contract. See the [advanced-domain boundaries](../../../../documentations/CheatEngine.SDK/advanced-domains/README.md).
+rollback, and live-test contract. See
+the [advanced-domain boundaries](../../../../documentations/CheatEngine.SDK/advanced-domains/README.md).
 
 ## Threads
 
@@ -342,13 +343,13 @@ Cheat Engine GUI boundary, but keep the distinction clear: the SDK thunk verifie
 exact CE 7.7 `synchronize` scheduling/error/re-entrance behavior is still an opt-in live-probe gate. Everything needs an
 enabled plugin.
 
-| Member                                                  | Meaning                                                                                  |
-|---------------------------------------------------------|------------------------------------------------------------------------------------------|
-| `IsMainThread`                                          | Whether the caller is the main thread. `false` while the plugin is disabled              |
+| Member                                                  | Meaning                                                                                                                              |
+|---------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| `IsMainThread`                                          | Whether the caller is the main thread. `false` while the plugin is disabled                                                          |
 | `Invoke<TState>(Action<TState>, state)`                 | Run work on the captured thread and return when done. Inline only when already there; the thunk rejects a wrong-thread host callback |
-| `Invoke<TState, TResult>(Func<TState, TResult>, state)` | The same, returning the result or rethrowing the work exception on the caller            |
-| `ProcessMessages()`                                     | Invoke the host message-pump slot from the captured thread; model it as re-entrant       |
-| `CheckSynchronize(timeoutMilliseconds)`                 | Invoke the host queued-call slot from the captured thread; use it to avoid dispatch deadlocks |
+| `Invoke<TState, TResult>(Func<TState, TResult>, state)` | The same, returning the result or rethrowing the work exception on the caller                                                        |
+| `ProcessMessages()`                                     | Invoke the host message-pump slot from the captured thread; model it as re-entrant                                                   |
+| `CheckSynchronize(timeoutMilliseconds)`                 | Invoke the host queued-call slot from the captured thread; use it to avoid dispatch deadlocks                                        |
 
 Pass what the work needs as `state` so that the lambda can be `static`.
 Read [09 · The main thread](../09-main-thread/README.md).
@@ -369,24 +370,24 @@ Read [09 · The main thread](../09-main-thread/README.md).
 Every rule has a page with the cause, the reason, the exact definition and the fix. See
 [11 · Diagnostics](../11-diagnostics/README.md) for each one with broken and fixed code.
 
-| Id          | Meaning                                                             | Severity |
-|-------------|---------------------------------------------------------------------|----------|
-| `CESDK0001` | The plugin class cannot be constructed by the generated entry point | Error    |
-| `CESDK0002` | More than one plugin class in the assembly                          | Error    |
-| `CESDK0003` | Generation is off but the manual `CESDK.CESDK.CEPluginInitialize(IntPtr, int)` shape is absent or invalid | Error |
-| `CESDK0004` | The plugin assembly declares a namespace under `CESDK`              | Warning  |
-| `CESDK0005` | Source collides with generator-owned `CESDK.CESDK`                  | Error    |
-| `CESDK1001` | A plugin constructor/initializer calls an enabled-only API          | Error    |
-| `CESDK1003` | Code directly disposes an explicitly CE-owned borrowed value        | Error    |
-| `CESDK1005` | `OnEnable` or `OnDisable` is `async void`                           | Error    |
-| `CESDK1004` | An exception can escape an `[UnmanagedCallersOnly]` method          | Warning  |
-| `CESDK2001` | A Lua binding needs `AllowUnsafeBlocks`                             | Error    |
-| `CESDK2002` | The type cannot receive a generated Lua binding part                | Error    |
-| `CESDK2003` | A `[LuaFunction]` method cannot be exported                         | Error    |
-| `CESDK2004` | A `[LuaGlobal]` method cannot receive a generated body              | Error    |
-| `CESDK2005` | Two Lua exports use one name in the same binding type               | Error    |
-| `CESDK2006` | A Lua annotation target cannot receive the generated body/handle    | Error    |
-| `CESDK2007` | User source collides with an identity the Lua generator owns        | Error    |
+| Id          | Meaning                                                                                                   | Severity |
+|-------------|-----------------------------------------------------------------------------------------------------------|----------|
+| `CESDK0001` | The plugin class cannot be constructed by the generated entry point                                       | Error    |
+| `CESDK0002` | More than one plugin class in the assembly                                                                | Error    |
+| `CESDK0003` | Generation is off but the manual `CESDK.CESDK.CEPluginInitialize(IntPtr, int)` shape is absent or invalid | Error    |
+| `CESDK0004` | The plugin assembly declares a namespace under `CESDK`                                                    | Warning  |
+| `CESDK0005` | Source collides with generator-owned `CESDK.CESDK`                                                        | Error    |
+| `CESDK1001` | A plugin constructor/initializer calls an enabled-only API                                                | Error    |
+| `CESDK1003` | Code directly disposes an explicitly CE-owned borrowed value                                              | Error    |
+| `CESDK1005` | `OnEnable` or `OnDisable` is `async void`                                                                 | Error    |
+| `CESDK1004` | An exception can escape an `[UnmanagedCallersOnly]` method                                                | Warning  |
+| `CESDK2001` | A Lua binding needs `AllowUnsafeBlocks`                                                                   | Error    |
+| `CESDK2002` | The type cannot receive a generated Lua binding part                                                      | Error    |
+| `CESDK2003` | A `[LuaFunction]` method cannot be exported                                                               | Error    |
+| `CESDK2004` | A `[LuaGlobal]` method cannot receive a generated body                                                    | Error    |
+| `CESDK2005` | Two Lua exports use one name in the same binding type                                                     | Error    |
+| `CESDK2006` | A Lua annotation target cannot receive the generated body/handle                                          | Error    |
+| `CESDK2007` | User source collides with an identity the Lua generator owns                                              | Error    |
 
 `CESDK1002` is deliberately not listed: static main-thread enforcement awaits the exact CE 7.7 dispatcher probe. The
 runtime guard in the `MainThread` API remains in place; an attribute alone is not a proof that an arbitrary host call
@@ -439,15 +440,15 @@ internal static partial class Api
 
 ## Cheat sheet
 
-| I want to                                                           | Reach for                                           | Guide                                                                       |
-|---------------------------------------------------------------------|-----------------------------------------------------|-----------------------------------------------------------------------------|
-| Publish C# logic to Lua                                             | `[LuaFunction]`                                     | [02](../02-lua-functions/README.md)                                         |
-| Call a Cheat Engine function that returns numbers, booleans or text | `[LuaGlobal]` Try or throwing form                  | [03](../03-calling-cheat-engine/README.md)                                  |
-| Read or write process memory                                        | `TargetMemory` (or `HostMemory` for CE itself); use `[LuaGlobal]` only for an unmapped, sourced capability | [04](../04-memory/README.md) |
-| Handle a table, an object or several results                        | `LuaState`, `LuaFrame`, `CEObject`                  | [06](../06-value-scans/README.md), [08](../08-running-lua/README.md)        |
-| Own an object a sourced Engine factory transfers                    | The factory-issued `Owned<T>`                        | [05](../05-aob-scans/README.md)                                             |
-| Touch Cheat Engine from a worker thread                             | `MainThread.Invoke`                                 | [09](../09-main-thread/README.md)                                           |
-| See what went wrong                                                 | `HostLog`, DebugView, the diagnostics               | [10](../10-logging-and-errors/README.md), [11](../11-diagnostics/README.md) |
+| I want to                                                           | Reach for                                                                                                  | Guide                                                                       |
+|---------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| Publish C# logic to Lua                                             | `[LuaFunction]`                                                                                            | [02](../02-lua-functions/README.md)                                         |
+| Call a Cheat Engine function that returns numbers, booleans or text | `[LuaGlobal]` Try or throwing form                                                                         | [03](../03-calling-cheat-engine/README.md)                                  |
+| Read or write process memory                                        | `TargetMemory` (or `HostMemory` for CE itself); use `[LuaGlobal]` only for an unmapped, sourced capability | [04](../04-memory/README.md)                                                |
+| Handle a table, an object or several results                        | `LuaState`, `LuaFrame`, `CEObject`                                                                         | [06](../06-value-scans/README.md), [08](../08-running-lua/README.md)        |
+| Own an object a sourced Engine factory transfers                    | The factory-issued `Owned<T>`                                                                              | [05](../05-aob-scans/README.md)                                             |
+| Touch Cheat Engine from a worker thread                             | `MainThread.Invoke`                                                                                        | [09](../09-main-thread/README.md)                                           |
+| See what went wrong                                                 | `HostLog`, DebugView, the diagnostics                                                                      | [10](../10-logging-and-errors/README.md), [11](../11-diagnostics/README.md) |
 
 The rules that keep Cheat Engine alive:
 

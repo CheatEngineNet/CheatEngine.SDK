@@ -22,7 +22,8 @@ namespace CheatEngine.SDK.Engine.Memory;
 ///     </para>
 ///     <para>
 ///         A <c>Try</c> method restores the Lua stack on every path. It reports an expected memory failure, unavailable
-///         global, protected Lua error, or malformed result through the <c>failure</c> out parameter. A disabled runtime is a
+///         global, protected Lua error, or malformed result through the <c>failure</c> out parameter. A disabled runtime
+///         is a
 ///         lifecycle violation, not a CE read failure, and is therefore never folded into that result.
 ///     </para>
 /// </remarks>
@@ -51,7 +52,8 @@ public static class TargetMemory
     /// <summary>Reads an unsigned 8-bit integer from the target.</summary>
     public static bool TryReadUInt8(Address address, out byte value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadByte, "readByte"u8, address.ToInt64(), false, false, out long raw, out failure))
+        if (!MemoryLua.TryReadInteger(SReadByte, "readByte"u8, address.ToInt64(), false, false, out var raw,
+                out failure))
         {
             value = default;
             return false;
@@ -63,7 +65,7 @@ public static class TargetMemory
     /// <summary>Reads a signed 8-bit integer from the target.</summary>
     public static bool TryReadInt8(Address address, out sbyte value, out MemoryAccessFailure failure)
     {
-        if (!TryReadUInt8(address, out byte raw, out failure))
+        if (!TryReadUInt8(address, out var raw, out failure))
         {
             value = default;
             return false;
@@ -76,7 +78,8 @@ public static class TargetMemory
     /// <summary>Reads an unsigned 16-bit integer from the target.</summary>
     public static bool TryReadUInt16(Address address, out ushort value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallInteger"u8, address.ToInt64(), false, true, out long raw,
+        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallInteger"u8, address.ToInt64(), false, true,
+                out var raw,
                 out failure))
         {
             value = default;
@@ -89,7 +92,8 @@ public static class TargetMemory
     /// <summary>Reads a signed 16-bit integer from the target.</summary>
     public static bool TryReadInt16(Address address, out short value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallInteger"u8, address.ToInt64(), true, true, out long raw,
+        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallInteger"u8, address.ToInt64(), true, true,
+                out var raw,
                 out failure))
         {
             value = default;
@@ -102,7 +106,8 @@ public static class TargetMemory
     /// <summary>Reads an unsigned 32-bit integer from the target.</summary>
     public static bool TryReadUInt32(Address address, out uint value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadInteger, "readInteger"u8, address.ToInt64(), false, true, out long raw, out failure))
+        if (!MemoryLua.TryReadInteger(SReadInteger, "readInteger"u8, address.ToInt64(), false, true, out var raw,
+                out failure))
         {
             value = default;
             return false;
@@ -114,7 +119,8 @@ public static class TargetMemory
     /// <summary>Reads a signed 32-bit integer from the target.</summary>
     public static bool TryReadInt32(Address address, out int value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadInteger, "readInteger"u8, address.ToInt64(), true, true, out long raw, out failure))
+        if (!MemoryLua.TryReadInteger(SReadInteger, "readInteger"u8, address.ToInt64(), true, true, out var raw,
+                out failure))
         {
             value = default;
             return false;
@@ -126,7 +132,8 @@ public static class TargetMemory
     /// <summary>Reads an unsigned 64-bit integer from the target, preserving all Lua integer bits.</summary>
     public static bool TryReadUInt64(Address address, out ulong value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadQword, "readQword"u8, address.ToInt64(), false, false, out long raw, out failure))
+        if (!MemoryLua.TryReadInteger(SReadQword, "readQword"u8, address.ToInt64(), false, false, out var raw,
+                out failure))
         {
             value = default;
             return false;
@@ -139,13 +146,15 @@ public static class TargetMemory
     /// <summary>Reads a signed 64-bit integer from the target.</summary>
     public static bool TryReadInt64(Address address, out long value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryReadInteger(SReadQword, "readQword"u8, address.ToInt64(), false, false, out value, out failure);
+        return MemoryLua.TryReadInteger(SReadQword, "readQword"u8, address.ToInt64(), false, false, out value,
+            out failure);
     }
 
     /// <summary>Reads a pointer whose width Cheat Engine selects from the attached target architecture.</summary>
     public static bool TryReadPointer(Address address, out Address value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadPointer, "readPointer"u8, address.ToInt64(), false, false, out long raw, out failure))
+        if (!MemoryLua.TryReadInteger(SReadPointer, "readPointer"u8, address.ToInt64(), false, false, out var raw,
+                out failure))
         {
             value = default;
             return false;
@@ -158,7 +167,7 @@ public static class TargetMemory
     /// <summary>Reads a single-precision floating-point value from the target.</summary>
     public static bool TryReadSingle(Address address, out float value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadNumber(SReadFloat, "readFloat"u8, address.ToInt64(), out double raw, out failure))
+        if (!MemoryLua.TryReadNumber(SReadFloat, "readFloat"u8, address.ToInt64(), out var raw, out failure))
         {
             value = default;
             return false;
@@ -189,13 +198,15 @@ public static class TargetMemory
     /// <summary>Writes an unsigned 16-bit integer to the target.</summary>
     public static bool TryWriteUInt16(Address address, ushort value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteInteger(SWriteSmallInteger, "writeSmallInteger"u8, address.ToInt64(), value, out failure);
+        return MemoryLua.TryWriteInteger(SWriteSmallInteger, "writeSmallInteger"u8, address.ToInt64(), value,
+            out failure);
     }
 
     /// <summary>Writes a signed 16-bit integer to the target.</summary>
     public static bool TryWriteInt16(Address address, short value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteInteger(SWriteSmallInteger, "writeSmallInteger"u8, address.ToInt64(), value, out failure);
+        return MemoryLua.TryWriteInteger(SWriteSmallInteger, "writeSmallInteger"u8, address.ToInt64(), value,
+            out failure);
     }
 
     /// <summary>Writes an unsigned 32-bit integer to the target.</summary>
@@ -213,7 +224,8 @@ public static class TargetMemory
     /// <summary>Writes an unsigned 64-bit integer to the target, preserving all bits.</summary>
     public static bool TryWriteUInt64(Address address, ulong value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteInteger(SWriteQword, "writeQword"u8, address.ToInt64(), unchecked((long)value), out failure);
+        return MemoryLua.TryWriteInteger(SWriteQword, "writeQword"u8, address.ToInt64(), unchecked((long)value),
+            out failure);
     }
 
     /// <summary>Writes a signed 64-bit integer to the target.</summary>
@@ -225,7 +237,8 @@ public static class TargetMemory
     /// <summary>Writes a target-aware pointer value to the target.</summary>
     public static bool TryWritePointer(Address address, Address value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteInteger(SWritePointer, "writePointer"u8, address.ToInt64(), value.ToInt64(), out failure);
+        return MemoryLua.TryWriteInteger(SWritePointer, "writePointer"u8, address.ToInt64(), value.ToInt64(),
+            out failure);
     }
 
     /// <summary>Writes a single-precision floating-point value to the target.</summary>
@@ -272,14 +285,16 @@ public static class TargetMemory
     public static bool TryWriteUtf8(Address address, ReadOnlySpan<byte> value, bool wideCharacter,
         out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteUtf8(SWriteString, "writeString"u8, address.ToInt64(), value, wideCharacter, out failure);
+        return MemoryLua.TryWriteUtf8(SWriteString, "writeString"u8, address.ToInt64(), value, wideCharacter,
+            out failure);
     }
 
     /// <summary>Writes UTF-16 text as a Lua UTF-8 string without exposing an ambiguous raw address.</summary>
     public static bool TryWriteString(Address address, ReadOnlySpan<char> value, bool wideCharacter,
         out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteText(SWriteString, "writeString"u8, address.ToInt64(), value, wideCharacter, out failure);
+        return MemoryLua.TryWriteText(SWriteString, "writeString"u8, address.ToInt64(), value, wideCharacter,
+            out failure);
     }
 
     private static bool TryUnsigned(long raw, ulong maximum, out byte value, out MemoryAccessFailure failure)
@@ -324,7 +339,8 @@ public static class TargetMemory
         return true;
     }
 
-    private static bool TrySigned(long raw, long minimum, long maximum, out short value, out MemoryAccessFailure failure)
+    private static bool TrySigned(long raw, long minimum, long maximum, out short value,
+        out MemoryAccessFailure failure)
     {
         if (raw < minimum || raw > maximum)
         {

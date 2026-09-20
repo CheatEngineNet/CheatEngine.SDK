@@ -11,7 +11,8 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.Generator;
 ///     The "does the whole chain actually fit together" proof. Every other test in this project compiles the generated
 ///     bootstrap against <c>ContractStubs</c> (a hand-written mirror of the plugin contract, kept so the generator's
 ///     own test suite depends on nothing but that contract); this one compiles it against the REAL
-///     <c>CheatEngine.SDK.Annotations</c> and <c>CheatEngine.SDK.Hosting</c> assemblies instead, so a real drift between the contract and
+///     <c>CheatEngine.SDK.Annotations</c> and <c>CheatEngine.SDK.Hosting</c> assemblies instead, so a real drift between
+///     the contract and
 ///     its stub mirror would show up here even if <c>ContractStubs</c> had not been updated to match.
 /// </summary>
 public sealed class RealAssemblyCompilationTests
@@ -42,7 +43,8 @@ public sealed class RealAssemblyCompilationTests
         warningLevel: 9999);
 
     [Fact]
-    public void Generated_bootstrap_compiles_clean_against_the_real_CheatEngine_SDK_Hosting_and_CheatEngine_SDK_Annotations()
+    public void
+        Generated_bootstrap_compiles_clean_against_the_real_CheatEngine_SDK_Hosting_and_CheatEngine_SDK_Annotations()
     {
         ImmutableArray<MetadataReference> references =
         [

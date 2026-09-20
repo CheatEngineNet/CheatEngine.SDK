@@ -1,6 +1,6 @@
-using CheatEngine.SDK.Tests.Infrastructure;
 using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
+using CheatEngine.SDK.Tests.Infrastructure;
 
 namespace CheatEngine.SDK.Tests.Packaging;
 
@@ -13,6 +13,7 @@ public sealed class NativeBridgePeAuditTests
 {
     private const string BridgeRelativePath =
         "native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll";
+
     private const string ManifestRelativePath = "native/cheatengine-sdk-lua-bridge/bridge-audit-manifest.json";
     private const string SourceRelativePath = "native/cheatengine-sdk-lua-bridge/cheatengine_sdk_lua_bridge.c";
     private const string BuildRelativePath = "native/cheatengine-sdk-lua-bridge/xmake.lua";
@@ -27,10 +28,12 @@ public sealed class NativeBridgePeAuditTests
 
     private static readonly string[] s_allowedImportModules = ["KERNEL32.dll"];
 
+    private static string BridgePath => RepositoryLayout.PathOf(BridgeRelativePath);
+
     [Fact]
     public void Checked_in_bridge_is_an_amd64_PE32_plus_dll_with_the_exact_export_surface()
     {
-        PortableExecutableInspector image = ReadBridge();
+        var image = ReadBridge();
 
         Assert.Equal(PEMagic.PE32Plus, image.Magic);
         Assert.Equal(Machine.Amd64, image.Machine);
@@ -41,16 +44,16 @@ public sealed class NativeBridgePeAuditTests
     [Fact]
     public void Checked_in_bridge_imports_only_kernel32_without_delay_load()
     {
-        PortableExecutableInspector image = ReadBridge();
+        var image = ReadBridge();
 
         Assert.False(image.HasDelayImports, "The bridge must not carry a delay-load directory.");
 
-        IReadOnlyList<PortableExecutableImport> imports = image.GetImports();
+        var imports = image.GetImports();
         Assert.Equal(s_allowedImportModules.Length, imports.Count);
         var observedModules = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (var index = 0; index < imports.Count; index++)
         {
-            PortableExecutableImport import = imports[index];
+            var import = imports[index];
             Assert.True(observedModules.Add(import.ModuleName),
                 $"The import directory has duplicate module '{import.ModuleName}'.");
             Assert.False(import.ModuleName.Contains("lua", StringComparison.OrdinalIgnoreCase),
@@ -62,19 +65,20 @@ public sealed class NativeBridgePeAuditTests
                     $"The bridge must not import a Lua symbol ('{import.Symbols[symbolIndex]}').");
         }
 
-        foreach (string moduleName in s_allowedImportModules)
+        foreach (var moduleName in s_allowedImportModules)
             Assert.Contains(moduleName, observedModules, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Audit_manifest_records_the_pinned_toolchain_flags_and_hashes()
     {
-        using JsonDocument manifest = ReadManifest();
-        JsonElement root = manifest.RootElement;
+        using var manifest = ReadManifest();
+        var root = manifest.RootElement;
 
         Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("xmake", root.GetProperty("toolchain").GetProperty("buildSystem").GetProperty("name").GetString());
-        Assert.Equal("3.0.9", root.GetProperty("toolchain").GetProperty("buildSystem").GetProperty("version").GetString());
+        Assert.Equal("3.0.9",
+            root.GetProperty("toolchain").GetProperty("buildSystem").GetProperty("version").GetString());
         Assert.Equal("MSVC", root.GetProperty("toolchain").GetProperty("compiler").GetProperty("name").GetString());
         Assert.Equal("C11", root.GetProperty("toolchain").GetProperty("languageStandard").GetString());
         Assert.Equal("MT", root.GetProperty("toolchain").GetProperty("cRuntime").GetString());
@@ -82,7 +86,7 @@ public sealed class NativeBridgePeAuditTests
         AssertJsonStringSet(root.GetProperty("toolchain").GetProperty("linkerFlags"), ["/Brepro"]);
         Assert.True(root.GetProperty("reproducibility").GetProperty("doubleBuildSha256Comparison").GetBoolean());
 
-        JsonElement nativeAsset = root.GetProperty("nativeAsset");
+        var nativeAsset = root.GetProperty("nativeAsset");
         Assert.Equal("PE32+", nativeAsset.GetProperty("pe").GetProperty("format").GetString());
         Assert.Equal("AMD64", nativeAsset.GetProperty("pe").GetProperty("machine").GetString());
         Assert.True(nativeAsset.GetProperty("pe").GetProperty("isDll").GetBoolean());
@@ -90,20 +94,19 @@ public sealed class NativeBridgePeAuditTests
         AssertJsonStringSet(nativeAsset.GetProperty("delayImports"), []);
         AssertJsonStringSet(nativeAsset.GetProperty("imports"), s_allowedImportModules);
 
-        string sourceHash = CalculateSha256(RepositoryLayout.PathOf(SourceRelativePath));
-        string buildHash = CalculateSha256(RepositoryLayout.PathOf(BuildRelativePath));
-        string expectedFingerprint = $"{sourceHash}:{buildHash}";
-        Assert.Equal(sourceHash, root.GetProperty("source").GetProperty("hashes").GetProperty("cheatengine_sdk_lua_bridge.c").GetString());
+        var sourceHash = CalculateSha256(RepositoryLayout.PathOf(SourceRelativePath));
+        var buildHash = CalculateSha256(RepositoryLayout.PathOf(BuildRelativePath));
+        var expectedFingerprint = $"{sourceHash}:{buildHash}";
+        Assert.Equal(sourceHash,
+            root.GetProperty("source").GetProperty("hashes").GetProperty("cheatengine_sdk_lua_bridge.c").GetString());
         Assert.Equal(buildHash, root.GetProperty("source").GetProperty("hashes").GetProperty("xmake.lua").GetString());
         Assert.Equal(expectedFingerprint, root.GetProperty("source").GetProperty("fingerprint").GetString());
 
-        string bridgeHash = CalculateSha256(BridgePath);
+        var bridgeHash = CalculateSha256(BridgePath);
         Assert.Equal(bridgeHash, nativeAsset.GetProperty("sha256").GetString());
         Assert.Equal(expectedFingerprint,
             ReadBridge().ReadExportedAsciiZ("cheatengine_sdk_lua_bridge_source_fingerprint"));
     }
-
-    private static string BridgePath => RepositoryLayout.PathOf(BridgeRelativePath);
 
     private static PortableExecutableInspector ReadBridge()
     {
@@ -117,7 +120,7 @@ public sealed class NativeBridgePeAuditTests
 
     private static List<string> GetExportNames(PortableExecutableInspector image)
     {
-        IReadOnlyList<PortableExecutableExport> exports = image.GetExports();
+        var exports = image.GetExports();
         var names = new List<string>(exports.Count);
         for (var index = 0; index < exports.Count; index++)
             names.Add(exports[index].Name);
@@ -139,7 +142,7 @@ public sealed class NativeBridgePeAuditTests
         Assert.Equal(JsonValueKind.Array, array.ValueKind);
         Assert.Equal(expected.Length, array.GetArrayLength());
         var values = new HashSet<string>(StringComparer.Ordinal);
-        foreach (JsonElement entry in array.EnumerateArray())
+        foreach (var entry in array.EnumerateArray())
             values.Add(entry.GetString() ?? string.Empty);
 
         Assert.Equal(expected.Length, values.Count);

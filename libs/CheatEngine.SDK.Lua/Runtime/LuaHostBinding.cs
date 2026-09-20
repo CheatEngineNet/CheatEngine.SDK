@@ -30,7 +30,8 @@ namespace CheatEngine.SDK.Lua.Runtime;
 ///     <para>
 ///         The struct stores the pointers as <see cref="nint" /> so that safe code can inspect it. The typed constructor
 ///         takes the function pointers exactly as <c>CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions</c> declares
-///         them (<c>delegate* unmanaged[Stdcall]&lt;void*&gt;</c> and <c>&lt;void*, void*, void&gt;</c>: the ABI layer cannot
+///         them (<c>delegate* unmanaged[Stdcall]&lt;void*&gt;</c> and <c>&lt;void*, void*, void&gt;</c>: the ABI layer
+///         cannot
 ///         name
 ///         <c>lua_State</c>), so the host passes its fields without a cast and the compiler checks the calling convention
 ///         and arity for real; no <c>lua_State*</c> appears in this assembly's public surface.

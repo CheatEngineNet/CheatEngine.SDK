@@ -5,7 +5,8 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Model;
 
 /// <summary>The MSBuild switches the generator honours, reduced to values.</summary>
 /// <param name="GenerateEntryPoint">
-///     <c>CheatEngineSdkGenerateEntryPoint</c>: <see langword="false" /> switches the generator off (for a plugin author who writes
+///     <c>CheatEngineSdkGenerateEntryPoint</c>: <see langword="false" /> switches the generator off (for a plugin author
+///     who writes
 ///     <c>CESDK.CESDK</c> by hand). Defaults to <see langword="false" /> when the property is not compiler-visible, so an
 ///     indirect package reference cannot generate a bootstrap in a consuming project.
 /// </param>

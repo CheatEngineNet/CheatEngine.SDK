@@ -2,12 +2,14 @@ using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.Analyzers.Plugin;
 using CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 using Verifier =
-    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
+    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<
+        CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
 
 namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 
 /// <summary>
-///     The MSBuild switch <c>CheatEngineSdkGenerateEntryPoint</c>: CESDK0001 and CESDK0002 state what the generated entry point
+///     The MSBuild switch <c>CheatEngineSdkGenerateEntryPoint</c>: CESDK0001 and CESDK0002 state what the generated entry
+///     point
 ///     needs and fall silent with it; CESDK0004 is about Cheat Engine's own lookup and stays.
 /// </summary>
 public sealed class EntryPointSwitchTests
@@ -38,14 +40,14 @@ public sealed class EntryPointSwitchTests
 
     private const string SourceWithManualBootstrap = Source + """
 
-                                                          namespace CESDK
-                                                          {
-                                                              public static class CESDK
+                                                              namespace CESDK
                                                               {
-                                                                  public static int CEPluginInitialize(System.IntPtr _, int __) => 1;
+                                                                  public static class CESDK
+                                                                  {
+                                                                      public static int CEPluginInitialize(System.IntPtr _, int __) => 1;
+                                                                  }
                                                               }
-                                                          }
-                                                          """;
+                                                              """;
 
     [Theory]
     [InlineData("false")]

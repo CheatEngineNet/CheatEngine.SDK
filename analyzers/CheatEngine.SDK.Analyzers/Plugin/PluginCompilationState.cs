@@ -69,7 +69,8 @@ internal sealed class PluginCompilationState
                 context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.ReservedNamespace, location, name));
 
             foreach (var (name, location, _) in _entryPointTypes)
-                context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.GeneratedEntryPointCollision, location, name));
+                context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.GeneratedEntryPointCollision, location,
+                    name));
 
             return;
         }
@@ -86,7 +87,7 @@ internal sealed class PluginCompilationState
 
         if (hasManualBootstrap) return;
 
-        Location locationForManualBootstrap = Location.None;
+        var locationForManualBootstrap = Location.None;
         foreach (var (_, location, _) in _entryPointTypes)
         {
             locationForManualBootstrap = location;
@@ -96,7 +97,8 @@ internal sealed class PluginCompilationState
         var requirement = locationForManualBootstrap == Location.None
             ? "the assembly declares no static CESDK.CESDK type with public static int CEPluginInitialize(System.IntPtr, int)"
             : "CESDK.CESDK has no public static int CEPluginInitialize(System.IntPtr, int) method";
-        context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.InvalidManualBootstrap, locationForManualBootstrap,
+        context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.InvalidManualBootstrap,
+            locationForManualBootstrap,
             requirement));
     }
 }

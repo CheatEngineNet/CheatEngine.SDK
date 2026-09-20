@@ -61,8 +61,8 @@ public abstract class LuaCallback : IDisposable
     internal static Action? DisposeAdmissionRefusedForTesting;
 
     private readonly LuaRef _closure;
-    private readonly LuaRef _wrapped;
     private readonly LuaStateIdentity _identity;
+    private readonly LuaRef _wrapped;
     private GCHandle<object> _handle;
     private bool _released;
 
@@ -155,7 +155,7 @@ public abstract class LuaCallback : IDisposable
     ///     Allocates the handle, two <see cref="LuaRef" />s, the callback object and, inside Lua, two closures and two
     ///     registry slots: a registration-time cost, never per call.
     /// </remarks>
-    public static unsafe LuaStatus TryCreate<TState>(LuaState state, LuaNativeFunction thunk, TState stateObject,
+    public static LuaStatus TryCreate<TState>(LuaState state, LuaNativeFunction thunk, TState stateObject,
         out LuaCallback<TState>? callback)
         where TState : class
     {

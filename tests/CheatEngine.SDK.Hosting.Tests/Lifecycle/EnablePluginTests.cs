@@ -103,7 +103,9 @@ public sealed unsafe class EnablePluginTests
 
     [Fact]
     [Trait("Category", "NativeLua")]
-    [SuppressMessage("Meziantou.Analyzer", "MA0051", Justification = "This test verifies every lifecycle invariant after a successful enable and intentionally keeps the assertions together.")]
+    [SuppressMessage("Meziantou.Analyzer", "MA0051",
+        Justification =
+            "This test verifies every lifecycle invariant after a successful enable and intentionally keeps the assertions together.")]
     public void Enables_the_plugin_binds_Lua_attaches_the_runtime_and_runs_OnEnable_on_this_thread()
     {
         HostingTest.RequireNativeLua();

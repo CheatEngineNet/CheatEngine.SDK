@@ -4,7 +4,8 @@ using System.Globalization;
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 
 /// <summary>
-///     Writes one wrapper method that calls a Lua global, in the call shape <c>CheatEngine.SDK.Lua</c> defines (worked examples
+///     Writes one wrapper method that calls a Lua global, in the call shape <c>CheatEngine.SDK.Lua</c> defines (worked
+///     examples
 ///     in <c>tests/CheatEngine.SDK.Lua.Tests/Generated/</c>).
 /// </summary>
 /// <remarks>

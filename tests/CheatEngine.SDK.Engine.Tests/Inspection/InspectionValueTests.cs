@@ -16,10 +16,10 @@ public sealed class InspectionValueTests
     [Fact]
     public void Explicit_process_enumeration_rejects_the_default_process_identifier_before_lua_is_acquired()
     {
-        ModuleInfo[] destination = new ModuleInfo[1];
+        var destination = new ModuleInfo[1];
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            EngineInspection.EnumerateModules(default(TargetProcessId), destination, out _));
+            EngineInspection.EnumerateModules(default, destination, out _));
     }
 
     [Fact]

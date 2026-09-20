@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace CheatEngine.SDK.Engine.Allocation;
 
@@ -20,7 +21,8 @@ public readonly struct TargetAllocationSize : IEquatable<TargetAllocationSize>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="value" /> is zero or negative.</exception>
     public TargetAllocationSize(long value)
     {
-        if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value), value, "An allocation size must be positive.");
+        if (value <= 0)
+            throw new ArgumentOutOfRangeException(nameof(value), value, "An allocation size must be positive.");
 
         Value = value;
     }
@@ -76,7 +78,6 @@ public readonly struct TargetAllocationSize : IEquatable<TargetAllocationSize>
     /// <returns>The byte count.</returns>
     public override string ToString()
     {
-        return Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return Value.ToString(CultureInfo.InvariantCulture);
     }
-
 }

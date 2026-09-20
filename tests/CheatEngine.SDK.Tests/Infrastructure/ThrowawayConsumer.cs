@@ -1,7 +1,8 @@
 namespace CheatEngine.SDK.Tests.Infrastructure;
 
 /// <summary>
-///     A minimal, disposable plugin project scaffolded on disk that references the packed <c>CheatEngine.SDK</c> package from a
+///     A minimal, disposable plugin project scaffolded on disk that references the packed <c>CheatEngine.SDK</c> package
+///     from a
 ///     local, offline feed: everything a real plugin author's project would be, and nothing this repository's own
 ///     build gates (warnings as errors, analyzers, <c>Directory.Build.props</c>) that a plugin author never opts into.
 /// </summary>
@@ -58,7 +59,8 @@ internal sealed class ThrowawayConsumer
     public string AssemblyPath { get; }
 
     /// <summary>The native protection bridge copied beside the built plugin.</summary>
-    public string NativeBridgePath => Path.Combine(Path.GetDirectoryName(AssemblyPath)!, "cheatengine-sdk-lua-bridge.dll");
+    public string NativeBridgePath =>
+        Path.Combine(Path.GetDirectoryName(AssemblyPath)!, "cheatengine-sdk-lua-bridge.dll");
 
     /// <summary>
     ///     Scaffolds a project named <paramref name="name" /> under <paramref name="parentDirectory" />: an
@@ -70,7 +72,8 @@ internal sealed class ThrowawayConsumer
     ///     x64, but may be <see langword="null" /> to prove the package behavior when the consumer does not declare it.
     /// </summary>
     public static ThrowawayConsumer Create(string parentDirectory, string name, string cheatEngineSdkVersion,
-        string localFeedDirectory, string extraProperties = "", string? platformTarget = "x64", bool includeLuaFunction = false)
+        string localFeedDirectory, string extraProperties = "", string? platformTarget = "x64",
+        bool includeLuaFunction = false)
     {
         var directory = Path.Combine(parentDirectory, name);
         System.IO.Directory.CreateDirectory(directory);

@@ -33,7 +33,7 @@ internal static class EngineApiDiagnostics
         var line = issue.Line > 0 ? issue.Line - 1 : 0;
         var column = issue.Column > 0 ? issue.Column - 1 : 0;
         LinePosition position = new(line, column);
-        Location location = Location.Create(
+        var location = Location.Create(
             spec.SourcePath,
             new TextSpan(0, 0),
             new LinePositionSpan(position, position));

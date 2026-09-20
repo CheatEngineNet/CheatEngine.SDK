@@ -1,47 +1,51 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Lua.Marshalling;
 using CheatEngine.SDK.Lua.State;
 
-namespace CheatEngine.SDK.Engine.AddressLists;
+namespace CheatEngine.SDK.Engine.AddressList;
 
 /// <summary>A borrowed handle to Cheat Engine's GUI address list.</summary>
 /// <remarks>
-/// <para>
-/// This is a value handle only; it has no <c>Dispose</c> member. The object returned by <c>getAddressList()</c> is owned
-/// by Cheat Engine's main form, and records returned from it are owned by that address list. Do not put either in
-/// <see cref="Owned{T}" />.
-/// </para>
-/// <para>
-/// <b>Evidence.</b> Exact installed CE 7.7.0.10621 x64 <c>celua.txt</c>, SHA-256
-/// <c>AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00</c>: global <c>getAddressList</c> at line 774;
-/// class spelling <c>Addresslist</c>, properties, and methods at lines 2455-2503. It identifies the class as a
-/// <c>Panel</c> descendant, so GUI-thread affinity is an inferred host constraint until the dispatcher live probe is
-/// complete. The wrapper deliberately has no <c>MainThreadOnly</c> annotation before that probe turns the inference
-/// into an enforceable host contract.
-/// </para>
-/// <para>
-/// Operations run as protected Lua calls and return <see langword="false" /> for a protected error, <c>nil</c>, or a
-/// value whose kind does not match the declared result. They require an enabled plugin and an attached host-object
-/// pusher; before then, the underlying SDK boundary throws <see cref="InvalidOperationException" />.
-/// </para>
+///     <para>
+///         This is a value handle only; it has no <c>Dispose</c> member. The object returned by <c>getAddressList()</c> is
+///         owned
+///         by Cheat Engine's main form, and records returned from it are owned by that address list. Do not put either in
+///         <see cref="Owned{T}" />.
+///     </para>
+///     <para>
+///         <b>Evidence.</b> Exact installed CE 7.7.0.10621 x64 <c>celua.txt</c>, SHA-256
+///         <c>AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00</c>: global <c>getAddressList</c> at line
+///         774;
+///         class spelling <c>Addresslist</c>, properties, and methods at lines 2455-2503. It identifies the class as a
+///         <c>Panel</c> descendant, so GUI-thread affinity is an inferred host constraint until the dispatcher live probe
+///         is
+///         complete. The wrapper deliberately has no <c>MainThreadOnly</c> annotation before that probe turns the
+///         inference
+///         into an enforceable host contract.
+///     </para>
+///     <para>
+///         Operations run as protected Lua calls and return <see langword="false" /> for a protected error, <c>nil</c>, or
+///         a
+///         value whose kind does not match the declared result. They require an enabled plugin and an attached host-object
+///         pusher; before then, the underlying SDK boundary throws <see cref="InvalidOperationException" />.
+///     </para>
 /// </remarks>
-public readonly partial struct AddressList : IEquatable<AddressList>, ICEObject<AddressList>, ILuaMarshaller<AddressList>
+/// <remarks>Wraps an untyped Cheat Engine object handle without validating its runtime class.</remarks>
+/// <param name="handle">The handle; <see cref="CEObject.Null" /> gives <see cref="Null" />.</param>
+[SuppressMessage("Meziantou.Analyzer", "MA0049",
+    Justification = "The namespace groups the address-list API, while this type mirrors Cheat Engine's Addresslist class.")]
+public readonly struct AddressList(CEObject handle) : IEquatable<AddressList>, ICEObject<AddressList>,
+    ILuaMarshaller<AddressList>
 {
-    /// <summary>Wraps an untyped Cheat Engine object handle without validating its runtime class.</summary>
-    /// <param name="handle">The handle; <see cref="CEObject.Null" /> gives <see cref="Null" />.</param>
-    public AddressList(CEObject handle)
-    {
-        Handle = handle;
-    }
-
     /// <summary>Gets the handle that names no address list.</summary>
     public static AddressList Null => default;
 
     /// <inheritdoc />
-    public CEObject Handle { get; }
+    public CEObject Handle { get; } = handle;
 
     /// <summary>Gets a value indicating whether this value names no address list.</summary>
     public bool IsNull => Handle.IsNull;
@@ -92,7 +96,7 @@ public readonly partial struct AddressList : IEquatable<AddressList>, ICEObject<
     /// <returns><c>AddressList(CEObject@0x...)</c>, or <c>AddressList(null)</c>.</returns>
     public override string ToString()
     {
-        return IsNull ? "AddressList(null)" : "AddressList(" + Handle.ToString() + ")";
+        return IsNull ? "AddressList(null)" : "AddressList(" + Handle + ")";
     }
 
     /// <inheritdoc />
@@ -171,8 +175,8 @@ public readonly partial struct AddressList : IEquatable<AddressList>, ICEObject<
     /// <param name="record">The newly added, borrowed, Cheat-Engine-owned record; default on failure.</param>
     /// <returns><see langword="true" /> when CE returned the added record rather than <c>nil</c>.</returns>
     /// <remarks>
-    /// CE attaches this object to the address list during creation. It is deliberately not returned as
-    /// <see cref="Owned{T}" />: destroying it independently would leave the address list with a dangling object.
+    ///     CE attaches this object to the address list during creation. It is deliberately not returned as
+    ///     <see cref="Owned{T}" />: destroying it independently would leave the address list with a dangling object.
     /// </remarks>
     [RequiresPluginEnabled]
     public bool TryCreateMemoryRecord([CEOwned] out MemoryRecord record)

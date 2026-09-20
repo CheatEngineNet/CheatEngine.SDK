@@ -79,7 +79,7 @@ public sealed unsafe class PluginCallbackShapeTests
     {
         DisassemblerContextPluginInit init = default;
         delegate* unmanaged[Stdcall]<void> function = &FakeMainMenu;
-        init.CallbackOnPopup = (void*)function;
+        init.CallbackOnPopup = function;
 
         Assert.Equal((nint)function, (nint)init.CallbackOnPopup);
     }

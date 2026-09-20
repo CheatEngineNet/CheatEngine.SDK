@@ -33,7 +33,8 @@ public sealed class CheatEngineSdkLivePlugin : CheatEnginePlugin
         var registered = LiveFunctions.RegisterLuaFunctions(state);
         HostLog.Write(
             registered.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
-            string.Create(CultureInfo.InvariantCulture, $"CheatEngine.SDK Live Plugin: RegisterLuaFunctions -> {registered}."));
+            string.Create(CultureInfo.InvariantCulture,
+                $"CheatEngine.SDK Live Plugin: RegisterLuaFunctions -> {registered}."));
 
         ReadMemoryAdjacentPrimitive();
     }

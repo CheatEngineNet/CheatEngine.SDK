@@ -45,6 +45,7 @@ public sealed class PlatformTargetTests(PackagedUmbrellaFixture fixture)
         Assert.Equal(expectedEffectiveValue, fixture.PlatformTargetConsumerEffectiveValues[platformTarget]);
         Assert.False(fixture.PlatformTargetConsumerBuildSucceeded[platformTarget],
             $"A direct CheatEngine.SDK package consumer with PlatformTarget={platformTarget} unexpectedly built successfully.");
-        Assert.Contains("CESDK9101", fixture.PlatformTargetConsumerBuildOutput[platformTarget], StringComparison.Ordinal);
+        Assert.Contains("CESDK9101", fixture.PlatformTargetConsumerBuildOutput[platformTarget],
+            StringComparison.Ordinal);
     }
 }

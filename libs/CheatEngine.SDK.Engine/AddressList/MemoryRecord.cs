@@ -8,41 +8,42 @@ using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Marshalling;
 using CheatEngine.SDK.Lua.State;
 
-namespace CheatEngine.SDK.Engine.AddressLists;
+namespace CheatEngine.SDK.Engine.AddressList;
 
 /// <summary>A borrowed handle to one Cheat Engine address-list entry.</summary>
 /// <remarks>
-/// <para>
-/// A memory record is owned by its address list. It has no disposal member, and every API here returns or accepts it as
-/// a borrowed handle. A record can be removed or invalidated by the GUI at any time; this value cannot detect that
-/// lifecycle transition.
-/// </para>
-/// <para>
-/// <b>Evidence.</b> Exact installed CE 7.7.0.10621 x64 <c>celua.txt</c>, SHA-256
-/// <c>AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00</c>, lines 2328-2453. The record belongs to the
-/// address-list GUI domain, so main-thread affinity is inferred rather than claimed as a completed live-runtime probe.
-/// The members intentionally carry no <c>MainThreadOnly</c> metadata until that probe is complete.
-/// </para>
-/// <para>
-/// Each operation is a protected Lua call. A missing property, <c>nil</c> result, wrong Lua kind, or protected error
-/// becomes <see langword="false" />; it does not preserve an allocated Lua error message. Host detachment or a missing
-/// host-object pusher is a lifecycle violation surfaced by the underlying SDK as <see cref="InvalidOperationException" />.
-/// </para>
+///     <para>
+///         A memory record is owned by its address list. It has no disposal member, and every API here returns or accepts
+///         it as
+///         a borrowed handle. A record can be removed or invalidated by the GUI at any time; this value cannot detect that
+///         lifecycle transition.
+///     </para>
+///     <para>
+///         <b>Evidence.</b> Exact installed CE 7.7.0.10621 x64 <c>celua.txt</c>, SHA-256
+///         <c>AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00</c>, lines 2328-2453. The record belongs to
+///         the
+///         address-list GUI domain, so main-thread affinity is inferred rather than claimed as a completed live-runtime
+///         probe.
+///         The members intentionally carry no <c>MainThreadOnly</c> metadata until that probe is complete.
+///     </para>
+///     <para>
+///         Each operation is a protected Lua call. A missing property, <c>nil</c> result, wrong Lua kind, or protected
+///         error
+///         becomes <see langword="false" />; it does not preserve an allocated Lua error message. Host detachment or a
+///         missing
+///         host-object pusher is a lifecycle violation surfaced by the underlying SDK as
+///         <see cref="InvalidOperationException" />.
+///     </para>
 /// </remarks>
-public readonly partial struct MemoryRecord : IEquatable<MemoryRecord>, ICEObject<MemoryRecord>, ILuaMarshaller<MemoryRecord>
+/// <remarks>Wraps an untyped Cheat Engine object handle without validating its runtime class.</remarks>
+/// <param name="handle">The handle; <see cref="CEObject.Null" /> gives <see cref="Null" />.</param>
+public readonly struct MemoryRecord(CEObject handle) : IEquatable<MemoryRecord>, ICEObject<MemoryRecord>, ILuaMarshaller<MemoryRecord>
 {
-    /// <summary>Wraps an untyped Cheat Engine object handle without validating its runtime class.</summary>
-    /// <param name="handle">The handle; <see cref="CEObject.Null" /> gives <see cref="Null" />.</param>
-    public MemoryRecord(CEObject handle)
-    {
-        Handle = handle;
-    }
-
     /// <summary>Gets the handle that names no memory record.</summary>
     public static MemoryRecord Null => default;
 
     /// <inheritdoc />
-    public CEObject Handle { get; }
+    public CEObject Handle { get; } = handle;
 
     /// <summary>Gets a value indicating whether this value names no memory record.</summary>
     public bool IsNull => Handle.IsNull;
@@ -93,7 +94,7 @@ public readonly partial struct MemoryRecord : IEquatable<MemoryRecord>, ICEObjec
     /// <returns><c>MemoryRecord(CEObject@0x...)</c>, or <c>MemoryRecord(null)</c>.</returns>
     public override string ToString()
     {
-        return IsNull ? "MemoryRecord(null)" : "MemoryRecord(" + Handle.ToString() + ")";
+        return IsNull ? "MemoryRecord(null)" : "MemoryRecord(" + Handle + ")";
     }
 
     /// <inheritdoc />

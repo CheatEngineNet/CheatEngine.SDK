@@ -80,16 +80,16 @@ public sealed class LuaDirectApiBoundaryGuardTests
     {
         var policy = LoadPolicy();
         var violations = InspectSource(policy, """
-            using CheatEngine.SDK.Lua.Interop.Api;
+                                               using CheatEngine.SDK.Lua.Interop.Api;
 
-            unsafe class C
-            {
-                void M(lua_State* state, byte* bytes)
-                {
-                    _ = LuaApi.lua_pushlstring(state, bytes, 1);
-                }
-            }
-            """, "MemberAccess.cs");
+                                               unsafe class C
+                                               {
+                                                   void M(lua_State* state, byte* bytes)
+                                                   {
+                                                       _ = LuaApi.lua_pushlstring(state, bytes, 1);
+                                                   }
+                                               }
+                                               """, "MemberAccess.cs");
 
         var violation = Assert.Single(violations);
         Assert.Equal("lua_pushlstring", violation.MemberName);
@@ -101,17 +101,17 @@ public sealed class LuaDirectApiBoundaryGuardTests
     {
         var policy = LoadPolicy();
         var violations = InspectSource(policy, """
-            using CheatEngine.SDK.Lua.Interop.Api;
-            using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
+                                               using CheatEngine.SDK.Lua.Interop.Api;
+                                               using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
 
-            unsafe class C
-            {
-                void M(lua_State* state, lua_CFunction function)
-                {
-                    lua_pushcclosure(state, function, 1);
-                }
-            }
-            """, "StaticImport.cs");
+                                               unsafe class C
+                                               {
+                                                   void M(lua_State* state, lua_CFunction function)
+                                                   {
+                                                       lua_pushcclosure(state, function, 1);
+                                                   }
+                                               }
+                                               """, "StaticImport.cs");
 
         var violation = Assert.Single(violations);
         Assert.Equal("lua_pushcclosure", violation.MemberName);
@@ -122,17 +122,17 @@ public sealed class LuaDirectApiBoundaryGuardTests
     {
         var policy = LoadPolicy();
         var violations = InspectSource(policy, """
-            using CheatEngine.SDK.Lua.Interop.Api;
-            using Api = CheatEngine.SDK.Lua.Interop.Api.LuaApi;
+                                               using CheatEngine.SDK.Lua.Interop.Api;
+                                               using Api = CheatEngine.SDK.Lua.Interop.Api.LuaApi;
 
-            unsafe class C
-            {
-                void M(lua_State* state)
-                {
-                    Api.lua_createtable(state, 0, 0);
-                }
-            }
-            """, "Alias.cs");
+                                               unsafe class C
+                                               {
+                                                   void M(lua_State* state)
+                                                   {
+                                                       Api.lua_createtable(state, 0, 0);
+                                                   }
+                                               }
+                                               """, "Alias.cs");
 
         var violation = Assert.Single(violations);
         Assert.Equal("lua_createtable", violation.MemberName);
@@ -143,16 +143,16 @@ public sealed class LuaDirectApiBoundaryGuardTests
     {
         var policy = LoadPolicy();
         var violations = InspectSource(policy, """
-            using CheatEngine.SDK.Lua.Interop.Api;
+                                               using CheatEngine.SDK.Lua.Interop.Api;
 
-            unsafe class C
-            {
-                void M(lua_State* state, lua_CFunction function)
-                {
-                    LuaApi.lua_pushcclosure(state, function, 0);
-                }
-            }
-            """, "LightCFunction.cs");
+                                               unsafe class C
+                                               {
+                                                   void M(lua_State* state, lua_CFunction function)
+                                                   {
+                                                       LuaApi.lua_pushcclosure(state, function, 0);
+                                                   }
+                                               }
+                                               """, "LightCFunction.cs");
 
         var violation = Assert.Single(violations);
         Assert.Equal("lua_pushcclosure", violation.MemberName);
@@ -163,21 +163,21 @@ public sealed class LuaDirectApiBoundaryGuardTests
     {
         var policy = LoadPolicy();
         var violations = InspectSource(policy, """
-            using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
+                                               using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
 
-            unsafe struct C
-            {
-                private lua_State* Pointer;
+                                               unsafe struct C
+                                               {
+                                                   private lua_State* Pointer;
 
-                void PushUncheckedFunction(lua_CFunction thunk)
-                {
-                    if (lua_checkstack(Pointer, 1) == 0)
-                        throw new InvalidOperationException();
+                                                   void PushUncheckedFunction(lua_CFunction thunk)
+                                                   {
+                                                       if (lua_checkstack(Pointer, 1) == 0)
+                                                           throw new InvalidOperationException();
 
-                    lua_pushcclosure(Pointer, thunk, 0);
-                }
-            }
-            """, LightCFunctionFastPathSourcePath);
+                                                       lua_pushcclosure(Pointer, thunk, 0);
+                                                   }
+                                               }
+                                               """, LightCFunctionFastPathSourcePath);
 
         Assert.Empty(violations);
     }
@@ -187,22 +187,22 @@ public sealed class LuaDirectApiBoundaryGuardTests
     {
         var policy = LoadPolicy();
         var violations = InspectSource(policy, """
-            using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
+                                               using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
 
-            unsafe struct C
-            {
-                private lua_State* Pointer;
+                                               unsafe struct C
+                                               {
+                                                   private lua_State* Pointer;
 
-                void PushUncheckedFunction(lua_CFunction thunk)
-                {
-                    if (lua_checkstack(Pointer, 1) == 0)
-                        throw new InvalidOperationException();
+                                                   void PushUncheckedFunction(lua_CFunction thunk)
+                                                   {
+                                                       if (lua_checkstack(Pointer, 1) == 0)
+                                                           throw new InvalidOperationException();
 
-                    lua_pushinteger(Pointer, 42);
-                    lua_pushcclosure(Pointer, thunk, 0);
-                }
-            }
-            """, LightCFunctionFastPathSourcePath);
+                                                       lua_pushinteger(Pointer, 42);
+                                                       lua_pushcclosure(Pointer, thunk, 0);
+                                                   }
+                                               }
+                                               """, LightCFunctionFastPathSourcePath);
 
         var violation = Assert.Single(violations);
         Assert.Equal("lua_pushcclosure", violation.MemberName);
@@ -213,16 +213,16 @@ public sealed class LuaDirectApiBoundaryGuardTests
     {
         var policy = LoadPolicy();
         var violations = InspectSource(policy, """
-            class C
-            {
-                void lua_pushlstring(int value) { }
+                                               class C
+                                               {
+                                                   void lua_pushlstring(int value) { }
 
-                void M()
-                {
-                    lua_pushlstring(42);
-                }
-            }
-            """, "Unrelated.cs");
+                                                   void M()
+                                                   {
+                                                       lua_pushlstring(42);
+                                                   }
+                                               }
+                                               """, "Unrelated.cs");
 
         Assert.Empty(violations);
     }
@@ -232,18 +232,18 @@ public sealed class LuaDirectApiBoundaryGuardTests
     {
         var policy = LoadPolicy();
         var violations = InspectSource(policy, """
-            using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
+                                               using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
 
-            class C
-            {
-                static void lua_rawset(int value) { }
+                                               class C
+                                               {
+                                                   static void lua_rawset(int value) { }
 
-                void M()
-                {
-                    lua_rawset(42);
-                }
-            }
-            """, "ShadowedStaticImport.cs");
+                                                   void M()
+                                                   {
+                                                       lua_rawset(42);
+                                                   }
+                                               }
+                                               """, "ShadowedStaticImport.cs");
 
         Assert.Empty(violations);
     }
@@ -253,19 +253,19 @@ public sealed class LuaDirectApiBoundaryGuardTests
     {
         var policy = LoadPolicy();
         var violations = InspectSource(policy, """
-            unsafe class LuaApi
-            {
-                public static void lua_rawset(int value) { }
-            }
+                                               unsafe class LuaApi
+                                               {
+                                                   public static void lua_rawset(int value) { }
+                                               }
 
-            class C
-            {
-                void M()
-                {
-                    LuaApi.lua_rawset(42);
-                }
-            }
-            """, "UnrelatedType.cs");
+                                               class C
+                                               {
+                                                   void M()
+                                                   {
+                                                       LuaApi.lua_rawset(42);
+                                                   }
+                                               }
+                                               """, "UnrelatedType.cs");
 
         Assert.Empty(violations);
     }
@@ -273,18 +273,18 @@ public sealed class LuaDirectApiBoundaryGuardTests
     private static LuaDirectApiPolicy LoadPolicy()
     {
         using var catalogue = LoadCatalogue();
-        JsonElement directApiPolicy = catalogue.RootElement.GetProperty("directApiPolicy");
+        var directApiPolicy = catalogue.RootElement.GetProperty("directApiPolicy");
         List<LuaDirectApiPolicyEntry> entries = [];
 
-        foreach (JsonElement entry in directApiPolicy.EnumerateArray())
+        foreach (var entry in directApiPolicy.EnumerateArray())
         {
-            string managedSymbol = RequiredString(entry, "managedSymbol");
+            var managedSymbol = RequiredString(entry, "managedSymbol");
             const string prefix = LuaApiQualifiedName + ".";
             Assert.StartsWith(prefix, managedSymbol, StringComparison.Ordinal);
             var memberName = managedSymbol[prefix.Length..];
             Assert.DoesNotContain(".", memberName, StringComparison.Ordinal);
 
-            var conditionalDirectUse = entry.TryGetProperty("conditionalDirectUse", out JsonElement conditional);
+            var conditionalDirectUse = entry.TryGetProperty("conditionalDirectUse", out var conditional);
             entries.Add(new LuaDirectApiPolicyEntry(
                 managedSymbol,
                 memberName,
@@ -293,7 +293,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
                 entry.GetProperty("requiresBridge").GetBoolean(),
                 RequiredString(entry, "reason"),
                 ReadProvenance(entry),
-                entry.TryGetProperty("bridgeOperation", out JsonElement bridgeOperation)
+                entry.TryGetProperty("bridgeOperation", out var bridgeOperation)
                     ? bridgeOperation.GetString()
                     : null,
                 conditionalDirectUse,
@@ -311,8 +311,9 @@ public sealed class LuaDirectApiBoundaryGuardTests
         using var catalogue = LoadCatalogue();
         HashSet<string> operations = new(StringComparer.Ordinal);
 
-        foreach (JsonElement operation in catalogue.RootElement.GetProperty("operations").EnumerateArray())
-            Assert.True(operations.Add(RequiredString(operation, "id")), "Bridge operation identifiers must be unique.");
+        foreach (var operation in catalogue.RootElement.GetProperty("operations").EnumerateArray())
+            Assert.True(operations.Add(RequiredString(operation, "id")),
+                "Bridge operation identifiers must be unique.");
 
         return operations;
     }
@@ -358,12 +359,12 @@ public sealed class LuaDirectApiBoundaryGuardTests
     {
         var tree = CSharpSyntaxTree.ParseText(source, path: path);
         var root = tree.GetCompilationUnitRoot();
-        HashSet<string> aliases = CollectLuaApiAliases(root);
+        var aliases = CollectLuaApiAliases(root);
         var hasStaticLuaApiImport = HasStaticLuaApiImport(root);
         var hasLuaApiNamespaceImport = HasLuaApiNamespaceImport(root);
-        HashSet<string> shadowedNames = CollectPotentialSourceDeclarations(root);
+        var shadowedNames = CollectPotentialSourceDeclarations(root);
 
-        foreach (SyntaxNode node in root.DescendantNodes())
+        foreach (var node in root.DescendantNodes())
         {
             if (node is not InvocationExpressionSyntax invocation ||
                 !TryGetLuaApiMemberName(invocation, aliases, hasStaticLuaApiImport, hasLuaApiNamespaceImport,
@@ -382,7 +383,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
     private static HashSet<string> CollectLuaApiAliases(CompilationUnitSyntax root)
     {
         HashSet<string> aliases = new(StringComparer.Ordinal);
-        foreach (SyntaxNode node in root.DescendantNodesAndSelf())
+        foreach (var node in root.DescendantNodesAndSelf())
         {
             if (node is not UsingDirectiveSyntax directive || directive.Alias is null || directive.Name is null ||
                 !IsExactLuaApiTypeName(directive.Name.ToString()))
@@ -396,26 +397,22 @@ public sealed class LuaDirectApiBoundaryGuardTests
 
     private static bool HasStaticLuaApiImport(CompilationUnitSyntax root)
     {
-        foreach (SyntaxNode node in root.DescendantNodesAndSelf())
-        {
+        foreach (var node in root.DescendantNodesAndSelf())
             if (node is UsingDirectiveSyntax { Name: not null } directive &&
                 directive.StaticKeyword.RawKind != 0 &&
                 IsExactLuaApiTypeName(directive.Name.ToString()))
                 return true;
-        }
 
         return false;
     }
 
     private static bool HasLuaApiNamespaceImport(CompilationUnitSyntax root)
     {
-        foreach (SyntaxNode node in root.DescendantNodesAndSelf())
-        {
+        foreach (var node in root.DescendantNodesAndSelf())
             if (node is UsingDirectiveSyntax { Alias: null, Name: not null } directive &&
                 directive.StaticKeyword.RawKind == 0 &&
                 IsLuaApiNamespaceName(directive.Name.ToString()))
                 return true;
-        }
 
         return false;
     }
@@ -423,8 +420,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
     private static HashSet<string> CollectPotentialSourceDeclarations(CompilationUnitSyntax root)
     {
         HashSet<string> names = new(StringComparer.Ordinal);
-        foreach (SyntaxNode node in root.DescendantNodes())
-        {
+        foreach (var node in root.DescendantNodes())
             switch (node)
             {
                 case MethodDeclarationSyntax method:
@@ -443,7 +439,6 @@ public sealed class LuaDirectApiBoundaryGuardTests
                     names.Add(parameter.Identifier.ValueText);
                     break;
             }
-        }
 
         return names;
     }
@@ -456,7 +451,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
         switch (invocation.Expression)
         {
             case IdentifierNameSyntax identifier when hasStaticLuaApiImport &&
-                                                 !shadowedNames.Contains(identifier.Identifier.ValueText):
+                                                      !shadowedNames.Contains(identifier.Identifier.ValueText):
                 memberName = identifier.Identifier.ValueText;
                 return true;
 
@@ -499,13 +494,11 @@ public sealed class LuaDirectApiBoundaryGuardTests
         var statements = method.Body.Statements;
         var statementIndex = -1;
         for (var index = 0; index < statements.Count; index++)
-        {
             if (statements[index] == pushStatement)
             {
                 statementIndex = index;
                 break;
             }
-        }
 
         return statementIndex > 0 && IsImmediateOneSlotCheckStackGuard(statements[statementIndex - 1]);
     }
@@ -576,7 +569,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
     private static string[] ReadProvenance(JsonElement entry)
     {
         List<string> provenance = [];
-        foreach (JsonElement item in entry.GetProperty("provenance").EnumerateArray())
+        foreach (var item in entry.GetProperty("provenance").EnumerateArray())
             provenance.Add(RequiredString(item, "source"));
 
         return [.. provenance];

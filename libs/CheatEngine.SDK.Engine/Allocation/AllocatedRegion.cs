@@ -20,17 +20,19 @@ namespace CheatEngine.SDK.Engine.Allocation;
 /// </remarks>
 public sealed class AllocatedRegion : IDisposable
 {
-    private readonly ITargetMemoryAllocationOperations _operations;
     private readonly Address _address;
+    private readonly ITargetMemoryAllocationOperations _operations;
     private readonly TargetAllocationSize _size;
     private int _released;
 
     internal AllocatedRegion(ITargetMemoryAllocationOperations operations, Address address, TargetAllocationSize size)
     {
         ArgumentNullException.ThrowIfNull(operations);
-        if (address.IsZero) throw new ArgumentException("An allocated region needs a nonzero target address.", nameof(address));
-        if (size.Value <= 0) throw new ArgumentOutOfRangeException(nameof(size), size.Value,
-            "An allocated region needs a positive allocation size.");
+        if (address.IsZero)
+            throw new ArgumentException("An allocated region needs a nonzero target address.", nameof(address));
+        if (size.Value <= 0)
+            throw new ArgumentOutOfRangeException(nameof(size), size.Value,
+                "An allocated region needs a positive allocation size.");
 
         _operations = operations;
         _address = address;

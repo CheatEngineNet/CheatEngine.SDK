@@ -9,7 +9,8 @@ all three raw-table write forms, reference, callback, and thunk operations. Each
 sentinel and proves the documented error/result values or preserved table are above it; it then proves exact restoration
 to that sentinel and clears it. It also confirms that a raising `__gc` finalizer is caught by a protected native
 allocation. Finally, it routes the native raising helper `luaL_checkinteger` through the host-object-pusher operation
-with zero Lua inputs to prove that `lua_pcallk` catches the non-local exit and restores the pre-existing stack. Before emitting its pass marker, the child executes a
+with zero Lua inputs to prove that `lua_pcallk` catches the non-local exit and restores the pre-existing stack. Before
+emitting its pass marker, the child executes a
 new protected Lua call and checks its result, proving the state and process remained usable after every failure. The
 probe is built by the solution and is not shipped.
 

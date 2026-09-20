@@ -1,7 +1,8 @@
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 
 /// <summary>
-///     The <c>global::</c>-qualified names of the <c>CheatEngine.SDK.Lua</c> API that generated code calls, in one place, so that
+///     The <c>global::</c>-qualified names of the <c>CheatEngine.SDK.Lua</c> API that generated code calls, in one place,
+///     so that
 ///     a rename in the runtime is one edit here and the emitters never spell a type name twice.
 /// </summary>
 /// <remarks>

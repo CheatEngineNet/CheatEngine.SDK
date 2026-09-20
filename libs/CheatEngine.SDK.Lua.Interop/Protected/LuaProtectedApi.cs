@@ -14,6 +14,7 @@ internal static unsafe partial class LuaProtectedApi
     // Native bridge could not reserve even its one closure slot; unlike Lua statuses, no error object was pushed.
     internal const int NoErrorStatus = -100;
     private const string BridgeLibrary = "cheatengine-sdk-lua-bridge";
+
     private static readonly string[] s_requiredBridgeExports =
     [
         "cheatengine_sdk_lua_protected",
@@ -21,17 +22,24 @@ internal static unsafe partial class LuaProtectedApi
         "cheatengine_sdk_lua_bridge_get_contract",
         "cheatengine_sdk_lua_bridge_source_fingerprint"
     ];
+
     private static readonly Lock s_gate = new();
     private static BridgeBinding? s_binding;
 
     internal static int PushBytes(lua_State* state, ReadOnlySpan<byte> bytes)
     {
-        fixed (byte* data = bytes) return Invoke(state, LuaProtectedOperation.PushBytes, 0, data, (nuint)bytes.Length, 0, 0);
+        fixed (byte* data = bytes)
+        {
+            return Invoke(state, LuaProtectedOperation.PushBytes, 0, data, (nuint)bytes.Length, 0, 0);
+        }
     }
 
     internal static int PushByteTable(lua_State* state, ReadOnlySpan<byte> bytes)
     {
-        fixed (byte* data = bytes) return Invoke(state, LuaProtectedOperation.PushByteTable, 0, data, (nuint)bytes.Length, 0, 0);
+        fixed (byte* data = bytes)
+        {
+            return Invoke(state, LuaProtectedOperation.PushByteTable, 0, data, (nuint)bytes.Length, 0, 0);
+        }
     }
 
     internal static int CreateTable(lua_State* state, int arrayCapacity, int recordCapacity)
@@ -42,14 +50,17 @@ internal static unsafe partial class LuaProtectedApi
     }
 
     internal static int NewUserdata(lua_State* state, nuint bytes)
-        => Invoke(state, LuaProtectedOperation.NewUserdata, 0, null, bytes, 0, 0);
+    {
+        return Invoke(state, LuaProtectedOperation.NewUserdata, 0, null, bytes, 0, 0);
+    }
 
     internal static int PushClosure(lua_State* state, nint function, int upvalues)
     {
         if (function == 0)
             throw new ArgumentException("The Lua C function must not be zero.", nameof(function));
         if ((uint)upvalues > byte.MaxValue)
-            throw new ArgumentOutOfRangeException(nameof(upvalues), "Lua 5.3 supports between zero and 255 closure upvalues.");
+            throw new ArgumentOutOfRangeException(nameof(upvalues),
+                "Lua 5.3 supports between zero and 255 closure upvalues.");
 
         return Invoke(state, LuaProtectedOperation.PushClosure, upvalues, (void*)function, 0, upvalues, 0);
     }
@@ -66,59 +77,95 @@ internal static unsafe partial class LuaProtectedApi
     {
         var binding = ValidateInvocation(state, 2);
         var top = PushTableBeforeInputs(state, tableIndex, 2);
-        try { return Invoke(binding, state, LuaProtectedOperation.RawSet, 3, null, 0, 1, 0); }
-        catch (Exception) { RollbackTableInput(state, top, 2); throw; }
+        try
+        {
+            return Invoke(binding, state, LuaProtectedOperation.RawSet, 3, null, 0, 1, 0);
+        }
+        catch (Exception)
+        {
+            RollbackTableInput(state, top, 2);
+            throw;
+        }
     }
 
     internal static int RawSetI(lua_State* state, int tableIndex, lua_Integer key)
     {
         var binding = ValidateInvocation(state, 1);
         var top = PushTableBeforeInputs(state, tableIndex, 1);
-        try { return Invoke(binding, state, LuaProtectedOperation.RawSetIndex, 2, null, 0, 1, (nint)key); }
-        catch (Exception) { RollbackTableInput(state, top, 1); throw; }
+        try
+        {
+            return Invoke(binding, state, LuaProtectedOperation.RawSetIndex, 2, null, 0, 1, (nint)key);
+        }
+        catch (Exception)
+        {
+            RollbackTableInput(state, top, 1);
+            throw;
+        }
     }
 
     internal static int RawSetP(lua_State* state, int tableIndex, nint key)
     {
         var binding = ValidateInvocation(state, 1);
         var top = PushTableBeforeInputs(state, tableIndex, 1);
-        try { return Invoke(binding, state, LuaProtectedOperation.RawSetPointer, 2, (void*)key, 0, 1, 0); }
-        catch (Exception) { RollbackTableInput(state, top, 1); throw; }
+        try
+        {
+            return Invoke(binding, state, LuaProtectedOperation.RawSetPointer, 2, (void*)key, 0, 1, 0);
+        }
+        catch (Exception)
+        {
+            RollbackTableInput(state, top, 1);
+            throw;
+        }
     }
 
     internal static int TryCreatePrivateRef(lua_State* state, nint stableKey, out int reference)
     {
-        var status = Invoke(state, LuaProtectedOperation.CreateReference, 1, GetPrivateReferenceKey(stableKey), 0, 0, 0);
+        var status = Invoke(state, LuaProtectedOperation.CreateReference, 1, GetPrivateReferenceKey(stableKey), 0, 0,
+            0);
         if (status == LuaApi.LUA_OK)
         {
             reference = checked((int)LuaApi.lua_tointegerx(state, -1, null));
             LuaApi.lua_settop(state, -2);
         }
-        else reference = LuaApi.LUA_NOREF;
+        else
+        {
+            reference = LuaApi.LUA_NOREF;
+        }
+
         return status;
     }
 
     internal static int PushPrivateRef(lua_State* state, nint stableKey, int reference)
-        => Invoke(state, LuaProtectedOperation.PushReference, 0, GetPrivateReferenceKey(stableKey), 0, reference, 0);
+    {
+        return Invoke(state, LuaProtectedOperation.PushReference, 0, GetPrivateReferenceKey(stableKey), 0, reference,
+            0);
+    }
 
     internal static int UnrefPrivate(lua_State* state, nint stableKey, int reference)
-        => Invoke(state, LuaProtectedOperation.ReleaseReference, 0, GetPrivateReferenceKey(stableKey), 0, reference, 0);
+    {
+        return Invoke(state, LuaProtectedOperation.ReleaseReference, 0, GetPrivateReferenceKey(stableKey), 0, reference,
+            0);
+    }
 
-    private static int Invoke(lua_State* state, LuaProtectedOperation operation, int inputCount, void* data, nuint size, nint first, nint second)
+    private static int Invoke(lua_State* state, LuaProtectedOperation operation, int inputCount, void* data, nuint size,
+        nint first, nint second)
     {
         var binding = ValidateInvocation(state, inputCount);
         return Invoke(binding, state, operation, inputCount, data, size, first, second);
     }
 
-    private static int Invoke(BridgeBinding binding, lua_State* state, LuaProtectedOperation operation, int inputCount, void* data, nuint size, nint first, nint second)
+    private static int Invoke(BridgeBinding binding, lua_State* state, LuaProtectedOperation operation, int inputCount,
+        void* data, nuint size, nint first, nint second)
     {
         if (!LuaProtectedOperationContract.IsDefined(operation))
             throw new ArgumentOutOfRangeException(nameof(operation));
 
         var exports = binding.Exports;
-        var status = cheatengine_sdk_lua_protected(state, in exports, (int)operation, inputCount, data, size, first, second);
+        var status =
+            cheatengine_sdk_lua_protected(state, in exports, (int)operation, inputCount, data, size, first, second);
         if (status == NoErrorStatus)
-            throw new InvalidOperationException("Lua could not reserve a stack slot for the protected operation; the stack is unchanged.");
+            throw new InvalidOperationException(
+                "Lua could not reserve a stack slot for the protected operation; the stack is unchanged.");
         return status;
     }
 
@@ -130,7 +177,8 @@ internal static unsafe partial class LuaProtectedApi
 
         var binding = EnsureLoaded();
         if (inputCount > LuaApi.lua_gettop(state))
-            throw new InvalidOperationException("The Lua stack does not contain the inputs required by the protected operation.");
+            throw new InvalidOperationException(
+                "The Lua stack does not contain the inputs required by the protected operation.");
         return binding;
     }
 
@@ -139,7 +187,8 @@ internal static unsafe partial class LuaProtectedApi
         var top = LuaApi.lua_gettop(state);
         var absoluteTableIndex = GetValidTableIndex(tableIndex, top);
         if (LuaApi.lua_checkstack(state, 2) == 0)
-            throw new InvalidOperationException("Lua could not reserve stack slots for the protected operation; the stack is unchanged.");
+            throw new InvalidOperationException(
+                "Lua could not reserve stack slots for the protected operation; the stack is unchanged.");
         LuaApi.lua_pushvalue(state, absoluteTableIndex);
         LuaApi.lua_rotate(state, -(inputCount + 1), 1);
         return top;
@@ -156,11 +205,13 @@ internal static unsafe partial class LuaProtectedApi
     {
         if (tableIndex == LuaApi.LUA_REGISTRYINDEX) return tableIndex;
         if (tableIndex <= LuaApi.LUA_REGISTRYINDEX || tableIndex == 0)
-            throw new ArgumentOutOfRangeException(nameof(tableIndex), "The table index must be a valid stack index or LUA_REGISTRYINDEX.");
+            throw new ArgumentOutOfRangeException(nameof(tableIndex),
+                "The table index must be a valid stack index or LUA_REGISTRYINDEX.");
 
         var absoluteIndex = tableIndex > 0 ? tableIndex : (long)top + tableIndex + 1;
         if (absoluteIndex < 1 || absoluteIndex > top)
-            throw new ArgumentOutOfRangeException(nameof(tableIndex), "The table index is outside the current Lua stack.");
+            throw new ArgumentOutOfRangeException(nameof(tableIndex),
+                "The table index is outside the current Lua stack.");
         return (int)absoluteIndex;
     }
 
@@ -191,11 +242,13 @@ internal static unsafe partial class LuaProtectedApi
 
     [LibraryImport(BridgeLibrary, EntryPoint = "cheatengine_sdk_lua_protected")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    private static partial int cheatengine_sdk_lua_protected(lua_State* state, in LuaProtectedExports exports, int operation, int inputCount, void* data, nuint size, nint first, nint second);
+    private static partial int cheatengine_sdk_lua_protected(lua_State* state, in LuaProtectedExports exports,
+        int operation, int inputCount, void* data, nuint size, nint first, nint second);
 
     [LibraryImport(BridgeLibrary, EntryPoint = "cheatengine_sdk_lua_bridge_get_contract")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    private static partial int cheatengine_sdk_lua_bridge_get_contract(out LuaBridgeContract contract, nuint contractSize);
+    private static partial int cheatengine_sdk_lua_bridge_get_contract(out LuaBridgeContract contract,
+        nuint contractSize);
 
     [LibraryImport(BridgeLibrary, EntryPoint = "cheatengine_sdk_lua_bridge_abi_version")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -207,10 +260,12 @@ internal static unsafe partial class LuaProtectedApi
         try
         {
             if (cheatengine_sdk_lua_bridge_abi_version() != LuaBridgeContract.ExpectedLegacyAbiVersion)
-                throw new InvalidOperationException("cheatengine-sdk-lua-bridge.dll has an incompatible legacy ABI version.");
+                throw new InvalidOperationException(
+                    "cheatengine-sdk-lua-bridge.dll has an incompatible legacy ABI version.");
 
             if (cheatengine_sdk_lua_bridge_get_contract(out contract, (nuint)Unsafe.SizeOf<LuaBridgeContract>()) == 0)
-                throw new InvalidOperationException("cheatengine-sdk-lua-bridge.dll rejected the managed contract buffer.");
+                throw new InvalidOperationException(
+                    "cheatengine-sdk-lua-bridge.dll rejected the managed contract buffer.");
         }
         catch (EntryPointNotFoundException exception)
         {
@@ -234,11 +289,9 @@ internal static unsafe partial class LuaProtectedApi
                 typeof(LuaProtectedApi).Assembly,
                 DllImportSearchPath.AssemblyDirectory);
             for (var i = 0; i < s_requiredBridgeExports.Length; i++)
-            {
                 if (!NativeLibrary.TryGetExport(module, s_requiredBridgeExports[i], out _))
                     throw new InvalidOperationException(
                         $"cheatengine-sdk-lua-bridge.dll is missing required export '{s_requiredBridgeExports[i]}'. Restore or rebuild the matching CheatEngine.SDK package.");
-            }
         }
         finally
         {

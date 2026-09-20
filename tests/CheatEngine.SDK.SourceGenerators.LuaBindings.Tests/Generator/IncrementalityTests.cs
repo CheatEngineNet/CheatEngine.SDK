@@ -5,11 +5,28 @@ using Microsoft.CodeAnalysis;
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Generator;
 
 /// <summary>
-///     The cacheability gate of every Lua-binding pipeline: edits that cannot change the output must leave every tracked step
+///     The cacheability gate of every Lua-binding pipeline: edits that cannot change the output must leave every tracked
+///     step
 ///     <c>Cached</c>/<c>Unchanged</c>, and edits that can must reach the source output of their pipeline only.
 /// </summary>
 public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<RoslynFixture>
 {
+    private const string ObjectBindings = """
+                                          using CheatEngine.SDK.Annotations.Lua;
+
+                                          namespace Demo;
+
+                                          [LuaClass("Fixture")]
+                                          public readonly partial struct Fixture
+                                          {
+                                              [LuaMethod("getValue")]
+                                              public partial int GetValue();
+
+                                              [LuaProperty("Value")]
+                                              public partial int Value { get; }
+                                          }
+                                          """;
+
     [Fact]
     public void Pipeline_first_run_tracks_every_named_step()
     {
@@ -284,20 +301,4 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
                     reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
                     $"Step '{stepName}' was recomputed: {reason}."));
     }
-
-    private const string ObjectBindings = """
-                                          using CheatEngine.SDK.Annotations.Lua;
-
-                                          namespace Demo;
-
-                                          [LuaClass("Fixture")]
-                                          public readonly partial struct Fixture
-                                          {
-                                              [LuaMethod("getValue")]
-                                              public partial int GetValue();
-
-                                              [LuaProperty("Value")]
-                                              public partial int Value { get; }
-                                          }
-                                          """;
 }

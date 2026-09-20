@@ -18,7 +18,8 @@ namespace CheatEngine.SDK.Lua.References;
 ///     <para>
 ///         <b>Identity invalidation.</b> The registry belongs to one Lua state. When the host detaches and re-attaches,
 ///         its attach epoch changes; when the SDK prepares a supported in-place state replacement, its state generation
-///         changes. In either case every older reference is <i>stale</i>: <see cref="IsCurrent" /> is <see langword="false" />,
+///         changes. In either case every older reference is <i>stale</i>: <see cref="IsCurrent" /> is
+///         <see langword="false" />,
 ///         <see cref="LuaState.TryPushRef" />
 ///         pushes nothing, and releasing it does nothing, because its slot number may now designate another value in
 ///         another registry. Code that caches a reference re-resolves it when it finds it stale.
@@ -61,7 +62,8 @@ public sealed class LuaRef : IDisposable
     }
 
     /// <summary>
-    ///     Gets the slot in the SDK's private reference table, or <c>LUA_NOREF</c> (-2) when unresolved or released. <c>LUA_REFNIL</c> (-1) is a
+    ///     Gets the slot in the SDK's private reference table, or <c>LUA_NOREF</c> (-2) when unresolved or released.
+    ///     <c>LUA_REFNIL</c> (-1) is a
     ///     valid reference to <c>nil</c>.
     /// </summary>
     public int Reference => Volatile.Read(ref _binding)?.Reference ?? NoReference;
@@ -75,18 +77,12 @@ public sealed class LuaRef : IDisposable
     /// <summary>
     ///     Gets the attach epoch component of <see cref="Identity" />; 0 for an unresolved or released reference.
     /// </summary>
-    public int Epoch
-    {
-        get => Identity.AttachEpoch;
-    }
+    public int Epoch => Identity.AttachEpoch;
 
     /// <summary>
     ///     Gets the state generation component of <see cref="Identity" />; 0 for an unresolved or released reference.
     /// </summary>
-    public int StateGeneration
-    {
-        get => Identity.StateGeneration;
-    }
+    public int StateGeneration => Identity.StateGeneration;
 
     /// <summary>
     ///     Gets a value indicating whether the reference holds a slot at all (resolved and not released), whatever its
@@ -156,15 +152,16 @@ public sealed class LuaRef : IDisposable
     ///     in every case. Safe to call on an unresolved, stale or already released reference: nothing happens then.
     /// </summary>
     /// <param name="state">A state of the Lua universe the reference was created in; the calling thread's state.</param>
-    public unsafe void Release(LuaState state)
+    public void Release(LuaState state)
     {
-        LuaRuntimeOperation operation = state.IsNull ? default : LuaRuntime.EnterStateOperation(state);
+        var operation = state.IsNull ? default : LuaRuntime.EnterStateOperation(state);
         try
         {
             lock (LuaReferences.Gate)
             {
                 var binding = Interlocked.Exchange(ref _binding, null);
-                if (binding is not null && binding.Reference != NoReference && binding.Identity == LuaRuntime.CurrentStateIdentity &&
+                if (binding is not null && binding.Reference != NoReference &&
+                    binding.Identity == LuaRuntime.CurrentStateIdentity &&
                     !state.IsNull)
                     LuaReferences.Release(state, binding.Reference);
             }

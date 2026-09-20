@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using CheatEngine.SDK.SourceGenerators.EngineApi.Model;
 using CheatEngine.SDK.SourceGenerators.Shared;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
@@ -150,7 +151,8 @@ internal static class SpecFileParser
 
         var key = trimmed[..colon].TrimEnd();
         var value = trimmed[(colon + 1)..].Trim();
-        current.Fields.Add(new SpecField(lineNumber, firstNonWhitespace + 1, firstNonWhitespace + colon + 3, key, value));
+        current.Fields.Add(
+            new SpecField(lineNumber, firstNonWhitespace + 1, firstNonWhitespace + colon + 3, key, value));
     }
 
     private static bool ParseHeader(List<Block> blocks, List<SpecIssue> issues, out string ns, out string typeName,
@@ -172,7 +174,8 @@ internal static class SpecFileParser
         var header = blocks[0];
         if (header.Malformed)
         {
-            issues.Add(new SpecIssue(header.StartLine, "The header block contains a malformed line.", header.StartColumn));
+            issues.Add(new SpecIssue(header.StartLine, "The header block contains a malformed line.",
+                header.StartColumn));
             return false;
         }
 
@@ -186,10 +189,21 @@ internal static class SpecFileParser
                 out contract))
             return false;
 
+        if (!ValidateHeaderIdentity(header, namespaceValue, typeValue, typeLine, typeColumn, issues)) return false;
+
+        ns = namespaceValue!;
+        typeName = typeValue!;
+        return true;
+    }
+
+    private static bool ValidateHeaderIdentity(Block header, string? namespaceValue, string? typeValue, int typeLine,
+        int typeColumn, List<SpecIssue> issues)
+    {
         if (namespaceValue is null)
         {
             issues.Add(new SpecIssue(header.StartLine,
-                "The header is missing required key 'namespace' (use an empty value for the global namespace).", header.StartColumn));
+                "The header is missing required key 'namespace' (use an empty value for the global namespace).",
+                header.StartColumn));
             return false;
         }
 
@@ -202,19 +216,15 @@ internal static class SpecFileParser
 
         if (!SpecIdentifiers.IsValidNamespace(namespaceValue))
         {
-            issues.Add(new SpecIssue(header.StartLine, "'" + namespaceValue + "' is not a valid namespace.", header.StartColumn));
+            issues.Add(new SpecIssue(header.StartLine, "'" + namespaceValue + "' is not a valid namespace.",
+                header.StartColumn));
             return false;
         }
 
-        if (!SpecIdentifiers.IsValidTypeIdentifier(typeValue))
-        {
-            issues.Add(new SpecIssue(typeLine, "'" + typeValue + "' is not a valid type name.", typeColumn));
-            return false;
-        }
+        if (SpecIdentifiers.IsValidTypeIdentifier(typeValue)) return true;
 
-        ns = namespaceValue;
-        typeName = typeValue;
-        return true;
+        issues.Add(new SpecIssue(typeLine, "'" + typeValue + "' is not a valid type name.", typeColumn));
+        return false;
     }
 
     private static bool ReadHeaderFields(Block header, List<SpecIssue> issues, out string? namespaceValue,
@@ -247,14 +257,30 @@ internal static class SpecFileParser
     {
         switch (field.Key)
         {
-            case "namespace": fields.Namespace = field; return true;
-            case "type": fields.Type = field; return true;
-            case "contract": fields.ContractSchema = field; return true;
-            case "provenance": fields.Provenance = field; return true;
-            case "minimum-ce": fields.MinimumCe = field; return true;
-            case "architecture": fields.Architecture = field; return true;
-            case "thread": fields.Thread = field; return true;
-            case "ownership": fields.Ownership = field; return true;
+            case "namespace":
+                fields.Namespace = field;
+                return true;
+            case "type":
+                fields.Type = field;
+                return true;
+            case "contract":
+                fields.ContractSchema = field;
+                return true;
+            case "provenance":
+                fields.Provenance = field;
+                return true;
+            case "minimum-ce":
+                fields.MinimumCe = field;
+                return true;
+            case "architecture":
+                fields.Architecture = field;
+                return true;
+            case "thread":
+                fields.Thread = field;
+                return true;
+            case "ownership":
+                fields.Ownership = field;
+                return true;
             default:
                 issues.Add(new SpecIssue(field.Line, "Unknown header key '" + field.Key + "'.", field.KeyColumn));
                 return false;
@@ -284,7 +310,8 @@ internal static class SpecFileParser
         if (field is null) return true;
 
         var value = field.Value;
-        issues.Add(new SpecIssue(value.Line, "Engine API contract fields require header 'contract: ce77'.", value.KeyColumn));
+        issues.Add(new SpecIssue(value.Line, "Engine API contract fields require header 'contract: ce77'.",
+            value.KeyColumn));
         return false;
     }
 
@@ -301,7 +328,8 @@ internal static class SpecFileParser
 
         if (!ValidateContractValues(provenance, minimumCe, architecture, thread, ownership, issues)) return false;
 
-        contract = new SpecFileContract(provenance.Value, minimumCe.Value, architecture.Value, thread.Value, ownership.Value);
+        contract = new SpecFileContract(provenance.Value, minimumCe.Value, architecture.Value, thread.Value,
+            ownership.Value);
         return true;
     }
 
@@ -323,7 +351,8 @@ internal static class SpecFileParser
         if (IsValidProvenance(field.Value)) return true;
 
         issues.Add(new SpecIssue(field.Line,
-            "'" + field.Value + "' is not a valid provenance: use a proof status followed by ': '.", field.ValueColumn));
+            "'" + field.Value + "' is not a valid provenance: use a proof status followed by ': '.",
+            field.ValueColumn));
         return false;
     }
 
@@ -332,7 +361,8 @@ internal static class SpecFileParser
         if (IsFourPartVersion(field.Value)) return true;
 
         issues.Add(new SpecIssue(field.Line,
-            "'" + field.Value + "' is not a valid minimum CE version: expected four decimal parts.", field.ValueColumn));
+            "'" + field.Value + "' is not a valid minimum CE version: expected four decimal parts.",
+            field.ValueColumn));
         return false;
     }
 
@@ -350,7 +380,8 @@ internal static class SpecFileParser
         if (IsThreadAffinity(field.Value)) return true;
 
         issues.Add(new SpecIssue(field.Line,
-            "'" + field.Value + "' is not a valid thread contract: expected 'any', 'main' or 'unknown'.", field.ValueColumn));
+            "'" + field.Value + "' is not a valid thread contract: expected 'any', 'main' or 'unknown'.",
+            field.ValueColumn));
         return false;
     }
 
@@ -359,7 +390,8 @@ internal static class SpecFileParser
         if (IsOwnership(field.Value)) return true;
 
         issues.Add(new SpecIssue(field.Line,
-            "'" + field.Value + "' is not a valid ownership contract: expected 'none', 'borrowed' or 'owned'.", field.ValueColumn));
+            "'" + field.Value + "' is not a valid ownership contract: expected 'none', 'borrowed' or 'owned'.",
+            field.ValueColumn));
         return false;
     }
 
@@ -446,7 +478,8 @@ internal static class SpecFileParser
 
         if (!ReadEntryFields(block, issues, out var fields)) return null;
 
-        if (!ValidateRequiredText(fields, block.StartLine, fileContract is not null, issues, out var isTry, out var isThrowing))
+        if (!ValidateRequiredText(fields, block.StartLine, fileContract is not null, issues, out var isTry,
+                out var isThrowing))
             return null;
 
         if (!ValidateResultShape(fields, isTry, isThrowing, block.StartLine, issues)) return null;
@@ -485,7 +518,7 @@ internal static class SpecFileParser
     private static SpecCallModel CreateSpecCallModel(Block block, EntryFields fields, LuaGlobalCallModel call,
         SpecFileContract? fileContract)
     {
-        SpecContract? contract = fileContract is null
+        var contract = fileContract is null
             ? null
             : new SpecContract(
                 fileContract.Provenance,
@@ -506,7 +539,8 @@ internal static class SpecFileParser
         var ok = true;
 
         foreach (var field in block.Fields)
-            if (!TrySetEntryField(fields, singular, field, issues)) ok = false;
+            if (!TrySetEntryField(fields, singular, field, issues))
+                ok = false;
 
         return ok;
     }
@@ -522,16 +556,23 @@ internal static class SpecFileParser
             case "doc": return TrySetDoc(fields, singular, field, issues);
             case "nil": return TrySetNil(fields, singular, field, issues);
             case "return": return TrySetReturn(fields, singular, field, issues);
-            case "arg": fields.ArgTokens.Add((field.Line, field.ValueColumn, field.Value)); return true;
-            case "fixed": fields.FixedTokens.Add((field.Line, field.ValueColumn, field.Value)); return true;
-            case "result": fields.ResultTokens.Add((field.Line, field.ValueColumn, field.Value)); return true;
+            case "arg":
+                fields.ArgTokens.Add((field.Line, field.ValueColumn, field.Value));
+                return true;
+            case "fixed":
+                fields.FixedTokens.Add((field.Line, field.ValueColumn, field.Value));
+                return true;
+            case "result":
+                fields.ResultTokens.Add((field.Line, field.ValueColumn, field.Value));
+                return true;
             default:
                 issues.Add(new SpecIssue(field.Line, "Unknown entry key '" + field.Key + "'.", field.KeyColumn));
                 return false;
         }
     }
 
-    private static bool TrySetGlobal(EntryFields fields, HashSet<string> singular, SpecField field, List<SpecIssue> issues)
+    private static bool TrySetGlobal(EntryFields fields, HashSet<string> singular, SpecField field,
+        List<SpecIssue> issues)
     {
         fields.Global = field.Value;
         fields.GlobalLine = field.Line;
@@ -539,7 +580,8 @@ internal static class SpecFileParser
         return RequireOnce(singular, "global", field.Line, field.KeyColumn, issues);
     }
 
-    private static bool TrySetMethod(EntryFields fields, HashSet<string> singular, SpecField field, List<SpecIssue> issues)
+    private static bool TrySetMethod(EntryFields fields, HashSet<string> singular, SpecField field,
+        List<SpecIssue> issues)
     {
         fields.Method = field.Value;
         fields.MethodLine = field.Line;
@@ -547,7 +589,8 @@ internal static class SpecFileParser
         return RequireOnce(singular, "method", field.Line, field.KeyColumn, issues);
     }
 
-    private static bool TrySetForm(EntryFields fields, HashSet<string> singular, SpecField field, List<SpecIssue> issues)
+    private static bool TrySetForm(EntryFields fields, HashSet<string> singular, SpecField field,
+        List<SpecIssue> issues)
     {
         fields.Form = field.Value;
         fields.FormLine = field.Line;
@@ -569,7 +612,8 @@ internal static class SpecFileParser
         return RequireOnce(singular, "nil", field.Line, field.KeyColumn, issues);
     }
 
-    private static bool TrySetReturn(EntryFields fields, HashSet<string> singular, SpecField field, List<SpecIssue> issues)
+    private static bool TrySetReturn(EntryFields fields, HashSet<string> singular, SpecField field,
+        List<SpecIssue> issues)
     {
         fields.ReturnToken = field.Value;
         fields.ReturnLine = field.Line;
@@ -590,13 +634,15 @@ internal static class SpecFileParser
 
         if (!LuaNames.IsValidName(fields.Global))
         {
-            issues.Add(new SpecIssue(fields.GlobalLine, "'" + fields.Global + "' is not a valid Lua global name.", fields.GlobalColumn));
+            issues.Add(new SpecIssue(fields.GlobalLine, "'" + fields.Global + "' is not a valid Lua global name.",
+                fields.GlobalColumn));
             return false;
         }
 
         if (!SpecIdentifiers.IsValidIdentifier(fields.Method))
         {
-            issues.Add(new SpecIssue(fields.MethodLine, "'" + fields.Method + "' is not a valid C# method name.", fields.MethodColumn));
+            issues.Add(new SpecIssue(fields.MethodLine, "'" + fields.Method + "' is not a valid C# method name.",
+                fields.MethodColumn));
             return false;
         }
 
@@ -651,7 +697,8 @@ internal static class SpecFileParser
 
         if (!SpecValueKinds.TryParse(fields.ReturnToken!, out var kind, out var nullable))
         {
-            issues.Add(new SpecIssue(fields.ReturnLine, "'" + fields.ReturnToken + "' is not a valid return kind.", fields.ReturnColumn));
+            issues.Add(new SpecIssue(fields.ReturnLine, "'" + fields.ReturnToken + "' is not a valid return kind.",
+                fields.ReturnColumn));
             return false;
         }
 
@@ -668,7 +715,8 @@ internal static class SpecFileParser
         return true;
     }
 
-    private static List<LuaArgumentModel>? ParseArguments(List<(int Line, int Column, string Value)> tokens, List<SpecIssue> issues)
+    private static List<LuaArgumentModel>? ParseArguments(List<(int Line, int Column, string Value)> tokens,
+        List<SpecIssue> issues)
     {
         List<LuaArgumentModel> arguments = new(tokens.Count);
         foreach (var (line, column, value) in tokens)
@@ -702,7 +750,8 @@ internal static class SpecFileParser
                      || string.Equals(literal, "false", StringComparison.Ordinal)))
             {
                 issues.Add(new SpecIssue(line,
-                    "'" + value + "' is not a valid fixed argument: expected 'boolean:true' or 'boolean:false'.", column));
+                    "'" + value + "' is not a valid fixed argument: expected 'boolean:true' or 'boolean:false'.",
+                    column));
                 return null;
             }
 
@@ -712,7 +761,8 @@ internal static class SpecFileParser
         return arguments;
     }
 
-    private static List<LuaResultModel>? ParseResults(List<(int Line, int Column, string Value)> tokens, List<SpecIssue> issues)
+    private static List<LuaResultModel>? ParseResults(List<(int Line, int Column, string Value)> tokens,
+        List<SpecIssue> issues)
     {
         List<LuaResultModel> results = new(tokens.Count);
         foreach (var (line, column, value) in tokens)
@@ -728,7 +778,8 @@ internal static class SpecFileParser
             if (!LuaValueKinds.CanBeResult(kind))
             {
                 issues.Add(new SpecIssue(line,
-                    "'" + kindToken + "' cannot be a result: the span would dangle once the stack is restored.", column));
+                    "'" + kindToken + "' cannot be a result: the span would dangle once the stack is restored.",
+                    column));
                 return null;
             }
 
@@ -814,7 +865,9 @@ internal static class SpecFileParser
                 return false;
             }
             else if (!argument.IsFixed)
+            {
                 parameters.Add(argument.Name, 0);
+            }
 
         foreach (var result in results)
             if (parameters.ContainsKey(result.Name))
@@ -824,7 +877,9 @@ internal static class SpecFileParser
                 return false;
             }
             else
+            {
                 parameters.Add(result.Name, 0);
+            }
 
         foreach (var name in parameters.Keys)
             if (IsReservedBodyLocal(name, call))
@@ -911,7 +966,8 @@ internal static class SpecFileParser
         foreach (var entry in entries)
         {
             AddGeneratedMemberOwner(owners, entry.Call.MethodName, entry);
-            if (UsesAddressFacade(entry.Call)) AddGeneratedMemberOwner(owners, CoreMethodName(entry.Call.MethodName), entry);
+            if (UsesAddressFacade(entry.Call))
+                AddGeneratedMemberOwner(owners, CoreMethodName(entry.Call.MethodName), entry);
         }
 
         HashSet<SpecCallModel> invalid = [];
@@ -947,7 +1003,8 @@ internal static class SpecFileParser
         foreach (var entry in entries)
         {
             var conflicts = cacheFields.Contains(entry.Call.MethodName)
-                            || (UsesAddressFacade(entry.Call) && cacheFields.Contains(CoreMethodName(entry.Call.MethodName)));
+                            || (UsesAddressFacade(entry.Call) &&
+                                cacheFields.Contains(CoreMethodName(entry.Call.MethodName)));
             if (!conflicts)
             {
                 valid.Add(entry);
@@ -971,7 +1028,8 @@ internal static class SpecFileParser
         {
             var conflicts = string.Equals(entry.Call.MethodName, typeName, StringComparison.Ordinal)
                             || (UsesAddressFacade(entry.Call)
-                                && string.Equals(CoreMethodName(entry.Call.MethodName), typeName, StringComparison.Ordinal));
+                                && string.Equals(CoreMethodName(entry.Call.MethodName), typeName,
+                                    StringComparison.Ordinal));
             if (!conflicts)
             {
                 valid.Add(entry);
@@ -979,7 +1037,8 @@ internal static class SpecFileParser
             }
 
             issues.Add(new SpecIssue(entry.Line,
-                "Generated method '" + entry.Call.MethodName + "' conflicts with its containing type '" + typeName + "'."));
+                "Generated method '" + entry.Call.MethodName + "' conflicts with its containing type '" + typeName +
+                "'."));
         }
 
         return valid;
@@ -1017,7 +1076,7 @@ internal static class SpecFileParser
 
     private static string RawResultName(int index)
     {
-        return "__engineApiRawResult" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return "__engineApiRawResult" + index.ToString(CultureInfo.InvariantCulture);
     }
 
     // One "key: value" line. A line without a colon (or an empty key) marks the whole block Malformed: the block is
@@ -1027,8 +1086,8 @@ internal static class SpecFileParser
     {
         public readonly List<SpecField> Fields = [];
         public bool Malformed;
-        public int StartLine;
         public int StartColumn;
+        public int StartLine;
 
         public bool IsEmpty => Fields.Count == 0 && !Malformed;
     }
@@ -1057,20 +1116,20 @@ internal static class SpecFileParser
         public readonly List<(int Line, int Column, string Value)> ResultTokens = [];
         public string? Doc;
         public string? Form;
-        public string? Global;
-        public string? Method;
-        public string? NilSemantics;
-        public string? ReturnToken;
         public int FormColumn;
         public int FormLine;
+        public string? Global;
         public int GlobalColumn;
         public int GlobalLine;
+        public string? Method;
         public int MethodColumn;
         public int MethodLine;
         public int NilColumn;
         public int NilLine;
+        public string? NilSemantics;
         public int ReturnColumn;
         public int ReturnLine;
+        public string? ReturnToken;
         public bool SawReturn;
     }
 

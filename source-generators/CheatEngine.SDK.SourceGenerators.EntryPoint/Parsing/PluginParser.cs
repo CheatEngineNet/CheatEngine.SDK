@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Threading;
 using CheatEngine.SDK.SourceGenerators.EntryPoint.Model;
 using CheatEngine.SDK.SourceGenerators.Shared.Shapes;
@@ -44,7 +45,7 @@ internal static class PluginParser
     }
 
     private static AttributeData? FindAttribute(
-        System.Collections.Immutable.ImmutableArray<AttributeData> attributes,
+        ImmutableArray<AttributeData> attributes,
         INamedTypeSymbol? pluginAttribute)
     {
         if (pluginAttribute is null) return null;

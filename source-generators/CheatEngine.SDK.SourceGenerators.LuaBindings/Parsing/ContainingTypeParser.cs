@@ -35,7 +35,8 @@ internal static class ContainingTypeParser
     {
         List<TypeDeclarationModel> chain = [];
         for (var current = type; current is not null; current = current.ContainingType)
-            chain.Add(new TypeDeclarationModel(Keyword(current), Identifiers.Escape(current.Name), IsReadOnly(current)));
+            chain.Add(new TypeDeclarationModel(Keyword(current), Identifiers.Escape(current.Name),
+                IsReadOnly(current)));
 
         chain.Reverse();
 

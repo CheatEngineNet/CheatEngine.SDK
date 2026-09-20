@@ -3,7 +3,10 @@ using System.Globalization;
 
 namespace CheatEngine.SDK.Engine.Inspection;
 
-/// <summary>A byte offset in a module file, distinct from an in-memory target <see cref="CheatEngine.SDK.Engine.Values.Address" />.</summary>
+/// <summary>
+///     A byte offset in a module file, distinct from an in-memory target
+///     <see cref="CheatEngine.SDK.Engine.Values.Address" />.
+/// </summary>
 /// <remarks>
 ///     Cheat Engine names this field <c>FileAddress</c> in <c>enumSectionsOfModule</c>, but its documented meaning is
 ///     an address in the file on disk. This type prevents that offset from being passed to a target-memory API.

@@ -111,7 +111,8 @@ the public `int` API from receiving an unsigned value that cannot represent nega
 2. Shape rules check each declaration, its containing types and its Lua name. The analyzers link the same source, so a
    member skipped for its type, name or shape gets the localized CESDK2xxx diagnostic.
 3. Valid members are grouped by containing type. One type yields one file for each kind it declares.
-4. The emitters write each file against the `CheatEngine.SDK.Lua` API, with every type name `global::`-qualified. The function
+4. The emitters write each file against the `CheatEngine.SDK.Lua` API, with every type name `global::`-qualified. The
+   function
    file disables `CS0612`, `CS0618` and the IDs declared on its targets, so an `[Obsolete]` or `[Experimental]` target
    compiles clean (`LuaFunctionOutputTests`).
 
@@ -137,6 +138,7 @@ Registration takes the address of each thunk, so only `[LuaFunction]` needs `All
 
 ## Run the tests
 
-Run `dotnet test --project tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests`. Tests tagged `Category=NativeLua` load the
+Run `dotnet test --project tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests`. Tests tagged `Category=NativeLua`
+load the
 Lua DLL of Cheat Engine 7.7 kept in [`native/cheat-engine`](../../native/cheat-engine/README.md), so nothing has to be
 installed. See the [test project](../../tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests/README.md).

@@ -68,7 +68,7 @@ public sealed class ZeroAllocationTests
         LuaTest.RequireNativeLua();
         using NativeLuaState state = new(false);
         var L = LuaTest.View(state);
-        byte[] payload = new byte[1024];
+        var payload = new byte[1024];
 
         for (var index = 0; index < payload.Length; index += 4)
         {

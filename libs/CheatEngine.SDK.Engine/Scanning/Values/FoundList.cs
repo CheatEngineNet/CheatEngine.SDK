@@ -31,7 +31,7 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 ///     </para>
 /// </remarks>
 [LuaClass("FoundList")]
-public readonly partial struct FoundList : ICEObject<FoundList>, IEquatable<FoundList>
+public readonly struct FoundList : ICEObject<FoundList>, IEquatable<FoundList>
 {
     private readonly CEObject _handle;
 

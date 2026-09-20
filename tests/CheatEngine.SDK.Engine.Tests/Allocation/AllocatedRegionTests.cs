@@ -14,7 +14,7 @@ public sealed class AllocatedRegionTests
     public void Dispose_releases_the_original_target_address_and_size_exactly_once()
     {
         AllocationOperationsFake operations = new() { AllocatedAddress = new Address(0x7FF6_3000_0000) };
-        AllocatedRegion region = Allocate(operations, 12288);
+        var region = Allocate(operations, 12288);
 
         region.Dispose();
         region.Dispose();
@@ -31,7 +31,7 @@ public sealed class AllocatedRegionTests
     public void Dispose_when_CE_reports_failure_is_no_throw_and_consumes_ownership()
     {
         AllocationOperationsFake operations = new() { DeallocationResult = false };
-        AllocatedRegion region = Allocate(operations, 4096);
+        var region = Allocate(operations, 4096);
 
         region.Dispose();
         region.Dispose();
@@ -44,9 +44,9 @@ public sealed class AllocatedRegionTests
     public void Release_when_CE_reports_failure_throws_the_expected_failure_and_never_retries()
     {
         AllocationOperationsFake operations = new() { DeallocationResult = false };
-        AllocatedRegion region = Allocate(operations, 4096);
+        var region = Allocate(operations, 4096);
 
-        EngineOperationFailedException exception = Assert.Throws<EngineOperationFailedException>(region.Release);
+        var exception = Assert.Throws<EngineOperationFailedException>(region.Release);
 
         Assert.Equal("TargetMemoryDeallocate", exception.Operation);
         Assert.True(region.IsDisposed);
@@ -60,9 +60,9 @@ public sealed class AllocatedRegionTests
     {
         EngineLuaException failure = new("TargetMemoryDeallocate", LuaStatus.RuntimeError);
         AllocationOperationsFake operations = new() { DeallocationException = failure };
-        AllocatedRegion region = Allocate(operations, 4096);
+        var region = Allocate(operations, 4096);
 
-        EngineLuaException thrown = Assert.Throws<EngineLuaException>(region.Release);
+        var thrown = Assert.Throws<EngineLuaException>(region.Release);
 
         Assert.Same(failure, thrown);
         Assert.True(region.IsDisposed);
@@ -75,9 +75,9 @@ public sealed class AllocatedRegionTests
     {
         EngineGlobalUnavailableException failure = new("TargetMemoryDeallocate");
         AllocationOperationsFake operations = new() { DeallocationException = failure };
-        AllocatedRegion region = Allocate(operations, 4096);
+        var region = Allocate(operations, 4096);
 
-        EngineGlobalUnavailableException thrown = Assert.Throws<EngineGlobalUnavailableException>(region.Release);
+        var thrown = Assert.Throws<EngineGlobalUnavailableException>(region.Release);
 
         Assert.Same(failure, thrown);
         Assert.Equal(EngineFailureKind.GlobalUnavailable, thrown.Kind);
@@ -91,9 +91,9 @@ public sealed class AllocatedRegionTests
         EngineBindingException failure = new("TargetMemoryDeallocate",
             "the generated binding returned an incompatible result");
         AllocationOperationsFake operations = new() { DeallocationException = failure };
-        AllocatedRegion region = Allocate(operations, 4096);
+        var region = Allocate(operations, 4096);
 
-        EngineBindingException thrown = Assert.Throws<EngineBindingException>(region.Release);
+        var thrown = Assert.Throws<EngineBindingException>(region.Release);
 
         Assert.Same(failure, thrown);
         Assert.True(region.IsDisposed);
@@ -106,9 +106,9 @@ public sealed class AllocatedRegionTests
         EngineMarshallingException failure = new("TargetMemoryDeallocate", EngineMarshallingDirection.Result,
             "a boolean", "a table");
         AllocationOperationsFake operations = new() { DeallocationException = failure };
-        AllocatedRegion region = Allocate(operations, 4096);
+        var region = Allocate(operations, 4096);
 
-        EngineMarshallingException thrown = Assert.Throws<EngineMarshallingException>(region.Release);
+        var thrown = Assert.Throws<EngineMarshallingException>(region.Release);
 
         Assert.Same(failure, thrown);
         Assert.True(region.IsDisposed);
@@ -124,7 +124,7 @@ public sealed class AllocatedRegionTests
                 DeallocationException = new EngineBindingException("TargetMemoryDeallocate",
                     "the generated binding returned an incompatible result")
             };
-        AllocatedRegion region = Allocate(operations, 4096);
+        var region = Allocate(operations, 4096);
 
         region.Dispose();
 
@@ -137,7 +137,7 @@ public sealed class AllocatedRegionTests
     {
         AllocationOperationsFake operations =
             new() { DeallocationException = new EngineLuaException("TargetMemoryDeallocate", LuaStatus.RuntimeError) };
-        AllocatedRegion region = Allocate(operations, 4096);
+        var region = Allocate(operations, 4096);
 
         region.Dispose();
 
@@ -154,7 +154,7 @@ public sealed class AllocatedRegionTests
                 DeallocationException = new EngineMarshallingException("TargetMemoryDeallocate",
                     EngineMarshallingDirection.Result, "a boolean", "a table")
             };
-        AllocatedRegion region = Allocate(operations, 4096);
+        var region = Allocate(operations, 4096);
 
         region.Dispose();
 
@@ -166,7 +166,7 @@ public sealed class AllocatedRegionTests
     public void Concurrent_dispose_attempts_call_the_deallocator_once()
     {
         AllocationOperationsFake operations = new();
-        AllocatedRegion region = Allocate(operations, 4096);
+        var region = Allocate(operations, 4096);
 
         Parallel.Invoke(region.Dispose, region.Dispose);
 

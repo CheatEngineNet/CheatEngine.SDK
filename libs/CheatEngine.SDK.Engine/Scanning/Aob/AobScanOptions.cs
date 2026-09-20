@@ -6,8 +6,12 @@ namespace CheatEngine.SDK.Engine.Scanning.Aob;
 /// <summary>Optional arguments of Cheat Engine's string-form <c>AOBScan</c> call.</summary>
 /// <remarks>
 ///     <para>
-///         CE 7.7.0.10621 accepts <c>AOBScan(aobstring, protectionflags OPTIONAL, alignmenttype OPTIONAL,
-///         alignmentparam HALFOPTIONAL)</c>. The protection string is deliberately not parsed here: it is CE's compact
+///         CE 7.7.0.10621 accepts
+///         <c>
+///             AOBScan(aobstring, protectionflags OPTIONAL, alignmenttype OPTIONAL,
+///             alignmentparam HALFOPTIONAL)
+///         </c>
+///         . The protection string is deliberately not parsed here: it is CE's compact
 ///         <c>X</c>/<c>W</c>/<c>C</c>/<c>+</c>/<c>-</c>/<c>*</c> grammar, and preserving it exactly avoids a managed
 ///         normalizer changing host semantics.
 ///     </para>
@@ -43,7 +47,8 @@ public readonly struct AobScanOptions : IEquatable<AobScanOptions>
                 "AOBScan accepts only the CE fsmNotAligned, fsmAligned, or fsmLastDigits alignment values.");
 
         if (alignmentMethod == FastScanMethod.NotAligned && alignmentParameter is not null)
-            throw new ArgumentException("An alignment parameter requires an alignment method.", nameof(alignmentParameter));
+            throw new ArgumentException("An alignment parameter requires an alignment method.",
+                nameof(alignmentParameter));
 
         if (alignmentMethod != FastScanMethod.NotAligned && string.IsNullOrEmpty(alignmentParameter))
             throw new ArgumentException("A non-default AOB alignment method requires a non-empty parameter.",

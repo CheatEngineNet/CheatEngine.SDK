@@ -6,12 +6,12 @@ package manually: nuget.org versions are immutable, and the workflow artifact is
 
 ## One-time trusted publishing setup
 
-Create an individual-account trusted publishing policy under the `CheatEngine` profile at
+Create an organization-owned trusted publishing policy under the `CheatEngine` organization at
 <https://www.nuget.org/account/trustedpublishing> with these exact values:
 
 | Field | Value |
 |---|---|
-| Policy owner | `CheatEngine` (individual account) |
+| Policy owner | `CheatEngine` (organization) |
 | Repository owner | `CheatEngineNet` |
 | Repository | `CheatEngine.SDK` |
 | Workflow file | `release.yml` |
@@ -19,10 +19,12 @@ Create an individual-account trusted publishing policy under the `CheatEngine` p
 | Scope | Push new packages and package versions |
 | Package glob | `CheatEngine.SDK` |
 
-The GitHub `nuget` environment must contain an environment secret named `NUGET_USER` whose value is the nuget.org
-profile name, `CheatEngine`. Restrict that environment to deployment tags matching `v*.*.*`. The workflow exchanges
-GitHub's OIDC token for a one-use, short-lived NuGet API key through `NuGet/login`; it must not store a long-lived NuGet
-API key.
+The GitHub `nuget` environment must contain an environment secret named `NUGET_USER`. Its value must be the exact
+nuget.org username of the administrator who created the policy, currently `AriusII`, not the organization name and not
+an email address. Organization membership alone does not make another username valid for that policy; if a different
+administrator recreates it, update `NUGET_USER` to that policy creator. Restrict the environment to deployment tags
+matching `v*.*.*`. The workflow exchanges GitHub's OIDC token for a one-use, short-lived NuGet API key through
+`NuGet/login`; it must not store a long-lived NuGet API key.
 
 ## Prepare a release
 

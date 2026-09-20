@@ -3,13 +3,20 @@
 namespace CheatEngine.SDK.Engine.Values;
 
 /// <summary>
-///     A test-only stand-in for the real <c>CheatEngine.SDK.Engine.Values.Address</c> (<c>libs/CheatEngine.SDK.Engine/Values/Address.cs</c>),
-///     declared here rather than referenced from <c>libs/CheatEngine.SDK.Engine</c> because this project deliberately keeps its
-///     real SDK references at <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c> only: the
-///     generator's own compilation must stay unaware of <c>CheatEngine.SDK.Engine</c>, which is the assembly the generated file
-///     becomes *part of* (self-reference, not a dependency) once <c>libs/CheatEngine.SDK.Engine</c> itself builds. The namespace
-///     here is declared literally as <c>CheatEngine.SDK.Engine.Values</c> (not this test project's own namespace) because that is
-///     the exact namespace the generated wrapper's <c>global::CheatEngine.SDK.Engine.Values.Address</c> reference must resolve
+///     A test-only stand-in for the real <c>CheatEngine.SDK.Engine.Values.Address</c> (
+///     <c>libs/CheatEngine.SDK.Engine/Values/Address.cs</c>),
+///     declared here rather than referenced from <c>libs/CheatEngine.SDK.Engine</c> because this project deliberately
+///     keeps its
+///     real SDK references at <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and
+///     <c>CheatEngine.SDK.Lua</c> only: the
+///     generator's own compilation must stay unaware of <c>CheatEngine.SDK.Engine</c>, which is the assembly the generated
+///     file
+///     becomes *part of* (self-reference, not a dependency) once <c>libs/CheatEngine.SDK.Engine</c> itself builds. The
+///     namespace
+///     here is declared literally as <c>CheatEngine.SDK.Engine.Values</c> (not this test project's own namespace) because
+///     that is
+///     the exact namespace the generated wrapper's <c>global::CheatEngine.SDK.Engine.Values.Address</c> reference must
+///     resolve
 ///     against.
 /// </summary>
 /// <remarks>

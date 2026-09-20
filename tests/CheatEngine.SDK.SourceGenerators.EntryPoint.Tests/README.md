@@ -16,18 +16,21 @@ the [generator README](../../source-generators/CheatEngine.SDK.SourceGenerators.
 
 ## How it works
 
-| Suite           | What it proves                                                                                                          |
-|-----------------|-------------------------------------------------------------------------------------------------------------------------|
-| Output          | The text equals a hand-written expectation, is UTF-8 with LF endings and holds no unsafe code                           |
-| Plugin shapes   | Namespaces, nesting, partial types, keywords and non-ASCII names resolve, and zero, two or invalid plugins emit nothing |
-| Escaping        | Display names become correct `u8` literals, checked as text, as a clean compile and as run-time bytes                   |
-| Compile and run | The output compiles clean on C# 11 to 14, loads, and answers `(IntPtr, int) -> int`                                     |
-| Incrementality  | Edits that cannot change the output recompute nothing, and edits that can reach the source output                       |
-| Shared code     | `BuildProperty`, `CSharpLiteral`, `EquatableArray`, `GeneratedCodeText`, `SourceWriter` and `TrackingNames`             |
+| Suite             | What it proves                                                                                                                                                     |
+|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Output            | The text equals a hand-written expectation, is UTF-8 with LF endings and holds no unsafe code                                                                      |
+| Plugin shapes     | Namespaces, nesting, partial types, keywords and non-ASCII names resolve; only real zero-parameter constructors qualify; zero, two or invalid plugins emit nothing |
+| Contract identity | A same-FQN marker or plugin base from a foreign referenced assembly is rejected; the expected SDK assembly symbols are accepted                                    |
+| Escaping          | Display names become correct `u8` literals, checked as text, as a clean compile and as run-time bytes                                                              |
+| Compile and run   | The output compiles clean on C# 11 to 14, loads, answers `(IntPtr, int) -> int`, and forwards the second value unchanged                                           |
+| Incrementality    | Edits that cannot change the output recompute nothing, and edits that can reach the source output                                                                  |
+| Shared code       | `BuildProperty`, `CSharpLiteral`, `EquatableArray`, `GeneratedCodeText`, `SourceWriter` and `TrackingNames`                                                        |
 
-Test inputs compile against `ContractStubs`, an assembly that mirrors the `CheatEngine.SDK.Hosting` contract by hand and adds
+Test inputs compile against `ContractStubs`, two assemblies that mirror the `CheatEngine.SDK.Annotations` and
+`CheatEngine.SDK.Hosting` contracts by hand and add
 instrumentation the real `PluginHost` does not have. Change it with the emitter and `ExpectedBootstrap` when the
-contract changes. `RealAssemblyCompilationTests` alone uses the real `CheatEngine.SDK.Annotations` and `CheatEngine.SDK.Hosting`. It catches
+contract changes. `RealAssemblyCompilationTests` alone uses the real `CheatEngine.SDK.Annotations` and
+`CheatEngine.SDK.Hosting`. It catches
 only drift that breaks compilation. "Compiles clean" means no warning or error at warning level 9999 with nullable and
 documentation diagnostics on.
 
@@ -50,6 +53,7 @@ dotnet test --project tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests --
   `CheatEngine.SDK.Abi.Managed.ManagedEntryPoint` (`NominalOutputTests`).
 - Zero plugins, two plugins and every invalid shape yield no file and no diagnostic (`NoOutputTests`,
   `BootstrapModelTests`).
-- The entry point returns 0 instead of throwing when the host or the plugin constructor throws
-  (`BootstrapExecutionTests`).
+- The entry point forwards its opaque second host argument without normalization, and returns 0 instead of throwing
+  when the host or the plugin constructor throws (`BootstrapExecutionTests`).
+- Same-named annotation/base symbols from a foreign reference do not generate a bootstrap (`ContractIdentityTests`).
 - Unchanged input recomputes nothing (`IncrementalityTests`).

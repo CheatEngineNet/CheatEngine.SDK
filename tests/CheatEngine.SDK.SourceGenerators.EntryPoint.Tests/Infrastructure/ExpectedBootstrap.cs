@@ -52,12 +52,14 @@ internal static class ExpectedBootstrap
                              /// Called by the host, more than once per load. Forwards to the hosting runtime, which is idempotent, and never
                              /// lets an exception reach native code.
                              /// </summary>
+                             /// <param name="args">The first opaque value supplied by the host.</param>
+                             /// <param name="opaqueArgument">The second opaque value supplied by the host, forwarded without interpretation.</param>
                              /// <returns>1 on success, 0 on failure.</returns>
-                             public static int CEPluginInitialize(global::System.IntPtr args, int size)
+                             public static int CEPluginInitialize(global::System.IntPtr args, int opaqueArgument)
                              {
                                  try
                                  {
-                                     return global::CheatEngine.SDK.Hosting.Bootstrap.PluginHost.InitializeManaged<{{factoryName}}>(args, size);
+                                     return global::CheatEngine.SDK.Hosting.Bootstrap.PluginHost.InitializeManaged<{{factoryName}}>(args, opaqueArgument);
                                  }
                                  catch (global::System.Exception)
                                  {

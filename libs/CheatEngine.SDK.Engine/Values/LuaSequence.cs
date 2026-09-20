@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Lua.Calls;
@@ -29,6 +30,9 @@ public static class LuaSequence
         /// <param name="zeroBasedIndex">The element's zero-based position.</param>
         /// <returns>The status; on failure one error value is on top.</returns>
         /// <exception cref="System.ArgumentOutOfRangeException"><paramref name="zeroBasedIndex" /> is negative.</exception>
+        [SuppressMessage("Meziantou.Analyzer", "MA0038",
+            Justification =
+                "This is an instance extension member; marking it static would remove the LuaState extension receiver from its public call form.")]
         public LuaStatus TryGetSequenceItem(int tableIndex, int zeroBasedIndex)
         {
             return state.TryGetIndex(tableIndex, IndexBase.ToLuaKey(zeroBasedIndex));
@@ -45,6 +49,9 @@ public static class LuaSequence
         /// <param name="zeroBasedIndex">The element's zero-based position.</param>
         /// <returns>The status; on failure one error value is on top in place of the value.</returns>
         /// <exception cref="System.ArgumentOutOfRangeException"><paramref name="zeroBasedIndex" /> is negative.</exception>
+        [SuppressMessage("Meziantou.Analyzer", "MA0038",
+            Justification =
+                "This is an instance extension member; marking it static would remove the LuaState extension receiver from its public call form.")]
         public LuaStatus TrySetSequenceItem(int tableIndex, int zeroBasedIndex)
         {
             return state.TrySetIndex(tableIndex, IndexBase.ToLuaKey(zeroBasedIndex));
@@ -60,6 +67,9 @@ public static class LuaSequence
         /// <exception cref="System.ArgumentOutOfRangeException"><paramref name="zeroBasedIndex" /> is negative.</exception>
         [LuaStackEffect(1)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [SuppressMessage("Meziantou.Analyzer", "MA0038",
+            Justification =
+                "This is an instance extension member; marking it static would remove the LuaState extension receiver from its public call form.")]
         public LuaType RawGetSequenceItem(int tableIndex, int zeroBasedIndex)
         {
             return state.RawGetIndex(tableIndex, IndexBase.ToLuaKey(zeroBasedIndex));
@@ -75,6 +85,9 @@ public static class LuaSequence
         /// <remarks>Allocates inside Lua when the table grows.</remarks>
         [LuaStackEffect(-1)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [SuppressMessage("Meziantou.Analyzer", "MA0038",
+            Justification =
+                "This is an instance extension member; marking it static would remove the LuaState extension receiver from its public call form.")]
         public void RawSetSequenceItem(int tableIndex, int zeroBasedIndex)
         {
             state.RawSetIndex(tableIndex, IndexBase.ToLuaKey(zeroBasedIndex));
@@ -89,6 +102,9 @@ public static class LuaSequence
         /// <exception cref="System.OverflowException">The table has more than <see cref="int.MaxValue" /> elements.</exception>
         [LuaStackEffect(0)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [SuppressMessage("Meziantou.Analyzer", "MA0038",
+            Justification =
+                "This is an instance extension member; marking it static would remove the LuaState extension receiver from its public call form.")]
         public int RawSequenceCount(int tableIndex)
         {
             return checked((int)state.RawLength(tableIndex));

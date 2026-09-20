@@ -32,6 +32,10 @@ path can go wrong. The generator writes it once, correctly, for every method you
 
 ## How it works
 
+The project from guide 01 already contains `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>`. Keep that explicit setting:
+every `[LuaFunction]` registration thunk takes a native function address, while projects that only use Lua globals can
+leave unsafe compilation disabled.
+
 ### 1. Declare the functions
 
 ```csharp

@@ -13,22 +13,24 @@ namespace CheatEngine.SDK.Analyzers.Plugin;
 
 /// <summary>
 ///     The plugin shape and bootstrap rules. CESDK0001: a class marked <c>[CheatEnginePlugin]</c> that the generated
-///     entry point cannot construct. CESDK0002: more than one such class. CESDK0004: a plugin assembly that declares a
-///     namespace equal to or nested under <c>CESDK</c>.
+///     entry point cannot construct. CESDK0002: more than one such class. CESDK0003: an incomplete manual bootstrap.
+///     CESDK0004: a generated plugin assembly that declares a namespace equal to or nested under <c>CESDK</c>.
+///     CESDK0005: source that collides with the generated <c>CESDK.CESDK</c> identity.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         These are the cases in which <c>CheatEngine.SDK.SourceGenerators.EntryPoint</c> stays silent or in which its output
-///         changes name binding; the generator never reports, this analyzer does. CESDK0001 and CESDK0002 are therefore
-///         not reported when the project switches the generated entry point off
-///         (<c>build_property.CheatEngineSdkGenerateEntryPoint = false</c>); CESDK0004 is.
+///         These are the cases in which <c>CheatEngine.SDK.SourceGenerators.EntryPoint</c> stays silent or in which its
+///         output
+///         changes name binding; the generator never reports, this analyzer does. CESDK0001, CESDK0002, CESDK0004 and
+///         CESDK0005 explain generated output, whereas CESDK0003 explains the manual replacement when the project sets
+///         <c>build_property.CheatEngineSdkGenerateEntryPoint = false</c>.
 ///     </para>
 ///     <para>
 ///         Stateless and safe for concurrent execution. Everything that lives as long as a compilation is created in the
 ///         compilation-start action. When <c>CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute</c> or
-///         <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> cannot be resolved, nothing is registered. CESDK0001 is reported
-///         from a
-///         symbol action and shows up while typing; CESDK0002 and CESDK0004 need the whole compilation and are
+///         <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> cannot be resolved, nothing is registered. CESDK0001 is
+///         reported
+///         from a symbol action and shows up while typing; the remaining rules need the whole compilation and are
 ///         compilation-end diagnostics (build and full-solution analysis only). Generated code is neither analysed nor
 ///         counted.
 ///     </para>
@@ -48,7 +50,9 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
     [
         DiagnosticDescriptors.InvalidPluginClass,
         DiagnosticDescriptors.MultiplePluginClasses,
-        DiagnosticDescriptors.ReservedNamespace
+        DiagnosticDescriptors.InvalidManualBootstrap,
+        DiagnosticDescriptors.ReservedNamespace,
+        DiagnosticDescriptors.GeneratedEntryPointCollision,
     ];
 
     /// <inheritdoc />
@@ -61,22 +65,25 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
 
     private static void OnCompilationStart(CompilationStartAnalysisContext context)
     {
-        var pluginAttribute = context.Compilation.GetTypeByMetadataName(WellKnownTypeNames.CheatEnginePluginAttribute);
-        var pluginBase = context.Compilation.GetTypeByMetadataName(WellKnownTypeNames.CheatEnginePluginBase);
+        var pluginAttribute =
+            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.CheatEnginePluginAttribute);
+        var pluginBase = SdkSymbolResolver.Hosting(context.Compilation, WellKnownTypeNames.CheatEnginePluginBase);
         if (pluginAttribute is null || pluginBase is null) return;
 
-        // CESDK0001 and CESDK0002 describe what the GENERATED entry point needs. A project that switched it off
-        // (CheatEngineSdkGenerateEntryPoint=false, made compiler-visible by the package's props) bootstraps by hand and sets
-        // its own conditions. CESDK0004 stays: Cheat Engine wants a type CESDK.CESDK in the assembly either way.
-        var entryPointIsGenerated =
-            !context.Options.AnalyzerConfigOptionsProvider.GlobalOptions.TryGetValue(GenerateEntryPointKey, out var raw)
-            || !bool.TryParse(raw, out var generate)
-            || generate;
+        // CESDK0001, CESDK0002, CESDK0004 and CESDK0005 describe what the GENERATED entry point needs. The direct
+        // package build asset makes the property compiler-visible and supplies true by default. Without that explicit
+        // contract (for example through an indirect package reference), this analyzer must stay out of the way rather
+        // than inventing either a generated or manual bootstrap obligation. An explicit false transfers ownership of
+        // CESDK.CESDK to the author, which CESDK0003 validates at compilation end.
+        bool? entryPointIsGenerated = null;
+        if (context.Options.AnalyzerConfigOptionsProvider.GlobalOptions.TryGetValue(GenerateEntryPointKey, out var raw)
+            && bool.TryParse(raw, out var generate))
+            entryPointIsGenerated = generate;
 
         // The last two are optional: without them the matching CESDK0001 checks are stricter or skipped, never wrong.
-        // pluginBase itself is only the gate above: the shared predicate recognises the base class by name.
         PluginContractSymbols symbols = new(
             pluginAttribute,
+            pluginBase,
             context.Compilation.GetTypeByMetadataName(WellKnownTypeNames.SetsRequiredMembersAttribute),
             context.Compilation.GetTypeByMetadataName(WellKnownTypeNames.ObsoleteAttribute));
 
@@ -95,9 +102,15 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
         SymbolAnalysisContext context,
         PluginContractSymbols symbols,
         PluginCompilationState state,
-        bool entryPointIsGenerated)
+        bool? entryPointIsGenerated)
     {
         var type = (INamedTypeSymbol)context.Symbol;
+
+        if (IsEntryPointType(type))
+            state.AddEntryPointType(
+                type.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat),
+                FirstLocation(type),
+                IsManualBootstrap(type));
 
         // The attribute targets classes only: on anything else the compiler already reports CS0592.
         if (type.TypeKind != TypeKind.Class ||
@@ -107,13 +120,15 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
         var attributeSyntax = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
         var classLocation = GetClassLocation(type, attributeSyntax);
         state.AddPluginClass(name, classLocation);
-        if (!entryPointIsGenerated) return;
+        if (entryPointIsGenerated is not true) return;
 
         var problems = PluginShape.Inspect(
             type,
             attribute,
+            symbols.PluginBase,
             symbols.SetsRequiredMembersAttribute,
             symbols.ObsoleteAttribute,
+            out _,
             out _);
         if (problems == PluginShapeIssues.None) return;
 
@@ -143,6 +158,55 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
                 return attribute;
 
         return null;
+    }
+
+    private static bool IsEntryPointType(INamedTypeSymbol type)
+    {
+        return type is
+        {
+            Name: ReservedRootNamespace,
+            Arity: 0,
+            ContainingType: null,
+            ContainingNamespace:
+            {
+                Name: ReservedRootNamespace,
+                ContainingNamespace.IsGlobalNamespace: true,
+            },
+        };
+    }
+
+    private static bool IsManualBootstrap(INamedTypeSymbol type)
+    {
+        if (!type.IsStatic) return false;
+
+        foreach (var member in type.GetMembers("CEPluginInitialize"))
+        {
+            if (member is not IMethodSymbol
+                {
+                    MethodKind: MethodKind.Ordinary,
+                    IsStatic: true,
+                    IsGenericMethod: false,
+                    DeclaredAccessibility: Accessibility.Public,
+                    ReturnsByRef: false,
+                    ReturnsByRefReadonly: false,
+                    ReturnType.SpecialType: SpecialType.System_Int32,
+                    Parameters:
+                    [
+                        { RefKind: RefKind.None, Type.SpecialType: SpecialType.System_IntPtr },
+                        { RefKind: RefKind.None, Type.SpecialType: SpecialType.System_Int32 }
+                    ],
+                })
+                continue;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static Location FirstLocation(ISymbol symbol)
+    {
+        return symbol.Locations.IsEmpty ? Location.None : symbol.Locations[0];
     }
 
     // A partial class has one location per part: the part that carries the attribute is the one the user thinks of

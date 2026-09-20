@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using CheatEngine.SDK.Lua.Interop.Api;
 
@@ -56,6 +57,9 @@ public unsafe struct lua_Debug
     public sbyte istailcall;
 
     /// <summary>("S") Printable, NUL-terminated form of <see cref="source" /> for messages.</summary>
+    [SuppressMessage("Meziantou.Analyzer", "MA0189",
+        Justification =
+            "This fixed buffer is the public Lua 5.3 ABI field; replacing it with an InlineArray would change the C-shaped source contract.")]
     public fixed byte short_src[LuaApi.LUA_IDSIZE];
 
     /// <summary>Private to Lua (the active <c>CallInfo</c>). Written by <see cref="LuaApi.lua_getstack" />; never touch it.</summary>

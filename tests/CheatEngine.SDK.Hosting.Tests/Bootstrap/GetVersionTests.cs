@@ -61,8 +61,8 @@ public sealed unsafe class GetVersionTests
         Assert.Equal(size, PluginHost.LastVersionRecordSize);
     }
 
-    // The same rule as the bootstrap's size argument (InitializeManagedTests): a host that claims nothing (zero or
-    // negative) is not refused, a host that claims enough is written.
+    // This version-query record has its own host size contract: a host that claims nothing (zero or negative) is not
+    // refused, and a host that claims enough is written. It is unrelated to InitializeManaged's opaque second integer.
     [Theory]
     [InlineData(0)]
     [InlineData(-16)]

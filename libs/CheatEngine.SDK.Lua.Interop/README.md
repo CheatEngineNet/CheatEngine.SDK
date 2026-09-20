@@ -18,8 +18,13 @@ throwing, so this layer transcribes the Lua headers and adds nothing.
 
 Allocating calls use the tiny `cheatengine-sdk-lua-bridge.dll` shipped with CheatEngine.SDK. It receives pointers to the
 host's existing Lua exports and places the operation below `lua_pcallk`, so Lua cannot `longjmp` through managed frames.
-The prebuilt Windows x64 DLL is copied beside consumers automatically; xmake and a C compiler are needed only to change
-the bridge itself.
+That includes the host-object pusher (`LuaPushClassInstance`): it is not called directly from a managed frame. Before
+its
+first use, the interop layer validates the bridge's fixed export list and its v1.1 contract (magic, major/minor version,
+pointer and Lua scalar widths, export-table size and operation bitmap) against `Unsafe.SizeOf` values. The bridge does
+not link, load or otherwise import a second Lua runtime. The prebuilt Windows x64 DLL is copied beside consumers
+automatically and is loaded only from this assembly's directory; xmake and a C compiler are needed only to change the
+bridge itself.
 
 ## How it works
 

@@ -41,25 +41,25 @@ explains why.
 The rule classifies the method and validates the attribute's name argument. One diagnostic is reported per independent
 problem, on the method's own location:
 
-| Problem                    | Requirement                                                                                                                                                                       |
-|----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `NotOrdinaryMethod`        | An ordinary method: not an accessor, operator, local function or explicit interface implementation.                                                                               |
-| `NotStatic`                | `static`.                                                                                                                                                                         |
-| `NotPartialDefinition`     | The defining declaration of a `partial` method (not the implementing part, not a non-partial method).                                                                             |
-| `AlreadyImplemented`       | No implementing declaration exists.                                                                                                                                               |
-| `Generic`                  | No type parameters.                                                                                                                                                               |
-| `Async`                    | Not `async`.                                                                                                                                                                      |
-| `InvalidName`              | The attribute's name argument is a Lua identifier that is not a Lua 5.3 reserved word.                                                                                            |
-| `ByRefParameter`           | Arguments are passed by value (results are `out` parameters instead): no `ref`, `in` or `ref readonly`.                                                                           |
-| `ParamsParameter`          | No `params` parameter.                                                                                                                                                            |
-| `OptionalParameter`        | No parameter has a default value: the body pushes every argument.                                                                                                                 |
-| `StateParameterNotFirst`   | A `CheatEngine.SDK.Lua.State.LuaState` parameter, if any, is the first parameter.                                                                                                 |
-| `UnsupportedParameterType` | Every by-value argument is `int`, `long`, `float`, `double`, `bool`, `nuint`, `ReadOnlySpan<byte>`, `string` or the leading `LuaState`.                                           |
-| `ResultBeforeArgument`     | Every argument precedes every result: `out` parameters and copy-out pairs come last.                                                                                              |
-| `UnsupportedResultType`    | Every `out` result is `int`, `long`, `float`, `double`, `bool`, `nuint` or `string`, or a `Span<byte> destination, out int written` copy-out pair.                                |
-| `SpanResult`               | No result is `ReadOnlySpan<byte>` (an `out` parameter or the return type): it would point into a Lua string popped before the wrapper returns. Use the copy-out pair or `string`. |
-| `UnsupportedReturnType`    | The return type of the throwing form is `void` or one of the same marshalled kinds (`bool` included) other than `ReadOnlySpan<byte>`.                                             |
-| `TryFormReturnNotBool`     | A declaration with `out` results returns `bool`: that is the whole shape of the Try form.                                                                                         |
+| Problem                    | Requirement                                                                                                                                                                                             |
+|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `NotOrdinaryMethod`        | An ordinary method: not an accessor, operator, local function or explicit interface implementation.                                                                                                     |
+| `NotStatic`                | `static`.                                                                                                                                                                                               |
+| `NotPartialDefinition`     | The defining declaration of a `partial` method (not the implementing part, not a non-partial method).                                                                                                   |
+| `AlreadyImplemented`       | No implementing declaration exists.                                                                                                                                                                     |
+| `Generic`                  | No type parameters.                                                                                                                                                                                     |
+| `Async`                    | Not `async`.                                                                                                                                                                                            |
+| `InvalidName`              | The attribute's name argument is a Lua identifier that is not a Lua 5.3 reserved word.                                                                                                                  |
+| `ByRefParameter`           | Arguments are passed by value (results are `out` parameters instead): no `ref`, `in` or `ref readonly`.                                                                                                 |
+| `ParamsParameter`          | No `params` parameter.                                                                                                                                                                                  |
+| `OptionalParameter`        | No parameter has a default value: the body pushes every argument.                                                                                                                                       |
+| `StateParameterNotFirst`   | A real `CheatEngine.SDK.Lua.State.LuaState` parameter from the referenced SDK runtime, if any, is the first parameter.                                                                                  |
+| `UnsupportedParameterType` | Every by-value argument is `int`, `long`, `float`, `double`, `bool`, `nuint`, `ReadOnlySpan<byte>`, `string` or the leading real SDK `LuaState`. A same-name source or foreign type is not a Lua state. |
+| `ResultBeforeArgument`     | Every argument precedes every result: `out` parameters and copy-out pairs come last.                                                                                                                    |
+| `UnsupportedResultType`    | Every `out` result is `int`, `long`, `float`, `double`, `bool`, `nuint` or `string`, or a `Span<byte> destination, out int written` copy-out pair.                                                      |
+| `SpanResult`               | No result is `ReadOnlySpan<byte>` (an `out` parameter or the return type): it would point into a Lua string popped before the wrapper returns. Use the copy-out pair or `string`.                       |
+| `UnsupportedReturnType`    | The return type of the throwing form is `void` or one of the same marshalled kinds (`bool` included) other than `ReadOnlySpan<byte>`.                                                                   |
+| `TryFormReturnNotBool`     | A declaration with `out` results returns `bool`: that is the whole shape of the Try form.                                                                                                               |
 
 ## Example
 

@@ -9,7 +9,8 @@ namespace CheatEngine.SDK.Lua.Tests.Support;
 /// <summary>
 ///     A stand-in for the host's exported functions, in the shape <see cref="LuaHostBinding" /> expects (the same
 ///     <c>void*</c>-typed <c>stdcall</c> pointers as <c>CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions</c>): a
-///     state provider that returns the state a test installed, and an object pusher that pushes the object pointer as a light userdata and
+///     state provider that returns the state a test installed, and an object pusher that pushes the object pointer as a
+///     light userdata and
 ///     counts its calls.
 /// </summary>
 internal static unsafe class HostDouble

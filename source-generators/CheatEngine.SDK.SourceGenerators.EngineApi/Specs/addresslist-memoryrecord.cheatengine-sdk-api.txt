@@ -1,0 +1,18 @@
+# CE 7.7.0.10621 Addresslist / MemoryRecord deferred EngineApi specification.
+#
+# Evidence: exact installed celua.txt (4,444 lines), SHA-256
+# AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00:
+# getAddressList at line 774; MemoryRecord at 2328-2453; Addresslist at 2455-2503.
+# Architecture: Windows x64. Status: ExactInstalledFile for names and documented return shapes;
+# MainThreadOnly is inferred from the GUI inheritance of Addresslist and must be confirmed by the CE 7.7 dispatcher probe.
+#
+# This file is intentionally header-only until EngineApi supports all of the required contract shapes:
+#   * global result: object<AddressList> for getAddressList();
+#   * instance method: object result and object argument for getMemoryRecord, getMemoryRecordByID,
+#     getSelectedRecord, setSelectedRecord, and createMemoryRecord;
+#   * object property and indexed object result for MemoryRecord.Parent and Child[index].
+# The current grammar deliberately supports only scalar globals. Adding pseudo scalar entries here would silently
+# remove an API or turn borrowed CE objects into ambiguous primitives, so it is not a safe fallback.
+
+namespace: CheatEngine.SDK.Engine.AddressLists
+type: AddressListBindings

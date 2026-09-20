@@ -17,8 +17,9 @@ namespace CheatEngine.SDK.Annotations.Lifetime;
 ///         and are annotated on their own.
 ///     </para>
 ///     <para>
-///         <b>Consumed by.</b> Nothing in the SDK reads this attribute. It documents that an API needs an enabled plugin
-///         and reports no diagnostic when the API is used too early.
+///         <b>Consumed by.</b> The SDK analyzer reports CESDK1001 when a plugin constructor, field initializer or
+///         property initializer directly uses an annotated API. It also documents the runtime precondition for callers
+///         and tooling.
 ///     </para>
 ///     <para>
 ///         <b>Run time.</b> The attribute has no behaviour and does not guard the call; how an annotated API fails when it

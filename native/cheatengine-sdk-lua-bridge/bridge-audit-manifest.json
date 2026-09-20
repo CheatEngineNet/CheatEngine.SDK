@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "asset": "runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll",
+  "platform": "windows-x64",
+  "toolchain": {
+    "buildSystem": {
+      "name": "xmake",
+      "version": "3.0.9",
+      "configuration": ".github/workflows/ci.yml"
+    },
+    "compiler": {
+      "name": "MSVC",
+      "selection": "xmake Windows toolchain on the GitHub-hosted Windows runner"
+    },
+    "languageStandard": "C11",
+    "cRuntime": "MT",
+    "compilerFlags": [
+      "/MT",
+      "allextra",
+      "error"
+    ],
+    "linkerFlags": [
+      "/Brepro"
+    ]
+  },
+  "source": {
+    "hashes": {
+      "cheatengine_sdk_lua_bridge.c": "8a63e00c7dd941212e7ef8c13d8c97f73142c5154bfbe5dbc5459e7131bb789b",
+      "xmake.lua": "2871368515be4c6fd235e49e793d5557e7c50229fcc8fbfd903efd39f9b754a8"
+    },
+    "fingerprint": "8a63e00c7dd941212e7ef8c13d8c97f73142c5154bfbe5dbc5459e7131bb789b:2871368515be4c6fd235e49e793d5557e7c50229fcc8fbfd903efd39f9b754a8"
+  },
+  "nativeAsset": {
+    "sha256": "da08c2ba03019da3a8c432ef061d5d6133fd2169ba3a6a8e9ac903353856d994",
+    "pe": {
+      "format": "PE32+",
+      "machine": "AMD64",
+      "isDll": true
+    },
+    "exports": [
+      "cheatengine_sdk_lua_bridge_abi_version",
+      "cheatengine_sdk_lua_bridge_get_contract",
+      "cheatengine_sdk_lua_bridge_source_fingerprint",
+      "cheatengine_sdk_lua_protected"
+    ],
+    "delayImports": [],
+    "imports": ["KERNEL32.dll"]
+  },
+  "reproducibility": {
+    "doubleBuildSha256Comparison": true,
+    "ciRequirement": "Build the bridge twice into distinct output directories with the same xmake/MSVC toolchain and compare the SHA-256 before publishing the artifact."
+  }
+}

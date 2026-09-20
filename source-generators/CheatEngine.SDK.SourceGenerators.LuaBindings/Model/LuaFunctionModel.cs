@@ -18,17 +18,22 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 /// </param>
 /// <param name="Issues">Why the method cannot be exported; <see cref="LuaFunctionShapeIssues.None" /> when it can.</param>
 /// <param name="Thunk">The thunk to emit; <see langword="null" /> when the signature could not be classified.</param>
+/// <param name="HasGeneratedIdentityCollision">
+///     Whether the containing type already declares one of the registration or thunk identities this entry would need.
+///     This is separate from a signature issue so CESDK2007 can explain the local collision precisely.
+/// </param>
 internal sealed record LuaFunctionModel(
     ContainingTypeModel ContainingType,
     ContainingTypeIssues ContainingTypeIssues,
     string LuaName,
     LuaFunctionShapeIssues Issues,
-    LuaThunkModel? Thunk)
+    LuaThunkModel? Thunk,
+    bool HasGeneratedIdentityCollision = false)
 {
     /// <summary>
     ///     <see langword="true" /> when a thunk can be emitted for this method (before the duplicate-name check of its
     ///     group).
     /// </summary>
     public bool IsValid => Issues == LuaFunctionShapeIssues.None && ContainingTypeIssues == ContainingTypeIssues.None &&
-                           Thunk is not null;
+                           Thunk is not null && !HasGeneratedIdentityCollision;
 }

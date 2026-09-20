@@ -5,8 +5,8 @@ BenchmarkDotNet console application that measures the calls a plugin makes into 
 ## Objective
 
 Report the time and the managed allocations of the SDK's hot paths. They are marshaller push and read, a generated
-global call, a generated callback and a `CheatEngine.SDK.Engine` property get. The `Allocated` column is the headline,
-not the mean.
+global call, a generated callback, generated target-memory scalar calls, the EngineApi incremental-generator pipeline
+and a `CheatEngine.SDK.Engine` property get. The `Allocated` column is the headline, not the mean.
 
 ## Why it exists
 
@@ -16,12 +16,15 @@ both.
 
 ## How it works
 
-| Class                      | Category                | Measures                                                                                                         |
-|----------------------------|-------------------------|------------------------------------------------------------------------------------------------------------------|
-| `MarshallerBenchmarks`     | `Transition`, `Strings` | Push and read of the `Int32`, `Int64`, `Single`, `Double`, `Boolean`, `Address`, `Utf8` and `String` marshallers |
-| `GlobalCallBenchmarks`     | `GlobalCall`            | A protected call of a Lua global with two arguments and one result                                               |
-| `CallbackBenchmarks`       | `Callbacks`             | A Lua loop that calls a registered `[LuaFunction]` thunk, reported per call                                      |
-| `ObjectPropertyBenchmarks` | `ObjectAccess`          | `CEObject.TryGetProperty<Int32Marshaller, int>` on a fake host object                                            |
+| Class                            | Category                                      | Measures                                                                                                         |
+|----------------------------------|-----------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| `MarshallerBenchmarks`           | `Transition`, `Strings`                       | Push and read of the `Int32`, `Int64`, `Single`, `Double`, `Boolean`, `Address`, `Utf8` and `String` marshallers |
+| `GlobalCallBenchmarks`           | `GlobalCall`                                  | A protected call of a Lua global with two arguments and one result                                               |
+| `CallbackBenchmarks`             | `Callbacks`                                   | A Lua loop that calls a registered `[LuaFunction]` thunk, reported per call                                      |
+| `Utf8MarshallerBenchmarks`       | `Transition`, `Utf8`                          | Push and borrowed-span read of valid non-ASCII UTF-8 at 16, 64 and 1,024 bytes                                   |
+| `ObjectPropertyBenchmarks`       | `ObjectAccess`                                | `CEObject.TryGetProperty<Int32Marshaller, int>` on a fake host object                                            |
+| `MemoryScalarBenchmarks`         | `EngineApi`, `TargetMemory`, `Fixture`        | Public `TargetMemory` and `HostMemory` signed 32/64-bit calls against isolated Lua table stand-ins               |
+| `EngineApiIncrementalBenchmarks` | `SourceGenerator`, `Incremental`, `EngineApi` | Cold, cached and one-spec-edit EngineApi generator workloads; excludes compiler/MSBuild time                     |
 
 `BenchGlobals` and `BenchFunctions` declare a real `[LuaGlobal]` and `[LuaFunction]`. The project references the
 shipping `LuaBindings` generator as an analyzer, so the measured bodies are what a plugin gets and cannot drift from it.
@@ -39,8 +42,18 @@ call `Dispose`. The project references `CheatEngine.SDK.Annotations`, `CheatEngi
 `CheatEngine.SDK.Lua` and `CheatEngine.SDK.Engine` directly, never `src/CheatEngine.SDK`. The package project embeds
 its libraries with `PrivateAssets=all`, so their types do not
 flow through a project reference. The build is x64 only, because it binds to a 64-bit Lua DLL through function pointers.
-Every class carries `[MemoryDiagnoser(false)]` and `[ShortRunJob]`: allocations are exact, means are approximate. Remove
-`[ShortRunJob]` from a class for a longer, more precise run.
+Every class carries `[MemoryDiagnoser(false)]`. It deliberately declares no timing job: the BenchmarkDotNet default job
+is the reproducible baseline job, while an invocation may opt into `--job Short` for development feedback or `--job Dry`
+to validate a new scenario. This keeps `Dry` genuinely dry instead of combining it with a class-level job. Allocation
+values are evidence; deterministic allocation gates remain the correctness authority.
+
+`MemoryScalarBenchmarks` is intentionally a fixture benchmark. It measures the SDK wrapper's state acquisition,
+cached-global push, target-or-host address conversion, protected call, scalar conversion and stack restoration; the Lua
+tables do not measure Cheat Engine's process-memory implementation. `EngineApiIncrementalBenchmarks` deliberately
+invokes just the
+incremental generator against two curated in-memory specs. It measures no compiler, MSBuild or filesystem work. The
+versioned scenario identities, allocation expectations, result-recording recipe and API designs that are still deferred
+live in [BaselineMetadata.md](BaselineMetadata.md).
 
 ## Promise
 
@@ -51,7 +64,10 @@ Every class carries `[MemoryDiagnoser(false)]` and `[ShortRunJob]`: allocations 
   lookup.
 - Zero allocation does not depend on this project: `ZeroAllocationTests` in `CheatEngine.SDK.Lua.Tests` and
   `CheatEngine.SDK.Engine.Tests` assert the same paths. `PushReadString` is the one benchmark expected to allocate,
-  because reading returns a new managed string.
+  because reading returns a new managed string. BenchmarkDotNet allocation values are evidence, not a replacement for
+  those deterministic gates.
+- Timing is intentionally not a CI threshold. Historical results are compared only when their recorded machine, .NET,
+  fixture hash and BenchmarkDotNet job agree; see [BaselineMetadata.md](BaselineMetadata.md).
 
 ## Run it
 
@@ -62,5 +78,8 @@ Run in Release, because BenchmarkDotNet refuses a non-optimized build. The Lua D
 `--filter "*MarshallerBenchmarks*"` instead of `--anyCategories`.
 
 ```powershell
-dotnet run --project tests/CheatEngine.SDK.Benchmarks -c Release -- --anyCategories GlobalCall Callbacks
+dotnet run --project tests/CheatEngine.SDK.Benchmarks -c Release -- --anyCategories GlobalCall Callbacks --job Short
+
+# Compile and execute a newly added scenario once, without collecting a meaningful timing result.
+dotnet run --project tests/CheatEngine.SDK.Benchmarks -c Release -- --filter "*MemoryScalarBenchmarks*" --job Dry --noOverwrite
 ```

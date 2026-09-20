@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
 using Microsoft.CodeAnalysis;
@@ -11,6 +12,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 ///     be a partial, non-generic class, struct or record that is not <see langword="file" />-local. Symbols in, flags
 ///     out, no generator types: the CESDK2xxx analyzer links this file.
 /// </summary>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class ContainingTypeShape
 {
     /// <summary>Inspects <paramref name="type" /> and its containing types; never throws on malformed symbols.</summary>

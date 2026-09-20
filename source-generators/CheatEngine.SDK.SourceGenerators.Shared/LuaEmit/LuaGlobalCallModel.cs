@@ -28,14 +28,14 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 /// <param name="Results">Try form: the results, at least one. Throwing form: empty.</param>
 /// <param name="ReturnKind">
 ///     Throwing form: the kind read from the single result, or <see langword="null" /> for a
-///     <c>void</c> method (the call keeps no result). Try form: ignored.
+///     <see langword="void" /> method (the call keeps no result). Try form: ignored.
 /// </param>
 /// <param name="ReturnIsNullable">
 ///     Throwing form with a <see cref="LuaValueKind.String" /> return: the declaration wrote
 ///     <c>string?</c>.
 /// </param>
 /// <param name="IsExtensionMethod">
-///     Whether the first parameter is the <c>this</c> receiver of an extension method. Generated partial
+///     Whether the first parameter is the <see langword="this" /> receiver of an extension method. Generated partial
 ///     implementations must repeat that modifier for the declaration to compile.
 /// </param>
 internal sealed record LuaGlobalCallModel(

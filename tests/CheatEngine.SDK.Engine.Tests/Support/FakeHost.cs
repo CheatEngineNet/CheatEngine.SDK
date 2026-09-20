@@ -1,8 +1,11 @@
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Lua.Callbacks;
 using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
@@ -37,6 +40,8 @@ internal static unsafe class FakeHost
     private static int s_providerCalls;
     private static int s_pusherCalls;
     private static long s_nextPointer = 0x7FF0_0000_1000;
+    private static nint s_forwardedPCall;
+    private static PCallProbe? s_activePCallProbe;
 
     /// <summary>
     ///     The Lua side of the fake host: returns the metatable, the pointer-to-object table and the host bookkeeping
@@ -175,6 +180,23 @@ internal static unsafe class FakeHost
         return L.ToBoolean(-1);
     }
 
+    /// <summary>
+    ///     Replaces a fake scan's <c>waitTillDone</c> member with a bare C function and observes the protected call that
+    ///     reaches it. This pins the managed call's Lua argument and result counts without changing production dispatch.
+    /// </summary>
+    public static PCallProbe ReplaceWaitTillDoneWithPCallProbe(LuaState L, CEObject scan)
+    {
+        using LuaFrame frame = new(L);
+        Assert.Equal(LuaType.Table, L.RawGetPointer(LuaState.RegistryIndex, s_keys + ObjectsKey));
+        Assert.Equal(LuaType.Table, L.RawGetPointer(-1, scan.Value));
+        Assert.True(L.TryGetField(-1, "props"u8).IsOk);
+        L.PushString("waitTillDone"u8);
+        L.PushUncheckedFunction(
+            new LuaNativeFunction((nint)(delegate* unmanaged[Cdecl]<lua_State*, int>)&WaitTillDone));
+        Assert.True(L.TryRawSet(-3));
+        return new PCallProbe();
+    }
+
     private static void Install(LuaState L)
     {
         using LuaFrame frame = new(L);
@@ -222,5 +244,85 @@ internal static unsafe class FakeHost
             _ = lua_setmetatable(state, -2);
         else
             lua_settop(state, -2);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static int WaitTillDone(lua_State* state)
+    {
+        return 0;
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static int ObservePCall(lua_State* state, int argumentCount, int resultCount, int errorFunction,
+        nint context, nint continuation)
+    {
+        var probe = s_activePCallProbe;
+        if (probe is not null &&
+            (nint)lua_tocfunction(state, -argumentCount - 1) ==
+            (nint)(delegate* unmanaged[Cdecl]<lua_State*, int>)&WaitTillDone)
+            probe.Observe(argumentCount, resultCount);
+
+        return ((delegate* unmanaged[Cdecl]<lua_State*, int, int, int, nint, nint, int>)s_forwardedPCall)(
+            state,
+            argumentCount,
+            resultCount,
+            errorFunction,
+            context,
+            continuation);
+    }
+
+    /// <summary>Captures protected calls specifically to the fake no-result <c>waitTillDone</c> function.</summary>
+    internal sealed class PCallProbe : IDisposable
+    {
+        private readonly FieldInfo _pcallField;
+        private readonly object _table;
+
+        internal PCallProbe()
+        {
+            if (s_activePCallProbe is not null)
+                throw new InvalidOperationException("Only one fake-host protected-call probe can be active.");
+
+            var tableField = typeof(LuaApi).GetField("s_table", BindingFlags.Static | BindingFlags.NonPublic)
+                             ?? throw new InvalidOperationException("The Lua API table was not available for probing.");
+            _table = tableField.GetValue(null)
+                     ?? throw new InvalidOperationException("The Lua API table was not initialized for probing.");
+            _pcallField = _table.GetType().GetField("lua_pcallk", BindingFlags.Instance | BindingFlags.NonPublic)
+                          ?? throw new InvalidOperationException(
+                              "The Lua protected-call slot was not available for probing.");
+            s_forwardedPCall = (nint)(_pcallField.GetValue(_table)
+                                      ?? throw new InvalidOperationException("The Lua protected-call slot was null."));
+            _pcallField.SetValue(_table,
+                (nint)(delegate* unmanaged[Cdecl]<lua_State*, int, int, int, nint, nint, int>)&ObservePCall);
+            tableField.SetValue(null, _table);
+            s_activePCallProbe = this;
+        }
+
+        /// <summary>Gets how many protected calls reached the probe's <c>waitTillDone</c> function.</summary>
+        public int WaitCallCount { get; private set; }
+
+        /// <summary>Gets the Lua argument count of the observed <c>waitTillDone</c> call.</summary>
+        public int WaitArgumentCount { get; private set; }
+
+        /// <summary>Gets the Lua result count of the observed <c>waitTillDone</c> call.</summary>
+        public int WaitResultCount { get; private set; }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (s_activePCallProbe != this) return;
+
+            _pcallField.SetValue(_table, s_forwardedPCall);
+            var tableField = typeof(LuaApi).GetField("s_table", BindingFlags.Static | BindingFlags.NonPublic)!;
+            tableField.SetValue(null, _table);
+            s_forwardedPCall = 0;
+            s_activePCallProbe = null;
+        }
+
+        internal void Observe(int argumentCount, int resultCount)
+        {
+            WaitCallCount++;
+            WaitArgumentCount = argumentCount;
+            WaitResultCount = resultCount;
+        }
     }
 }

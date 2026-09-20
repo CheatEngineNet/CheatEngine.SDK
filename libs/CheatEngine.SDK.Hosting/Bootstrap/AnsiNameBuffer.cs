@@ -7,7 +7,8 @@ namespace CheatEngine.SDK.Hosting.Bootstrap;
 /// <summary>
 ///     Produces the NUL-terminated ANSI plugin name that <c>CheatEngine.SDK.Abi.Managed.PluginInitRecord.Name</c> and
 ///     <c>CheatEngine.SDK.Abi.Native.PluginVersion.PluginName</c> point at. Allocated in native memory once per process
-///     and never freed: Cheat Engine reads through the pointer after the bootstrap call has returned, for as long as it runs.
+///     and never freed: Cheat Engine reads through the pointer after the bootstrap call has returned, for as long as it
+///     runs.
 /// </summary>
 /// <remarks>
 ///     <para>

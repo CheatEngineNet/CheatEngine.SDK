@@ -18,7 +18,7 @@ public enum LuaType
     /// <summary><c>nil</c>.</summary>
     Nil = 0,
 
-    /// <summary><c>true</c> or <c>false</c>.</summary>
+    /// <summary><see langword="true" /> or <see langword="false" />.</summary>
     Boolean = 1,
 
     /// <summary>A raw pointer value without identity, metatable or lifetime of its own.</summary>

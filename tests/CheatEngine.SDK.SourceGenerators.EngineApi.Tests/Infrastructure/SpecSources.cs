@@ -10,6 +10,12 @@ internal static class SpecSources
     public const string Memory = """
                                  namespace: Demo.Engine.Generated
                                  type: MemoryScalars
+                                 contract: ce77
+                                 provenance: ExactInstalledFile: CE 7.7 celua.txt scalar memory globals
+                                 minimum-ce: 7.7.0.10621
+                                 architecture: x64
+                                 thread: unknown
+                                 ownership: none
 
                                  global: readInteger
                                  method: TryReadInt32
@@ -17,6 +23,7 @@ internal static class SpecSources
                                  arg: address:address
                                  fixed: boolean:true
                                  result: value:int32
+                                 nil: absence
                                  doc: Reads a 32-bit integer from the target process at the given address.
 
                                  global: writeInteger
@@ -25,6 +32,7 @@ internal static class SpecSources
                                  arg: address:address
                                  arg: value:int32
                                  return: boolean
+                                 nil: none
                                  doc: Writes a 32-bit integer to the target process at the given address.
 
                                  global: readQword
@@ -32,6 +40,7 @@ internal static class SpecSources
                                  form: try
                                  arg: address:address
                                  result: value:int64
+                                 nil: absence
                                  doc: Reads a 64-bit integer from the target process at the given address.
 
                                  global: writeQword
@@ -40,6 +49,7 @@ internal static class SpecSources
                                  arg: address:address
                                  arg: value:int64
                                  return: boolean
+                                 nil: none
                                  doc: Writes a 64-bit integer to the target process at the given address.
                                  """;
 

@@ -10,7 +10,8 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Tests.Infrastructure;
 
 /// <summary>
 ///     What every test compilation needs and what is expensive to build: the <c>net10.0</c> framework references and the
-///     real <c>CheatEngine.SDK.Lua</c> (+ <c>CheatEngine.SDK.Lua.Interop</c>, <c>CheatEngine.SDK.Annotations</c>) assembly the generated wrappers are
+///     real <c>CheatEngine.SDK.Lua</c> (+ <c>CheatEngine.SDK.Lua.Interop</c>, <c>CheatEngine.SDK.Annotations</c>) assembly
+///     the generated wrappers are
 ///     written against, taken from the copies loaded in this test process so that an emitted assembly, once loaded,
 ///     binds to the very same types. Built once per process, from the local disk only.
 /// </summary>
@@ -53,7 +54,8 @@ internal sealed class RoslynEnvironment
     public ImmutableArray<MetadataReference> FrameworkReferences { get; }
 
     /// <summary>
-    ///     The real <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c>, as loaded in this process,
+    ///     The real <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c>, as
+    ///     loaded in this process,
     ///     plus this test assembly's own file for the <see cref="Address" /> stub (see its own doc comment).
     /// </summary>
     public ImmutableArray<MetadataReference> SdkReferences { get; }

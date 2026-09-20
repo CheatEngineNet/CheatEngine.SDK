@@ -25,11 +25,19 @@ internal sealed class RoslynEnvironment
     private static readonly Lazy<RoslynEnvironment> LazyShared =
         new(static () => Create(LocalFrameworkReferences.Load()));
 
-    private RoslynEnvironment(ImmutableArray<MetadataReference> frameworkReferences, ImmutableArray<byte> stubsImage)
+    private RoslynEnvironment(
+        ImmutableArray<MetadataReference> frameworkReferences,
+        ImmutableArray<byte> annotationsImage,
+        ImmutableArray<byte> hostingImage)
     {
         FrameworkReferences = frameworkReferences;
-        StubsImage = stubsImage;
-        StubsReference = MetadataReference.CreateFromImage(stubsImage, filePath: ContractStubs.AssemblyName + ".dll");
+        AnnotationsImage = annotationsImage;
+        HostingImage = hostingImage;
+        AnnotationsReference = MetadataReference.CreateFromImage(
+            annotationsImage,
+            filePath: ContractStubs.AnnotationsAssemblyName + ".dll");
+        HostingReference =
+            MetadataReference.CreateFromImage(hostingImage, filePath: ContractStubs.HostingAssemblyName + ".dll");
     }
 
     /// <summary>The process-wide environment over <see cref="LocalFrameworkReferences.Load" />.</summary>
@@ -38,31 +46,58 @@ internal sealed class RoslynEnvironment
     /// <summary><c>Microsoft.NETCore.App</c> 10.0: reference assemblies, or the running runtime as a fallback.</summary>
     public ImmutableArray<MetadataReference> FrameworkReferences { get; }
 
-    /// <summary>The compiled <see cref="ContractStubs" />, to load for execution tests.</summary>
-    public ImmutableArray<byte> StubsImage { get; }
+    /// <summary>The compiled annotations contract, to load for execution tests.</summary>
+    public ImmutableArray<byte> AnnotationsImage { get; }
 
-    /// <summary>The compiled <see cref="ContractStubs" />, as a compilation reference.</summary>
-    public MetadataReference StubsReference { get; }
+    /// <summary>The compiled hosting contract, to load for execution tests.</summary>
+    public ImmutableArray<byte> HostingImage { get; }
 
-    /// <summary>Framework + stubs: the references of a plugin compilation.</summary>
-    public ImmutableArray<MetadataReference> PluginReferences => FrameworkReferences.Add(StubsReference);
+    /// <summary>The annotations contract, as a compilation reference.</summary>
+    public MetadataReference AnnotationsReference { get; }
+
+    /// <summary>The hosting contract, as a compilation reference.</summary>
+    public MetadataReference HostingReference { get; }
+
+    /// <summary>Framework + SDK contract assemblies: the references of a plugin compilation.</summary>
+    public ImmutableArray<MetadataReference> PluginReferences =>
+        FrameworkReferences.Add(AnnotationsReference).Add(HostingReference);
 
     /// <summary>Compiles the contract stubs against <paramref name="frameworkReferences" />.</summary>
     /// <exception cref="InvalidOperationException">The stubs do not compile against these references.</exception>
     public static RoslynEnvironment Create(ImmutableArray<MetadataReference> frameworkReferences)
     {
-        var stubs = CSharpCompilation.Create(
-            ContractStubs.AssemblyName,
-            [CSharpSyntaxTree.ParseText(ContractStubs.Source, ParseOptions, "ContractStubs.cs")],
+        var annotations = CSharpCompilation.Create(
+            ContractStubs.AnnotationsAssemblyName,
+            [
+                CSharpSyntaxTree.ParseText(ContractStubs.AnnotationsSource, ParseOptions, "AnnotationsStubs.cs",
+                    cancellationToken: TestContext.Current.CancellationToken),
+            ],
+            frameworkReferences,
+            CompilationOptions);
+        var hosting = CSharpCompilation.Create(
+            ContractStubs.HostingAssemblyName,
+            [
+                CSharpSyntaxTree.ParseText(ContractStubs.HostingSource, ParseOptions, "HostingStubs.cs",
+                    cancellationToken: TestContext.Current.CancellationToken),
+            ],
             frameworkReferences,
             CompilationOptions);
 
+        return new RoslynEnvironment(
+            frameworkReferences,
+            EmitImage(annotations, ContractStubs.AnnotationsAssemblyName),
+            EmitImage(hosting, ContractStubs.HostingAssemblyName));
+    }
+
+    private static ImmutableArray<byte> EmitImage(CSharpCompilation compilation, string assemblyName)
+    {
         using MemoryStream image = new();
-        var result = stubs.Emit(image);
+        var result = compilation.Emit(image, cancellationToken: TestContext.Current.CancellationToken);
         if (!result.Success)
             throw new InvalidOperationException(
-                "The contract stubs do not compile: " + string.Join(Environment.NewLine, result.Diagnostics));
+                "The " + assemblyName + " contract stubs do not compile: " +
+                string.Join(Environment.NewLine, result.Diagnostics));
 
-        return new RoslynEnvironment(frameworkReferences, [.. image.ToArray()]);
+        return [.. image.ToArray()];
     }
 }

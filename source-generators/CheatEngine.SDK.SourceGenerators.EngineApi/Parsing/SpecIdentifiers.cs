@@ -3,11 +3,13 @@ using System;
 namespace CheatEngine.SDK.SourceGenerators.EngineApi.Parsing;
 
 /// <summary>
-///     C# identifier and namespace validity for spec-file <c>method</c>/<c>type</c>/<c>namespace</c> values, and the
+///     C# identifier and namespace validity for spec-file <c>method</c>/<c>type</c>/<see langword="namespace" /> values,
+///     and the
 ///     keyword-escape rule for the ones that become generated identifiers.
 /// </summary>
 /// <remarks>
-///     Deliberately not the linked <c>Identifiers.Escape</c> of <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>: that file
+///     Deliberately not the linked <c>Identifiers.Escape</c> of <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>: that
+///     file
 ///     lives in the LuaBindings project, which EngineApi does not reference, and it is not part of <c>Shared/</c>.
 ///     This is an independent, equally small implementation of the same one-line rule.
 /// </remarks>
@@ -41,6 +43,12 @@ internal static class SpecIdentifiers
         return true;
     }
 
+    /// <summary>Whether <paramref name="value" /> is valid where the generator cannot emit an <c>@</c> escape.</summary>
+    public static bool IsValidTypeIdentifier(string? value)
+    {
+        return IsValidIdentifier(value) && Array.IndexOf(Keywords, value) < 0;
+    }
+
     /// <summary>
     ///     Whether <paramref name="value" /> is a dotted sequence of valid identifiers, or empty for the global
     ///     namespace.
@@ -50,7 +58,7 @@ internal static class SpecIdentifiers
         if (value.Length == 0) return true;
 
         foreach (var part in value.Split('.'))
-            if (!IsValidIdentifier(part))
+            if (!IsValidTypeIdentifier(part))
                 return false;
 
         return true;

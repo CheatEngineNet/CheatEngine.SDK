@@ -73,6 +73,12 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
             "no parameterless constructor",
             $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(int value) {{ _ = value; }} {Body[1..]}");
         yield return (
+            "optional-only constructor is not a parameterless contract",
+            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(int value = 0) {{ _ = value; }} {Body[1..]}");
+        yield return (
+            "params-only constructor is not a parameterless contract",
+            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(params int[] values) {{ _ = values; }} {Body[1..]}");
+        yield return (
             "private constructor",
             $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ private P() {{ }} {Body[1..]}");
         yield return (
@@ -81,6 +87,9 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
         yield return (
             "required member without a constructor that sets it",
             $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public required int Value {{ get; init; }} {Body[1..]}");
+        yield return (
+            "optional constructor that sets required members is not a parameterless contract",
+            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ [System.Diagnostics.CodeAnalysis.SetsRequiredMembers] public P(int value = 0) {{ Value = value; }} public required int Value {{ get; init; }} {Body[1..]}");
         yield return (
             "obsolete as error on the class",
             $"[System.Obsolete(\"no\", true)] [CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body}");
@@ -121,6 +130,18 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
     {
         // Discovery is attribute-driven: deriving from the base class alone is not a plugin declaration.
         var run = roslyn.Run($"{Usings} public sealed class P : CheatEnginePlugin {Body}");
+
+        run.AssertNoOutput();
+    }
+
+    [Fact]
+    public void Generator_user_declared_host_entry_point_type_emits_nothing()
+    {
+        // The user type is not a plugin class, so PluginShape cannot see it. Emitting a second CESDK.CESDK would be a
+        // duplicate type error in generated code; CESDK0005 is the analyzer's source-local explanation.
+        var run = roslyn.Run(
+            PluginSources.Nominal,
+            "namespace CESDK { public static class CESDK { } }");
 
         run.AssertNoOutput();
     }
@@ -204,12 +225,8 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
     [Theory]
     [InlineData("true")]
     [InlineData("True")]
-    [InlineData("")]
-    [InlineData("disable")]
-    [InlineData("0")]
-    public void Generator_build_property_not_false_still_emits(string value)
+    public void Generator_build_property_true_emits(string value)
     {
-        // Default is 'true'; anything that is not the boolean 'false' keeps the default.
         var run = RoslynFixture.Run(
             roslyn.CreateCompilation(PluginSources.Nominal),
             TestAnalyzerConfigOptionsProvider.WithBuildProperty("CheatEngineSdkGenerateEntryPoint", value));
@@ -218,12 +235,12 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
     }
 
     [Fact]
-    public void Generator_unrelated_build_property_is_ignored()
+    public void Generator_missing_direct_package_property_emits_nothing()
     {
         var run = RoslynFixture.Run(
             roslyn.CreateCompilation(PluginSources.Nominal),
-            TestAnalyzerConfigOptionsProvider.WithBuildProperty("CheatEngineSdkSomethingElse", "false"));
+            TestAnalyzerConfigOptionsProvider.Empty);
 
-        Assert.Single(run.GeneratedSources);
+        run.AssertNoOutput();
     }
 }

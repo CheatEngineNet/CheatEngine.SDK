@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CheatEngine.SDK.Lua.Interop.Tests.Support;
@@ -268,7 +269,11 @@ public sealed unsafe class CallTests
     {
         public const int Capacity = 4096;
 
+        [SuppressMessage("Meziantou.Analyzer", "MA0189",
+            Justification =
+                "This fixed buffer is embedded in native callback state and its unmanaged layout is intentional.")]
         public fixed byte Bytes[Capacity];
+
         public nuint Length;
         public bool Overflowed;
     }

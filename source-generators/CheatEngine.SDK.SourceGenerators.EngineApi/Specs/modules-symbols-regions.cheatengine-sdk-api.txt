@@ -1,0 +1,23 @@
+# CE 7.7.0.10621 scalar primitive used by the Inspection domain.
+#
+# Provenance: celua.txt, getAddressSafe at lines 204-208, SHA-256
+# AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00.
+# The table-shaped globals enumModules, enumSectionsOfModule, enumMemoryRegions,
+# getMemoryRegionInfo and getSymbolInfo cannot be represented by the current
+# scalar-only EngineApi grammar. EngineInspection owns their protected table
+# marshalling until the grammar has a reviewed table contract.
+
+namespace: CheatEngine.SDK.Engine.Generated
+type: InspectionPrimitives
+
+# The two optional flags are deliberately emitted as fixed false values. The
+# public EngineInspection wrapper has a richer typed options contract and uses
+# the same CE global directly so it can distinguish nil from a malformed value.
+global: getAddressSafe
+method: TryResolveAddressRaw
+form: try
+arg: expression:utf8
+fixed: boolean:false
+fixed: boolean:false
+result: address:address
+doc: Resolves a Cheat Engine symbol expression with the default safe lookup flags.

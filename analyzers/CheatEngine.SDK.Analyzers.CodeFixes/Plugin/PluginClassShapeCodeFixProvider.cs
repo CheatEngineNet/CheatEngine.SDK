@@ -19,7 +19,8 @@ namespace CheatEngine.SDK.Analyzers.CodeFixes.Plugin;
 ///     in the diagnostic properties:
 ///     <list type="bullet">
 ///         <item>
-///             <c>abstract</c> or <c>static</c> class: replace the modifier with <c>sealed</c>, in every part that
+///             <see langword="abstract" /> or <see langword="static" /> class: replace the modifier with
+///             <see langword="sealed" />, in every part that
 ///             carries it;
 ///         </item>
 ///         <item>
@@ -28,7 +29,7 @@ namespace CheatEngine.SDK.Analyzers.CodeFixes.Plugin;
 ///             class
 ///             has no accessible constructor that can be called without arguments);
 ///         </item>
-///         <item>inaccessible parameterless constructor: make it <c>public</c>.</item>
+///         <item>inaccessible parameterless constructor: make it <see langword="public" />.</item>
 ///     </list>
 ///     The other problems (generic, nesting, base class, accessibility of the class, file-local, required members,
 ///     obsolete errors, display name) are design decisions and get no fix.

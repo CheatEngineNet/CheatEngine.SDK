@@ -116,15 +116,18 @@ internal static class BootstrapEmitter
             "/// Called by the host, more than once per load. Forwards to the hosting runtime, which is idempotent, and never");
         writer.WriteLine("/// lets an exception reach native code.");
         writer.WriteLine("/// </summary>");
+        writer.WriteLine("/// <param name=\"args\">The first opaque value supplied by the host.</param>");
+        writer.WriteLine(
+            "/// <param name=\"opaqueArgument\">The second opaque value supplied by the host, forwarded without interpretation.</param>");
         writer.WriteLine("/// <returns>1 on success, 0 on failure.</returns>");
         writer.WriteLine(
-            $"public static int {ManagedEntryPointNames.MethodName}(global::System.IntPtr args, int size)");
+            $"public static int {ManagedEntryPointNames.MethodName}(global::System.IntPtr args, int opaqueArgument)");
         writer.OpenBlock();
         writer.WriteLine("try");
         writer.OpenBlock();
         writer.Write("return global::CheatEngine.SDK.Hosting.Bootstrap.PluginHost.InitializeManaged<");
         writer.Write(factoryName);
-        writer.WriteLine(">(args, size);");
+        writer.WriteLine(">(args, opaqueArgument);");
         writer.CloseBlock();
         writer.WriteLine("catch (global::System.Exception)");
         writer.OpenBlock();

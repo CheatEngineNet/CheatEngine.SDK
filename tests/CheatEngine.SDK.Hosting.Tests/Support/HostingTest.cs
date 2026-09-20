@@ -1,5 +1,6 @@
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Threading;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
@@ -21,6 +22,7 @@ internal static unsafe class HostingTest
         FakeExports.UseState(null);
         PluginHost.ResetForTests();
         LuaRuntime.Detach();
+        MainThreadDispatcher.ResetForTests();
         RecordingPlugin.Reset();
         LuaModuleLocator.Resolver = null;
         HostLog.ResetForTests();

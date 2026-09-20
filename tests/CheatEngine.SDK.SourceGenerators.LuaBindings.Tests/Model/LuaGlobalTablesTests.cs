@@ -57,15 +57,50 @@ public sealed class LuaGlobalTablesTests
         Assert.Equal(CompilationFacts.From(unsafeOn), CompilationFacts.From(unsafeOn));
     }
 
+    [Fact]
+    public void Group_assigns_case_insensitive_collision_names_independent_of_input_order()
+    {
+        var upper = Type("global::Demo.Type", "Type");
+        var lower = Type("global::Demo.type", "type");
+        var forward = LuaGlobalTables.Group([Global(lower, "lower", "Lower()"), Global(upper, "upper", "Upper()")]);
+        var reverse = LuaGlobalTables.Group([Global(upper, "upper", "Upper()"), Global(lower, "lower", "Lower()")]);
+
+        AssertHintNames(forward,
+            HintNames.ForType("Demo.Type", LuaGlobalTableModel.HintSuffix),
+            HintNames.Disambiguated("Demo.type", LuaGlobalTableModel.HintSuffix));
+        AssertHintNames(reverse,
+            HintNames.ForType("Demo.Type", LuaGlobalTableModel.HintSuffix),
+            HintNames.Disambiguated("Demo.type", LuaGlobalTableModel.HintSuffix));
+    }
+
     private static LuaGlobalModel Global(string name, string sortKey)
     {
+        return Global(Memory, name, sortKey);
+    }
+
+    private static LuaGlobalModel Global(ContainingTypeModel type, string name, string sortKey)
+    {
         return new LuaGlobalModel(
-            Memory,
+            type,
             ContainingTypeIssues.None,
             LuaGlobalShapeIssues.None,
             new LuaGlobalCallModel(name, LuaGlobalCallModel.CacheFieldFor(name), "public static partial", sortKey,
                 string.Empty, EquatableArray<LuaArgumentModel>.Empty, LuaCallForm.Throwing,
                 EquatableArray<LuaResultModel>.Empty, null, false),
             sortKey);
+    }
+
+    private static ContainingTypeModel Type(string fullyQualifiedName, string name)
+    {
+        return new ContainingTypeModel("Demo",
+            new EquatableArray<TypeDeclarationModel>([new TypeDeclarationModel("class", name)]),
+            fullyQualifiedName, "Demo." + name);
+    }
+
+    private static void AssertHintNames(EquatableArray<LuaGlobalTableModel> tables, string first, string second)
+    {
+        Assert.Equal(2, tables.Length);
+        Assert.Equal(first, tables[0].HintName, StringComparer.Ordinal);
+        Assert.Equal(second, tables[1].HintName, StringComparer.Ordinal);
     }
 }

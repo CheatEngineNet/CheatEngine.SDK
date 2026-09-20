@@ -12,6 +12,12 @@ target("cheatengine-sdk-lua-bridge")
     set_objectdir("$(builddir)/.objs")
     set_dependir("$(builddir)/.deps")
     if is_plat("windows") then
+        -- This bridge is deliberately a small Windows x64 C11 DLL. Pin the toolchain and runtime
+        -- rather than accepting a caller's ambient /MD default: the plugin must not acquire a second
+        -- VC runtime dependency beside Cheat Engine's host process.
+        set_toolchains("msvc")
+        set_policy("build.c++.msvc.runtime", "MT")
         set_runtimes("MT")
+        add_cflags("/MT", {tools = "cl", force = true})
         add_shflags("/Brepro", {tools = "link", force = true})
     end

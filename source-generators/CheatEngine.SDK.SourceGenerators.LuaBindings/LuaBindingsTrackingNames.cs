@@ -45,14 +45,41 @@ internal static class LuaBindingsTrackingNames
     /// <summary><c>SelectMany</c>: one <c>LuaGlobalTableModel</c> per containing type.</summary>
     public const string LuaGlobalTable = Prefix + "LuaGlobalTable";
 
-    /// <summary><c>Combine</c> of <see cref="LuaGlobalTable" /> and <see cref="Facts" />.</summary>
-    public const string LuaGlobalTableAndFacts = Prefix + "LuaGlobalTableAndFacts";
-
-    /// <summary><c>Where</c>: the pairs whose compilation allows unsafe code.</summary>
-    public const string LuaGlobalTableAllowed = Prefix + "LuaGlobalTableAllowed";
-
     /// <summary>The final <c>LuaGlobalTableModel</c>: the only input of the globals source output.</summary>
     public const string LuaGlobalOutput = Prefix + "LuaGlobalOutput";
+
+    /// <summary><c>ForAttributeWithMetadataName</c> transform: one <c>LuaClassModel</c> per annotated struct.</summary>
+    public const string LuaClass = Prefix + "LuaClass";
+
+    /// <summary><c>Collect</c>: all <c>[LuaClass]</c> models.</summary>
+    public const string CollectedLuaClasses = Prefix + "CollectedLuaClasses";
+
+    /// <summary>Filtered and ordered borrowed-handle models.</summary>
+    public const string LuaClasses = Prefix + "LuaClasses";
+
+    /// <summary>The input of the class-handle source output.</summary>
+    public const string LuaClassOutput = Prefix + "LuaClassOutput";
+
+    /// <summary><c>ForAttributeWithMetadataName</c> transform: one <c>LuaObjectMethodModel</c> per method.</summary>
+    public const string LuaMethod = Prefix + "LuaMethod";
+
+    /// <summary><c>Collect</c>: all <c>[LuaMethod]</c> models.</summary>
+    public const string CollectedLuaMethods = Prefix + "CollectedLuaMethods";
+
+    /// <summary><c>ForAttributeWithMetadataName</c> transform: one <c>LuaObjectPropertyModel</c> per property.</summary>
+    public const string LuaProperty = Prefix + "LuaProperty";
+
+    /// <summary><c>Collect</c>: all <c>[LuaProperty]</c> models.</summary>
+    public const string CollectedLuaProperties = Prefix + "CollectedLuaProperties";
+
+    /// <summary>The paired object-member collections.</summary>
+    public const string LuaObjectMembersAndProperties = Prefix + "LuaObjectMembersAndProperties";
+
+    /// <summary>Object members grouped by generated borrowed-handle type.</summary>
+    public const string LuaObjectMembersTables = Prefix + "LuaObjectMembersTables";
+
+    /// <summary>The input of the object-member source output.</summary>
+    public const string LuaObjectMembersOutput = Prefix + "LuaObjectMembersOutput";
 
     private const string Prefix = TrackingNames.Prefix + "LuaBindings.";
 
@@ -62,7 +89,9 @@ internal static class LuaBindingsTrackingNames
         Facts,
         LuaFunction, CollectedLuaFunctions, LuaFunctionTables, LuaFunctionTable, LuaFunctionTableAndFacts,
         LuaFunctionTableAllowed, LuaFunctionOutput,
-        LuaGlobal, CollectedLuaGlobals, LuaGlobalTables, LuaGlobalTable, LuaGlobalTableAndFacts, LuaGlobalTableAllowed,
-        LuaGlobalOutput
+        LuaGlobal, CollectedLuaGlobals, LuaGlobalTables, LuaGlobalTable, LuaGlobalOutput,
+        LuaClass, CollectedLuaClasses, LuaClasses, LuaClassOutput,
+        LuaMethod, CollectedLuaMethods, LuaProperty, CollectedLuaProperties, LuaObjectMembersAndProperties,
+        LuaObjectMembersTables, LuaObjectMembersOutput,
     ];
 }

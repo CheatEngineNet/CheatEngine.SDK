@@ -38,14 +38,41 @@ three `CEPlugin_*` functions.
 | `AbiArchitecture`                  | `CheatEngine.SDK.Abi`         | `IsSupported` and `ThrowIfUnsupported()`, x64 only                                                          | Both    |
 | `PluginType`, `AutoAssemblerPhase` | `CheatEngine.SDK.Abi.Native`  | 4-byte enums                                                                                                | Classic |
 | `*PluginInit` records              | `CheatEngine.SDK.Abi.Native`  | One registration record per `PluginType`                                                                    | Classic |
+| `PluginType0Record`                | `CheatEngine.SDK.Abi.Native`  | Internal, 48-byte x64 C-header selection-record mirror                                                      | Classic |
+| `RegisterModificationInfo`         | `CheatEngine.SDK.Abi.Native`  | Internal, dangerous 264-byte x64 register-change request                                                    | Classic |
+| `ExportedFunctionsPrefix`          | `CheatEngine.SDK.Abi.Native`  | Internal, 144-byte x64 direct-call prefix; stops before hook-bearing pointers                               | Classic |
 | `NativeExportNames`                | `CheatEngine.SDK.Abi.Native`  | `CEPlugin_GetVersion`, `CEPlugin_InitializePlugin`, `CEPlugin_DisablePlugin`                                | Classic |
 
 `CheatEngine.SDK.Hosting` loads plugins through the managed path. The classic records are layout definitions, checked by
-the same size and offset tests. This assembly does not map the classic exported-functions table.
+the same size and offset tests. This assembly maps only the internal direct-call prefix of the classic
+exported-functions table, through `GetAddressFromPointer`; it intentionally excludes the following pointer-indirect,
+hook-bearing suffix and Delphi-object slots.
 
 Some slots are `void*` on purpose. `LuaRegister` stays untyped so nobody calls it by accident. For plugin types 3 and 4,
 `cepluginsdk.h` and `cepluginsdk.pas` disagree on the callback signature, so those slots are untyped too. The record
 passed to the type 0 callback is `void*` for the same reason.
+
+## CE 7.7 evidence boundary
+
+The installed x64 host baseline is Cheat Engine `7.7.0.10621`, executable SHA-256
+`9727076DA50924E4A097B49A02155E4B34759269C3017FF31375364B8826EB4D`. The classic declarations used here come from
+the installed `cepluginsdk.h` (SHA-256 `9C0E31BB753D782CE20710D19828F4E97B4371C8733ABD0C5C6F7F485306FB28`) and
+`cepluginsdk.pas` (SHA-256 `CDA5269F441120E5A3BFF2F87E289CD71DE9158CA2A619C7D0A734EB98EE6052`), compared with the
+official [pinned
+`cepluginsdk.h`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/plugin/cepluginsdk.h)
+and [pinned
+`plugin.pas`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/plugin.pas).
+
+Field order, field widths, and the direct classic callback conventions are `ExactInstalledFile`. The x64 sizes and
+offsets asserted for the three new internal classic mirrors use natural Windows x64 C layout and are
+`InferredUntilFixture`: no C/C++ fixture compiled against the installed header and no live capture of
+`sizeofExportedFunctions` has yet validated them. The records stay internal until that fixture and the owning facade
+exist.
+
+The type-6 popup callback is a specifically unresolved contract. The installed header declares `BOOL* show`, while
+the pinned Pascal host implementation passes `PBool`. Its effective write width is `Unknown` until the required CE 7.7
+x64 live canary verifies it, so the callback slot is an opaque pointer rather than a callable managed signature. Do not
+write a one-byte flag, and do not invoke this callback slot from a production plugin, before that proof exists.
 
 The `CheatEngine.SDK` package embeds the assembly and its XML documentation under `lib/net10.0`. It is not a package of
 its own.

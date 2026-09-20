@@ -21,14 +21,15 @@ namespace CheatEngine.SDK.Hosting.Threading;
 ///     </para>
 ///     <para>
 ///         <b>Dispatch.</b> <see cref="Invoke{TState}" /> runs the work inline when called on the main thread and
-///         otherwise
-///         hands it to Cheat Engine's Lua <c>synchronize</c> global, which is documented to run it on the main thread and
-///         return when it has completed; an exception thrown by the work is rethrown on the caller with its original stack
-///         trace. <b>The cross-thread path is not verified in a live Cheat Engine:</b> its mechanics are tested
-///         against
-///         a Lua stand-in for <c>synchronize</c> that runs the function where it is called, so whether the real host hops
-///         a
-///         .NET worker thread onto its main thread is not established. Deadlock rule, the
+///         otherwise hands it to Cheat Engine's Lua <c>synchronize</c> global, which must run it on the captured main
+///         thread and return when it has completed; an exception thrown by the work is rethrown on the caller with its
+///         original stack trace. The dispatch thunk rejects a host that invokes it on any other managed thread.
+///         <b>
+///             The
+///             actual Cheat Engine 7.7 hop remains unverified live
+///         </b>
+///         ; unit tests deliberately prove that an inline stand-in
+///         is rejected. Deadlock rule, the
 ///         host's: a main thread that blocks on a worker which itself calls <see cref="Invoke{TState}" /> deadlocks unless
 ///         the main thread pumps queued calls with <see cref="CheckSynchronize" /> while it waits. A fire-and-forget form
 ///         (<c>queue</c>) and a <see cref="System.Threading.SynchronizationContext" /> are not offered until the
@@ -104,15 +105,15 @@ public static unsafe class MainThread
     ///     there, through the host's <c>synchronize</c> otherwise.
     /// </summary>
     /// <typeparam name="TState">
-    ///     The state passed to the action; pass what the action needs so that it can be a <c>static</c>
+    ///     The state passed to the action; pass what the action needs so that it can be a <see langword="static" />
     ///     lambda.
     /// </typeparam>
     /// <param name="action">The work.</param>
     /// <param name="state">Its argument.</param>
     /// <exception cref="ArgumentNullException"><paramref name="action" /> is <see langword="null" />.</exception>
     /// <exception cref="InvalidOperationException">
-    ///     The plugin is not enabled, or the host's <c>synchronize</c> is unavailable
-    ///     or failed.
+    ///     The plugin is not enabled, the host's <c>synchronize</c> is unavailable or failed, or the host omitted
+    ///     <c>CheckSynchronize</c> so Hosting cannot guarantee a shutdown drain for worker work.
     /// </exception>
     /// <remarks>
     ///     An exception thrown by <paramref name="action" /> on the main thread is rethrown here with its original stack
@@ -130,7 +131,12 @@ public static unsafe class MainThread
             return;
         }
 
+        if (!context.HasCheckSynchronize)
+            throw new InvalidOperationException(
+                "The host's exports record has no CheckSynchronize function; cross-thread dispatch cannot guarantee shutdown drain.");
+
         ActionWorkItem<TState> item = new(action, state);
+        using var admission = PluginHost.AdmitMainThreadWork(context);
         MainThreadDispatcher.Dispatch(item);
         item.ThrowIfFailed();
     }
@@ -146,8 +152,8 @@ public static unsafe class MainThread
     /// <returns>What <paramref name="function" /> returned on the main thread.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="function" /> is <see langword="null" />.</exception>
     /// <exception cref="InvalidOperationException">
-    ///     The plugin is not enabled, or the host's <c>synchronize</c> is unavailable
-    ///     or failed.
+    ///     The plugin is not enabled, the host's <c>synchronize</c> is unavailable or failed, or the host omitted
+    ///     <c>CheckSynchronize</c> so Hosting cannot guarantee a shutdown drain for worker work.
     /// </exception>
     /// <remarks>
     ///     Same caveat as <see cref="Invoke{TState}" />: the cross-thread path through <c>synchronize</c> is unverified
@@ -160,7 +166,12 @@ public static unsafe class MainThread
         var context = PluginHost.RequireContext();
         if (context.IsMainThread) return function(state);
 
+        if (!context.HasCheckSynchronize)
+            throw new InvalidOperationException(
+                "The host's exports record has no CheckSynchronize function; cross-thread dispatch cannot guarantee shutdown drain.");
+
         FuncWorkItem<TState, TResult> item = new(function, state);
+        using var admission = PluginHost.AdmitMainThreadWork(context);
         MainThreadDispatcher.Dispatch(item);
         item.ThrowIfFailed();
         return item.Result!;

@@ -9,7 +9,8 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Tests.Infrastructure;
 ///     inspected for caching.
 /// </summary>
 /// <remarks>
-///     Unlike <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>'s fixture, the compilation carries no attributed C# source: this
+///     Unlike <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c>'s fixture, the compilation carries no attributed C#
+///     source: this
 ///     generator reads only <c>AdditionalTextsProvider</c>, so the compilation exists solely to host the generated
 ///     trees and their compile-clean check.
 /// </remarks>

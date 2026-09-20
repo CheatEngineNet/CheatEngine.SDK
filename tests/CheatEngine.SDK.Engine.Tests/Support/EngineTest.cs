@@ -1,3 +1,4 @@
+using System.Globalization;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
@@ -76,7 +77,8 @@ internal static class EngineTest
     public static string ReadString(LuaState L, int index)
     {
         Assert.True(L.TryReadString(index, out var value),
-            "The value at " + index + " is a " + L.TypeOf(index) + ", not a string.");
+            "The value at " + index.ToString(CultureInfo.InvariantCulture) + " is a " + L.TypeOf(index) +
+            ", not a string.");
         return value;
     }
 
@@ -84,7 +86,8 @@ internal static class EngineTest
     public static long ReadInteger(LuaState L, int index)
     {
         Assert.True(L.TryReadInteger(index, out var value),
-            "The value at " + index + " is a " + L.TypeOf(index) + ", not an integer.");
+            "The value at " + index.ToString(CultureInfo.InvariantCulture) + " is a " + L.TypeOf(index) +
+            ", not an integer.");
         return value;
     }
 }

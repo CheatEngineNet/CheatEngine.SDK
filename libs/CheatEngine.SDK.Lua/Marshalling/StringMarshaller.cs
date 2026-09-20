@@ -13,7 +13,8 @@ namespace CheatEngine.SDK.Lua.Marshalling;
 ///     <see cref="Utf8Marshaller" /> or <see cref="LuaState.TryCopyUtf8" /> instead.
 /// </summary>
 /// <remarks>
-///     The marshalled type is <c>string</c>, not <c>string?</c>, so that generic code constrained on
+///     The marshalled type is <see langword="string" />, not <see langword="string" />?, so that generic code constrained
+///     on
 ///     <c>ILuaMarshaller&lt;T&gt;</c> can name the type a declaration names; <see cref="Push" /> still accepts
 ///     <see langword="null" /> (pushed as <c>nil</c>) and <see cref="TryRead" /> is annotated so that its result is
 ///     non-null exactly when it returns <see langword="true" />. Lone surrogates in the input become U+FFFD; invalid UTF-8

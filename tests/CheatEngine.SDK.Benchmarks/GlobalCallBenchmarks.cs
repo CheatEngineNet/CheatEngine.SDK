@@ -11,7 +11,6 @@ namespace CheatEngine.SDK.Benchmarks;
 ///     (<see cref="BenchGlobals.Add(long, long)" />).
 /// </summary>
 [MemoryDiagnoser(false)]
-[ShortRunJob]
 [BenchmarkCategory("GlobalCall")]
 public class GlobalCallBenchmarks : IDisposable
 {
@@ -34,7 +33,8 @@ public class GlobalCallBenchmarks : IDisposable
         var l = FakeHostRuntime.Attach(_state, false);
         var defined = l.TryExecute("function cheatengine_sdk_bench_add(a, b) return a + b end"u8, 0);
         if (!defined.IsOk)
-            throw new InvalidOperationException("Defining cheatengine_sdk_bench_add failed: " + LuaError.FromStack(l, defined));
+            throw new InvalidOperationException("Defining cheatengine_sdk_bench_add failed: " +
+                                                LuaError.FromStack(l, defined));
     }
 
     /// <summary>

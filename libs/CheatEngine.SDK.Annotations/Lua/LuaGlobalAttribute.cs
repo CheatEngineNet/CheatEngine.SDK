@@ -5,20 +5,20 @@ using CheatEngine.SDK.Annotations.Threading;
 namespace CheatEngine.SDK.Annotations.Lua;
 
 /// <summary>
-///     Binds a <see langword="partial" /> method or property to a global of Cheat Engine's Lua environment; the body is
+///     Binds a <see langword="partial" /> method to a global function of Cheat Engine's Lua environment; the body is
 ///     generated.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         <b>Consumed by.</b> The <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c> generator, which discovers the
-///         member with
+///         method with
 ///         <c>ForAttributeWithMetadataName("CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute")</c>. Its contract is
 ///         the implementing half of the partial declaration. On a method the global is a function: the generated body
 ///         records the stack top, pushes the global and the arguments, makes one protected call, reads the result and
 ///         restores the stack on every path, with the name emitted as a UTF-8 literal and never looked up through a
-///         managed string at run time. A partial property that carries the attribute gets no generated accessors. Which
-///         signatures are supported is documented with the generator. A declaration it cannot implement (not partial,
-///         unsupported parameter or return types) is a generator-input error (CESDK2004).
+///         managed string at run time. Which signatures are supported is documented with the generator. A declaration it
+///         cannot implement (not partial, unsupported parameter or return types) is a generator-input error (CESDK2004).
+///         Lua global variables deliberately have no annotation contract yet.
 ///     </para>
 ///     <para>
 ///         <b>Run time.</b> The attribute has no behaviour and nothing in the SDK reads it: the generated body carries the
@@ -38,7 +38,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         which cannot be partial; rejecting them is the generator's job, the compiler accepts them.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false)]
+[AttributeUsage(AttributeTargets.Method, Inherited = false)]
 public sealed class LuaGlobalAttribute : Attribute
 {
     /// <summary>

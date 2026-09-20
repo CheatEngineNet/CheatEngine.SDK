@@ -7,6 +7,13 @@
 
 namespace: CheatEngine.SDK.Engine.Generated
 type: MemoryScalars
+contract: ce77
+provenance: ExactInstalledFile: CE 7.7.0.10621 celua.txt, SHA-256 AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00
+minimum-ce: 7.7.0.10621
+architecture: x64
+# This scalar-memory subset has no verified CE GUI-thread proof. `unknown` deliberately blocks no runtime claim.
+thread: unknown
+ownership: none
 
 # readInteger(address): a 32-bit integer, or nil when the address cannot be read as one.
 global: readInteger
@@ -15,6 +22,7 @@ form: try
 arg: address:address
 fixed: boolean:true
 result: value:int32
+nil: absence
 doc: Reads a 32-bit integer from the target process at the given address; returns false when the address is not readable as a 32-bit integer.
 
 # writeInteger(address, value): writes a 32-bit integer, true on success.
@@ -24,6 +32,7 @@ form: throwing
 arg: address:address
 arg: value:int32
 return: boolean
+nil: none
 doc: Writes a 32-bit integer to the target process at the given address; the returned value reports whether the write succeeded.
 
 # readQword(address): a 64-bit integer, or nil when the address cannot be read as one.
@@ -32,6 +41,7 @@ method: TryReadInt64
 form: try
 arg: address:address
 result: value:int64
+nil: absence
 doc: Reads a 64-bit integer from the target process at the given address; returns false when the address is not readable as a 64-bit integer.
 
 # writeQword(address, value): writes a 64-bit integer, true on success.
@@ -41,4 +51,5 @@ form: throwing
 arg: address:address
 arg: value:int64
 return: boolean
+nil: none
 doc: Writes a 64-bit integer to the target process at the given address; the returned value reports whether the write succeeded.

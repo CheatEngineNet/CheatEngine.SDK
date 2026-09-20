@@ -13,9 +13,12 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Output is produced only when generation is switched on (MSBuild property <c>CheatEngineSdkGenerateEntryPoint</c>,
+///         Output is produced only when generation is switched on (MSBuild property
+///         <c>CheatEngineSdkGenerateEntryPoint</c>,
 ///         default
-///         <c>true</c>) and exactly one valid plugin class exists. In every other case the generator emits nothing and
+///         <see langword="false" /> unless the direct package build asset makes it compiler-visible) and exactly one valid
+///         plugin
+///         class exists. In every other case the generator emits nothing and
 ///         reports nothing: the diagnostics (CESDK0001 and CESDK0002) belong to <c>CheatEngine.SDK.Analyzers</c>.
 ///     </para>
 ///     <para>
@@ -53,12 +56,20 @@ public sealed class EntryPointGenerator : IIncrementalGenerator
             .Select(static (provider, _) => EntryPointOptions.From(provider.GlobalOptions))
             .WithTrackingName(EntryPointTrackingNames.Options);
 
+        // A hand-written CESDK.CESDK is a source-identity collision, even when it is not itself a plugin class. Keep
+        // this as a scalar projection so an unrelated compilation edit can leave the final BootstrapModel unchanged.
+        var entryPointTypeCollision = context.CompilationProvider
+            .Select(static (compilation, _) => EntryPointGeneratedIdentity.HasEntryPointTypeCollision(compilation))
+            .WithTrackingName(EntryPointTrackingNames.EntryPointTypeCollision);
+
         // One more projection instead of deciding inside the output: the source output then depends on three strings
         // only, so a second (invalid) plugin class or an unrelated option never re-emits the file.
         var bootstrap = plugins
             .Combine(options)
             .WithTrackingName(EntryPointTrackingNames.PluginsAndOptions)
-            .Select(static (pair, _) => BootstrapModel.Select(pair.Left, pair.Right))
+            .Combine(entryPointTypeCollision)
+            .WithTrackingName(EntryPointTrackingNames.PluginsOptionsAndCollision)
+            .Select(static (pair, _) => BootstrapModel.Select(pair.Left.Left, pair.Left.Right, pair.Right))
             .WithTrackingName(EntryPointTrackingNames.Bootstrap);
 
         context.RegisterSourceOutput(bootstrap, static (productionContext, model) =>

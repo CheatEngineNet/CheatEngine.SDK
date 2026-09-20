@@ -9,9 +9,8 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 /// <summary>
 ///     What <see cref="LuaBindingAnalyzer" /> learns about the compilation's otherwise-exportable <c>[LuaFunction]</c>
 ///     methods and can only judge once the whole compilation has been seen: two members of the same containing type
-///     registering the same Lua name (CESDK2003, <see cref="LuaFunctionShapeIssues.DuplicateName" />), the one flag of
-///     that enum <c>LuaFunctionShape.Inspect</c> cannot decide on its own, because it is given one method at a time and
-///     the answer depends on every sibling member of the containing type.
+///     registering the same Lua name (CESDK2005). The group condition cannot be decided from one method at a time,
+///     because the answer depends on every sibling member of the containing type.
 /// </summary>
 /// <remarks>
 ///     One instance per compilation, created in the compilation-start action and captured by the symbol action of that
@@ -38,8 +37,7 @@ internal sealed class LuaFunctionDuplicateState
     }
 
     /// <summary>
-    ///     The compilation-end action: reports CESDK2003 with <see cref="LuaFunctionShapeIssues.DuplicateName" /> for
-    ///     every member of a group of two or more.
+    ///     The compilation-end action: reports CESDK2005 for every member of a group of two or more.
     /// </summary>
     public void Report(CompilationAnalysisContext context)
     {
@@ -49,10 +47,19 @@ internal sealed class LuaFunctionDuplicateState
 
             foreach (var (methodName, location) in members)
                 context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticDescriptors.InvalidLuaFunction,
+                    DiagnosticDescriptors.DuplicateLuaName,
                     location,
                     methodName,
-                    LuaFunctionProblemText.Describe(LuaFunctionShapeIssues.DuplicateName)));
+                    LuaNameFor(members)));
         }
+    }
+
+    private string LuaNameFor(ConcurrentQueue<(string MethodName, Location Location)> members)
+    {
+        foreach (var pair in _candidates)
+            if (ReferenceEquals(pair.Value, members))
+                return pair.Key.LuaName;
+
+        return string.Empty;
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,8 +9,8 @@ using Microsoft.CodeAnalysis.Text;
 namespace CheatEngine.SDK.Analyzers.CodeFixes.Usage;
 
 /// <summary>
-///     Builds the guarded body that CESDK1004 asks for: the whole former body inside one <c>try</c>, and a
-///     <c>catch (System.Exception)</c> that returns the failure value of the return type.
+///     Builds the guarded body that CESDK1004's known bootstrap convention asks for: the whole former body inside one
+///     <see langword="try" />, and a <c>catch (System.Exception)</c> that returns <c>0</c>.
 /// </summary>
 /// <remarks>
 ///     Pure syntax in, syntax out. The result carries <see cref="Formatter.Annotation" /> (indentation is left to the
@@ -18,10 +19,8 @@ namespace CheatEngine.SDK.Analyzers.CodeFixes.Usage;
 /// </remarks>
 internal static class ExceptionGuardRewriter
 {
-    private const string EmptyCatchComment = "// A managed exception must never unwind into native code.";
-
     /// <summary>Wraps the statements of a block body.</summary>
-    public static BlockSyntax Guard(BlockSyntax body, ITypeSymbol returnType, SyntaxTrivia endOfLine)
+    public static BlockSyntax Guard(BlockSyntax body, ITypeSymbol returnType)
     {
         // Comments in front of the closing brace belong to the old body: they move into the try block with it.
         var tryBlock = SyntaxFactory.Block(body.Statements)
@@ -29,7 +28,7 @@ internal static class ExceptionGuardRewriter
                 .WithLeadingTrivia(body.CloseBraceToken.LeadingTrivia));
 
         return body
-            .WithStatements(SyntaxFactory.SingletonList<StatementSyntax>(CreateTry(tryBlock, returnType, endOfLine)))
+            .WithStatements(SyntaxFactory.SingletonList<StatementSyntax>(CreateTry(tryBlock, returnType)))
             .WithCloseBraceToken(body.CloseBraceToken.WithLeadingTrivia(SyntaxFactory.ElasticMarker))
             .WithAdditionalAnnotations(Formatter.Annotation);
     }
@@ -72,7 +71,7 @@ internal static class ExceptionGuardRewriter
         };
 
         var tryBlock = SyntaxFactory.Block(statement.WithLeadingTrivia(comments));
-        return SyntaxFactory.Block(CreateTry(tryBlock, returnType, endOfLine))
+        return SyntaxFactory.Block(CreateTry(tryBlock, returnType))
             .WithTrailingTrivia(Slice(afterSemicolon, statementPart, afterSemicolon.Count))
             .WithAdditionalAnnotations(Formatter.Annotation);
     }
@@ -138,46 +137,28 @@ internal static class ExceptionGuardRewriter
             or SyntaxKind.SingleLineDocumentationCommentTrivia or SyntaxKind.MultiLineDocumentationCommentTrivia;
     }
 
-    private static TryStatementSyntax CreateTry(BlockSyntax tryBlock, ITypeSymbol returnType, SyntaxTrivia endOfLine)
+    private static TryStatementSyntax CreateTry(BlockSyntax tryBlock, ITypeSymbol returnType)
     {
         var exceptionType = SyntaxFactory.ParseTypeName("global::System.Exception")
             .WithAdditionalAnnotations(Simplifier.Annotation);
         var catchClause = SyntaxFactory.CatchClause()
             .WithDeclaration(SyntaxFactory.CatchDeclaration(exceptionType))
-            .WithBlock(CreateCatchBlock(returnType, endOfLine));
+            .WithBlock(CreateCatchBlock(returnType));
 
         return SyntaxFactory.TryStatement(tryBlock, SyntaxFactory.SingletonList(catchClause), null);
     }
 
-    private static BlockSyntax CreateCatchBlock(ITypeSymbol returnType, SyntaxTrivia endOfLine)
+    private static BlockSyntax CreateCatchBlock(ITypeSymbol returnType)
     {
-        if (CreateFailureValue(returnType) is { } failureValue)
-            return SyntaxFactory.Block(SyntaxFactory.ReturnStatement(failureValue));
-
-        // A void callback has nothing to return: say why the block is empty instead of leaving a bare 'catch { }'.
-        var closeBrace = SyntaxFactory.Token(
-            SyntaxFactory.TriviaList(SyntaxFactory.Comment(EmptyCatchComment), endOfLine),
-            SyntaxKind.CloseBraceToken,
-            SyntaxFactory.TriviaList(SyntaxFactory.ElasticMarker));
-        return SyntaxFactory.Block().WithCloseBraceToken(closeBrace);
+        return SyntaxFactory.Block(SyntaxFactory.ReturnStatement(CreateFailureValue(returnType)));
     }
 
-    // What "failure" means to the native caller: FALSE for Cheat Engine's BOOL callbacks, zero results for a
-    // lua_CFunction, a null pointer or handle, the zero value of anything else.
-    private static LiteralExpressionSyntax? CreateFailureValue(ITypeSymbol returnType)
+    // The provider verifies the exact CE bootstrap signature before calling this rewriter. Keep that precondition
+    // here too, so a future caller cannot silently turn an unknown callback into a generic "return 0" fix.
+    private static LiteralExpressionSyntax CreateFailureValue(ITypeSymbol returnType)
     {
-        return returnType.SpecialType switch
-        {
-            SpecialType.System_Void => null,
-            SpecialType.System_Boolean => SyntaxFactory.LiteralExpression(SyntaxKind.FalseLiteralExpression),
-            SpecialType.System_SByte or SpecialType.System_Byte
-                or SpecialType.System_Int16 or SpecialType.System_UInt16
-                or SpecialType.System_Int32 or SpecialType.System_UInt32
-                or SpecialType.System_Int64 or SpecialType.System_UInt64
-                or SpecialType.System_Single or SpecialType.System_Double =>
-                SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
-            _ => SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression,
-                SyntaxFactory.Token(SyntaxKind.DefaultKeyword))
-        };
+        return returnType.SpecialType != SpecialType.System_Int32
+            ? throw new ArgumentException("The CE bootstrap failure convention returns Int32.", nameof(returnType))
+            : SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
     }
 }

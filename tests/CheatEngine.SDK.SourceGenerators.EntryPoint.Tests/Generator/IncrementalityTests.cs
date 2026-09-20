@@ -193,6 +193,26 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
     }
 
     [Fact]
+    public void Pipeline_user_declared_entry_point_type_added_removes_the_output()
+    {
+        var compilation = roslyn.CreateCompilation(PluginSources.Nominal);
+        var first = RoslynFixture.Run(compilation);
+        Assert.Single(first.GeneratedSources);
+
+        var second = GeneratorRun.Execute(
+            first.Driver,
+            compilation.AddSyntaxTrees(RoslynFixture.Parse(
+                "namespace CESDK { public static class CESDK { } }",
+                "UserEntryPoint.cs")));
+
+        second.AssertNoOutput();
+        Assert.Equal([IncrementalStepRunReason.Modified],
+            StepAssert.Reasons(second.Result, EntryPointTrackingNames.EntryPointTypeCollision));
+        Assert.Equal([IncrementalStepRunReason.Modified],
+            StepAssert.Reasons(second.Result, EntryPointTrackingNames.Bootstrap));
+    }
+
+    [Fact]
     public void Pipeline_build_property_switched_off_removes_the_output()
     {
         var compilation = roslyn.CreateCompilation(PluginSources.Nominal);

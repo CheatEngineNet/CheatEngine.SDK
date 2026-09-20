@@ -1,15 +1,16 @@
 # CESDK1004: Exception can escape an [UnmanagedCallersOnly] method
 
-|                    |                                                                          |
-|--------------------|--------------------------------------------------------------------------|
-| Category           | `CheatEngine.SDK.Usage`                                                  |
-| Default severity   | Warning                                                                  |
-| Enabled by default | Yes                                                                      |
-| Code fix           | Yes: wrap body in try/catch returning a failure value (supports Fix All) |
-| Reported           | While typing and in build                                                |
+|                    |                                                                                               |
+|--------------------|-----------------------------------------------------------------------------------------------|
+| Category           | `CheatEngine.SDK.Usage`                                                                       |
+| Default severity   | Warning                                                                                       |
+| Enabled by default | Yes                                                                                           |
+| Code fix           | Only for the exact CE bootstrap convention; other callbacks require a manual failure contract |
+| Reported           | While typing and in build                                                                     |
 
-In short: put the whole body of the method in one `try` statement, catch `Exception`, and return a failure value from
-the `catch` block. The code fix does exactly that.
+In short: put the whole body of the method in one `try` statement, catch `Exception`, and return the failure value
+specified by that callback's native contract. The code fix is deliberately narrower: it is offered only for the exact
+CE bootstrap convention, whose failure return is documented as `0`.
 
 ## Cause
 
@@ -104,7 +105,8 @@ Scope:
 
 - Methods and local functions with the attribute, block or expression bodied. A local function is analyzed on its own.
 - Generated code is not analyzed.
-- The analyzer only runs in projects where a CheatEngine.SDK contract type (`CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute`
+- The analyzer only runs in projects where a CheatEngine.SDK contract type
+  (`CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute`
   or `CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin`) can be resolved.
 
 ## Example
@@ -127,29 +129,27 @@ internal static class Callbacks
 
 ## Code fix
 
-"Wrap body in try/catch returning a failure value" moves the whole body into a `try` and adds a catch-all whose return
-value depends on the return type:
-
-| Return type                                                                           | Failure value | Meaning for the native caller                                                     |
-|---------------------------------------------------------------------------------------|---------------|-----------------------------------------------------------------------------------|
-| `sbyte`, `byte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double` | `0`           | `FALSE` for Cheat Engine's `BOOL` callbacks; "zero results" for a `lua_CFunction` |
-| `bool`                                                                                | `false`       | Failure                                                                           |
-| `void`                                                                                | nothing       | the catch block gets a comment instead of being left empty                        |
-| anything else (`nint`, `nuint`, `char`, pointers, function pointers, enums, structs)  | `default`     | null pointer or handle, zero value                                                |
+"Wrap body in try/catch returning a failure value" is offered only for a public static
+`CESDK.CESDK.CEPluginInitialize(IntPtr, int)` that returns `int`. It moves the whole body into a `try` and adds a
+catch-all returning `0`, the failure value documented for that bootstrap contract. It is not offered for an arbitrary
+`[UnmanagedCallersOnly]` method: an integer can be a success flag, count, address fragment or an application-defined
+result, and the SDK must not guess.
 
 ```csharp
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-internal static class Callbacks
+namespace CESDK;
+
+internal static class CESDK
 {
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static int OnLuaCall(nint luaState)
+    public static int CEPluginInitialize(IntPtr exportedFunctions, int bootstrap)
     {
         try
         {
-            return DoWork(luaState);
+            return DoWork(exportedFunctions);
         }
         catch (Exception)
         {
@@ -157,7 +157,7 @@ internal static class Callbacks
         }
     }
 
-    private static int DoWork(nint luaState) => 1;
+    private static int DoWork(IntPtr exportedFunctions) => 1;
 }
 ```
 
@@ -165,15 +165,14 @@ The exception type is written `Exception` where `using System;` is in scope and 
 existing `try` without a catch-all is wrapped as a whole rather than edited. Comments travel with the statements,
 preprocessor directives inside a block body too.
 
-An expression body becomes a block body: `=> e` turns into `return e;` (`e;` for `void`), and `=> throw ...` into a
-throw statement. Comments between the signature and the expression (`=> // why`, or on lines of their own) move in front
-of the statement, one per line. A comment after the semicolon stays on the statement line. The fix is not offered when a
-preprocessor directive sits inside the expression body (`=>` followed by `#if` branches): the branches are halves of one
-expression and the matching `#endif` lies outside the declaration, so there is no mechanical block form. Convert such a
-body by hand.
+An expression body becomes a block body: `=> e` turns into `return e;`. Comments between the signature and the
+expression (`=> // why`, or on lines of their own) move in front of the statement, one per line. A comment after the
+semicolon stays on the statement line. The fix is not offered when a preprocessor directive sits inside the expression
+body (`=>` followed by `#if` branches): the branches are halves of one expression and the matching `#endif` lies outside
+the declaration, so there is no mechanical block form. Convert such a body by hand.
 
-The catch block is where your logging belongs. The fix does not invent a logging call. Check that the failure value is
-what the native contract of that particular callback expects: for a callback where `0` means success, change it.
+The catch block is where your logging belongs. The fix does not invent a logging call. For every callback other than the
+bootstrap convention, add the `try`/`catch` and its verified failure return manually.
 
 ## When to suppress
 

@@ -4,8 +4,9 @@ namespace CheatEngine.SDK.Tests.Packaging;
 
 /// <summary>
 ///     What is physically inside the packed <c>.nupkg</c>: the six embedded libs plus their XML docs under
-///     <c>lib/net10.0</c>, and exactly the four shipping Roslyn components under <c>analyzers/dotnet/cs</c> - never
-///     <c>CheatEngine.SDK.SourceGenerators.EngineApi</c>, which is repository-internal and does not ship.
+///     <c>lib/net10.0</c>, the four active shipping Roslyn components and their shared loader dependency under
+///     <c>analyzers/dotnet/cs</c> - never <c>CheatEngine.SDK.SourceGenerators.EngineApi</c>, which is
+///     repository-internal and does not ship.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
 public sealed class PackageContentsTests(PackagedUmbrellaFixture fixture)
@@ -20,7 +21,8 @@ public sealed class PackageContentsTests(PackagedUmbrellaFixture fixture)
     private static readonly string[] ExpectedAnalyzers =
     [
         "CheatEngine.SDK.Analyzers.dll", "CheatEngine.SDK.Analyzers.CodeFixes.dll",
-        "CheatEngine.SDK.SourceGenerators.EntryPoint.dll", "CheatEngine.SDK.SourceGenerators.LuaBindings.dll"
+        "CheatEngine.SDK.SourceGenerators.EntryPoint.dll", "CheatEngine.SDK.SourceGenerators.LuaBindings.dll",
+        "CheatEngine.SDK.SourceGenerators.Shared.dll",
     ];
 
     public static TheoryData<string> LibraryNames => [.. ExpectedLibraries];
@@ -51,7 +53,7 @@ public sealed class PackageContentsTests(PackagedUmbrellaFixture fixture)
     }
 
     [Fact]
-    public void Analyzers_directory_holds_exactly_the_four_shipping_components()
+    public void Analyzers_directory_holds_the_active_components_and_their_shared_dependency()
     {
         string[] underAnalyzers =
         [
@@ -61,24 +63,22 @@ public sealed class PackageContentsTests(PackagedUmbrellaFixture fixture)
     }
 
     [Fact]
-    public void Package_carries_its_own_build_props_at_both_locations()
+    public void Package_carries_direct_consumer_build_assets_only()
     {
-        // NuGet imports build/<PackageId>.props and buildTransitive/<PackageId>.props by package id alone: a props file
-        // with any other name is silently never imported, so the expected names come from the id, not a second literal.
+        // NuGet imports build/<PackageId>.* by package id alone. Omission of buildTransitive is intentional: an indirect
+        // dependency must not activate the generator, alter compiler properties, or copy deployment files.
         Assert.Contains($"build/{UmbrellaPackage.Id}.props", fixture.PackageEntries, StringComparer.Ordinal);
-        Assert.Contains($"buildTransitive/{UmbrellaPackage.Id}.props", fixture.PackageEntries, StringComparer.Ordinal);
+        Assert.Contains($"build/{UmbrellaPackage.Id}.targets", fixture.PackageEntries, StringComparer.Ordinal);
+        Assert.Contains("build/native/cheatengine-sdk-lua-bridge.dll", fixture.PackageEntries, StringComparer.Ordinal);
+        Assert.DoesNotContain(fixture.PackageEntries,
+            static entry => entry.StartsWith("buildTransitive/", StringComparison.Ordinal));
+        Assert.DoesNotContain("runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll", fixture.PackageEntries,
+            StringComparer.Ordinal);
     }
 
     [Fact]
     public void Package_carries_its_readme()
     {
         Assert.Contains("README.md", fixture.PackageEntries, StringComparer.Ordinal);
-    }
-
-    [Fact]
-    public void Package_carries_the_win_x64_native_bridge()
-    {
-        Assert.Contains("runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll", fixture.PackageEntries,
-            StringComparer.Ordinal);
     }
 }

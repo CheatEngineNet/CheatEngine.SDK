@@ -6,8 +6,8 @@ namespace CheatEngine.SDK.Engine.Enums;
 ///     Only consulted while <c>Sorted</c> is true.
 /// </summary>
 /// <remarks>
-///     Values verified against <c>defines.lua</c> of Cheat Engine 7.7.0.10621. The property is published through LCL
-///     RTTI and may read back as the <c>dup*</c> name; see <see cref="CEEnumNames" />.
+///     Values verified against <c>defines.lua</c> of Cheat Engine 7.7.0.10621. <c>LuaStringlist.pas</c> exchanges the
+///     <c>Duplicates</c> property as the numeric <c>TDuplicates</c> ordinal, not its <c>dup*</c> identifier.
 /// </remarks>
 public enum DuplicateHandling
 {

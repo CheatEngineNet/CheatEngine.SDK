@@ -59,10 +59,16 @@
     <Project Path="libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
   </Folder>
   <Folder Name="/source-generators/">
-    <Project Path="source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/CheatEngine.SDK.SourceGenerators.EngineApi.csproj"/>
-    <Project Path="source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/CheatEngine.SDK.SourceGenerators.EntryPoint.csproj"/>
-    <Project Path="source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/CheatEngine.SDK.SourceGenerators.LuaBindings.csproj"/>
-    <Project Path="source-generators/CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj"/>
+    <Project
+      Path="source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/CheatEngine.SDK.SourceGenerators.EngineApi.csproj"/>
+    <Project
+      Path="source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/CheatEngine.SDK.SourceGenerators.EntryPoint.csproj"/>
+    <Project
+      Path="source-generators/CheatEngine.SDK.SourceGenerators.LuaBridgeContract/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.csproj"/>
+    <Project
+      Path="source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/CheatEngine.SDK.SourceGenerators.LuaBindings.csproj"/>
+    <Project
+      Path="source-generators/CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj"/>
   </Folder>
   <Folder Name="/src/">
     <File Path="src/CheatEngine.SDK/build/CheatEngine.SDK.props"/>
@@ -82,9 +88,14 @@
     <Project Path="tests/CheatEngine.SDK.Lua.Interop.Tests/CheatEngine.SDK.Lua.Interop.Tests.csproj"/>
     <Project Path="tests/CheatEngine.SDK.Lua.FailureProbe/CheatEngine.SDK.Lua.FailureProbe.csproj"/>
     <Project Path="tests/CheatEngine.SDK.Lua.Tests/CheatEngine.SDK.Lua.Tests.csproj"/>
-    <Project Path="tests/CheatEngine.SDK.SourceGenerators.EngineApi.Tests/CheatEngine.SDK.SourceGenerators.EngineApi.Tests.csproj"/>
-    <Project Path="tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.csproj"/>
-    <Project Path="tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.csproj"/>
+    <Project
+      Path="tests/CheatEngine.SDK.SourceGenerators.EngineApi.Tests/CheatEngine.SDK.SourceGenerators.EngineApi.Tests.csproj"/>
+    <Project
+      Path="tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.csproj"/>
+    <Project
+      Path="tests/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Tests/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Tests.csproj"/>
+    <Project
+      Path="tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.csproj"/>
     <Project Path="tests/CheatEngine.SDK.Tests/CheatEngine.SDK.Tests.csproj"/>
     <Project Path="tests/CheatEngine.SDK.Tests.Shared/CheatEngine.SDK.Tests.Shared.csproj"/>
   </Folder>

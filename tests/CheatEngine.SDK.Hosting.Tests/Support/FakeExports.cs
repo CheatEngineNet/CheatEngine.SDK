@@ -24,6 +24,7 @@ internal static unsafe class FakeExports
     private static int s_pusherCalls;
     private static nint s_lastPushedObject;
     private static byte s_checkSynchronizeRawResult = 1;
+    private static Action? s_checkSynchronizeHandlerForTests;
 
     public static int GetLuaStateCalls => Volatile.Read(ref s_getLuaStateCalls);
 
@@ -53,6 +54,13 @@ internal static unsafe class FakeExports
         set => Volatile.Write(ref s_checkSynchronizeRawResult, value);
     }
 
+    /// <summary>Runs from the simulated GUI pump after it counts a CheckSynchronize call; tests only.</summary>
+    public static Action? CheckSynchronizeHandlerForTests
+    {
+        get => Volatile.Read(ref s_checkSynchronizeHandlerForTests);
+        set => Volatile.Write(ref s_checkSynchronizeHandlerForTests, value);
+    }
+
     /// <summary>
     ///     Points <c>GetLuaState</c> at <paramref name="state" /> (null makes it return no state) and clears the
     ///     counters.
@@ -73,6 +81,7 @@ internal static unsafe class FakeExports
         s_pusherCalls = 0;
         s_lastPushedObject = 0;
         s_checkSynchronizeRawResult = 1;
+        s_checkSynchronizeHandlerForTests = null;
     }
 
     /// <summary>Builds the record the host would pass, with every slot pointing at a double.</summary>
@@ -117,6 +126,7 @@ internal static unsafe class FakeExports
     {
         Interlocked.Increment(ref s_checkSynchronizeCalls);
         Volatile.Write(ref s_lastTimeout, timeout);
+        Volatile.Read(ref s_checkSynchronizeHandlerForTests)?.Invoke();
         return new Bool8(s_checkSynchronizeRawResult);
     }
 

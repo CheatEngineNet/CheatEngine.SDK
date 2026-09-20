@@ -14,7 +14,8 @@ namespace CheatEngine.SDK.Benchmarks.Support;
 ///     wrappers (<c>LuaRuntime.AcquireState()</c>) or a <c>CheatEngine.SDK.Engine.Objects.CEObject</c> property (which
 ///     additionally needs the host-object pusher). Deliberately smaller than
 ///     <c>tests/CheatEngine.SDK.Engine.Tests/Support/FakeHost.cs</c> (no per-object state, no xUnit, one fixed "Count"
-///     property instead of a full object model): this is a benchmark fixture, not a correctness double, and this project does
+///     property instead of a full object model): this is a benchmark fixture, not a correctness double, and this project
+///     does
 ///     not reference xUnit (<c>tests/CheatEngine.SDK.Tests.Shared/README.md</c>).
 /// </summary>
 /// <remarks>

@@ -1,3 +1,4 @@
+using System.Globalization;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Lua.Marshalling;
 using CheatEngine.SDK.Lua.State;
@@ -83,9 +84,12 @@ public sealed class HostCallCountTests
         Assert.True(operation(), what + " did not produce the expected outcome");
 
         Assert.True(FakeHost.ProviderCalls - providerCalls == 1,
-            what + " acquired the state " + (FakeHost.ProviderCalls - providerCalls) + " times, not once");
+            what + " acquired the state " +
+            (FakeHost.ProviderCalls - providerCalls).ToString(CultureInfo.InvariantCulture) +
+            " times, not once");
         Assert.True(FakeHost.PusherCalls - pusherCalls == 1,
-            what + " pushed the object " + (FakeHost.PusherCalls - pusherCalls) + " times, not once");
+            what + " pushed the object " + (FakeHost.PusherCalls - pusherCalls).ToString(CultureInfo.InvariantCulture) +
+            " times, not once");
     }
 
     private static void AssertNoAcquisitionAndOnePush(Func<bool> operation, string what)
@@ -98,6 +102,7 @@ public sealed class HostCallCountTests
         Assert.True(FakeHost.ProviderCalls == providerCalls,
             what + " acquired a state; a stack-level member works on the state it was given");
         Assert.True(FakeHost.PusherCalls - pusherCalls == 1,
-            what + " pushed the object " + (FakeHost.PusherCalls - pusherCalls) + " times, not once");
+            what + " pushed the object " + (FakeHost.PusherCalls - pusherCalls).ToString(CultureInfo.InvariantCulture) +
+            " times, not once");
     }
 }

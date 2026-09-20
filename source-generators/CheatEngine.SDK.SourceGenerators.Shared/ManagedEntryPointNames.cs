@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace CheatEngine.SDK.SourceGenerators.Shared;
 
 /// <summary>
@@ -15,6 +17,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///     copies from drifting (<c>ManagedEntryPointNames_matches_CheatEngine_SDK_Abi_ManagedEntryPoint</c> in
 ///     <c>tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests</c>).
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class ManagedEntryPointNames
 {
     /// <summary>Namespace of the bootstrap type, as written into the emitted <c>namespace</c> declaration.</summary>

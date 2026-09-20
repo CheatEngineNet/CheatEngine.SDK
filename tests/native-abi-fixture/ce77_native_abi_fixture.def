@@ -1,0 +1,6 @@
+LIBRARY "ce77-native-abi-fixture"
+
+EXPORTS
+    CEPlugin_GetVersion
+    CEPlugin_InitializePlugin
+    CEPlugin_DisablePlugin

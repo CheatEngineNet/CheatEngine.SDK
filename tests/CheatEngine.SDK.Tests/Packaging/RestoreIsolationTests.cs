@@ -5,7 +5,8 @@ namespace CheatEngine.SDK.Tests.Packaging;
 /// <summary>
 ///     Regression coverage for a NuGet caching gap: a consumer restore that used the machine-wide global-packages
 ///     folder (the default when <c>dotnet restore</c> is given no <c>--packages</c>) would silently reuse whatever
-///     extraction of <c>cheatengine.sdk/&lt;version&gt;</c> already sat there from an earlier run - this fixture's own previous
+///     extraction of <c>cheatengine.sdk/&lt;version&gt;</c> already sat there from an earlier run - this fixture's own
+///     previous
 ///     run, a developer's manual restore, or another parallel build - instead of the content of the <c>.nupkg</c> this
 ///     fixture run just packed, because every pack in one session gets the same MinVer-derived
 ///     version and NuGet treats a given package id+version as immutable once extracted.

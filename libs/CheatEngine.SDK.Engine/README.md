@@ -17,14 +17,41 @@ Cheat Engine. This library encodes each rule once, in a type.
 
 ## How it works
 
-| Namespace                          | Types                                         | Role                                                                                                  |
-|------------------------------------|-----------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| `CheatEngine.SDK.Engine.Objects`   | `CEObject`, `ICEObject<TSelf>`                | Borrowed handle: the native object pointer, equal by identity, with property, index and method access |
-| `CheatEngine.SDK.Engine.Objects`   | `Owned<T>`                                    | Ownership of an object the plugin created; `Dispose` destroys it                                      |
-| `CheatEngine.SDK.Engine.Values`    | `Address`                                     | An address read from a Lua integer or hexadecimal text; its own Lua marshaller                        |
-| `CheatEngine.SDK.Engine.Values`    | `IndexBase`, `LuaSequence`                    | Zero-based indices over Cheat Engine objects and Lua sequences                                        |
-| `CheatEngine.SDK.Engine.Enums`     | Enums, `CEEnumNames`, `EnumMarshaller<TEnum>` | Numeric constants, their Cheat Engine names, and Lua integer marshalling                              |
-| `CheatEngine.SDK.Engine.Generated` | `MemoryScalars`                               | Generated wrappers for `readInteger`, `writeInteger`, `readQword` and `writeQword`                    |
+| Namespace                             | Types                                           | Role                                                                                                  |
+|---------------------------------------|-------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| `CheatEngine.SDK.Engine.Objects`      | `CEObject`, `ICEObject<TSelf>`                  | Borrowed handle: the native object pointer, equal by identity, with property, index and method access |
+| `CheatEngine.SDK.Engine.Objects`      | `Owned<T>`                                      | Ownership of an object the plugin created; `Dispose` destroys it                                      |
+| `CheatEngine.SDK.Engine.Values`       | `Address`                                       | An address read from a Lua integer or hexadecimal text; its own Lua marshaller                        |
+| `CheatEngine.SDK.Engine.Values`       | `IndexBase`, `LuaSequence`                      | Zero-based indices over Cheat Engine objects and Lua sequences                                        |
+| `CheatEngine.SDK.Engine.Enums`        | Enums, `CEEnumNames`, `EnumMarshaller<TEnum>`   | Numeric constants, their Cheat Engine names, and Lua integer marshalling                              |
+| `CheatEngine.SDK.Engine.Runtime`      | `RuntimeInfo`, `RuntimeCapabilities`            | Explicit runtime observations and evidence metadata; never inferred host facts                        |
+| `CheatEngine.SDK.Engine.Memory`       | `TargetMemory`, `HostMemory`, `HostAddress`     | Separate target/CE-host scalar, span, pointer, string and byte-table access                           |
+| `CheatEngine.SDK.Engine.Inspection`   | `EngineInspection`                              | Copied modules, sections, symbols, address resolution and memory-region snapshots                     |
+| `CheatEngine.SDK.Engine.Allocation`   | `TargetMemoryAllocator`, `AllocatedRegion`      | Explicit ownership for target allocation, via a reviewed binding seam                                 |
+| `CheatEngine.SDK.Engine.Scanning`     | `AobScanner`, `StringList`, `MemoryScanSession` | AOB result ownership and conservative MemScan/FoundList state transitions                             |
+| `CheatEngine.SDK.Engine.AddressLists` | `AddressList`, `MemoryRecord`                   | Borrowed Cheat-Engine GUI handles and strongly typed record identifiers                               |
+| `CheatEngine.SDK.Engine.Errors`       | `EngineException` hierarchy                     | Stable distinction between expected CE, unavailable global, Lua, binding and marshalling failures     |
+| `CheatEngine.SDK.Engine.Generated`    | `MemoryScalars`                                 | Existing generated scalar wrappers for the earlier memory contract                                    |
+
+The CE 7.7 vertical slices add the following public domains. They use the same protected Lua boundary, but their
+evidence and availability are intentionally separate: a catalogued Lua name is not a guarantee that every later CE
+host has the same contract.
+
+| Namespace                  | Public surface                                                                | Boundary and result contract                                                                                                                                                                                               |
+|----------------------------|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Runtime`                  | `RuntimeInfo`, `RuntimeCapabilities`, and `RuntimeCapabilityContract`         | An immutable snapshot of explicitly observed version, architecture, pointer-width and availability facts. Unknown remains unknown; an available global does not fill an unobserved ownership, thread or return field.      |
+| `Memory`                   | `TargetMemory`, `HostMemory`, `Address`, `HostAddress`, `MemoryAccessFailure` | Keeps attached-target addresses distinct from CE-host addresses. Scalar, span and string calls report expected CE/binding/Lua/result failures through `Try*` results; they do not claim a universal GUI-thread rule.       |
+| `Inspection`               | `EngineInspection` and module, section, symbol and region value types         | Returns copied managed snapshots. `NotFound` is used only where the CE 7.7 Lua contract documents `nil`; malformed data and Lua failures remain distinct status values.                                                    |
+| `Allocation`               | `TargetMemoryAllocator`, `AllocatedRegion`                                    | Models one target allocation as an explicit, single-use owner. It does not infer a GUI-thread requirement from an unspecific CE global.                                                                                    |
+| `Objects` / `Scanning.Aob` | `StringList`, `StringLists`, `AobScanner`                                     | `StringLists.TryCreate` and `AobScanner.TryScan` return `Owned<StringList>` only after a host object is returned. A list borrowed from CE must never be wrapped or destroyed by plugin code.                               |
+| `Scanning.Values`          | `MemScan`, `FoundList`, `MemoryScanSession`, scan requests and states         | The session accepts explicit owned scanner/child handles, serializes its documented state transitions, and releases the child before the parent. It is explicitly main-thread-only; the generic `Owned<T>` wrapper is not. |
+| `AddressLists`             | `AddressListAccess`, `AddressList`, `MemoryRecord`, `MemoryRecordId`          | The current GUI list and records are borrowed CE-owned handles. The source catalogue does not by itself prove a runtime-enforceable GUI-thread guard, so this API does not declare one yet.                                |
+| `Errors`                   | `EngineException` and stable subclasses                                       | Separates expected operation failure, global absence, Lua failure, binding violation and marshalling violation instead of exposing a raw Lua stack error as the public Engine contract.                                    |
+
+The per-capability provenance, minimum CE version, architecture, thread, ownership and return semantics belong to the
+external [capability matrix](../../../../documentations/CheatEngine.SDK/capability-matrix.md). Fixture tests validate
+managed behavior and the pinned Lua fixture; opt-in live evidence is recorded separately and is not implied by these
+wrappers.
 
 A `CEObject` is the native object pointer and nothing else. `CEObject.TryRead` decodes it from a full userdata whose
 first pointer-sized field holds the pointer, and `Push` hands it back through the host. A property is `obj.Name`. A
@@ -39,10 +66,12 @@ return `false` for a nil or wrong-kind value and keep no Lua error message. The 
 `LuaStatus` and leave either their results or one error value.
 
 `CEObject` is a `readonly struct` with no `Dispose` and no public destroy member, so destruction belongs to `Owned<T>`,
-never to a flag. Construct one only from a handle that a create call just returned or that another owner released.
-`Dispose` calls `destroy()` and must run on the main thread, and Debug builds assert the thread. There is no finalizer.
-Dispose every `Owned<T>` before `OnDisable` returns: afterwards `Dispose` cannot reach Cheat Engine and the object
-leaks. `Release()` gives up ownership without destroying.
+never to a flag. Construct one only from a handle that a sourced factory returned as plugin-owned or that another owner
+transferred. `Owned<T>` does not infer a universal thread affinity: CE 7.7 does not document one for every
+`destroy()` implementation. A narrower typed surface, such as `MemoryScanSession`, must carry and enforce its own
+evidence-backed thread rule. There is no finalizer. Dispose every owner while the plugin is still enabled; after
+detach, destruction cannot begin and the caller must explicitly choose a recorded shutdown path. `Abandon()` gives up
+managed cleanup without granting another caller permission to create an owner.
 
 `Address.TryRead` tries hexadecimal text first (optional `0x`, no sign, no decimal form, 64-bit overflow refused). It
 then reads a Lua integer by bit reinterpretation, so an address above `long.MaxValue` round trips. `ToString()` gives
@@ -60,6 +89,49 @@ The repository-internal `CheatEngine.SDK.SourceGenerators.EngineApi` generates `
 `source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/Specs/memory-scalars.cheatengine-sdk-api.txt`. All four
 methods take an `Address`. `TryReadInt32` and `TryReadInt64` return `false` when the read fails. `WriteInt32` and
 `WriteInt64` return the flag Cheat Engine reports and throw `LuaException` when the Lua call fails.
+
+## CE 7.7 vertical slices
+
+The Engine extensions are anchored to the workspace's versioned CE 7.7 evidence corpus. They are fixture contracts
+against CE 7.7.0.10621 x64, not a claim that arbitrary CE builds have identical behavior. No normal test starts Cheat
+Engine or attaches another process.
+
+`RuntimeInfo` is an immutable snapshot supplied by an integration layer. It deliberately does not turn a legacy
+floating-point `getCEVersion` result into a complete file version and does not infer target architecture, pointer
+width, ABI, ownership, return semantics or thread affinity. `RuntimeCapabilities` records each observed capability as
+available, unavailable or unknown with the evidence fields that are actually known.
+
+`TargetMemory` accepts only target `Address` values; `HostMemory` accepts only `HostAddress`. Neither type converts
+implicitly to the other. Both expose signed and unsigned 8/16/32/64-bit scalars, pointers, `float`/`double`, ordered
+`Span<byte>`/`ReadOnlySpan<byte>` buffers, and UTF-8 or UTF-16 string forms. Their `Try*` methods restore the Lua stack
+and classify `GlobalUnavailable`, protected `LuaError`, expected read/write failure, destination capacity, and malformed
+result through `MemoryAccessFailure`; a detached plugin still throws as a lifecycle violation.
+
+`EngineInspection` copies cold snapshots of modules, sections, symbols and memory regions into caller buffers. It does
+not publish a partial collection when the destination is too small or a later Lua table entry is malformed. Its
+`InspectionStatus` keeps `nil`/not-found, unavailable global, protected Lua failure, insufficient destination, and
+invalid result separate. The CE 7.7 catalog does not establish affinity for these globals, so these APIs neither
+dispatch nor carry a main-thread assertion.
+
+`TargetMemoryAllocator` requires an `ITargetMemoryAllocationOperations` binding seam. This intentionally avoids
+pretending that the current scalar EngineApi grammar can faithfully generate optional target addresses, page protection
+or transfer ownership. A successful allocation becomes an `AllocatedRegion`; `Release` reports a failure and `Dispose`
+is best-effort, no-throw cleanup. Both consume the ownership first, so a potentially partial deallocation is never
+retried. CE 7.7 has no documented separate post-allocation protection call in this surface.
+
+`AobScanner.TryScan` returns `Owned<StringList>` because CE documents an AOB result list as caller-freed. `StringList`
+itself remains a borrowed handle. `MemScan` and `FoundList` are also borrowed handles; their creation/destruction
+ownership is intentionally not inferred from `celua.txt`. `MemoryScanSession.Adopt` is the opt-in state-machine owner
+only for wrappers whose creator has separately proved ownership. It guards the `firstScan → waitTillDone → initialize →
+read → deinitialize` order and rejects worker-thread cleanup while attached because its owned children use the existing
+SDK owner destruction contract. That conservative SDK guard is not evidence that CE's catalog itself declares every
+scan operation main-thread-only. The raw `MemScan` and `FoundList` handles likewise carry no `MainThreadOnly` metadata
+before a live probe establishes one.
+
+`AddressList` and `MemoryRecord` are always borrowed GUI handles, including a record created by
+`AddressList.TryCreateMemoryRecord`, because CE adds it to the address list. Their possible GUI affinity is documented
+as an inference only: they deliberately have no `MainThreadOnly` metadata until the opt-in CE 7.7 dispatcher probe
+establishes an enforceable host contract.
 
 ```csharp
 using CheatEngine.SDK.Engine.Generated;
@@ -116,11 +188,30 @@ The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine
    `CEEnumNamesTests`).
 9. `CheatEngine.SDK.Engine.dll` and its XML documentation ship in the package, and the EngineApi generator never does
    (`PackageContentsTests`). Warnings are errors, so every public member is documented.
+10. Runtime facts remain explicit and unknown fields stay unknown; capability observations are immutable copies
+    (`RuntimeContractsTests`).
+11. Target and host memory cannot cross address spaces implicitly; scalar, span, text and failure paths keep order and
+    restore their Lua stack (`MemoryApiTests`).
+12. Inspection publishes complete snapshots only, and distinguishes `nil`, malformed result, unavailable global and Lua
+    failure (`EngineInspectionTests`).
+13. Allocation ownership is consumed once, AOB lists are owned deterministically, and the MemScan/FoundList state
+    machine
+    destroys its child before its parent (`AllocatedRegionTests`, `AobScannerTests`, `MemoryScanSessionTests`).
+14. Address-list and memory-record wrappers remain borrowed and intentionally do not assert an unproven main-thread
+    contract (`AddressListValueTests`, `AddressListLuaTests`).
+10. Runtime metadata preserves unknown fields; target and host address spaces cannot be mixed; expected memory failures
+    do not become exceptions (`RuntimeContractsTests`, `MemoryApiTests`).
+11. Module, section, symbol and region calls distinguish documented `nil` from Lua/binding/malformed-result failures
+    and never publish a partial copied destination (`EngineInspectionTests`).
+12. Allocation, AOB, StringList, scan-session and address-list tests exercise ownership transfer, zero-based access,
+    deterministic child-before-parent cleanup, and forbidden scan state transitions (`AllocatedRegionTests`,
+    `AobScannerTests`, `StringListTests`, `MemoryScanSessionTests`, `AddressListLuaTests`). These are fixture contracts,
+    not a substitute for a controlled CE 7.7 live run.
 
 ## Run the tests
 
 ```powershell
-dotnet test --project tests/CheatEngine.SDK.Engine.Tests
+dotnet test --project tests/CheatEngine.SDK.Engine.Tests -c Debug --fail-skips on
 ```
 
 Tests tagged `Category=NativeLua` run against the Lua DLL of Cheat Engine 7.7 kept in

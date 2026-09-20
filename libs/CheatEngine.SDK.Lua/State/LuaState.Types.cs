@@ -22,8 +22,10 @@ public readonly unsafe partial struct LuaState
 
     /// <summary>
     ///     The name Lua gives to the type of the value at <paramref name="index" /> (<c>lua_typename</c> of <c>lua_type</c>):
-    ///     <c>nil</c>, <c>boolean</c>, <c>number</c>, <c>string</c>, <c>table</c>, <c>function</c>, <c>userdata</c>,
-    ///     <c>thread</c>, or <c>no value</c> beyond the top. For error messages that name what a thunk or a wrapper
+    ///     <c language="lua">nil</c>, <c language="lua">boolean</c>, <c language="lua">number</c>,
+    ///     <c language="lua">string</c>, <c language="lua">table</c>, <c language="lua">function</c>,
+    ///     <c language="lua">userdata</c>, <c language="lua">thread</c>, or <c language="lua">no value</c> beyond the
+    ///     top. For error messages that name what a thunk or a wrapper
     ///     actually received, without allocating.
     /// </summary>
     /// <param name="index">An acceptable index.</param>

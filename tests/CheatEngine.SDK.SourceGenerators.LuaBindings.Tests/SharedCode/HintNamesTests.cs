@@ -1,3 +1,4 @@
+using System.Globalization;
 using CheatEngine.SDK.SourceGenerators.Shared;
 
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.SharedCode;
@@ -42,5 +43,53 @@ public sealed class HintNamesTests
     {
         Assert.Throws<ArgumentNullException>(() => HintNames.ForType(null!, ".g.cs"));
         Assert.Throws<ArgumentNullException>(() => HintNames.ForType("A", null!));
+    }
+
+    [Fact]
+    public void AllocateUnique_prepopulated_readable_name_uses_the_deterministic_hash_candidate()
+    {
+        const string TypeName = "Demo.Caf\u00E9";
+        const string Suffix = ".g.cs";
+        var readable = HintNames.ForType(TypeName, Suffix);
+        var used = HintNames.CreateUsedNames();
+        Assert.True(used.Add(readable));
+
+        var hint = HintNames.AllocateUnique(TypeName, Suffix, used);
+
+        Assert.NotEqual(readable, hint, StringComparer.Ordinal);
+        Assert.Equal(HintNames.Disambiguated(TypeName, Suffix), hint, StringComparer.Ordinal);
+        Assert.Contains(hint, used);
+    }
+
+    [Fact]
+    public void AllocateUnique_third_collision_uses_the_first_available_ordinal_suffix()
+    {
+        const string TypeName = "Demo.Type";
+        const string Suffix = ".g.cs";
+        var readable = HintNames.ForType(TypeName, Suffix);
+        var hashed = HintNames.Disambiguated(TypeName, Suffix);
+        var second = WithOrdinal(hashed, Suffix, 2);
+        var used = HintNames.CreateUsedNames();
+        Assert.True(used.Add(readable));
+        Assert.True(used.Add(hashed));
+        Assert.True(used.Add(second));
+
+        var hint = HintNames.AllocateUnique(TypeName, Suffix, used);
+
+        Assert.Equal(WithOrdinal(hashed, Suffix, 3), hint, StringComparer.Ordinal);
+        Assert.Contains(hint, used);
+    }
+
+    [Fact]
+    public void AllocateUnique_rejects_a_case_sensitive_reservation_set()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            HintNames.AllocateUnique("Demo.Type", ".g.cs", new HashSet<string>(StringComparer.Ordinal)));
+    }
+
+    private static string WithOrdinal(string hintName, string suffix, int ordinal)
+    {
+        return hintName[..^suffix.Length] + "_" + ordinal.ToString(CultureInfo.InvariantCulture) +
+               suffix;
     }
 }

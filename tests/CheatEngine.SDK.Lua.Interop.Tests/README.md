@@ -50,3 +50,7 @@ dotnet test --project tests/CheatEngine.SDK.Lua.Interop.Tests --filter-trait "Ca
   (`NativeStructLayoutTests`, `CallbackTests`).
 - A failed bind leaves the table untouched, and a second Lua module is refused (`LuaApiInitializationTests`,
   `LuaApiBoundTableTests`).
+- The C11 bridge accepts a forward-compatible minor contract and additive operation bits, while its three generated
+  imports are explicitly cdecl and retain GC transitions (`LuaProtectedApiTests`). Native fixture checks additionally
+  prove that an incomplete export table, negative input count, and input count above Lua's top return the bridge's
+  no-error sentinel without changing the Lua stack (`LuaBridgeContractBoundaryTests`).

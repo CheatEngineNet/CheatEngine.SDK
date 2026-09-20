@@ -2,7 +2,7 @@
 
 # CheatEngine.SDK
 
-**Write Cheat Engine plugins as ordinary C# classes.**
+**Build Cheat Engine plugins as ordinary C# classes.**
 
 [![Build](https://img.shields.io/github/actions/workflow/status/CheatEngineNet/CheatEngine.SDK/main-ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&labelColor=24292f)](https://github.com/CheatEngineNet/CheatEngine.SDK/actions/workflows/main-ci.yml)
 [![NuGet](https://img.shields.io/nuget/vpre/CheatEngine.SDK?style=flat-square&logo=nuget&logoColor=white&labelColor=24292f&color=004880)](https://www.nuget.org/packages/CheatEngine.SDK)
@@ -10,15 +10,15 @@
 [![Windows x64](https://img.shields.io/badge/platform-Windows%20x64-0078D4?style=flat-square&labelColor=24292f)](#requirements)
 [![MIT license](https://img.shields.io/badge/license-MIT-6e7781?style=flat-square&labelColor=24292f)](LICENSE)
 
-[Quick start](#quick-start) · [Why CheatEngine.SDK exists](#why-cheatenginesdk-exists) · [Requirements](#requirements) · [Projects](#projects) · [Contributing](#contributing)
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Compatibility](#compatibility-and-deployment) · [Projects](#projects) · [Contributing](#contributing)
 
 </div>
 
 ## What CheatEngine.SDK is
 
 CheatEngine.SDK is a .NET 10 SDK for writing Cheat Engine plugins in C#. You add one NuGet package, derive one class,
-and build. The package generates the entry point Cheat Engine loads, exposes your static methods to Lua, and reports
-plugin mistakes in the editor before you open Cheat Engine.
+and build. The SDK generates the entry point Cheat Engine loads, exposes static C# methods to Lua, and reports plugin
+mistakes in the editor before Cheat Engine starts.
 
 ## Why CheatEngine.SDK exists
 
@@ -26,14 +26,14 @@ Cheat Engine's own C# template asks every plugin to compile over a thousand line
 native structures by hand, and write the exported entry point exactly right. A wrong shape gives no error message: Cheat
 Engine simply refuses to load the plugin.
 
-CheatEngine.SDK moves that work into a package. The entry point and the Lua bindings are generated at compile time,
-without reflection, and analyzers explain what is wrong while you type. Your plugin stays a plain class.
+CheatEngine.SDK moves that work into a package. The entry point and Lua bindings are generated at compile time, without
+reflection, while analyzers explain invalid plugin shapes in the editor. Your plugin remains a plain class.
 
 ## Who it is for
 
-C# developers who build plugins, tools, and automation for Cheat Engine 7.7 on Windows x64 and want typed,
-compiler-checked code instead of hand-written interop. Lua remains the fastest way to script Cheat Engine without a
-build step. CheatEngine.SDK is for plugins that deserve a real project.
+C# developers building plugins, tools, and automation for Cheat Engine 7.7 on Windows x64 who want typed,
+compiler-checked code instead of hand-written interop. Lua remains excellent for quick scripts; this SDK is for plugins
+that benefit from a testable .NET project.
 
 ## Quick start
 
@@ -45,7 +45,15 @@ build step. CheatEngine.SDK is for plugins that deserve a real project.
    dotnet add package CheatEngine.SDK --prerelease
    ```
 
-   Add `<PlatformTarget>x64</PlatformTarget>` to the `PropertyGroup` of `MyPlugin.csproj` and delete `Class1.cs`.
+   Add the following to the `PropertyGroup` of `MyPlugin.csproj`, then delete `Class1.cs`:
+
+   ```xml
+   <PlatformTarget>x64</PlatformTarget>
+   <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+   ```
+
+   `AllowUnsafeBlocks` is an explicit opt-in for the `[LuaFunction]` in the next step: its generated registration
+   thunk takes a native function address.
 
 2. Add a plugin class with one Lua function.
 
@@ -72,49 +80,33 @@ build step. CheatEngine.SDK is for plugins that deserve a real project.
    }
    ```
 
-3. Build, then keep the whole output folder together. The CheatEngine.SDK libraries and
-   `cheatengine-sdk-lua-bridge.dll` sit next to `MyPlugin.dll`.
+3. Build, then deploy the complete output directory as one unit. `MyPlugin.dll`, its
+   `.deps.json` and `.runtimeconfig.json`, the CheatEngine.SDK assemblies, and
+   `cheatengine-sdk-lua-bridge.dll` must remain together.
 
    ```powershell
    dotnet build -c Release
    ```
 
-4. Start Cheat Engine, add `MyPlugin.dll` in the plugin settings, and enable it. In the Lua engine window, run
-   `print(greet("world"))`.
+4. In a controlled Cheat Engine 7.7 x64 test host, add `MyPlugin.dll` in the plugin settings and enable it. In the Lua
+   Engine, run `print(greet("world"))`.
 
 > [!IMPORTANT]
-> Cheat Engine 7.7 asks for .NET 9. Before starting it, edit the Cheat Engine folder's `ce.runtimeconfig.json` in an
-> elevated editor to request .NET 10 explicitly:
->
-> - Set `runtimeOptions.tfm` to `net10.0`.
-> - Set the `version` of every framework request to `10.0.0`: `Microsoft.NETCore.App`,
->   `Microsoft.WindowsDesktop.App`, and `Microsoft.AspNetCore.App` (whether the file uses `framework` or `frameworks`).
-> - Set `runtimeOptions.rollForward` to `LatestMinor`. If a framework entry has its own `rollForward`, set it to
->   `LatestMinor` too.
->
-> With that configuration, Cheat Engine stays on .NET 10 even when .NET 9 or 11 is installed. A shell launch can repeat
-> the same policy, but does not select .NET 10 by itself:
->
-> ```powershell
-> $env:DOTNET_ROLL_FORWARD = "LatestMinor"
-> .\cheatengine-x86_64.exe
-> ```
->
-> Keep the existing framework names. This changes Cheat Engine's runtime request only; it does not change installed
-> runtimes or machine-wide environment settings.
+> Establish the Cheat Engine runtime policy in the controlled environment that loads the plugin. Do not treat a local
+> `ce.runtimeconfig.json` captured during development as a universal installer configuration.
 
 The [live plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md#run-it-in-cheat-engine) walks through the same
 steps with a larger sample and the log output to expect.
 
 ## How it works
 
-| You write                                                                      | CheatEngine.SDK provides                                                                                                 |
-|--------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `[CheatEnginePlugin("Name")]` on a class that derives from `CheatEnginePlugin` | The `CEPluginInitialize` entry point Cheat Engine looks up, generated into your assembly                                 |
-| `[LuaFunction("name")]` on a static method                                     | A Lua global with its native thunk, registered and unregistered for you                                                  |
-| `[LuaGlobal]` on a partial method                                              | A typed call into a Cheat Engine Lua function such as `readInteger`                                                      |
-| A plugin that Cheat Engine would refuse                                        | An editor diagnostic from `CESDK0001` to `CESDK2004`, each with a [page that explains the fix](analyzers/docs/README.md) |
-| An exception inside your plugin                                                | A logged failure instead of a crash in Cheat Engine                                                                      |
+| You write                                                                      | CheatEngine.SDK provides                                                                 |
+|--------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| `[CheatEnginePlugin("Name")]` on a class that derives from `CheatEnginePlugin` | The `CEPluginInitialize` entry point Cheat Engine looks up, generated into your assembly |
+| `[LuaFunction("name")]` on a static method                                     | A Lua global with its native thunk, registered and unregistered for you                  |
+| `[LuaGlobal]` on a static partial method                                       | A typed, protected call into a Cheat Engine Lua function such as `readInteger`           |
+| An invalid plugin declaration                                                  | An actionable `CESDK` diagnostic, with [rule documentation](analyzers/docs/README.md)    |
+| An exception inside your plugin                                                | A logged failure instead of a crash in Cheat Engine                                      |
 
 ## Requirements
 
@@ -122,15 +114,31 @@ steps with a larger sample and the log output to expect.
 |---------------|-------------------------------------------------------------------------------------------------|
 | .NET SDK      | 10.0.401 or later                                                                               |
 | .NET runtimes | .NET 10 `Microsoft.NETCore.App`, `Microsoft.WindowsDesktop.App`, and `Microsoft.AspNetCore.App` |
-| Cheat Engine  | 7.7                                                                                             |
+| Cheat Engine  | 7.7 (`7.7.0.10621` is the recorded compatibility baseline)                                      |
 | Platform      | Windows, x64                                                                                    |
 
 The analyzers and generators are built against Roslyn 5.9. An older SDK reports `CS9057` and skips them, so the entry
 point is never generated.
 
-Plugin authors and ordinary source builds do not need xmake or a C compiler. The package and repository carry the
-prebuilt Windows x64 Lua protection bridge. CI rebuilds that bridge with xmake before it builds, tests, and packs
-CheatEngine.SDK; only contributors changing `native/cheatengine-sdk-lua-bridge` need the native toolchain locally.
+Plugin authors and managed-only contributors do not need xmake or a C compiler. The package carries a prebuilt Windows
+x64 Lua protection bridge; only changes under `native/cheatengine-sdk-lua-bridge` require the native toolchain.
+
+## Compatibility and deployment
+
+Cheat Engine is the compatibility authority. Live checks are opt-in and do not run in normal CI. The generated
+bootstrap keeps the host signature `CEPluginInitialize(IntPtr, int)`, but its second argument is deliberately forwarded
+as an opaque host value until an exact CE 7.7 live probe establishes its meaning.
+
+Deploy the complete output folder as one unit. The package's generators, native bridge, and dynamic-loading defaults
+apply to a direct `CheatEngine.SDK` package reference, keeping those plugin-specific behaviors at the actual host
+boundary rather than flowing through indirect dependencies.
+
+The SDK is trim- and AOT-friendly where its analyzers and publish probe validate the managed graph. This is not a claim
+that a Cheat Engine-loaded plugin is a Native AOT DLL: the supported form is a framework-dependent managed plugin folder
+with its native bridge. The intentionally small [Lua protection bridge](native/cheatengine-sdk-lua-bridge/README.md)
+contains the C11 boundary needed to contain Lua `longjmp` failures, uses Cheat Engine's already-loaded Lua runtime, and
+does not load a second one. Package layout and deployment details are documented by the
+[umbrella package](src/CheatEngine.SDK/README.md).
 
 ## Projects
 

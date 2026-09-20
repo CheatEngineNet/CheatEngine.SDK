@@ -9,7 +9,8 @@ namespace CheatEngine.SDK.Lua.Interop.Types;
 /// </summary>
 /// <remarks>
 ///     Lua copies the name into an interned string and keeps the function pointer, so the array itself only has to live
-///     for the duration of the call (a <c>stackalloc</c> is fine); the function must stay callable for as long as the
+///     for the duration of the call (a <see langword="stackalloc" /> is fine); the function must stay callable for as long
+///     as the
 ///     state can reach it, which is always true for a static <c>[UnmanagedCallersOnly]</c> method.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]

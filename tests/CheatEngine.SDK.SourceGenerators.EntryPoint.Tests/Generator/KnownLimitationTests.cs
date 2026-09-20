@@ -7,7 +7,8 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.Generator;
 /// <summary>
 ///     Inputs for which the generator still emits although the emitted <c>new T()</c> cannot compile. They are the
 ///     remaining exceptions to "whatever is emitted compiles": staying silent would need a CESDK0001 case in
-///     <c>CheatEngine.SDK.Analyzers</c> to explain the silence. These tests pin that behaviour; the cases that have an analyzer
+///     <c>CheatEngine.SDK.Analyzers</c> to explain the silence. These tests pin that behaviour; the cases that have an
+///     analyzer
 ///     rule (required members without <c>[SetsRequiredMembers]</c>, <c>[Obsolete(error: true)]</c>) are covered in
 ///     <see cref="NoOutputTests" /> instead.
 /// </summary>
@@ -23,7 +24,8 @@ public sealed class KnownLimitationTests(RoslynFixture roslyn) : IClassFixture<R
         // The generated file names the contract as global::CheatEngine.SDK.Hosting.*, which an aliased reference does not
         // feed. No namespace CheatEngine exists in the global alias of this plugin, hence CS0400.
         var references = roslyn.Environment.FrameworkReferences
-            .Add(roslyn.Environment.StubsReference.WithAliases(["sdk"]));
+            .Add(roslyn.Environment.AnnotationsReference.WithAliases(["sdk"]))
+            .Add(roslyn.Environment.HostingReference.WithAliases(["sdk"]));
         var compilation = CSharpCompilation.Create(
             RoslynFixture.PluginAssemblyName,
             [

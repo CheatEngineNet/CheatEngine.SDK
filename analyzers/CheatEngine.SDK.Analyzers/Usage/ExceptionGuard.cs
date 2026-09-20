@@ -11,37 +11,46 @@ namespace CheatEngine.SDK.Analyzers.Usage;
 ///     <para>A body is guarded when every top-level statement is one of:</para>
 ///     <list type="bullet">
 ///         <item>
-///             a <b>guard try</b>: a <c>try</c> statement with a clause <c>catch</c> or <c>catch (System.Exception)</c>
-///             that has no <c>when</c> filter, and in which no <c>catch</c> block and no <c>finally</c> block contains a
-///             <c>throw</c> (statement or expression, rethrow included, anywhere in the block) or a call of a method
+///             a <b>guard try</b>: a <see langword="try" /> statement with a clause <see langword="catch" /> or
+///             <c>catch (System.Exception)</c>
+///             that has no <c>when</c> filter, and in which no <see langword="catch" /> block and no
+///             <see langword="finally" /> block contains a
+///             <see langword="throw" /> (statement or expression, rethrow included, anywhere in the block) or a call of a
+///             method
 ///             marked
 ///             <c>[DoesNotReturn]</c> (<c>ExceptionDispatchInfo.Throw</c>, throw helpers), the members of
 ///             <c>System.Environment</c> excepted: <c>FailFast</c> and <c>Exit</c> end the process, nothing unwinds;
 ///         </item>
 ///         <item>a local declaration without initializer, or whose initializers are trivially non-throwing;</item>
-///         <item><c>return;</c> or a <c>return</c> of a trivially non-throwing value;</item>
+///         <item><c>return;</c> or a <see langword="return" /> of a trivially non-throwing value;</item>
 ///         <item>a local function declaration (declaring it runs nothing);</item>
 ///         <item>an empty statement;</item>
 ///         <item>
-///             a nested block whose statements are all of the above (<c>unsafe</c>, <c>checked</c> and
-///             <c>unchecked</c> blocks are plain blocks in <c>IOperation</c> terms and count).
+///             a nested block whose statements are all of the above (<see langword="unsafe" />, <see langword="checked" />
+///             and
+///             <see langword="unchecked" /> blocks are plain blocks in <c>IOperation</c> terms and count).
 ///         </item>
 ///     </list>
 ///     <para>
-///         Trivially non-throwing values: compile-time constants, <c>default</c>, a local, a parameter, a static field of
+///         Trivially non-throwing values: compile-time constants, <see langword="default" />, a local, a parameter, a
+///         static field of
 ///         a
 ///         core-library primitive (<c>IntPtr.Zero</c>, <c>string.Empty</c>), and, over such values: a built-in conversion
 ///         from the closed list in <see cref="IsNonThrowingConversion" />, an unchecked built-in unary operator on a
 ///         primitive or an enum, and a conditional expression. The list is a whitelist: a conversion that runs code
-///         (user-defined, <c>dynamic</c>, tuple element conversions, span conversions), allocates (boxing) or can fail
-///         (unboxing, casts between reference types, <c>T?</c> to <c>T</c>, anything <c>checked</c>, anything involving
-///         <c>decimal</c>) is not on it. An expression body is treated as the block <c>{ return expression; }</c> (or
-///         <c>{ expression; }</c> for <c>void</c>), so <c>=> 0</c> passes and <c>=> Work()</c> does not.
+///         (user-defined, <see langword="dynamic" />, tuple element conversions, span conversions), allocates (boxing) or
+///         can fail
+///         (unboxing, casts between reference types, <c>T?</c> to <c>T</c>, anything <see langword="checked" />, anything
+///         involving
+///         <see langword="decimal" />) is not on it. An expression body is treated as the block
+///         <c>{ return expression; }</c> (or
+///         <c>{ expression; }</c> for <see langword="void" />), so <c>=> 0</c> passes and <c>=> Work()</c> does not.
 ///     </para>
 ///     <para>
 ///         The definition is deliberately syntactic in spirit: it does not prove that the calls inside a catch or finally
 ///         block cannot throw (only the explicit ways of throwing listed above are found), and it does not accept a guard
-///         hidden behind <c>using</c>, <c>lock</c> or <c>fixed</c>. Predictable beats clever here: the accepted shape is
+///         hidden behind <see langword="using" />, <see langword="lock" /> or <see langword="fixed" />. Predictable beats
+///         clever here: the accepted shape is
 ///         exactly what the generators emit and what the code fix produces.
 ///     </para>
 ///     <para>One instance per compilation, created in the compilation-start action; immutable, safe for concurrent use.</para>
@@ -72,7 +81,8 @@ internal sealed class ExceptionGuard(
     {
         return statement switch
         {
-            ITryOperation tryOperation => IsGuardTry(tryOperation),
+            ITryOperation tryOperation =>
+                IsGuardTry(tryOperation, exceptionType, doesNotReturnAttribute, environmentType),
             IVariableDeclarationGroupOperation declarations => AreTrivialDeclarations(declarations),
             IReturnOperation { Kind: OperationKind.Return } returnOperation =>
                 returnOperation.ReturnedValue is null || IsTriviallyNonThrowing(returnOperation.ReturnedValue),
@@ -83,33 +93,38 @@ internal sealed class ExceptionGuard(
         };
     }
 
-    private bool IsGuardTry(ITryOperation tryOperation)
+    private static bool IsGuardTry(ITryOperation tryOperation, INamedTypeSymbol exceptionType,
+        INamedTypeSymbol? doesNotReturnAttribute, INamedTypeSymbol? environmentType)
     {
         var hasCatchAll = false;
         foreach (var catchClause in tryOperation.Catches)
         {
             // A rethrow in ANY clause leaves the try statement: sibling clauses do not catch it.
-            if (ContainsThrow(catchClause.Handler)) return false;
+            if (ContainsThrow(catchClause.Handler, doesNotReturnAttribute, environmentType)) return false;
 
-            hasCatchAll |= IsCatchAll(catchClause);
+            hasCatchAll |= IsCatchAll(catchClause, exceptionType);
         }
 
-        return hasCatchAll && (tryOperation.Finally is null || !ContainsThrow(tryOperation.Finally));
+        return hasCatchAll
+               && (tryOperation.Finally is null
+                   || !ContainsThrow(tryOperation.Finally, doesNotReturnAttribute, environmentType));
     }
 
     // 'catch { }' has the exception type System.Object; 'catch (Exception)' names the root of the hierarchy.
-    private bool IsCatchAll(ICatchClauseOperation catchClause)
+    private static bool IsCatchAll(ICatchClauseOperation catchClause, INamedTypeSymbol exceptionType)
     {
         return catchClause.Filter is null
                && (catchClause.ExceptionType.SpecialType == SpecialType.System_Object
                    || SymbolEqualityComparer.Default.Equals(catchClause.ExceptionType, exceptionType));
     }
 
-    private bool ContainsThrow(IOperation block)
+    private static bool ContainsThrow(IOperation block, INamedTypeSymbol? doesNotReturnAttribute,
+        INamedTypeSymbol? environmentType)
     {
         foreach (var descendant in block.Descendants())
             if (descendant.Kind == OperationKind.Throw
-                || (descendant is IInvocationOperation invocation && NeverReturnsByThrowing(invocation.TargetMethod)))
+                || (descendant is IInvocationOperation invocation
+                    && NeverReturnsByThrowing(invocation.TargetMethod, doesNotReturnAttribute, environmentType)))
                 return true;
 
         return false;
@@ -118,7 +133,8 @@ internal sealed class ExceptionGuard(
     // [DoesNotReturn] is how a method says "I always throw": ExceptionDispatchInfo.Throw (the rethrow idiom that
     // keeps the stack trace) and every throw helper carry it. Environment.FailFast and Environment.Exit carry it
     // too, but they end the process in a controlled way; nothing unwinds into native code.
-    private bool NeverReturnsByThrowing(IMethodSymbol method)
+    private static bool NeverReturnsByThrowing(IMethodSymbol method, INamedTypeSymbol? doesNotReturnAttribute,
+        INamedTypeSymbol? environmentType)
     {
         if (doesNotReturnAttribute is null
             || SymbolEqualityComparer.Default.Equals(method.ContainingType, environmentType))

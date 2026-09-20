@@ -1,3 +1,8 @@
 # Working trees are CRLF on every OS to match .editorconfig; the repository itself stores LF.
 * text=auto eol=crlf
 *.dll binary
+
+# The native bridge embeds raw SHA-256 fingerprints of these two reproducible build inputs.
+# Pin their checkout bytes so Windows and CI calculate the same contract values.
+native/cheatengine-sdk-lua-bridge/cheatengine_sdk_lua_bridge.c text eol=lf
+native/cheatengine-sdk-lua-bridge/xmake.lua text eol=lf

@@ -18,17 +18,20 @@ public sealed class LocalFrameworkReferencesTests
 
         AssertNothingToRestore(test.ReferenceAssemblies);
         Assert.NotEmpty(test.TestState.AdditionalReferences);
-        Assert.NotEmpty(test.TestState.AdditionalProjects[ContractStubs.ProjectName].AdditionalReferences);
+        Assert.Contains(test.TestState.AdditionalReferences,
+            static reference => reference is PortableExecutableReference);
     }
 
     [Fact]
     public void Code_fix_test_names_no_package_to_restore()
     {
-        CheatEngineSdkCodeFixTest<UnmanagedCallersOnlyGuardAnalyzer, UnmanagedCallersOnlyGuardCodeFixProvider> test = new();
+        CheatEngineSdkCodeFixTest<UnmanagedCallersOnlyGuardAnalyzer, UnmanagedCallersOnlyGuardCodeFixProvider> test =
+            new();
 
         AssertNothingToRestore(test.ReferenceAssemblies);
         Assert.NotEmpty(test.TestState.AdditionalReferences);
-        Assert.NotEmpty(test.TestState.AdditionalProjects[ContractStubs.ProjectName].AdditionalReferences);
+        Assert.Contains(test.TestState.AdditionalReferences,
+            static reference => reference is PortableExecutableReference);
     }
 
     [Fact]

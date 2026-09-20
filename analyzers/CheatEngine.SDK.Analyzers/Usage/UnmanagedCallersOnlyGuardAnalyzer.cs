@@ -16,7 +16,8 @@ namespace CheatEngine.SDK.Analyzers.Usage;
 /// <remarks>
 ///     Stateless and safe for concurrent execution. Registers nothing unless
 ///     <c>System.Runtime.InteropServices.UnmanagedCallersOnlyAttribute</c>, <c>System.Exception</c> and at least one of
-///     the CheatEngine.SDK contract types resolve, so a project that does not reference CheatEngine.SDK pays one lookup per compilation.
+///     the CheatEngine.SDK contract types resolve, so a project that does not reference CheatEngine.SDK pays one lookup
+///     per compilation.
 ///     <c>DoesNotReturnAttribute</c> and <c>System.Environment</c> are resolved too but are optional.
 ///     Works on <c>IOperation</c>: method bodies and local functions, block or expression bodied. Generated code is
 ///     not analysed (the SDK's generators emit the guard themselves).

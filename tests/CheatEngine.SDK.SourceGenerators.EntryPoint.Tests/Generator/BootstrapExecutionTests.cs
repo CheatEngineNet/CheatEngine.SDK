@@ -36,17 +36,34 @@ public sealed class BootstrapExecutionTests(RoslynFixture roslyn) : IClassFixtur
         Assert.Equal(2, bootstrap.HostCallCount);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(6)]
+    [InlineData(36)]
+    [InlineData(40)]
+    [InlineData(int.MaxValue)]
+    public void Entry_point_forwards_the_host_second_argument_without_interpreting_it(int hostValue)
+    {
+        var run = roslyn.Run(PluginSources.Nominal);
+        using var bootstrap = LoadedBootstrap.Load(roslyn.Environment, run.OutputCompilation);
+
+        Assert.Equal(1, bootstrap.Initialize(IntPtr.Zero, hostValue));
+        Assert.Equal(1, bootstrap.HostCallCount);
+        Assert.Equal(hostValue, bootstrap.LastHostArgument);
+    }
+
     [Fact]
     public void Entry_point_host_throws_returns_zero_instead_of_propagating()
     {
         var run = roslyn.Run(PluginSources.Nominal);
         using var bootstrap = LoadedBootstrap.Load(roslyn.Environment, run.OutputCompilation);
 
-        // A negative size makes the stub host throw.
+        // A negative opaque argument makes the stub host throw.
         var result = bootstrap.Initialize(IntPtr.Zero, -1);
 
         Assert.Equal(0, result);
         Assert.Equal(1, bootstrap.HostCallCount);
+        Assert.Equal(-1, bootstrap.LastHostArgument);
     }
 
     [Fact]

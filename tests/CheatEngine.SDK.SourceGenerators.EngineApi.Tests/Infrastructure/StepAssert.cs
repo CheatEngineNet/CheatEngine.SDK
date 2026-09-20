@@ -11,7 +11,8 @@ internal static class StepAssert
     public const string SourceOutputStep = "SourceOutput";
 
     /// <summary>
-    ///     Every CheatEngine.SDK-named step ran, produced something, and produced only <c>Cached</c>/<c>Unchanged</c> values; no
+    ///     Every CheatEngine.SDK-named step ran, produced something, and produced only <c>Cached</c>/<c>Unchanged</c> values;
+    ///     no
     ///     source output was re-executed. Also fails when a step exists that <see cref="EngineApiTrackingNames.All" />
     ///     does not know, so a new step cannot slip past the gate.
     /// </summary>

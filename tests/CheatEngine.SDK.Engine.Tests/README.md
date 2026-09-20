@@ -5,8 +5,8 @@ Engine object model on a real Lua 5.3 library.
 
 ## Objective
 
-Prove that `CEObject`, `Owned<T>`, `Address`, `IndexBase`, `LuaSequence` and the Cheat Engine enums behave as
-documented. Cover every failure path without a running Cheat Engine.
+Prove the managed contracts of `CEObject`, explicit owners, target/host addresses, runtime capabilities, memory,
+inspection, allocation, AOB/StringList, scans and address-list handles without a running Cheat Engine host.
 
 ## Why it exists
 
@@ -20,17 +20,19 @@ Tests tagged `Category=NativeLua` run against the Lua DLL of Cheat Engine 7.7 ke
 native code. See [
 `tests/CheatEngine.SDK.Tests.Shared/README.md`](../CheatEngine.SDK.Tests.Shared/README.md).
 
-| Piece                         | Role                                                                                                                                                                                                                       |
-|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Support/FakeHost.cs`         | Stands in for `GetLuaState` and `LuaPushClassInstance`, not for Lua. A Lua model supplies the classes `Object`, `Probe` and `Stubborn`, getters and setters that can raise, zero-based `obj[i]` and `destroy` bookkeeping. |
-| `Support/HostScope.cs`        | Attaches `LuaRuntime` to a fixture state for one test and detaches on dispose. Tests attach the runtime only through it, and tests that need it unattached call `LuaRuntime.Detach()` first.                               |
-| `Support/DebugAssertScope.cs` | Turns a failed `Debug.Assert` into an exception, so the Debug-only main-thread guard of `Owned<T>` is testable. That test skips in Release.                                                                                |
-| `Support/EngineTest.cs`       | `RequireNativeLua()` skips without a Lua library. `RunOnWorker` runs work on a fresh thread and returns what it threw.                                                                                                     |
-| `AssemblyInfo.cs`             | Runs tests sequentially, because `LuaRuntime` and the fake host are process-wide.                                                                                                                                          |
+| Piece                         | Role                                                                                                                                                                                                                           |
+|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Support/FakeHost.cs`         | Stands in for `GetLuaState` and `LuaPushClassInstance`, not for Lua. A Lua model supplies object, list, scanner and address-list stand-ins, getters and setters that can raise, zero-based `obj[i]` and `destroy` bookkeeping. |
+| `Support/HostScope.cs`        | Attaches `LuaRuntime` to a fixture state for one test and detaches on dispose. Tests attach the runtime only through it, and tests that need it unattached call `LuaRuntime.Detach()` first.                                   |
+| `Support/DebugAssertScope.cs` | Turns a failed `Debug.Assert` into an exception, so the Debug-only main-thread guard of `Owned<T>` is testable. That test skips in Release.                                                                                    |
+| `Support/EngineTest.cs`       | `RequireNativeLua()` skips without a Lua library. `RunOnWorker` runs work on a fresh thread and returns what it threw.                                                                                                         |
+| `AssemblyInfo.cs`             | Runs tests sequentially, because `LuaRuntime` and the fake host are process-wide.                                                                                                                                              |
 
 Each fake object is a Lua table found by its pointer, so every push of one pointer finds the same state. Pointers are
 synthetic and never dereferenced. The double follows the assumed userdata layout, so the suite cannot prove that Cheat
-Engine's own `LuaPushClassInstance` uses it.
+Engine's own `LuaPushClassInstance` uses it. Likewise, the suite proves the SDK's status, state and ownership rules; it
+does not turn a fixture response into live CE 7.7 proof of thread affinity, allocation ownership or undocumented Lua
+behavior.
 
 ## Promise
 
@@ -42,10 +44,18 @@ Engine's own `LuaPushClassInstance` uses it.
 - `Owned<T>` destroys the object exactly once. After the plugin is disabled, `Dispose` skips the destroy call and leaves
   the object alive.
 - Enum values and Cheat Engine names are pinned by literals.
+- `RuntimeInfo`/`RuntimeCapabilities` retain explicit unknown facts. `TargetMemory` and `HostMemory` keep their address
+  types separate, preserve byte ordering through span calls, and distinguish expected read/write failures.
+- Inspection snapshots distinguish documented `nil` from malformed results. Allocation ownership is consumed exactly
+  once even when the underlying release fails. AOB and StringList results are explicit `Owned<T>` values.
+- A scan session enforces its state machine and destroys its owned `FoundList` before its `MemScan`. Address-list and
+  memory-record handles remain CE-borrowed and are never implicitly owned.
+- Address-list and memory-record wrappers also omit `MainThreadOnly` metadata until the CE 7.7 dispatcher probe turns
+  their GUI affinity inference into an enforceable contract (`AddressListValueTests`).
 
 ## Run the tests
 
 ```powershell
-dotnet test --project tests/CheatEngine.SDK.Engine.Tests
-dotnet test --project tests/CheatEngine.SDK.Engine.Tests --filter-trait "Category=NativeLua"
+dotnet test --project tests/CheatEngine.SDK.Engine.Tests -c Debug --fail-skips on
+dotnet test --project tests/CheatEngine.SDK.Engine.Tests -c Debug --filter-trait "Category=NativeLua" --fail-skips on
 ```

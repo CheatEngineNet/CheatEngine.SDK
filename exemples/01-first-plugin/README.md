@@ -26,7 +26,8 @@ package and one class.
 ## Why it matters
 
 Cheat Engine finds a managed plugin by a hard-coded name, and it refuses a plugin whose entry point has the wrong shape
-without saying why. CheatEngine.SDK generates that entry point for you. Your project holds only your code, and a mistake shows up
+without saying why. CheatEngine.SDK generates that entry point for you. Your project holds only your code, and a mistake
+shows up
 as a compiler message before Cheat Engine ever starts.
 
 ## How it works
@@ -40,7 +41,8 @@ dotnet add package CheatEngine.SDK --prerelease
 Remove-Item Class1.cs
 ```
 
-Then open `MyPlugin.csproj` and add the `PlatformTarget` line. The finished file looks like this:
+Then open `MyPlugin.csproj` and add the `PlatformTarget` and `AllowUnsafeBlocks` lines. The finished file looks like
+this:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -49,6 +51,7 @@ Then open `MyPlugin.csproj` and add the `PlatformTarget` line. The finished file
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CheatEngine.SDK" Version="0.3.0" />
@@ -56,8 +59,9 @@ Then open `MyPlugin.csproj` and add the `PlatformTarget` line. The finished file
 </Project>
 ```
 
-The package also sets `AllowUnsafeBlocks` and `EnableDynamicLoading` for you, each one only while your project leaves it
-empty. Cheat Engine hosts plugins in an x64 process, so an `x86` target stops the build with `CESDK9101`.
+`AllowUnsafeBlocks` is an explicit opt-in because this guide exports a `[LuaFunction]`; its generated registration thunk
+takes a native function address. The package sets `EnableDynamicLoading` while your project leaves it empty. Cheat
+Engine hosts plugins in an x64 process, so an `x86` target stops the build with `CESDK9101`.
 
 ### 2. Write the plugin
 
@@ -84,16 +88,17 @@ internal static partial class Commands
 }
 ```
 
-| Piece                              | What it does                                                                                  |
-|------------------------------------|-----------------------------------------------------------------------------------------------|
-| `[CheatEnginePlugin("My Plugin")]` | Marks the one plugin class and sets the name Cheat Engine lists in its plugin settings        |
-| `CheatEnginePlugin`                | The base class. `OnEnable` and `OnDisable` are abstract and run on Cheat Engine's main thread |
-| `LuaRuntime.AcquireState()`        | Hands you the Lua state of the calling thread. Call it once per operation and never store it  |
-| `[LuaFunction("greet")]`           | Exports a static method as the Lua global `greet`                                             |
-| `partial` on `Commands`            | Lets the generator add `RegisterLuaFunctions` and `UnregisterLuaFunctions` to your type       |
+| Piece                              | What it does                                                                                     |
+|------------------------------------|--------------------------------------------------------------------------------------------------|
+| `[CheatEnginePlugin("My Plugin")]` | Marks the one plugin class and sets the name Cheat Engine lists in its plugin settings           |
+| `CheatEnginePlugin`                | The base class. `OnEnable` and `OnDisable` are abstract and run on the captured lifecycle thread |
+| `LuaRuntime.AcquireState()`        | Acquires the host state for this operation. Call it once per operation and never store it        |
+| `[LuaFunction("greet")]`           | Exports a static method as the Lua global `greet`                                                |
+| `partial` on `Commands`            | Lets the generator add `RegisterLuaFunctions` and `UnregisterLuaFunctions` to your type          |
 
 > [!IMPORTANT]
-> Do not touch CheatEngine.SDK from a constructor, a field initializer or a static constructor. The Lua runtime attaches after
+> Do not touch CheatEngine.SDK from a constructor, a field initializer or a static constructor. The Lua runtime attaches
+after
 > the plugin is constructed, so anything you call there throws. Do your setup in `OnEnable`.
 
 > [!WARNING]
@@ -110,8 +115,10 @@ internal static partial class Commands
 dotnet build -c Release
 ```
 
-Keep the whole output folder together. Cheat Engine loads `MyPlugin.dll`, and the CheatEngine.SDK assemblies plus the native Lua
-protection bridge must sit next to it. The package supplies the bridge; no C compiler or xmake is required.
+Keep the whole output folder together. Cheat Engine loads `MyPlugin.dll`, and its `.deps.json`, `.runtimeconfig.json`,
+the CheatEngine.SDK assemblies, plus the native Lua protection bridge must sit next to it. The package supplies the
+bridge; no C compiler or xmake is required. These build assets apply to the project's direct `PackageReference` to
+`CheatEngine.SDK`; an indirect package reference intentionally does not turn another project into a plugin deployment.
 
 ```text
 bin/Release/net10.0/
@@ -129,29 +136,20 @@ bin/Release/net10.0/
     cheatengine-sdk-lua-bridge.dll
 ```
 
-### 4. Let Cheat Engine run a .NET 10 plugin
+### 4. Use a controlled .NET host configuration
 
 > [!IMPORTANT]
-> Cheat Engine 7.7 asks for .NET 9. Before starting it, edit the Cheat Engine folder's `ce.runtimeconfig.json` in an
-> elevated editor to request .NET 10 explicitly:
->
-> - Set `runtimeOptions.tfm` to `net10.0`.
-> - Set the `version` of every framework request to `10.0.0`: `Microsoft.NETCore.App`,
->   `Microsoft.WindowsDesktop.App`, and `Microsoft.AspNetCore.App` (whether the file uses `framework` or `frameworks`).
-> - Set `runtimeOptions.rollForward` to `LatestMinor`. If a framework entry has its own `rollForward`, set it to
->   `LatestMinor` too.
->
-> With that configuration, Cheat Engine stays on .NET 10 even when .NET 9 or 11 is installed. A shell launch can repeat
-> the same policy, but does not select .NET 10 by itself:
->
-> ```powershell
-> $env:DOTNET_ROLL_FORWARD = "LatestMinor"
-> .\cheatengine-x86_64.exe
-> ```
->
-> Keep the existing framework names. This changes only Cheat Engine's runtime request; the x64
-> .NET 10 runtimes `Microsoft.NETCore.App`, `Microsoft.WindowsDesktop.App` and `Microsoft.AspNetCore.App` must already
-> be installed (`dotnet --list-runtimes` lists them).
+> The captured CE 7.7 `ce.runtimeconfig.json` is a locally modified file that requests .NET 10. It is not evidence of
+> the installer default, so do not copy its framework versions or roll-forward policy into another installation as if
+> they were CE requirements. The exact CE 7.7 x64 binary indicates `nethost`/`hostfxr`, and Microsoft's hosting APIs
+> apply to framework-dependent deployments. Configure the test host under your own controlled deployment policy, keep
+> the plugin's complete output directory intact, and record the configuration together with live-test results.
+
+The SDK targets .NET 10. Verify that the required x64 .NET 10 frameworks are available before testing:
+
+```powershell
+dotnet --list-runtimes
+```
 
 ### 5. Load it and call it
 
@@ -179,10 +177,10 @@ sequenceDiagram
     participant EP as CESDK.CESDK (generated)
     participant Host as PluginHost
     participant Plugin as HelloPlugin
-    CE->>EP: CEPluginInitialize
-    EP->>Host: InitializeManaged
+    CE->>EP: CEPluginInitialize(initData, hostArgument)
+    EP->>Host: InitializeManaged(initData, hostArgument)
     Host-->>CE: init record with the plugin name
-    CE->>Host: enable, on the main thread
+    CE->>Host: enable, on the captured lifecycle thread
     Host->>Plugin: new HelloPlugin() on the first enable
     Host->>Plugin: OnEnable()
     Plugin->>CE: RegisterLuaFunctions defines greet
@@ -191,19 +189,26 @@ sequenceDiagram
     Plugin->>CE: UnregisterLuaFunctions sets greet to nil
 ```
 
-The plugin object is created once. Every later enable calls `OnDisable` and `OnEnable` on the same instance, and each
-enable gets a fresh Lua runtime epoch, so never keep a Lua reference or a `PluginContext` across a disable.
+The plugin object is created once. Every later enable calls `OnDisable` and `OnEnable` on the same instance. Each
+attachment receives a new Lua identity, and a supported state replacement also advances its generation. Never keep a
+`LuaRef`, callback, cache entry, `LuaState`, or `PluginContext` across a disable; an old resource is valid only for its
+captured `(attachEpoch, stateGeneration)` pair.
+
+`hostArgument` above is deliberately unnamed beyond that role. The SDK forwards the second `int` of
+`CEPluginInitialize(IntPtr, int)` unchanged; it is not currently documented as a size, a version, a magic number, or a
+buffer-capacity claim. The CE 7.7 live probes that could establish a meaning and the initialization-buffer capacity are
+still opt-in evidence work.
 
 <details>
 <summary><strong>If nothing happens</strong></summary>
 
-| Symptom                                    | Likely cause                                                                            | Fix                                                                                                                  |
-|--------------------------------------------|-----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| The plugin is not listed after **Add new** | The plugin DLL is separated from CheatEngine.SDK dependencies                           | Keep the whole `bin/Release/net10.0` folder together                                                                 |
-| Cheat Engine refuses the DLL               | No generated entry point                                                                | Check for `CESDK0001` or `CESDK0002` in the build output, and that `CheatEngineSdkGenerateEntryPoint` is not `false` |
-| The plugin ticks and `greet` is `nil`      | `OnEnable` threw, so Cheat Engine was told the enable failed                            | Read the log below: the host logs every failed enable                                                                |
-| Cheat Engine cannot start the runtime      | The x64 .NET 10 runtimes are missing or its runtime configuration still requests .NET 9 | Run `dotnet --list-runtimes` and apply step 4                                                                        |
-| `CS9057` in the build                      | The .NET SDK is older than 10.0.401                                                     | Update the SDK. The generators are built against Roslyn 5.9                                                          |
+| Symptom                                    | Likely cause                                                                                                  | Fix                                                                                                                  |
+|--------------------------------------------|---------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| The plugin is not listed after **Add new** | The plugin DLL is separated from CheatEngine.SDK dependencies                                                 | Keep the whole `bin/Release/net10.0` folder together                                                                 |
+| Cheat Engine refuses the DLL               | No generated entry point                                                                                      | Check for `CESDK0001` or `CESDK0002` in the build output, and that `CheatEngineSdkGenerateEntryPoint` is not `false` |
+| The plugin ticks and `greet` is `nil`      | `OnEnable` threw, so Cheat Engine was told the enable failed                                                  | Read the log below: the host logs every failed enable                                                                |
+| Cheat Engine cannot start the runtime      | The controlled host's required x64 .NET frameworks are unavailable or its local configuration is incompatible | Run `dotnet --list-runtimes`; review and record the local host policy from step 4                                    |
+| `CS9057` in the build                      | The .NET SDK is older than 10.0.401                                                                           | Update the SDK. The generators are built against Roslyn 5.9                                                          |
 
 To see the host's log, start Sysinternals DebugView, turn on **Capture > Capture Global Win32** and filter for
 `CheatEngine.SDK`. Entries start with `[CheatEngine.SDK.Hosting] Information:` or `[CheatEngine.SDK.Hosting] Error:`.
@@ -218,6 +223,9 @@ To see the host's log, start Sysinternals DebugView, turn on **Capture > Capture
   cleanup still completes, and Cheat Engine receives success to record the disabled state. Neither reaches Cheat
   Engine itself.
 - A disable and a new enable reuse the same plugin instance.
+- The host lifecycle is explicit: `Uninitialized → Registered → Enabling → Enabled → Disabling → Registered`.
+  `IsEnabled` is true only in the stable `Enabled` phase; a concurrent enable or disable during a transition fails
+  immediately rather than waiting through a re-entrant lifecycle lock.
 
 ## Before you move on
 

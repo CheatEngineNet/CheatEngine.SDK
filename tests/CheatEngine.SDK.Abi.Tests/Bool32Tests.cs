@@ -65,12 +65,12 @@ public sealed class Bool32Tests
     }
 
     [Fact]
-    public void Comparison_with_a_bool_literal_uses_truthiness()
+    public void Comparison_with_canonical_values_uses_truthiness()
     {
         Bool32 allBitsSet = new(-1);
 
-        Assert.True(allBitsSet == true);
-        Assert.True(Bool32.False == false);
+        Assert.True(allBitsSet == Bool32.True);
+        Assert.False(Bool32.False == Bool32.True);
     }
 
     [Fact]

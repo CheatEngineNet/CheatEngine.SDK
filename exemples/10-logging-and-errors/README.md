@@ -275,7 +275,7 @@ flowchart TD
 | `CEObject` typed members                 | `false`                                                                          | Check the result, like any Try form                                                         |
 | A `[LuaFunction]` body that throws       | A Lua error such as `System.DivideByZeroException: Attempted to divide by zero.` | Validate arguments for a friendlier message, and log inside the method if you want a record |
 | `OnEnable` throws                        | The host logs the exception, and Cheat Engine is told the enable failed          | Throw on purpose when setup cannot finish                                                   |
-| `OnDisable` throws                       | Logged; cleanup completes and Cheat Engine records the disabled state             | Avoid it. Release what you own first                                                        |
+| `OnDisable` throws                       | Logged; cleanup completes and Cheat Engine records the disabled state            | Avoid it. Release what you own first                                                        |
 | A thread you started                     | Nothing catches it, and the process ends                                         | Catch every exception at the top of the thread                                              |
 
 A `[LuaFunction]` failure reaches the script that called it and is not written to `HostLog` by itself.

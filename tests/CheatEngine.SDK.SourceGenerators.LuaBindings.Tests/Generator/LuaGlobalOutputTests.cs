@@ -47,7 +47,8 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
             "public static partial bool TryReadString(nuint address, int maxLength, global::System.Span<byte> destination, out int written)",
             text,
             StringComparison.Ordinal);
-        Assert.Contains("bool __ok = __L.TryCopyUtf8(-1, destination, out written);\n                return __ok;", text,
+        Assert.Contains("bool __ok = __L.TryCopyUtf8(-1, destination, out written);\n                return __ok;",
+            text,
             StringComparison.Ordinal);
         Assert.Contains("finally\n            {\n                __L.SetTop(__top);", text, StringComparison.Ordinal);
     }
@@ -60,7 +61,8 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
         var text = run.SingleGeneratedText;
         Assert.Contains("public static partial bool TryReadString(nuint address, int maxLength, out string value)",
             text, StringComparison.Ordinal);
-        Assert.Contains("bool __ok = global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller.TryRead(__L, -1, out value);", text,
+        Assert.Contains(
+            "bool __ok = global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller.TryRead(__L, -1, out value);", text,
             StringComparison.Ordinal);
         Assert.Contains("public static partial string ReadString(nuint address, int maxLength)", text,
             StringComparison.Ordinal);
@@ -89,7 +91,8 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
 
         var body = Section(run.SingleGeneratedText, "public static partial bool IsKeyPressed(int key)",
             "\n        }\n");
-        Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.BooleanMarshaller.TryRead(__L, -1, out bool __result)", body,
+        Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.BooleanMarshaller.TryRead(__L, -1, out bool __result)",
+            body,
             StringComparison.Ordinal);
         Assert.Contains("ThrowUnexpectedResult(__L, __top, -1, \"isKeyPressed\", \"a boolean\")", body,
             StringComparison.Ordinal);
@@ -107,14 +110,17 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
         Assert.Contains(
             "remainder = default;\n                    return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, out quotient);",
             body, StringComparison.Ordinal);
-        Assert.Contains("if (!global::CheatEngine.SDK.Lua.Marshalling.Int64Marshaller.TryRead(__L, -2, out quotient))", body,
+        Assert.Contains("if (!global::CheatEngine.SDK.Lua.Marshalling.Int64Marshaller.TryRead(__L, -2, out quotient))",
+            body,
             StringComparison.Ordinal);
-        Assert.Contains("if (!global::CheatEngine.SDK.Lua.Marshalling.Int64Marshaller.TryRead(__L, -1, out remainder))", body,
+        Assert.Contains("if (!global::CheatEngine.SDK.Lua.Marshalling.Int64Marshaller.TryRead(__L, -1, out remainder))",
+            body,
             StringComparison.Ordinal);
         Assert.Contains(
             "quotient = default;\n                    return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, out remainder);",
             body, StringComparison.Ordinal);
-        Assert.Contains("return true;\n            }\n            catch (global::CheatEngine.SDK.Lua.Calls.LuaException)", body,
+        Assert.Contains(
+            "return true;\n            }\n            catch (global::CheatEngine.SDK.Lua.Calls.LuaException)", body,
             StringComparison.Ordinal);
     }
 
@@ -131,7 +137,7 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
     }
 
     [Fact]
-    public void Generator_leading_state_parameter_replaces_the_acquisition()
+    public void Generator_leading_state_parameter_acquires_an_atomic_operation_lease()
     {
         var run = roslyn.Run(BindingSources.GlobalSuite);
 
@@ -139,12 +145,20 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
         var throwing = Section(text,
             "public static partial long AddOn(global::CheatEngine.SDK.Lua.State.LuaState state, long a, long b)",
             "\n        }\n");
-        Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState __L = state;", throwing, StringComparison.Ordinal);
+        Assert.Contains(
+            "using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation(state);",
+            throwing,
+            StringComparison.Ordinal);
+        Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState __L = __operation.State;", throwing,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("AcquireState", throwing, StringComparison.Ordinal);
         var tryForm = Section(text,
             "public static partial bool TryAddOn(global::CheatEngine.SDK.Lua.State.LuaState state, long a, long b, out long sum)",
             "\n        }\n");
-        Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState __L = state;", tryForm, StringComparison.Ordinal);
+        Assert.Contains(
+            "using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation(state);",
+            tryForm,
+            StringComparison.Ordinal);
     }
 
     [Fact]

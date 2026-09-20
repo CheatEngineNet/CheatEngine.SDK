@@ -19,7 +19,8 @@ namespace CheatEngine.SDK.Abi;
 ///         <b>Where it is used:</b> <see cref="ManagedExportedFunctions.CheckSynchronize" />. <b>Evidence:</b> the public
 ///         7.5 host source declares that function with a Pascal <c>boolean</c> result - <i>inferred</i> for 7.7, whose
 ///         host is closed source. The official managed bootstrap binds the same slot through a delegate returning C#
-///         <c>bool</c> under default marshalling, which reads 4 bytes; reading 1 byte is correct under both hypotheses
+///         <see langword="bool" /> under default marshalling, which reads 4 bytes; reading 1 byte is correct under both
+///         hypotheses
 ///         for every value a Pascal host can realistically produce (0, 1, or all bits set), reading 4 bytes is not.
 ///     </para>
 ///     <para>Immutable value type: safe to use from any thread.</para>
@@ -32,7 +33,7 @@ public readonly struct Bool8(byte rawValue) : IEquatable<Bool8>
     /// <summary>Gets the false value (raw 0).</summary>
     public static Bool8 False => default;
 
-    /// <summary>Gets the canonical true value written by this SDK (raw 1, the Pascal <c>true</c>).</summary>
+    /// <summary>Gets the canonical true value written by this SDK (raw 1, the Pascal <see langword="true" />).</summary>
     public static Bool8 True => new(1);
 
     /// <summary>Gets the raw byte. Diagnostic use only: do not compare it with 1.</summary>

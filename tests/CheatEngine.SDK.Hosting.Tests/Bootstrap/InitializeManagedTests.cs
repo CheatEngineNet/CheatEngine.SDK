@@ -35,7 +35,7 @@ public sealed unsafe class InitializeManagedTests
         Assert.NotEqual((nint)record.GetVersion, (nint)record.EnablePlugin);
         Assert.NotEqual((nint)record.EnablePlugin, (nint)record.DisablePlugin);
         Assert.Equal((uint)AbiConstants.SdkVersion, record.Version);
-        Assert.Equal(36, PluginHost.LastInitRecordSize);
+        Assert.Equal(0, PluginHost.LastInitRecordArgument);
     }
 
     [Fact]
@@ -120,39 +120,24 @@ public sealed unsafe class InitializeManagedTests
     }
 
     [Theory]
-    [InlineData(1)]
-    [InlineData(20)]
-    [InlineData(35)]
-    public void A_positive_size_smaller_than_the_record_refuses_to_write(int size)
-    {
-        var sink = HostingTest.Reset();
-        using HostSimulator host = new();
-
-        var result = host.Initialize<RecordingPluginFactory>(size);
-
-        Assert.Equal(0, result);
-        Assert.True(host.RecordUntouched);
-        Assert.True(host.GuardIntact);
-        Assert.NotEmpty(sink.Errors("smaller than the 36-byte record"));
-        Assert.Equal(size, PluginHost.LastInitRecordSize);
-    }
-
-    [Theory]
-    [InlineData(0)]
+    [InlineData(int.MinValue)]
     [InlineData(-1)]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(35)]
     [InlineData(36)]
     [InlineData(40)]
     [InlineData(4096)]
-    public void An_unknown_or_sufficient_size_writes_the_record(int size)
+    public void An_opaque_bootstrap_argument_is_recorded_without_changing_the_record_write(int hostArgument)
     {
         HostingTest.Reset();
         using HostSimulator host = new();
 
-        Assert.Equal(1, host.Initialize<RecordingPluginFactory>(size));
+        Assert.Equal(1, host.Initialize<RecordingPluginFactory>(hostArgument));
 
         Assert.False(host.RecordUntouched);
         Assert.True(host.GuardIntact);
-        Assert.Equal(size, PluginHost.LastInitRecordSize);
+        Assert.Equal(hostArgument, PluginHost.LastInitRecordArgument);
     }
 
     [Fact]
@@ -188,7 +173,7 @@ public sealed unsafe class InitializeManagedTests
         Assert.True(broken.RecordUntouched);
         Assert.True(broken.GuardIntact);
         Assert.False(PluginHost.IsInitialized);
-        Assert.Equal(36, PluginHost.LastInitRecordSize);
+        Assert.Equal(0, PluginHost.LastInitRecordArgument);
         (HostLogLevel, string, Exception?) entry = Assert.Single(sink.Errors("InitializeManaged failed."));
         var exception = Assert.IsType<NotSupportedException>(entry.Item3);
         Assert.Contains("requested by the test", exception.Message, StringComparison.Ordinal);
@@ -206,6 +191,6 @@ public sealed unsafe class InitializeManagedTests
 
         host.Initialize<RecordingPluginFactory>(40);
 
-        Assert.True(sink.HasEntry(HostLogLevel.Trace, "size 40"));
+        Assert.True(sink.HasEntry(HostLogLevel.Trace, "host argument 40"));
     }
 }

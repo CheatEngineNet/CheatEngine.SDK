@@ -10,11 +10,11 @@ namespace CheatEngine.SDK.Benchmarks;
 /// <summary>
 ///     A property get on a fake host object, through <c>CheatEngine.SDK.Engine.Objects.CEObject</c>'s typed primitive
 ///     (category <c>ObjectAccess</c>, read side only). <c>CheatEngine.SDK.Engine</c>'s <c>Objects/</c> primitives are
-///     usable standalone against any binding that supplies a state provider and a host-object pusher (<see cref="FakeHostRuntime" />
+///     usable standalone against any binding that supplies a state provider and a host-object pusher (
+///     <see cref="FakeHostRuntime" />
 ///     stands in for Cheat Engine's <c>LuaPushClassInstance</c>), which is what lets this project benchmark them.
 /// </summary>
 [MemoryDiagnoser(false)]
-[ShortRunJob]
 [BenchmarkCategory("ObjectAccess")]
 public class ObjectPropertyBenchmarks : IDisposable
 {

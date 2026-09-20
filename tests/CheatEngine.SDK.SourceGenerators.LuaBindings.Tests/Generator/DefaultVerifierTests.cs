@@ -23,6 +23,7 @@ public sealed class DefaultVerifierTests
             ExpectedFiles.FunctionsHintName,
             SourceText.From(ExpectedFiles.Functions(), Encoding.UTF8)));
 
+        Assert.Single(test.TestState.GeneratedSources);
         await test.RunAsync(TestContext.Current.CancellationToken);
     }
 
@@ -35,6 +36,7 @@ public sealed class DefaultVerifierTests
             ExpectedFiles.GlobalsHintName,
             SourceText.From(ExpectedFiles.Globals(), Encoding.UTF8)));
 
+        Assert.Single(test.TestState.GeneratedSources);
         await test.RunAsync(TestContext.Current.CancellationToken);
     }
 

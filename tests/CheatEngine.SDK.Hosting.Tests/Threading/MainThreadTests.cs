@@ -12,8 +12,8 @@ namespace CheatEngine.SDK.Hosting.Tests.Threading;
 
 /// <summary>
 ///     Main-thread identity, the two message-loop wrappers over the exports doubles, and dispatch through a Lua
-///     stand-in for Cheat Engine's <c>synchronize</c> (which runs the function inline, so the mechanics are exercised
-///     without a real thread hop).
+///     stand-in for Cheat Engine's <c>synchronize</c>. The stand-in deliberately runs inline, proving that the
+///     dispatcher rejects a host which fails to hop a worker callback to the captured main thread.
 /// </summary>
 public sealed unsafe class MainThreadTests
 {
@@ -143,7 +143,7 @@ public sealed unsafe class MainThreadTests
 
     [Fact]
     [Trait("Category", "NativeLua")]
-    public void Invoke_from_a_worker_goes_through_synchronize_and_returns_the_result()
+    public void Invoke_from_a_worker_rejects_a_synchronize_stand_in_that_does_not_hop_to_the_main_thread()
     {
         HostingTest.RequireNativeLua();
         HostingTest.Reset();
@@ -152,21 +152,12 @@ public sealed unsafe class MainThreadTests
         HostingTest.Enable(host, state);
         InstallSynchronizeStandIn(state);
 
-        var (result, workerId, ranOnId) = RunOnWorker(static () =>
-        {
-            var ranOn = new int[1];
-            var result = MainThread.Invoke(
-                static box =>
-                {
-                    box[0] = Environment.CurrentManagedThreadId;
-                    return 6 * 7;
-                },
-                ranOn);
-            return (result, Environment.CurrentManagedThreadId, ranOn[0]);
-        });
+        var executed = new int[1];
+        var failure = RunOnWorker(() => Record.Exception(() => MainThread.Invoke(static box => box[0]++, executed)));
 
-        Assert.Equal(42, result);
-        Assert.Equal(workerId, ranOnId); // the stand-in runs the function where it is called; a real host would hop
+        var exception = Assert.IsType<InvalidOperationException>(failure);
+        Assert.Contains("other than the enabled plugin main thread", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(0, executed[0]);
         Assert.True(PluginHost.IsEnabled);
         Assert.Equal(0, LuaApi.lua_gettop(state.L));
         Assert.Equal(1, ReadGlobalInteger(state, "synchronize_calls"u8));
@@ -174,18 +165,16 @@ public sealed unsafe class MainThreadTests
 
     [Fact]
     [Trait("Category", "NativeLua")]
-    public void An_exception_thrown_by_the_dispatched_work_is_rethrown_on_the_caller()
+    public void An_exception_thrown_by_inline_main_thread_work_is_rethrown_on_the_caller()
     {
         HostingTest.RequireNativeLua();
         var sink = HostingTest.Reset();
         using NativeLuaState state = new();
         using HostSimulator host = new();
         HostingTest.Enable(host, state);
-        InstallSynchronizeStandIn(state);
-
-        var failure = RunOnWorker(static () => Record.Exception(() => MainThread.Invoke(
+        var failure = Record.Exception(() => MainThread.Invoke(
             static message => throw new NotSupportedException(message),
-            "from the main thread")));
+            "from the main thread"));
 
         var exception = Assert.IsType<NotSupportedException>(failure);
         Assert.Equal("from the main thread", exception.Message);

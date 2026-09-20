@@ -220,10 +220,12 @@ To see the host's log, start Sysinternals DebugView, turn on **Capture > Capture
 - One `PackageReference` is enough: the package has no NuGet dependencies and brings the analyzers and generators.
 - Building generates `CESDK.CESDK.CEPluginInitialize`, the exact entry point Cheat Engine looks up.
 - An `OnEnable` exception is logged and reported to Cheat Engine as a failed call. An `OnDisable` exception is logged,
-  cleanup still completes, and Cheat Engine receives success to record the disabled state. Neither reaches Cheat
+  cleanup completes and Cheat Engine is told the plugin is disabled. Neither exception reaches Cheat
   Engine itself.
 - A disable and a new enable reuse the same plugin instance.
 - The host lifecycle is explicit: `Uninitialized → Registered → Enabling → Enabled → Disabling → Registered`.
+   A disable can be refused when it is nested in admitted Lua work or dispatched main-thread actions; a failed
+   detachment leaves the lifecycle in `Disabling` for diagnosis rather than reporting a completed shutdown.
   `IsEnabled` is true only in the stable `Enabled` phase; a concurrent enable or disable during a transition fails
   immediately rather than waiting through a re-entrant lifecycle lock.
 

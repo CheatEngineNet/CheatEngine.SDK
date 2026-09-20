@@ -27,7 +27,7 @@ public ref struct LuaRuntimeOperation
     public LuaState State { get; }
 
     /// <summary>
-    ///     Ends the operation admission. Idempotent for the same value; callers should rely on a <c>using</c> scope
+    ///     Ends the operation admission. Idempotent for the same value; callers should rely on a <see langword="using" /> scope
     ///     instead of invoking it directly.
     /// </summary>
     public void Dispose()

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using CheatEngine.SDK.Analyzers.Tests.Infrastructure;
 using Microsoft.CodeAnalysis;
@@ -357,8 +358,9 @@ public sealed class LuaDirectApiBoundaryGuardTests
     private static void AddViolations(List<GuardViolation> violations, LuaDirectApiPolicy policy, string source,
         string path)
     {
-        var tree = CSharpSyntaxTree.ParseText(source, path: path);
-        var root = tree.GetCompilationUnitRoot();
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var tree = CSharpSyntaxTree.ParseText(source, path: path, cancellationToken: cancellationToken);
+        var root = tree.GetCompilationUnitRoot(cancellationToken);
         var aliases = CollectLuaApiAliases(root);
         var hasStaticLuaApiImport = HasStaticLuaApiImport(root);
         var hasLuaApiNamespaceImport = HasLuaApiNamespaceImport(root);
@@ -514,7 +516,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
         if (equals.Left is not InvocationExpressionSyntax
             {
                 Expression: IdentifierNameSyntax { Identifier.ValueText: "lua_checkstack" },
-                ArgumentList.Arguments: var arguments
+                ArgumentList.Arguments: var arguments,
             } || arguments.Count != 2 || !IsIdentifier(arguments[0].Expression, "Pointer") ||
             !IsIntegerOne(arguments[1].Expression))
             return false;
@@ -537,7 +539,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
             uint value => value == 0,
             long value => value == 0,
             ulong value => value == 0,
-            _ => false
+            _ => false,
         };
     }
 
@@ -556,7 +558,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
             uint value => value == 1,
             long value => value == 1,
             ulong value => value == 1,
-            _ => false
+            _ => false,
         };
     }
 
@@ -614,7 +616,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
         for (var index = 0; index < violations.Count; index++)
         {
             var violation = violations[index];
-            lines.Add($" - {violation.Path}:{violation.Line}: {violation.MemberName}: {violation.Reason}");
+            lines.Add($" - {violation.Path}:{violation.Line.ToString(CultureInfo.InvariantCulture)}: {violation.MemberName}: {violation.Reason}");
         }
 
         return string.Join(Environment.NewLine, lines);

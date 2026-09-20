@@ -22,7 +22,7 @@ public sealed unsafe class LuaBridgeContractBoundaryTests
         "lua_gettop", "lua_settop", "lua_checkstack", "lua_rotate", "lua_pushlstring",
         "lua_pushinteger", "lua_createtable", "lua_newuserdata", "lua_pushcclosure",
         "lua_pushlightuserdata", "lua_rawset", "lua_rawseti", "lua_rawsetp", "lua_rawgetp",
-        "lua_rawgeti", "lua_type", "lua_pcallk", "lua_error", "luaL_ref", "luaL_unref"
+        "lua_rawgeti", "lua_type", "lua_pcallk", "lua_error", "luaL_ref", "luaL_unref",
     ];
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed unsafe class LuaBridgeContractBoundaryTests
     public void Native_bridge_rejects_invalid_preconditions_without_mutating_the_Lua_stack()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var luaState = state.L;
         LuaApi.lua_pushinteger(luaState, 0x1CEB_00DA_5EED_1234);
         var top = LuaApi.lua_gettop(luaState);
@@ -111,7 +111,7 @@ public sealed unsafe class LuaBridgeContractBoundaryTests
     public void Native_bridge_builds_a_page_sized_byte_table_with_one_protected_call()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var luaState = state.L;
         var bytes = new byte[4096];
         for (var index = 0; index < bytes.Length; index++) bytes[index] = (byte)index;

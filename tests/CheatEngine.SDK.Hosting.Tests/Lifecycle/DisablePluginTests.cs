@@ -68,8 +68,9 @@ public sealed unsafe class DisablePluginTests
         using HostSimulator host = new();
         HostingTest.Enable(host, state);
         var context = PluginHost.Context!;
-        using ManualResetEventSlim queued = new(false);
-        using ManualResetEventSlim workExecuted = new(false);
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using ManualResetEventSlim queued = new(initialState: false);
+        using ManualResetEventSlim workExecuted = new(initialState: false);
         StrongBox<MainThreadWorkItem?> queuedWork = new();
         Exception? workerFailure = null;
         var observedShutdown = false;
@@ -79,7 +80,7 @@ public sealed unsafe class DisablePluginTests
         {
             queuedWork.Value = item;
             queued.Set();
-            workExecuted.Wait();
+            workExecuted.Wait(cancellationToken);
         };
         FakeExports.CheckSynchronizeHandlerForTests = () =>
         {
@@ -109,7 +110,8 @@ public sealed unsafe class DisablePluginTests
         });
 
         worker.Start();
-        Assert.True(queued.Wait(TimeSpan.FromSeconds(5)), "The worker did not queue MainThread.Invoke work.");
+        Assert.True(queued.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+            "The worker did not queue MainThread.Invoke work.");
 
         // The worker is inside MainThread.Invoke and waits for the queue-capable host fake. Disable must call
         // CheckSynchronize instead of blindly waiting on the GUI thread, then wait for that real Invoke to return

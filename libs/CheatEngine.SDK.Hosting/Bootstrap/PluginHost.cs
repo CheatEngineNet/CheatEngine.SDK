@@ -46,7 +46,7 @@ public static unsafe partial class PluginHost
 {
     private static readonly Lock SGate = new();
     private static readonly Lock SAdmissionGate = new();
-    private static readonly ManualResetEventSlim SNoAdmittedMainThreadWork = new(true);
+    private static readonly ManualResetEventSlim SNoAdmittedMainThreadWork = new(initialState: true);
 
     // Written once by the first successful InitializeManaged, never cleared in production.
     private static PluginDescriptor? s_descriptor;
@@ -300,7 +300,7 @@ public static unsafe partial class PluginHost
         if (shutdown is not null)
             try
             {
-                shutdown.Cancel(false);
+                shutdown.Cancel(throwOnFirstException: false);
             }
             catch (Exception exception)
             {

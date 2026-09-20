@@ -19,7 +19,7 @@ public sealed class EngineLuaException : EngineException
     /// <param name="status">The non-success status returned by the protected Lua operation.</param>
     /// <exception cref="ArgumentException"><paramref name="status" /> represents a successful Lua operation.</exception>
     public EngineLuaException(string operation, LuaStatus status)
-        : this(operation, status, CreateDefaultMessage(operation, status), null)
+        : this(operation, status, CreateDefaultMessage(operation, status), innerException: null)
     {
     }
 
@@ -29,7 +29,7 @@ public sealed class EngineLuaException : EngineException
     /// <param name="message">The stable public failure message.</param>
     /// <exception cref="ArgumentException"><paramref name="status" /> represents a successful Lua operation.</exception>
     public EngineLuaException(string operation, LuaStatus status, string message)
-        : this(operation, status, message, null)
+        : this(operation, status, message, innerException: null)
     {
     }
 

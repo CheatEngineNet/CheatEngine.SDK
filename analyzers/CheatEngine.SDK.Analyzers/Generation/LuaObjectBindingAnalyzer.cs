@@ -39,7 +39,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
     [
         DiagnosticDescriptors.InvalidLuaAnnotationTarget,
-        DiagnosticDescriptors.GeneratedLuaIdentityCollision
+        DiagnosticDescriptors.GeneratedLuaIdentityCollision,
     ];
 
     /// <inheritdoc />
@@ -263,7 +263,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
             if (parameter.RefKind == RefKind.Out)
             {
                 hasOutResult = true;
-                if (!IsScalar(parameter.Type, false, symbols.ReadOnlySpan))
+                if (!IsScalar(parameter.Type, allowReadOnlySpan: false, symbols.ReadOnlySpan))
                     return "out results must be supported scalar values";
 
                 continue;
@@ -275,7 +275,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
                 return "optional and params parameters are not supported";
             if (symbols.LuaState is not null && SymbolEqualityComparer.Default.Equals(parameter.Type, symbols.LuaState))
                 return "LuaMethod does not take a LuaState parameter";
-            if (!IsScalar(parameter.Type, true, symbols.ReadOnlySpan))
+            if (!IsScalar(parameter.Type, allowReadOnlySpan: true, symbols.ReadOnlySpan))
                 return "parameters must be supported scalar values";
         }
 
@@ -290,7 +290,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
                 ? string.Empty
                 : "a method with out results must return bool";
 
-        return method.ReturnsVoid || IsScalar(method.ReturnType, false, readOnlySpan)
+        return method.ReturnsVoid || IsScalar(method.ReturnType, allowReadOnlySpan: false, readOnlySpan)
             ? string.Empty
             : "the throwing form must return void or a supported scalar value";
     }
@@ -305,7 +305,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
         if (property.IsStatic) return "the generated object property needs an instance receiver";
         if (property.RefKind != RefKind.None)
             return "ref and ref readonly properties are not supported";
-        if (!IsScalar(property.Type, false, symbols.ReadOnlySpan))
+        if (!IsScalar(property.Type, allowReadOnlySpan: false, symbols.ReadOnlySpan))
             return "the property type must be a supported scalar value";
         if (!IsBodylessPartialProperty(property, cancellationToken))
             return "the member must be a partial property with bodyless get and/or set accessors";

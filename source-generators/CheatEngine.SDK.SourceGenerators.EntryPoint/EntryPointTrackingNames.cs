@@ -40,6 +40,6 @@ internal static class EntryPointTrackingNames
     [
         Plugin, CollectedPlugins, Plugins, Options, PluginsAndOptions, EntryPointTypeCollision,
         PluginsOptionsAndCollision,
-        Bootstrap
+        Bootstrap,
     ];
 }

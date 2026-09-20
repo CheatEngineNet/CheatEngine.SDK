@@ -76,7 +76,7 @@ internal static class PluginShape
         return Inspect(
             type,
             attribute,
-            null,
+            pluginBase: null,
             setsRequiredMembersAttribute,
             obsoleteAttribute,
             out displayName,
@@ -203,8 +203,8 @@ internal static class PluginShape
                         ContainingNamespace:
                         {
                             Name: SdkRootNamespaceName,
-                            ContainingNamespace.IsGlobalNamespace: true
-                        }
+                            ContainingNamespace.IsGlobalNamespace: true,
+                        },
                     }
                 }
             }

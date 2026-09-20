@@ -32,7 +32,7 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
     [
         DiagnosticDescriptors.RequiresPluginEnabledTooEarly,
         DiagnosticDescriptors.DisposeBorrowedValue,
-        DiagnosticDescriptors.AsyncPluginLifecycle
+        DiagnosticDescriptors.AsyncPluginLifecycle,
     ];
 
     /// <inheritdoc />
@@ -127,7 +127,7 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
             IMethodSymbol { MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor } => true,
             IFieldSymbol => true,
             IPropertySymbol => true,
-            _ => false
+            _ => false,
         };
     }
 
@@ -167,7 +167,7 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
             IMethodSymbol { AssociatedSymbol: IPropertySymbol property } => property,
             IMethodSymbol { OverriddenMethod: { } overriddenMethod } => overriddenMethod,
             IPropertySymbol { OverriddenProperty: { } overriddenProperty } => overriddenProperty,
-            _ => null
+            _ => null,
         };
     }
 
@@ -184,7 +184,7 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
             {
                 IConversionOperation conversion => conversion.Operand,
                 IParenthesizedOperation parenthesized => parenthesized.Operand,
-                _ => current
+                _ => current,
             };
 
         return current switch
@@ -192,7 +192,7 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
             IParameterReferenceOperation parameter => HasAttribute(parameter.Parameter, ceOwned),
             IPropertyReferenceOperation property => HasOwnedProperty(property.Property, ceOwned),
             IInvocationOperation invocation => HasOwnedReturn(invocation.TargetMethod, ceOwned),
-            _ => false
+            _ => false,
         };
     }
 

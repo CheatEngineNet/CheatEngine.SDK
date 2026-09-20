@@ -41,7 +41,7 @@ public sealed class LuaRuntimeTests
     public void BeginStateReset_advances_only_the_state_generation_while_the_host_remains_attached()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         using RuntimeScope scope = new(state);
         var before = LuaRuntime.CurrentStateIdentity;
 
@@ -187,11 +187,11 @@ public sealed class LuaRuntimeTests
     {
         LuaTest.RequireNativeLua();
         var cancellationToken = TestContext.Current.CancellationToken;
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         using RuntimeScope scope = new(state);
-        using ManualResetEventSlim workerAdmitted = new(false);
-        using ManualResetEventSlim releaseWorker = new(false);
-        using ManualResetEventSlim admissionClosed = new(false);
+        using ManualResetEventSlim workerAdmitted = new(initialState: false);
+        using ManualResetEventSlim releaseWorker = new(initialState: false);
+        using ManualResetEventSlim admissionClosed = new(initialState: false);
         var before = LuaRuntime.CurrentStateIdentity;
         LuaRuntime.OperationAdmissionClosedForTesting = admissionClosed.Set;
 
@@ -238,7 +238,7 @@ public sealed class LuaRuntimeTests
     public void AcquireOperation_with_a_host_supplied_state_admits_without_recalling_the_provider()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         using RuntimeScope scope = new(state);
 
         using var outer = LuaRuntime.AcquireOperation();
@@ -253,7 +253,7 @@ public sealed class LuaRuntimeTests
     public void BeginStateReset_rejects_reentrancy_from_an_admitted_operation()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         using RuntimeScope scope = new(state);
         var before = LuaRuntime.CurrentStateIdentity;
         using var operation = LuaRuntime.AcquireOperation();

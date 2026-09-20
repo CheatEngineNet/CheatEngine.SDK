@@ -159,7 +159,7 @@ public sealed class LuaRef : IDisposable
         {
             lock (LuaReferences.Gate)
             {
-                var binding = Interlocked.Exchange(ref _binding, null);
+                var binding = Interlocked.Exchange(ref _binding, value: null);
                 if (binding is not null && binding.Reference != NoReference &&
                     binding.Identity == LuaRuntime.CurrentStateIdentity &&
                     !state.IsNull)

@@ -10,5 +10,5 @@ public enum TargetAbi : byte
     Windows = 1,
 
     /// <summary>The Unix/Linux calling-convention family.</summary>
-    Unix = 2
+    Unix = 2,
 }

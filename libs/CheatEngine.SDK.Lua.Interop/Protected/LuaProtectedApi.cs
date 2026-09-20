@@ -24,7 +24,7 @@ internal static unsafe partial class LuaProtectedApi
         "cheatengine_sdk_lua_protected",
         "cheatengine_sdk_lua_bridge_abi_version",
         "cheatengine_sdk_lua_bridge_get_contract",
-        "cheatengine_sdk_lua_bridge_source_fingerprint"
+        "cheatengine_sdk_lua_bridge_source_fingerprint",
     ];
 
     private static readonly Lock s_gate = new();
@@ -52,13 +52,13 @@ internal static unsafe partial class LuaProtectedApi
     {
         ArgumentOutOfRangeException.ThrowIfNegative(arrayCapacity);
         ArgumentOutOfRangeException.ThrowIfNegative(recordCapacity);
-        return Invoke(state, LuaProtectedOperation.CreateTable, 0, null, 0,
+        return Invoke(state, LuaProtectedOperation.CreateTable, 0, data: null, 0,
             arrayCapacity, recordCapacity);
     }
 
     internal static int NewUserdata(lua_State* state, nuint bytes)
     {
-        return Invoke(state, LuaProtectedOperation.NewUserdata, 0, null, bytes, 0,
+        return Invoke(state, LuaProtectedOperation.NewUserdata, 0, data: null, bytes, 0,
             0);
     }
 
@@ -89,7 +89,7 @@ internal static unsafe partial class LuaProtectedApi
         var top = PushTableBeforeInputs(state, tableIndex, 2);
         try
         {
-            return Invoke(binding, state, LuaProtectedOperation.RawSet, 3, null, 0, 1, 0);
+            return Invoke(binding, state, LuaProtectedOperation.RawSet, 3, data: null, 0, 1, 0);
         }
         catch (Exception)
         {
@@ -104,7 +104,7 @@ internal static unsafe partial class LuaProtectedApi
         var top = PushTableBeforeInputs(state, tableIndex, 1);
         try
         {
-            return Invoke(binding, state, LuaProtectedOperation.RawSetIndex, 2, null, 0, 1, (nint)key);
+            return Invoke(binding, state, LuaProtectedOperation.RawSetIndex, 2, data: null, 0, 1, (nint)key);
         }
         catch (Exception)
         {

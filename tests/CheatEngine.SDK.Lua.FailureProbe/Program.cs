@@ -379,7 +379,10 @@ internal static unsafe class Program
 
         s_runtimeState = (lua_State*)state.Handle;
         delegate* unmanaged[Stdcall]<void*> provider = &ProvideRuntimeState;
-        LuaHostBinding binding = new(provider, null, Environment.CurrentManagedThreadId);
+        LuaHostBinding binding = new(
+            stateProvider: provider,
+            hostObjectPusher: null,
+            mainThreadId: Environment.CurrentManagedThreadId);
         LuaRuntime.Attach(in binding);
         try
         {

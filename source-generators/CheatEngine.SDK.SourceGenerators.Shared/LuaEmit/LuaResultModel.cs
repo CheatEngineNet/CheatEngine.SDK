@@ -44,7 +44,7 @@ internal sealed record LuaResultModel(
             LuaResultShape.CopyOut,
             LuaValueKind.Int32,
             writtenName,
-            false,
+            IsNullable: false,
             destinationName,
             destinationIsScoped);
     }

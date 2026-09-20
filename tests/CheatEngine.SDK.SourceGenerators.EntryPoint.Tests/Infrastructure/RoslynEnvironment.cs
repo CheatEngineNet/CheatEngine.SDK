@@ -70,7 +70,7 @@ internal sealed class RoslynEnvironment
             ContractStubs.AnnotationsAssemblyName,
             [
                 CSharpSyntaxTree.ParseText(ContractStubs.AnnotationsSource, ParseOptions, "AnnotationsStubs.cs",
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken),
             ],
             frameworkReferences,
             CompilationOptions);
@@ -78,7 +78,7 @@ internal sealed class RoslynEnvironment
             ContractStubs.HostingAssemblyName,
             [
                 CSharpSyntaxTree.ParseText(ContractStubs.HostingSource, ParseOptions, "HostingStubs.cs",
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken),
             ],
             frameworkReferences,
             CompilationOptions);

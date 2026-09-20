@@ -153,7 +153,7 @@ public sealed class LuaStateStackTests
     public void PushUncheckedFunction_reserves_the_light_C_function_slot_before_each_push()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var L = LuaTest.View(state);
         var initialTop = L.Top;
         const int functionCount = 64;
@@ -224,7 +224,7 @@ public sealed class LuaStateStackTests
     public void PushByteTable_creates_an_ordered_one_based_byte_sequence_in_one_stack_value()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var L = LuaTest.View(state);
         ReadOnlySpan<byte> bytes = [0, 1, 127, byte.MaxValue];
 

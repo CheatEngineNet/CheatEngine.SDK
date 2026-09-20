@@ -109,7 +109,7 @@ public sealed class RuntimeContractsTests
         [
             new(RuntimeCapabilityId.TargetArchitecture, RuntimeCapabilityAvailabilityState.Available, contract),
             new(RuntimeCapabilityId.TargetAbi, RuntimeCapabilityAvailabilityState.Unavailable,
-                RuntimeCapabilityContract.Unknown)
+                RuntimeCapabilityContract.Unknown),
         ];
 
         var capabilities = RuntimeCapabilities.Create(source);
@@ -145,7 +145,7 @@ public sealed class RuntimeContractsTests
             new(RuntimeCapabilityId.TargetAbi, RuntimeCapabilityAvailabilityState.Available,
                 RuntimeCapabilityContract.Unknown),
             new(RuntimeCapabilityId.TargetAbi, RuntimeCapabilityAvailabilityState.Unavailable,
-                RuntimeCapabilityContract.Unknown)
+                RuntimeCapabilityContract.Unknown),
         ];
 
         Assert.Throws<ArgumentException>(() => RuntimeCapabilities.Create(emptyIdentifier));
@@ -159,7 +159,7 @@ public sealed class RuntimeContractsTests
         var capabilities = RuntimeCapabilities.Create(
         [
             new RuntimeCapabilityAvailability(RuntimeCapabilityId.SystemArchitecture,
-                RuntimeCapabilityAvailabilityState.Available, RuntimeCapabilityContract.Unknown)
+                RuntimeCapabilityAvailabilityState.Available, RuntimeCapabilityContract.Unknown),
         ]);
         var info = new RuntimeInfo(
             CheatEngineVersion.Ce77010621,

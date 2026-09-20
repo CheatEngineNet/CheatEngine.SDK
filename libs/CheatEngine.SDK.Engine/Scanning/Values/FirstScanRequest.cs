@@ -128,9 +128,9 @@ public readonly struct FirstScanRequest
             string.Empty,
             FastScanMethod.NotAligned,
             string.Empty,
-            false,
-            false,
-            false,
-            false);
+            isHexadecimalInput: false,
+            isNotBinaryString: false,
+            isUnicodeScan: false,
+            isCaseSensitive: false);
     }
 }

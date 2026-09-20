@@ -43,7 +43,7 @@ public sealed class CatalogEmissionTests
             "PushReference = 8",
             "ReleaseReference = 9",
             "PushHostObject = 10",
-            "PushByteTable = 11"
+            "PushByteTable = 11",
         ];
         for (var i = 0; i < expectedMembers.Length; i++)
             Assert.Contains(expectedMembers[i], generated, StringComparison.Ordinal);

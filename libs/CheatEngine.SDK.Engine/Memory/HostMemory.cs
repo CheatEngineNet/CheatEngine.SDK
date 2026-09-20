@@ -68,7 +68,8 @@ public static class HostMemory
     /// <summary>Reads an unsigned 16-bit value from Cheat Engine's process.</summary>
     public static bool TryReadUInt16(HostAddress address, out ushort value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallIntegerLocal"u8, address.ToInt64(), false, true,
+        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallIntegerLocal"u8, address.ToInt64(), signed: false,
+                hasSignedArgument: true,
                 out var raw, out failure) || raw < 0 || raw > ushort.MaxValue)
         {
             value = default;
@@ -83,7 +84,8 @@ public static class HostMemory
     /// <summary>Reads a signed 16-bit value from Cheat Engine's process.</summary>
     public static bool TryReadInt16(HostAddress address, out short value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallIntegerLocal"u8, address.ToInt64(), true, true,
+        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallIntegerLocal"u8, address.ToInt64(), signed: true,
+                hasSignedArgument: true,
                 out var raw, out failure) || raw < short.MinValue || raw > short.MaxValue)
         {
             value = default;
@@ -98,7 +100,8 @@ public static class HostMemory
     /// <summary>Reads an unsigned 32-bit value from Cheat Engine's process.</summary>
     public static bool TryReadUInt32(HostAddress address, out uint value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadInteger, "readIntegerLocal"u8, address.ToInt64(), false, true, out var raw,
+        if (!MemoryLua.TryReadInteger(SReadInteger, "readIntegerLocal"u8, address.ToInt64(), signed: false,
+                hasSignedArgument: true, out var raw,
                 out failure) || raw < 0 || (ulong)raw > uint.MaxValue)
         {
             value = default;
@@ -113,7 +116,8 @@ public static class HostMemory
     /// <summary>Reads a signed 32-bit value from Cheat Engine's process.</summary>
     public static bool TryReadInt32(HostAddress address, out int value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadInteger, "readIntegerLocal"u8, address.ToInt64(), true, true, out var raw,
+        if (!MemoryLua.TryReadInteger(SReadInteger, "readIntegerLocal"u8, address.ToInt64(), signed: true,
+                hasSignedArgument: true, out var raw,
                 out failure) || raw < int.MinValue || raw > int.MaxValue)
         {
             value = default;
@@ -128,7 +132,8 @@ public static class HostMemory
     /// <summary>Reads an unsigned 64-bit value from Cheat Engine's process without changing its bits.</summary>
     public static bool TryReadUInt64(HostAddress address, out ulong value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadQword, "readQwordLocal"u8, address.ToInt64(), false, false, out var raw,
+        if (!MemoryLua.TryReadInteger(SReadQword, "readQwordLocal"u8, address.ToInt64(), signed: false,
+                hasSignedArgument: false, out var raw,
                 out failure))
         {
             value = default;
@@ -142,14 +147,16 @@ public static class HostMemory
     /// <summary>Reads a signed 64-bit value from Cheat Engine's process.</summary>
     public static bool TryReadInt64(HostAddress address, out long value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryReadInteger(SReadQword, "readQwordLocal"u8, address.ToInt64(), false, false, out value,
+        return MemoryLua.TryReadInteger(SReadQword, "readQwordLocal"u8, address.ToInt64(), signed: false,
+            hasSignedArgument: false, out value,
             out failure);
     }
 
     /// <summary>Reads a host-width pointer from Cheat Engine's process.</summary>
     public static bool TryReadPointer(HostAddress address, out HostAddress value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadPointer, "readPointerLocal"u8, address.ToInt64(), false, false, out var raw,
+        if (!MemoryLua.TryReadInteger(SReadPointer, "readPointerLocal"u8, address.ToInt64(), signed: false,
+                hasSignedArgument: false, out var raw,
                 out failure))
         {
             value = default;

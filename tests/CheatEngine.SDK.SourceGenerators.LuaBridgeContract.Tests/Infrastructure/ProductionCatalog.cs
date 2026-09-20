@@ -12,7 +12,7 @@ internal static class ProductionCatalog
         var assembly = typeof(ProductionCatalog).Assembly;
         using var stream = assembly.GetManifestResourceStream(ResourceName);
         Assert.NotNull(stream);
-        using var reader = new StreamReader(stream, Encoding.UTF8, true);
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         return reader.ReadToEnd();
     }
 }

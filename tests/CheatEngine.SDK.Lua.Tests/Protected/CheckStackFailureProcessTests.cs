@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
 namespace CheatEngine.SDK.Lua.Tests.FailureBoundaries;
@@ -26,7 +27,7 @@ public sealed class CheckStackFailureProcessTests
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            CreateNoWindow = true
+            CreateNoWindow = true,
         };
         start.ArgumentList.Add("exec");
         start.ArgumentList.Add("--runtimeconfig");
@@ -50,14 +51,15 @@ public sealed class CheckStackFailureProcessTests
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            process.Kill(true);
+            process.Kill(entireProcessTree: true);
             Assert.Fail("The direct lua_checkstack failure probe did not exit within 30 seconds.");
         }
 
         var standardOutput = await output;
         var standardError = await error;
         Assert.True(process.ExitCode == 0,
-            $"Probe exit code: {process.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{standardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{standardError}");
+            string.Create(CultureInfo.InvariantCulture,
+                $"Probe exit code: {process.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{standardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{standardError}"));
         AssertMarkers(standardOutput,
             "MARK lua_checkstack-direct-growth-before-reject",
             "MARK lua_checkstack-direct-growth-returned-zero",

@@ -19,5 +19,5 @@ public enum RuntimeArchitectureRequirement : byte
     Arm32 = 4,
 
     /// <summary>The capability requires a 64-bit ARM process.</summary>
-    Arm64 = 5
+    Arm64 = 5,
 }

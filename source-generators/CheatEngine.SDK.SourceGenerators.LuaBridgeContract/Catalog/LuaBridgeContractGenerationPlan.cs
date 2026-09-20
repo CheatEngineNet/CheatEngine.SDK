@@ -10,7 +10,7 @@ internal sealed record LuaBridgeContractGenerationPlan(
     public static LuaBridgeContractGenerationPlan Create(ImmutableArray<CatalogParseResult> results)
     {
         if (results.IsDefaultOrEmpty)
-            return new LuaBridgeContractGenerationPlan(null, ImmutableArray<CatalogDiagnostic>.Empty);
+            return new LuaBridgeContractGenerationPlan(Catalog: null, ImmutableArray<CatalogDiagnostic>.Empty);
 
         if (results.Length == 1)
             return new LuaBridgeContractGenerationPlan(results[0].Catalog, results[0].Diagnostics);
@@ -23,6 +23,6 @@ internal sealed record LuaBridgeContractGenerationPlan(
             diagnostics.Add(LuaBridgeContractDiagnostics.Ambiguous(result.SourcePath));
         }
 
-        return new LuaBridgeContractGenerationPlan(null, diagnostics.ToImmutable());
+        return new LuaBridgeContractGenerationPlan(Catalog: null, diagnostics.ToImmutable());
     }
 }

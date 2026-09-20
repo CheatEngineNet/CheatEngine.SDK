@@ -18,6 +18,6 @@ internal readonly record struct EntryPointOptions(bool GenerateEntryPoint)
     /// <summary>Reads the switches from <c>AnalyzerConfigOptionsProvider.GlobalOptions</c>.</summary>
     public static EntryPointOptions From(AnalyzerConfigOptions globalOptions)
     {
-        return new EntryPointOptions(BuildProperty.ReadBoolean(globalOptions, GenerateEntryPointKey, false));
+        return new EntryPointOptions(BuildProperty.ReadBoolean(globalOptions, GenerateEntryPointKey, defaultValue: false));
     }
 }

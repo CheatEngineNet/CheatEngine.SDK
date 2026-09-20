@@ -88,10 +88,10 @@ public readonly struct NextScanRequest
             RoundingType.Rounded,
             input,
             string.Empty,
-            false,
-            false,
-            false,
-            false,
-            false);
+            isHexadecimalInput: false,
+            isNotBinaryString: false,
+            isUnicodeScan: false,
+            isCaseSensitive: false,
+            isPercentageScan: false);
     }
 }

@@ -50,10 +50,10 @@ internal static class LuaObjectMethodParser
             EquatableArray<LuaArgumentModel>.Empty,
             LuaCallForm.Throwing,
             EquatableArray<LuaResultModel>.Empty,
-            null,
-            false,
+            ReturnKind: null,
+            ReturnIsNullable: false,
             SortKey(method),
-            false);
+            IsValid: false);
     }
 
     private static bool TryDescribe(IMethodSymbol method, MethodDeclarationSyntax? declaration,

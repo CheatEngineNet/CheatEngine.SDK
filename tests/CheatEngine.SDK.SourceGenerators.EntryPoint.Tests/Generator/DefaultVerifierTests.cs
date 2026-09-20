@@ -51,7 +51,7 @@ public sealed class DefaultVerifierTests
     [Fact]
     public async Task Verifier_build_property_false_in_global_config_emits_nothing()
     {
-        var test = CreateTest(false);
+        var test = CreateTest(applyDirectPackageSetting: false);
         test.TestState.AnalyzerConfigFiles.Add((
             "/.globalconfig",
             "is_global = true\nbuild_property.CheatEngineSdkGenerateEntryPoint = false\n"));
@@ -64,7 +64,7 @@ public sealed class DefaultVerifierTests
     [Fact]
     public async Task Verifier_build_property_true_in_global_config_emits_the_bootstrap()
     {
-        var test = CreateTest(false);
+        var test = CreateTest(applyDirectPackageSetting: false);
         test.TestState.AnalyzerConfigFiles.Add((
             "/.globalconfig",
             "is_global = true\nbuild_property.CheatEngineSdkGenerateEntryPoint = true\n"));

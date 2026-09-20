@@ -109,7 +109,7 @@ internal sealed class RecordingPlugin : CheatEnginePlugin
         MainThreadInOnEnable = MainThread.IsMainThread;
         ContextInOnEnable = Context;
         OnEnableEntered?.Set();
-        ContinueOnEnable?.Wait();
+        ContinueOnEnable?.Wait(Context.ShutdownToken);
 
         // The Lua layer must be usable here: run a chunk on the state the host hands out.
         var L = LuaRuntime.AcquireState();

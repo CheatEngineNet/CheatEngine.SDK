@@ -12,7 +12,7 @@ public sealed class DeploymentLayoutTests(PackagedUmbrellaFixture fixture)
     private static readonly string[] ExpectedSdkAssemblies =
     [
         "CheatEngine.SDK.Abi.dll", "CheatEngine.SDK.Annotations.dll", "CheatEngine.SDK.Engine.dll",
-        "CheatEngine.SDK.Hosting.dll", "CheatEngine.SDK.Lua.dll", "CheatEngine.SDK.Lua.Interop.dll"
+        "CheatEngine.SDK.Hosting.dll", "CheatEngine.SDK.Lua.dll", "CheatEngine.SDK.Lua.Interop.dll",
     ];
 
     [Fact]

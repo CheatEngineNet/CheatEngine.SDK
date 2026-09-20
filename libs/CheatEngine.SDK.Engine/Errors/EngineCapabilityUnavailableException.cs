@@ -16,7 +16,7 @@ public sealed class EngineCapabilityUnavailableException : EngineException
     /// <summary>Initializes an exception with the standard message for <paramref name="capability" />.</summary>
     /// <param name="capability">The stable public capability identifier.</param>
     public EngineCapabilityUnavailableException(string capability)
-        : this(capability, CreateDefaultMessage(capability), null)
+        : this(capability, CreateDefaultMessage(capability), innerException: null)
     {
     }
 
@@ -24,7 +24,7 @@ public sealed class EngineCapabilityUnavailableException : EngineException
     /// <param name="capability">The stable public capability identifier.</param>
     /// <param name="message">The stable public failure message.</param>
     public EngineCapabilityUnavailableException(string capability, string message)
-        : this(capability, message, null)
+        : this(capability, message, innerException: null)
     {
     }
 

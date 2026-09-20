@@ -10,5 +10,5 @@ public enum RuntimeCapabilityAvailabilityState : byte
     Available = 1,
 
     /// <summary>The capability was explicitly observed as unavailable for this runtime snapshot.</summary>
-    Unavailable = 2
+    Unavailable = 2,
 }

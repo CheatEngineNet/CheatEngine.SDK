@@ -96,7 +96,7 @@ public sealed class ZeroAllocationTests
     public void Utf16_string_push_allocates_nothing_through_the_stack_buffer()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var L = LuaTest.View(state);
         // 171 characters: the encoder's worst case (3 bytes each, plus one) exceeds the 512-byte buffer, so Encode
         // takes its exact-count branch; with 11 two-byte characters the text is 182 bytes and still fits.

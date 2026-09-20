@@ -27,5 +27,5 @@ public enum InspectionStatus
     LuaFailure,
 
     /// <summary>The call succeeded but returned a value whose table, field or scalar shape is not the CE 7.7 contract.</summary>
-    InvalidResult
+    InvalidResult,
 }

@@ -145,7 +145,11 @@ public sealed class ContractIdentityTests(RoslynFixture roslyn) : IClassFixture<
     {
         return CSharpCompilation.Create(
             RoslynFixture.PluginAssemblyName,
-            [CSharpSyntaxTree.ParseText(source, RoslynEnvironment.ParseOptions, "Plugin.cs")],
+            [CSharpSyntaxTree.ParseText(
+                source,
+                RoslynEnvironment.ParseOptions,
+                "Plugin.cs",
+                cancellationToken: TestContext.Current.CancellationToken)],
             references,
             RoslynEnvironment.CompilationOptions);
     }
@@ -157,7 +161,11 @@ public sealed class ContractIdentityTests(RoslynFixture roslyn) : IClassFixture<
     {
         var compilation = CSharpCompilation.Create(
             assemblyName,
-            [CSharpSyntaxTree.ParseText(source, RoslynEnvironment.ParseOptions, assemblyName + ".cs")],
+            [CSharpSyntaxTree.ParseText(
+                source,
+                RoslynEnvironment.ParseOptions,
+                assemblyName + ".cs",
+                cancellationToken: TestContext.Current.CancellationToken)],
             environment.FrameworkReferences,
             RoslynEnvironment.CompilationOptions);
         using MemoryStream image = new();

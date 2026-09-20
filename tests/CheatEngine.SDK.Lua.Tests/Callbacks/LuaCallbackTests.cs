@@ -296,9 +296,9 @@ public sealed class LuaCallbackTests
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        using ManualResetEventSlim creationPaused = new(false);
-        using ManualResetEventSlim allowPublication = new(false);
-        using ManualResetEventSlim admissionClosed = new(false);
+        using ManualResetEventSlim creationPaused = new(initialState: false);
+        using ManualResetEventSlim allowPublication = new(initialState: false);
+        using ManualResetEventSlim admissionClosed = new(initialState: false);
         Counter counter = new();
 
         LuaCallback.BeforeRegistryAddForTesting = () =>
@@ -354,8 +354,8 @@ public sealed class LuaCallbackTests
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        using ManualResetEventSlim admissionClosed = new(false);
-        using ManualResetEventSlim allowCleanup = new(false);
+        using ManualResetEventSlim admissionClosed = new(initialState: false);
+        using ManualResetEventSlim allowCleanup = new(initialState: false);
         Counter counter = new();
         Assert.True(LuaCallback.TryCreate(L, Thunks.Count, counter, out var callback).IsOk);
         Assert.NotNull(callback);
@@ -506,7 +506,7 @@ public sealed class LuaCallbackTests
         LuaTest.RequireNativeLua();
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
-        using RuntimeScope scope = new(state, false);
+        using RuntimeScope scope = new(state, withPusher: false);
         Counter counter = new();
         Assert.True(LuaCallback.TryCreate(L, Thunks.Count, counter, out var callback).IsOk);
         Assert.NotNull(callback);
@@ -721,13 +721,13 @@ public sealed class LuaCallbackTests
             LuaCallbackRegistry.AfterReleaseForTesting = ThrowCleanupFailure;
         }
 
-        public ManualResetEventSlim AdmissionClosed { get; } = new(false);
+        public ManualResetEventSlim AdmissionClosed { get; } = new(initialState: false);
 
-        public ManualResetEventSlim AllowDetachCleanup { get; } = new(false);
+        public ManualResetEventSlim AllowDetachCleanup { get; } = new(initialState: false);
 
-        public ManualResetEventSlim DisposeObservedRefusal { get; } = new(false);
+        public ManualResetEventSlim DisposeObservedRefusal { get; } = new(initialState: false);
 
-        public ManualResetEventSlim AllowDisposeToReturn { get; } = new(false);
+        public ManualResetEventSlim AllowDisposeToReturn { get; } = new(initialState: false);
 
         public void Dispose()
         {

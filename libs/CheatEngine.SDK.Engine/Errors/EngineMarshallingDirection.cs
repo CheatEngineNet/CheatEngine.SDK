@@ -7,5 +7,5 @@ public enum EngineMarshallingDirection
     Argument = 0,
 
     /// <summary>A Lua result could not be represented by the declared managed contract.</summary>
-    Result = 1
+    Result = 1,
 }

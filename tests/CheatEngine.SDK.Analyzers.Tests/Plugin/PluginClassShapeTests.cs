@@ -626,13 +626,13 @@ public sealed class PluginClassShapeTests
                 [
                     Verifier.Diagnostic(DiagnosticDescriptors.ReservedNamespace).WithLocation(1).WithArguments("CESDK"),
                     reservedName,
-                    collision
+                    collision,
                 ]
                 :
                 [
                     Verifier.Diagnostic(DiagnosticDescriptors.ReservedNamespace).WithLocation(1).WithArguments("CESDK"),
                     collision,
-                    reservedName
+                    reservedName,
                 ]);
     }
 

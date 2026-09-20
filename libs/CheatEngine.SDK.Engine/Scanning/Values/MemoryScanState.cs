@@ -38,5 +38,5 @@ public enum MemoryScanState
     Invalidated = 3,
 
     /// <summary>The session released its child list and then its scanner; no operation remains valid.</summary>
-    Disposed = 4
+    Disposed = 4,
 }

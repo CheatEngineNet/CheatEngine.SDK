@@ -489,6 +489,6 @@ public static unsafe partial class PluginHost
     {
         Refused,
         AlreadyStable,
-        Started
+        Started,
     }
 }

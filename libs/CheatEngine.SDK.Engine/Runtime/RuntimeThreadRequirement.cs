@@ -10,5 +10,5 @@ public enum RuntimeThreadRequirement : byte
     AnyThread = 1,
 
     /// <summary>The capability must execute on Cheat Engine's main GUI thread.</summary>
-    MainThread = 2
+    MainThread = 2,
 }

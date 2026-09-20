@@ -16,5 +16,5 @@ public enum RuntimeReturnSemantics : byte
     BooleanStatus = 3,
 
     /// <summary>The capability has no normal return value.</summary>
-    Void = 4
+    Void = 4,
 }

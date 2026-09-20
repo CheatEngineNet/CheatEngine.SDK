@@ -14,7 +14,7 @@ internal static class LuaBridgeContractDiagnostics
         "Protected Lua operation catalogue: {0}",
         Category,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "Correct the invalid protected-operations.json entry; the managed bridge contract is not generated from an invalid catalogue.");
 
     private static readonly DiagnosticDescriptor ConflictingCatalog = new(
@@ -23,7 +23,7 @@ internal static class LuaBridgeContractDiagnostics
         "Protected Lua operation catalogue: {0}",
         Category,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "CheatEngine.SDK.Lua.Interop must supply exactly one protected-operations.json AdditionalFile.");
 
     public static CatalogDiagnostic Ambiguous(string path)
@@ -33,7 +33,7 @@ internal static class LuaBridgeContractDiagnostics
             new TextSpan(0, 0),
             new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)),
             "More than one protected-operations.json AdditionalFile was supplied; only one catalogue may own the generated managed operation contract.",
-            true);
+            IsConflict: true);
     }
 
     public static Diagnostic Create(CatalogDiagnostic diagnostic)

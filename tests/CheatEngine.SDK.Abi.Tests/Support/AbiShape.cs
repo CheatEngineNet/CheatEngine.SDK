@@ -127,7 +127,7 @@ internal static class AbiShape
         for (var index = 0; index < parameters.Length; index++)
         {
             violation = CheckType(parameters[index],
-                $"{path}(parameter {index.ToString(CultureInfo.InvariantCulture)})", false, trusted, visited);
+                $"{path}(parameter {index.ToString(CultureInfo.InvariantCulture)})", allowVoid: false, trusted, visited);
             if (violation is not null) return violation;
         }
 

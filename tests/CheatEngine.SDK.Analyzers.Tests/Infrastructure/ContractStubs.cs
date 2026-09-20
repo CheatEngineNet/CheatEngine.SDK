@@ -22,7 +22,7 @@ internal static class ContractStubs
     public static ImmutableArray<MetadataReference> References { get; } =
     [
         MetadataReference.CreateFromFile(typeof(CheatEnginePluginAttribute).Assembly.Location),
-        MetadataReference.CreateFromFile(typeof(CheatEnginePlugin).Assembly.Location)
+        MetadataReference.CreateFromFile(typeof(CheatEnginePlugin).Assembly.Location),
     ];
 
     /// <summary>Adds the real SDK contract metadata to <paramref name="state" />.</summary>

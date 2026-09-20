@@ -7,5 +7,5 @@ internal enum SpecIssueKind
     Grammar,
 
     /// <summary>Two otherwise valid specs would generate the same C# identity.</summary>
-    Conflict
+    Conflict,
 }

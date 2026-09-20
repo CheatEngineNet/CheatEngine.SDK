@@ -14,7 +14,7 @@ public sealed class LuaRefTests
     public void Create_push_and_release_round_trip()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var L = LuaTest.View(state);
         L.PushString("kept alive"u8);
 
@@ -47,7 +47,7 @@ public sealed class LuaRefTests
     public void Release_is_idempotent_and_does_not_free_the_slot_twice()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var L = LuaTest.View(state);
         L.PushInteger(1);
         var first = L.CreateRef();
@@ -165,7 +165,7 @@ public sealed class LuaRefTests
     public void Dispose_releases_through_the_attached_runtime()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         L.PushInteger(7);

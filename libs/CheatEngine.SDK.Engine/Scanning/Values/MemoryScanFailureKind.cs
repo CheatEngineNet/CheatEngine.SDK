@@ -10,5 +10,5 @@ public enum MemoryScanFailureKind
     LuaError = 1,
 
     /// <summary>The host returned a value that does not satisfy the documented CE Lua result shape.</summary>
-    UnexpectedResult = 2
+    UnexpectedResult = 2,
 }

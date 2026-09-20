@@ -13,5 +13,5 @@ public enum RuntimeOwnership : byte
     Borrowed = 2,
 
     /// <summary>The capability transfers a resource that the caller must release through its documented owner.</summary>
-    Owned = 3
+    Owned = 3,
 }

@@ -47,7 +47,7 @@ internal static class DiagnosticDescriptors
         "Entry-point generation is disabled, but {0}",
         DiagnosticCategories.Plugin,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "When CheatEngineSdkGenerateEntryPoint is false, the assembly itself must provide the exact host entry point: "
         + "a static CESDK.CESDK type whose public static CEPluginInitialize(System.IntPtr, int) method returns int. "
         + "Cheat Engine looks up that identity by name and does not discover alternatives.",
@@ -91,7 +91,7 @@ internal static class DiagnosticDescriptors
         "'{0}' requires an enabled plugin and cannot be called from a plugin constructor, field initializer or property initializer",
         DiagnosticCategories.Usage,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "Cheat Engine attaches the SDK runtime only after constructing the plugin. An API marked RequiresPluginEnabled "
         + "therefore fails before OnEnable, including from instance construction and field or property initializers. Move the "
         + "operation into OnEnable or a method OnEnable calls.",
@@ -104,7 +104,7 @@ internal static class DiagnosticDescriptors
         "'{0}' is explicitly marked CEOwned (borrowed) and must not be disposed; only dispose an Owned&lt;T&gt; value you own",
         DiagnosticCategories.Usage,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "CEOwned marks a return value, property or parameter as a borrowed view of an object Cheat Engine owns. Calling "
         + "Dispose or DisposeAsync directly on that value can leave Cheat Engine with a dangling object. Keep it borrowed, "
         + "or obtain an explicit ownership-transfer contract before disposing it.",
@@ -131,7 +131,7 @@ internal static class DiagnosticDescriptors
         "'{0}' is an async void lifecycle callback: its continuation can outlive the plugin enable or disable transition",
         DiagnosticCategories.Usage,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "Cheat Engine's enable and disable callbacks are synchronous and the host cannot await async void. A continuation may "
         + "run after teardown, lose exceptions, or touch an invalid Lua state. Keep OnEnable and OnDisable synchronous; use a "
         + "host-owned, explicitly tracked operation only when the API actually supports asynchronous waiting.",
@@ -144,7 +144,7 @@ internal static class DiagnosticDescriptors
         "'{0}' is a Lua function export, but this compilation does not allow unsafe code (AllowUnsafeBlocks); registration thunks need it",
         DiagnosticCategories.Generation,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "The generated registration table takes the address of the UnmanagedCallersOnly thunks emitted for LuaFunction, which needs unsafe code. "
         + "LuaGlobal bodies do not take function addresses and therefore remain available without AllowUnsafeBlocks. A project that declares a LuaFunction must explicitly set <AllowUnsafeBlocks>true</AllowUnsafeBlocks>.",
         HelpLinkBase + DiagnosticIds.UnsafeBlocksRequired + ".md");
@@ -199,7 +199,7 @@ internal static class DiagnosticDescriptors
         "Lua function '{0}' duplicates the Lua name '{1}' in the same containing type; one registration table cannot bind that name twice",
         DiagnosticCategories.Generation,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "Two valid LuaFunction methods of one type cannot export the same Lua global name. The generator deliberately emits "
         + "neither thunk so registration order cannot silently choose one. Give one method a distinct Lua name or move it to "
         + "another binding type.",
@@ -213,7 +213,7 @@ internal static class DiagnosticDescriptors
         "Lua annotation on '{0}' cannot be generated: {1}",
         DiagnosticCategories.Generation,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "LuaClass, LuaMethod and LuaProperty are declarative generator inputs. Their target must have the exact partial "
         + "borrowed-handle or member shape that the generator can implement. The analyzer reports the invalid declaration at "
         + "its source location so an unsupported target never silently loses generated code.",
@@ -226,7 +226,7 @@ internal static class DiagnosticDescriptors
         "Member '{0}' collides with generated identity '{1}'; rename the user member or change the binding declaration",
         DiagnosticCategories.Generation,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "Generated Lua bindings add required members such as registration methods, thunk methods, cached globals and LuaClass "
         + "handle members. A source declaration with the same identity prevents compilation. This rule identifies the user "
         + "declaration before generated code is emitted.",

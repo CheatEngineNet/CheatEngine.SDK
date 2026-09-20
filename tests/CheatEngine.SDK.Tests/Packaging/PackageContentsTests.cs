@@ -22,7 +22,7 @@ public sealed class PackageContentsTests(PackagedUmbrellaFixture fixture)
     [
         "CheatEngine.SDK.Analyzers.dll", "CheatEngine.SDK.Analyzers.CodeFixes.dll",
         "CheatEngine.SDK.SourceGenerators.EntryPoint.dll", "CheatEngine.SDK.SourceGenerators.LuaBindings.dll",
-        "CheatEngine.SDK.SourceGenerators.Shared.dll"
+        "CheatEngine.SDK.SourceGenerators.Shared.dll",
     ];
 
     public static TheoryData<string> LibraryNames => [.. ExpectedLibraries];

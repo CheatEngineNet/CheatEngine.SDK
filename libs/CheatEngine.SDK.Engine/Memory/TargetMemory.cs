@@ -52,7 +52,8 @@ public static class TargetMemory
     /// <summary>Reads an unsigned 8-bit integer from the target.</summary>
     public static bool TryReadUInt8(Address address, out byte value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadByte, "readByte"u8, address.ToInt64(), false, false, out var raw,
+        if (!MemoryLua.TryReadInteger(SReadByte, "readByte"u8, address.ToInt64(), signed: false,
+                hasSignedArgument: false, out var raw,
                 out failure))
         {
             value = default;
@@ -78,7 +79,8 @@ public static class TargetMemory
     /// <summary>Reads an unsigned 16-bit integer from the target.</summary>
     public static bool TryReadUInt16(Address address, out ushort value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallInteger"u8, address.ToInt64(), false, true,
+        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallInteger"u8, address.ToInt64(), signed: false,
+                hasSignedArgument: true,
                 out var raw,
                 out failure))
         {
@@ -92,7 +94,8 @@ public static class TargetMemory
     /// <summary>Reads a signed 16-bit integer from the target.</summary>
     public static bool TryReadInt16(Address address, out short value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallInteger"u8, address.ToInt64(), true, true,
+        if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallInteger"u8, address.ToInt64(), signed: true,
+                hasSignedArgument: true,
                 out var raw,
                 out failure))
         {
@@ -106,7 +109,8 @@ public static class TargetMemory
     /// <summary>Reads an unsigned 32-bit integer from the target.</summary>
     public static bool TryReadUInt32(Address address, out uint value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadInteger, "readInteger"u8, address.ToInt64(), false, true, out var raw,
+        if (!MemoryLua.TryReadInteger(SReadInteger, "readInteger"u8, address.ToInt64(), signed: false,
+                hasSignedArgument: true, out var raw,
                 out failure))
         {
             value = default;
@@ -119,7 +123,8 @@ public static class TargetMemory
     /// <summary>Reads a signed 32-bit integer from the target.</summary>
     public static bool TryReadInt32(Address address, out int value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadInteger, "readInteger"u8, address.ToInt64(), true, true, out var raw,
+        if (!MemoryLua.TryReadInteger(SReadInteger, "readInteger"u8, address.ToInt64(), signed: true,
+                hasSignedArgument: true, out var raw,
                 out failure))
         {
             value = default;
@@ -132,7 +137,8 @@ public static class TargetMemory
     /// <summary>Reads an unsigned 64-bit integer from the target, preserving all Lua integer bits.</summary>
     public static bool TryReadUInt64(Address address, out ulong value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadQword, "readQword"u8, address.ToInt64(), false, false, out var raw,
+        if (!MemoryLua.TryReadInteger(SReadQword, "readQword"u8, address.ToInt64(), signed: false,
+                hasSignedArgument: false, out var raw,
                 out failure))
         {
             value = default;
@@ -146,14 +152,15 @@ public static class TargetMemory
     /// <summary>Reads a signed 64-bit integer from the target.</summary>
     public static bool TryReadInt64(Address address, out long value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryReadInteger(SReadQword, "readQword"u8, address.ToInt64(), false, false, out value,
-            out failure);
+        return MemoryLua.TryReadInteger(SReadQword, "readQword"u8, address.ToInt64(), signed: false,
+            hasSignedArgument: false, out value, out failure);
     }
 
     /// <summary>Reads a pointer whose width Cheat Engine selects from the attached target architecture.</summary>
     public static bool TryReadPointer(Address address, out Address value, out MemoryAccessFailure failure)
     {
-        if (!MemoryLua.TryReadInteger(SReadPointer, "readPointer"u8, address.ToInt64(), false, false, out var raw,
+        if (!MemoryLua.TryReadInteger(SReadPointer, "readPointer"u8, address.ToInt64(), signed: false,
+                hasSignedArgument: false, out var raw,
                 out failure))
         {
             value = default;

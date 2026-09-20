@@ -23,21 +23,21 @@ public sealed class ProjectDependencyDirectionTests
             [
                 "libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj",
                 "libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj",
-                "libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"
+                "libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj",
             ],
             ["libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj"] =
             [
                 "libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj",
                 "libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj",
                 "libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj",
-                "libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"
+                "libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj",
             ],
             ["libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"] = [],
             ["libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"] =
             [
                 "libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj",
-                "libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"
-            ]
+                "libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj",
+            ],
         };
 
     [Fact]

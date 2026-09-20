@@ -53,8 +53,8 @@ public sealed unsafe class ExportedFunctionsPrefixTests
 
             functionPointerCount++;
             var conventions = fieldType.GetFunctionPointerCallingConventions();
-            Assert.Single(conventions);
-            Assert.Equal(typeof(CallConvStdcall), conventions[0]);
+            var convention = Assert.Single(conventions);
+            Assert.Equal(typeof(CallConvStdcall), convention);
         }
 
         Assert.Equal(15, functionPointerCount);

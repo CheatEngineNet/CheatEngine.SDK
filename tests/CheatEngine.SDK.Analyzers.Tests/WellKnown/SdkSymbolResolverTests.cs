@@ -60,7 +60,8 @@ public sealed class SdkSymbolResolverTests
 
         return CSharpCompilation.Create(
             "SdkSymbolResolverTestAssembly",
-            [CSharpSyntaxTree.ParseText(source, ParseOptions, "Test.cs")],
+            [CSharpSyntaxTree.ParseText(source, ParseOptions, "Test.cs",
+                cancellationToken: TestContext.Current.CancellationToken)],
             references,
             CompilationOptions);
     }
@@ -69,7 +70,8 @@ public sealed class SdkSymbolResolverTests
     {
         var compilation = CSharpCompilation.Create(
             assemblyName,
-            [CSharpSyntaxTree.ParseText(source, ParseOptions, assemblyName + ".cs")],
+            [CSharpSyntaxTree.ParseText(source, ParseOptions, assemblyName + ".cs",
+                cancellationToken: TestContext.Current.CancellationToken)],
             LocalFrameworkReferences.References,
             CompilationOptions);
         using MemoryStream image = new();

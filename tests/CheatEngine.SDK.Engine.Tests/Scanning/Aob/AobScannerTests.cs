@@ -50,7 +50,7 @@ public sealed class AobScannerTests
         var L = scope.State;
         var handle = AobStringListTestHost.CreateList(L);
         AobStringListTestHost.InstallAobScan(L, handle);
-        AobScanOptions options = new(null, FastScanMethod.Aligned, "16");
+        AobScanOptions options = new(protectionFlags: null, alignmentMethod: FastScanMethod.Aligned, alignmentParameter: "16");
 
         Assert.True(AobScanner.TryScan("90 90", options, out var results));
         var owned = Assert.IsType<Owned<StringList>>(results);
@@ -74,7 +74,7 @@ public sealed class AobScannerTests
         var L = scope.State;
         var handle = AobStringListTestHost.CreateList(L);
         AobStringListTestHost.InstallAobScan(L, handle);
-        AobScanOptions options = new("+X-C-W", FastScanMethod.NotAligned, null);
+        AobScanOptions options = new(protectionFlags: "+X-C-W", alignmentMethod: FastScanMethod.NotAligned, alignmentParameter: null);
 
         Assert.True(AobScanner.TryScan("CC", options, out var results));
         var owned = Assert.IsType<Owned<StringList>>(results);

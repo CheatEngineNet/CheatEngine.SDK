@@ -59,7 +59,7 @@ internal static class ProtectedOperationCatalogParser
             if (operationsValue is not null)
                 diagnostics.Add(reader.CreateDiagnostic(operationsValue.Span,
                     "Property 'operations' must be a JSON array."));
-            return new CatalogParseResult(input.Path, null, diagnostics.ToImmutable());
+            return new CatalogParseResult(input.Path, Catalog: null, diagnostics.ToImmutable());
         }
 
         return ParseOperations(input.Path, bridgeContract, operationsArray, reader, diagnostics);
@@ -95,7 +95,7 @@ internal static class ProtectedOperationCatalogParser
             ParseOperation(operationsArray.Items[i], reader, diagnostics, operations, ids, opcodes, ref bitmap);
 
         if (bridgeContract is not null) ValidateBitmap(bridgeContract, bitmap, reader, diagnostics);
-        if (diagnostics.Count > 0) return new CatalogParseResult(sourcePath, null, diagnostics.ToImmutable());
+        if (diagnostics.Count > 0) return new CatalogParseResult(sourcePath, Catalog: null, diagnostics.ToImmutable());
 
         operations.Sort(static (left, right) =>
         {
@@ -110,7 +110,7 @@ internal static class ProtectedOperationCatalogParser
 
     private static CatalogParseResult Failure(string sourcePath, CatalogDiagnostic diagnostic)
     {
-        return new CatalogParseResult(sourcePath, null, ImmutableArray.Create(diagnostic));
+        return new CatalogParseResult(sourcePath, Catalog: null, ImmutableArray.Create(diagnostic));
     }
 
     private static void ParseOperation(
@@ -340,7 +340,7 @@ internal static class ProtectedOperationCatalogParser
         for (var i = 1; i < value.Length; i++)
         {
             var character = value[i];
-            if (character is < 'A' or > 'Z' && character is < 'a' or > 'z' && character is < '0' or > '9')
+            if (character is not (>= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9'))
                 return false;
         }
 
@@ -352,14 +352,22 @@ internal static class ProtectedOperationCatalogParser
         public TextSpan Span { get; } = span;
     }
 
-    private sealed class JsonObject(TextSpan span, List<JsonProperty> properties) : JsonValue(span)
+    private sealed class JsonObject : JsonValue
     {
+        private readonly List<JsonProperty> _properties;
+
+        public JsonObject(TextSpan span, List<JsonProperty> properties)
+            : base(span)
+        {
+            _properties = properties;
+        }
+
         public bool TryGet(string name, out JsonValue value)
         {
-            for (var i = 0; i < properties.Count; i++)
-                if (string.Equals(properties[i].Name, name, StringComparison.Ordinal))
+            for (var i = 0; i < _properties.Count; i++)
+                if (string.Equals(_properties[i].Name, name, StringComparison.Ordinal))
                 {
-                    value = properties[i].Value;
+                    value = _properties[i].Value;
                     return true;
                 }
 
@@ -408,7 +416,7 @@ internal static class ProtectedOperationCatalogParser
         {
             var start = GetLinePosition(span.Start);
             var end = GetLinePosition(span.End);
-            return new CatalogDiagnostic(_path, span, new LinePositionSpan(start, end), message, false);
+            return new CatalogDiagnostic(_path, span, new LinePositionSpan(start, end), message, IsConflict: false);
         }
 
         public bool TryParse(out JsonValue root, out CatalogDiagnostic? diagnostic)
@@ -439,12 +447,12 @@ internal static class ProtectedOperationCatalogParser
                 '{' => TryParseObject(out value, out diagnostic),
                 '[' => TryParseArray(out value, out diagnostic),
                 '"' => TryParseStringValue(out value, out diagnostic),
-                't' => TryParseLiteral("true", true, out value, out diagnostic),
-                'f' => TryParseLiteral("false", false, out value, out diagnostic),
+                't' => TryParseLiteral("true", boolean: true, out value, out diagnostic),
+                'f' => TryParseLiteral("false", boolean: false, out value, out diagnostic),
                 'n' => TryParseNull(out value, out diagnostic),
                 '-' => TryParseNumber(out value, out diagnostic),
                 >= '0' and <= '9' => TryParseNumber(out value, out diagnostic),
-                _ => Fail(out value, out diagnostic, "Expected a JSON value.")
+                _ => Fail(out value, out diagnostic, "Expected a JSON value."),
             };
         }
 

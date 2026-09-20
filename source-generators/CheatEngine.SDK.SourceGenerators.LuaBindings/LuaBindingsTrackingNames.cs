@@ -92,6 +92,6 @@ internal static class LuaBindingsTrackingNames
         LuaGlobal, CollectedLuaGlobals, LuaGlobalTables, LuaGlobalTable, LuaGlobalOutput,
         LuaClass, CollectedLuaClasses, LuaClasses, LuaClassOutput,
         LuaMethod, CollectedLuaMethods, LuaProperty, CollectedLuaProperties, LuaObjectMembersAndProperties,
-        LuaObjectMembersTables, LuaObjectMembersOutput
+        LuaObjectMembersTables, LuaObjectMembersOutput,
     ];
 }

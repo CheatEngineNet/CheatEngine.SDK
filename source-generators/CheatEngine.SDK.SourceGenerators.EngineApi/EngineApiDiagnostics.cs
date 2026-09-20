@@ -15,7 +15,7 @@ internal static class EngineApiDiagnostics
         "Engine API specification: {0}",
         Category,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "Correct the listed Engine API spec grammar error; invalid specs cannot remove generated API silently.");
 
     private static readonly DiagnosticDescriptor ConflictingSpec = new(
@@ -24,7 +24,7 @@ internal static class EngineApiDiagnostics
         "Engine API specification: {0}",
         Category,
         DiagnosticSeverity.Error,
-        true,
+        isEnabledByDefault: true,
         "One Engine API spec file owns each generated type and its members and cache fields.");
 
     /// <summary>Creates the compiler diagnostic for one Roslyn-free parsed issue.</summary>

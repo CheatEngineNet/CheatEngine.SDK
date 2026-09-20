@@ -14,7 +14,7 @@ public sealed class EngineOperationFailedException : EngineException
     /// <summary>Initializes an exception with the standard message for <paramref name="operation" />.</summary>
     /// <param name="operation">The stable public Engine operation identifier.</param>
     public EngineOperationFailedException(string operation)
-        : this(operation, CreateDefaultMessage(operation), null)
+        : this(operation, CreateDefaultMessage(operation), innerException: null)
     {
     }
 
@@ -22,7 +22,7 @@ public sealed class EngineOperationFailedException : EngineException
     /// <param name="operation">The stable public Engine operation identifier.</param>
     /// <param name="message">The stable public failure message.</param>
     public EngineOperationFailedException(string operation, string message)
-        : this(operation, message, null)
+        : this(operation, message, innerException: null)
     {
     }
 

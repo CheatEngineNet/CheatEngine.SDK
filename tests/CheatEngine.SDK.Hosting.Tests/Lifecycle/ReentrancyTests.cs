@@ -29,8 +29,9 @@ public sealed unsafe class ReentrancyTests
         var sink = HostingTest.Reset();
         using NativeLuaState state = new();
         using HostSimulator host = new();
-        using ManualResetEventSlim entered = new(false);
-        using ManualResetEventSlim continueEnable = new(false);
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using ManualResetEventSlim entered = new(initialState: false);
+        using ManualResetEventSlim continueEnable = new(initialState: false);
         HostingTest.UseFixture(state);
         HostingTest.Bootstrap(host);
         RecordingPlugin.OnEnableEntered = entered;
@@ -51,7 +52,8 @@ public sealed unsafe class ReentrancyTests
         });
 
         enabling.Start();
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(5)), "OnEnable did not reach its deterministic wait point.");
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+            "OnEnable did not reach its deterministic wait point.");
         Assert.Equal(PluginHostLifecyclePhase.Enabling, PluginHost.Phase);
         Assert.False(PluginHost.IsEnabled);
         var earlyDispatch = Record.Exception(() => MainThread.Invoke(static _ => { }, 0));

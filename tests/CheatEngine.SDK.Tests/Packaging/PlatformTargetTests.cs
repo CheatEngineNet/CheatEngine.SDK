@@ -14,7 +14,7 @@ public sealed class PlatformTargetTests(PackagedUmbrellaFixture fixture)
     [
         ("Unset", ""),
         ("AnyCPU", "AnyCPU"),
-        ("x64", "x64")
+        ("x64", "x64"),
     ];
 
     public static TheoryData<string, string> UnsupportedPlatformTargets =>
@@ -23,7 +23,7 @@ public sealed class PlatformTargetTests(PackagedUmbrellaFixture fixture)
         ("ARM", "ARM"),
         ("ARM64", "ARM64"),
         ("Itanium", "Itanium"),
-        ("Unsupported", "Unsupported")
+        ("Unsupported", "Unsupported"),
     ];
 
     [Theory]

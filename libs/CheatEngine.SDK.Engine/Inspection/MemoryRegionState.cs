@@ -15,5 +15,5 @@ public enum MemoryRegionState : uint
     Reserved = 0x2000,
 
     /// <summary>The address range is free (<c>MEM_FREE</c>).</summary>
-    Free = 0x10000
+    Free = 0x10000,
 }

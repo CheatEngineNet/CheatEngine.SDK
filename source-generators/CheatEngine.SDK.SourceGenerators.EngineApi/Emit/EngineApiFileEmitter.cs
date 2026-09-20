@@ -244,7 +244,7 @@ internal static class EngineApiFileEmitter
                 }
 
             writer.Write("bool __engineApiSucceeded = ");
-            WriteAddressTypedInvocation(writer, call, core, true);
+            WriteAddressTypedInvocation(writer, call, core, useRawAddressResults: true);
             writer.WriteLine(";");
 
             for (var i = 0; i < call.Results.Length; i++)
@@ -265,7 +265,7 @@ internal static class EngineApiFileEmitter
         if (call.Form == LuaCallForm.Throwing && call.ReturnKind == LuaValueKind.Address)
         {
             writer.Write("nuint __engineApiRawResult = ");
-            WriteAddressTypedInvocation(writer, call, core, false);
+            WriteAddressTypedInvocation(writer, call, core, useRawAddressResults: false);
             writer.WriteLine(";");
             writer.Write("return new ");
             writer.Write(EngineAddressTypeName);
@@ -276,7 +276,7 @@ internal static class EngineApiFileEmitter
         var isVoid = call.Form == LuaCallForm.Throwing && call.ReturnKind is null;
         if (!isVoid) writer.Write("return ");
 
-        WriteAddressTypedInvocation(writer, call, core, false);
+        WriteAddressTypedInvocation(writer, call, core, useRawAddressResults: false);
         writer.WriteLine(";");
     }
 

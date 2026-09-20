@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace CheatEngine.SDK.Abi.Native;
@@ -29,6 +30,9 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         excluded from this type. Their ABI and ownership must be introduced with a dedicated dangerous facade.
 ///     </para>
 /// </remarks>
+[SuppressMessage("Meziantou.Analyzer", "MA0182",
+    Justification =
+        "This intentionally internal ABI prefix is retained as a CE 7.7 C-header contract, exercised by friend-assembly layout tests, and verified against the native-fixture contract. It remains until a safe classic hosting facade owns the host table.")]
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe struct ExportedFunctionsPrefix
 {

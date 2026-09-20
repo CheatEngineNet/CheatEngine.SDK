@@ -61,7 +61,7 @@ public static unsafe class LuaRuntime
 {
     private static readonly Lock SGate = new();
     private static readonly Lock SOperationGate = new();
-    private static readonly ManualResetEventSlim SOperationsDrained = new(true);
+    private static readonly ManualResetEventSlim SOperationsDrained = new(initialState: true);
 
     private static LuaHostServices? s_services;
     private static int s_activeOperations;
@@ -151,7 +151,7 @@ public static unsafe class LuaRuntime
     public static LuaRuntimeOperation AcquireOperation()
     {
         if (TryEnterProviderOperation(out var state) == LuaCallbackDisposeOperationResult.Acquired)
-            return new LuaRuntimeOperation(state, true);
+            return new LuaRuntimeOperation(state, admitted: true);
 
         if (Volatile.Read(ref s_services) is null) ThrowDetached();
         if (!IsOperationAdmissionOpen()) ThrowOperationAdmissionClosed();
@@ -169,7 +169,7 @@ public static unsafe class LuaRuntime
     {
         if (TryEnterProviderOperation(out var state) == LuaCallbackDisposeOperationResult.Acquired)
         {
-            operation = new LuaRuntimeOperation(state, true);
+            operation = new LuaRuntimeOperation(state, admitted: true);
             return true;
         }
 
@@ -192,7 +192,7 @@ public static unsafe class LuaRuntime
     {
         var result = TryEnterProviderOperation(out var state);
         operation = result == LuaCallbackDisposeOperationResult.Acquired
-            ? new LuaRuntimeOperation(state, true)
+            ? new LuaRuntimeOperation(state, admitted: true)
             : default;
         return result;
     }
@@ -223,8 +223,8 @@ public static unsafe class LuaRuntime
         // generated binding must never inherit that privilege merely because it happened to run synchronously from
         // host cleanup code.
         if (t_transitionDepth != 0) ThrowOperationAdmissionClosed();
-        if (t_operationDepth != 0) return new LuaRuntimeOperation(state, false);
-        if (TryEnterOperation()) return new LuaRuntimeOperation(state, true);
+        if (t_operationDepth != 0) return new LuaRuntimeOperation(state, admitted: false);
+        if (TryEnterOperation()) return new LuaRuntimeOperation(state, admitted: true);
 
         ThrowOperationAdmissionClosed();
         return default;
@@ -307,7 +307,7 @@ public static unsafe class LuaRuntime
                 }
 
                 s_resetTransitionActive = true;
-                return new LuaStateResetTransition(true);
+                return new LuaStateResetTransition(active: true);
             }
             catch
             {
@@ -438,7 +438,7 @@ public static unsafe class LuaRuntime
         if (t_transitionDepth != 0 || t_operationDepth != 0 || Volatile.Read(ref s_services) is null) return default;
         if (!TryEnterOperation()) ThrowOperationAdmissionClosed();
 
-        return new LuaRuntimeOperation(state, true);
+        return new LuaRuntimeOperation(state, admitted: true);
     }
 
     /// <summary>
@@ -470,7 +470,7 @@ public static unsafe class LuaRuntime
 
         if (TryEnterOperation())
         {
-            operation = new LuaRuntimeOperation(default, true);
+            operation = new LuaRuntimeOperation(default, admitted: true);
             return true;
         }
 
@@ -686,6 +686,6 @@ public static unsafe class LuaRuntime
     {
         Acquired,
         Unavailable,
-        AdmissionClosed
+        AdmissionClosed,
     }
 }

@@ -120,7 +120,7 @@ public sealed class CallbackLifetimeConcurrencyTests
         var main = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         using CallbackRace race = new(cancellationToken);
-        using ManualResetEventSlim admissionClosed = new(false);
+        using ManualResetEventSlim admissionClosed = new(initialState: false);
         s_race = race;
         LuaRuntime.OperationAdmissionClosedForTesting = admissionClosed.Set;
 

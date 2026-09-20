@@ -25,7 +25,7 @@ internal static partial class MemoryBindings
 
     public static bool TryReadInt32(nuint address, out int value)
     {
-        return TryReadInt32Raw(address, true, out value);
+        return TryReadInt32Raw(address, signed: true, out value);
     }
 
     /// <summary>The throwing form of the same binding: every failure is a <see cref="LuaException" />.</summary>
@@ -34,7 +34,7 @@ internal static partial class MemoryBindings
 
     public static int ReadInt32(nuint address)
     {
-        return ReadInt32Raw(address, true);
+        return ReadInt32Raw(address, signed: true);
     }
 }
 

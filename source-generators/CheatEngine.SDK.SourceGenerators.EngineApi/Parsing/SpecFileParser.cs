@@ -86,7 +86,7 @@ internal static class SpecFileParser
             new EquatableArray<string>([.. cachedGlobals]),
             new EquatableArray<SpecCallModel>([.. calls]),
             new EquatableArray<SpecIssue>([.. issues]),
-            false);
+            IsSuppressed: false);
     }
 
     private static List<string> CollectCachedGlobals(List<SpecCallModel> calls)
@@ -858,28 +858,30 @@ internal static class SpecFileParser
     {
         Dictionary<string, byte> parameters = new(StringComparer.Ordinal);
         foreach (var argument in arguments)
-            if (!argument.IsFixed && parameters.ContainsKey(argument.Name))
+        {
+            if (argument.IsFixed) continue;
+
+            if (parameters.ContainsKey(argument.Name))
             {
                 issues.Add(new SpecIssue(line,
                     "Generated parameter '" + argument.Name + "' is declared more than once in this entry."));
                 return false;
             }
-            else if (!argument.IsFixed)
-            {
-                parameters.Add(argument.Name, 0);
-            }
+
+            parameters.Add(argument.Name, 0);
+        }
 
         foreach (var result in results)
+        {
             if (parameters.ContainsKey(result.Name))
             {
                 issues.Add(new SpecIssue(line,
                     "Generated parameter '" + result.Name + "' is declared more than once in this entry."));
                 return false;
             }
-            else
-            {
-                parameters.Add(result.Name, 0);
-            }
+
+            parameters.Add(result.Name, 0);
+        }
 
         foreach (var name in parameters.Keys)
             if (IsReservedBodyLocal(name, call))

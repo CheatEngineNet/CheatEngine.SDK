@@ -35,8 +35,8 @@ internal sealed class GeneratorRun
             out var diagnostics,
             TestContext.Current.CancellationToken);
         var driverResult = updated.GetRunResult();
-        Assert.Single(driverResult.Results);
-        return new GeneratorRun(updated, outputCompilation, diagnostics, driverResult.Results[0]);
+        var generatorResult = Assert.Single(driverResult.Results);
+        return new GeneratorRun(updated, outputCompilation, diagnostics, generatorResult);
     }
 
     public void AssertCompilesClean()

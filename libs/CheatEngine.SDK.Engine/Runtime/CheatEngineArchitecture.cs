@@ -20,5 +20,5 @@ public enum CheatEngineArchitecture : byte
     Arm32 = 3,
 
     /// <summary>A 64-bit ARM process.</summary>
-    Arm64 = 4
+    Arm64 = 4,
 }

@@ -33,7 +33,7 @@ internal static class LuaClassTables
             var baseName = models[i].ContainingType.HintBaseName;
             models[i] = models[i] with
             {
-                HintName = HintNames.AllocateUnique(baseName, LuaClassFileEmitter.HintSuffix, used)
+                HintName = HintNames.AllocateUnique(baseName, LuaClassFileEmitter.HintSuffix, used),
             };
         }
 

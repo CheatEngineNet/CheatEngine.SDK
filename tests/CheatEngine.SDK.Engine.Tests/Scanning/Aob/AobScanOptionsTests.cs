@@ -32,14 +32,14 @@ public sealed class AobScanOptionsTests
     [Fact]
     public void Constructor_rejects_an_unknown_alignment_method_before_a_scan()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new AobScanOptions(null, (FastScanMethod)3, null));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new AobScanOptions(protectionFlags: null, alignmentMethod: (FastScanMethod)3, alignmentParameter: null));
     }
 
     [Fact]
     public void Constructor_requires_a_nonempty_parameter_for_nondefault_alignment()
     {
-        Assert.Throws<ArgumentException>(() => new AobScanOptions(null, FastScanMethod.Aligned, null));
-        Assert.Throws<ArgumentException>(() => new AobScanOptions(null, FastScanMethod.LastDigits, string.Empty));
-        Assert.Throws<ArgumentException>(() => new AobScanOptions(null, FastScanMethod.NotAligned, "10"));
+        Assert.Throws<ArgumentException>(() => new AobScanOptions(protectionFlags: null, alignmentMethod: FastScanMethod.Aligned, alignmentParameter: null));
+        Assert.Throws<ArgumentException>(() => new AobScanOptions(protectionFlags: null, alignmentMethod: FastScanMethod.LastDigits, alignmentParameter: string.Empty));
+        Assert.Throws<ArgumentException>(() => new AobScanOptions(protectionFlags: null, alignmentMethod: FastScanMethod.NotAligned, alignmentParameter: "10"));
     }
 }

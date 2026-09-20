@@ -194,15 +194,15 @@ public sealed class MemoryApiTests
         Assert.True(bytes.SequenceEqual(new byte[] { 2, 7, 1, 8 }));
 
         Span<byte> utf8 = stackalloc byte[16];
-        Assert.True(TargetMemory.TryReadUtf8(48UL, 100, utf8, false, out var written, out failure));
+        Assert.True(TargetMemory.TryReadUtf8(48UL, 100, utf8, wideCharacter: false, out var written, out failure));
         Assert.True(utf8[..written].SequenceEqual("target-text"u8));
-        Assert.True(TargetMemory.TryReadString(48UL, 100, false, out var text, out failure));
+        Assert.True(TargetMemory.TryReadString(48UL, 100, wideCharacter: false, out var text, out failure));
         Assert.Equal("target-text", text);
-        Assert.True(TargetMemory.TryWriteUtf8(49UL, "updated"u8, false, out failure));
-        Assert.True(TargetMemory.TryReadString(49UL, 100, false, out text, out failure));
+        Assert.True(TargetMemory.TryWriteUtf8(49UL, "updated"u8, wideCharacter: false, out failure));
+        Assert.True(TargetMemory.TryReadString(49UL, 100, wideCharacter: false, out text, out failure));
         Assert.Equal("updated", text);
-        Assert.True(TargetMemory.TryWriteString(50UL, "text path".AsSpan(), false, out failure));
-        Assert.True(TargetMemory.TryReadString(50UL, 100, false, out text, out failure));
+        Assert.True(TargetMemory.TryWriteString(50UL, "text path".AsSpan(), wideCharacter: false, out failure));
+        Assert.True(TargetMemory.TryReadString(50UL, 100, wideCharacter: false, out text, out failure));
         Assert.Equal("text path", text);
         Assert.Equal(0, scope.State.Top);
     }
@@ -316,10 +316,10 @@ public sealed class MemoryApiTests
         Assert.True(HostMemory.TryWriteBytes(new HostAddress(81), [6, 2, 6], out failure));
         Assert.True(HostMemory.TryReadBytes(new HostAddress(81), bytes, out failure));
         Assert.True(bytes.SequenceEqual(new byte[] { 6, 2, 6 }));
-        Assert.True(HostMemory.TryReadString(new HostAddress(96), 100, false, out var text, out failure));
+        Assert.True(HostMemory.TryReadString(new HostAddress(96), 100, wideCharacter: false, out var text, out failure));
         Assert.Equal("host-text", text);
-        Assert.True(HostMemory.TryWriteUtf8(new HostAddress(97), "host-update"u8, false, out failure));
-        Assert.True(HostMemory.TryReadString(new HostAddress(97), 100, false, out text, out failure));
+        Assert.True(HostMemory.TryWriteUtf8(new HostAddress(97), "host-update"u8, wideCharacter: false, out failure));
+        Assert.True(HostMemory.TryReadString(new HostAddress(97), 100, wideCharacter: false, out text, out failure));
         Assert.Equal("host-update", text);
         Assert.Equal(0, scope.State.Top);
     }

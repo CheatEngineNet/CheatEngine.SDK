@@ -34,10 +34,10 @@ internal static class RoslynFixture
     {
         return CSharpGeneratorDriver.Create(
             [new LuaBridgeContractGenerator().AsSourceGenerator()],
-            additionalTexts,
-            ParseOptions,
-            null,
-            new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, true));
+            additionalTexts: additionalTexts,
+            parseOptions: ParseOptions,
+            optionsProvider: null,
+            driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, true));
     }
 
     public static CSharpCompilation CreateCompilation()

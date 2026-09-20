@@ -242,7 +242,8 @@ public sealed class LuaObjectBindingAnalyzerTests
     {
         var compilation = CSharpCompilation.Create(
             "LuaObjectBindingAnalyzerTestAssembly",
-            [CSharpSyntaxTree.ParseText(TestText.Normalize(source), ParseOptions, "Test.cs")],
+            [CSharpSyntaxTree.ParseText(TestText.Normalize(source), ParseOptions, "Test.cs",
+                cancellationToken: TestContext.Current.CancellationToken)],
             LocalFrameworkReferences.References.AddRange(ContractStubs.References),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));

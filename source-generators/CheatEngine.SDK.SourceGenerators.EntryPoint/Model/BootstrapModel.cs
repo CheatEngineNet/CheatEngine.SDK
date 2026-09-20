@@ -20,7 +20,7 @@ internal sealed record BootstrapModel(string FullyQualifiedTypeName, string Disp
     /// </summary>
     public static BootstrapModel? Select(EquatableArray<PluginModel> plugins, EntryPointOptions options)
     {
-        return Select(plugins, options, false);
+        return Select(plugins, options, entryPointTypeCollision: false);
     }
 
     /// <summary>

@@ -45,7 +45,7 @@ public readonly struct PointerSize : IEquatable<PointerSize>
         {
             CheatEngineArchitecture.X86 or CheatEngineArchitecture.Arm32 => Bit32,
             CheatEngineArchitecture.X64 or CheatEngineArchitecture.Arm64 => Bit64,
-            _ => Unknown
+            _ => Unknown,
         };
     }
 

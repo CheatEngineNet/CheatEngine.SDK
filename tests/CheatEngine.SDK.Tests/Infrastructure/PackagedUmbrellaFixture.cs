@@ -43,7 +43,7 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         ("ARM", "ArmPlatformTargetConsumer", "ARM"),
         ("ARM64", "Arm64PlatformTargetConsumer", "ARM64"),
         ("Itanium", "ItaniumPlatformTargetConsumer", "Itanium"),
-        ("Unsupported", "UnsupportedPlatformTargetConsumer", "Unsupported")
+        ("Unsupported", "UnsupportedPlatformTargetConsumer", "Unsupported"),
     ];
 
     private readonly Dictionary<string, string> _platformTargetConsumerBuildOutput = new(StringComparer.Ordinal);
@@ -274,14 +274,14 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         // CESDK0003 deliberately makes the handoff explicit: disabling generation transfers ownership of the exact
         // host lookup identity to the plugin author. If the generator ignored the false switch, this source would also
         // make the consumer fail with the duplicate CESDK.CESDK type - so a successful build proves both contracts.
-        File.WriteAllText(Path.Combine(consumer.Directory, "ManualBootstrap.cs"), """
+        await File.WriteAllTextAsync(Path.Combine(consumer.Directory, "ManualBootstrap.cs"), """
             namespace CESDK;
 
             public static class CESDK
             {
                 public static int CEPluginInitialize(System.IntPtr bootstrap, int opaqueArgument) => 1;
             }
-            """);
+            """, TestContext.Current.CancellationToken).ConfigureAwait(false);
         await RestoreAndBuildAsync(consumer, packagesDirectory).ConfigureAwait(false);
         (EntryPointOffTypeExists, EntryPointOffMethodExists) = EntryPointProbe.Probe(consumer.AssemblyPath);
     }

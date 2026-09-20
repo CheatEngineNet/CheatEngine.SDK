@@ -46,14 +46,14 @@ public sealed class DiagnosticCatalogTests
             DiagnosticIds.InvalidLuaGlobal,
             DiagnosticIds.DuplicateLuaName,
             DiagnosticIds.InvalidLuaAnnotationTarget,
-            DiagnosticIds.GeneratedLuaIdentityCollision
+            DiagnosticIds.GeneratedLuaIdentityCollision,
         ];
 
         Assert.Equal(expected, SortedIds(AllDescriptors()), StringComparer.Ordinal);
         Assert.Equal(
             [
                 "CESDK0001", "CESDK0002", "CESDK0003", "CESDK0004", "CESDK0005", "CESDK1001", "CESDK1003", "CESDK1004",
-                "CESDK1005", "CESDK2001", "CESDK2002", "CESDK2003", "CESDK2004", "CESDK2005", "CESDK2006", "CESDK2007"
+                "CESDK1005", "CESDK2001", "CESDK2002", "CESDK2003", "CESDK2004", "CESDK2005", "CESDK2006", "CESDK2007",
             ],
             expected,
             StringComparer.Ordinal);
@@ -111,7 +111,7 @@ public sealed class DiagnosticCatalogTests
         string[] trackingFiles =
         [
             RepositoryLayout.PathOf("analyzers/CheatEngine.SDK.Analyzers/AnalyzerReleases.Shipped.md"),
-            RepositoryLayout.PathOf("analyzers/CheatEngine.SDK.Analyzers/AnalyzerReleases.Unshipped.md")
+            RepositoryLayout.PathOf("analyzers/CheatEngine.SDK.Analyzers/AnalyzerReleases.Unshipped.md"),
         ];
 
         foreach (var trackingFile in trackingFiles)
@@ -178,7 +178,7 @@ public sealed class DiagnosticCatalogTests
             new UnmanagedCallersOnlyGuardAnalyzer(),
             new LuaBindingAnalyzer(),
             new PluginLifecycleAndOwnershipAnalyzer(),
-            new LuaObjectBindingAnalyzer()
+            new LuaObjectBindingAnalyzer(),
         ];
 
         var supported = SortedIds(analyzers.SelectMany(analyzer => analyzer.SupportedDiagnostics));

@@ -47,7 +47,7 @@ internal static class AnalyzerVerifier<TAnalyzer>
     public static Task VerifyWithoutCheatEngineSdkAsync(string source, params DiagnosticResult[] expected)
     {
         return RunAsync(
-            new CheatEngineSdkAnalyzerTest<TAnalyzer>(false),
+            new CheatEngineSdkAnalyzerTest<TAnalyzer>(referenceCheatEngineSdk: false),
             [("Test0.cs", source)],
             expected);
     }

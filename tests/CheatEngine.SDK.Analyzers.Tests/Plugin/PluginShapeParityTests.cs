@@ -239,7 +239,7 @@ public sealed class PluginShapeParityTests
             "PluginShapeParityAssembly",
             [
                 CSharpSyntaxTree.ParseText(TestText.Normalize(pluginSource), ParseOptions, "Plugin.cs",
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken),
             ],
             LocalFrameworkReferences.References.AddRange(ContractStubs.References),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
@@ -254,7 +254,7 @@ public sealed class PluginShapeParityTests
             [],
             ParseOptions,
             DirectPackageAnalyzerConfigOptions.Enabled,
-            new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, true));
+            new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _,
             TestContext.Current.CancellationToken);
         return !driver.GetRunResult().Results.Single().GeneratedSources.IsEmpty;

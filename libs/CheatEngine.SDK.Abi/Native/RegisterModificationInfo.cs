@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace CheatEngine.SDK.Abi.Native;
@@ -25,6 +26,9 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         only for the duration of the host call and is never retained by this SDK.
 ///     </para>
 /// </remarks>
+[SuppressMessage("Meziantou.Analyzer", "MA0182",
+    Justification =
+        "This intentionally internal C-header mirror is the register-change function-pointer argument in ExportedFunctionsPrefix, exercised by friend-assembly layout tests, and verified against the native-fixture contract. It remains internal until a safe facade owns this dangerous host-call contract.")]
 [StructLayout(LayoutKind.Sequential)]
 internal struct RegisterModificationInfo
 {

@@ -52,7 +52,7 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
         DiagnosticDescriptors.MultiplePluginClasses,
         DiagnosticDescriptors.InvalidManualBootstrap,
         DiagnosticDescriptors.ReservedNamespace,
-        DiagnosticDescriptors.GeneratedEntryPointCollision
+        DiagnosticDescriptors.GeneratedEntryPointCollision,
     ];
 
     /// <inheritdoc />
@@ -170,8 +170,8 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
             ContainingNamespace:
             {
                 Name: ReservedRootNamespace,
-                ContainingNamespace.IsGlobalNamespace: true
-            }
+                ContainingNamespace.IsGlobalNamespace: true,
+            },
         };
     }
 
@@ -194,7 +194,7 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
                     [
                         { RefKind: RefKind.None, Type.SpecialType: SpecialType.System_IntPtr },
                         { RefKind: RefKind.None, Type.SpecialType: SpecialType.System_Int32 }
-                    ]
+                    ],
                 })
                 continue;
 

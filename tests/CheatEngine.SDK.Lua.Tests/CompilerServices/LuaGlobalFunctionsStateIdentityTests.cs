@@ -29,7 +29,7 @@ public sealed class LuaGlobalFunctionsStateIdentityTests
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        using GlobalResolutionRace race = new();
+        using GlobalResolutionRace race = new(cancellationToken);
         LuaRef cache = new();
         var before = LuaRuntime.CurrentStateIdentity;
         Volatile.Write(ref s_race, race);
@@ -100,7 +100,7 @@ public sealed class LuaGlobalFunctionsStateIdentityTests
             if (race is null) return 0;
 
             race.ResolverPaused.Set();
-            race.AllowResolverToComplete.Wait(TimeSpan.FromSeconds(5));
+            race.AllowResolverToComplete.Wait(TimeSpan.FromSeconds(5), race.CancellationToken);
         }
         catch
         {
@@ -120,13 +120,15 @@ public sealed class LuaGlobalFunctionsStateIdentityTests
         using var reset = LuaRuntime.BeginStateReset();
     }
 
-    private sealed class GlobalResolutionRace : IDisposable
+    private sealed class GlobalResolutionRace(CancellationToken cancellationToken) : IDisposable
     {
-        public ManualResetEventSlim ResolverPaused { get; } = new(false);
+        public ManualResetEventSlim ResolverPaused { get; } = new(initialState: false);
 
-        public ManualResetEventSlim AllowResolverToComplete { get; } = new(false);
+        public ManualResetEventSlim AllowResolverToComplete { get; } = new(initialState: false);
 
-        public ManualResetEventSlim AdmissionClosed { get; } = new(false);
+        public ManualResetEventSlim AdmissionClosed { get; } = new(initialState: false);
+
+        public CancellationToken CancellationToken { get; } = cancellationToken;
 
         public void Dispose()
         {

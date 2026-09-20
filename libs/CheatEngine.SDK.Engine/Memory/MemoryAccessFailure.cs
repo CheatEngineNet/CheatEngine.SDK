@@ -38,5 +38,5 @@ public enum MemoryAccessFailure
     WriteFailed,
 
     /// <summary>The Lua global returned a value of a different kind or outside the documented range.</summary>
-    InvalidResult
+    InvalidResult,
 }

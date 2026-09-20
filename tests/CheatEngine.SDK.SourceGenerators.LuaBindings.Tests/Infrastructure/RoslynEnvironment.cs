@@ -41,7 +41,7 @@ internal sealed class RoslynEnvironment
             MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(LuaApi).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(LuaState).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(CEObject).Assembly.Location)
+            MetadataReference.CreateFromFile(typeof(CEObject).Assembly.Location),
         ];
     }
 

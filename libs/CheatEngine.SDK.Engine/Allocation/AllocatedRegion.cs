@@ -13,7 +13,7 @@ namespace CheatEngine.SDK.Engine.Allocation;
 ///     The region is not a managed allocation and has no finalizer: <c>deAlloc</c> must execute while the plugin remains
 ///     enabled. CE 7.7's catalog establishes no GUI-thread affinity for this global, so this type intentionally carries
 ///     no <c>MainThreadOnly</c> assertion until a live probe provides that evidence. Call <see cref="Dispose" /> in a
-///     <c>using</c> block for best-effort, no-throw cleanup, or <see cref="Release" /> when the caller must observe a
+///     <see langword="using" /> block for best-effort, no-throw cleanup, or <see cref="Release" /> when the caller must observe a
 ///     failure. Both paths consume ownership before invoking CE; an expected failure, a binding/marshalling failure, or a
 ///     Lua exception never causes a retry. This makes concurrent and repeated cleanup deterministic and prevents a stale
 ///     address from being freed twice.
@@ -74,7 +74,7 @@ public sealed class AllocatedRegion : IDisposable
     ///     Best-effort no-throw release of the target allocation. Idempotent, including concurrent calls.
     /// </summary>
     /// <remarks>
-    ///     This method is intended for <c>using</c>/<c>finally</c> cleanup. It intentionally discards expected CE,
+    ///     This method is intended for <see langword="using" />/<see langword="finally" /> cleanup. It intentionally discards expected CE,
     ///     Lua, binding, and marshalling failures, but still consumes ownership so a later call never retries a possibly
     ///     partial deallocation. Call <see cref="Release" /> when the outcome must be observed.
     /// </remarks>

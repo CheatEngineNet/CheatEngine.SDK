@@ -100,7 +100,7 @@ public sealed class EngineInspectionTests
                           end
                           """u8);
 
-        ModuleInfo sentinel = new("sentinel", 0x10, new MemorySize(4), false, "sentinel");
+        ModuleInfo sentinel = new("sentinel", 0x10, new MemorySize(4), Is64Bit: false, "sentinel");
         ModuleInfo[] destination = [sentinel];
         var top = L.Top;
         var status = EngineInspection.EnumerateModules(destination, out var written);
@@ -127,8 +127,8 @@ public sealed class EngineInspectionTests
                           end
                           """u8);
 
-        ModuleInfo first = new("first", 0x10, new MemorySize(1), false, "first");
-        ModuleInfo second = new("second", 0x20, new MemorySize(2), true, "second");
+        ModuleInfo first = new("first", 0x10, new MemorySize(1), Is64Bit: false, "first");
+        ModuleInfo second = new("second", 0x20, new MemorySize(2), Is64Bit: true, "second");
         ModuleInfo[] destination = [first, second];
         var top = L.Top;
         var status = EngineInspection.EnumerateModules(destination, out var written);
@@ -203,7 +203,7 @@ public sealed class EngineInspectionTests
         Assert.Equal(top, L.Top);
 
         status = EngineInspection.ResolveAddress(new SymbolExpression("hostSymbol"),
-            new AddressResolutionOptions(true, true), out var found);
+            new AddressResolutionOptions(UseHostSymbolTable: true, Shallow: true), out var found);
 
         Assert.Equal(InspectionStatus.Success, status);
         Assert.Equal(0x7FF600001000UL, found.Value);

@@ -15,7 +15,7 @@ public sealed class EngineGlobalUnavailableException : EngineException
     /// <summary>Initializes an exception with the standard message for <paramref name="operation" />.</summary>
     /// <param name="operation">The stable public Engine operation identifier.</param>
     public EngineGlobalUnavailableException(string operation)
-        : this(operation, CreateDefaultMessage(operation), null)
+        : this(operation, CreateDefaultMessage(operation), innerException: null)
     {
     }
 
@@ -23,7 +23,7 @@ public sealed class EngineGlobalUnavailableException : EngineException
     /// <param name="operation">The stable public Engine operation identifier.</param>
     /// <param name="message">The stable public failure message.</param>
     public EngineGlobalUnavailableException(string operation, string message)
-        : this(operation, message, null)
+        : this(operation, message, innerException: null)
     {
     }
 

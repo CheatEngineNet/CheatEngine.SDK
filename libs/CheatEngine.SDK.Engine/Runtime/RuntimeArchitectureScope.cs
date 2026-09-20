@@ -10,5 +10,5 @@ public enum RuntimeArchitectureScope : byte
     CheatEngine = 1,
 
     /// <summary>The constraint applies to the currently selected target process.</summary>
-    Target = 2
+    Target = 2,
 }

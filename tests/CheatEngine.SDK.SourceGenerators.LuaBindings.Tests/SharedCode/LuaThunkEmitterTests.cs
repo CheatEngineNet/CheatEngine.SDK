@@ -7,13 +7,13 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.SharedCode;
 public sealed class LuaThunkEmitterTests
 {
     private static readonly LuaThunkModel Ping = new("ping", "__LuaThunk_ping", "global::Demo.Suite.Ping",
-        false, EquatableArray<LuaArgumentModel>.Empty, null);
+        PassesState: false, EquatableArray<LuaArgumentModel>.Empty, ReturnKind: null);
 
     private static readonly LuaThunkModel IsInteger = new(
         "isint",
         "__LuaThunk_isint",
         "global::Demo.Suite.IsInteger",
-        true,
+        PassesState: true,
         new EquatableArray<LuaArgumentModel>(
             [new LuaArgumentModel("value", LuaValueKind.Double, false)]),
         LuaValueKind.Boolean);

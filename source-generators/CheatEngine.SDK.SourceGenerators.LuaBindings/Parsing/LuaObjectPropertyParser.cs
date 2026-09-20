@@ -40,13 +40,13 @@ internal static class LuaObjectPropertyParser
             string.Empty,
             Identifiers.Escape(property.Name),
             default,
-            false,
-            false,
+            IsNullable: false,
+            HasGetter: false,
             string.Empty,
-            false,
+            HasSetter: false,
             string.Empty,
             property.Name,
-            false);
+            IsValid: false);
     }
 
     private static bool TryDescribe(IPropertySymbol property, PropertyDeclarationSyntax? declaration,

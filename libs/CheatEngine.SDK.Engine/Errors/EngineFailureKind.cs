@@ -35,5 +35,5 @@ public enum EngineFailureKind
     /// <summary>
     ///     A value crossing the Engine/Lua boundary could not be marshalled according to its declared contract.
     /// </summary>
-    MarshallingFailure = 5
+    MarshallingFailure = 5,
 }

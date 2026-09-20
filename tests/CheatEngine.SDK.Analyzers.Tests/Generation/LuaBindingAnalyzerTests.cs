@@ -49,7 +49,7 @@ public sealed class LuaBindingAnalyzerTests
     // runtime's metadata name must therefore not make a binding valid.
     private static readonly ImmutableArray<MetadataReference> SdkReferencesWithoutLuaRuntime =
     [
-        MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location)
+        MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location),
     ];
 
     public static TheoryData<string, string, bool> Shapes => new()
@@ -381,7 +381,7 @@ public sealed class LuaBindingAnalyzerTests
                                   public static partial int Read(global::CheatEngine.SDK.Lua.State.LuaState state);
                               }
                               """;
-        var compilation = CreateCompilation(source, true,
+        var compilation = CreateCompilation(source, allowUnsafe: true,
             SdkReferencesWithoutLuaRuntime);
 
         Assert.False(RunGenerator(compilation));
@@ -428,7 +428,7 @@ public sealed class LuaBindingAnalyzerTests
             "LuaBindingAnalyzerTestAssembly",
             [
                 CSharpSyntaxTree.ParseText(TestText.Normalize(source), ParseOptions, "Test.cs",
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken),
             ],
             LocalFrameworkReferences.References.AddRange(sdkReferences),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,

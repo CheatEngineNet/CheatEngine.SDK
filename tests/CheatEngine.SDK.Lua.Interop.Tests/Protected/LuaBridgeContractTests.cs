@@ -18,7 +18,7 @@ public sealed unsafe class LuaBridgeContractTests
         "cheatengine_sdk_lua_bridge_abi_version",
         "cheatengine_sdk_lua_bridge_get_contract",
         "cheatengine_sdk_lua_bridge_source_fingerprint",
-        "cheatengine_sdk_lua_protected"
+        "cheatengine_sdk_lua_protected",
     ];
 
     private static readonly string[] s_allowedImportedModules = ["KERNEL32.dll"];

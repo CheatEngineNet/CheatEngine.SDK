@@ -82,11 +82,11 @@ public sealed class MemoryScanSessionTests
             RoundingType.Rounded,
             "90",
             string.Empty,
-            false,
-            false,
-            false,
-            false,
-            false,
+            isHexadecimalInput: false,
+            isNotBinaryString: false,
+            isUnicodeScan: false,
+            isCaseSensitive: false,
+            isPercentageScan: false,
             "baseline"));
 
         Assert.Equal(MemoryScanState.Scanning, session.State);
@@ -252,7 +252,7 @@ public sealed class MemoryScanSessionTests
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
         using HostScope scope = new(state);
-        using var session = CreateSession(scope.State, true);
+        using var session = CreateSession(scope.State, firstScanRaises: true);
 
         var failure = Assert.Throws<MemoryScanException>(() =>
             session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100")));
@@ -316,7 +316,8 @@ public sealed class MemoryScanSessionTests
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
         using HostScope scope = new(state);
-        var scan = FakeHost.CreateObject(scope.State, "Object", ScanInitializer(false, false));
+        var scan = FakeHost.CreateObject(scope.State, "Object",
+            ScanInitializer(firstScanRaises: false, waitRaises: false));
         var foundList = FakeHost.CreateObject(scope.State, "Object", FoundListInitializer());
         var scanOwner = new Owned<MemScan>(MemScan.FromHandle(scan));
         var foundListOwner = new Owned<FoundList>(FoundList.FromHandle(foundList));

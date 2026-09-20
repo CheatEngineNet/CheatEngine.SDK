@@ -21,7 +21,7 @@ public sealed class EngineMarshallingException : EngineException
     public EngineMarshallingException(string operation, EngineMarshallingDirection direction, string expected,
         string actual)
         : this(operation, direction, expected, actual, CreateDefaultMessage(operation, direction, expected, actual),
-            null)
+            innerException: null)
     {
     }
 
@@ -33,7 +33,7 @@ public sealed class EngineMarshallingException : EngineException
     /// <param name="message">The stable public failure message.</param>
     public EngineMarshallingException(string operation, EngineMarshallingDirection direction, string expected,
         string actual, string message)
-        : this(operation, direction, expected, actual, message, null)
+        : this(operation, direction, expected, actual, message, innerException: null)
     {
     }
 

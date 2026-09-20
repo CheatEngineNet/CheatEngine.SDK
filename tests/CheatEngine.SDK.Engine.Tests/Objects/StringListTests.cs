@@ -33,12 +33,12 @@ public sealed class StringListTests
 
         Assert.True(list.TryGetSorted(out var sorted));
         Assert.False(sorted);
-        Assert.True(list.TrySetSorted(true));
+        Assert.True(list.TrySetSorted(value: true));
         Assert.True(list.TryGetSorted(out sorted));
         Assert.True(sorted);
         Assert.True(list.TryGetCaseSensitive(out var caseSensitive));
         Assert.True(caseSensitive);
-        Assert.True(list.TrySetCaseSensitive(false));
+        Assert.True(list.TrySetCaseSensitive(value: false));
         Assert.True(list.TryGetCaseSensitive(out caseSensitive));
         Assert.False(caseSensitive);
         Assert.Equal(0, L.Top);

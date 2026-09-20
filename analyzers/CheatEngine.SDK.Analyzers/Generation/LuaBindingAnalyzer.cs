@@ -48,7 +48,7 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
         DiagnosticDescriptors.InvalidLuaBindingContainingType,
         DiagnosticDescriptors.InvalidLuaFunction,
         DiagnosticDescriptors.InvalidLuaGlobal,
-        DiagnosticDescriptors.DuplicateLuaName
+        DiagnosticDescriptors.DuplicateLuaName,
     ];
 
     /// <inheritdoc />

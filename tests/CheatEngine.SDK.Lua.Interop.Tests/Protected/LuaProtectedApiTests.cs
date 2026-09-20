@@ -86,7 +86,7 @@ public sealed unsafe class LuaProtectedApiTests
         [
             "cheatengine_sdk_lua_protected",
             "cheatengine_sdk_lua_bridge_get_contract",
-            "cheatengine_sdk_lua_bridge_abi_version"
+            "cheatengine_sdk_lua_bridge_abi_version",
         ];
         var importCount = 0;
 
@@ -102,8 +102,7 @@ public sealed unsafe class LuaProtectedApiTests
             var callConvention = method.GetCustomAttribute<UnmanagedCallConvAttribute>();
             Assert.NotNull(callConvention);
             Assert.NotNull(callConvention.CallConvs);
-            Assert.Single(callConvention.CallConvs);
-            Assert.Equal(typeof(CallConvCdecl), callConvention.CallConvs[0]);
+            Assert.Equal(typeof(CallConvCdecl), Assert.Single(callConvention.CallConvs));
             Assert.Null(method.GetCustomAttribute<SuppressGCTransitionAttribute>());
         }
 
@@ -127,33 +126,41 @@ public sealed unsafe class LuaProtectedApiTests
     [Fact]
     public void CreateTable_negative_capacities_are_rejected_before_native_binding()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => LuaProtectedApi.CreateTable(null, -1, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => LuaProtectedApi.CreateTable(null, 0, -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            LuaProtectedApi.CreateTable(state: null, arrayCapacity: -1, recordCapacity: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            LuaProtectedApi.CreateTable(state: null, arrayCapacity: 0, recordCapacity: -1));
     }
 
     [Fact]
     public void PushClosure_invalid_shape_is_rejected_before_native_binding()
     {
-        Assert.Throws<ArgumentException>(() => LuaProtectedApi.PushClosure(null, 0, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => LuaProtectedApi.PushClosure(null, 1, 256));
+        Assert.Throws<ArgumentException>(() =>
+            LuaProtectedApi.PushClosure(state: null, function: 0, upvalues: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            LuaProtectedApi.PushClosure(state: null, function: 1, upvalues: 256));
     }
 
     [Fact]
     public void Protected_operations_reject_a_null_state_before_loading_the_bridge()
     {
-        Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.PushBytes(null, []));
-        Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.PushByteTable(null, []));
-        Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.NewUserdata(null, 1));
-        Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.PushHostObject(null, 1, 0));
+        Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.PushBytes(state: null, bytes: []));
+        Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.PushByteTable(state: null, bytes: []));
+        Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.NewUserdata(state: null, bytes: 1));
+        Assert.Throws<ArgumentNullException>(() =>
+            LuaProtectedApi.PushHostObject(state: null, hostObjectPusher: 1, nativeObject: 0));
     }
 
     [Fact]
     public void Private_references_reject_the_zero_registry_key_before_native_binding()
     {
         var reference = 17;
-        Assert.Throws<ArgumentException>(() => LuaProtectedApi.TryCreatePrivateRef(null, 0, out reference));
-        Assert.Throws<ArgumentException>(() => LuaProtectedApi.PushPrivateRef(null, 0, 1));
-        Assert.Throws<ArgumentException>(() => LuaProtectedApi.UnrefPrivate(null, 0, 1));
+        Assert.Throws<ArgumentException>(() =>
+            LuaProtectedApi.TryCreatePrivateRef(state: null, stableKey: 0, reference: out reference));
+        Assert.Throws<ArgumentException>(() =>
+            LuaProtectedApi.PushPrivateRef(state: null, stableKey: 0, reference: 1));
+        Assert.Throws<ArgumentException>(() =>
+            LuaProtectedApi.UnrefPrivate(state: null, stableKey: 0, reference: 1));
         Assert.Equal(17, reference);
     }
 
@@ -162,7 +169,7 @@ public sealed unsafe class LuaProtectedApiTests
     public void Private_reference_round_trip_creates_and_pushes_the_original_value()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var pointer = state.L;
         var stableKey = (nint)0x5A17;
         const long expected = -9_876_543_210;
@@ -187,7 +194,7 @@ public sealed unsafe class LuaProtectedApiTests
     public void Push_private_reference_without_its_table_returns_an_error_and_preserves_the_caller_stack()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var pointer = state.L;
         var stableKey = (nint)0x5A18;
         const long sentinel = 71;
@@ -211,7 +218,7 @@ public sealed unsafe class LuaProtectedApiTests
     public void Protected_operations_reject_missing_stack_inputs_before_bridge_setup()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var statePointer = (nint)state.L;
         Assert.Equal(0, lua_gettop((lua_State*)statePointer));
 
@@ -230,7 +237,7 @@ public sealed unsafe class LuaProtectedApiTests
     public void RawSet_rejects_an_invalid_table_index_without_touching_the_stack()
     {
         LuaTest.RequireNativeLua();
-        using NativeLuaState state = new(false);
+        using NativeLuaState state = new(openLibraries: false);
         var pointer = state.L;
         var statePointer = (nint)pointer;
         lua_pushinteger(pointer, 1);
@@ -256,7 +263,7 @@ public sealed unsafe class LuaProtectedApiTests
             AbiMinor = LuaBridgeContract.MinimumMinor,
             PointerSize = (byte)IntPtr.Size,
             LuaIntegerSize = sizeof(long),
-            SizeTSize = (byte)sizeof(nuint)
+            SizeTSize = (byte)sizeof(nuint),
         };
     }
 }

@@ -45,7 +45,7 @@ internal sealed class PortableExecutableInspector
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         var image = File.ReadAllBytes(path);
-        using var stream = new MemoryStream(image, false);
+        using var stream = new MemoryStream(image, writable: false);
         using var reader = new PEReader(stream, PEStreamOptions.PrefetchEntireImage);
 
         if (reader.PEHeaders.IsCoffOnly)

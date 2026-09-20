@@ -122,7 +122,7 @@ public sealed class AllocatedRegionTests
             new()
             {
                 DeallocationException = new EngineBindingException("TargetMemoryDeallocate",
-                    "the generated binding returned an incompatible result")
+                    "the generated binding returned an incompatible result"),
             };
         var region = Allocate(operations, 4096);
 
@@ -152,7 +152,7 @@ public sealed class AllocatedRegionTests
             new()
             {
                 DeallocationException = new EngineMarshallingException("TargetMemoryDeallocate",
-                    EngineMarshallingDirection.Result, "a boolean", "a table")
+                    EngineMarshallingDirection.Result, "a boolean", "a table"),
             };
         var region = Allocate(operations, 4096);
 

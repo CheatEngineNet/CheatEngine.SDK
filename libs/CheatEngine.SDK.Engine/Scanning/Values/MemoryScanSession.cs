@@ -122,6 +122,12 @@ public sealed class MemoryScanSession : IDisposable
     ///     state, so the plugin can retry before its disable callback returns. Once destruction begins, it follows
     ///     <see cref="Owned{T}.Dispose" /> and does not retry a protected CE failure.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     The plugin is attached and the caller is not on Cheat Engine's main thread.
+    /// </exception>
+    // Attached-worker cleanup is unsafe. The documented exception preserves both owners so disposal can be retried on
+    // the main thread; making IDisposable.Dispose non-throwing here would either leak them or violate thread affinity.
+#pragma warning disable S3877
     [MainThreadOnly]
     public void Dispose()
     {
@@ -163,6 +169,7 @@ public sealed class MemoryScanSession : IDisposable
         _scanner = null;
         State = MemoryScanState.Disposed;
     }
+#pragma warning restore S3877
 
     /// <summary>
     ///     Transfers two explicit ownership wrappers into a session. The source wrappers become empty; the returned

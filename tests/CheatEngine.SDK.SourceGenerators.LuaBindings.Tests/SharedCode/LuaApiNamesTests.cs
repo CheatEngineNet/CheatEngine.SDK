@@ -95,7 +95,7 @@ public sealed class LuaApiNamesTests
             ],
             [
                 .. LocalFrameworkReferences.Load(),
-                MetadataReference.CreateFromFile(LuaAssembly.Location)
+                MetadataReference.CreateFromFile(LuaAssembly.Location),
             ]);
 
         var lookAlike = compilation.GetTypeByMetadataName(@namespace + ".LuaState");

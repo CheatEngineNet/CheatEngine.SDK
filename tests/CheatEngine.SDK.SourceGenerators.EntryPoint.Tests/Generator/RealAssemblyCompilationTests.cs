@@ -67,7 +67,9 @@ public sealed class RealAssemblyCompilationTests
             [],
             ParseOptions,
             TestAnalyzerConfigOptionsProvider.WithBuildProperty("CheatEngineSdkGenerateEntryPoint", "true"),
-            new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, true));
+            new GeneratorDriverOptions(
+                IncrementalGeneratorOutputKind.None,
+                trackIncrementalGeneratorSteps: true));
 
         driver = driver.RunGeneratorsAndUpdateCompilation(
             compilation,

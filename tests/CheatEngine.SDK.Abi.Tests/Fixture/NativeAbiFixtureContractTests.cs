@@ -50,14 +50,14 @@ public sealed class NativeAbiFixtureContractTests
         [
             "CEPlugin_GetVersion",
             "CEPlugin_InitializePlugin",
-            "CEPlugin_DisablePlugin"
+            "CEPlugin_DisablePlugin",
         ];
 
         string[] actual =
         [
             NativeExportNames.GetVersion,
             NativeExportNames.InitializePlugin,
-            NativeExportNames.DisablePlugin
+            NativeExportNames.DisablePlugin,
         ];
 
         Assert.Equal(expected, actual);

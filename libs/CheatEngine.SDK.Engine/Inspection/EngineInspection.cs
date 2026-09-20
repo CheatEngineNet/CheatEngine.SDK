@@ -65,7 +65,7 @@ public static class EngineInspection
     [RequiresPluginEnabled]
     public static InspectionStatus EnumerateModules(Span<ModuleInfo> destination, out int written)
     {
-        return EnumerateModulesCore(destination, out written, default, false);
+        return EnumerateModulesCore(destination, out written, processId: default, hasProcessId: false);
     }
 
     /// <summary>
@@ -88,7 +88,7 @@ public static class EngineInspection
         out int written)
     {
         ValidateProcessId(processId);
-        return EnumerateModulesCore(destination, out written, processId, true);
+        return EnumerateModulesCore(destination, out written, processId: processId, hasProcessId: true);
     }
 
     /// <summary>

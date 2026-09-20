@@ -85,7 +85,7 @@ public sealed class EntryPointTests(PackagedUmbrellaFixture fixture)
         {
             var hostingAssembly = context.LoadFromAssemblyPath(hostingAssemblyPath);
             var consumerAssembly = context.LoadFromAssemblyPath(consumerAssemblyPath);
-            var entryPointType = consumerAssembly.GetType("CESDK.CESDK", true)!;
+            var entryPointType = consumerAssembly.GetType(name: "CESDK.CESDK", throwOnError: true)!;
             var initialize = entryPointType.GetMethod("CEPluginInitialize", BindingFlags.Public | BindingFlags.Static)
                              ?? throw new MissingMethodException("CESDK.CESDK", "CEPluginInitialize");
 
@@ -99,7 +99,8 @@ public sealed class EntryPointTests(PackagedUmbrellaFixture fixture)
                 var result = initialize.Invoke(null, [record, opaqueArgument]);
                 Assert.Equal(1, Assert.IsType<int>(result));
 
-                var pluginHost = hostingAssembly.GetType("CheatEngine.SDK.Hosting.Bootstrap.PluginHost", true)!;
+                var pluginHost = hostingAssembly.GetType(
+                    name: "CheatEngine.SDK.Hosting.Bootstrap.PluginHost", throwOnError: true)!;
                 var lastArgument =
                     pluginHost.GetProperty("LastInitRecordArgument", BindingFlags.Public | BindingFlags.Static)
                     ?? throw new MissingMemberException(pluginHost.FullName, "LastInitRecordArgument");
@@ -125,7 +126,7 @@ public sealed class EntryPointTests(PackagedUmbrellaFixture fixture)
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate uint BridgeVersion();
 
-    private sealed class PluginAssemblyLoadContext(string deploymentDirectory) : AssemblyLoadContext(true)
+    private sealed class PluginAssemblyLoadContext(string deploymentDirectory) : AssemblyLoadContext(isCollectible: true)
     {
         protected override Assembly? Load(AssemblyName assemblyName)
         {

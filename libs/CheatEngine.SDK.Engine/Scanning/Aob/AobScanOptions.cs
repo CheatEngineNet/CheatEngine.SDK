@@ -25,7 +25,7 @@ public readonly struct AobScanOptions : IEquatable<AobScanOptions>
 {
     /// <summary>Initializes options that leave every CE optional argument absent.</summary>
     public AobScanOptions()
-        : this(null, FastScanMethod.NotAligned, null)
+        : this(protectionFlags: null, alignmentMethod: FastScanMethod.NotAligned, alignmentParameter: null)
     {
     }
 

@@ -9,7 +9,7 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Emit;
 
 /// <summary>
 ///     Emits protected object-method and property bodies. Every method snapshots and restores the Lua stack in a
-///     <c>finally</c>; properties delegate to <c>CEObject</c>'s already-protected typed primitives.
+///     <see langword="finally" />; properties delegate to <c>CEObject</c>'s already-protected typed primitives.
 /// </summary>
 internal static class LuaObjectMembersFileEmitter
 {
@@ -287,7 +287,7 @@ internal static class LuaObjectMembersFileEmitter
         writer.Write(".TryRead(");
         writer.Write(State);
         writer.Write(", -1, out ");
-        writer.Write(LuaValueKinds.TypeName(kind, true));
+        writer.Write(LuaValueKinds.TypeName(kind, isNullable: true));
         writer.Write(' ');
         writer.Write(Result);
         writer.WriteLine("))");
@@ -382,7 +382,7 @@ internal static class LuaObjectMembersFileEmitter
         writer.Write(">(");
         writer.Write(CSharpLiteral.ToUtf8Literal(model.LuaName));
         writer.Write(", out ");
-        writer.Write(LuaValueKinds.TypeName(model.Kind, true));
+        writer.Write(LuaValueKinds.TypeName(model.Kind, isNullable: true));
         writer.WriteLine(" __ceValue))");
         writer.OpenBlock();
         WritePropertyFailure(writer, model, "read");

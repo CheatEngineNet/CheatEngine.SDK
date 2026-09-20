@@ -14,5 +14,5 @@ public enum MemoryRegionType : uint
     Mapped = 0x40000,
 
     /// <summary>Image-mapped pages (<c>MEM_IMAGE</c>).</summary>
-    Image = 0x1000000
+    Image = 0x1000000,
 }

@@ -17,7 +17,7 @@ public sealed class EngineBindingException : EngineException
     /// <summary>Initializes an exception with the standard message for <paramref name="binding" />.</summary>
     /// <param name="binding">The stable public binding identifier.</param>
     public EngineBindingException(string binding)
-        : this(binding, CreateDefaultMessage(binding), null)
+        : this(binding, CreateDefaultMessage(binding), innerException: null)
     {
     }
 
@@ -25,7 +25,7 @@ public sealed class EngineBindingException : EngineException
     /// <param name="binding">The stable public binding identifier.</param>
     /// <param name="message">The stable public failure message.</param>
     public EngineBindingException(string binding, string message)
-        : this(binding, message, null)
+        : this(binding, message, innerException: null)
     {
     }
 

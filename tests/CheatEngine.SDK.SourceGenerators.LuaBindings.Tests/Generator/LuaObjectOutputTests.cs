@@ -183,6 +183,74 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
         run.AssertCompilesClean();
     }
 
+    [Theory]
+    [InlineData("_handle")]
+    [InlineData("Handle")]
+    [InlineData("FromHandle")]
+    [InlineData("Equals")]
+    [InlineData("GetHashCode")]
+    [InlineData("Push")]
+    [InlineData("TryRead")]
+    public void Every_generated_handle_member_name_skips_only_the_affected_handle(string memberName)
+    {
+        var newModifier = memberName is "Equals" or "GetHashCode" ? "new " : string.Empty;
+        var source = $$"""
+                      using CheatEngine.SDK.Annotations.Lua;
+
+                      namespace Demo;
+
+                      [LuaClass("Bad")]
+                      public readonly partial struct Bad
+                      {
+                          private {{newModifier}}int {{memberName}} => 0;
+                      }
+
+                      [LuaClass("Good")]
+                      public readonly partial struct Good
+                      {
+                      }
+                      """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.Equal("Demo.Good.LuaClass.g.cs", run.HintNames[0]);
+        run.AssertCompilesClean();
+    }
+
+    [Theory]
+    [InlineData("_handle")]
+    [InlineData("Handle")]
+    [InlineData("FromHandle")]
+    [InlineData("Equals")]
+    [InlineData("GetHashCode")]
+    [InlineData("Push")]
+    [InlineData("TryRead")]
+    public void Every_generated_handle_type_name_skips_only_the_affected_handle(string typeName)
+    {
+        var source = """
+                      using CheatEngine.SDK.Annotations.Lua;
+
+                      namespace Demo;
+
+                      [LuaClass("Bad")]
+                      public readonly partial struct TYPE
+                      {
+                      }
+
+                      [LuaClass("Good")]
+                      public readonly partial struct Good
+                      {
+                      }
+                      """.Replace("TYPE", typeName, StringComparison.Ordinal);
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.Equal("Demo.Good.LuaClass.g.cs", run.HintNames[0]);
+        run.AssertCompilesClean();
+    }
+
     [Fact]
     public void Generated_handle_constructor_collision_skips_only_the_affected_handle()
     {

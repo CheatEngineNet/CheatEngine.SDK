@@ -239,6 +239,18 @@ public sealed class EngineInspectionTests
     }
 
     [Fact]
+    public void Legacy_positional_host_option_is_preserved_but_rejected_by_target_resolution()
+    {
+        var legacy = new AddressResolutionOptions(true);
+        legacy.Deconstruct(out var useHostSymbolTable, out var shallow);
+
+        Assert.True(useHostSymbolTable);
+        Assert.False(shallow);
+        Assert.Throws<ArgumentException>(() =>
+            EngineInspection.ResolveAddress(new SymbolExpression("hostSymbol"), legacy, out _));
+    }
+
+    [Fact]
     public void Inspection_preserves_lua_failures_from_global_and_table_field_resolution()
     {
         EngineTest.RequireNativeLua();

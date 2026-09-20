@@ -91,6 +91,7 @@ internal sealed class AutoAssemblerToggle(string script) : IDisposable
 
     public bool Enable()
     {
+        if (_restorationUncertain) return false;
         if (IsEnabled) return true;
 
         var L = LuaRuntime.AcquireState();
@@ -172,9 +173,10 @@ internal static partial class Patches
 the Lua registry, and `Disable` pushes it back as the second argument, which is what makes Cheat Engine run `[DISABLE]`.
 The reference is released only after `[DISABLE]` succeeds. If lookup or reference push fails before dispatch, it remains
 available for a later retry; `IsEnabled` stays true rather than claiming that a patch was removed without evidence. A
-post-dispatch Lua error or false result sets `RequiresManualRecovery`: the reference is retained as evidence, but the
-helper will not blindly replay a potentially partial `[DISABLE]`. `TryPushRef` refuses a reference from an earlier enable
-instead of pushing a stale value.
+post-dispatch Lua error or false result sets `RequiresManualRecovery`: the reference is retained as evidence, and both
+`Enable` and `Disable` refuse further mutation until an explicit recovery clears the uncertainty. The helper will not
+blindly replay a potentially partial `[DISABLE]`; `TryPushRef` also refuses a reference from an earlier enable instead
+of pushing a stale value.
 
 The script is a raw string literal, so it keeps its own indentation and needs no escaping. The bytes are an example: use
 the pattern and the original bytes of your own target.

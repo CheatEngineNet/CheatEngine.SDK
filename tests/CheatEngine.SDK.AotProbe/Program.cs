@@ -16,7 +16,8 @@ internal static class Program
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods, typeof(LuaCallback<ProbeState>))]
     private static string ProbeRepresentativePaths()
     {
-        if (!Address.TryParse("140001000", out Address address) || address.ToUInt64() != 0x140001000) return "Address probe failed";
+        if (!Address.TryParse("140001000", out Address address) || address.ToUInt64() != 0x140001000)
+            throw new InvalidOperationException("Address probe failed.");
 
         LuaStatus status = KeepGenericPath(LuaStatus.Ok);
         _ = typeof(LuaCallback<ProbeState>);

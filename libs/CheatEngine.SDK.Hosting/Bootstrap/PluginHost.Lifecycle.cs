@@ -214,6 +214,7 @@ public static unsafe partial class PluginHost
 
     private static bool RunEnable(ManagedExportedFunctions* exports, uint pluginId, PluginDescriptor descriptor)
     {
+        Volatile.Write(ref s_incompleteEnableCleanup, 0);
         if (!TryCopyExports(exports, out var copy)) return false;
         if (!TryBindLua(in copy)) return false;
         if (!TryGetOrCreatePlugin(descriptor, out var plugin)) return false;
@@ -278,30 +279,34 @@ public static unsafe partial class PluginHost
 
     private static void CleanupFailedEnable(bool runtimeAttached, CancellationTokenSource? shutdown)
     {
+        var cleanupSucceeded = false;
         try
         {
             if (shutdown is not null) CloseMainThreadWorkAdmissionAndSignalShutdown(Volatile.Read(ref s_context));
+
+            if (runtimeAttached)
+            {
+                LuaRuntime.CloseOperationAdmissionAndDrain();
+                LuaRuntime.Detach();
+            }
+
+            cleanupSucceeded = true;
         }
-        finally
+        catch (Exception exception)
         {
-            try
+            HostLog.Error("EnablePlugin: Lua cleanup after a failed enable threw; shutdown remains incomplete.", exception);
+            if (runtimeAttached)
             {
-                if (runtimeAttached)
-                {
-                    LuaRuntime.CloseOperationAdmissionAndDrain();
-                    LuaRuntime.Detach();
-                }
-            }
-            catch (Exception exception)
-            {
-                HostLog.Error("EnablePlugin: Lua cleanup after a failed enable threw.", exception);
-            }
-            finally
-            {
-                Volatile.Write(ref s_context, null);
-                if (shutdown is not null) EndMainThreadWorkAdmission();
+                Volatile.Write(ref s_incompleteEnableCleanup, 1);
+                SetPhase(PluginHostLifecyclePhase.Disabling);
             }
         }
+
+        if (!cleanupSucceeded) return;
+
+        Volatile.Write(ref s_context, null);
+        Volatile.Write(ref s_incompleteEnableCleanup, 0);
+        if (shutdown is not null) EndMainThreadWorkAdmission();
     }
 
     // Honours the size field: a record shorter than the one this SDK knows cannot be copied safely; a longer one
@@ -420,23 +425,8 @@ public static unsafe partial class PluginHost
     {
         context = null;
         plugin = null;
-
-        if (LuaRuntime.IsOperationAdmittedOnCurrentThread)
-        {
-            HostLog.Error(
-                "DisablePlugin: disable was requested from an admitted Lua operation; the request is refused because shutdown would wait for that operation to return.");
-            return LifecycleStart.Refused;
-        }
-
-        if (MainThreadDispatcher.IsExecutingWorkOnCurrentThread)
-        {
-            HostLog.Error(
-                "DisablePlugin: disable was requested from dispatched main-thread work; the request is refused because shutdown would wait for that work to return.");
-            return LifecycleStart.Refused;
-        }
-
+        if (!CanStartDisable()) return LifecycleStart.Refused;
         if (!TryEnterLifecycleCallback("DisablePlugin")) return LifecycleStart.Refused;
-
         try
         {
             if (Phase is PluginHostLifecyclePhase.Registered or PluginHostLifecyclePhase.Uninitialized)
@@ -444,12 +434,30 @@ public static unsafe partial class PluginHost
                 HostLog.Warning("DisablePlugin: the plugin is not enabled; the call is ignored.");
                 return LifecycleStart.AlreadyStable;
             }
-
             context = s_context;
-            if (Phase is not PluginHostLifecyclePhase.Enabled || context is null)
+            if (context is null)
             {
                 HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
-                              "; disable is valid only from Enabled.");
+                              "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
+                return LifecycleStart.Refused;
+            }
+
+            if (Phase is PluginHostLifecyclePhase.Disabling)
+            {
+                if (Volatile.Read(ref s_incompleteEnableCleanup) == 0)
+                {
+                    HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
+                                  "; a disable transition is already completing.");
+                    return LifecycleStart.Refused;
+                }
+
+                return TryStartIncompleteDisable(context, out plugin);
+            }
+
+            if (Phase is not PluginHostLifecyclePhase.Enabled)
+            {
+                HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
+                              "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
                 return LifecycleStart.Refused;
             }
 
@@ -468,6 +476,38 @@ public static unsafe partial class PluginHost
         {
             SGate.Exit();
         }
+    }
+
+    private static bool CanStartDisable()
+    {
+        if (LuaRuntime.IsOperationAdmittedOnCurrentThread)
+        {
+            HostLog.Error(
+                "DisablePlugin: disable was requested from an admitted Lua operation; the request is refused because shutdown would wait for that operation to return.");
+            return false;
+        }
+
+        if (MainThreadDispatcher.IsExecutingWorkOnCurrentThread)
+        {
+            HostLog.Error(
+                "DisablePlugin: disable was requested from dispatched main-thread work; the request is refused because shutdown would wait for that work to return.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private static LifecycleStart TryStartIncompleteDisable(PluginContext context, out CheatEnginePlugin? plugin)
+    {
+        plugin = null;
+        if (!context.IsMainThread)
+        {
+            HostLog.Error(
+                "DisablePlugin: retrying incomplete enable cleanup from a different thread is refused; use the captured plugin main thread.");
+            return LifecycleStart.Refused;
+        }
+
+        return LifecycleStart.Started;
     }
 
     private static void RunDisable(PluginContext context, CheatEnginePlugin? plugin)
@@ -497,6 +537,7 @@ public static unsafe partial class PluginHost
             LuaRuntime.Detach();
 
             Volatile.Write(ref s_context, null);
+            Volatile.Write(ref s_incompleteEnableCleanup, 0);
             EndMainThreadWorkAdmission();
             SetPhase(PluginHostLifecyclePhase.Registered);
             return true;

@@ -79,6 +79,58 @@ public sealed class LuaObjectBindingAnalyzerTests
             """);
     }
 
+    [Theory]
+    [InlineData("_handle")]
+    [InlineData("Handle")]
+    [InlineData("FromHandle")]
+    [InlineData("Equals")]
+    [InlineData("GetHashCode")]
+    [InlineData("Push")]
+    [InlineData("TryRead")]
+    public async Task Every_generated_handle_member_name_reports_CESDK2007(string memberName)
+    {
+        await AnalyzerVerifier<LuaObjectBindingAnalyzer>.VerifyAsync(
+            """
+            using CheatEngine.SDK.Annotations.Lua;
+
+            namespace Demo;
+
+            [LuaClass("Object")]
+            public readonly partial struct Collision
+            {
+                private int {|CESDK2007:MEMBER|} => 0;
+            }
+
+            [LuaClass("Object")]
+            public readonly partial struct Valid
+            {
+            }
+            """.Replace("MEMBER", memberName, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("_handle")]
+    [InlineData("Handle")]
+    [InlineData("FromHandle")]
+    [InlineData("Equals")]
+    [InlineData("GetHashCode")]
+    [InlineData("Push")]
+    [InlineData("TryRead")]
+    public async Task Every_generated_handle_type_name_reports_CESDK2007(string typeName)
+    {
+        await AnalyzerVerifier<LuaObjectBindingAnalyzer>.VerifyAsync(
+            """
+            using CheatEngine.SDK.Annotations.Lua;
+
+            namespace Demo;
+
+            [LuaClass("Object")]
+            public readonly partial struct {|CESDK2007:TYPE|}
+            {
+            }
+            """.Replace("TYPE", typeName, StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task Lua_global_generated_local_parameters_report_CESDK2007()
     {

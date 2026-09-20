@@ -151,8 +151,8 @@ internal static class EngineDemo
         if (!StringLists.TryCreate(out Owned<StringList>? list)) return false;
         using (list)
         {
-            return list.Value.TryCallMethod("clear"u8)
-                   && list.Value.TryGetProperty<Int32Marshaller, int>("Count"u8, out int count)
+            return list.Value.TryClear()
+                   && list.Value.TryGetCount(out int count)
                    && count == 0;
         }
     }
@@ -173,8 +173,8 @@ ships in the `CheatEngine.SDK` package under `lib/net10.0`.
 
 The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine object model on a real Lua 5.3 state.
 
-1. `Owned<T>` destroys its object once, never retries a destroy that raised, and never throws from `Dispose`
-   (`OwnedTests`).
+1. `Owned<T>` destroys its object once, never retries a destroy that raised, and only throws from `Dispose` when the
+   protected destroy call cannot begin; a failure returned by CE is consumed after the call starts (`OwnedTests`).
 2. A Lua error never becomes an exception: typed members return `false`, stack-level members return a `LuaStatus` with
    one error value (`CEObjectTests`).
 3. Members that push the object throw `InvalidOperationException` before the plugin is enabled (`CEObjectValueTests`).

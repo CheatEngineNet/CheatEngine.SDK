@@ -27,13 +27,6 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 {
     private const string PartialKeyword = "partial";
-    private const string GeneratedHandleField = "_handle";
-    private const string GeneratedHandle = "Handle";
-    private const string GeneratedFromHandle = "FromHandle";
-    private const string GeneratedEquals = "Equals";
-    private const string GeneratedGetHashCode = "GetHashCode";
-    private const string GeneratedPush = "Push";
-    private const string GeneratedTryRead = "TryRead";
 
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
@@ -113,16 +106,11 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
     private static void ReportLuaClassIdentityCollisions(SymbolAnalysisContext context, INamedTypeSymbol type,
         INamedTypeSymbol? ceObject)
     {
-        if (string.Equals(type.Name, GeneratedHandle, StringComparison.Ordinal))
-            ReportCollision(context, type, GeneratedHandle);
+        if (LuaClassGeneratedNames.IsGeneratedType(type.Name)) ReportCollision(context, type, type.Name);
 
-        ReportNamedMemberCollisions(context, type, GeneratedHandleField, GeneratedHandleField);
-        ReportNamedMemberCollisions(context, type, GeneratedHandle, GeneratedHandle);
-        ReportNamedMemberCollisions(context, type, GeneratedFromHandle, GeneratedFromHandle);
-        ReportNamedMemberCollisions(context, type, GeneratedEquals, GeneratedEquals);
-        ReportNamedMemberCollisions(context, type, GeneratedGetHashCode, GeneratedGetHashCode);
-        ReportNamedMemberCollisions(context, type, GeneratedPush, GeneratedPush);
-        ReportNamedMemberCollisions(context, type, GeneratedTryRead, GeneratedTryRead);
+        foreach (var member in type.GetMembers())
+            if (LuaClassGeneratedNames.IsGeneratedMember(member.Name))
+                ReportCollision(context, member, member.Name);
 
         foreach (var member in type.GetMembers())
             if (member is IMethodSymbol { MethodKind: MethodKind.UserDefinedOperator } method

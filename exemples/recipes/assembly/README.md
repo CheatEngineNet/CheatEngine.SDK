@@ -314,7 +314,8 @@ the line.
 ## Promise
 
 - A failed `[ENABLE]` returns `false` and leaves no reference behind.
-- `Disable` releases its registry reference on every path and never runs `[DISABLE]` twice.
+- `Disable` releases its registry reference only after `[DISABLE]` succeeds; lookup, reference-push, and post-dispatch
+  failures retain it for diagnosis and never run `[DISABLE]` twice.
 - A Try form never throws for an address that does not disassemble. It returns `false`.
 - The Lua stack returns to its previous height after every call.
 

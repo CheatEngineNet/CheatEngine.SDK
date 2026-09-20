@@ -25,6 +25,10 @@ namespace CheatEngine.SDK.Hosting.Threading;
 /// </remarks>
 internal static unsafe class MainThreadDispatcher
 {
+    // A disable nested in work the dispatcher is already executing cannot drain that work: its worker is waiting for
+    // this action to return. PluginHost reads this marker before it starts shutdown and refuses that nested request.
+    [ThreadStatic] private static int t_executingWorkDepth;
+
     // The simulated host uses this narrow internal seam to queue the exact work item that Dispatch would otherwise
     // hand to Lua. It is reset before every test and never reaches the public API or a production host path.
     private static Action<MainThreadWorkItem>? s_dispatchOverrideForTests;
@@ -34,6 +38,8 @@ internal static unsafe class MainThreadDispatcher
         get => Volatile.Read(ref s_dispatchOverrideForTests);
         set => Volatile.Write(ref s_dispatchOverrideForTests, value);
     }
+
+    internal static bool IsExecutingWorkOnCurrentThread => t_executingWorkDepth != 0;
 
     /// <summary>Runs <paramref name="item" /> through the host's <c>synchronize</c> global on the calling thread's Lua state.</summary>
     /// <param name="item">
@@ -124,6 +130,14 @@ internal static unsafe class MainThreadDispatcher
             return;
         }
 
-        item.Execute();
+        t_executingWorkDepth++;
+        try
+        {
+            item.Execute();
+        }
+        finally
+        {
+            t_executingWorkDepth--;
+        }
     }
 }

@@ -65,14 +65,37 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
         Assert.Contains("public static bool operator ==", handle, StringComparison.Ordinal);
 
         var members = run.GeneratedText("Demo.Scan.LuaObjectMembers.g.cs");
-        Assert.Contains("Handle.TryPushMethodLeavingObject(__ceState, \"firstScan\"u8)", members,
+        Assert.Contains("this.Handle.TryPushMethodLeavingObject(__ceState, \"firstScan\"u8)", members,
             StringComparison.Ordinal);
         Assert.Contains("__ceState.SetTop(__ceTop);", members, StringComparison.Ordinal);
-        Assert.Contains("Handle.TryGetProperty<global::CheatEngine.SDK.Lua.Marshalling.Int32Marshaller, int>", members,
+        Assert.Contains("this.Handle.TryGetProperty<global::CheatEngine.SDK.Lua.Marshalling.Int32Marshaller, int>", members,
             StringComparison.Ordinal);
-        Assert.Contains("Handle.TrySetProperty<global::CheatEngine.SDK.Lua.Marshalling.Int32Marshaller, int>", members,
+        Assert.Contains("this.Handle.TrySetProperty<global::CheatEngine.SDK.Lua.Marshalling.Int32Marshaller, int>", members,
             StringComparison.Ordinal);
         run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Object_method_parameter_named_handle_does_not_shadow_the_generated_property()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Object")]
+                              public readonly partial struct ObjectHandle
+                              {
+                                  [LuaMethod("call")]
+                                  public partial void Call(int Handle);
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        run.AssertCompilesClean();
+        Assert.Contains("this.Handle.TryPushMethodLeavingObject", run.GeneratedText("Demo.ObjectHandle.LuaObjectMembers.g.cs"),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -250,7 +273,7 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
         var run = roslyn.Run(source);
         var members = run.GeneratedText("Demo.Wide.LuaObjectMembers.g.cs");
         var stackCheck = members.IndexOf("if (!__ceState.TryEnsureStack(17))", StringComparison.Ordinal);
-        var receiverPush = members.IndexOf("Handle.TryPushMethodLeavingObject(__ceState, \"sum15\"u8)",
+        var receiverPush = members.IndexOf("this.Handle.TryPushMethodLeavingObject(__ceState, \"sum15\"u8)",
             StringComparison.Ordinal);
 
         Assert.True(stackCheck >= 0 && stackCheck < receiverPush,

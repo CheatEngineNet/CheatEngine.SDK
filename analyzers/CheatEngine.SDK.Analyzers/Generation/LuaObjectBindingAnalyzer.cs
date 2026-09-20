@@ -113,6 +113,9 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
     private static void ReportLuaClassIdentityCollisions(SymbolAnalysisContext context, INamedTypeSymbol type,
         INamedTypeSymbol? ceObject)
     {
+        if (string.Equals(type.Name, GeneratedHandle, StringComparison.Ordinal))
+            ReportCollision(context, type, GeneratedHandle);
+
         ReportNamedMemberCollisions(context, type, GeneratedHandleField, GeneratedHandleField);
         ReportNamedMemberCollisions(context, type, GeneratedHandle, GeneratedHandle);
         ReportNamedMemberCollisions(context, type, GeneratedFromHandle, GeneratedFromHandle);

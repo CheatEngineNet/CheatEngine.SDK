@@ -69,7 +69,7 @@ public abstract class CheatEnginePlugin
     ///     runtime binding are still usable. Release what <see cref="OnEnable" /> created; the runtime binding is
     ///     withdrawn right after this method returns and every remaining Lua callback is neutralized then.
     /// </summary>
-    /// <remarks>Throwing is logged and reported to Cheat Engine as a failed disable; the plugin is disabled anyway.</remarks>
+    /// <remarks>Throwing is logged; cleanup completes and Cheat Engine is told the plugin is disabled.</remarks>
     [RunsOnMainThread]
     protected internal abstract void OnDisable();
 }

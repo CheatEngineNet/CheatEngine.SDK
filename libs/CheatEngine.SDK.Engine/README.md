@@ -49,7 +49,7 @@ host has the same contract.
 | `Errors`                   | `EngineException` and stable subclasses                                       | Separates expected operation failure, global absence, Lua failure, binding violation and marshalling violation instead of exposing a raw Lua stack error as the public Engine contract.                                    |
 
 The per-capability provenance, minimum CE version, architecture, thread, ownership and return semantics belong to the
-external [capability matrix](../../../../documentations/CheatEngine.SDK/capability-matrix.md). Fixture tests validate
+versioned [capability matrix](../../documentations/CheatEngine.SDK/capability-matrix.md). Fixture tests validate
 managed behavior and the pinned Lua fixture; opt-in live evidence is recorded separately and is not implied by these
 wrappers.
 
@@ -148,12 +148,12 @@ internal static class EngineDemo
     {
         LuaState L = LuaRuntime.AcquireState();
         using LuaFrame frame = new(L);
-        if (!L.TryExecute("return createStringlist()"u8, 1).IsOk) return false;
-        if (!CEObject.TryRead(L, -1, out CEObject handle)) return false;
-
-        using Owned<CEObject> list = new(handle);
-        list.Value.TryCallMethod("clear"u8);
-        return list.Value.TryGetProperty<Int32Marshaller, int>("Count"u8, out int count) && count == 0;
+        if (!StringLists.TryCreate(out Owned<StringList>? list)) return false;
+        using (list)
+        {
+            list.Value.TryCallMethod("clear"u8);
+            return list.Value.TryGetProperty<Int32Marshaller, int>("Count"u8, out int count) && count == 0;
+        }
     }
 
     internal static bool TryBump(Address address)

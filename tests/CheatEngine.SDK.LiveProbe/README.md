@@ -65,4 +65,4 @@ The callback probe intentionally leaves the callback registered in `OnDisable`; 
 - This version observes an external `resetLuaState()` only. It must not be mistaken for the planned SDK-controlled reset/generation contract.
 - No live test is invoked by `dotnet test`, normal CI, Release validation or packaging. The only automated validation of this project is compilation.
 
-Detailed result templates and evidence rules live in [`documentations/CheatEngine.SDK/live-probes`](../../../../documentations/CheatEngine.SDK/live-probes/README.md).
+Detailed result templates and evidence rules live in [`documentations/CheatEngine.SDK/live-probes`](../../documentations/CheatEngine.SDK/live-probes/README.md).

@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Engine.Memory;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.CompilerServices;
@@ -193,7 +194,7 @@ public static class EngineInspection
             if (status != InspectionStatus.Success) return status;
 
             state.PushString(expression.Value.AsSpan());
-            state.PushBoolean(options.UseHostSymbolTable);
+            state.PushBoolean(value: false);
             state.PushBoolean(options.Shallow);
             if (!state.TryCall(3, 1).IsOk) return InspectionStatus.LuaFailure;
             if (state.IsNil(-1)) return InspectionStatus.NotFound;
@@ -204,6 +205,51 @@ public static class EngineInspection
         catch (LuaException)
         {
             address = Address.Zero;
+            return InspectionStatus.LuaFailure;
+        }
+        finally
+        {
+            state.SetTop(top);
+        }
+    }
+
+    /// <summary>Resolves a symbol expression in Cheat Engine's own symbol table.</summary>
+    /// <param name="expression">The non-empty expression supplied to CE's host symbol handler.</param>
+    /// <param name="options">The optional CE lookup flags, forwarded without managed reinterpretation.</param>
+    /// <param name="address">The resolved host-process address on success; <see cref="HostAddress.Zero" /> otherwise.</param>
+    /// <returns>
+    ///     <see cref="InspectionStatus.Success" /> when the result is an address, <see cref="InspectionStatus.NotFound" />
+    ///     only when CE returns Lua <c>nil</c>, or a distinct binding failure.
+    /// </returns>
+    /// <exception cref="ArgumentException"><paramref name="expression" /> has no usable symbol expression.</exception>
+    /// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
+    [RequiresPluginEnabled]
+    public static InspectionStatus ResolveHostAddress(SymbolExpression expression, AddressResolutionOptions options,
+        out HostAddress address)
+    {
+        ValidateSymbolExpression(expression);
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
+        var top = state.Top;
+        address = HostAddress.Zero;
+        try
+        {
+            var status = PushGlobal(state, SGetAddressSafe, "getAddressSafe"u8);
+            if (status != InspectionStatus.Success) return status;
+
+            state.PushString(expression.Value.AsSpan());
+            state.PushBoolean(value: true);
+            state.PushBoolean(options.Shallow);
+            if (!state.TryCall(3, 1).IsOk) return InspectionStatus.LuaFailure;
+            if (state.IsNil(-1)) return InspectionStatus.NotFound;
+            if (!Address.TryRead(state, -1, out var resolved)) return InspectionStatus.InvalidResult;
+
+            address = new HostAddress((nuint)resolved.Value);
+            return InspectionStatus.Success;
+        }
+        catch (LuaException)
+        {
+            address = HostAddress.Zero;
             return InspectionStatus.LuaFailure;
         }
         finally
@@ -526,7 +572,7 @@ public static class EngineInspection
         [NotNullWhen(true)] out string? value)
     {
         value = null;
-        if (!state.TryGetField(tableIndex, field).IsOk) return false;
+        if (!TryGetField(state, tableIndex, field)) return false;
         var read = state.TryReadString(-1, out value);
         state.Pop(1);
         return read;
@@ -536,7 +582,7 @@ public static class EngineInspection
         out string? value)
     {
         value = null;
-        if (!state.TryGetField(tableIndex, field).IsOk) return false;
+        if (!TryGetField(state, tableIndex, field)) return false;
         if (state.IsNil(-1))
         {
             state.Pop(1);
@@ -551,7 +597,7 @@ public static class EngineInspection
     private static bool TryReadAddressField(LuaState state, int tableIndex, ReadOnlySpan<byte> field, out Address value)
     {
         value = Address.Zero;
-        if (!state.TryGetField(tableIndex, field).IsOk) return false;
+        if (!TryGetField(state, tableIndex, field)) return false;
         var read = Address.TryRead(state, -1, out value);
         state.Pop(1);
         return read;
@@ -560,7 +606,7 @@ public static class EngineInspection
     private static bool TryReadBooleanField(LuaState state, int tableIndex, ReadOnlySpan<byte> field, out bool value)
     {
         value = false;
-        if (!state.TryGetField(tableIndex, field).IsOk) return false;
+        if (!TryGetField(state, tableIndex, field)) return false;
         var read = state.TypeOf(-1) == LuaType.Boolean;
         if (read) value = state.ToBoolean(-1);
         state.Pop(1);
@@ -580,7 +626,7 @@ public static class EngineInspection
         out MemorySize? value)
     {
         value = null;
-        if (!state.TryGetField(tableIndex, field).IsOk) return false;
+        if (!TryGetField(state, tableIndex, field)) return false;
         if (state.IsNil(-1))
         {
             state.Pop(1);
@@ -614,7 +660,7 @@ public static class EngineInspection
     private static bool TryReadUInt64Field(LuaState state, int tableIndex, ReadOnlySpan<byte> field, out ulong value)
     {
         value = 0;
-        if (!state.TryGetField(tableIndex, field).IsOk) return false;
+        if (!TryGetField(state, tableIndex, field)) return false;
         var read = state.TryReadInteger(-1, out var signed);
         state.Pop(1);
         if (!read || signed < 0) return false;
@@ -624,9 +670,19 @@ public static class EngineInspection
 
     private static InspectionStatus PushGlobal(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
     {
-        return LuaGlobalFunctions.TryPush(state, cache, name)
-            ? InspectionStatus.Success
-            : InspectionStatus.GlobalUnavailable;
+        return LuaGlobalFunctions.TryPushWithStatus(state, cache, name) switch
+        {
+            LuaGlobalPushStatus.Success => InspectionStatus.Success,
+            LuaGlobalPushStatus.Unavailable => InspectionStatus.GlobalUnavailable,
+            _ => InspectionStatus.LuaFailure,
+        };
+    }
+
+    private static bool TryGetField(LuaState state, int tableIndex, ReadOnlySpan<byte> field)
+    {
+        if (state.TryGetField(tableIndex, field).IsOk) return true;
+
+        throw new LuaException("A protected inspection table-field lookup failed.");
     }
 
     private static void ValidateModuleName(ModuleName moduleName)

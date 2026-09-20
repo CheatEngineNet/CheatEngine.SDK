@@ -59,10 +59,10 @@ internal static partial class SpeedCalls
     public static partial bool TryMd5Memory(nuint address, int size, [MaybeNullWhen(false)] out string hash);
 
     [LuaGlobal("ansiToUTF8")]
-    public static partial bool TryAnsiToUtf8(string text, [MaybeNullWhen(false)] out string converted);
+    public static partial bool TryAnsiToUtf8(ReadOnlySpan<byte> ansi, Span<byte> destination, out int written);
 
     [LuaGlobal("UTF8ToAnsi")]
-    public static partial bool TryUtf8ToAnsi(string text, [MaybeNullWhen(false)] out string converted);
+    public static partial bool TryUtf8ToAnsi(ReadOnlySpan<byte> utf8, Span<byte> destination, out int written);
 }
 ```
 
@@ -117,12 +117,13 @@ internal static partial class Tools
         return SpeedCalls.TryGetSpeed(out var speed) ? speed : NormalSpeed;
     }
 
-    public static void RestoreSpeed()
+    public static bool RestoreSpeed()
     {
-        if (!s_slow) return;
+        if (!s_slow) return true;
 
-        s_slow = false;
         SpeedCalls.SetSpeed(s_previousSpeed);
+        s_slow = false;
+        return true;
     }
 
     [LuaFunction("my_plugin_verify_binary")]
@@ -136,17 +137,18 @@ internal static partial class Tools
     [LuaFunction("my_plugin_fingerprint")]
     public static string? Fingerprint(string text) => SpeedCalls.TryMd5(text, out var hash) ? hash : null;
 
-    [LuaFunction("my_plugin_to_utf8")]
-    public static string? ToUtf8(string ansi) => SpeedCalls.TryAnsiToUtf8(ansi, out var converted) ? converted : null;
+    public static bool TryAnsiToUtf8(ReadOnlySpan<byte> ansi, Span<byte> destination, out int written) =>
+        SpeedCalls.TryAnsiToUtf8(ansi, destination, out written);
 
-    [LuaFunction("my_plugin_to_ansi")]
-    public static string? ToAnsi(string utf8) => SpeedCalls.TryUtf8ToAnsi(utf8, out var converted) ? converted : null;
+    public static bool TryUtf8ToAnsi(ReadOnlySpan<byte> utf8, Span<byte> destination, out int written) =>
+        SpeedCalls.TryUtf8ToAnsi(utf8, destination, out written);
 }
 ```
 
 `SlowMotion` reads the current speed before it changes anything, and it stores the remembered value only after
 `SetSpeed` succeeded, so a failure leaves the tool in its old state. Asking for slow motion twice keeps the first
-remembered speed. `OnDisable` calls `RestoreSpeed`, so unticking the plugin never leaves the game slowed down.
+remembered speed. `RestoreSpeed` does not clear its recovery state until `SetSpeed` returns, so a pre-dispatch failure
+can be retried. `OnDisable` calls it while the Lua runtime is still attached.
 
 ### 3. Call them from Lua
 
@@ -165,7 +167,7 @@ print(my_plugin_fingerprint("hello"))
 | Comparison       | MD5 output is hexadecimal text, so the comparison ignores case                                                                                          |
 | Path             | `md5file` takes a path the way Cheat Engine resolves it. Pass the full path of the executable when the working folder is unclear                        |
 | Memory           | `my_plugin_verify_memory` hashes a range of the target, which detects a patched module that the file on disk does not show                              |
-| Text             | Cheat Engine's own windows mostly show UTF-8, while some of its functions expect ANSI. `my_plugin_to_utf8` and `my_plugin_to_ansi` convert at that seam |
+| Text             | `ansiToUTF8` and `UTF8ToAnsi` exchange Windows-codepage bytes, not managed UTF-8 strings. Keep them as raw byte spans and decode only with the code page your integration selected |
 | Byte tables      | Cheat Engine's byte table converters, such as `dwordToByteTable`, need no binding. In C# use `BitConverter` or `BinaryPrimitives` on a `Span<byte>`     |
 | Whole system     | `dbvm_speedhack_setSpeed` also exists and slows the whole system clock. It is covered in the [DBVM recipe](../dbvm/README.md)                           |
 
@@ -173,9 +175,10 @@ print(my_plugin_fingerprint("hello"))
 
 - A Try form returns `false` and leaves `out` results at their defaults when a function is missing, raises or returns
   the wrong kind, so a failed hash is never mistaken for a match.
-- `RestoreSpeed` runs in `OnDisable` before the functions are unregistered.
+- `RestoreSpeed` runs in `OnDisable` before the functions are unregistered and retains its saved speed if the setter throws.
 - The generated thunk catches every exception, and the Lua stack returns to its previous height after every call.
-- Text results come back as `string`, so each hash or conversion call allocates one string.
+- Hash results come back as `string`, so each hash call allocates one string; byte-span text conversion leaves decoding
+  and allocation to the caller's chosen Windows code page.
 
 ## Before you move on
 

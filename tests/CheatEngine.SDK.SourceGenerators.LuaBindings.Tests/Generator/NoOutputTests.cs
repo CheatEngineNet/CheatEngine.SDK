@@ -493,7 +493,7 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 
         var text = run.SingleGeneratedText;
         Assert.Equal(1, Count(text, "private static readonly global::CheatEngine.SDK.Lua.References.LuaRef "));
-        Assert.Equal(2, Count(text, "TryPush(__L, s_luaGlobal_readInteger, \"readInteger\"u8)"));
+        Assert.Equal(2, Count(text, "TryPush(__L, global::Demo.Memory.s_luaGlobal_readInteger, \"readInteger\"u8)"));
     }
 
     private static int Count(string text, string needle)

@@ -54,6 +54,78 @@ public sealed unsafe class DisablePluginTests
 
     [Fact]
     [Trait("Category", "NativeLua")]
+    public void Disable_from_an_admitted_Lua_operation_is_refused_without_changing_the_lifecycle()
+    {
+        HostingTest.RequireNativeLua();
+        var sink = HostingTest.Reset();
+        using NativeLuaState state = new();
+        using HostSimulator host = new();
+        var plugin = HostingTest.Enable(host, state);
+
+        using (LuaRuntime.AcquireOperation())
+        {
+            Assert.False(host.CallDisable().IsTrue);
+        }
+
+        Assert.Equal(0, plugin.DisableCalls);
+        Assert.True(PluginHost.IsEnabled);
+        Assert.Equal(PluginHostLifecyclePhase.Enabled, PluginHost.Phase);
+        Assert.True(LuaRuntime.IsAttached);
+        Assert.NotEmpty(sink.Errors("admitted Lua operation"));
+    }
+
+    [Fact]
+    [Trait("Category", "NativeLua")]
+    public void Disable_from_executing_dispatched_work_is_refused_without_waiting_for_that_work()
+    {
+        HostingTest.RequireNativeLua();
+        var sink = HostingTest.Reset();
+        using NativeLuaState state = new();
+        using HostSimulator host = new();
+        var plugin = HostingTest.Enable(host, state);
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using ManualResetEventSlim queued = new(initialState: false);
+        using ManualResetEventSlim workFinished = new(initialState: false);
+        StrongBox<MainThreadWorkItem?> queuedWork = new();
+        StrongBox<Bool32> nestedResult = new();
+        StrongBox<Exception?> workerFailure = new();
+        MainThreadDispatcher.DispatchOverrideForTests = item =>
+        {
+            queuedWork.Value = item;
+            queued.Set();
+            workFinished.Wait(cancellationToken);
+        };
+
+        Thread worker = new(() =>
+        {
+            try
+            {
+                MainThread.Invoke(_ => nestedResult.Value = host.CallDisable(), 0);
+            }
+            catch (Exception exception)
+            {
+                workerFailure.Value = exception;
+            }
+        });
+
+        worker.Start();
+        Assert.True(queued.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+            "The worker did not queue main-thread work.");
+        MainThreadDispatcher.ExecuteQueuedWorkForTests(queuedWork.Value!);
+        workFinished.Set();
+        Assert.True(worker.Join(TimeSpan.FromSeconds(5)), "The dispatched worker did not return.");
+
+        Assert.Null(workerFailure.Value);
+        Assert.False(nestedResult.Value.IsTrue);
+        Assert.Equal(0, plugin.DisableCalls);
+        Assert.True(PluginHost.IsEnabled);
+        Assert.Equal(PluginHostLifecyclePhase.Enabled, PluginHost.Phase);
+        Assert.True(LuaRuntime.IsAttached);
+        Assert.NotEmpty(sink.Errors("dispatched main-thread work"));
+    }
+
+    [Fact]
+    [Trait("Category", "NativeLua")]
     [SuppressMessage("Meziantou.Analyzer", "MA0051",
         Justification =
             "This test deliberately covers the complete close-drain-detach sequence in one deterministic scenario.")]

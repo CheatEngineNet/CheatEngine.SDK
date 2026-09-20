@@ -135,7 +135,7 @@ internal static class LuaObjectMembersFileEmitter
         writer.Write(LuaApiNames.LuaStatus);
         writer.Write(' ');
         writer.Write(Status);
-        writer.Write(" = Handle.TryPushMethodLeavingObject(");
+        writer.Write(" = this.Handle.TryPushMethodLeavingObject(");
         writer.Write(State);
         writer.Write(", ");
         writer.Write(CSharpLiteral.ToUtf8Literal(model.LuaName));
@@ -375,7 +375,7 @@ internal static class LuaObjectMembersFileEmitter
     {
         WriteAccessorHeader(writer, model.GetterModifiers, "get");
         writer.OpenBlock();
-        writer.Write("if (!Handle.TryGetProperty<");
+        writer.Write("if (!this.Handle.TryGetProperty<");
         writer.Write(LuaValueKinds.MarshallerTypeName(model.Kind));
         writer.Write(", ");
         writer.Write(LuaValueKinds.TypeName(model.Kind, model.IsNullable));
@@ -395,7 +395,7 @@ internal static class LuaObjectMembersFileEmitter
     {
         WriteAccessorHeader(writer, model.SetterModifiers, "set");
         writer.OpenBlock();
-        writer.Write("if (!Handle.TrySetProperty<");
+        writer.Write("if (!this.Handle.TrySetProperty<");
         writer.Write(LuaValueKinds.MarshallerTypeName(model.Kind));
         writer.Write(", ");
         writer.Write(LuaValueKinds.TypeName(model.Kind, model.IsNullable));

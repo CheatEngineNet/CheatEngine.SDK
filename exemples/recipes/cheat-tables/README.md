@@ -133,10 +133,17 @@ internal sealed class ProfileStore(string root)
         }
     }
 
-    private static bool IsValidName(string name) =>
-        name.Length is > 0 and <= 64
-        && char.IsLetterOrDigit(name[0])
-        && name.All(c => char.IsLetterOrDigit(c) || c is '_' or '-' or '.' or ' ');
+    private static bool IsValidName(string name)
+    {
+        if (name.Length is not (> 0 and <= 64) || !char.IsLetterOrDigit(name[0])) return false;
+        for (var i = 0; i < name.Length; i++)
+        {
+            var c = name[i];
+            if (!char.IsLetterOrDigit(c) && c is not ('_' or '-' or '.' or ' ')) return false;
+        }
+
+        return true;
+    }
 }
 
 internal static partial class Profiles

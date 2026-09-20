@@ -78,14 +78,16 @@ internal static class LuaGlobalCallEmitter
 
         writer.Write('(');
         var first = true;
+        var isExtensionReceiver = model.IsExtensionMethod;
         if (model.TakesState)
         {
-            if (model.IsExtensionMethod) writer.Write("this ");
+            if (isExtensionReceiver) writer.Write("this ");
 
             writer.Write(LuaApiNames.LuaState);
             writer.Write(' ');
             writer.Write(model.StateParameterName);
             first = false;
+            isExtensionReceiver = false;
         }
 
         for (var i = 0; i < model.Arguments.Length; i++)
@@ -94,14 +96,16 @@ internal static class LuaGlobalCallEmitter
             if (argument.IsFixed) continue;
 
             WriteSeparator(writer, ref first);
-            WriteArgumentParameter(writer, argument, model.IsExtensionMethod && !model.TakesState && i == 0);
+            WriteArgumentParameter(writer, argument, isExtensionReceiver);
+            isExtensionReceiver = false;
         }
 
         if (model.Form == LuaCallForm.Try)
             foreach (var result in model.Results)
             {
                 WriteSeparator(writer, ref first);
-                WriteResultParameter(writer, result);
+                WriteResultParameter(writer, result, isExtensionReceiver);
+                isExtensionReceiver = false;
             }
 
         writer.Write(')');
@@ -121,10 +125,12 @@ internal static class LuaGlobalCallEmitter
     }
 
     // 'scoped Span<byte> destination, out int written' or 'out <type> name'.
-    private static void WriteResultParameter(SourceWriter writer, LuaResultModel result)
+    private static void WriteResultParameter(SourceWriter writer, LuaResultModel result, bool isExtensionReceiver)
     {
         if (result.Shape == LuaResultShape.CopyOut)
         {
+            if (isExtensionReceiver) writer.Write("this ");
+
             if (result.DestinationIsScoped) writer.Write("scoped ");
 
             writer.Write(LuaApiNames.SpanOfByte);
@@ -285,7 +291,7 @@ internal static class LuaGlobalCallEmitter
         writer.Write(".TryPush(");
         writer.Write(State);
         writer.Write(", ");
-        writer.Write(model.CacheFieldName);
+        writer.Write(model.CacheFieldReference);
         writer.Write(", ");
         writer.Write(CSharpLiteral.ToUtf8Literal(model.GlobalName));
         writer.WriteLine("))");

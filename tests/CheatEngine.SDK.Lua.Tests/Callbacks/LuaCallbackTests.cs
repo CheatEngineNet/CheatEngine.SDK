@@ -6,6 +6,7 @@ using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Lua.Tests.Support;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
+using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
 
 namespace CheatEngine.SDK.Lua.Tests.Callbacks;
 
@@ -152,6 +153,35 @@ public sealed class LuaCallbackTests
 
         callback.Release(L);
         Assert.Equal(0, LuaCallbackRegistry.Count);
+    }
+
+    [Fact]
+    public unsafe void Protected_raw_setters_accept_a_table_closure_upvalue()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+
+        L.CreateTable();
+        lua_pushcclosure(L.Pointer, Thunks.SetUpvalueTable.Pointer, 1);
+        var status = L.TryCall(0, 1);
+
+        Assert.True(status.IsOk, status.IsOk ? "" : LuaError.FromStack(L, status).Message);
+        L.PushString("name"u8);
+        Assert.Equal(LuaType.Number, L.RawGet(1));
+        Assert.True(L.TryReadInteger(-1, out var named));
+        Assert.Equal(1, named);
+        L.Pop(1);
+
+        Assert.Equal(LuaType.Number, L.RawGetIndex(1, 2));
+        Assert.True(L.TryReadInteger(-1, out var indexed));
+        Assert.Equal(2, indexed);
+        L.Pop(1);
+
+        Assert.Equal(LuaType.Number, L.RawGetPointer(1, 0x77));
+        Assert.True(L.TryReadInteger(-1, out var pointed));
+        Assert.Equal(3, pointed);
+        L.Pop(1);
     }
 
     [Fact]

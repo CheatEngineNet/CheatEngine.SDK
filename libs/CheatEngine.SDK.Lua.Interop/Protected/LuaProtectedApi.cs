@@ -195,11 +195,13 @@ internal static unsafe partial class LuaProtectedApi
     private static int PushTableBeforeInputs(lua_State* state, int tableIndex, int inputCount)
     {
         var top = LuaApi.lua_gettop(state);
-        var absoluteTableIndex = GetValidTableIndex(tableIndex, top);
+        var tableValueIndex = GetValidTableIndex(tableIndex, top);
         if (LuaApi.lua_checkstack(state, 2) == 0)
             throw new InvalidOperationException(
                 "Lua could not reserve stack slots for the protected operation; the stack is unchanged.");
-        LuaApi.lua_pushvalue(state, absoluteTableIndex);
+        // A closure upvalue is a valid Lua table index, but the protected bridge is a separate C closure and cannot
+        // address the caller's upvalues itself. Copy it onto the ordinary stack before entering that bridge.
+        LuaApi.lua_pushvalue(state, tableValueIndex);
         LuaApi.lua_rotate(state, -(inputCount + 1), 1);
         return top;
     }
@@ -214,9 +216,18 @@ internal static unsafe partial class LuaProtectedApi
     private static int GetValidTableIndex(int tableIndex, int top)
     {
         if (tableIndex == LuaApi.LUA_REGISTRYINDEX) return tableIndex;
-        if (tableIndex <= LuaApi.LUA_REGISTRYINDEX || tableIndex == 0)
+        if (tableIndex < LuaApi.LUA_REGISTRYINDEX)
+        {
+            var upvalue = (long)LuaApi.LUA_REGISTRYINDEX - tableIndex;
+            if (upvalue is >= 1 and <= byte.MaxValue) return tableIndex;
+
             throw new ArgumentOutOfRangeException(nameof(tableIndex),
-                "The table index must be a valid stack index or LUA_REGISTRYINDEX.");
+                "The table index is not a valid Lua closure upvalue.");
+        }
+
+        if (tableIndex == 0)
+            throw new ArgumentOutOfRangeException(nameof(tableIndex),
+                "The table index must be a valid stack index, LUA_REGISTRYINDEX, or a closure upvalue.");
 
         var absoluteIndex = tableIndex > 0 ? tableIndex : (long)top + tableIndex + 1;
         if (absoluteIndex < 1 || absoluteIndex > top)

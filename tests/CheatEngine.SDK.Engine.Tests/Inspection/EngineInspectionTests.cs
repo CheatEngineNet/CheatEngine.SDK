@@ -202,11 +202,11 @@ public sealed class EngineInspectionTests
         Assert.Equal(Address.Zero, zero);
         Assert.Equal(top, L.Top);
 
-        status = EngineInspection.ResolveAddress(new SymbolExpression("hostSymbol"),
-            new AddressResolutionOptions(UseHostSymbolTable: true, Shallow: true), out var found);
+        status = EngineInspection.ResolveHostAddress(new SymbolExpression("hostSymbol"),
+            new AddressResolutionOptions(Shallow: true), out var found);
 
         Assert.Equal(InspectionStatus.Success, status);
-        Assert.Equal(0x7FF600001000UL, found.Value);
+        Assert.Equal(unchecked((nuint)0x7FF600001000UL), found.Value);
         Assert.Equal(top, L.Top);
 
         status = EngineInspection.ResolveAddress(new SymbolExpression("missing"), default, out var missing);
@@ -235,6 +235,34 @@ public sealed class EngineInspectionTests
 
         Assert.Equal(InspectionStatus.GlobalUnavailable, status);
         Assert.Equal(Address.Zero, address);
+        Assert.Equal(top, L.Top);
+    }
+
+    [Fact]
+    public void Inspection_preserves_lua_failures_from_global_and_table_field_resolution()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, """
+                          setmetatable(_G, { __index = function(_, key)
+                            if key == 'getAddressSafe' then error('global lookup failed') end
+                          end })
+                          getSymbolInfo = function()
+                            return setmetatable({}, { __index = function() error('field lookup failed') end })
+                          end
+                          """u8);
+
+        var top = L.Top;
+        var status = EngineInspection.ResolveAddress(new SymbolExpression("any"), default, out var address);
+        Assert.Equal(InspectionStatus.LuaFailure, status);
+        Assert.Equal(Address.Zero, address);
+        Assert.Equal(top, L.Top);
+
+        status = EngineInspection.GetSymbolInfo(new SymbolExpression("any"), out var symbol);
+        Assert.Equal(InspectionStatus.LuaFailure, status);
+        Assert.Equal(default, symbol);
         Assert.Equal(top, L.Top);
     }
 

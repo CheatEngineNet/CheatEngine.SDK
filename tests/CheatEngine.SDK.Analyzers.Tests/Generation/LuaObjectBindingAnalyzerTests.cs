@@ -52,6 +52,11 @@ public sealed class LuaObjectBindingAnalyzerTests
             namespace Demo;
 
             [LuaClass("Object")]
+            public readonly partial struct {|CESDK2007:Handle|}
+            {
+            }
+
+            [LuaClass("Object")]
             public readonly partial struct HandleWithCollision
             {
                 private readonly int {|CESDK2007:_handle|};

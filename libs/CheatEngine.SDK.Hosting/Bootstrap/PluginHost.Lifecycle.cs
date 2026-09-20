@@ -10,6 +10,7 @@ using CheatEngine.SDK.Abi.Native;
 using CheatEngine.SDK.Hosting.Context;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Hosting.Threading;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.Runtime;
@@ -108,8 +109,10 @@ public static unsafe partial class PluginHost
     /// </summary>
     /// <returns>
     ///     <c>TRUE</c> after the plugin is disabled, including when <c>OnDisable</c> throws after its failure is logged;
-    ///     <c>FALSE</c> when another lifecycle transition is active, or when the host invokes disable from a thread
-    ///     other than the captured plugin main thread. In either refusal case nothing is changed.
+    ///     <c>FALSE</c> when another lifecycle transition is active, when the host invokes disable from a thread other
+    ///     than the captured plugin main thread, when it is nested in admitted Lua or dispatched work, or when Lua
+    ///     cleanup cannot detach the runtime. Refusals leave the lifecycle unchanged; incomplete cleanup remains in
+    ///     <see cref="PluginHostLifecyclePhase.Disabling" /> for diagnosis rather than reporting a false completion.
     /// </returns>
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static Bool32 DisablePlugin()
@@ -393,15 +396,19 @@ public static unsafe partial class PluginHost
         if (start is LifecycleStart.Refused) return false;
         if (start is LifecycleStart.AlreadyStable) return true;
 
+        var cleanupSucceeded = false;
         try
         {
             RunDisable(context!, plugin);
-            return true;
         }
         finally
         {
-            CleanupDisable();
+            // A failed detach leaves the attached runtime and context available for diagnosis rather than publishing a
+            // successful Registered state. The native callback must report that incomplete shutdown to the host.
+            cleanupSucceeded = CleanupDisable();
         }
+
+        return cleanupSucceeded;
     }
 
     private static LifecycleStart TryStartDisable(
@@ -410,6 +417,21 @@ public static unsafe partial class PluginHost
     {
         context = null;
         plugin = null;
+
+        if (LuaRuntime.IsOperationAdmittedOnCurrentThread)
+        {
+            HostLog.Error(
+                "DisablePlugin: disable was requested from an admitted Lua operation; the request is refused because shutdown would wait for that operation to return.");
+            return LifecycleStart.Refused;
+        }
+
+        if (MainThreadDispatcher.IsExecutingWorkOnCurrentThread)
+        {
+            HostLog.Error(
+                "DisablePlugin: disable was requested from dispatched main-thread work; the request is refused because shutdown would wait for that work to return.");
+            return LifecycleStart.Refused;
+        }
+
         if (!TryEnterLifecycleCallback("DisablePlugin")) return LifecycleStart.Refused;
 
         try
@@ -465,23 +487,25 @@ public static unsafe partial class PluginHost
             HostLog.Information($"Plugin {context.PluginId} disabled.");
     }
 
-    private static void CleanupDisable()
+    private static bool CleanupDisable()
     {
         try
         {
             // The operation gate has already shut out every admitted Lua caller before callback neutralization.
             LuaRuntime.CloseOperationAdmissionAndDrain();
             LuaRuntime.Detach();
-        }
-        catch (Exception exception)
-        {
-            HostLog.Error("DisablePlugin: Lua detach threw; the context is withdrawn anyway.", exception);
-        }
-        finally
-        {
+
             Volatile.Write(ref s_context, null);
             EndMainThreadWorkAdmission();
             SetPhase(PluginHostLifecyclePhase.Registered);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            HostLog.Error(
+                "DisablePlugin: Lua detach threw; shutdown remains incomplete and the lifecycle stays Disabling.",
+                exception);
+            return false;
         }
     }
 

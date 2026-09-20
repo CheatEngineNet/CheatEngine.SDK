@@ -54,4 +54,7 @@ Use focused commits with short, imperative subjects, such as `Fix the SonarCloud
 
 ## Releases
 
-Versions are derived by MinVer from the nearest `v*` tag; the current minimum major/minor line is `0.3`. Pushing a valid `v<major>.<minor>.<patch>` tag (an optional SemVer prerelease is allowed) starts the release workflow. After verification, CI, and package checks, that workflow publishes `CheatEngine.SDK` to NuGet and creates a GitHub release.
+Versions are derived by MinVer from the nearest `v*` tag; the current minimum major/minor line is `1.0`, as configured
+in [`Directory.Build.props`](Directory.Build.props). Pushing a valid `v<major>.<minor>.<patch>` tag (an optional SemVer
+prerelease is allowed) starts the release workflow. After verification, CI, and package checks, that workflow publishes
+`CheatEngine.SDK` to NuGet and creates a GitHub release.

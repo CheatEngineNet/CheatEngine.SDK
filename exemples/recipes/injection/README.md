@@ -59,10 +59,6 @@ internal static partial class InjectionCalls
     [LuaGlobal("executeCode")]
     public static partial bool TryExecuteCode(nuint address, nuint parameter, out long result);
 
-    [LuaGlobal("executeCodeEx")]
-    public static partial bool TryExecuteCodeEx(
-        int callMethod, int timeoutMilliseconds, nuint address, nuint argument, out long result);
-
     [LuaGlobal("injectDLL")]
     public static partial bool TryInjectDll(string path, out bool injected);
 
@@ -72,8 +68,9 @@ internal static partial class InjectionCalls
 ```
 
 `executeCode` runs a `stdcall` function with one parameter and returns what that function returned.
-`executeCodeEx` adds the call method (0 for `stdcall`, 1 for `cdecl`) and a timeout in milliseconds. Both are bound in
-the plain positional shape, with one integer argument. The typed form, where an argument is a table such as
+`executeCodeEx` adds the call method (0 for `stdcall`, 1 for `cdecl`) and a timeout in milliseconds, but this recipe
+does not use it for a caller-owned buffer: a timeout does not prove that the target stopped reading the argument. The
+typed form, where an argument is a table such as
 `{type=2, value=1.5}` to pass a double or a wide string, cannot be a generated binding, because tables are not part of
 the type map. Send that shape through [running Lua](../../08-running-lua/README.md) instead.
 
@@ -89,9 +86,6 @@ namespace RemoteKit;
 
 internal static partial class RemoteCalls
 {
-    private const int StdCall = 0;
-    private const int TimeoutMilliseconds = 5000;
-
     public static bool TryCallWithString(nuint function, string text, out long result)
     {
         result = 0;
@@ -102,7 +96,7 @@ internal static partial class RemoteCalls
         {
             return InjectionCalls.WriteString(buffer, text)
                    && InjectionCalls.WriteInt16(buffer + (nuint)text.Length, 0)
-                   && InjectionCalls.TryExecuteCodeEx(StdCall, TimeoutMilliseconds, function, buffer, out result);
+                   && InjectionCalls.TryExecuteCode(function, buffer, out result);
         }
         finally
         {
@@ -133,16 +127,31 @@ internal static partial class RemoteCalls
     public static bool Patch(string symbol, string bytes)
     {
         var parts = bytes.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (!IsSymbol(symbol) || parts.Length == 0 || !parts.All(IsByte)) return false;
+        if (!IsSymbol(symbol) || parts.Length == 0) return false;
+        for (var i = 0; i < parts.Length; i++)
+            if (!IsByte(parts[i])) return false;
 
         var script = $"[ENABLE]\n{symbol}:\n  db {string.Join(' ', parts)}\n";
         return InjectionCalls.TryAutoAssemble(script, out var assembled) && assembled;
     }
 
-    private static bool IsSymbol(string text) =>
-        text.Length > 0 && text.All(static c => char.IsAsciiLetterOrDigit(c) || c is '_' or '.' or '+');
+    private static bool IsSymbol(string text)
+    {
+        if (text.Length == 0) return false;
+        foreach (var c in text)
+            if (!char.IsAsciiLetterOrDigit(c) && c is not ('_' or '.' or '+')) return false;
 
-    private static bool IsByte(string text) => text.Length == 2 && text.All(char.IsAsciiHexDigit);
+        return true;
+    }
+
+    private static bool IsByte(string text)
+    {
+        if (text.Length != 2) return false;
+        foreach (var c in text)
+            if (!char.IsAsciiHexDigit(c)) return false;
+
+        return true;
+    }
 
     private static void Release(nuint buffer)
     {
@@ -175,8 +184,8 @@ print(my_plugin_inject("helper.dll"))                    -- true, or false when 
 
 | Topic             | Detail                                                                                                                                                                |
 |-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Failure of a call | `TryExecuteCodeEx` returns `false` when the call raises or returns `nil`, and the helper then still frees the buffer                                                  |
-| Timeout           | `executeCodeEx` documents its timeout in milliseconds. A timeout of 0 does not wait and does not free the call memory, so the helper never uses it                    |
+| Failure of a call | `TryExecuteCode` returns `false` when the call raises or returns `nil`; its synchronous return proves the target is no longer using this helper's buffer             |
+| Timeout           | Do not put caller-owned arguments behind `executeCodeEx` and then free them after a timeout. Keep those allocations in an operation object until target completion is observed |
 | Exceptions        | A `[LuaFunction]` that throws reaches Lua as an error, here `System.InvalidOperationException: The remote call failed.`, and the buffer is already freed by then      |
 | Script text       | `autoAssemble` runs whatever it receives. `Patch` accepts only symbol characters and two digit hex bytes, so a caller cannot smuggle a second command into the script |
 | Protection        | `fullAccess(address, size)` makes a block writable and executable. Use it on your own allocation, never on the game's code                                            |
@@ -189,7 +198,7 @@ print(my_plugin_inject("helper.dll"))                    -- true, or false when 
 ## Promise
 
 - A `Try` form never throws for a missing global, a raised error or a wrong result kind.
-- The remote buffer is released on every exit path of `TryCallWithString`, including a failed write and a failed call.
+- The remote buffer is released after a failed write or after `executeCode` has returned, so it is never released while the target call may still read it.
 - Nothing you pass reaches an Auto Assembler script before `Patch` has checked it.
 - The generated thunk catches every exception, and the Lua stack returns to its previous height after every call.
 

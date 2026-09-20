@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Threading;
 using CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
@@ -84,7 +85,8 @@ internal static class LuaClassParser
     // CESDK2007; the generator just drops this type and leaves independent valid types alone.
     private static bool HasGeneratedIdentityCollision(INamedTypeSymbol type, INamedTypeSymbol? ceObject)
     {
-        return HasMember(type, "_handle")
+        return string.Equals(type.Name, "Handle", StringComparison.Ordinal)
+               || HasMember(type, "_handle")
                || HasMember(type, "Handle")
                || HasMember(type, "FromHandle")
                || HasMember(type, "Equals")

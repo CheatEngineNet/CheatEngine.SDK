@@ -1,10 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-// Every unmanaged signature in this assembly (the three lifecycle callbacks Cheat Engine calls, the slots of the
-// copied exports record it calls through, the dispatch thunk Lua calls, the OutputDebugString import) is blittable by
-// construction. With runtime marshalling disabled that becomes a compile-time guarantee: a bool, string, ref or out in
-// one of them no longer compiles, so no hidden marshalling stub can appear at the native boundary.
+// Runtime marshalling is disabled so these boundaries cannot gain an implicit marshalling stub. This does not validate
+// unmanaged function-pointer shapes: the ABI tests separately check their calling conventions and reject bool, char and
+// by-reference parameters, as documented by CheatEngine.SDK.Abi.
 [assembly: DisableRuntimeMarshalling]
 
 // SonarAnalyzer rule S6640 flags every unsafe context. Unsafe is how this assembly reaches Cheat Engine, through

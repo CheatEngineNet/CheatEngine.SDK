@@ -49,7 +49,7 @@ public sealed class LuaStatusTests
     [Fact]
     public void ThrowIfFailed_does_nothing_for_ok_even_without_a_state()
     {
-        LuaStatus.Ok.ThrowIfFailed(default);
+        Assert.Null(Record.Exception(() => LuaStatus.Ok.ThrowIfFailed(default)));
     }
 
     [Fact]

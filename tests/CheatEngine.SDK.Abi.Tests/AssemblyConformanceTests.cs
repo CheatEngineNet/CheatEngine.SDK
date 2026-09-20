@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CheatEngine.SDK.Abi.Managed;
@@ -103,7 +104,7 @@ public sealed class AssemblyConformanceTests
                     Assert.Equal(1, pack);
                 else
                     Assert.True(pack is 0 or 8,
-                        $"{type.Name} declares Pack = {pack}: only the init record is packed by the host.");
+                        $"{type.Name} declares Pack = {pack.ToString(CultureInfo.InvariantCulture)}: only the init record is packed by the host.");
             });
     }
 

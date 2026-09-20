@@ -49,7 +49,7 @@ public readonly unsafe partial struct LuaState
 
     /// <summary>
     ///     Lua truthiness of the value at <paramref name="index" /> (<c>lua_toboolean</c>): everything except <c>nil</c>,
-    ///     <c>false</c> and an absent value is <see langword="true" />.
+    ///     <see langword="false" /> and an absent value is <see langword="true" />.
     /// </summary>
     /// <param name="index">An acceptable index.</param>
     [LuaStackEffect(0)]

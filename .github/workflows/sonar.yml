@@ -104,7 +104,7 @@ jobs:
           $coverage = "$env:RUNNER_TEMP/coverage"
           $reports = @(Get-ChildItem -Path $coverage -Filter *.xml -Recurse -File -ErrorAction SilentlyContinue)
           if ($reports.Count -eq 0) {
-            Write-Host '::error::No coverage report was downloaded. Call _ci.yml with collect-coverage set to true.'
+            Write-Host '::error::No coverage report was downloaded. Call ci.yml with collect-coverage set to true.'
             exit 1
           }
           Write-Host "Coverage reports: $($reports.Count)"

@@ -10,7 +10,7 @@ namespace CheatEngine.SDK.Lua.Interop.Tests.Signatures;
 /// <summary>
 ///     DLL-free. A wrong native signature is memory-unsafe rather than an exception, so the shape of the table is pinned
 ///     by reflection: every slot is an unmanaged cdecl function pointer, and its public forwarder repeats it exactly
-///     (C# would happily widen an <c>int</c> argument into a <c>long</c> slot).
+///     (C# would happily widen an <see langword="int" /> argument into a <see langword="long" /> slot).
 /// </summary>
 public sealed class LuaApiSignatureTests
 {

@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Lua.Calls;
@@ -18,6 +19,16 @@ public readonly unsafe partial struct LuaState
     public void CreateTable(int arraySlots = 0, int recordSlots = 0)
     {
         CheckProtectedResult(new LuaStatus(LuaProtectedApi.CreateTable(Pointer, arraySlots, recordSlots)));
+    }
+
+    /// <summary>Pushes a one-based Lua sequence table containing the supplied bytes as Lua integers.</summary>
+    /// <param name="bytes">The byte values copied into the new Lua table.</param>
+    /// <remarks>Allocates and fills the table inside one native protected operation.</remarks>
+    [LuaStackEffect(1)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void PushByteTable(ReadOnlySpan<byte> bytes)
+    {
+        CheckProtectedResult(new LuaStatus(LuaProtectedApi.PushByteTable(Pointer, bytes)));
     }
 
     /// <summary>Pops a key and pushes <c>t[key]</c> without metamethods (<c>lua_rawget</c>).</summary>

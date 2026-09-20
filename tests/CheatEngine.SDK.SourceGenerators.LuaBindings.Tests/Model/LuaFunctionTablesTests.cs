@@ -76,6 +76,22 @@ public sealed class LuaFunctionTablesTests
         Assert.Equal(LuaFunctionTables.Group(models).GetHashCode(), LuaFunctionTables.Group(models).GetHashCode());
     }
 
+    [Fact]
+    public void Group_assigns_case_insensitive_collision_names_independent_of_input_order()
+    {
+        var upper = Type("global::Demo.Type", "Type");
+        var lower = Type("global::Demo.type", "type");
+        var forward = LuaFunctionTables.Group([Function(lower, "lower"), Function(upper, "upper")]);
+        var reverse = LuaFunctionTables.Group([Function(upper, "upper"), Function(lower, "lower")]);
+
+        AssertHintNames(forward,
+            HintNames.ForType("Demo.Type", LuaFunctionTableModel.HintSuffix),
+            HintNames.Disambiguated("Demo.type", LuaFunctionTableModel.HintSuffix));
+        AssertHintNames(reverse,
+            HintNames.ForType("Demo.Type", LuaFunctionTableModel.HintSuffix),
+            HintNames.Disambiguated("Demo.type", LuaFunctionTableModel.HintSuffix));
+    }
+
     private static ContainingTypeModel Type(string fullyQualifiedName, string name)
     {
         return new ContainingTypeModel("Demo",
@@ -90,7 +106,14 @@ public sealed class LuaFunctionTablesTests
             ContainingTypeIssues.None,
             luaName,
             LuaFunctionShapeIssues.None,
-            new LuaThunkModel(luaName, LuaThunkModel.ThunkNameFor(luaName), type.FullyQualifiedName + ".M", false,
-                EquatableArray<LuaArgumentModel>.Empty, null));
+            new LuaThunkModel(luaName, LuaThunkModel.ThunkNameFor(luaName), type.FullyQualifiedName + ".M",
+                PassesState: false, EquatableArray<LuaArgumentModel>.Empty, ReturnKind: null));
+    }
+
+    private static void AssertHintNames(EquatableArray<LuaFunctionTableModel> tables, string first, string second)
+    {
+        Assert.Equal(2, tables.Length);
+        Assert.Equal(first, tables[0].HintName, StringComparer.Ordinal);
+        Assert.Equal(second, tables[1].HintName, StringComparer.Ordinal);
     }
 }

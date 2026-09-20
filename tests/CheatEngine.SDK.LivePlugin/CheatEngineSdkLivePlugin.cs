@@ -33,7 +33,8 @@ public sealed class CheatEngineSdkLivePlugin : CheatEnginePlugin
         var registered = LiveFunctions.RegisterLuaFunctions(state);
         HostLog.Write(
             registered.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
-            string.Create(CultureInfo.InvariantCulture, $"CheatEngine.SDK Live Plugin: RegisterLuaFunctions -> {registered}."));
+            string.Create(CultureInfo.InvariantCulture,
+                $"CheatEngine.SDK Live Plugin: RegisterLuaFunctions -> {registered}."));
 
         ReadMemoryAdjacentPrimitive();
     }
@@ -59,7 +60,7 @@ public sealed class CheatEngineSdkLivePlugin : CheatEnginePlugin
             $"""
              CheatEngine.SDK Live Plugin: OnEnable #{enableCount} (this plugin instance's own enable count; PluginHost does not expose a count of CEPluginInitialize calls).
              PluginContext: PluginId={context.PluginId}, Epoch={context.Epoch}, MainThreadId={context.MainThreadId}, ReportedExportsSize={context.ReportedExportsSize} (expect 48 on x64), HasProcessMessages={context.HasProcessMessages}, HasCheckSynchronize={context.HasCheckSynchronize}.
-             PluginHost: LastInitRecordSize={PluginHost.LastInitRecordSize} (the CEPluginInitialize size argument; expect 36), LastVersionRecordSize={PluginHost.LastVersionRecordSize} (the GetVersion size argument; expect >= 16), IsInitialized={PluginHost.IsInitialized}.
+             PluginHost: LastInitRecordArgument={PluginHost.LastInitRecordArgument} (the raw CEPluginInitialize second integer; opaque until a CE 7.7 live probe establishes its meaning), LastVersionRecordSize={PluginHost.LastVersionRecordSize} (the GetVersion host-reported record size; expect >= 16), IsInitialized={PluginHost.IsInitialized}.
              """);
         HostLog.Write(HostLogLevel.Information, message);
     }

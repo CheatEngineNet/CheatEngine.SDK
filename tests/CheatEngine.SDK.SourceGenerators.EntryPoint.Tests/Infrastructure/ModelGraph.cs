@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Globalization;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 
@@ -49,7 +50,8 @@ internal static class ModelGraph
         if (value is IEnumerable sequence)
         {
             var index = 0;
-            foreach (var item in sequence) Visit(item, $"{path}[{index++}]", visited, depth + 1);
+            foreach (var item in sequence)
+                Visit(item, $"{path}[{index++.ToString(CultureInfo.InvariantCulture)}]", visited, depth + 1);
 
             return;
         }

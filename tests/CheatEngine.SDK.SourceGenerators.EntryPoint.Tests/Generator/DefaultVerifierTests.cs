@@ -36,7 +36,7 @@ public sealed class DefaultVerifierTests
                                             """;
 
     [Fact]
-    public async Task Verifier_single_valid_plugin_matches_expected_source_and_compiles()
+    public async Task Verifier_single_valid_plugin_with_direct_package_setting_matches_expected_source_and_compiles()
     {
         var test = CreateTest();
         test.TestState.GeneratedSources.Add((
@@ -45,24 +45,26 @@ public sealed class DefaultVerifierTests
             SourceText.From(ExpectedBootstrap.Text("global::Demo.DemoPlugin", "\"Demo Plugin\"u8"), Encoding.UTF8)));
 
         await test.RunAsync(TestContext.Current.CancellationToken);
+        Assert.Single(test.TestState.GeneratedSources);
     }
 
     [Fact]
     public async Task Verifier_build_property_false_in_global_config_emits_nothing()
     {
-        var test = CreateTest();
+        var test = CreateTest(applyDirectPackageSetting: false);
         test.TestState.AnalyzerConfigFiles.Add((
             "/.globalconfig",
             "is_global = true\nbuild_property.CheatEngineSdkGenerateEntryPoint = false\n"));
 
         // No entry in GeneratedSources: the verifier fails if the generator adds any file.
         await test.RunAsync(TestContext.Current.CancellationToken);
+        Assert.Empty(test.TestState.GeneratedSources);
     }
 
     [Fact]
     public async Task Verifier_build_property_true_in_global_config_emits_the_bootstrap()
     {
-        var test = CreateTest();
+        var test = CreateTest(applyDirectPackageSetting: false);
         test.TestState.AnalyzerConfigFiles.Add((
             "/.globalconfig",
             "is_global = true\nbuild_property.CheatEngineSdkGenerateEntryPoint = true\n"));
@@ -72,9 +74,11 @@ public sealed class DefaultVerifierTests
             SourceText.From(ExpectedBootstrap.Text("global::Demo.DemoPlugin", "\"Demo Plugin\"u8"), Encoding.UTF8)));
 
         await test.RunAsync(TestContext.Current.CancellationToken);
+        Assert.Single(test.TestState.GeneratedSources);
     }
 
-    private static CSharpSourceGeneratorTest<EntryPointGenerator, DefaultVerifier> CreateTest()
+    private static CSharpSourceGeneratorTest<EntryPointGenerator, DefaultVerifier> CreateTest(
+        bool applyDirectPackageSetting = true)
     {
         var environment = RoslynEnvironment.Shared;
 
@@ -88,9 +92,14 @@ public sealed class DefaultVerifierTests
             // Warnings of the whole compilation (generated file included) fail the test, not only errors.
             CompilerDiagnostics = CompilerDiagnostics.Warnings
         };
+        if (applyDirectPackageSetting)
+            test.TestState.AnalyzerConfigFiles.Add((
+                "/.globalconfig",
+                "is_global = true\nbuild_property.CheatEngineSdkGenerateEntryPoint = true\n"));
         test.TestState.Sources.Add(DocumentedPlugin);
         test.TestState.AdditionalReferences.AddRange(environment.FrameworkReferences);
-        test.TestState.AdditionalReferences.Add(environment.StubsReference);
+        test.TestState.AdditionalReferences.Add(environment.AnnotationsReference);
+        test.TestState.AdditionalReferences.Add(environment.HostingReference);
         return test;
     }
 }

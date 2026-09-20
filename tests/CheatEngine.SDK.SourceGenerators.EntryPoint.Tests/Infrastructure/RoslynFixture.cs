@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -36,7 +37,11 @@ public sealed class RoslynFixture
     {
         var trees = new SyntaxTree[sources.Length];
         for (var i = 0; i < sources.Length; i++)
-            trees[i] = CSharpSyntaxTree.ParseText(sources[i], parseOptions, $"Source{i}.cs");
+            trees[i] = CSharpSyntaxTree.ParseText(
+                sources[i],
+                parseOptions,
+                $"Source{i.ToString(CultureInfo.InvariantCulture)}.cs",
+                cancellationToken: TestContext.Current.CancellationToken);
 
         return CSharpCompilation.Create(
             PluginAssemblyName,
@@ -46,8 +51,10 @@ public sealed class RoslynFixture
     }
 
     /// <summary>
-    ///     Creates a driver for the generator; <paramref name="options" /> defaults to "no build property set",
-    ///     <paramref name="parseOptions" /> (the language version of the generated tree) to the strict C# 14 options.
+    ///     Creates a driver for the generator; <paramref name="options" /> defaults to the explicit direct-package
+    ///     setting that enables bootstrap generation. Pass <see cref="TestAnalyzerConfigOptionsProvider.Empty" /> to
+    ///     model a transitive reference without the package's direct-only build asset. <paramref name="parseOptions" />
+    ///     defaults to the strict C# 14 options.
     /// </summary>
     internal static GeneratorDriver CreateDriver(
         TestAnalyzerConfigOptionsProvider? options = null,
@@ -57,7 +64,7 @@ public sealed class RoslynFixture
             [new EntryPointGenerator().AsSourceGenerator()],
             [],
             parseOptions ?? RoslynEnvironment.ParseOptions,
-            options ?? TestAnalyzerConfigOptionsProvider.Empty,
+            options ?? TestAnalyzerConfigOptionsProvider.WithBuildProperty("CheatEngineSdkGenerateEntryPoint", "true"),
             new GeneratorDriverOptions(
                 IncrementalGeneratorOutputKind.None,
                 true));
@@ -80,6 +87,10 @@ public sealed class RoslynFixture
 
     internal static SyntaxTree Parse(string source, string path)
     {
-        return CSharpSyntaxTree.ParseText(source, RoslynEnvironment.ParseOptions, path);
+        return CSharpSyntaxTree.ParseText(
+            source,
+            RoslynEnvironment.ParseOptions,
+            path,
+            cancellationToken: TestContext.Current.CancellationToken);
     }
 }

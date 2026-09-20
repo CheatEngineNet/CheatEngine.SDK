@@ -30,6 +30,12 @@ internal sealed class RecordingPlugin : CheatEnginePlugin
 
     public static bool ThrowInOnDisable { get; set; }
 
+    /// <summary>Signals after <see cref="OnEnable" /> has attached and observed the lifecycle state; null for none.</summary>
+    public static ManualResetEventSlim? OnEnableEntered { get; set; }
+
+    /// <summary>Blocks <see cref="OnEnable" /> after <see cref="OnEnableEntered" /> was signalled; null for none.</summary>
+    public static ManualResetEventSlim? ContinueOnEnable { get; set; }
+
     /// <summary>
     ///     A lifecycle call to make from inside <see cref="OnEnable" />, as a host re-entering through the message pump
     ///     would; null for none. Runs once, then clears itself.
@@ -84,6 +90,8 @@ internal sealed class RecordingPlugin : CheatEnginePlugin
         ThrowInConstructor = false;
         ThrowInOnEnable = false;
         ThrowInOnDisable = false;
+        OnEnableEntered = null;
+        ContinueOnEnable = null;
         NestedCallInOnEnable = null;
         NestedCallInOnDisable = null;
         ConstructorCalls = 0;
@@ -100,6 +108,8 @@ internal sealed class RecordingPlugin : CheatEnginePlugin
         HostEnabledInOnEnable = PluginHost.IsEnabled;
         MainThreadInOnEnable = MainThread.IsMainThread;
         ContextInOnEnable = Context;
+        OnEnableEntered?.Set();
+        ContinueOnEnable?.Wait(Context.ShutdownToken);
 
         // The Lua layer must be usable here: run a chunk on the state the host hands out.
         var L = LuaRuntime.AcquireState();

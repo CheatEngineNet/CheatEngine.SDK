@@ -3,20 +3,21 @@ using System;
 namespace CheatEngine.SDK.Annotations.Lua;
 
 /// <summary>
-///     Declares that a <see langword="partial" /> class or struct is the managed wrapper of a class of Cheat Engine's Lua
-///     object model.
+///     Declares that a <see langword="readonly" /> <see langword="partial" /> struct is the borrowed managed handle for
+///     a class of Cheat Engine's Lua object model.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Consumed by.</b> Nothing in the SDK reads this attribute: it generates nothing, so a partial member that
-///         relies on it has no implementation. It names the Cheat Engine class the type wraps (<see cref="Name" />). Both
-///         target kinds are meaningful: a <see langword="struct" /> wrapper is a borrowed handle to an object Cheat Engine
-///         owns, a <see langword="class" /> wrapper owns the native object and destroys it explicitly.
+///         <b>Consumed by.</b> <c>CheatEngine.SDK.SourceGenerators.LuaBindings</c> generates the
+///         <c>CEObject</c> storage, <c>ICEObject&lt;T&gt;.FromHandle</c>, pointer-identity equality and Lua marshalling
+///         members for the annotated handle. It names the Cheat Engine class the type wraps (<see cref="Name" />).
+///         The handle is always borrowed; <c>Owned&lt;T&gt;</c>, not a class-versus-struct distinction, represents a
+///         plugin-owned object that must be destroyed.
 ///     </para>
 ///     <para>
-///         <b>Run time.</b> The attribute has no behaviour and nothing in the SDK reads it. It stays in metadata
-///         unconditionally so that tooling can map a compiled wrapper type back to its Cheat Engine class. Instances are
-///         immutable and may be used from any thread.
+///         <b>Run time.</b> The attribute has no behaviour itself. Generated members use the protected
+///         <c>CEObject</c> primitives and stay in metadata so tooling can map a compiled wrapper type back to its
+///         Cheat Engine class. Instances are immutable and may be used from any thread.
 ///     </para>
 ///     <para>
 ///         <b>Usage.</b> <see cref="AttributeUsageAttribute.Inherited" /> is <see langword="false" />: a derived wrapper
@@ -26,7 +27,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         a wrapper type stands for exactly one Cheat Engine class.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
+[AttributeUsage(AttributeTargets.Struct, Inherited = false)]
 public sealed class LuaClassAttribute : Attribute
 {
     /// <summary>

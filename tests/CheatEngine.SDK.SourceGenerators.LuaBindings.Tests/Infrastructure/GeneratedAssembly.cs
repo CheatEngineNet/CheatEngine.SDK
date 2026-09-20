@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -5,7 +6,8 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
 
 /// <summary>
 ///     Emits a generator run's output compilation (user code + generated code) and loads it into its own
-///     <see cref="AssemblyLoadContext" />, where <c>CheatEngine.SDK.Lua</c> and the other SDK assemblies resolve to the copies this
+///     <see cref="AssemblyLoadContext" />, where <c>CheatEngine.SDK.Lua</c> and the other SDK assemblies resolve to the
+///     copies this
 ///     test process already runs: the generated code then talks to the same <c>LuaRuntime</c> the test attaches.
 /// </summary>
 /// <remarks>
@@ -40,7 +42,10 @@ internal sealed class GeneratedAssembly
         Assert.True(result.Success, "The output compilation does not emit:\n" + string.Join('\n', result.Diagnostics));
         image.Position = 0;
 
-        AssemblyLoadContext context = new("CheatEngine.SDK.LuaBindings.Tests." + Interlocked.Increment(ref s_counter));
+        var name = string.Create(
+            CultureInfo.InvariantCulture,
+            $"CheatEngine.SDK.LuaBindings.Tests.{Interlocked.Increment(ref s_counter)}");
+        AssemblyLoadContext context = new(name);
         return new GeneratedAssembly(context.LoadFromStream(image));
     }
 

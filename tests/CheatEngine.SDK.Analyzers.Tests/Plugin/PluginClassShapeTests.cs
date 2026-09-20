@@ -2,8 +2,8 @@ using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.Analyzers.Plugin;
 using CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 using Microsoft.CodeAnalysis.Testing;
-using Verifier =
-    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
+using Verifier = CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<
+    CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
 
 namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 
@@ -234,66 +234,67 @@ public sealed class PluginClassShapeTests
     }
 
     [Fact]
-    public async Task Constructor_with_only_optional_parameters_reports_nothing()
+    public async Task Constructor_with_only_optional_parameters_reports_missing_parameterless_constructor()
     {
-        // 'new DemoPlugin()' binds to the constructor below the same way it would bind to a
-        // literally parameterless one - every parameter is optional, so an empty argument list is enough.
-        await Verifier.VerifyAsync("""
-                                   using CheatEngine.SDK.Annotations.Plugin;
-                                   using CheatEngine.SDK.Hosting.Plugin;
+        await Verifier.VerifyAsync(
+            """
+            using CheatEngine.SDK.Annotations.Plugin;
+            using CheatEngine.SDK.Hosting.Plugin;
 
-                                   namespace MyPlugin;
+            namespace MyPlugin;
 
-                                   [CheatEnginePlugin("Demo")]
-                                   public sealed class DemoPlugin : CheatEnginePlugin
-                                   {
-                                       public DemoPlugin(int value = 0) { }
-                                       protected override void OnEnable() { }
-                                       protected override void OnDisable() { }
-                                   }
-                                   """);
+            [CheatEnginePlugin("Demo")]
+            public sealed class {|#0:DemoPlugin|} : CheatEnginePlugin
+            {
+                public DemoPlugin(int value = 0) { }
+                protected override void OnEnable() { }
+                protected override void OnDisable() { }
+            }
+            """,
+            Problem(0, "DemoPlugin", PluginShapeIssues.MissingParameterlessConstructor));
     }
 
     [Fact]
-    public async Task Constructor_with_a_trailing_params_parameter_reports_nothing()
+    public async Task Constructor_with_a_trailing_params_parameter_reports_missing_parameterless_constructor()
     {
-        // 'new DemoPlugin()' binds the empty argument list to an empty 'xs' array.
-        await Verifier.VerifyAsync("""
-                                   using CheatEngine.SDK.Annotations.Plugin;
-                                   using CheatEngine.SDK.Hosting.Plugin;
+        await Verifier.VerifyAsync(
+            """
+            using CheatEngine.SDK.Annotations.Plugin;
+            using CheatEngine.SDK.Hosting.Plugin;
 
-                                   namespace MyPlugin;
+            namespace MyPlugin;
 
-                                   [CheatEnginePlugin("Demo")]
-                                   public sealed class DemoPlugin : CheatEnginePlugin
-                                   {
-                                       public DemoPlugin(params int[] xs) { }
-                                       protected override void OnEnable() { }
-                                       protected override void OnDisable() { }
-                                   }
-                                   """);
+            [CheatEnginePlugin("Demo")]
+            public sealed class {|#0:DemoPlugin|} : CheatEnginePlugin
+            {
+                public DemoPlugin(params int[] xs) { }
+                protected override void OnEnable() { }
+                protected override void OnDisable() { }
+            }
+            """,
+            Problem(0, "DemoPlugin", PluginShapeIssues.MissingParameterlessConstructor));
     }
 
     [Fact]
-    public async Task Accessible_zero_argument_constructor_alongside_an_inaccessible_one_reports_nothing()
+    public async Task Optional_and_params_constructors_do_not_supply_a_parameterless_constructor()
     {
-        // Two constructors are callable with an empty argument list here; the inaccessible one is not even a
-        // candidate for 'new DemoPlugin()' from the generated file, so only the accessible one decides the verdict.
-        await Verifier.VerifyAsync("""
-                                   using CheatEngine.SDK.Annotations.Plugin;
-                                   using CheatEngine.SDK.Hosting.Plugin;
+        await Verifier.VerifyAsync(
+            """
+            using CheatEngine.SDK.Annotations.Plugin;
+            using CheatEngine.SDK.Hosting.Plugin;
 
-                                   namespace MyPlugin;
+            namespace MyPlugin;
 
-                                   [CheatEnginePlugin("Demo")]
-                                   public sealed class DemoPlugin : CheatEnginePlugin
-                                   {
-                                       private DemoPlugin(int value = 0) { }
-                                       internal DemoPlugin(string text = "") { }
-                                       protected override void OnEnable() { }
-                                       protected override void OnDisable() { }
-                                   }
-                                   """);
+            [CheatEnginePlugin("Demo")]
+            public sealed class {|#0:DemoPlugin|} : CheatEnginePlugin
+            {
+                private DemoPlugin(int value = 0) { }
+                internal DemoPlugin(string text = "") { }
+                protected override void OnEnable() { }
+                protected override void OnDisable() { }
+            }
+            """,
+            Problem(0, "DemoPlugin", PluginShapeIssues.MissingParameterlessConstructor));
     }
 
     [Theory]
@@ -600,18 +601,39 @@ public sealed class PluginClassShapeTests
     public async Task Class_that_takes_the_name_of_the_generated_entry_point_reports_reserved_name(string declaration,
         string displayName)
     {
+        var directCollision = string.Equals(displayName, "CESDK", StringComparison.Ordinal);
+        var collision = directCollision
+            ? Verifier.Diagnostic(DiagnosticDescriptors.GeneratedEntryPointCollision)
+                .WithSpan("Test0.cs", 6, 55, 6, 60)
+                .WithArguments("CESDK")
+            : Verifier.Diagnostic(DiagnosticDescriptors.GeneratedEntryPointCollision)
+                .WithSpan("Test0.cs", 6, 20, 6, 25)
+                .WithArguments("CESDK");
+        var reservedName = Problem(0, displayName, PluginShapeIssues.ReservedEntryPointName);
+
         await Verifier.VerifyAsync(
             $$"""
-              using CheatEngine.SDK.Annotations.Plugin;
-              using CheatEngine.SDK.Hosting.Plugin;
+                using CheatEngine.SDK.Annotations.Plugin;
+                using CheatEngine.SDK.Hosting.Plugin;
 
-              namespace {|#1:CESDK|}
-              {
-                  {{declaration}}
-              }
+                namespace {|#1:CESDK|}
+                {
+                    {{declaration}}
+                }
               """,
-            Problem(0, displayName, PluginShapeIssues.ReservedEntryPointName),
-            Verifier.Diagnostic(DiagnosticDescriptors.ReservedNamespace).WithLocation(1).WithArguments("CESDK"));
+            directCollision
+                ?
+                [
+                    Verifier.Diagnostic(DiagnosticDescriptors.ReservedNamespace).WithLocation(1).WithArguments("CESDK"),
+                    reservedName,
+                    collision,
+                ]
+                :
+                [
+                    Verifier.Diagnostic(DiagnosticDescriptors.ReservedNamespace).WithLocation(1).WithArguments("CESDK"),
+                    collision,
+                    reservedName,
+                ]);
     }
 
     [Fact]
@@ -799,22 +821,22 @@ public sealed class PluginClassShapeTests
     public async Task Project_without_a_cheatengine_sdk_reference_is_not_analysed()
     {
         await Verifier.VerifyWithoutCheatEngineSdkAsync("""
-                                               using System;
+                                                        using System;
 
-                                               namespace CESDK.Lookalike
-                                               {
-                                                   [AttributeUsage(AttributeTargets.Class)]
-                                                   public sealed class CheatEnginePluginAttribute(string name) : Attribute
-                                                   {
-                                                       public string Name { get; } = name;
-                                                   }
+                                                        namespace CESDK.Lookalike
+                                                        {
+                                                            [AttributeUsage(AttributeTargets.Class)]
+                                                            public sealed class CheatEnginePluginAttribute(string name) : Attribute
+                                                            {
+                                                                public string Name { get; } = name;
+                                                            }
 
-                                                   [CheatEnginePlugin("Demo")]
-                                                   public abstract class DemoPlugin
-                                                   {
-                                                   }
-                                               }
-                                               """);
+                                                            [CheatEnginePlugin("Demo")]
+                                                            public abstract class DemoPlugin
+                                                            {
+                                                            }
+                                                        }
+                                                        """);
     }
 
     private static DiagnosticResult Problem(int location, string className, PluginShapeIssues problem)

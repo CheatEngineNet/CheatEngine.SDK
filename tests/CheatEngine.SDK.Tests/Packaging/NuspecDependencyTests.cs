@@ -4,7 +4,8 @@ namespace CheatEngine.SDK.Tests.Packaging;
 
 /// <summary>
 ///     The packed umbrella must not carry a <c>CheatEngine.SDK.*</c> nuspec dependency for any of the six embedded libs.
-///     <c>PrivateAssets="all"</c> on every embedded <c>ProjectReference</c> (<c>src/CheatEngine.SDK/CheatEngine.SDK.csproj</c>) is what
+///     <c>PrivateAssets="all"</c> on every embedded <c>ProjectReference</c> (
+///     <c>src/CheatEngine.SDK/CheatEngine.SDK.csproj</c>) is what
 ///     keeps them out; this is the check that would fail if that metadata were ever dropped by accident.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]

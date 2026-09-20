@@ -23,13 +23,19 @@ internal static partial class MemoryBindings
     [LuaGlobal("readInteger")]
     private static partial bool TryReadInt32Raw(nuint address, bool signed, out int value);
 
-    public static bool TryReadInt32(nuint address, out int value) => TryReadInt32Raw(address, true, out value);
+    public static bool TryReadInt32(nuint address, out int value)
+    {
+        return TryReadInt32Raw(address, signed: true, out value);
+    }
 
     /// <summary>The throwing form of the same binding: every failure is a <see cref="LuaException" />.</summary>
     [LuaGlobal("readInteger")]
     private static partial int ReadInt32Raw(nuint address, bool signed);
 
-    public static int ReadInt32(nuint address) => ReadInt32Raw(address, true);
+    public static int ReadInt32(nuint address)
+    {
+        return ReadInt32Raw(address, signed: true);
+    }
 }
 
 // ---- what the generator emits -------------------------------------------------------------------------------------

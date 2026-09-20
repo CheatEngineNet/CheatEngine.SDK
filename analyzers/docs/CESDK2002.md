@@ -15,7 +15,8 @@ cannot receive a generated part.
 
 ## Why
 
-The LuaBindings generator (`CheatEngine.SDK.SourceGenerators.LuaBindings`) adds a generated `partial` part to the containing type
+The LuaBindings generator (`CheatEngine.SDK.SourceGenerators.LuaBindings`) adds a generated `partial` part to the
+containing type
 of every bound member. The part holds the thunk and registration table for `[LuaFunction]`, or the implementing
 declaration for `[LuaGlobal]`.
 

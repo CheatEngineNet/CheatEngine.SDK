@@ -304,8 +304,9 @@ a call inside it does not throw.
 
 ### CESDK2001 · Lua bindings without unsafe code
 
-The generator takes the address of each thunk, and that needs unsafe code. Without it the generator emits nothing for
-any `[LuaFunction]` or `[LuaGlobal]`, and the functions silently do not exist.
+The generator takes the address of each `[LuaFunction]` registration thunk, and that needs unsafe code. Without it the
+generator emits no function file and the exported Lua functions silently do not exist. `[LuaGlobal]` bindings do not
+take function addresses and remain available with unsafe compilation disabled.
 
 ```xml
 <PropertyGroup>
@@ -314,12 +315,16 @@ any `[LuaFunction]` or `[LuaGlobal]`, and the functions silently do not exist.
 ```
 
 ```text
-error CESDK2001: 'Add' is a Lua binding, but this compilation does not allow unsafe code (AllowUnsafeBlocks); the
-generator emits nothing for any [LuaFunction] or [LuaGlobal] member until it is enabled
+error CESDK2001: 'Add' is a Lua function export, but this compilation does not allow unsafe code (AllowUnsafeBlocks);
+registration thunks need it
 ```
 
-The `CheatEngine.SDK` package sets `AllowUnsafeBlocks` to `true` while your project leaves it unset, so the fix is to remove your
-`false`.
+The package deliberately leaves unsafe compilation under your control. Set the following in the project file before
+declaring a `[LuaFunction]`:
+
+```xml
+<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+```
 
 ### CESDK2002 · A type that cannot receive generated code
 

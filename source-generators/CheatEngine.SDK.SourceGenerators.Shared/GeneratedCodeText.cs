@@ -1,10 +1,12 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared;
 
 /// <summary>
-///     The fixed pieces every generated file starts with, so that all CheatEngine.SDK generators mark their output the same way.
+///     The fixed pieces every generated file starts with, so that all CheatEngine.SDK generators mark their output the
+///     same way.
 /// </summary>
 /// <remarks>
 ///     <list type="bullet">
@@ -28,6 +30,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///         </item>
 ///     </list>
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class GeneratedCodeText
 {
     /// <summary>First line of every generated file.</summary>

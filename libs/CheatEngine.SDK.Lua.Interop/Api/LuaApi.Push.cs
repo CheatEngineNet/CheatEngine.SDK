@@ -84,8 +84,9 @@ public static unsafe partial class LuaApi
     }
 
     /// <summary>
-    ///     <c>void lua_pushboolean (lua_State *L, int b)</c>. Pushes <c>true</c> when <paramref name="b" /> is non-zero,
-    ///     else <c>false</c>.
+    ///     <c>void lua_pushboolean (lua_State *L, int b)</c>. Pushes <see langword="true" /> when <paramref name="b" /> is
+    ///     non-zero,
+    ///     else <see langword="false" />.
     /// </summary>
     /// <param name="L">The state.</param>
     /// <param name="b">C truth value.</param>

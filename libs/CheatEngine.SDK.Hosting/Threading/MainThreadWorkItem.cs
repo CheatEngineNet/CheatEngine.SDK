@@ -15,15 +15,18 @@ namespace CheatEngine.SDK.Hosting.Threading;
 /// </remarks>
 internal abstract class MainThreadWorkItem
 {
+    private int _claimed;
     private Exception? _failure;
-    private bool _hasRun;
+    private int _hasRun;
 
     /// <summary>Gets a value indicating whether the work ran (successfully or not).</summary>
-    internal bool HasRun => Volatile.Read(ref _hasRun);
+    internal bool HasRun => Volatile.Read(ref _hasRun) != 0;
 
     /// <summary>Runs the work, capturing any exception. Called on the main thread; never throws.</summary>
     internal void Execute()
     {
+        if (Interlocked.CompareExchange(ref _claimed, 1, 0) != 0) return;
+
         try
         {
             Run();
@@ -34,8 +37,18 @@ internal abstract class MainThreadWorkItem
         }
         finally
         {
-            Volatile.Write(ref _hasRun, true);
+            Volatile.Write(ref _hasRun, 1);
         }
+    }
+
+    /// <summary>Completes the item without running it because the host violated the dispatch thread contract.</summary>
+    internal void Reject(Exception failure)
+    {
+        ArgumentNullException.ThrowIfNull(failure);
+        if (Interlocked.CompareExchange(ref _claimed, 1, 0) != 0) return;
+
+        _failure = failure;
+        Volatile.Write(ref _hasRun, 1);
     }
 
     /// <summary>Rethrows, with its original stack trace, the exception the work raised on the main thread.</summary>

@@ -16,7 +16,7 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 /// <param name="PassesState">Whether the target's first parameter is a <c>LuaState</c> that receives the thunk's state.</param>
 /// <param name="Arguments">The Lua arguments, read at stack indices 1..n and passed after the state.</param>
 /// <param name="ReturnKind">
-///     The kind pushed as the single result, or <see langword="null" /> for a <c>void</c> target (no
+///     The kind pushed as the single result, or <see langword="null" /> for a <see langword="void" /> target (no
 ///     result).
 /// </param>
 /// <param name="DeclaredDiagnosticIds">

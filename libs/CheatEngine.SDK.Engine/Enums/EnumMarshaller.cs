@@ -25,6 +25,9 @@ namespace CheatEngine.SDK.Engine.Enums;
 [SuppressMessage("Design", "CA1000:Do not declare static members on generic types",
     Justification =
         "ILuaMarshaller<T> is a static-abstract contract: a marshaller has static members only, and generic code names the type argument once (EnumMarshaller<VariableType>.Push) exactly as it would for a non-generic marshaller.")]
+[SuppressMessage("Meziantou.Analyzer", "MA0018",
+    Justification =
+        "ILuaMarshaller<T> is a static-abstract contract: a marshaller has static members only, and generic code names the type argument once (EnumMarshaller<VariableType>.Push) exactly as it would for a non-generic marshaller.")]
 public readonly struct EnumMarshaller<TEnum> : ILuaMarshaller<TEnum>
     where TEnum : unmanaged, Enum
 {

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.Interop.Types;
 
@@ -9,6 +10,8 @@ namespace CheatEngine.SDK.Tests.Shared.NativeLua;
 ///     state
 ///     must not be closed from the finalizer thread); a state that is never disposed leaks until the process ends.
 /// </summary>
+[SuppressMessage("Meziantou.Analyzer", "MA0182",
+    Justification = "The fixture is used by friend test and benchmark assemblies through InternalsVisibleTo.")]
 internal sealed unsafe class NativeLuaState : IDisposable
 {
     private lua_State* _state;

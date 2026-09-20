@@ -16,6 +16,7 @@
     <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/CheatEngine.SDK.SourceGenerators.LuaBindings.csproj"/>
     <!-- Real Annotations and Lua types that the CESDK2xxx tests bind against (LuaState, [LuaFunction], [LuaGlobal]). -->
     <ProjectReference Include="../../libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj"/>
     <ProjectReference Include="../../libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
     <ProjectReference Include="../../libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
   </ItemGroup>

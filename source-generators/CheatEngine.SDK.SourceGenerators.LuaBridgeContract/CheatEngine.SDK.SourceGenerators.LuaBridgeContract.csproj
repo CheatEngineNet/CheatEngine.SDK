@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Does not ship. Generates the managed protected-Lua operation contract from the repository-owned AdditionalFile catalog for CheatEngine.SDK.Lua.Interop.</Description>
+  </PropertyGroup>
+
+</Project>

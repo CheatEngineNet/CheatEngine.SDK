@@ -40,7 +40,8 @@ internal static class PluginClassProblemText
                 "must not be generic: the generated entry point has no type arguments to give it",
             PluginShapeIssues.NestedInGeneric =>
                 "must not be nested in a generic type: the generated entry point has no type arguments to give it",
-            PluginShapeIssues.NotDerivedFromPluginBase => "must derive from 'CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin'",
+            PluginShapeIssues.NotDerivedFromPluginBase =>
+                "must derive from 'CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin'",
             PluginShapeIssues.Inaccessible =>
                 "must be reachable from generated code in the same assembly: it and every type it is nested in must be public or internal",
             PluginShapeIssues.FileLocal =>
@@ -48,9 +49,9 @@ internal static class PluginClassProblemText
             PluginShapeIssues.ReservedEntryPointName =>
                 "must not be, or be nested in, a type named 'CESDK.CESDK': Cheat Engine dictates that name for the generated entry point type",
             PluginShapeIssues.MissingParameterlessConstructor =>
-                "must declare a public or internal constructor callable with no arguments (parameterless, or with only optional/'params' parameters): the generated entry point calls it as 'new T()'",
+                "must declare a public or internal constructor with no parameters: the generated entry point calls it as 'new T()'",
             PluginShapeIssues.InaccessibleParameterlessConstructor =>
-                "must make a constructor callable with no arguments public or internal: the generated entry point calls it as 'new T()'",
+                "must make a parameterless constructor public or internal: the generated entry point calls it as 'new T()'",
             PluginShapeIssues.RequiredMembers =>
                 "must not have required members, unless its parameterless constructor is marked [SetsRequiredMembers]: the generated entry point calls 'new' without an object initializer",
             PluginShapeIssues.ObsoleteError =>

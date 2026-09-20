@@ -12,10 +12,13 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         <see cref="CallbackOnPopup" /> 16, <see cref="Shortcut" /> 24.
 ///     </para>
 ///     <para>
-///         <b>Evidence (verified, two sources agree on the ABI):</b> the type-6 init structure and the two callbacks of
-///         <c>cepluginsdk.h</c> and of <c>cepluginsdk.pas</c> (CE 7.7.0.10621): four pointer-sized fields; both callbacks
-///         <c>stdcall</c> with a 4-byte boolean result. The files name the third field differently and the Pascal unit
-///         leaves the popup callback's second parameter untyped; neither difference affects the binary shape.
+///         <b>Evidence.</b> The four pointer-sized init-record fields and the click callback's 4-byte result are
+///         <i>ExactInstalledFile</i>: the CE 7.7.0.10621 <c>cepluginsdk.h</c> (SHA-256
+///         <c>9C0E31BB753D782CE20710D19828F4E97B4371C8733ABD0C5C6F7F485306FB28</c>) and its Pascal SDK agree on that
+///         record layout. The header declares the popup's third argument <c>BOOL*</c>, while pinned upstream
+///         <c>plugin.pas</c> implements the host callback with a Pascal <c>PBool</c>. The effective CE 7.7 x64 width is
+///         therefore <b>Unknown</b> until the required live canary proves it; this SDK does not infer a one-byte
+///         representation from source text alone and keeps <see cref="CallbackOnPopup" /> opaque.
 ///     </para>
 ///     <para>
 ///         Passed by address to the <c>RegisterFunction</c> slot of the classic table; the record only has to live for
@@ -37,16 +40,15 @@ public unsafe struct DisassemblerContextPluginInit
     public delegate* unmanaged[Stdcall]<nuint*, Bool32> Callback;
 
     /// <summary>
-    ///     Invoked when the context menu is about to open (offset 16). Arguments: the selected address (by value), an
-    ///     in/out pointer to the ANSI caption to display, an in/out 4-byte boolean deciding whether the entry is shown.
-    ///     The meaning of the result is not documented upstream.
+    ///     Opaque address of the popup callback (offset 16).
     /// </summary>
     /// <remarks>
-    ///     A caption written through the second argument stays owned by the plugin and has to outlive the call; how
-    ///     long the host keeps reading it is not documented. Must stay valid until the function is unregistered. Must
-    ///     not let an exception escape.
+    ///     The installed header declares <c>BOOL (stdcall *)(UINT_PTR, char**, BOOL*)</c>; the pinned Pascal host uses
+    ///     <c>PBool</c> for the final argument. Since neither establishes the actual CE 7.7 x64 pointee width, the slot
+    ///     has no callable managed signature. Do not assign or invoke it in a production plugin until the required live
+    ///     canary establishes the write boundary, callback result, and caption lifetime.
     /// </remarks>
-    public delegate* unmanaged[Stdcall]<nuint, byte**, Bool32*, Bool32> CallbackOnPopup;
+    public void* CallbackOnPopup;
 
     /// <summary>NUL-terminated ANSI shortcut in text form (offset 24).</summary>
     /// <remarks>

@@ -20,7 +20,20 @@ internal sealed record BootstrapModel(string FullyQualifiedTypeName, string Disp
     /// </summary>
     public static BootstrapModel? Select(EquatableArray<PluginModel> plugins, EntryPointOptions options)
     {
-        if (!options.GenerateEntryPoint) return null;
+        return Select(plugins, options, entryPointTypeCollision: false);
+    }
+
+    /// <summary>
+    ///     Decides whether there is something to emit while accounting for a user-declared host-mandated bootstrap
+    ///     type. A collision leaves the generator silent so that the analyzer can report the source location instead of
+    ///     generated code causing a duplicate-type error.
+    /// </summary>
+    public static BootstrapModel? Select(
+        EquatableArray<PluginModel> plugins,
+        EntryPointOptions options,
+        bool entryPointTypeCollision)
+    {
+        if (!options.GenerateEntryPoint || entryPointTypeCollision) return null;
 
         PluginModel? single = null;
         foreach (var plugin in plugins)

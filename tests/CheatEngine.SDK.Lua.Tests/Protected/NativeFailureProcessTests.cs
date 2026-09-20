@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
 namespace CheatEngine.SDK.Lua.Tests.FailureBoundaries;
@@ -38,7 +39,7 @@ public sealed class NativeFailureProcessTests
         var cancellationToken = TestContext.Current.CancellationToken;
         var output = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var error = process.StandardError.ReadToEndAsync(cancellationToken);
-        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(30));
         try
         {
@@ -53,7 +54,15 @@ public sealed class NativeFailureProcessTests
         var standardOutput = await output;
         var standardError = await error;
         Assert.True(process.ExitCode == 0,
-            $"Probe exit code: {process.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{standardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{standardError}");
-        Assert.Contains("PASS native allocation and finalizer boundaries", standardOutput, StringComparison.Ordinal);
+            string.Create(CultureInfo.InvariantCulture,
+                $"Probe exit code: {process.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{standardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{standardError}"));
+        Assert.Contains("MARK PushByteTable protected allocator boundary recovered", standardOutput,
+            StringComparison.Ordinal);
+        Assert.Contains("MARK PushHostObject native pusher longjmp observed", standardOutput, StringComparison.Ordinal);
+        Assert.Contains("MARK LuaRef.Release protected allocator boundary recovered", standardOutput,
+            StringComparison.Ordinal);
+        Assert.Contains("PASS native protected allocation, finalizer, and host-object longjmp boundaries",
+            standardOutput,
+            StringComparison.Ordinal);
     }
 }

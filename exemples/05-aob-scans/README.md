@@ -30,8 +30,9 @@ A hard coded address breaks with every game update, while the instruction that r
 byte signature finds that instruction again at runtime, so a plugin survives updates that would kill an address table.
 
 `AOBScan` has a second trap. It returns a Cheat Engine list object, and the caller must free it. Forget the `destroy`
-and the list leaks. Use the list after it is freed and Cheat Engine crashes. The scanner below copies the addresses into
-ordinary managed data and frees the list in the same block, so the object never leaves the method.
+and the list leaks. Use the list after it is freed and Cheat Engine crashes. The SDK factory returns the explicit owner;
+the scanner below copies the addresses into ordinary managed data and disposes that owner in the same block, so the
+native object never leaves the method.
 
 ## How it works
 
@@ -89,43 +90,33 @@ internal static partial class SignatureCalls
 
 ### 3. Scan for every match
 
-`AOBScan` returns an object, and a generated binding cannot carry an object. So this one is written by hand with the
-`LuaState` toolkit. The steps are the ones every object call follows.
+`AOBScan` returns a `StringList` that CE documents as caller-owned. `AobScanner.TryScan` is the sourced Engine factory
+for that contract. It returns an `Owned<StringList>` only after a successful protected call; plugin code must not turn a
+raw `CEObject` into an owner itself.
 
 ```csharp
-using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Engine.Scanning.Aob;
 using CheatEngine.SDK.Engine.Values;
-using CheatEngine.SDK.Lua.Marshalling;
-using CheatEngine.SDK.Lua.Runtime;
-using CheatEngine.SDK.Lua.State;
 
 namespace SignatureTools;
 
 internal static class Signatures
 {
-    public static List<Address> Scan(
-        string pattern, string protection = "", int alignmentType = 0, string alignmentParam = "")
+    public static List<Address> Scan(string pattern, AobScanOptions options = default)
     {
-        var L = LuaRuntime.AcquireState();
-        using LuaFrame frame = new(L);
-
-        L.TryGetGlobal("AOBScan"u8).ThrowIfFailed(L);
-        StringMarshaller.Push(L, pattern);
-        StringMarshaller.Push(L, protection);
-        Int32Marshaller.Push(L, alignmentType);
-        StringMarshaller.Push(L, alignmentParam);
-        L.TryCall(4, 1).ThrowIfFailed(L);
-
         List<Address> matches = [];
-        if (!CEObject.TryRead(L, -1, out var handle)) return matches;
+        if (!AobScanner.TryScan(pattern, options, out var owner) || owner is null) return matches;
 
-        using Owned<CEObject> list = new(handle);
-        if (!list.Value.TryGetProperty<Int32Marshaller, int>("Count"u8, out var count)) return matches;
-
-        for (var i = 0; i < count; i++)
+        using (owner)
         {
-            using LuaFrame item = new(L);
-            if (list.Value.TryGetIndex(L, i).IsOk && Address.TryRead(L, -1, out var address)) matches.Add(address);
+            var list = owner.Value;
+            if (!list.TryGetCount(out var count)) return matches;
+
+            for (var i = 0; i < count; i++)
+            {
+                if (list.TryGetItem(i, out var addressText) && Address.TryParse(addressText, out var address))
+                    matches.Add(address);
+            }
         }
 
         return matches;
@@ -135,22 +126,21 @@ internal static class Signatures
 
 ```mermaid
 flowchart LR
-    A["AOBScan(pattern, flags, ...)"] --> B["List object<br/>you own it"]
+    A["AobScanner.TryScan(pattern, options)"] --> B["Owned StringList<br/>factory transfers ownership"]
     B --> C["Read Count"]
     C --> D["Read items 0 to Count minus 1<br/>hex text to Address"]
-    D --> E["Dispose the Owned handle<br/>destroy runs on the main thread"]
+    D --> E["Dispose the factory-issued owner<br/>documented destroy path"]
     E --> F["List of Address<br/>plain managed data"]
 ```
 
-| Step                            | Why                                                                                      |
-|---------------------------------|------------------------------------------------------------------------------------------|
-| `using LuaFrame frame = new(L)` | Restores the Lua stack on every exit, including the early returns and a thrown exception |
-| `ThrowIfFailed(L)`              | A failed call becomes a `LuaException` with Cheat Engine's own message                   |
-| `CEObject.TryRead`              | Reads the native object pointer from the result. A `nil` result gives an empty list      |
-| `Owned<CEObject>`               | Takes ownership, so `Dispose` calls `destroy()` exactly once, on the main thread         |
-| `TryGetIndex(L, i)`             | Uses Cheat Engine's own zero based index. Each item is hexadecimal text                  |
-| `Address.TryRead`               | Accepts hexadecimal text and Lua integers, so the list reads the same either way         |
-| `using LuaFrame item`           | Keeps the stack flat while the loop reads one item per turn                              |
+| Step                       | Why                                                                                        |
+|----------------------------|--------------------------------------------------------------------------------------------|
+| `AobScanner.TryScan`       | Performs the protected CE call and provides an owner only when CE returned a valid list    |
+| `Owned<StringList>`        | Is the factory-issued ownership proof; `Dispose` executes the documented destroy path once |
+| `StringList.TryGetCount`   | Reads the list's count through a protected object call                                     |
+| `StringList.TryGetItem(i)` | Uses Cheat Engine's zero-based index and copies one address string                         |
+| `Address.TryParse`         | Decodes CE's hexadecimal address text into the target-address type                         |
+| `using (owner)`            | Releases the list before it can escape as a stale native handle                            |
 
 ### 4. Export it and patch with it
 
@@ -258,9 +248,10 @@ A signature that survives updates follows a few habits:
 
 ## Good to know
 
-- **Main thread.** `Owned<CEObject>.Dispose` destroys the list and must run on Cheat Engine's main thread. A Lua Engine
-  call and `OnEnable` already run there. From your own thread, wrap the scan in `MainThread.Invoke` (see
-  [09 · The main thread](../09-main-thread/README.md)).
+- **Lifetime and thread.** Dispose the factory-issued owner before disable, on the host thread required by its ownership
+  contract. The AOB catalog itself does not prove a CE GUI-thread rule; use the guarded `MainThread.Invoke` boundary
+  when the surrounding feature requires the captured enable thread
+  (see [09 · The main thread](../09-main-thread/README.md)).
 - **A scan takes time.** A full memory scan blocks the thread that runs it. Narrow it with a module, `+X` or an
   alignment before you scan a large process.
 - **Nothing found.** Cheat Engine may return no list at all, or an empty one. `Signatures.Scan` returns an empty list in

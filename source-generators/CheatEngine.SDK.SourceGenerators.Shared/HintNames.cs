@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared;
@@ -13,11 +16,14 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///     <c>_</c> pass through; everything else (path separators, <c>&lt;&gt;</c> of generic arity, keyword escapes,
 ///     non-ASCII letters) becomes <c>_</c>, and when anything was replaced an 8-digit hash of the original name is
 ///     appended so that two types differing only in replaced characters cannot share a file. Deterministic and
-///     culture-independent. <see cref="ForType" /> alone is not enough when two types differ only in ASCII case (no
-///     character is replaced on either side, so both produce the same result, and Roslyn treats hint names as
-///     case-insensitive): a caller that emits one file per type must track the names it has already handed out
-///     (case-insensitively) and fall back to <see cref="Disambiguated" /> on a collision.
+///     culture-independent. <see cref="AllocateUnique" /> resolves the remaining, case-insensitive collisions that
+///     Roslyn rejects when sources are added to a generation pass.
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class HintNames
 {
     private const string HexDigits = "0123456789abcdef";
@@ -28,7 +34,7 @@ internal static class HintNames
     /// </summary>
     public static string ForType(string typeName, string suffix)
     {
-        return Build(typeName, suffix, false);
+        return Build(typeName, suffix);
     }
 
     /// <summary>
@@ -45,10 +51,55 @@ internal static class HintNames
     /// </remarks>
     public static string Disambiguated(string typeName, string suffix)
     {
-        return Build(typeName, suffix, true);
+        var readable = ForType(typeName, suffix);
+        StringBuilder builder = new(readable.Length + 9);
+        builder.Append(readable, 0, readable.Length - suffix.Length);
+        builder.Append('_');
+        AppendHash(builder, typeName);
+        return builder.Append(suffix).ToString();
     }
 
-    private static string Build(string typeName, string suffix, bool forceHash)
+    /// <summary>Creates the case-insensitive set used to reserve generated-source hint names.</summary>
+    /// <remarks>
+    ///     Roslyn compares source hint names with ordinal case insensitivity. Callers must use this set for an entire
+    ///     generation pass and pass it to <see cref="AllocateUnique" /> for every source they emit.
+    /// </remarks>
+    public static HashSet<string> CreateUsedNames()
+    {
+        return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Reserves and returns a unique, deterministic hint name for one generated source.</summary>
+    /// <remarks>
+    ///     The readable name is preferred. On a collision, the exact type name's deterministic hash is appended. If
+    ///     that name is already reserved too, ordinal suffixes beginning at two are tried until
+    ///     <see cref="HashSet{T}.Add(T)" /> succeeds. The supplied set must use
+    ///     <see cref="StringComparer.OrdinalIgnoreCase" /> so the reservation matches Roslyn's rule.
+    ///     The Engine API generator currently needs a source-path identity in addition to a type name. Its allocator
+    ///     remains intentionally separate until that identity rule is reconciled with this shared helper.
+    /// </remarks>
+    public static string AllocateUnique(string typeName, string suffix, HashSet<string> used)
+    {
+        if (used is null) throw new ArgumentNullException(nameof(used));
+
+        if (!StringComparer.OrdinalIgnoreCase.Equals(used.Comparer))
+            throw new ArgumentException("Hint names must be reserved with StringComparer.OrdinalIgnoreCase.",
+                nameof(used));
+
+        var readable = ForType(typeName, suffix);
+        if (used.Add(readable)) return readable;
+
+        var hashed = Disambiguated(typeName, suffix);
+        if (used.Add(hashed)) return hashed;
+
+        for (var ordinal = 2;; ordinal++)
+        {
+            var suffixed = AppendOrdinal(hashed, suffix, ordinal);
+            if (used.Add(suffixed)) return suffixed;
+        }
+    }
+
+    private static string Build(string typeName, string suffix)
     {
         if (typeName is null) throw new ArgumentNullException(nameof(typeName));
 
@@ -67,12 +118,21 @@ internal static class HintNames
                 replaced = true;
             }
 
-        if (replaced || forceHash)
+        if (replaced)
         {
             builder.Append('_');
             AppendHash(builder, typeName);
         }
 
+        return builder.Append(suffix).ToString();
+    }
+
+    private static string AppendOrdinal(string hintName, string suffix, int ordinal)
+    {
+        StringBuilder builder = new(hintName.Length + 12);
+        builder.Append(hintName, 0, hintName.Length - suffix.Length);
+        builder.Append('_');
+        builder.Append(ordinal.ToString(CultureInfo.InvariantCulture));
         return builder.Append(suffix).ToString();
     }
 

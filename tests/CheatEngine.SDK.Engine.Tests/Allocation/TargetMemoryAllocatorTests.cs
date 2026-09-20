@@ -1,0 +1,128 @@
+using System.Reflection;
+using CheatEngine.SDK.Annotations.Lifetime;
+using CheatEngine.SDK.Annotations.Threading;
+using CheatEngine.SDK.Engine.Allocation;
+using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Calls;
+
+namespace CheatEngine.SDK.Engine.Tests.Allocation;
+
+/// <summary>
+///     The allocation facade converts only documented expected CE failures and preserves technical boundary failures.
+/// </summary>
+public sealed class TargetMemoryAllocatorTests
+{
+    [Fact]
+    public void Allocate_on_success_returns_an_owned_region_and_forwards_the_full_request()
+    {
+        AllocationOperationsFake operations = new() { AllocatedAddress = new Address(0x7FF6_1234_0000) };
+        TargetMemoryAllocator allocator = new(operations);
+        TargetAllocationRequest request = new(new TargetAllocationSize(8192), new Address(0x7FF6_1200_0000),
+            MemoryProtection.ExecuteReadWrite);
+
+        using var region = allocator.Allocate(request);
+
+        Assert.Equal(new Address(0x7FF6_1234_0000), region.Address);
+        Assert.Equal(new TargetAllocationSize(8192), region.Size);
+        Assert.Equal(request, operations.LastRequest);
+        Assert.Equal(1, operations.AllocateCalls);
+    }
+
+    [Fact]
+    public void Allocate_when_CE_reports_expected_failure_throws_the_stable_expected_failure()
+    {
+        AllocationOperationsFake operations = new() { AllocationResult = false, AllocatedAddress = Address.Zero };
+        TargetMemoryAllocator allocator = new(operations);
+
+        var exception = Assert.Throws<EngineOperationFailedException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+
+        Assert.Equal("TargetMemoryAllocate", exception.Operation);
+        Assert.Null(exception.InnerException);
+        Assert.Equal(1, operations.AllocateCalls);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Allocate_when_the_success_shape_contains_a_null_or_inconsistent_address_throws_marshalling(bool result)
+    {
+        AllocationOperationsFake operations = new() { AllocationResult = result, AllocatedAddress = Address.Zero };
+        if (!result) operations.AllocatedAddress = new Address(0x1234);
+        TargetMemoryAllocator allocator = new(operations);
+
+        var exception = Assert.Throws<EngineMarshallingException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+
+        Assert.Equal("TargetMemoryAllocate", exception.Operation);
+        Assert.Equal(1, operations.AllocateCalls);
+    }
+
+    [Fact]
+    public void Allocate_when_the_binding_fails_preserves_the_binding_exception()
+    {
+        EngineBindingException failure = new("TargetMemoryAllocate",
+            "the generated binding returned an incompatible result");
+        AllocationOperationsFake operations = new() { AllocationException = failure };
+        TargetMemoryAllocator allocator = new(operations);
+
+        var thrown = Assert.Throws<EngineBindingException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+
+        Assert.Same(failure, thrown);
+    }
+
+    [Fact]
+    public void Allocate_when_the_required_global_is_unavailable_preserves_that_distinct_failure()
+    {
+        EngineGlobalUnavailableException failure = new("TargetMemoryAllocate");
+        AllocationOperationsFake operations = new() { AllocationException = failure };
+        TargetMemoryAllocator allocator = new(operations);
+
+        var thrown = Assert.Throws<EngineGlobalUnavailableException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+
+        Assert.Same(failure, thrown);
+        Assert.Equal(EngineFailureKind.GlobalUnavailable, thrown.Kind);
+    }
+
+    [Fact]
+    public void Allocate_when_the_protected_lua_call_fails_preserves_the_EngineLuaException()
+    {
+        EngineLuaException failure = new("TargetMemoryAllocate", LuaStatus.RuntimeError);
+        AllocationOperationsFake operations = new() { AllocationException = failure };
+        TargetMemoryAllocator allocator = new(operations);
+
+        var thrown = Assert.Throws<EngineLuaException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+
+        Assert.Same(failure, thrown);
+    }
+
+    [Fact]
+    public void Public_target_memory_operations_carry_enabled_lifecycle_metadata_without_an_unproven_thread_claim()
+    {
+        var allocate = typeof(TargetMemoryAllocator)
+            .GetMethod(nameof(TargetMemoryAllocator.Allocate))!;
+        var release = typeof(AllocatedRegion).GetMethod(nameof(AllocatedRegion.Release))!;
+        var dispose = typeof(AllocatedRegion).GetMethod(nameof(AllocatedRegion.Dispose))!;
+        var tryAllocate = typeof(ITargetMemoryAllocationOperations)
+            .GetMethod(nameof(ITargetMemoryAllocationOperations.TryAllocate))!;
+        var tryDeallocate = typeof(ITargetMemoryAllocationOperations).GetMethod(
+            nameof(ITargetMemoryAllocationOperations.TryDeallocate))!;
+
+        AssertHasLifecycleMetadata(allocate);
+        AssertHasLifecycleMetadata(release);
+        AssertHasLifecycleMetadata(dispose);
+        AssertHasLifecycleMetadata(tryAllocate);
+        AssertHasLifecycleMetadata(tryDeallocate);
+    }
+
+    private static void AssertHasLifecycleMetadata(MethodInfo method)
+    {
+        Assert.True(Attribute.IsDefined(method, typeof(RequiresPluginEnabledAttribute)));
+        Assert.False(Attribute.IsDefined(method, typeof(MainThreadOnlyAttribute)));
+    }
+}

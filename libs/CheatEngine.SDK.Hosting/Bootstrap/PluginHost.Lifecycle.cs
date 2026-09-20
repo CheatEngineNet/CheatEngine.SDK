@@ -27,8 +27,9 @@ public static unsafe partial class PluginHost
     /// </summary>
     /// <param name="version">The host's record.</param>
     /// <param name="size">
-    ///     The byte size the host reserved for it, under the same rule as the bootstrap's <c>size</c>: a positive value
-    ///     smaller than the record refuses the call, zero or a negative value is treated as unknown and the record is written.
+    ///     The byte size the host reserved for this version record. A positive value smaller than the known record is
+    ///     refused; zero or a negative value is treated as unknown. This contract is independent of the bootstrap's
+    ///     opaque second integer.
     /// </param>
     /// <returns><c>TRUE</c> when the record was written.</returns>
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
@@ -51,8 +52,8 @@ public static unsafe partial class PluginHost
             {
                 // Writing 16 bytes into a buffer the host says is smaller is memory corruption: refuse, and say so.
                 // The public 7.5 host passes sizeof(TPluginVersion); a host that claims less is reporting a record
-                // this SDK does not know. Zero or negative claims nothing and is treated as unknown, exactly as the
-                // bootstrap treats its own size argument: one rule for the two unverified values.
+                // this SDK does not know. Zero or negative claims nothing and are treated as unknown for this distinct
+                // version-record callback; this says nothing about the opaque bootstrap argument.
                 HostLog.Error(string.Create(
                     CultureInfo.InvariantCulture,
                     $"GetVersion: the host reserved {size} bytes for the version record, fewer than the {sizeof(PluginVersion)} this SDK writes."));
@@ -85,7 +86,7 @@ public static unsafe partial class PluginHost
     /// <param name="pluginId">The id the host assigned.</param>
     /// <returns>
     ///     <c>TRUE</c> when the plugin is enabled when the call returns; <c>FALSE</c> on any failure, and when the call
-    ///     re-enters a running <c>OnEnable</c> or <c>OnDisable</c> (see <see cref="IsReentered" />).
+    ///     is nested in or concurrent with another lifecycle transition.
     /// </returns>
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static Bool32 EnablePlugin(ManagedExportedFunctions* exports, uint pluginId)
@@ -107,8 +108,8 @@ public static unsafe partial class PluginHost
     /// </summary>
     /// <returns>
     ///     <c>TRUE</c> after the plugin is disabled, including when <c>OnDisable</c> throws after its failure is logged;
-    ///     <c>FALSE</c> when the call re-enters a running <c>OnEnable</c> or <c>OnDisable</c> (nothing is changed then;
-    ///     see <see cref="IsReentered" />).
+    ///     <c>FALSE</c> when another lifecycle transition is active, or when the host invokes disable from a thread
+    ///     other than the captured plugin main thread. In either refusal case nothing is changed.
     /// </returns>
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static Bool32 DisablePlugin()
@@ -124,88 +125,180 @@ public static unsafe partial class PluginHost
         }
     }
 
-    // The gate is held only during a transition, and a transition runs plugin code (OnEnable, OnDisable) on the
-    // thread that holds it. A lifecycle callback arriving on that same thread can therefore only come from inside
-    // that plugin code: Cheat Engine's plugin dialog handled while OnEnable pumps the message loop through
-    // MainThread.ProcessMessages, for instance. System.Threading.Lock is reentrant, so without this check the nested
-    // call would run a second transition under the first and answer TRUE for a state the outer call then overturns
-    // (a disable nested in OnEnable would leave the host believing the plugin is enabled while it is not). The nested
-    // call is refused with FALSE, nothing is touched, and the outer transition decides the state.
-    private static bool IsReentered(string callback)
+    // SGate only serializes the short state-selection step. The phase remains Enabling/Disabling for the full callback,
+    // so a nested callback after SGate was released is still refused. A callback arriving during state selection also
+    // gets an immediate FALSE rather than blocking behind a native lifecycle path.
+    private static bool TryEnterLifecycleCallback(string callback)
     {
-        if (!SGate.IsHeldByCurrentThread) return false;
+        if (SGate.IsHeldByCurrentThread)
+        {
+            HostLog.Error(callback +
+                          ": re-entered from plugin code while OnEnable or OnDisable is running on this thread; the call is refused and the outer transition decides the state.");
+            return false;
+        }
+
+        if (SGate.TryEnter()) return true;
 
         HostLog.Error(callback +
-                      ": re-entered from plugin code while OnEnable or OnDisable is running on this thread (the message loop was pumped inside it); the call is refused and the outer transition decides the state.");
-        return true;
+                      ": another lifecycle transition is already running; concurrent callbacks fail immediately and do not wait for plugin code.");
+        return false;
     }
 
     private static bool Enable(ManagedExportedFunctions* exports, uint pluginId)
     {
-        if (HostLog.IsEnabled(HostLogLevel.Trace))
-            HostLog.Trace(string.Create(
-                CultureInfo.InvariantCulture,
-                $"EnablePlugin(0x{(nint)exports:X}, plugin id {pluginId}); reported record size {(exports is null ? -1 : exports->SizeOfExportedFunctions)}"));
+        TraceEnableCall(exports, pluginId);
+        var start = TryStartEnable(out var descriptor);
+        if (start is LifecycleStart.Refused) return false;
+        if (start is LifecycleStart.AlreadyStable) return true;
 
-        if (IsReentered("EnablePlugin")) return false;
-
-        if (!TryCopyExports(exports, out var copy)) return false;
-
-        lock (SGate)
+        try
         {
-            var descriptor = s_descriptor;
+            return RunEnable(exports, pluginId, descriptor!);
+        }
+        finally
+        {
+            // Any pre-attach or OnEnable failure returns to Registered. Successful enable moved to Enabled first.
+            if (Phase is PluginHostLifecyclePhase.Enabling) SetPhase(PluginHostLifecyclePhase.Registered);
+        }
+    }
+
+    private static void TraceEnableCall(ManagedExportedFunctions* exports, uint pluginId)
+    {
+        if (!HostLog.IsEnabled(HostLogLevel.Trace)) return;
+
+        HostLog.Trace(string.Create(
+            CultureInfo.InvariantCulture,
+            $"EnablePlugin(0x{(nint)exports:X}, plugin id {pluginId}); reported record size {(exports is null ? -1 : exports->SizeOfExportedFunctions)}"));
+    }
+
+    private static LifecycleStart TryStartEnable(out PluginDescriptor? descriptor)
+    {
+        descriptor = null;
+        if (!TryEnterLifecycleCallback("EnablePlugin")) return LifecycleStart.Refused;
+
+        try
+        {
+            descriptor = s_descriptor;
             if (descriptor is null)
             {
                 HostLog.Error(
                     "EnablePlugin: the bootstrap has not run (InitializeManaged was never called successfully).");
-                return false;
+                return LifecycleStart.Refused;
             }
 
-            if (s_context is not null)
+            if (Phase is PluginHostLifecyclePhase.Enabled)
             {
-                // Cheat Engine never enables twice without a disable in between; if it did, the plugin is enabled.
                 HostLog.Warning("EnablePlugin: the plugin is already enabled; the call is ignored.");
-                return true;
+                return LifecycleStart.AlreadyStable;
             }
 
-            // 1 + 2. The Lua API table and its self-check, before any plugin code.
-            if (!TryBindLua(in copy)) return false;
+            if (Phase is not PluginHostLifecyclePhase.Registered)
+            {
+                HostLog.Error("EnablePlugin: the plugin lifecycle is in " + Phase +
+                              "; enable is valid only from Registered.");
+                return LifecycleStart.Refused;
+            }
 
-            // 3. The plugin object, once, before the runtime binding exists.
-            if (!TryGetOrCreatePlugin(descriptor, out var plugin)) return false;
-
-            // 4 + 5. The ambient binding, then the plugin's own enable.
-            return AttachAndEnable(plugin, in copy, pluginId);
+            SetPhase(PluginHostLifecyclePhase.Enabling);
+            return LifecycleStart.Started;
+        }
+        finally
+        {
+            // The phase, rather than SGate, guards the long-running transition after this point.
+            SGate.Exit();
         }
     }
 
+    private static bool RunEnable(ManagedExportedFunctions* exports, uint pluginId, PluginDescriptor descriptor)
+    {
+        if (!TryCopyExports(exports, out var copy)) return false;
+        if (!TryBindLua(in copy)) return false;
+        if (!TryGetOrCreatePlugin(descriptor, out var plugin)) return false;
+
+        return AttachAndEnable(plugin, in copy, pluginId);
+    }
+
     // Attaches the runtime binding (this thread is the main thread of this enable; the epoch advances), publishes
-    // the context so that OnEnable can use it, and runs OnEnable inside the catch-all: a throw undoes everything.
+    // the context so that OnEnable can use it, and runs OnEnable. It opens dispatch admission only after OnEnable
+    // succeeds. IsEnabled intentionally stays false until then: the published context is lifecycle-only in Enabling.
     private static bool AttachAndEnable(CheatEnginePlugin plugin, in ManagedExportedFunctions exports, uint pluginId)
     {
-        var mainThreadId = Environment.CurrentManagedThreadId;
-        LuaHostBinding binding = new(exports.GetLuaState, exports.LuaPushClassInstance, mainThreadId);
-        LuaRuntime.Attach(in binding);
-        PluginContext context = new(in exports, pluginId, LuaRuntime.Epoch, mainThreadId, in binding);
-        Volatile.Write(ref s_context, context);
-
+        var runtimeAttached = false;
+        CancellationTokenSource? shutdown = null;
         try
         {
+            var context = AttachAndPublishEnableContext(in exports, pluginId, out runtimeAttached, out shutdown);
             plugin.OnEnable();
+            CompleteEnable(context, shutdown);
+            return true;
         }
         catch (Exception exception)
         {
             HostLog.Error("EnablePlugin: OnEnable threw; the plugin stays disabled.", exception);
-            Volatile.Write(ref s_context, null);
-            LuaRuntime.Detach();
             return false;
         }
+        finally
+        {
+            if (Phase is not PluginHostLifecyclePhase.Enabled) CleanupFailedEnable(runtimeAttached, shutdown);
+        }
+    }
+
+    private static PluginContext AttachAndPublishEnableContext(
+        in ManagedExportedFunctions exports,
+        uint pluginId,
+        out bool runtimeAttached,
+        [NotNull] out CancellationTokenSource? shutdown)
+    {
+        var mainThreadId = Environment.CurrentManagedThreadId;
+        LuaHostBinding binding = new(exports.GetLuaState, exports.LuaPushClassInstance, mainThreadId);
+        runtimeAttached = false;
+        shutdown = null;
+
+        LuaRuntime.Attach(in binding);
+        runtimeAttached = true;
+        shutdown = CreateShutdownSource();
+        PluginContext context = new(in exports, pluginId, LuaRuntime.Epoch, mainThreadId, in binding, shutdown.Token);
+        Volatile.Write(ref s_context, context);
+        return context;
+    }
+
+    private static void CompleteEnable(PluginContext context, CancellationTokenSource shutdown)
+    {
+        // OnEnable observes Enabling and cannot admit worker dispatch. Only its successful completion opens the gate.
+        OpenMainThreadWorkAdmission(shutdown);
+        SetPhase(PluginHostLifecyclePhase.Enabled);
 
         if (HostLog.IsEnabled(HostLogLevel.Information))
             HostLog.Information(string.Create(CultureInfo.InvariantCulture,
-                $"Plugin {pluginId} enabled (epoch {context.Epoch})."));
+                $"Plugin {context.PluginId} enabled (epoch {context.Epoch})."));
+    }
 
-        return true;
+    private static void CleanupFailedEnable(bool runtimeAttached, CancellationTokenSource? shutdown)
+    {
+        try
+        {
+            if (shutdown is not null) CloseMainThreadWorkAdmissionAndSignalShutdown(Volatile.Read(ref s_context));
+        }
+        finally
+        {
+            try
+            {
+                if (runtimeAttached)
+                {
+                    LuaRuntime.CloseOperationAdmissionAndDrain();
+                    LuaRuntime.Detach();
+                }
+            }
+            catch (Exception exception)
+            {
+                HostLog.Error("EnablePlugin: Lua cleanup after a failed enable threw.", exception);
+            }
+            finally
+            {
+                Volatile.Write(ref s_context, null);
+                if (shutdown is not null) EndMainThreadWorkAdmission();
+            }
+        }
     }
 
     // Honours the size field: a record shorter than the one this SDK knows cannot be copied safely; a longer one
@@ -296,37 +389,106 @@ public static unsafe partial class PluginHost
     private static bool Disable()
     {
         HostLog.Trace("DisablePlugin()");
-        if (IsReentered("DisablePlugin")) return false;
+        var start = TryStartDisable(out var context, out var plugin);
+        if (start is LifecycleStart.Refused) return false;
+        if (start is LifecycleStart.AlreadyStable) return true;
 
-        lock (SGate)
+        try
         {
-            var context = s_context;
-            if (context is null)
-            {
-                // Nothing is enabled, so nothing needs disabling; the host's bookkeeping ("disabled") is correct.
-                HostLog.Warning("DisablePlugin: the plugin is not enabled; the call is ignored.");
-                return true;
-            }
-
-            var plugin = s_plugin;
-            if (plugin is not null)
-                try
-                {
-                    plugin.OnDisable();
-                }
-                catch (Exception exception)
-                {
-                    HostLog.Error("DisablePlugin: OnDisable threw; the plugin is disabled anyway.", exception);
-                }
-
-            // Detach while the provider is still valid: this is where forgotten callbacks are neutralized.
-            LuaRuntime.Detach();
-            Volatile.Write(ref s_context, null);
-            if (HostLog.IsEnabled(HostLogLevel.Information))
-                HostLog.Information(string.Create(CultureInfo.InvariantCulture,
-                    $"Plugin {context.PluginId} disabled."));
-
+            RunDisable(context!, plugin);
             return true;
         }
+        finally
+        {
+            CleanupDisable();
+        }
+    }
+
+    private static LifecycleStart TryStartDisable(
+        out PluginContext? context,
+        out CheatEnginePlugin? plugin)
+    {
+        context = null;
+        plugin = null;
+        if (!TryEnterLifecycleCallback("DisablePlugin")) return LifecycleStart.Refused;
+
+        try
+        {
+            if (Phase is PluginHostLifecyclePhase.Registered or PluginHostLifecyclePhase.Uninitialized)
+            {
+                HostLog.Warning("DisablePlugin: the plugin is not enabled; the call is ignored.");
+                return LifecycleStart.AlreadyStable;
+            }
+
+            context = s_context;
+            if (Phase is not PluginHostLifecyclePhase.Enabled || context is null)
+            {
+                HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
+                              "; disable is valid only from Enabled.");
+                return LifecycleStart.Refused;
+            }
+
+            if (!context.IsMainThread)
+            {
+                HostLog.Error(
+                    "DisablePlugin: the host invoked disable from a thread other than the captured plugin main thread; cleanup is refused because it could not safely drain GUI-bound work.");
+                return LifecycleStart.Refused;
+            }
+
+            SetPhase(PluginHostLifecyclePhase.Disabling);
+            plugin = s_plugin;
+            return LifecycleStart.Started;
+        }
+        finally
+        {
+            SGate.Exit();
+        }
+    }
+
+    private static void RunDisable(PluginContext context, CheatEnginePlugin? plugin)
+    {
+        // The dispatcher admission is closed outside SGate, so an admitted worker can finish and release its lease.
+        CloseMainThreadWorkAdmissionAndSignalShutdown(context);
+
+        if (plugin is not null)
+            try
+            {
+                // The runtime is still attached, so plugin cleanup can release Lua resources before Detach.
+                plugin.OnDisable();
+            }
+            catch (Exception exception)
+            {
+                HostLog.Error("DisablePlugin: OnDisable threw; the plugin is disabled anyway.", exception);
+            }
+
+        if (HostLog.IsEnabled(HostLogLevel.Information))
+            HostLog.Information($"Plugin {context.PluginId} disabled.");
+    }
+
+    private static void CleanupDisable()
+    {
+        try
+        {
+            // The operation gate has already shut out every admitted Lua caller before callback neutralization.
+            LuaRuntime.CloseOperationAdmissionAndDrain();
+            LuaRuntime.Detach();
+        }
+        catch (Exception exception)
+        {
+            HostLog.Error("DisablePlugin: Lua detach threw; the context is withdrawn anyway.", exception);
+        }
+        finally
+        {
+            Volatile.Write(ref s_context, null);
+            EndMainThreadWorkAdmission();
+            SetPhase(PluginHostLifecyclePhase.Registered);
+        }
+    }
+
+    private enum LifecycleStart
+    {
+        Refused,
+        AlreadyStable,
+        Started,
     }
 }

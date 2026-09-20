@@ -6,7 +6,8 @@ namespace LivePlugin;
 ///     A generated Lua global binding for Cheat Engine's <c>readInteger</c> global.
 ///     <c>CheatEngine.SDK.Engine.Generated.MemoryScalars</c> already wraps this call. This declaration shows the
 ///     <c>[LuaGlobal]</c> pattern a plugin uses for any Cheat Engine Lua function that has no wrapper, and it
-///     exercises the LuaBindings generator and the protected call machinery of <c>CheatEngine.SDK.Lua</c> inside a real plugin
+///     exercises the LuaBindings generator and the protected call machinery of <c>CheatEngine.SDK.Lua</c> inside a real
+///     plugin
 ///     assembly. <see cref="CheatEngineSdkLivePlugin.OnEnable" /> calls it and logs the result.
 /// </summary>
 internal static partial class MemoryBindings

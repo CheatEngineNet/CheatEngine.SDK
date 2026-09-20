@@ -5,8 +5,9 @@ Attributes that tell the CheatEngine.SDK generators and analyzers what a plugin 
 ## Objective
 
 Give plugin authors and SDK code one small vocabulary of attributes. The source generators read `[CheatEnginePlugin]`,
-`[LuaFunction]` and `[LuaGlobal]` to write code. The analyzers read the same attributes to explain why a plugin or a Lua
-binding cannot work. The assembly holds attributes only, with no logic beyond argument checks.
+`[LuaFunction]`, `[LuaGlobal]`, `[LuaClass]`, `[LuaMethod]` and `[LuaProperty]` to write code. The analyzers read the
+same attributes to explain why a plugin or Lua binding cannot work. The assembly holds attributes only, with no logic
+beyond argument checks.
 
 ## Why it exists
 
@@ -18,25 +19,27 @@ runs, and precompiled SDK APIs can carry them.
 
 Every namespace starts with `CheatEngine.SDK.Annotations.`.
 
-| Namespace   | Attribute                        | Applies to                                              | Says                                                        | Read by                                                       |
-|-------------|----------------------------------|---------------------------------------------------------|-------------------------------------------------------------|---------------------------------------------------------------|
-| `Plugin`    | `CheatEnginePlugin(string name)` | class                                                   | This class is the plugin and reports `name` to Cheat Engine | Entry point generator, `CESDK0001`, `CESDK0002`, `CESDK0004`  |
-| `Lua`       | `LuaFunction(string name)`       | static method                                           | Export the method as the Lua global `name`                  | Lua bindings generator, `CESDK2001` to `CESDK2003`            |
-| `Lua`       | `LuaGlobal(string name)`         | static partial method                                   | Generate a call into the Cheat Engine Lua global `name`     | Lua bindings generator, `CESDK2001`, `CESDK2002`, `CESDK2004` |
-| `Lua`       | `LuaClass(string name)`          | class, struct                                           | Names the Cheat Engine Lua class a wrapper type stands for  | Metadata only                                                 |
-| `Lua`       | `LuaMethod(string name)`         | method                                                  | Names the object method a wrapper method stands for         | Metadata only                                                 |
-| `Lua`       | `LuaProperty(string name)`       | property                                                | Names the object property a wrapper property stands for     | Metadata only                                                 |
-| `Lua`       | `LuaStackEffect(int delta)`      | method                                                  | The method changes the Lua stack height by `delta`          | Metadata only                                                 |
-| `Threading` | `MainThreadOnly`                 | method, property, constructor, class, struct, interface | Callers must run on the Cheat Engine main thread            | Metadata only                                                 |
-| `Threading` | `RunsOnMainThread`               | method                                                  | The body runs on the main thread and restricts no caller    | Metadata only                                                 |
-| `Lifetime`  | `RequiresPluginEnabled`          | method, property, constructor, class, struct            | The API works only after Cheat Engine enables the plugin    | Metadata only                                                 |
-| `Lifetime`  | `CEOwned`                        | return value, property, parameter                       | Cheat Engine owns the object: do not dispose it             | Metadata only                                                 |
+| Namespace   | Attribute                        | Applies to                                              | Says                                                        | Read by                                                                                   |
+|-------------|----------------------------------|---------------------------------------------------------|-------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| `Plugin`    | `CheatEnginePlugin(string name)` | class                                                   | This class is the plugin and reports `name` to Cheat Engine | Entry point generator; `CESDK0001`–`CESDK0005` when the direct bootstrap mode is explicit |
+| `Lua`       | `LuaFunction(string name)`       | static method                                           | Export the method as the Lua global `name`                  | Lua bindings generator, `CESDK2001`, `CESDK2003`, `CESDK2005`                             |
+| `Lua`       | `LuaGlobal(string name)`         | static partial method                                   | Generate a protected call into Lua global function `name`   | Lua bindings generator, `CESDK2002`, `CESDK2004`                                          |
+| `Lua`       | `LuaClass(string name)`          | readonly partial struct                                 | Generate a borrowed `CEObject` handle for CE class `name`   | Lua bindings generator, `CESDK2006`, `CESDK2007`                                          |
+| `Lua`       | `LuaMethod(string name)`         | instance partial method on a Lua class handle           | Generate a protected bound-object method call               | Lua bindings generator, `CESDK2006`, `CESDK2007`                                          |
+| `Lua`       | `LuaProperty(string name)`       | partial property on a Lua class handle                  | Generate protected object-property accessors                | Lua bindings generator, `CESDK2006`, `CESDK2007`                                          |
+| `Lua`       | `LuaStackEffect(int delta)`      | method                                                  | The method changes the Lua stack height by `delta`          | Metadata only                                                                             |
+| `Threading` | `MainThreadOnly`                 | method, property, constructor, class, struct, interface | Callers must run on the Cheat Engine main thread            | Metadata only                                                                             |
+| `Threading` | `RunsOnMainThread`               | method                                                  | The body runs on the main thread and restricts no caller    | Metadata only                                                                             |
+| `Lifetime`  | `RequiresPluginEnabled`          | method, property, constructor, class, struct            | The API works only after Cheat Engine enables the plugin    | Lifecycle analyzer, `CESDK1001`                                                           |
+| `Lifetime`  | `CEOwned`                        | return value, property, parameter                       | Cheat Engine owns the object: do not dispose it             | Ownership analyzer, `CESDK1003`                                                           |
 
 Metadata only means the attribute documents intent in source and in the compiled assembly. The SDK libraries apply
 `LuaStackEffect`, `RequiresPluginEnabled`, `MainThreadOnly` and `RunsOnMainThread` to their own APIs.
 
-The Roslyn components target `netstandard2.0` and never reference this assembly. They find each attribute by metadata
-name, such as `CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute`.
+The Roslyn components target `netstandard2.0` and never reference this assembly. They resolve each annotation through
+its actual compilation symbol, using its metadata name such as
+`CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute` only as the lookup key. A look-alike source type is
+not an SDK annotation.
 `source-generators/CheatEngine.SDK.SourceGenerators.Shared/AnnotationsMetadataNames.cs` spells the names once, and the
 components that need them use it.
 
@@ -47,13 +50,19 @@ The compiler stores constructor arguments in metadata and never runs the constru
 the analyzers validate names themselves.
 
 Every attribute is public and stays in metadata, never `[Conditional]`, because analyzers read them from compiled SDK
-assemblies. `AllowMultiple` is false on all of them. `AttributeTargets.Method` also admits accessors, local functions
-and lambdas, so the Lua bindings generator and analyzers reject those shapes themselves.
+assemblies. `Inherited` and `AllowMultiple` are explicit on every attribute; the latter is false throughout.
+`AttributeTargets.Method` also admits accessors, local functions and lambdas, so the Lua bindings generator and
+analyzers reject those shapes themselves. `[LuaGlobal]` deliberately targets methods only: a future Lua global-variable
+feature needs a distinct contract.
 
 `LuaStackEffect`, `MainThreadOnly`, `RunsOnMainThread`, `RequiresPluginEnabled` and `CEOwned` are declared inherited,
 but Roslyn does not apply inheritance. A consumer walks overridden members itself. A type-level `MainThreadOnly` or
-`RequiresPluginEnabled` does not cover nested types. `CheatEnginePlugin`, `LuaFunction` and `LuaGlobal` are not
-inherited: each declaration carries its own attribute.
+`RequiresPluginEnabled` does not cover nested types. `CheatEnginePlugin`, `LuaFunction`, `LuaGlobal`, `LuaClass`,
+`LuaMethod` and `LuaProperty` are not inherited: each declaration carries its own attribute.
+
+`[LuaClass]` is a borrowed handle only. The generated readonly struct implements `ICEObject<T>` and
+`ILuaMarshaller<T>` around `CEObject`; `Owned<T>` is the one representation of plugin ownership and deterministic
+`destroy()`.
 
 The project declares no references. The `CheatEngine.SDK` package embeds the assembly and its XML documentation under
 `lib/net10.0`.
@@ -101,7 +110,8 @@ binds to the generated class, and a qualified name that starts with `CESDK.` no 
    `RealAssemblyCompilationTests` and `LuaBindingAnalyzerTests` compile against the real assembly, so a rename or move
    fails the tests.
 2. Every public attribute has XML documentation. The build treats compiler warnings, including `CS1591`, as errors.
-3. A bad name is reported at compile time: `CESDK0001` for a plugin name and `CESDK2003` for a Lua function name.
+3. A bad name or non-generable Lua declaration is reported at compile time. `CESDK2003` covers function shape,
+   `CESDK2004` global shape, and `CESDK2006`/`CESDK2007` class-handle forms and generated-identity collisions.
 
 ## Run the tests
 
@@ -110,4 +120,5 @@ This project has no test project of its own. The consumers compile against the r
 ```powershell
 dotnet test --project tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests
 dotnet test --project tests/CheatEngine.SDK.Analyzers.Tests
+dotnet test --project tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests
 ```

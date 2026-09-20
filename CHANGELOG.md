@@ -4,18 +4,19 @@ All notable changes to CheatEngine.SDK are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
-Versions 0.1.0 to 0.2.1 were published before this file existed. Version 0.3.0 is a rewrite that is neither source nor
-binary compatible with them. Read the breaking changes under [0.3.0](#030---2026-09-18) before upgrading.
+Versions 0.1.0 to 0.2.1 were published under the former `CESDK` package ID before this file existed. Version 1.0.0 is a
+rewrite published as `CheatEngine.SDK`; it is neither source nor binary compatible with them. Read the breaking changes
+under [1.0.0](#100---2026-09-20) before upgrading.
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-09-18
+## [1.0.0] - 2026-09-20
 
 > [!WARNING]
-> **Major breaking change: 0.3.0 is a new SDK, not an update of 0.2.1.** The new architecture replaces the target
+> **Major breaking change: 1.0.0 is a new SDK, not an update of `CESDK` 0.2.1.** The new architecture replaces the target
 > framework, the plugin model and the whole public API, so nothing written against 0.1.0 to 0.2.1 works the same way.
 > There is no compatibility layer and no deprecation period. A plugin has to be rewritten against the new API,
-> starting from the [quick start](README.md#quick-start). A plugin that stays on 0.2.1 keeps building as before.
+> starting from the [quick start](README.md#quick-start). A plugin that stays on `CESDK` 0.2.1 keeps building as before.
 
 ### Added
 
@@ -55,5 +56,5 @@ binary compatible with them. Read the breaking changes under [0.3.0](#030---2026
 - The earlier project-specific exception hierarchy.
 - The NLog dependency.
 
-[Unreleased]: https://github.com/CheatEngineNet/CheatEngine.SDK/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/CheatEngineNet/CheatEngine.SDK/releases/tag/v0.3.0
+[Unreleased]: https://github.com/CheatEngineNet/CheatEngine.SDK/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/CheatEngineNet/CheatEngine.SDK/releases/tag/v1.0.0

@@ -17,6 +17,7 @@
     <ProjectReference Include="../../libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj"/>
     <ProjectReference Include="../../libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
     <ProjectReference Include="../../libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

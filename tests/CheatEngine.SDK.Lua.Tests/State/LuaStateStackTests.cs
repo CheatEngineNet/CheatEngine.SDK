@@ -150,6 +150,30 @@ public sealed class LuaStateStackTests
     }
 
     [Fact]
+    public void PushUncheckedFunction_reserves_the_light_C_function_slot_before_each_push()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new(openLibraries: false);
+        var L = LuaTest.View(state);
+        var initialTop = L.Top;
+        const int functionCount = 64;
+
+        // CE's pinned lapi.c makes lua_pushcclosure(..., 0) a light C function: it only writes one already-reserved
+        // stack slot. Do not reserve here: every production call must make the immediate lua_checkstack(L, 1) reservation
+        // itself before it takes the direct fast path. Crossing the initial free-slot boundary proves the method retains
+        // that precondition instead of relying on a caller's incidental reservation.
+        for (var i = 0; i < functionCount; i++)
+        {
+            L.PushUncheckedFunction(Thunks.Add);
+            Assert.Equal(initialTop + i + 1, L.Top);
+            Assert.Equal(LuaType.Function, L.TypeOf(-1));
+        }
+
+        L.SetTop(initialTop);
+        Assert.Equal(initialTop, L.Top);
+    }
+
+    [Fact]
     public void Raw_table_access_bypasses_metamethods()
     {
         LuaTest.RequireNativeLua();
@@ -194,6 +218,34 @@ public sealed class LuaStateStackTests
         L.SetMetatable(1);
         Assert.False(L.TryGetMetatable(1));
         Assert.Equal(1, L.Top);
+    }
+
+    [Fact]
+    public void PushByteTable_creates_an_ordered_one_based_byte_sequence_in_one_stack_value()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new(openLibraries: false);
+        var L = LuaTest.View(state);
+        ReadOnlySpan<byte> bytes = [0, 1, 127, byte.MaxValue];
+
+        L.PushByteTable(bytes);
+
+        Assert.Equal(1, L.Top);
+        Assert.True(L.IsTable(-1));
+        Assert.Equal((nuint)bytes.Length, L.RawLength(-1));
+        for (var index = 0; index < bytes.Length; index++)
+        {
+            Assert.Equal(LuaType.Number, L.RawGetIndex(-1, index + 1L));
+            Assert.True(L.TryReadInteger(-1, out var value));
+            Assert.Equal(bytes[index], value);
+            L.Pop(1);
+        }
+
+        L.Pop(1);
+        L.PushByteTable([]);
+        Assert.Equal(1, L.Top);
+        Assert.True(L.IsTable(-1));
+        Assert.Equal((nuint)0, L.RawLength(-1));
     }
 
     [Fact]

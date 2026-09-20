@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.State;
 using Microsoft.CodeAnalysis;
@@ -10,7 +11,8 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
 /// <summary>
 ///     What every test compilation needs and what is expensive to build: the <c>net10.0</c> framework references and
 ///     the three real SDK assemblies the generated code is written against (<c>CheatEngine.SDK.Annotations</c>,
-///     <c>CheatEngine.SDK.Lua.Interop</c>, <c>CheatEngine.SDK.Lua</c>), taken from the copies loaded in this test process so that an
+///     <c>CheatEngine.SDK.Lua.Interop</c>, <c>CheatEngine.SDK.Lua</c>), taken from the copies loaded in this test process
+///     so that an
 ///     emitted assembly, once loaded, binds to the very same types. Built once per process, from the local disk only.
 /// </summary>
 internal sealed class RoslynEnvironment
@@ -38,7 +40,8 @@ internal sealed class RoslynEnvironment
         [
             MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(LuaApi).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(LuaState).Assembly.Location)
+            MetadataReference.CreateFromFile(typeof(LuaState).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(CEObject).Assembly.Location),
         ];
     }
 
@@ -48,7 +51,10 @@ internal sealed class RoslynEnvironment
     /// <summary><c>Microsoft.NETCore.App</c> 10.0: reference assemblies, or the running runtime as a fallback.</summary>
     public ImmutableArray<MetadataReference> FrameworkReferences { get; }
 
-    /// <summary>The real <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c>, as loaded in this process.</summary>
+    /// <summary>
+    ///     The real <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c>
+    ///     , as loaded in this process.
+    /// </summary>
     public ImmutableArray<MetadataReference> SdkReferences { get; }
 
     /// <summary>Framework + SDK: the references of a plugin compilation.</summary>

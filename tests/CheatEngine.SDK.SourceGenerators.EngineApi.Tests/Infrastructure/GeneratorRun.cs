@@ -20,7 +20,7 @@ internal sealed class GeneratorRun
     /// <summary>Input compilation plus the generated trees.</summary>
     public Compilation OutputCompilation { get; }
 
-    /// <summary>Diagnostics reported by the generator itself (this generator must never report any).</summary>
+    /// <summary>Diagnostics reported by the generator itself for malformed or conflicting curated specifications.</summary>
     public ImmutableArray<Diagnostic> GeneratorDiagnostics { get; }
 
     public GeneratorRunResult Result { get; }
@@ -74,11 +74,21 @@ internal sealed class GeneratorRun
         return matches[0].SourceText.ToString();
     }
 
-    /// <summary>Asserts "silent": no file, no generator diagnostic, no exception swallowed by the driver.</summary>
+    /// <summary>Asserts that a valid or ignored input stays fully silent: no file, diagnostic, or generator exception.</summary>
     public void AssertNoOutput()
     {
         Assert.Null(Result.Exception);
         Assert.Empty(GeneratorDiagnostics);
+        Assert.Empty(GeneratedSources);
+    }
+
+    /// <summary>
+    ///     Asserts that an invalid or conflicted spec emitted no source, while leaving diagnostic assertions to the
+    ///     caller.
+    /// </summary>
+    public void AssertNoGeneratedSource()
+    {
+        Assert.Null(Result.Exception);
         Assert.Empty(GeneratedSources);
     }
 

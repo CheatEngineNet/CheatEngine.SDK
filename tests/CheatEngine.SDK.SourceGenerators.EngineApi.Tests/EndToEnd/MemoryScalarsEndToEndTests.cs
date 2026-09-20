@@ -44,7 +44,7 @@ public sealed class MemoryScalarsEndToEndTests(RoslynFixture roslyn) : IClassFix
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         var write = assembly.Delegate<WriteInt32Delegate>(BindingsType, "WriteInt32");
         var tryRead = assembly.Delegate<TryReadInt32Delegate>(BindingsType, "TryReadInt32");
 
@@ -72,7 +72,7 @@ public sealed class MemoryScalarsEndToEndTests(RoslynFixture roslyn) : IClassFix
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         var write = assembly.Delegate<WriteInt64Delegate>(BindingsType, "WriteInt64");
         var tryRead = assembly.Delegate<TryReadInt64Delegate>(BindingsType, "TryReadInt64");
 
@@ -91,7 +91,7 @@ public sealed class MemoryScalarsEndToEndTests(RoslynFixture roslyn) : IClassFix
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         var write32 = assembly.Delegate<WriteInt32Delegate>(BindingsType, "WriteInt32");
         var tryRead64 = assembly.Delegate<TryReadInt64Delegate>(BindingsType, "TryReadInt64");
 
@@ -108,7 +108,7 @@ public sealed class MemoryScalarsEndToEndTests(RoslynFixture roslyn) : IClassFix
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var beep = LoadSuite().Delegate<BeepDelegate>(BindingsType, "Beep");
+        var beep = LoadSuite(roslyn).Delegate<BeepDelegate>(BindingsType, "Beep");
 
         beep();
         beep();
@@ -125,7 +125,7 @@ public sealed class MemoryScalarsEndToEndTests(RoslynFixture roslyn) : IClassFix
     {
         LuaTest.RequireNativeLua();
         LuaRuntime.Detach();
-        var tryRead = LoadSuite().Delegate<TryReadInt32Delegate>(BindingsType, "TryReadInt32");
+        var tryRead = LoadSuite(roslyn).Delegate<TryReadInt32Delegate>(BindingsType, "TryReadInt32");
 
         Assert.Throws<InvalidOperationException>(() => tryRead(0x1000, out _));
     }
@@ -138,7 +138,7 @@ public sealed class MemoryScalarsEndToEndTests(RoslynFixture roslyn) : IClassFix
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         var write = assembly.Delegate<WriteInt32Delegate>(BindingsType, "WriteInt32");
         var tryRead = assembly.Delegate<TryReadInt32Delegate>(BindingsType, "TryReadInt32");
         long sink = 0;
@@ -156,7 +156,7 @@ public sealed class MemoryScalarsEndToEndTests(RoslynFixture roslyn) : IClassFix
         Assert.Equal(0, L.Top);
     }
 
-    private GeneratedAssembly LoadSuite()
+    private static GeneratedAssembly LoadSuite(RoslynFixture roslyn)
     {
         return GeneratedAssembly.Load(roslyn.Run("end-to-end.cheatengine-sdk-api.txt", SpecSources.EndToEnd));
     }

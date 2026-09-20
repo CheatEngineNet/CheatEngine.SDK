@@ -17,7 +17,8 @@ namespace CheatEngine.SDK.Hosting.Tests.Support;
 ///     <see cref="Dispose" /> ends the simulated host process: the host is returned to its never-bootstrapped state
 ///     (which detaches the runtime and releases every Lua callback the plugin forgot, through the state provider), the
 ///     provider is cleared and the buffer freed. Declare the simulator <i>after</i> the <c>NativeLuaState</c> it hands
-///     out, so that the C# <c>using</c> order disposes it first, while that state is still open: the release runs Lua
+///     out, so that the C# <see langword="using" /> order disposes it first, while that state is still open: the release
+///     runs Lua
 ///     calls on it. Idempotent.
 /// </remarks>
 internal sealed unsafe class HostSimulator : IDisposable
@@ -69,10 +70,10 @@ internal sealed unsafe class HostSimulator : IDisposable
     }
 
     /// <summary>The bootstrap call, as the generated entry point makes it.</summary>
-    public int Initialize<TFactory>(int size = 36)
+    public int Initialize<TFactory>(int hostArgument = 0)
         where TFactory : IPluginFactory
     {
-        return PluginHost.InitializeManaged<TFactory>(RecordAddress, size);
+        return PluginHost.InitializeManaged<TFactory>(RecordAddress, hostArgument);
     }
 
     /// <summary>The host's version query through the record's pointer.</summary>

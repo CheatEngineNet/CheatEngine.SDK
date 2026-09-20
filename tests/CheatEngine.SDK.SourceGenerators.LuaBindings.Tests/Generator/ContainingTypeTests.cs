@@ -56,7 +56,7 @@ public sealed class ContainingTypeTests(RoslynFixture roslyn) : IClassFixture<Ro
 
     [Theory]
     [InlineData("public partial struct", "partial struct")]
-    [InlineData("public readonly partial struct", "partial struct")]
+    [InlineData("public readonly partial struct", "readonly partial struct")]
     [InlineData("public partial record", "partial record")]
     [InlineData("public partial record class", "partial record")]
     [InlineData("public partial record struct", "partial record struct")]

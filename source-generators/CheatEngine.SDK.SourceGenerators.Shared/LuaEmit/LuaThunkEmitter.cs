@@ -1,18 +1,21 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 
 /// <summary>
 ///     Writes one <c>lua_CFunction</c> thunk around a managed static method: the shape
-///     <c>CheatEngine.SDK.Lua.Callbacks.LuaThunk</c> documents, with argument-count and argument-kind checks in front of the call.
+///     <c>CheatEngine.SDK.Lua.Callbacks.LuaThunk</c> documents, with argument-count and argument-kind checks in front of
+///     the call.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         The thunk is <c>[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })] static int (nint)</c>: what
 ///         <c>LuaNativeFunction</c>'s typed constructor accepts, so <c>&amp;Thunk</c> is checked by the compiler. It wraps
 ///         the handle in a <c>LuaState</c> (the state Lua passed, never one acquired from the runtime), and its whole body
-///         is one <c>try</c> whose catch-all converts any exception into <c>LuaThunk.Fail(L, exception)</c>: no managed
+///         is one <see langword="try" /> whose catch-all converts any exception into <c>LuaThunk.Fail(L, exception)</c>:
+///         no managed
 ///         exception reaches the native boundary, and no Lua API that can raise is called (the pushes are the only Lua
 ///         allocations, as in every C function).
 ///     </para>
@@ -37,6 +40,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///         <c>__exception</c>): the target's parameter names are never used, so nothing can collide.
 ///     </para>
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class LuaThunkEmitter
 {
     private const string Handle = "__handle";

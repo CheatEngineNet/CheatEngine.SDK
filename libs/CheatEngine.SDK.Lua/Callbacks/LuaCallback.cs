@@ -1,8 +1,10 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Interop.Protected;
+using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.Protected;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
@@ -36,7 +38,8 @@ namespace CheatEngine.SDK.Lua.Callbacks;
 ///         function and calls it later gets a "callback released" error instead of touching freed memory; only then is the
 ///         handle freed and the two registry slots given back. When the closure cannot be reached any more (the reference
 ///         is
-///         stale because the epoch advanced, or no state is available) the handle is deliberately <i>not</i> freed: the
+///         stale because its attach epoch or state generation advanced, or no state is available) the handle is
+///         deliberately <i>not</i> freed: the
 ///         state
 ///         object leaks, which is the safe failure. Releasing while the runtime is attached, in the plugin's disable path,
 ///         avoids that, and <see cref="LuaRuntime.Detach" /> does it for every callback the plugin forgot.
@@ -49,7 +52,16 @@ namespace CheatEngine.SDK.Lua.Callbacks;
 /// </remarks>
 public abstract class LuaCallback : IDisposable
 {
+    // Deterministic publication-race seam used only by the SDK's friend test assembly. Callback creation is cold, so
+    // its volatile read is deliberately kept out of callback invocation hot paths.
+    internal static Action? BeforeRegistryAddForTesting;
+
+    // Deterministic disposal-race seam used only by the SDK's friend test assembly. It runs after an atomic admission
+    // refusal is observed, outside the runtime gate, so tests can let a failed transition reopen admission first.
+    internal static Action? DisposeAdmissionRefusedForTesting;
+
     private readonly LuaRef _closure;
+    private readonly LuaStateIdentity _identity;
     private readonly LuaRef _wrapped;
     private GCHandle<object> _handle;
     private bool _released;
@@ -59,6 +71,7 @@ public abstract class LuaCallback : IDisposable
         _handle = handle;
         _closure = closure;
         _wrapped = wrapped;
+        _identity = wrapped.Identity;
     }
 
     /// <summary>
@@ -69,9 +82,9 @@ public abstract class LuaCallback : IDisposable
 
     /// <summary>
     ///     Gets a value indicating whether the callback can still be pushed: not released, and created in the current
-    ///     <see cref="LuaRuntime.Epoch" />.
+    ///     <see cref="LuaRuntime.CurrentStateIdentity" />.
     /// </summary>
-    public bool IsCurrent => !IsReleased && _wrapped.IsCurrent;
+    public bool IsCurrent => !IsReleased && _identity == LuaRuntime.CurrentStateIdentity && _wrapped.IsCurrent;
 
     /// <summary>Gets the managed state object, untyped; <see langword="null" /> after release.</summary>
     public object? StateObject
@@ -92,12 +105,34 @@ public abstract class LuaCallback : IDisposable
     internal bool IsLinked { get; set; }
 
     /// <summary>
-    ///     <see cref="Release" /> with the state acquired from <see cref="LuaRuntime" />; abandons the handle when the
-    ///     runtime is detached.
+    ///     <see cref="Release" /> with the state acquired from <see cref="LuaRuntime" />. While an attached runtime is
+    ///     closing admission, lifecycle cleanup retains ownership and neutralizes the closure; when it is detached this
+    ///     method abandons the handle instead.
     /// </summary>
     public void Dispose()
     {
-        Release(LuaRuntime.TryAcquireState(out var state) ? state : default);
+        var result = LuaRuntime.TryAcquireOperationForCallbackDispose(out var operation);
+        if (result == LuaRuntime.LuaCallbackDisposeOperationResult.Acquired)
+        {
+            using (operation)
+            {
+                Release(operation.State);
+            }
+
+            GC.SuppressFinalize(this);
+            return;
+        }
+
+        if (result == LuaRuntime.LuaCallbackDisposeOperationResult.AdmissionClosed)
+        {
+            // This result was observed atomically with the closed gate. A later failed Detach can reopen admission,
+            // but cannot make it safe to abandon the closure before a transition-owned state neutralizes its upvalue.
+            Volatile.Read(ref DisposeAdmissionRefusedForTesting)?.Invoke();
+            GC.SuppressFinalize(this);
+            return;
+        }
+
+        Release(default);
         GC.SuppressFinalize(this);
     }
 
@@ -120,13 +155,21 @@ public abstract class LuaCallback : IDisposable
     ///     Allocates the handle, two <see cref="LuaRef" />s, the callback object and, inside Lua, two closures and two
     ///     registry slots: a registration-time cost, never per call.
     /// </remarks>
-    public static unsafe LuaStatus TryCreate<TState>(LuaState state, LuaNativeFunction thunk, TState stateObject,
+    public static LuaStatus TryCreate<TState>(LuaState state, LuaNativeFunction thunk, TState stateObject,
         out LuaCallback<TState>? callback)
         where TState : class
     {
         if (thunk.IsNull) throw new ArgumentException("The thunk is the null function.", nameof(thunk));
 
         ArgumentNullException.ThrowIfNull(stateObject);
+        using var operation = LuaRuntime.EnterStateOperation(state);
+        return TryCreateCore(state, thunk, stateObject, out callback);
+    }
+
+    private static unsafe LuaStatus TryCreateCore<TState>(LuaState state, LuaNativeFunction thunk, TState stateObject,
+        out LuaCallback<TState>? callback)
+        where TState : class
+    {
         callback = null;
         var l = state.Pointer;
         var top = state.Top;
@@ -137,8 +180,12 @@ public abstract class LuaCallback : IDisposable
         var transferred = false;
         try
         {
+            // Upvalue 1 remains the user state consumed by LuaThunk.TryGetState. Upvalue 2 is the original user
+            // callback pointer; the SDK-owned dispatcher holds the lifecycle lease around that native call.
             lua_pushlightuserdata(l, (void*)GCHandle<object>.ToIntPtr(handle));
-            var status = new LuaStatus(LuaProtectedApi.PushClosure(l, (nint)thunk.Pointer, 1));
+            lua_pushlightuserdata(l, (void*)thunk.Address);
+            var status = new LuaStatus(LuaProtectedApi.PushClosure(l,
+                (nint)(delegate* unmanaged[Cdecl]<lua_State*, int>)&Dispatch, 2));
             if (!status.IsOk) return status;
 
             lua_pushvalue(l, -1);
@@ -157,6 +204,7 @@ public abstract class LuaCallback : IDisposable
             if (!status.IsOk) return status;
 
             LuaCallback<TState> created = new(handle, closure!, wrapped!);
+            Volatile.Read(ref BeforeRegistryAddForTesting)?.Invoke();
             LuaCallbackRegistry.Add(created);
             callback = created;
             transferred = true;
@@ -181,6 +229,7 @@ public abstract class LuaCallback : IDisposable
     /// <returns><see langword="true" /> when the function was pushed.</returns>
     public bool TryPush(LuaState state)
     {
+        using var operation = LuaRuntime.EnterStateOperation(state);
         return !IsReleased && state.TryPushRef(_wrapped);
     }
 
@@ -197,8 +246,10 @@ public abstract class LuaCallback : IDisposable
     /// </returns>
     public LuaStatus TryRegister(LuaState state, ReadOnlySpan<byte> globalName)
     {
+        using var operation = LuaRuntime.EnterStateOperation(state);
         if (TryPush(state)) return state.TrySetGlobal(globalName);
-        var status = state.TryPushString("the callback has been released, or was created in an earlier host epoch"u8);
+        var status = state.TryPushString(
+            "the callback has been released, or was created in an earlier host attachment or Lua state generation"u8);
         return status.IsOk ? LuaStatus.RuntimeError : status;
     }
 
@@ -212,6 +263,7 @@ public abstract class LuaCallback : IDisposable
     /// </param>
     public void Release(LuaState state)
     {
+        using var operation = state.IsNull ? default : LuaRuntime.EnterStateOperation(state);
         lock (LuaCallbackRegistry.Gate)
         {
             ReleaseUnderGate(state);
@@ -254,6 +306,43 @@ public abstract class LuaCallback : IDisposable
                 if (neutralized && _handle.IsAllocated) _handle.Dispose();
                 LuaCallbackRegistry.Remove(this);
             }
+        }
+    }
+
+    // This is the only unmanaged entry point for stateful LuaCallback instances. The user thunk remains a cdecl
+    // function pointer stored in upvalue 2, while upvalue 1 deliberately retains the historical GCHandle<TState>
+    // contract consumed by LuaThunk.TryGetState. A callback that begins before Detach closes admission keeps a lease;
+    // a callback that begins after that boundary reports an ordinary Lua error and never enters plugin code.
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static unsafe int Dispatch(lua_State* pointer)
+    {
+        LuaState state = new(pointer);
+        try
+        {
+            // Release changes this exact upvalue to a null light userdata before it frees the GCHandle. Check it before
+            // admitting the thunk so a closure retained by Lua cannot run arbitrary plugin code after release.
+            if (lua_touserdata(pointer, lua_upvalueindex(1)) is null)
+                return LuaThunk.Fail(state, "callback released"u8);
+
+            if (!LuaRuntime.TryEnterCallbackOperation(out var operation))
+                return LuaThunk.Fail(state, "the Lua runtime is stopping"u8);
+
+            try
+            {
+                var thunkAddress = (nint)lua_touserdata(pointer, lua_upvalueindex(2));
+                if (thunkAddress == 0) return LuaThunk.Fail(state, "callback thunk is unavailable"u8);
+
+                var thunk = (delegate* unmanaged[Cdecl]<nint, int>)thunkAddress;
+                return thunk((nint)pointer);
+            }
+            finally
+            {
+                operation.Dispose();
+            }
+        }
+        catch (Exception exception)
+        {
+            return LuaThunk.Fail(state, exception);
         }
     }
 }

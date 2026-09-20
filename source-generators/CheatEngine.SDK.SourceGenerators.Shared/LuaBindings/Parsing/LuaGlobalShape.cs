@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 using Microsoft.CodeAnalysis;
@@ -28,20 +29,27 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 ///         written: a method with no <see langword="out" /> result is always the throwing form.
 ///     </para>
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class LuaGlobalShape
 {
-    /// <summary>Inspects <paramref name="method" />; never throws on malformed (error) symbols.</summary>
+    /// <summary>Inspects <paramref name="method" /> against the resolved SDK <paramref name="luaState" /> symbol.</summary>
     /// <param name="method">The attributed method.</param>
+    /// <param name="luaState">The real Lua runtime state symbol, or <see langword="null" /> when it is unavailable.</param>
     /// <param name="signature">
     ///     What could be classified; complete only when the result is
     ///     <see cref="LuaGlobalShapeIssues.None" />.
     /// </param>
-    public static LuaGlobalShapeIssues Inspect(IMethodSymbol method, out LuaGlobalSignature signature)
+    public static LuaGlobalShapeIssues Inspect(IMethodSymbol method, INamedTypeSymbol? luaState,
+        out LuaGlobalSignature signature)
     {
         var issues = InspectMethod(method);
 
         ParameterWalk walk = new();
-        issues |= walk.Run(method.Parameters);
+        issues |= walk.Run(method.Parameters, luaState);
 
         EquatableArray<LuaResultModel> results = new(walk.Results.ToImmutable());
         var form = results.IsEmpty ? LuaCallForm.Throwing : LuaCallForm.Try;
@@ -111,7 +119,7 @@ internal static class LuaGlobalShape
 
         public ImmutableArray<LuaResultModel>.Builder Results { get; } = ImmutableArray.CreateBuilder<LuaResultModel>();
 
-        public LuaGlobalShapeIssues Run(ImmutableArray<IParameterSymbol> parameters)
+        public LuaGlobalShapeIssues Run(ImmutableArray<IParameterSymbol> parameters, INamedTypeSymbol? luaState)
         {
             var issues = LuaGlobalShapeIssues.None;
             for (var i = 0; i < parameters.Length; i++)
@@ -129,7 +137,7 @@ internal static class LuaGlobalShape
                 else if (LuaValueKindMapper.IsSpanOfByte(parameter.Type))
                     issues |= AddCopyOutResult(parameters, ref i);
                 else
-                    issues |= AddArgument(parameter, i);
+                    issues |= AddArgument(parameter, i, luaState);
             }
 
             return issues;
@@ -162,10 +170,10 @@ internal static class LuaGlobalShape
         }
 
         // A by-value parameter: an argument, or the leading state.
-        private LuaGlobalShapeIssues AddArgument(IParameterSymbol parameter, int index)
+        private LuaGlobalShapeIssues AddArgument(IParameterSymbol parameter, int index, INamedTypeSymbol? luaState)
         {
             var issues = _inResults ? LuaGlobalShapeIssues.ResultBeforeArgument : LuaGlobalShapeIssues.None;
-            if (LuaValueKindMapper.IsLuaState(parameter.Type))
+            if (LuaValueKindMapper.IsLuaState(parameter.Type, luaState))
             {
                 if (index != 0) return issues | LuaGlobalShapeIssues.StateParameterNotFirst;
                 StateParameterName = Identifiers.Escape(parameter.Name);

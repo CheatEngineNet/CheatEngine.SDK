@@ -18,7 +18,8 @@ public sealed class LuaGlobalCallEmitterTests
             "public static",
             "TryReadInt32",
             string.Empty,
-            new EquatableArray<LuaArgumentModel>([new LuaArgumentModel("address", LuaValueKind.Address, false)]),
+            new EquatableArray<LuaArgumentModel>(
+                [new LuaArgumentModel("address", LuaValueKind.Address, IsNullable: false)]),
             LuaCallForm.Try,
             new EquatableArray<LuaResultModel>([LuaResultModel.Value(LuaValueKind.Int32, "value")]),
             null,
@@ -28,7 +29,8 @@ public sealed class LuaGlobalCallEmitterTests
             """
                 public static bool TryReadInt32(nuint address, out int value)
                 {
-                    global::CheatEngine.SDK.Lua.State.LuaState __L = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+                    using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation();
+                    global::CheatEngine.SDK.Lua.State.LuaState __L = __operation.State;
                     int __top = __L.Top;
                     try
                     {
@@ -80,7 +82,8 @@ public sealed class LuaGlobalCallEmitterTests
             """
                 internal static void Beep()
                 {
-                    global::CheatEngine.SDK.Lua.State.LuaState __L = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+                    using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation();
+                    global::CheatEngine.SDK.Lua.State.LuaState __L = __operation.State;
                     int __top = __L.Top;
                     try
                     {
@@ -125,12 +128,19 @@ public sealed class LuaGlobalCallEmitterTests
 
         var text = Emit(model);
         Assert.StartsWith(
-            "public static string? ReadString(global::CheatEngine.SDK.Lua.State.LuaState L, nuint address, string? text)\n", text,
+            "public static string? ReadString(global::CheatEngine.SDK.Lua.State.LuaState L, nuint address, string? text)\n",
+            text,
             StringComparison.Ordinal);
-        Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState __L = L;\n", text, StringComparison.Ordinal);
+        Assert.Contains(
+            "using global::CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation __operation = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation(L);\n",
+            text,
+            StringComparison.Ordinal);
+        Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState __L = __operation.State;\n", text,
+            StringComparison.Ordinal);
         Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller.Push(__L, text);\n", text,
             StringComparison.Ordinal);
-        Assert.Contains("if (!global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller.TryRead(__L, -1, out string? __result))\n",
+        Assert.Contains(
+            "if (!global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller.TryRead(__L, -1, out string? __result))\n",
             text,
             StringComparison.Ordinal);
         Assert.Contains("ThrowUnexpectedResult(__L, __top, -1, \"readString\", \"a string\");", text,
@@ -175,8 +185,8 @@ public sealed class LuaGlobalCallEmitterTests
     public void ResultCount_follows_the_form()
     {
         LuaGlobalCallModel throwingVoid = new("g", "s", "static", "G", string.Empty,
-            EquatableArray<LuaArgumentModel>.Empty, LuaCallForm.Throwing, EquatableArray<LuaResultModel>.Empty, null,
-            false);
+            EquatableArray<LuaArgumentModel>.Empty, LuaCallForm.Throwing, EquatableArray<LuaResultModel>.Empty,
+            ReturnKind: null, ReturnIsNullable: false);
         var throwingValue = throwingVoid with { ReturnKind = LuaValueKind.Double };
 
         Assert.Equal(0, throwingVoid.ResultCount);

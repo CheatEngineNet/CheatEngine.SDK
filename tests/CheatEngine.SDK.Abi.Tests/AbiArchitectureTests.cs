@@ -25,7 +25,7 @@ public sealed class AbiArchitectureTests
     [Fact]
     public void ThrowIfUnsupported_for_x64_does_not_throw()
     {
-        AbiArchitecture.ThrowIfUnsupported(Architecture.X64);
+        Assert.Null(Record.Exception(static () => AbiArchitecture.ThrowIfUnsupported(Architecture.X64)));
     }
 
     [Fact]

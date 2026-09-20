@@ -50,7 +50,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var tryRead = LoadSuite().Delegate<TryReadInt32Delegate>(BindingsType, "TryReadInt32");
+        var tryRead = LoadSuite(roslyn).Delegate<TryReadInt32Delegate>(BindingsType, "TryReadInt32");
 
         Assert.True(tryRead(0x1000, out var value));
         Assert.Equal(42, value);
@@ -75,7 +75,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        var read = LoadSuite().Delegate<ReadInt32Delegate>(BindingsType, "ReadInt32");
+        var read = LoadSuite(roslyn).Delegate<ReadInt32Delegate>(BindingsType, "ReadInt32");
 
         // Exit 1: the global is not defined yet.
         var unresolved = Assert.Throws<LuaException>(() => read(0x1000));
@@ -109,7 +109,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         var copyOut = assembly.Delegate<TryReadStringCopyDelegate>(BindingsType, "TryReadString");
         var asString = assembly.Delegate<TryReadStringDelegate>(BindingsType, "TryReadString");
         var throwing = assembly.Delegate<ReadStringDelegate>(BindingsType, "ReadString");
@@ -141,7 +141,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         var beep = assembly.Delegate<BeepDelegate>(BindingsType, "Beep");
         var isKeyPressed = assembly.Delegate<IsKeyPressedDelegate>(BindingsType, "IsKeyPressed");
 
@@ -170,7 +170,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         var divide = assembly.Delegate<TryDivideDelegate>(BindingsType, "TryDivide");
         var describe = assembly.Delegate<TryDescribeDelegate>(BindingsType, "TryDescribe");
 
@@ -196,7 +196,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         LuaTest.Run(L, StandIns);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         var add = assembly.Delegate<AddOnDelegate>(BindingsType, "AddOn");
         var tryAdd = assembly.Delegate<TryAddOnDelegate>(BindingsType, "TryAddOn");
 
@@ -216,7 +216,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         var upper = assembly.Delegate<UpperDelegate>(BindingsType, "Upper");
         var upperOrNull = assembly.Delegate<UpperOrNullDelegate>(BindingsType, "UpperOrNull");
 
@@ -234,7 +234,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
     {
         LuaTest.RequireNativeLua();
         LuaRuntime.Detach();
-        var tryRead = LoadSuite().Delegate<TryReadInt32Delegate>(BindingsType, "TryReadInt32");
+        var tryRead = LoadSuite(roslyn).Delegate<TryReadInt32Delegate>(BindingsType, "TryReadInt32");
 
         Assert.Throws<InvalidOperationException>(() => tryRead(0x1000, out _));
     }
@@ -247,7 +247,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var tryRead = LoadSuite().Delegate<TryReadInt32Delegate>(BindingsType, "TryReadInt32");
+        var tryRead = LoadSuite(roslyn).Delegate<TryReadInt32Delegate>(BindingsType, "TryReadInt32");
         long sink = 0;
 
         AllocationGate.AssertZero(() =>
@@ -271,7 +271,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
         LuaTest.Run(L, StandIns);
-        var copyOut = LoadSuite().Delegate<TryReadStringCopyDelegate>(BindingsType, "TryReadString");
+        var copyOut = LoadSuite(roslyn).Delegate<TryReadStringCopyDelegate>(BindingsType, "TryReadString");
         var buffer = new byte[32];
 
         AllocationGate.AssertZero(() =>
@@ -281,7 +281,7 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
         });
     }
 
-    private GeneratedAssembly LoadSuite()
+    private static GeneratedAssembly LoadSuite(RoslynFixture roslyn)
     {
         return GeneratedAssembly.Load(roslyn.Run(BindingSources.GlobalSuite));
     }

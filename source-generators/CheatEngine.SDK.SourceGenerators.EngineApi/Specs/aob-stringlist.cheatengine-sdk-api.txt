@@ -1,0 +1,13 @@
+# CE 7.7.0.10621 AOB and StringList provenance manifest.
+#
+# Source: installed CE 7.7 celua.txt, SHA-256
+# AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00:
+# AOBScan at lines 668-672 and 840-852; Strings/Stringlist at lines 1156-1179 and 1209-1225.
+#
+# AOBScan returns a caller-owned StringList object. The current EngineApi grammar deliberately has no host-object
+# result kind or ownership declaration, therefore no scalar entry is emitted from this manifest. The manual bindings
+# in libs/CheatEngine.SDK.Engine/Scanning/Aob and Objects/StringList*.cs own the vertical slice until the object-result
+# grammar and collision diagnostics are implemented. Keep this header so the future generated file has one owner.
+
+namespace: CheatEngine.SDK.Engine.Generated
+type: AobStringListBindings

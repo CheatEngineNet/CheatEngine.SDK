@@ -8,7 +8,6 @@ using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Annotations.Threading;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Calls;
-using CheatEngine.SDK.Lua.CompilerServices;
 using CheatEngine.SDK.Lua.Marshalling;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
@@ -452,14 +451,23 @@ public readonly struct CEObject : IEquatable<CEObject>, ICEObject<CEObject>, ILu
     public bool TryGetProperty<TMarshaller, TValue>(ReadOnlySpan<byte> name, [MaybeNullWhen(false)] out TValue value)
         where TMarshaller : struct, ILuaMarshaller<TValue>
     {
-        var state = LuaRuntime.AcquireState();
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
-        // [..] -> [.. obj v]: the object stays under the value; the one SetTop below removes both.
-        if (!TryGetPropertyLeavingObject(state, name).IsOk) return LuaCallSupport.Fail(state, top, out value);
+        value = default!;
+        try
+        {
+            // [..] -> [.. obj v]: the object stays under the value; the one SetTop below removes both.
+            if (!TryGetPropertyLeavingObject(state, name).IsOk) return false;
 
-        var read = TMarshaller.TryRead(state, -1, out value);
-        state.SetTop(top);
-        return read;
+            return TMarshaller.TryRead(state, -1, out value);
+        }
+        finally
+        {
+            // A consumer-supplied marshaller is allowed to throw. It is never allowed to strand the object, result,
+            // or any partial value it pushed on this thread's CE Lua stack.
+            state.SetTop(top);
+        }
     }
 
     /// <summary>
@@ -487,15 +495,21 @@ public readonly struct CEObject : IEquatable<CEObject>, ICEObject<CEObject>, ILu
         where TMarshaller : struct, ILuaMarshaller<TValue>
         where TValue : allows ref struct
     {
-        var state = LuaRuntime.AcquireState();
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
-        // [..] -> [.. obj] -> [.. obj v] -> [.. obj | .. obj err]
-        Push(state);
-        TMarshaller.Push(state, value);
-        if (!state.TrySetField(-2, name).IsOk) return LuaCallSupport.Fail(state, top);
-
-        state.SetTop(top);
-        return true;
+        try
+        {
+            // [..] -> [.. obj] -> [.. obj v] -> [.. obj | .. obj err]
+            Push(state);
+            TMarshaller.Push(state, value);
+            return state.TrySetField(-2, name).IsOk;
+        }
+        finally
+        {
+            // See TryGetProperty<TMarshaller, TValue>: push implementations are consumer code too.
+            state.SetTop(top);
+        }
     }
 
     /// <summary>
@@ -512,14 +526,18 @@ public readonly struct CEObject : IEquatable<CEObject>, ICEObject<CEObject>, ILu
     [RequiresPluginEnabled]
     public bool TryCallMethod(ReadOnlySpan<byte> name)
     {
-        var state = LuaRuntime.AcquireState();
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
-        // [..] -> [.. obj f] -> [.. obj | .. obj err]
-        if (!TryPushMethodLeavingObject(state, name).IsOk || !state.TryCall(0, 0).IsOk)
-            return LuaCallSupport.Fail(state, top);
-
-        state.SetTop(top);
-        return true;
+        try
+        {
+            // [..] -> [.. obj f] -> [.. obj | .. obj err]
+            return TryPushMethodLeavingObject(state, name).IsOk && state.TryCall(0, 0).IsOk;
+        }
+        finally
+        {
+            state.SetTop(top);
+        }
     }
 
     /// <summary>
@@ -545,15 +563,22 @@ public readonly struct CEObject : IEquatable<CEObject>, ICEObject<CEObject>, ILu
     public bool TryCallMethod<TMarshaller, TResult>(ReadOnlySpan<byte> name, [MaybeNullWhen(false)] out TResult result)
         where TMarshaller : struct, ILuaMarshaller<TResult>
     {
-        var state = LuaRuntime.AcquireState();
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
         var top = state.Top;
-        // [..] -> [.. obj f] -> [.. obj r | .. obj err]
-        if (!TryPushMethodLeavingObject(state, name).IsOk || !state.TryCall(0, 1).IsOk)
-            return LuaCallSupport.Fail(state, top, out result);
+        result = default!;
+        try
+        {
+            // [..] -> [.. obj f] -> [.. obj r | .. obj err]
+            if (!TryPushMethodLeavingObject(state, name).IsOk || !state.TryCall(0, 1).IsOk) return false;
 
-        var read = TMarshaller.TryRead(state, -1, out result);
-        state.SetTop(top);
-        return read;
+            return TMarshaller.TryRead(state, -1, out result);
+        }
+        finally
+        {
+            // A result marshaller can run arbitrary managed code. The stack postcondition does not rely on it returning.
+            state.SetTop(top);
+        }
     }
 
     // After a protected set the object sits under nothing (success) or under the error value (failure).

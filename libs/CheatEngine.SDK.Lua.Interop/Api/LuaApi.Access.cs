@@ -121,7 +121,8 @@ public static unsafe partial class LuaApi
     }
 
     /// <summary>
-    ///     <c>int lua_toboolean (lua_State *L, int idx)</c>. 0 for <c>false</c>, nil and none; 1 for every other value
+    ///     <c>int lua_toboolean (lua_State *L, int idx)</c>. 0 for <see langword="false" />, nil and none; 1 for every other
+    ///     value
     ///     (including 0 and "").
     /// </summary>
     /// <param name="L">The state.</param>
@@ -158,7 +159,7 @@ public static unsafe partial class LuaApi
     /// </summary>
     /// <param name="L">The state.</param>
     /// <param name="idx">Acceptable index.</param>
-    /// <remarks>Stack: -0 +0. Raises: never. The native return type is <c>size_t</c>, not <c>int</c>.</remarks>
+    /// <remarks>Stack: -0 +0. Raises: never. The native return type is <c>size_t</c>, not <see langword="int" />.</remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static size_t lua_rawlen(lua_State* L, int idx)
     {

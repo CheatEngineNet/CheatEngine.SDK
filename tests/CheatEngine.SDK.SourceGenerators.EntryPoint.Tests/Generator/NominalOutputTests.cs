@@ -62,7 +62,7 @@ public sealed class NominalOutputTests(RoslynFixture roslyn) : IClassFixture<Ros
         Assert.Equal(Accessibility.Internal, entryPoint.DeclaredAccessibility);
 
         var initialize =
-            Assert.IsAssignableFrom<IMethodSymbol>(Assert.Single(entryPoint.GetMembers("CEPluginInitialize")));
+            Assert.IsType<IMethodSymbol>(Assert.Single(entryPoint.GetMembers("CEPluginInitialize")), false);
         Assert.True(initialize.IsStatic);
         Assert.Equal(Accessibility.Public, initialize.DeclaredAccessibility);
         Assert.Equal(SpecialType.System_Int32, initialize.ReturnType.SpecialType);

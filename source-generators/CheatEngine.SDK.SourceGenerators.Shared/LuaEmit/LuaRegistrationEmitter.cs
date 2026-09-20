@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 
@@ -20,6 +21,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///         a function value can still call it, which is safe because the method exists for the life of the assembly.
 ///     </para>
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class LuaRegistrationEmitter
 {
     /// <summary>Name of the generated registration method.</summary>

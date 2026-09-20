@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Language">
+    <!-- C# 14 is the repository language contract, including shipping libraries, tests and Roslyn components. -->
+    <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
@@ -34,8 +36,8 @@
     <IsPackable>false</IsPackable>
     <!-- MinVer derives the version from the nearest v* tag, so CI must fetch full history and tags. -->
     <MinVerTagPrefix>v</MinVerTagPrefix>
-    <!-- Floor for commits no v* tag covers yet, which build as 0.3.0-alpha.0.N. Raise it to open the next minor or major line, and never above the line of the tag being released. -->
-    <MinVerMinimumMajorMinor>0.3</MinVerMinimumMajorMinor>
+    <!-- Floor for commits no v* tag covers yet, which build as 1.0.0-alpha.0.N. Raise it to open the next minor or major line, and never above the line of the tag being released. -->
+    <MinVerMinimumMajorMinor>1.0</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
   <!-- Keyed on the project name only, so the props phase is early enough. -->

@@ -24,6 +24,12 @@ internal static class EntryPointTrackingNames
     /// <summary><c>Combine</c> of <see cref="Plugins" /> and <see cref="Options" />.</summary>
     public const string PluginsAndOptions = Prefix + "PluginsAndOptions";
 
+    /// <summary>Checks whether user source already owns the host-mandated generated type identity.</summary>
+    public const string EntryPointTypeCollision = Prefix + "EntryPointTypeCollision";
+
+    /// <summary>Combines candidate plugins, the build switch and the generated-type collision result.</summary>
+    public const string PluginsOptionsAndCollision = Prefix + "PluginsOptionsAndCollision";
+
     /// <summary>The final <c>BootstrapModel</c> (or null): the only input of the source output.</summary>
     public const string Bootstrap = Prefix + "Bootstrap";
 
@@ -31,5 +37,9 @@ internal static class EntryPointTrackingNames
 
     /// <summary>All of the above, for tests that must not miss a step.</summary>
     public static readonly ImmutableArray<string> All =
-        [Plugin, CollectedPlugins, Plugins, Options, PluginsAndOptions, Bootstrap];
+    [
+        Plugin, CollectedPlugins, Plugins, Options, PluginsAndOptions, EntryPointTypeCollision,
+        PluginsOptionsAndCollision,
+        Bootstrap,
+    ];
 }

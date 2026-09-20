@@ -5,14 +5,16 @@ using Microsoft.CodeAnalysis;
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 
 /// <summary>
-///     Maps a type symbol to the <see cref="LuaValueKind" /> a marshaller of <c>CheatEngine.SDK.Lua</c> handles, and recognises
-///     the three other types the binding shapes know: <c>CheatEngine.SDK.Lua.State.LuaState</c>, <c>ReadOnlySpan&lt;byte&gt;</c> and
+///     Maps a type symbol to the <see cref="LuaValueKind" /> a marshaller of <c>CheatEngine.SDK.Lua</c> handles, and
+///     recognises
+///     the three other types the binding shapes know: <c>CheatEngine.SDK.Lua.State.LuaState</c>,
+///     <c>ReadOnlySpan&lt;byte&gt;</c> and
 ///     <c>Span&lt;byte&gt;</c>. Part of the shape-validation source that the CESDK2xxx analyzer links.
 /// </summary>
 /// <remarks>
-///     Types are recognised by special type or by name and namespace while looking at the symbol alone, never through
-///     <c>Compilation.GetTypeByMetadataName</c> (which returns <see langword="null" /> when two references define a
-///     type), so that the decision depends on nothing but the symbol.
+///     Scalar values and spans are recognised from their language/runtime symbols. <c>LuaState</c> is different: it is
+///     accepted only when it is the symbol resolved from the actual SDK Lua assembly. A matching namespace and type
+///     name in the consumer's source or another assembly is never a runtime capability.
 /// </remarks>
 internal static class LuaValueKindMapper
 {
@@ -65,25 +67,10 @@ internal static class LuaValueKindMapper
         return false;
     }
 
-    /// <summary>Whether <paramref name="type" /> is <c>CheatEngine.SDK.Lua.State.LuaState</c>.</summary>
-    public static bool IsLuaState(ITypeSymbol type)
+    /// <summary>Whether <paramref name="type" /> is the resolved SDK <c>LuaState</c> symbol.</summary>
+    public static bool IsLuaState(ITypeSymbol type, INamedTypeSymbol? expectedLuaState)
     {
-        return type is INamedTypeSymbol
-        {
-            Name: "LuaState", Arity: 0, ContainingType: null, ContainingNamespace:
-            {
-                Name: "State",
-                ContainingNamespace:
-                {
-                    Name: "Lua",
-                    ContainingNamespace:
-                    {
-                        Name: "SDK",
-                        ContainingNamespace: { Name: "CheatEngine", ContainingNamespace.IsGlobalNamespace: true }
-                    }
-                }
-            }
-        };
+        return expectedLuaState is not null && SymbolEqualityComparer.Default.Equals(type, expectedLuaState);
     }
 
     /// <summary>Whether <paramref name="type" /> is <c>System.ReadOnlySpan&lt;byte&gt;</c>.</summary>

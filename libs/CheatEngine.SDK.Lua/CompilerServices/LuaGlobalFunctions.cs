@@ -9,29 +9,27 @@ using CheatEngine.SDK.Lua.State;
 namespace CheatEngine.SDK.Lua.CompilerServices;
 
 /// <summary>
-///     Generator-facing: pushes a global function through a lazily resolved, epoch-checked <see cref="LuaRef" />, so that
+///     Generator-facing: pushes a global function through a lazily resolved, state-identity-checked <see cref="LuaRef" />,
+///     so that
 ///     a bound global is read from the SDK's private reference table after the first call. Not meant to be called by hand.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Hot path</b> (<see cref="TryPush" />): a reference lookup synchronized with release and an epoch comparison.
-///         <b>Cold path</b> (first use, or the epoch has
-///         advanced since the reference was resolved): a protected read of the global (
-///         <see cref="LuaState.TryGetGlobal" />),
-    ///         a type check (the value must be a function) and a private-table reference, under a lock so that two threads
-    ///         resolving the
-///         same global do not both take a slot. A stale slot from a previous epoch is never released: its registry may be
-///         gone or reused, so it is simply forgotten (one slot per epoch per global, in the rare case that the host
-///         re-attaches
-///         without resetting its state).
+///         <b>Hot path</b> (<see cref="TryPush" />): a reference lookup synchronized with release and a complete Lua state
+///         identity comparison. <b>Cold path</b> (first use, or the state identity has advanced since the reference was
+///         resolved): a protected read of the global (<see cref="LuaState.TryGetGlobal" />), a type check (the value must
+///         be a function) and a private-table reference, under a lock so that two threads resolving the same global do
+///         not both take a slot. A stale slot from a previous state identity is never released: its registry may be gone
+///         or
+///         reused, so it is simply forgotten.
 ///     </para>
 ///     <para>
 ///         A cached reference binds to the function value at resolve time: a script that later replaces the global is not
-///         seen until the next epoch. That is the intended trade.
+///         seen until the next state identity. That is the intended trade.
 ///     </para>
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public static unsafe class LuaGlobalFunctions
+public static class LuaGlobalFunctions
 {
     private static readonly Lock SResolveGate = new();
 
@@ -53,6 +51,7 @@ public static unsafe class LuaGlobalFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryPush(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
     {
+        using var operation = LuaRuntime.EnterStateOperation(state);
         if (state.TryPushRef(cache))
         {
             if (state.IsFunction(-1)) return true;
@@ -66,7 +65,9 @@ public static unsafe class LuaGlobalFunctions
     private static bool Resolve(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
     {
         var top = state.Top;
-        var epoch = LuaRuntime.Epoch;
+        // Capture both the attachment epoch and state generation before Lua can run. A globals __index handler can
+        // execute a supported in-place reset, which preserves the attach epoch but makes old registry slots unsafe.
+        var identity = LuaRuntime.CurrentStateIdentity;
         // A globals __index handler can execute arbitrary Lua, including a cross-thread synchronize call.
         // Do not hold the resolution gate while it runs.
         var status = state.TryGetGlobal(name);
@@ -78,7 +79,7 @@ public static unsafe class LuaGlobalFunctions
 
         lock (SResolveGate)
         {
-            if (epoch != LuaRuntime.Epoch)
+            if (identity != LuaRuntime.CurrentStateIdentity)
             {
                 state.SetTop(top);
                 return false;
@@ -92,6 +93,7 @@ public static unsafe class LuaGlobalFunctions
                     state.Remove(-2);
                     return true;
                 }
+
                 state.Pop(1);
             }
 
@@ -102,7 +104,10 @@ public static unsafe class LuaGlobalFunctions
                 state.SetTop(top);
                 return false;
             }
-            cache.Rebind(reference, epoch);
+
+            // Use the snapshot from before TryGetGlobal. Rebinding an old slot with the current generation would make it
+            // appear usable after a reset that ran from __index.
+            cache.Rebind(reference, identity);
             return true;
         }
     }

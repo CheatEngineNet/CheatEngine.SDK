@@ -37,7 +37,7 @@ internal static class AnalyzerVerifier<TAnalyzer>
     public static Task VerifyWithBuildPropertyAsync(string name, string value, string source,
         params DiagnosticResult[] expected)
     {
-        CheatEngineSdkAnalyzerTest<TAnalyzer> test = new();
+        CheatEngineSdkAnalyzerTest<TAnalyzer> test = new(applyDirectPackageDefaults: false);
         test.TestState.AnalyzerConfigFiles.Add(("/.globalconfig",
             TestText.Normalize($"is_global = true\nbuild_property.{name} = {value}\n")));
         return RunAsync(test, [("Test0.cs", source)], expected);
@@ -46,7 +46,10 @@ internal static class AnalyzerVerifier<TAnalyzer>
     /// <summary>Verifies a project that does not reference CheatEngine.SDK at all: the analyzers must stay out of the way.</summary>
     public static Task VerifyWithoutCheatEngineSdkAsync(string source, params DiagnosticResult[] expected)
     {
-        return RunAsync(new CheatEngineSdkAnalyzerTest<TAnalyzer>(false), [("Test0.cs", source)], expected);
+        return RunAsync(
+            new CheatEngineSdkAnalyzerTest<TAnalyzer>(referenceCheatEngineSdk: false),
+            [("Test0.cs", source)],
+            expected);
     }
 
     private static Task RunAsync(CheatEngineSdkAnalyzerTest<TAnalyzer> test, (string FileName, string Source)[] sources,

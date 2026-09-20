@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    The packaged bridge and the supported Cheat Engine host are Windows x64 only. An AnyCPU library (or one with an
+    unset PlatformTarget) is valid because the x64 host selects the process architecture; every explicit architecture
+    other than x64 is incompatible before compilation starts.
+  -->
+  <Target Name="CheatEngineSdkRequireX64Platform"
+          BeforeTargets="BeforeBuild"
+          Condition="'$(PlatformTarget)' != '' and '$(PlatformTarget)' != 'AnyCPU' and '$(PlatformTarget)' != 'x64'">
+    <Error Code="CESDK9101"
+           Text="$(MSBuildProjectName) targets PlatformTarget=$(PlatformTarget). Cheat Engine and the packaged Lua protection bridge support Windows x64 only: set &lt;PlatformTarget&gt;x64&lt;/PlatformTarget&gt;, set &lt;PlatformTarget&gt;AnyCPU&lt;/PlatformTarget&gt;, or leave PlatformTarget unset."/>
+  </Target>
+</Project>

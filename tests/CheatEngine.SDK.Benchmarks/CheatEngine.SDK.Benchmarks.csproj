@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet"/>
+    <!-- The incremental-generator benchmark executes the repository's EngineApi generator in-process. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
   </ItemGroup>
 
   <!-- Direct references to the libs, not to src/CheatEngine.SDK: it embeds them with PrivateAssets=all, so their types do not flow through it (CS0234). -->
@@ -19,6 +21,8 @@
     <ProjectReference Include="../../libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
     <ProjectReference Include="../../libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
     <ProjectReference Include="../../libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj"/>
+    <!-- A normal runtime reference, deliberately distinct from the analyzer reference used to generate BenchGlobals. -->
+    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/CheatEngine.SDK.SourceGenerators.EngineApi.csproj"/>
   </ItemGroup>
 
   <!-- Generated call shapes need the LuaBindings generator. -->

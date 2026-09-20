@@ -5,12 +5,15 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 /// <summary>
 ///     Every independent reason a class marked <c>[CheatEnginePlugin]</c> cannot be constructed by the generated entry
 ///     point: <c>new global::&lt;type&gt;()</c>, evaluated from a top-level type of the same assembly, in another file,
-///     must compile without an object initializer and must yield a <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c>.
+///     must compile without an object initializer and must yield a <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c>
+///     .
 /// </summary>
 /// <remarks>
 ///     The single source of truth for both consumers of <see cref="PluginShape" />: the
-///     <c>CheatEngine.SDK.SourceGenerators.EntryPoint</c> generator only tests <see cref="None" /> to decide whether to stay
-///     silent, and analyzer rule CESDK0001 (<c>CheatEngine.SDK.Analyzers</c>) reports one diagnostic per flag that is set, in a
+///     <c>CheatEngine.SDK.SourceGenerators.EntryPoint</c> generator only tests <see cref="None" /> to decide whether to
+///     stay
+///     silent, and analyzer rule CESDK0001 (<c>CheatEngine.SDK.Analyzers</c>) reports one diagnostic per flag that is set,
+///     in a
 ///     fixed order, with its own message text per flag. A flags enum (not a list of diagnostics) keeps the shared
 ///     predicate free of anything analyzer- or generator-specific.
 /// </remarks>
@@ -33,11 +36,10 @@ internal enum PluginShapeIssues
     NestedInGeneric = 1 << 3,
 
     /// <summary>
-    ///     No base class is named <c>CheatEnginePlugin</c> in namespace <c>CheatEngine.SDK.Hosting.Plugin</c>. Checked
-    ///     structurally (name and namespace of each symbol in the base-type chain), not by resolving
-    ///     <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> and comparing symbols: the decision then depends on nothing but
-    ///     the symbol it is given, which also lets the entry-point generator use it from inside a per-node transform
-    ///     without combining with the compilation.
+    ///     No base class is the resolved <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> symbol in the base-type
+    ///     chain. Current generators and analyzers pass that symbol from the referenced SDK assembly, so a same-named
+    ///     source or foreign-reference type cannot impersonate it. The legacy structural fallback exists only for older
+    ///     internal callers that have not supplied a symbol.
     /// </summary>
     NotDerivedFromPluginBase = 1 << 4,
 
@@ -51,14 +53,15 @@ internal enum PluginShapeIssues
     FileLocal = 1 << 6,
 
     /// <summary>
-    ///     Constructors are declared, and none of them is callable with an empty argument list: neither a literally
-    ///     parameterless constructor, nor one whose every parameter is optional or ends in <see langword="params" />.
+    ///     Constructors are declared, and none of them has zero parameters. A constructor with optional or
+    ///     <see langword="params" /> parameters is not the explicit parameterless construction contract the generated
+    ///     factory requires.
     /// </summary>
     MissingParameterlessConstructor = 1 << 7,
 
     /// <summary>
-    ///     A constructor callable with an empty argument list exists, but every such constructor is
-    ///     <see langword="private" />, <see langword="protected" /> or <see langword="private protected" />.
+    ///     A real zero-parameter constructor exists, but every such constructor is <see langword="private" />,
+    ///     <see langword="protected" /> or <see langword="private protected" />.
     /// </summary>
     InaccessibleParameterlessConstructor = 1 << 8,
 

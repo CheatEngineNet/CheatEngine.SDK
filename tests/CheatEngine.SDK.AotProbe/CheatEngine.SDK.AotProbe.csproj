@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- This is a standalone publication probe, not a Cheat Engine plugin artifact. -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
+    <SelfContained>true</SelfContained>
+    <PublishAot>true</PublishAot>
+    <PublishTrimmed>true</PublishTrimmed>
+    <IsAotCompatible>true</IsAotCompatible>
+    <VerifyReferenceAotCompatibility>true</VerifyReferenceAotCompatibility>
+    <!-- Native AOT emits the Windows symbol file separately; embedded PDBs are for CE-hosted IL plugins. -->
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Together these references build and analyze every shipping SDK library without making an AOT plugin claim. -->
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj"/>
+  </ItemGroup>
+
+</Project>

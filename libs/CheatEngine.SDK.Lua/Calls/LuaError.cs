@@ -66,8 +66,7 @@ public readonly struct LuaError(LuaStatus status, string message) : IEquatable<L
                 var typeName = Encoding.UTF8.GetString(
                     MemoryMarshal.CreateReadOnlySpanFromNullTerminated(LuaApi.lua_typename(state.Pointer,
                         (int)state.TypeOf(-1))));
-                return new LuaError(status,
-                    string.Create(CultureInfo.InvariantCulture, $"(error object is a {typeName} value)"));
+                return new LuaError(status, $"(error object is a {typeName} value)");
         }
     }
 

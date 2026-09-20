@@ -4,7 +4,8 @@ using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.SharedCode;
 
 /// <summary>
-///     The per-kind facts of <c>CheatEngine.SDK.SourceGenerators.Shared.LuaEmit.LuaValueKinds</c>: each kind maps to one real
+///     The per-kind facts of <c>CheatEngine.SDK.SourceGenerators.Shared.LuaEmit.LuaValueKinds</c>: each kind maps to one
+///     real
 ///     marshaller of <c>CheatEngine.SDK.Lua</c>.
 /// </summary>
 public sealed class LuaValueKindsTests
@@ -15,8 +16,10 @@ public sealed class LuaValueKindsTests
     [InlineData("Single", "global::CheatEngine.SDK.Lua.Marshalling.SingleMarshaller", "float", "number", "a number")]
     [InlineData("Double", "global::CheatEngine.SDK.Lua.Marshalling.DoubleMarshaller", "double", "number", "a number")]
     [InlineData("Boolean", "global::CheatEngine.SDK.Lua.Marshalling.BooleanMarshaller", "bool", "boolean", "a boolean")]
-    [InlineData("Address", "global::CheatEngine.SDK.Lua.Marshalling.AddressMarshaller", "nuint", "integer", "an integer")]
-    [InlineData("Utf8", "global::CheatEngine.SDK.Lua.Marshalling.Utf8Marshaller", "global::System.ReadOnlySpan<byte>", "string",
+    [InlineData("Address", "global::CheatEngine.SDK.Lua.Marshalling.AddressMarshaller", "nuint", "integer",
+        "an integer")]
+    [InlineData("Utf8", "global::CheatEngine.SDK.Lua.Marshalling.Utf8Marshaller", "global::System.ReadOnlySpan<byte>",
+        "string",
         "a string")]
     [InlineData("String", "global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller", "string", "string", "a string")]
     public void Kind_maps_to_marshaller_type_and_words(string kindName, string marshaller, string typeName,

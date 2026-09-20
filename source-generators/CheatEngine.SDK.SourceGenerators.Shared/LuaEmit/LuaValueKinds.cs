@@ -35,8 +35,9 @@ internal static class LuaValueKinds
     }
 
     /// <summary>
-    ///     The C# type as generated code spells it: the keyword for the primitives (<c>int</c>, <c>nuint</c>, ...),
-    ///     <c>global::</c>-qualified for the span, <c>string</c> or <c>string?</c> for text.
+    ///     The C# type as generated code spells it: the keyword for the primitives (<see langword="int" />,
+    ///     <see langword="nuint" />, ...),
+    ///     <c>global::</c>-qualified for the span, <see langword="string" /> or <see langword="string" />? for text.
     /// </summary>
     /// <param name="kind">The kind.</param>
     /// <param name="isNullable">
@@ -60,8 +61,9 @@ internal static class LuaValueKinds
     }
 
     /// <summary>
-    ///     The Lua type a thunk expects for an argument of this kind, in Lua's own words (<c>integer</c>, <c>number</c>,
-    ///     <c>boolean</c>, <c>string</c>).
+    ///     The Lua type a thunk expects for an argument of this kind, in Lua's own words
+    ///     (<c language="lua">integer</c>, <c language="lua">number</c>, <c language="lua">boolean</c>,
+    ///     <c language="lua">string</c>).
     /// </summary>
     public static string ExpectedArgument(LuaValueKind kind)
     {

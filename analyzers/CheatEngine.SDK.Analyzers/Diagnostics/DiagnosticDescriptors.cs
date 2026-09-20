@@ -40,6 +40,20 @@ internal static class DiagnosticDescriptors
         HelpLinkBase + DiagnosticIds.MultiplePluginClasses + ".md",
         WellKnownDiagnosticTags.CompilationEnd);
 
+    /// <summary>CESDK0003 (compilation end). Message argument: the missing manual-bootstrap requirement.</summary>
+    public static readonly DiagnosticDescriptor InvalidManualBootstrap = new(
+        DiagnosticIds.InvalidManualBootstrap,
+        "Manual Cheat Engine bootstrap is missing or malformed",
+        "Entry-point generation is disabled, but {0}",
+        DiagnosticCategories.Plugin,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        "When CheatEngineSdkGenerateEntryPoint is false, the assembly itself must provide the exact host entry point: "
+        + "a static CESDK.CESDK type whose public static CEPluginInitialize(System.IntPtr, int) method returns int. "
+        + "Cheat Engine looks up that identity by name and does not discover alternatives.",
+        HelpLinkBase + DiagnosticIds.InvalidManualBootstrap + ".md",
+        WellKnownDiagnosticTags.CompilationEnd);
+
     /// <summary>CESDK0004 (compilation end). Message argument: the declared namespace.</summary>
     public static readonly DiagnosticDescriptor ReservedNamespace = new(
         DiagnosticIds.ReservedNamespace,
@@ -56,6 +70,46 @@ internal static class DiagnosticDescriptors
         HelpLinkBase + DiagnosticIds.ReservedNamespace + ".md",
         WellKnownDiagnosticTags.CompilationEnd);
 
+    /// <summary>CESDK0005 (compilation end). Message argument: the colliding source type.</summary>
+    public static readonly DiagnosticDescriptor GeneratedEntryPointCollision = new(
+        DiagnosticIds.GeneratedEntryPointCollision,
+        "Source type collides with the generated Cheat Engine entry point",
+        "Type '{0}' is declared by user code, but entry-point generation also emits CESDK.CESDK. Remove the type or disable generation and provide the complete manual bootstrap.",
+        DiagnosticCategories.Plugin,
+        DiagnosticSeverity.Error,
+        true,
+        "A generated plugin entry point always owns the type CESDK.CESDK. A user-authored type with that exact metadata "
+        + "identity makes the compilation ambiguous or duplicate the host entry point. Either let the generator own it, "
+        + "or disable generation and implement the complete manual bootstrap contract.",
+        HelpLinkBase + DiagnosticIds.GeneratedEntryPointCollision + ".md",
+        WellKnownDiagnosticTags.CompilationEnd);
+
+    /// <summary>CESDK1001. Message argument: the enabled-only member called too early.</summary>
+    public static readonly DiagnosticDescriptor RequiresPluginEnabledTooEarly = new(
+        DiagnosticIds.RequiresPluginEnabledTooEarly,
+        "Plugin startup code calls an enabled-only API",
+        "'{0}' requires an enabled plugin and cannot be called from a plugin constructor, field initializer or property initializer",
+        DiagnosticCategories.Usage,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        "Cheat Engine attaches the SDK runtime only after constructing the plugin. An API marked RequiresPluginEnabled "
+        + "therefore fails before OnEnable, including from instance construction and field or property initializers. Move the "
+        + "operation into OnEnable or a method OnEnable calls.",
+        HelpLinkBase + DiagnosticIds.RequiresPluginEnabledTooEarly + ".md");
+
+    /// <summary>CESDK1003. Message argument: the directly borrowed expression.</summary>
+    public static readonly DiagnosticDescriptor DisposeBorrowedValue = new(
+        DiagnosticIds.DisposeBorrowedValue,
+        "A Cheat Engine-owned value is being destroyed",
+        "'{0}' is explicitly marked CEOwned (borrowed) and must not be disposed; only dispose an Owned&lt;T&gt; value you own",
+        DiagnosticCategories.Usage,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        "CEOwned marks a return value, property or parameter as a borrowed view of an object Cheat Engine owns. Calling "
+        + "Dispose or DisposeAsync directly on that value can leave Cheat Engine with a dangling object. Keep it borrowed, "
+        + "or obtain an explicit ownership-transfer contract before disposing it.",
+        HelpLinkBase + DiagnosticIds.DisposeBorrowedValue + ".md");
+
     /// <summary>CESDK1004. Message argument: the method name.</summary>
     public static readonly DiagnosticDescriptor UnguardedUnmanagedCallersOnly = new(
         DiagnosticIds.UnguardedUnmanagedCallersOnly,
@@ -70,17 +124,29 @@ internal static class DiagnosticDescriptors
         + "No catch or finally block of such a try statement may contain a throw or a call of a [DoesNotReturn] method other than Environment.FailFast and Environment.Exit.",
         HelpLinkBase + DiagnosticIds.UnguardedUnmanagedCallersOnly + ".md");
 
+    /// <summary>CESDK1005. Message argument: the lifecycle method name.</summary>
+    public static readonly DiagnosticDescriptor AsyncPluginLifecycle = new(
+        DiagnosticIds.AsyncPluginLifecycle,
+        "Plugin lifecycle callback must not be async void",
+        "'{0}' is an async void lifecycle callback: its continuation can outlive the plugin enable or disable transition",
+        DiagnosticCategories.Usage,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        "Cheat Engine's enable and disable callbacks are synchronous and the host cannot await async void. A continuation may "
+        + "run after teardown, lose exceptions, or touch an invalid Lua state. Keep OnEnable and OnDisable synchronous; use a "
+        + "host-owned, explicitly tracked operation only when the API actually supports asynchronous waiting.",
+        HelpLinkBase + DiagnosticIds.AsyncPluginLifecycle + ".md");
+
     /// <summary>CESDK2001. Message argument: the member name.</summary>
     public static readonly DiagnosticDescriptor UnsafeBlocksRequired = new(
         DiagnosticIds.UnsafeBlocksRequired,
         "Lua binding needs AllowUnsafeBlocks",
-        "'{0}' is a Lua binding, but this compilation does not allow unsafe code (AllowUnsafeBlocks); the generator emits nothing for any [LuaFunction] or [LuaGlobal] member until it is enabled",
+        "'{0}' is a Lua function export, but this compilation does not allow unsafe code (AllowUnsafeBlocks); registration thunks need it",
         DiagnosticCategories.Generation,
         DiagnosticSeverity.Error,
-        true,
-        "The generated registration table takes the address of the [UnmanagedCallersOnly] thunks the LuaBindings generator emits, which needs unsafe code. "
-        + "When the compiling project does not set <AllowUnsafeBlocks>true</AllowUnsafeBlocks>, the generator reads that from the compilation and emits nothing at all for either [LuaFunction] or [LuaGlobal], "
-        + "for every member of every type, valid shapes included. The CheatEngine.SDK package sets it for consumers by default (build/CheatEngine.SDK.props); a project that consumes the analyzers without that prop sets it itself.",
+        isEnabledByDefault: true,
+        "The generated registration table takes the address of the UnmanagedCallersOnly thunks emitted for LuaFunction, which needs unsafe code. "
+        + "LuaGlobal bodies do not take function addresses and therefore remain available without AllowUnsafeBlocks. A project that declares a LuaFunction must explicitly set <AllowUnsafeBlocks>true</AllowUnsafeBlocks>.",
         HelpLinkBase + DiagnosticIds.UnsafeBlocksRequired + ".md");
 
     /// <summary>CESDK2002. Message arguments: the member name, then the sentence fragment describing the problem.</summary>
@@ -97,11 +163,8 @@ internal static class DiagnosticDescriptors
         HelpLinkBase + DiagnosticIds.InvalidLuaBindingContainingType + ".md");
 
     /// <summary>
-    ///     CESDK2003. Message arguments: the method name, then the sentence fragment describing the problem. Reported
-    ///     from both a symbol action (eleven of its twelve <c>LuaFunctionShapeIssues</c> flags) and a compilation-end
-    ///     action (<c>DuplicateName</c>, which needs every sibling member of the containing type); RS1037 requires the
-    ///     <c>CompilationEnd</c> tag whenever any report of an ID comes from a compilation-end action, so it is present
-    ///     here although most reports of this ID are still live.
+    ///     CESDK2003. Message arguments: the method name, then the sentence fragment describing the problem. All reports
+    ///     are local symbol diagnostics. CESDK2005 owns the one compilation-end condition, duplicate Lua names.
     /// </summary>
     public static readonly DiagnosticDescriptor InvalidLuaFunction = new(
         DiagnosticIds.InvalidLuaFunction,
@@ -112,9 +175,8 @@ internal static class DiagnosticDescriptors
         true,
         "A method marked [LuaFunction] must be an ordinary, static, non-generic, non-async method with a valid Lua name; parameters are passed by value, none optional or params, "
         + "each of a marshalled kind (int, long, float, double, bool, nuint, ReadOnlySpan<byte>, string) except an optional leading LuaState; the return type is void or one of the same marshalled kinds. "
-        + "No other [LuaFunction] of the same containing type may register the same name. When any of this is violated the generator emits no thunk for the method, and this rule names the cause.",
-        HelpLinkBase + DiagnosticIds.InvalidLuaFunction + ".md",
-        WellKnownDiagnosticTags.CompilationEnd);
+        + "When any of this is violated the generator emits no thunk for the method, and this rule names the cause.",
+        HelpLinkBase + DiagnosticIds.InvalidLuaFunction + ".md");
 
     /// <summary>CESDK2004. Message arguments: the method name, then the sentence fragment describing the problem.</summary>
     public static readonly DiagnosticDescriptor InvalidLuaGlobal = new(
@@ -129,4 +191,44 @@ internal static class DiagnosticDescriptors
         + "or a copy-out pair Span<byte> destination, out int written). Any out result makes it the Try form, which must return bool; no result makes it the throwing form, "
         + "whose return type is void or a marshalled kind other than ReadOnlySpan<byte>. When any of this is violated the generator emits no body for the method, and this rule names the cause.",
         HelpLinkBase + DiagnosticIds.InvalidLuaGlobal + ".md");
+
+    /// <summary>CESDK2005 (compilation end). Message arguments: the method and duplicated Lua name.</summary>
+    public static readonly DiagnosticDescriptor DuplicateLuaName = new(
+        DiagnosticIds.DuplicateLuaName,
+        "Lua function name is duplicated",
+        "Lua function '{0}' duplicates the Lua name '{1}' in the same containing type; one registration table cannot bind that name twice",
+        DiagnosticCategories.Generation,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        "Two valid LuaFunction methods of one type cannot export the same Lua global name. The generator deliberately emits "
+        + "neither thunk so registration order cannot silently choose one. Give one method a distinct Lua name or move it to "
+        + "another binding type.",
+        HelpLinkBase + DiagnosticIds.DuplicateLuaName + ".md",
+        WellKnownDiagnosticTags.CompilationEnd);
+
+    /// <summary>CESDK2006. Message arguments: the annotated member and its unsupported shape.</summary>
+    public static readonly DiagnosticDescriptor InvalidLuaAnnotationTarget = new(
+        DiagnosticIds.InvalidLuaAnnotationTarget,
+        "Lua annotation target cannot receive generated code",
+        "Lua annotation on '{0}' cannot be generated: {1}",
+        DiagnosticCategories.Generation,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        "LuaClass, LuaMethod and LuaProperty are declarative generator inputs. Their target must have the exact partial "
+        + "borrowed-handle or member shape that the generator can implement. The analyzer reports the invalid declaration at "
+        + "its source location so an unsupported target never silently loses generated code.",
+        HelpLinkBase + DiagnosticIds.InvalidLuaAnnotationTarget + ".md");
+
+    /// <summary>CESDK2007. Message arguments: the member and the generated identity it collides with.</summary>
+    public static readonly DiagnosticDescriptor GeneratedLuaIdentityCollision = new(
+        DiagnosticIds.GeneratedLuaIdentityCollision,
+        "User member collides with a generated Lua binding identity",
+        "Member '{0}' collides with generated identity '{1}'; rename the user member or change the binding declaration",
+        DiagnosticCategories.Generation,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        "Generated Lua bindings add required members such as registration methods, thunk methods, cached globals and LuaClass "
+        + "handle members. A source declaration with the same identity prevents compilation. This rule identifies the user "
+        + "declaration before generated code is emitted.",
+        HelpLinkBase + DiagnosticIds.GeneratedLuaIdentityCollision + ".md");
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using CheatEngine.SDK.Engine.Enums;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Tests.Support;
@@ -58,7 +59,8 @@ public sealed unsafe class CEObjectTests
 
         for (var index = 1; index <= 8; index++)
         {
-            Assert.False(CEObject.TryRead(L, index, out var value), "index " + index + " was read as an object");
+            Assert.False(CEObject.TryRead(L, index, out var value),
+                "index " + index.ToString(CultureInfo.InvariantCulture) + " was read as an object");
             Assert.True(value.IsNull);
         }
 
@@ -385,6 +387,33 @@ public sealed unsafe class CEObjectTests
     }
 
     [Fact]
+    public void Typed_members_restore_the_exact_stack_when_a_consumer_marshaller_throws()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        using LuaFrame frame = new(L);
+        var probe = FakeHost.CreateObject(L, "Probe", "o.props.Count = 3");
+        L.PushInteger(0x1234);
+        var top = L.Top;
+
+        Assert.Throws<InvalidOperationException>(() => probe.TrySetProperty<ThrowingPushMarshaller, int>("Count"u8, 4));
+        Assert.Equal(top, L.Top);
+        Assert.Equal(0x1234, EngineTest.ReadInteger(L, -1));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            probe.TryGetProperty<ThrowingReadMarshaller, int>("Count"u8, out _));
+        Assert.Equal(top, L.Top);
+        Assert.Equal(0x1234, EngineTest.ReadInteger(L, -1));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            probe.TryCallMethod<ThrowingReadMarshaller, int>("getCount"u8, out _));
+        Assert.Equal(top, L.Top);
+        Assert.Equal(0x1234, EngineTest.ReadInteger(L, -1));
+    }
+
+    [Fact]
     public void An_object_travels_as_an_argument_and_comes_back_as_the_same_handle()
     {
         EngineTest.RequireNativeLua();
@@ -434,5 +463,35 @@ public sealed unsafe class CEObjectTests
         L.PushInteger(2);
         Assert.False(list.TryCallMethod(L, "getAddress"u8, 1, 1).IsOk);
         Assert.Equal(frame.Top + 3, L.Top);
+    }
+
+    private readonly struct ThrowingPushMarshaller : ILuaMarshaller<int>
+    {
+        public static void Push(LuaState state, int value)
+        {
+            state.PushInteger(value);
+            throw new InvalidOperationException("The test marshaller failed after pushing a partial value.");
+        }
+
+        public static bool TryRead(LuaState state, int index, out int value)
+        {
+            value = default;
+            return false;
+        }
+    }
+
+    private readonly struct ThrowingReadMarshaller : ILuaMarshaller<int>
+    {
+        public static void Push(LuaState state, int value)
+        {
+            state.PushInteger(value);
+        }
+
+        public static bool TryRead(LuaState state, int index, out int value)
+        {
+            state.PushInteger(0x5678);
+            value = default;
+            throw new InvalidOperationException("The test marshaller failed after creating a partial stack value.");
+        }
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Marshalling;
@@ -79,8 +80,10 @@ public sealed class AddressLuaTests
 
         for (var index = 1; index <= 3; index++)
         {
-            Assert.True(L.TryReadInteger(index, out _), "index " + index + " should be convertible by Lua");
-            Assert.False(Address.TryRead(L, index, out var address), "index " + index + " was read as an address");
+            Assert.True(L.TryReadInteger(index, out _),
+                "index " + index.ToString(CultureInfo.InvariantCulture) + " should be convertible by Lua");
+            Assert.False(Address.TryRead(L, index, out var address),
+                "index " + index.ToString(CultureInfo.InvariantCulture) + " was read as an address");
             Assert.Equal(Address.Zero, address);
             Assert.Equal(LuaType.String, L.TypeOf(index));
         }

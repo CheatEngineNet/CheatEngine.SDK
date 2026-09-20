@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -41,7 +42,10 @@ internal sealed class GeneratedAssembly
         Assert.True(result.Success, "The output compilation does not emit:\n" + string.Join('\n', result.Diagnostics));
         image.Position = 0;
 
-        AssemblyLoadContext context = new("CheatEngine.SDK.LuaBindings.Tests." + Interlocked.Increment(ref s_counter));
+        var name = string.Create(
+            CultureInfo.InvariantCulture,
+            $"CheatEngine.SDK.LuaBindings.Tests.{Interlocked.Increment(ref s_counter)}");
+        AssemblyLoadContext context = new(name);
         return new GeneratedAssembly(context.LoadFromStream(image));
     }
 

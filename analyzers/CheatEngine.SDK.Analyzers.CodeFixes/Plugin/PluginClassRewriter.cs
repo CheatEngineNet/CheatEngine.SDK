@@ -8,7 +8,7 @@ namespace CheatEngine.SDK.Analyzers.CodeFixes.Plugin;
 /// <summary>The syntax edits behind the CESDK0001 fixes. Pure syntax in, syntax out.</summary>
 internal static class PluginClassRewriter
 {
-    /// <summary>The same token position and trivia, with the keyword <c>sealed</c>.</summary>
+    /// <summary>The same token position and trivia, with the keyword <see langword="sealed" />.</summary>
     public static SyntaxToken ToSealed(SyntaxToken modifier)
     {
         return SyntaxFactory.Token(modifier.LeadingTrivia, SyntaxKind.SealedKeyword, modifier.TrailingTrivia);

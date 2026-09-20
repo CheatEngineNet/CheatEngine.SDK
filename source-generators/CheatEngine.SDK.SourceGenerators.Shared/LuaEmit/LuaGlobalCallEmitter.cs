@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
@@ -11,9 +12,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 /// <remarks>
 ///     <para>
 ///         The body records the state top before pushing the cached global through <c>LuaGlobalFunctions.TryPush</c>,
-///         pushes one marshalled value per argument, calls once, reads the results, then returns. A <c>finally</c>
+///         pushes one marshalled value per argument, calls once, reads the results, then returns. A
+///         <see langword="finally" />
 ///         restores the recorded top even when a Lua operation throws a managed <c>LuaException</c>; Try wrappers
-///         translate that exception to <see langword="false" /> with defaulted results. There is no <c>string</c> at run
+///         translate that exception to <see langword="false" /> with defaulted results. There is no
+///         <see langword="string" /> at run
 ///         time: the name is a <c>u8</c> literal.
 ///     </para>
 ///     <para>
@@ -32,6 +35,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///         sibling bindings remain usable.
 ///     </para>
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class LuaGlobalCallEmitter
 {
     /// <summary>
@@ -135,7 +143,8 @@ internal static class LuaGlobalCallEmitter
     }
 
     /// <summary>
-    ///     The return type as written in the signature: <c>bool</c> for the Try form, the result type or <c>void</c>
+    ///     The return type as written in the signature: <see langword="bool" /> for the Try form, the result type or
+    ///     <see langword="void" />
     ///     otherwise.
     /// </summary>
     public static string ReturnTypeName(LuaGlobalCallModel model)

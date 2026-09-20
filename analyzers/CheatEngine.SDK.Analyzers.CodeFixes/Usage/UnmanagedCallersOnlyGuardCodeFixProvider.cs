@@ -14,7 +14,8 @@ namespace CheatEngine.SDK.Analyzers.CodeFixes.Usage;
 
 /// <summary>
 ///     The fix of CESDK1004: moves the whole body of the exact CE bootstrap method into a
-///     <c>try</c> and adds <c>catch (Exception)</c> returning the documented CE bootstrap failure value (<c>0</c>).
+///     <see langword="try" /> and adds <c>catch (Exception)</c> returning the documented CE bootstrap failure value
+///     (<c>0</c>).
 ///     The action is deliberately available only for the exact <c>CESDK.CESDK.CEPluginInitialize(IntPtr, int)</c>
 ///     convention. CESDK1004 can identify other unsafe callbacks, but their failure convention belongs to their native
 ///     contract and must not be guessed. An expression body becomes a block body, with the comments around the

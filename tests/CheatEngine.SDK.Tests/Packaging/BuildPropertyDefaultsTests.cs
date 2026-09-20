@@ -4,7 +4,9 @@ namespace CheatEngine.SDK.Tests.Packaging;
 
 /// <summary>
 ///     <c>build/CheatEngine.SDK.props</c> defaults only the deployment setting, not unsafe compilation. A project that
-///     has no <c>[LuaFunction]</c> remains at the SDK default (<c>false</c>); a project that exports one opts in itself.
+///     has no <c>[LuaFunction]</c> remains at the SDK default (<see langword="false" />); a project that exports one opts
+///     in
+///     itself.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
 public sealed class BuildPropertyDefaultsTests(PackagedUmbrellaFixture fixture)

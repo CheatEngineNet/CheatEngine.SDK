@@ -45,6 +45,7 @@ public sealed class DefaultVerifierTests
             SourceText.From(ExpectedBootstrap.Text("global::Demo.DemoPlugin", "\"Demo Plugin\"u8"), Encoding.UTF8)));
 
         await test.RunAsync(TestContext.Current.CancellationToken);
+        Assert.Single(test.TestState.GeneratedSources);
     }
 
     [Fact]
@@ -57,6 +58,7 @@ public sealed class DefaultVerifierTests
 
         // No entry in GeneratedSources: the verifier fails if the generator adds any file.
         await test.RunAsync(TestContext.Current.CancellationToken);
+        Assert.Empty(test.TestState.GeneratedSources);
     }
 
     [Fact]
@@ -72,6 +74,7 @@ public sealed class DefaultVerifierTests
             SourceText.From(ExpectedBootstrap.Text("global::Demo.DemoPlugin", "\"Demo Plugin\"u8"), Encoding.UTF8)));
 
         await test.RunAsync(TestContext.Current.CancellationToken);
+        Assert.Single(test.TestState.GeneratedSources);
     }
 
     private static CSharpSourceGeneratorTest<EntryPointGenerator, DefaultVerifier> CreateTest(

@@ -37,7 +37,8 @@ namespace CheatEngine.SDK.Engine.AddressList;
 /// </remarks>
 /// <remarks>Wraps an untyped Cheat Engine object handle without validating its runtime class.</remarks>
 /// <param name="handle">The handle; <see cref="CEObject.Null" /> gives <see cref="Null" />.</param>
-public readonly struct MemoryRecord(CEObject handle) : IEquatable<MemoryRecord>, ICEObject<MemoryRecord>, ILuaMarshaller<MemoryRecord>
+public readonly struct MemoryRecord(CEObject handle)
+    : IEquatable<MemoryRecord>, ICEObject<MemoryRecord>, ILuaMarshaller<MemoryRecord>
 {
     /// <summary>Gets the handle that names no memory record.</summary>
     public static MemoryRecord Null => default;

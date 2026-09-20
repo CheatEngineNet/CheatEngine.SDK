@@ -31,7 +31,8 @@ namespace CheatEngine.SDK.Lua.Interop.Api;
 ///     <para>
 ///         No policy lives here. In particular nothing protects the caller from Lua errors: Lua raises with <c>longjmp</c>
 ///         ,
-///         which must never unwind managed frames (unsupported by the runtime: <c>finally</c> blocks are skipped, state is
+///         which must never unwind managed frames (unsupported by the runtime: <see langword="finally" /> blocks are
+///         skipped, state is
 ///         corrupted). Each member documents its stack effect as "Stack: -pops +pushes" and its error behaviour as one of:
 ///         "Raises: never"; "Raises: memory" (the class the Lua 5.3 manual marks <c>m</c>: the allocator fails, or a
 ///         <c>__gc</c> finalizer fails inside the collector step that the allocation triggers, which is reported as

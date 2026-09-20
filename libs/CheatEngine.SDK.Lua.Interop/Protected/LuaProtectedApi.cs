@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -9,6 +10,9 @@ namespace CheatEngine.SDK.Lua.Interop.Protected;
 
 // The bridge is intentionally internal. Higher layers own the synchronization and stack contracts;
 // this type only transfers one operation through Lua's native protected boundary.
+[SuppressMessage("Meziantou.Analyzer", "MA0182",
+    Justification =
+        "CheatEngine.SDK.Lua consumes this internal bridge through InternalsVisibleTo; the analyzer does not follow that cross-assembly use.")]
 internal static unsafe partial class LuaProtectedApi
 {
     // Native bridge could not reserve even its one closure slot; unlike Lua statuses, no error object was pushed.
@@ -30,7 +34,8 @@ internal static unsafe partial class LuaProtectedApi
     {
         fixed (byte* data = bytes)
         {
-            return Invoke(state, LuaProtectedOperation.PushBytes, 0, data, (nuint)bytes.Length, 0, 0);
+            return Invoke(state, LuaProtectedOperation.PushBytes, 0, data, (nuint)bytes.Length,
+                0, 0);
         }
     }
 
@@ -38,7 +43,8 @@ internal static unsafe partial class LuaProtectedApi
     {
         fixed (byte* data = bytes)
         {
-            return Invoke(state, LuaProtectedOperation.PushByteTable, 0, data, (nuint)bytes.Length, 0, 0);
+            return Invoke(state, LuaProtectedOperation.PushByteTable, 0, data, (nuint)bytes.Length,
+                0, 0);
         }
     }
 
@@ -46,12 +52,14 @@ internal static unsafe partial class LuaProtectedApi
     {
         ArgumentOutOfRangeException.ThrowIfNegative(arrayCapacity);
         ArgumentOutOfRangeException.ThrowIfNegative(recordCapacity);
-        return Invoke(state, LuaProtectedOperation.CreateTable, 0, null, 0, arrayCapacity, recordCapacity);
+        return Invoke(state, LuaProtectedOperation.CreateTable, 0, null, 0,
+            arrayCapacity, recordCapacity);
     }
 
     internal static int NewUserdata(lua_State* state, nuint bytes)
     {
-        return Invoke(state, LuaProtectedOperation.NewUserdata, 0, null, bytes, 0, 0);
+        return Invoke(state, LuaProtectedOperation.NewUserdata, 0, null, bytes, 0,
+            0);
     }
 
     internal static int PushClosure(lua_State* state, nint function, int upvalues)
@@ -62,7 +70,8 @@ internal static unsafe partial class LuaProtectedApi
             throw new ArgumentOutOfRangeException(nameof(upvalues),
                 "Lua 5.3 supports between zero and 255 closure upvalues.");
 
-        return Invoke(state, LuaProtectedOperation.PushClosure, upvalues, (void*)function, 0, upvalues, 0);
+        return Invoke(state, LuaProtectedOperation.PushClosure, upvalues, (void*)function, 0,
+            upvalues, 0);
     }
 
     internal static int PushHostObject(lua_State* state, nint hostObjectPusher, nint nativeObject)
@@ -70,7 +79,8 @@ internal static unsafe partial class LuaProtectedApi
         if (hostObjectPusher == 0)
             throw new ArgumentException("The host-object pusher must not be zero.", nameof(hostObjectPusher));
 
-        return Invoke(state, LuaProtectedOperation.PushHostObject, 0, (void*)hostObjectPusher, 0, nativeObject, 0);
+        return Invoke(state, LuaProtectedOperation.PushHostObject, 0, (void*)hostObjectPusher,
+            0, nativeObject, 0);
     }
 
     internal static int RawSet(lua_State* state, int tableIndex)

@@ -1,8 +1,7 @@
 using CheatEngine.SDK.Analyzers.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
-using Verifier =
-    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<
-        CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
+using Verifier = CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<
+    CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
 
 namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 

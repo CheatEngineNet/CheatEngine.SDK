@@ -6,15 +6,16 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.SharedCode;
 /// <summary>The thunk and registration emitters over hand-built models (no Roslyn).</summary>
 public sealed class LuaThunkEmitterTests
 {
-    private static readonly LuaThunkModel Ping = new("ping", "__LuaThunk_ping", "global::Demo.Suite.Ping", false,
-        EquatableArray<LuaArgumentModel>.Empty, null);
+    private static readonly LuaThunkModel Ping = new("ping", "__LuaThunk_ping", "global::Demo.Suite.Ping",
+        false, EquatableArray<LuaArgumentModel>.Empty, null);
 
     private static readonly LuaThunkModel IsInteger = new(
         "isint",
         "__LuaThunk_isint",
         "global::Demo.Suite.IsInteger",
         true,
-        new EquatableArray<LuaArgumentModel>([new LuaArgumentModel("value", LuaValueKind.Double, false)]),
+        new EquatableArray<LuaArgumentModel>(
+            [new LuaArgumentModel("value", LuaValueKind.Double, false)]),
         LuaValueKind.Boolean);
 
     [Fact]

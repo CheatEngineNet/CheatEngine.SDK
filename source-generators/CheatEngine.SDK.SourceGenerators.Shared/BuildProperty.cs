@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared;
@@ -13,6 +14,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///     <c>AnalyzerConfigOptionsProvider</c> and keep only the parsed result in the pipeline model: the options object
 ///     itself is not value-equatable.
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class BuildProperty
 {
     /// <summary>Prefix of every MSBuild property key; concatenate with the property name into a constant.</summary>
@@ -21,7 +27,8 @@ internal static class BuildProperty
     /// <summary>
     ///     Reads a boolean property. Returns <paramref name="defaultValue" /> when the key is absent (the property is not
     ///     compiler-visible, for example in a project that references the generator without the package's props), empty,
-    ///     or not a boolean. Parsing follows MSBuild usage: case-insensitive <c>true</c>/<c>false</c>, surrounding white
+    ///     or not a boolean. Parsing follows MSBuild usage: case-insensitive <see langword="true" />/<see langword="false" />,
+    ///     surrounding white
     ///     space ignored.
     /// </summary>
     /// <param name="globalOptions"><c>AnalyzerConfigOptionsProvider.GlobalOptions</c>.</param>

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared;
 
@@ -24,6 +25,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///         Roslyn's own unnamed or internally named steps are left out.
 ///     </para>
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class TrackingNames
 {
     /// <summary>Prefix of every CheatEngine.SDK step name.</summary>

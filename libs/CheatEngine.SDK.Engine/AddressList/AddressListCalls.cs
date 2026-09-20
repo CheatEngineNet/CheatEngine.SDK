@@ -29,7 +29,8 @@ internal static class AddressListCalls
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, global) || !state.TryCall(0, 1).IsOk || !TMarshaller.TryRead(state, -1, out result))
+            if (!LuaGlobalFunctions.TryPush(state, cache, global) || !state.TryCall(0, 1).IsOk ||
+                !TMarshaller.TryRead(state, -1, out result))
                 return LuaCallSupport.Fail(state, top, out result);
 
             return true;

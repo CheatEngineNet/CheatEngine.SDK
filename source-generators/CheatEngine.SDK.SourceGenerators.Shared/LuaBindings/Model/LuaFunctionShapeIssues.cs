@@ -29,9 +29,11 @@ internal enum LuaFunctionShapeIssues
     Generic = 1 << 2,
 
     /// <summary>
-    ///     The method is <see langword="async" />. An <c>async void</c> method returns <see langword="void" /> like any
+    ///     The method is <see langword="async" />. An <see langword="async" /> <see langword="void" /> method returns
+    ///     <see langword="void" /> like any
     ///     other, so without this flag it would pass every other check: the thunk would call it and return before its
-    ///     continuation runs, and an exception the continuation throws would not be the thunk's <c>catch</c> to catch
+    ///     continuation runs, and an exception the continuation throws would not be the thunk's <see langword="catch" /> to
+    ///     catch
     ///     (no managed exception may cross the native boundary uncaught).
     /// </summary>
     Async = 1 << 11,
@@ -40,8 +42,10 @@ internal enum LuaFunctionShapeIssues
     InvalidName = 1 << 3,
 
     /// <summary>
-    ///     A parameter has a type no marshaller reads: only <c>int</c>, <c>long</c>, <c>float</c>, <c>double</c>,
-    ///     <c>bool</c>, <c>nuint</c>, <c>ReadOnlySpan&lt;byte&gt;</c> and <c>string</c> are accepted.
+    ///     A parameter has a type no marshaller reads: only <see langword="int" />, <see langword="long" />,
+    ///     <see langword="float" />, <see langword="double" />,
+    ///     <see langword="bool" />, <see langword="nuint" />, <c>ReadOnlySpan&lt;byte&gt;</c> and <see langword="string" />
+    ///     are accepted.
     /// </summary>
     UnsupportedParameterType = 1 << 4,
 

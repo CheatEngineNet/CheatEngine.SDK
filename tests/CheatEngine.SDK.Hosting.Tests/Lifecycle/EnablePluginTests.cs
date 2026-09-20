@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Context;
@@ -53,7 +54,7 @@ public sealed unsafe class EnablePluginTests
         Assert.False(PluginHost.IsEnabled);
         Assert.False(LuaRuntime.IsAttached);
         Assert.Equal(0, RecordingPlugin.ConstructorCalls);
-        Assert.NotEmpty(sink.Errors(reportedSize + "-byte exports record"));
+        Assert.NotEmpty(sink.Errors(reportedSize.ToString(CultureInfo.InvariantCulture) + "-byte exports record"));
     }
 
     [Fact]

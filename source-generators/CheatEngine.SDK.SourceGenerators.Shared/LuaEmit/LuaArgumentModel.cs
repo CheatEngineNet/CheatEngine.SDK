@@ -11,11 +11,15 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     wrapper's signature so that the partial parts agree.
 /// </param>
 /// <param name="IsScoped">
-///     For <see cref="LuaValueKind.Utf8" /> (the only argument kind of <c>ref struct</c> type): the declaration wrote
-///     <c>scoped</c>. Reproduced in a wrapper's signature: a partial method's implementing declaration must repeat a
-///     by-value <c>ref struct</c> parameter's <c>scoped</c> modifier exactly, explicit or not (CS8988), even though
+///     For <see cref="LuaValueKind.Utf8" /> (the only argument kind of <see langword="ref" /> <see langword="struct" />
+///     type): the declaration wrote
+///     <see langword="scoped" />. Reproduced in a wrapper's signature: a partial method's implementing declaration must
+///     repeat a
+///     by-value <see langword="ref" /> <see langword="struct" /> parameter's <see langword="scoped" /> modifier exactly,
+///     explicit or not (CS8988), even though
 ///     such a parameter is effectively scoped either way. Meaningless, and always <see langword="false" />, for every
-///     other kind: <c>scoped</c> on a by-value parameter of a non-<c>ref struct</c> type does not compile.
+///     other kind: <see langword="scoped" /> on a by-value parameter of a non-<see langword="ref" />
+///     <see langword="struct" /> type does not compile.
 /// </param>
 /// <param name="FixedValue">
 ///     A C# expression pushed to Lua without appearing in the managed wrapper signature. Engine API specs use this for

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
 namespace CheatEngine.SDK.Lua.Tests.FailureBoundaries;
@@ -53,7 +54,8 @@ public sealed class NativeFailureProcessTests
         var standardOutput = await output;
         var standardError = await error;
         Assert.True(process.ExitCode == 0,
-            $"Probe exit code: {process.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{standardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{standardError}");
+            string.Create(CultureInfo.InvariantCulture,
+                $"Probe exit code: {process.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{standardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{standardError}"));
         Assert.Contains("MARK PushByteTable protected allocator boundary recovered", standardOutput,
             StringComparison.Ordinal);
         Assert.Contains("MARK PushHostObject native pusher longjmp observed", standardOutput, StringComparison.Ordinal);

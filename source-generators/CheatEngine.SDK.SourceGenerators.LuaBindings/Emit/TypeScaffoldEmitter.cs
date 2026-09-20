@@ -4,12 +4,14 @@ using CheatEngine.SDK.SourceGenerators.Shared;
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Emit;
 
 /// <summary>
-///     Writes the frame every generated file shares: the namespace block and one <c>partial</c> part per containing
+///     Writes the frame every generated file shares: the namespace block and one <see langword="partial" /> part per
+///     containing
 ///     type, from the outermost in, so that the members written between <see cref="Open" /> and <see cref="Close" />
 ///     land in the declaring type.
 /// </summary>
 /// <remarks>
-///     A part repeats only the declaration keyword and the name: accessibility, <c>static</c>, <c>sealed</c> and base
+///     A part repeats only the declaration keyword and the name: accessibility, <see langword="static" />,
+///     <see langword="sealed" /> and base
 ///     types are taken from the author's part (a part that states nothing agrees with every other part). Block-scoped
 ///     namespaces keep the file valid for every consumer language version the emitted code supports.
 /// </remarks>

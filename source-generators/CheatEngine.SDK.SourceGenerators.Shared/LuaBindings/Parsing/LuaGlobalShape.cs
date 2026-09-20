@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 using Microsoft.CodeAnalysis;
@@ -28,6 +29,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 ///         written: a method with no <see langword="out" /> result is always the throwing form.
 ///     </para>
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class LuaGlobalShape
 {
     /// <summary>Inspects <paramref name="method" /> against the resolved SDK <paramref name="luaState" /> symbol.</summary>

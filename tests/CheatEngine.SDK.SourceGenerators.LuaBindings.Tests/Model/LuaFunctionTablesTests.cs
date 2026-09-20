@@ -106,8 +106,8 @@ public sealed class LuaFunctionTablesTests
             ContainingTypeIssues.None,
             luaName,
             LuaFunctionShapeIssues.None,
-            new LuaThunkModel(luaName, LuaThunkModel.ThunkNameFor(luaName), type.FullyQualifiedName + ".M", false,
-                EquatableArray<LuaArgumentModel>.Empty, null));
+            new LuaThunkModel(luaName, LuaThunkModel.ThunkNameFor(luaName), type.FullyQualifiedName + ".M",
+                false, EquatableArray<LuaArgumentModel>.Empty, null));
     }
 
     private static void AssertHintNames(EquatableArray<LuaFunctionTableModel> tables, string first, string second)

@@ -1,3 +1,4 @@
+using System.Globalization;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
@@ -34,7 +35,8 @@ internal static class LuaTest
     public static string ReadString(LuaState L, int index)
     {
         Assert.True(L.TryReadString(index, out var value),
-            "The value at " + index + " is a " + L.TypeOf(index) + ", not a string.");
+            string.Create(CultureInfo.InvariantCulture,
+                $"The value at {index} is a {L.TypeOf(index)}, not a string."));
         return value;
     }
 }

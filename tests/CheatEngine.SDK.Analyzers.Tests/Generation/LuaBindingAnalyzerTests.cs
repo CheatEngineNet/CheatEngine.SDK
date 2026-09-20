@@ -381,7 +381,8 @@ public sealed class LuaBindingAnalyzerTests
                                   public static partial int Read(global::CheatEngine.SDK.Lua.State.LuaState state);
                               }
                               """;
-        var compilation = CreateCompilation(source, true, SdkReferencesWithoutLuaRuntime);
+        var compilation = CreateCompilation(source, true,
+            SdkReferencesWithoutLuaRuntime);
 
         Assert.False(RunGenerator(compilation));
 
@@ -425,7 +426,10 @@ public sealed class LuaBindingAnalyzerTests
     {
         return CSharpCompilation.Create(
             "LuaBindingAnalyzerTestAssembly",
-            [CSharpSyntaxTree.ParseText(TestText.Normalize(source), ParseOptions, "Test.cs")],
+            [
+                CSharpSyntaxTree.ParseText(TestText.Normalize(source), ParseOptions, "Test.cs",
+                    cancellationToken: TestContext.Current.CancellationToken)
+            ],
             LocalFrameworkReferences.References.AddRange(sdkReferences),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable, allowUnsafe: allowUnsafe));

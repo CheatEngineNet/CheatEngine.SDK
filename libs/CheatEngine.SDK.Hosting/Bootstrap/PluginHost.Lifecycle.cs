@@ -462,7 +462,7 @@ public static unsafe partial class PluginHost
             }
 
         if (HostLog.IsEnabled(HostLogLevel.Information))
-            HostLog.Information(string.Create(CultureInfo.InvariantCulture, $"Plugin {context.PluginId} disabled."));
+            HostLog.Information($"Plugin {context.PluginId} disabled.");
     }
 
     private static void CleanupDisable()

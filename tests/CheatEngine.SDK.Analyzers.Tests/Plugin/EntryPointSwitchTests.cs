@@ -1,9 +1,8 @@
 using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.Analyzers.Plugin;
 using CheatEngine.SDK.SourceGenerators.Shared.Shapes;
-using Verifier =
-    CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<
-        CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
+using Verifier = CheatEngine.SDK.Analyzers.Tests.Infrastructure.AnalyzerVerifier<
+    CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer>;
 
 namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 

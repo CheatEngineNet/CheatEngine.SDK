@@ -68,12 +68,18 @@ internal sealed class RoslynEnvironment
     {
         var annotations = CSharpCompilation.Create(
             ContractStubs.AnnotationsAssemblyName,
-            [CSharpSyntaxTree.ParseText(ContractStubs.AnnotationsSource, ParseOptions, "AnnotationsStubs.cs")],
+            [
+                CSharpSyntaxTree.ParseText(ContractStubs.AnnotationsSource, ParseOptions, "AnnotationsStubs.cs",
+                    cancellationToken: TestContext.Current.CancellationToken)
+            ],
             frameworkReferences,
             CompilationOptions);
         var hosting = CSharpCompilation.Create(
             ContractStubs.HostingAssemblyName,
-            [CSharpSyntaxTree.ParseText(ContractStubs.HostingSource, ParseOptions, "HostingStubs.cs")],
+            [
+                CSharpSyntaxTree.ParseText(ContractStubs.HostingSource, ParseOptions, "HostingStubs.cs",
+                    cancellationToken: TestContext.Current.CancellationToken)
+            ],
             frameworkReferences,
             CompilationOptions);
 
@@ -86,7 +92,7 @@ internal sealed class RoslynEnvironment
     private static ImmutableArray<byte> EmitImage(CSharpCompilation compilation, string assemblyName)
     {
         using MemoryStream image = new();
-        var result = compilation.Emit(image);
+        var result = compilation.Emit(image, cancellationToken: TestContext.Current.CancellationToken);
         if (!result.Success)
             throw new InvalidOperationException(
                 "The " + assemblyName + " contract stubs do not compile: " +

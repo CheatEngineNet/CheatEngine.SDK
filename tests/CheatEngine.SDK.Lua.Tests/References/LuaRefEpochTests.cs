@@ -1,3 +1,4 @@
+using System.Globalization;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
@@ -42,7 +43,8 @@ public sealed class LuaRefEpochTests
         Assert.True(reference.TryGetCurrent(out var slot));
         Assert.Equal(17, slot);
         Assert.Equal(
-            $"LuaRef(17, attach epoch {identity.AttachEpoch}, state generation {identity.StateGeneration})",
+            string.Create(CultureInfo.InvariantCulture,
+                $"LuaRef(17, attach epoch {identity.AttachEpoch}, state generation {identity.StateGeneration})"),
             reference.ToString());
     }
 

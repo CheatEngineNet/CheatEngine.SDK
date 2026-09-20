@@ -18,7 +18,8 @@ public sealed class LuaGlobalCallEmitterTests
             "public static",
             "TryReadInt32",
             string.Empty,
-            new EquatableArray<LuaArgumentModel>([new LuaArgumentModel("address", LuaValueKind.Address, false)]),
+            new EquatableArray<LuaArgumentModel>(
+                [new LuaArgumentModel("address", LuaValueKind.Address, false)]),
             LuaCallForm.Try,
             new EquatableArray<LuaResultModel>([LuaResultModel.Value(LuaValueKind.Int32, "value")]),
             null,
@@ -184,8 +185,8 @@ public sealed class LuaGlobalCallEmitterTests
     public void ResultCount_follows_the_form()
     {
         LuaGlobalCallModel throwingVoid = new("g", "s", "static", "G", string.Empty,
-            EquatableArray<LuaArgumentModel>.Empty, LuaCallForm.Throwing, EquatableArray<LuaResultModel>.Empty, null,
-            false);
+            EquatableArray<LuaArgumentModel>.Empty, LuaCallForm.Throwing, EquatableArray<LuaResultModel>.Empty,
+            null, false);
         var throwingValue = throwingVoid with { ReturnKind = LuaValueKind.Double };
 
         Assert.Equal(0, throwingVoid.ResultCount);

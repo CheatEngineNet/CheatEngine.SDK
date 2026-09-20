@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared.Shapes;
@@ -29,6 +30,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 ///         required members" / "nothing is obsolete-as-error".
 ///     </para>
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class PluginShape
 {
     // Namespace and type name of the entry point that Cheat Engine looks up: 'CESDK.CESDK'.
@@ -194,7 +200,11 @@ internal static class PluginShape
                     ContainingNamespace:
                     {
                         Name: SdkNamespaceName,
-                        ContainingNamespace: { Name: SdkRootNamespaceName, ContainingNamespace.IsGlobalNamespace: true }
+                        ContainingNamespace:
+                        {
+                            Name: SdkRootNamespaceName,
+                            ContainingNamespace.IsGlobalNamespace: true
+                        }
                     }
                 }
             }

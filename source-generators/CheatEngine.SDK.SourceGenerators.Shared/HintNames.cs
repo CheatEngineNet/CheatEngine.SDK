@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -18,6 +19,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///     culture-independent. <see cref="AllocateUnique" /> resolves the remaining, case-insensitive collisions that
 ///     Roslyn rejects when sources are added to a generation pass.
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class HintNames
 {
     private const string HexDigits = "0123456789abcdef";

@@ -12,22 +12,28 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 /// </remarks>
 internal enum LuaValueKind
 {
-    /// <summary><see cref="int" /> through <c>Int32Marshaller</c>: a Lua integer that fits 32 bits.</summary>
+    /// <summary><see langword="int" /> through <c>Int32Marshaller</c>: a Lua integer that fits 32 bits.</summary>
     Int32,
 
-    /// <summary><see cref="long" /> through <c>Int64Marshaller</c>: a Lua integer.</summary>
+    /// <summary><see langword="long" /> through <c>Int64Marshaller</c>: a Lua integer.</summary>
     Int64,
 
-    /// <summary><see cref="float" /> through <c>SingleMarshaller</c>: a Lua number.</summary>
+    /// <summary><see langword="float" /> through <c>SingleMarshaller</c>: a Lua number.</summary>
     Single,
 
-    /// <summary><see cref="double" /> through <c>DoubleMarshaller</c>: a Lua number.</summary>
+    /// <summary><see langword="double" /> through <c>DoubleMarshaller</c>: a Lua number.</summary>
     Double,
 
-    /// <summary><see cref="bool" /> through <c>BooleanMarshaller</c>: a Lua boolean (strict; <c>nil</c> is not <c>false</c>).</summary>
+    /// <summary>
+    ///     <see langword="bool" /> through <c>BooleanMarshaller</c>: a Lua boolean (strict; <c>nil</c> is not
+    ///     <see langword="false" />).
+    /// </summary>
     Boolean,
 
-    /// <summary><c>nuint</c> through <c>AddressMarshaller</c>: a target-process address as a Lua integer, bits reinterpreted.</summary>
+    /// <summary>
+    ///     <see langword="nuint" /> through <c>AddressMarshaller</c>: a target-process address as a Lua integer, bits
+    ///     reinterpreted.
+    /// </summary>
     Address,
 
     /// <summary>
@@ -36,6 +42,6 @@ internal enum LuaValueKind
     /// </summary>
     Utf8,
 
-    /// <summary><see cref="string" /> through <c>StringMarshaller</c>: the allocating convenience.</summary>
+    /// <summary><see langword="string" /> through <c>StringMarshaller</c>: the allocating convenience.</summary>
     String
 }

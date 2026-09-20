@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -36,7 +37,11 @@ public sealed class RoslynFixture
     {
         var trees = new SyntaxTree[sources.Length];
         for (var i = 0; i < sources.Length; i++)
-            trees[i] = CSharpSyntaxTree.ParseText(sources[i], parseOptions, $"Source{i}.cs");
+            trees[i] = CSharpSyntaxTree.ParseText(
+                sources[i],
+                parseOptions,
+                $"Source{i.ToString(CultureInfo.InvariantCulture)}.cs",
+                cancellationToken: TestContext.Current.CancellationToken);
 
         return CSharpCompilation.Create(
             PluginAssemblyName,
@@ -82,6 +87,10 @@ public sealed class RoslynFixture
 
     internal static SyntaxTree Parse(string source, string path)
     {
-        return CSharpSyntaxTree.ParseText(source, RoslynEnvironment.ParseOptions, path);
+        return CSharpSyntaxTree.ParseText(
+            source,
+            RoslynEnvironment.ParseOptions,
+            path,
+            cancellationToken: TestContext.Current.CancellationToken);
     }
 }

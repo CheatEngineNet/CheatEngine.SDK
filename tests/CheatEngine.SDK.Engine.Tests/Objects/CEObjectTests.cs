@@ -1,3 +1,4 @@
+using System.Globalization;
 using CheatEngine.SDK.Engine.Enums;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Tests.Support;
@@ -58,7 +59,8 @@ public sealed unsafe class CEObjectTests
 
         for (var index = 1; index <= 8; index++)
         {
-            Assert.False(CEObject.TryRead(L, index, out var value), "index " + index + " was read as an object");
+            Assert.False(CEObject.TryRead(L, index, out var value),
+                "index " + index.ToString(CultureInfo.InvariantCulture) + " was read as an object");
             Assert.True(value.IsNull);
         }
 

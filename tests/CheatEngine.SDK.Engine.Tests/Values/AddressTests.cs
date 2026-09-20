@@ -88,7 +88,7 @@ public sealed class AddressTests
         Assert.Equal(expected, address.ToString(null, null));
         Assert.Equal(expected, address.ToString("G", CultureInfo.InvariantCulture));
         Assert.Equal(expected, address.ToString(string.Empty, CultureInfo.InvariantCulture));
-        Assert.Equal(expected, $"{address}");
+        Assert.Equal(expected, string.Create(CultureInfo.InvariantCulture, $"{address}"));
         Assert.Equal(expected, string.Format(CultureInfo.InvariantCulture, "{0}", address));
     }
 

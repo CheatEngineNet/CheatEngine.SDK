@@ -122,21 +122,8 @@ internal static class ProtectedOperationCatalogParser
         Dictionary<int, JsonValue> opcodes,
         ref ulong bitmap)
     {
-        if (value is not JsonObject operation)
-        {
-            diagnostics.Add(reader.CreateDiagnostic(value.Span, "Every item in 'operations' must be a JSON object."));
-            return;
-        }
-
-        var idValue = RequireString(operation, "id", reader, diagnostics);
-        var opcodeValue = RequireNumber(operation, "opcode", reader, diagnostics);
-        ValidateExactTrue(operation, "protected", reader, diagnostics);
-        ValidateExactTrue(operation, "requiresNativeProtection", reader, diagnostics);
-        var managed = RequireObject(operation, "managed", reader, diagnostics);
-        var managedConstant = managed is null ? null : RequireString(managed, "constant", reader, diagnostics);
-        if (managed is not null) _ = RequireString(managed, "wrapper", reader, diagnostics);
-
-        if (idValue is null || opcodeValue is null) return;
+        if (!TryReadOperationFields(value, reader, diagnostics, out var idValue, out var opcodeValue,
+                out var managedConstant)) return;
 
         if (!IsPascalIdentifier(idValue.Text))
         {
@@ -183,6 +170,37 @@ internal static class ProtectedOperationCatalogParser
         opcodes.Add(opcode, opcodeValue);
         bitmap |= 1UL << opcode;
         operations.Add(new CatalogOperation(idValue.Text, opcode));
+    }
+
+    private static bool TryReadOperationFields(
+        JsonValue value,
+        JsonReader reader,
+        ImmutableArray<CatalogDiagnostic>.Builder diagnostics,
+        out JsonString idValue,
+        out JsonNumber opcodeValue,
+        out JsonString? managedConstant)
+    {
+        idValue = null!;
+        opcodeValue = null!;
+        managedConstant = null;
+        if (value is not JsonObject operation)
+        {
+            diagnostics.Add(reader.CreateDiagnostic(value.Span, "Every item in 'operations' must be a JSON object."));
+            return false;
+        }
+
+        var requiredId = RequireString(operation, "id", reader, diagnostics);
+        var requiredOpcode = RequireNumber(operation, "opcode", reader, diagnostics);
+        ValidateExactTrue(operation, "protected", reader, diagnostics);
+        ValidateExactTrue(operation, "requiresNativeProtection", reader, diagnostics);
+        var managed = RequireObject(operation, "managed", reader, diagnostics);
+        managedConstant = managed is null ? null : RequireString(managed, "constant", reader, diagnostics);
+        if (managed is not null) _ = RequireString(managed, "wrapper", reader, diagnostics);
+        if (requiredId is null || requiredOpcode is null) return false;
+
+        idValue = requiredId;
+        opcodeValue = requiredOpcode;
+        return true;
     }
 
     private static void ValidateBitmap(

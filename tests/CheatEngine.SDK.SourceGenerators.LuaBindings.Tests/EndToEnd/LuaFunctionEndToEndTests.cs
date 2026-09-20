@@ -23,7 +23,7 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
 
         Register(assembly, L);
 
@@ -47,7 +47,7 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         Register(assembly, L);
 
         Assert.Equal(0, LuaTest.RunForInteger(L, "return select('#', ping())"u8));
@@ -64,7 +64,7 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        Register(LoadSuite(), L);
+        Register(LoadSuite(roslyn), L);
 
         // IsInteger(LuaState L, double value) asks the state whether argument 1 is an integer subtype: only the
         // state Lua passed can answer that, and the state is not counted as a Lua argument.
@@ -79,7 +79,7 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        Register(LoadSuite(), L);
+        Register(LoadSuite(roslyn), L);
 
         // Not tail calls on purpose: 'error(message, 2)' blames the caller of the thunk, which a tail call would erase.
         Assert.Equal("test:1: bad argument #1 (integer expected, got string)",
@@ -104,7 +104,7 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        Register(LoadSuite(), L);
+        Register(LoadSuite(roslyn), L);
 
         Assert.Equal("test:1: wrong number of arguments to 'add' (2 expected)",
             LuaTest.RunForError(L, "return pcall(function() add(1) end)"u8));
@@ -124,7 +124,7 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        Register(LoadSuite(), L);
+        Register(LoadSuite(roslyn), L);
 
         Assert.Equal("test:1: System.InvalidOperationException: managed boom",
             LuaTest.RunForError(L, "return pcall(function() boom() end)"u8));
@@ -141,7 +141,7 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
         Register(assembly, L);
         Assert.Equal("function", LuaTest.RunForString(L, "return type(add)"u8));
 
@@ -163,7 +163,7 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        var assembly = LoadSuite();
+        var assembly = LoadSuite(roslyn);
 
         // A globals table whose __newindex raises: the first TrySetGlobal fails, the error value is on top.
         LuaTest.Run(L, "setmetatable(_G, { __newindex = function(t, k, v) error('sealed: ' .. k) end })"u8);
@@ -216,7 +216,7 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
         using NativeLuaState state = new();
         var L = LuaTest.View(state);
         using RuntimeScope scope = new(state);
-        Register(LoadSuite(), L);
+        Register(LoadSuite(roslyn), L);
         LuaTest.Run(L, "function loop() local s = 0 for i = 1, 100 do s = add(s, i) end return s end"u8);
 
         AllocationGate.AssertZero(() =>
@@ -228,7 +228,7 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
         });
     }
 
-    private GeneratedAssembly LoadSuite()
+    private static GeneratedAssembly LoadSuite(RoslynFixture roslyn)
     {
         return GeneratedAssembly.Load(roslyn.Run(BindingSources.FunctionSuite));
     }

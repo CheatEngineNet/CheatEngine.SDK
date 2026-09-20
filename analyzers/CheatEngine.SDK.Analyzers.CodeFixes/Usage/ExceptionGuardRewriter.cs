@@ -10,7 +10,7 @@ namespace CheatEngine.SDK.Analyzers.CodeFixes.Usage;
 
 /// <summary>
 ///     Builds the guarded body that CESDK1004's known bootstrap convention asks for: the whole former body inside one
-///     <c>try</c>, and a <c>catch (System.Exception)</c> that returns <c>0</c>.
+///     <see langword="try" />, and a <c>catch (System.Exception)</c> that returns <c>0</c>.
 /// </summary>
 /// <remarks>
 ///     Pure syntax in, syntax out. The result carries <see cref="Formatter.Annotation" /> (indentation is left to the
@@ -157,9 +157,8 @@ internal static class ExceptionGuardRewriter
     // here too, so a future caller cannot silently turn an unknown callback into a generic "return 0" fix.
     private static LiteralExpressionSyntax CreateFailureValue(ITypeSymbol returnType)
     {
-        if (returnType.SpecialType != SpecialType.System_Int32)
-            throw new ArgumentException("The CE bootstrap failure convention returns Int32.", nameof(returnType));
-
-        return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
+        return returnType.SpecialType != SpecialType.System_Int32
+            ? throw new ArgumentException("The CE bootstrap failure convention returns Int32.", nameof(returnType))
+            : SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
     }
 }

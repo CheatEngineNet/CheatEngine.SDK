@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared;
@@ -29,6 +30,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///         </item>
 ///     </list>
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class GeneratedCodeText
 {
     /// <summary>First line of every generated file.</summary>

@@ -16,7 +16,8 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint;
 ///         Output is produced only when generation is switched on (MSBuild property
 ///         <c>CheatEngineSdkGenerateEntryPoint</c>,
 ///         default
-///         <c>false</c> unless the direct package build asset makes it compiler-visible) and exactly one valid plugin
+///         <see langword="false" /> unless the direct package build asset makes it compiler-visible) and exactly one valid
+///         plugin
 ///         class exists. In every other case the generator emits nothing and
 ///         reports nothing: the diagnostics (CESDK0001 and CESDK0002) belong to <c>CheatEngine.SDK.Analyzers</c>.
 ///     </para>

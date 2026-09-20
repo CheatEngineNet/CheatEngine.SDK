@@ -44,8 +44,10 @@ internal enum LuaGlobalShapeIssues
     InvalidName = 1 << 6,
 
     /// <summary>
-    ///     An argument has a type no marshaller pushes: only <c>int</c>, <c>long</c>, <c>float</c>, <c>double</c>,
-    ///     <c>bool</c>, <c>nuint</c>, <c>ReadOnlySpan&lt;byte&gt;</c> and <c>string</c> are accepted.
+    ///     An argument has a type no marshaller pushes: only <see langword="int" />, <see langword="long" />,
+    ///     <see langword="float" />, <see langword="double" />,
+    ///     <see langword="bool" />, <see langword="nuint" />, <c>ReadOnlySpan&lt;byte&gt;</c> and <see langword="string" />
+    ///     are accepted.
     /// </summary>
     UnsupportedParameterType = 1 << 7,
 
@@ -66,14 +68,15 @@ internal enum LuaGlobalShapeIssues
 
     /// <summary>
     ///     An <see langword="out" /> parameter has a type no marshaller reads, or a <c>Span&lt;byte&gt;</c> destination
-    ///     is not followed by <c>out int</c>.
+    ///     is not followed by <see langword="out" /> <see langword="int" />.
     /// </summary>
     UnsupportedResultType = 1 << 12,
 
     /// <summary>
     ///     A result is a <c>ReadOnlySpan&lt;byte&gt;</c> (an <see langword="out" /> parameter or the return type): it
     ///     would point into a Lua string the body pops before returning. Use
-    ///     <c>Span&lt;byte&gt; destination, out int written</c> or <see langword="string" />.
+    ///     <c>Span&lt;byte&gt; destination</c>, <see langword="out" /> <see langword="int" /> written, or
+    ///     <see langword="string" />.
     /// </summary>
     SpanResult = 1 << 13,
 
@@ -85,7 +88,8 @@ internal enum LuaGlobalShapeIssues
 
     /// <summary>
     ///     The method has <see langword="out" /> results but does not return <see langword="bool" />: the Try form is
-    ///     <c>bool</c> + <see langword="out" /> results, the throwing form has no <see langword="out" /> parameter.
+    ///     <see langword="bool" /> + <see langword="out" /> results, the throwing form has no <see langword="out" />
+    ///     parameter.
     /// </summary>
     TryFormReturnNotBool = 1 << 16
 }

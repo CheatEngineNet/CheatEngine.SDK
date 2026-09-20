@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -28,7 +29,8 @@ internal static class IlReader
             if (value == TwoBytePrefix) value = (ushort)((TwoBytePrefix << 8) | il[offset++]);
 
             if (!s_opCodes.TryGetValue(value, out var code))
-                throw new InvalidOperationException($"{method.Name}: unknown opcode 0x{value:X} at offset {offset}.");
+                throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
+                    $"{method.Name}: unknown opcode 0x{value:X} at offset {offset}."));
 
             var size = OperandSize(code.OperandType, il, offset);
             var operand = size switch

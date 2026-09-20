@@ -2,7 +2,8 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 
 /// <summary>One link of a containing-type chain, as the generated partial part re-declares it.</summary>
 /// <param name="Keyword">
-///     The declaration keyword the part must repeat: <c>class</c>, <c>struct</c>, <c>record</c> or
+///     The declaration keyword the part must repeat: <see langword="class" />, <see langword="struct" />,
+///     <see langword="record" /> or
 ///     <c>record struct</c>.
 /// </param>
 /// <param name="Name">

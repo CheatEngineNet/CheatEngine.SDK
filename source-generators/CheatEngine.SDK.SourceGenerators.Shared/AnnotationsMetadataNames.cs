@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace CheatEngine.SDK.SourceGenerators.Shared;
 
 /// <summary>
@@ -21,6 +23,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///     separate, split representation used for base-type-chain walking, not metadata-name lookup) rather than through
 ///     this dotted constant; that is a different, valid representation of the same fact, not a duplicate of this one.
 /// </seealso>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class AnnotationsMetadataNames
 {
     /// <summary>

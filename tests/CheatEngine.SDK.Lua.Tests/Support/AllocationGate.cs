@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace CheatEngine.SDK.Lua.Tests.Support;
 
 /// <summary>
@@ -16,6 +18,7 @@ internal static class AllocationGate
 
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.True(allocated == 0,
-            $"{allocated} bytes were allocated over {iterations} iterations ({(double)allocated / iterations:F1} per call).");
+            string.Create(CultureInfo.InvariantCulture,
+                $"{allocated} bytes were allocated over {iterations} iterations ({(double)allocated / iterations:F1} per call)."));
     }
 }

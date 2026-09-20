@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace CheatEngine.SDK.Tests.Infrastructure;
 
 /// <summary>
@@ -211,7 +213,7 @@ internal sealed class ThrowawayConsumer
             .ConfigureAwait(false);
         if (result.ExitCode != 0)
             throw new InvalidOperationException(
-                $"'dotnet build -getProperty' failed for '{ProjectPath}' (exit {result.ExitCode}):{Environment.NewLine}{result.CombinedOutput}");
+                $"'dotnet build -getProperty' failed for '{ProjectPath}' (exit {result.ExitCode.ToString(CultureInfo.InvariantCulture)}):{Environment.NewLine}{result.CombinedOutput}");
 
         Dictionary<string, string> values = new(StringComparer.Ordinal);
 
@@ -223,7 +225,7 @@ internal sealed class ThrowawayConsumer
             return values;
         }
 
-        var jsonStart = result.StandardOutput.IndexOf('{');
+        var jsonStart = result.StandardOutput.AsSpan().IndexOf('{');
         if (jsonStart < 0)
             throw new InvalidOperationException(
                 $"'dotnet build -getProperty' for '{ProjectPath}' produced no JSON on standard output:{Environment.NewLine}{result.CombinedOutput}");

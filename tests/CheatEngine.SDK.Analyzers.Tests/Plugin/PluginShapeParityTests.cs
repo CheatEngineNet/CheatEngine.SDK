@@ -238,7 +238,8 @@ public sealed class PluginShapeParityTests
         return CSharpCompilation.Create(
             "PluginShapeParityAssembly",
             [
-                CSharpSyntaxTree.ParseText(TestText.Normalize(pluginSource), ParseOptions, "Plugin.cs")
+                CSharpSyntaxTree.ParseText(TestText.Normalize(pluginSource), ParseOptions, "Plugin.cs",
+                    cancellationToken: TestContext.Current.CancellationToken)
             ],
             LocalFrameworkReferences.References.AddRange(ContractStubs.References),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,

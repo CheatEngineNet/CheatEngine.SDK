@@ -37,7 +37,8 @@ namespace CheatEngine.SDK.Engine.AddressList;
 /// <remarks>Wraps an untyped Cheat Engine object handle without validating its runtime class.</remarks>
 /// <param name="handle">The handle; <see cref="CEObject.Null" /> gives <see cref="Null" />.</param>
 [SuppressMessage("Meziantou.Analyzer", "MA0049",
-    Justification = "The namespace groups the address-list API, while this type mirrors Cheat Engine's Addresslist class.")]
+    Justification =
+        "The namespace groups the address-list API, while this type mirrors Cheat Engine's Addresslist class.")]
 public readonly struct AddressList(CEObject handle) : IEquatable<AddressList>, ICEObject<AddressList>,
     ILuaMarshaller<AddressList>
 {

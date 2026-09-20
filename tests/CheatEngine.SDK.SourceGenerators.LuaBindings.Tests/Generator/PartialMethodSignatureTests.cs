@@ -5,7 +5,7 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Generator;
 /// <summary>
 ///     Facts of a <c>[LuaGlobal]</c> defining declaration that the implementing declaration must repeat exactly for the
 ///     pair to compile: the C# compiler enforces this for partial methods (CS8826 for parameter names/types/nullability,
-///     CS8988 for an explicit <c>scoped</c> modifier on a by-value <c>ref struct</c> parameter).
+///     CS8988 for an explicit <see langword="scoped" /> modifier on a by-value <c>ref struct</c> parameter).
 /// </summary>
 public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFixture<RoslynFixture>
 {

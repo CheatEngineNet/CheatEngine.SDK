@@ -68,12 +68,20 @@ internal sealed class LoadedBootstrap : IDisposable
     }
 
     /// <summary>Calls the generated <c>CESDK.CESDK.CEPluginInitialize</c>.</summary>
-    public int Initialize(IntPtr args, int opaqueArgument)
+    public int Initialize(IntPtr args, int opaqueArgument
+    )
     {
-        return _initialize(args, opaqueArgument);
+        return
+            _initialize
+            (
+                args
+                ,
+                opaqueArgument);
     }
 
-    private object? ReadHostField(string name)
+    private object? ReadHostField(string
+        name
+    )
     {
         return _pluginHost.GetField(name, BindingFlags.Public | BindingFlags.Static)!.GetValue(null);
     }

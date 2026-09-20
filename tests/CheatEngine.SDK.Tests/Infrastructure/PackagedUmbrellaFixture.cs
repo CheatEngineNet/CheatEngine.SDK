@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace CheatEngine.SDK.Tests.Infrastructure;
 
 /// <summary>
@@ -97,7 +99,7 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
     public IReadOnlyDictionary<string, string> DefaultProperties { get; private set; } =
         new Dictionary<string, string>(StringComparer.Ordinal);
 
-    /// <summary><c>AllowUnsafeBlocks</c> for the consumer that set it to <c>false</c> itself.</summary>
+    /// <summary><c>AllowUnsafeBlocks</c> for the consumer that set it to <see langword="false" /> itself.</summary>
     public IReadOnlyDictionary<string, string> ExplicitUnsafeFalseProperties { get; private set; } =
         new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -217,11 +219,12 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 
             if (attempt == maxAttempts || !LooksLikeFileLockContention(result.CombinedOutput)) break;
 
-            await Task.Delay(TimeSpan.FromSeconds(20 * attempt)).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(20 * attempt), TestContext.Current.CancellationToken)
+                .ConfigureAwait(false);
         }
 
         throw new InvalidOperationException(
-            $"'dotnet pack' of the umbrella package failed (exit {result.ExitCode}):{Environment.NewLine}{result.CombinedOutput}");
+            $"'dotnet pack' of the umbrella package failed (exit {result.ExitCode.ToString(CultureInfo.InvariantCulture)}):{Environment.NewLine}{result.CombinedOutput}");
     }
 
     private static bool LooksLikeFileLockContention(string output)
@@ -369,7 +372,7 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
     {
         if (result.ExitCode != 0)
             throw new InvalidOperationException(
-                $"'{operation}' failed for '{projectPath}' (exit {result.ExitCode}):{Environment.NewLine}{result.CombinedOutput}");
+                $"'{operation}' failed for '{projectPath}' (exit {result.ExitCode.ToString(CultureInfo.InvariantCulture)}):{Environment.NewLine}{result.CombinedOutput}");
     }
 
     private void ReadPackedNupkg(string feedDirectory)
@@ -377,7 +380,7 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         var nupkgPaths = Directory.GetFiles(feedDirectory, $"{UmbrellaPackage.Id}.*.nupkg");
         if (nupkgPaths.Length != 1)
             throw new InvalidOperationException(
-                $"Expected exactly one {UmbrellaPackage.Id}.*.nupkg in '{feedDirectory}', found {nupkgPaths.Length}: {string.Join(", ", nupkgPaths)}");
+                $"Expected exactly one {UmbrellaPackage.Id}.*.nupkg in '{feedDirectory}', found {nupkgPaths.Length.ToString(CultureInfo.InvariantCulture)}: {string.Join(", ", nupkgPaths)}");
 
         var fileName = Path.GetFileName(nupkgPaths[0]);
         PackageVersion = fileName[(UmbrellaPackage.Id.Length + 1)..^".nupkg".Length];
@@ -392,11 +395,11 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         var restoreResult = await consumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
         if (restoreResult.ExitCode != 0)
             throw new InvalidOperationException(
-                $"'dotnet restore' failed for '{consumer.ProjectPath}' (exit {restoreResult.ExitCode}):{Environment.NewLine}{restoreResult.CombinedOutput}");
+                $"'dotnet restore' failed for '{consumer.ProjectPath}' (exit {restoreResult.ExitCode.ToString(CultureInfo.InvariantCulture)}):{Environment.NewLine}{restoreResult.CombinedOutput}");
 
         var buildResult = await consumer.BuildAsync(BuildTimeout).ConfigureAwait(false);
         if (buildResult.ExitCode != 0)
             throw new InvalidOperationException(
-                $"'dotnet build' failed for '{consumer.ProjectPath}' (exit {buildResult.ExitCode}):{Environment.NewLine}{buildResult.CombinedOutput}");
+                $"'dotnet build' failed for '{consumer.ProjectPath}' (exit {buildResult.ExitCode.ToString(CultureInfo.InvariantCulture)}):{Environment.NewLine}{buildResult.CombinedOutput}");
     }
 }

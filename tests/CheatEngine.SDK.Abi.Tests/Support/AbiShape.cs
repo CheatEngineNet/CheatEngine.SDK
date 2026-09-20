@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -125,7 +126,8 @@ internal static class AbiShape
         var parameters = type.GetFunctionPointerParameterTypes();
         for (var index = 0; index < parameters.Length; index++)
         {
-            violation = CheckType(parameters[index], $"{path}(parameter {index})", false, trusted, visited);
+            violation = CheckType(parameters[index],
+                $"{path}(parameter {index.ToString(CultureInfo.InvariantCulture)})", false, trusted, visited);
             if (violation is not null) return violation;
         }
 

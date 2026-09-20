@@ -3,7 +3,8 @@ using System;
 namespace CheatEngine.SDK.SourceGenerators.EngineApi.Parsing;
 
 /// <summary>
-///     C# identifier and namespace validity for spec-file <c>method</c>/<c>type</c>/<c>namespace</c> values, and the
+///     C# identifier and namespace validity for spec-file <c>method</c>/<c>type</c>/<see langword="namespace" /> values,
+///     and the
 ///     keyword-escape rule for the ones that become generated identifiers.
 /// </summary>
 /// <remarks>

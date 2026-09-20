@@ -105,7 +105,7 @@ public static unsafe class MainThread
     ///     there, through the host's <c>synchronize</c> otherwise.
     /// </summary>
     /// <typeparam name="TState">
-    ///     The state passed to the action; pass what the action needs so that it can be a <c>static</c>
+    ///     The state passed to the action; pass what the action needs so that it can be a <see langword="static" />
     ///     lambda.
     /// </typeparam>
     /// <param name="action">The work.</param>

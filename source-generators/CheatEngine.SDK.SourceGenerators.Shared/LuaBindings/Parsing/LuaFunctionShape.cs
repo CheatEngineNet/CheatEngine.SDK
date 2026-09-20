@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 using Microsoft.CodeAnalysis;
@@ -20,6 +21,11 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 ///     the containing type are checked by the caller (<c>LuaNames.IsValidName</c>, <see cref="ContainingTypeShape" />);
 ///     duplicate names are a group rule (<c>LuaFunctionTables</c>).
 /// </remarks>
+[SuppressMessage(
+    "Meziantou.Analyzer",
+    "MA0182",
+    Justification =
+        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class LuaFunctionShape
 {
     /// <summary>Inspects <paramref name="method" /> against the resolved SDK <paramref name="luaState" /> symbol.</summary>

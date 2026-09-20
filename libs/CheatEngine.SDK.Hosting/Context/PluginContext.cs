@@ -67,7 +67,8 @@ public sealed unsafe class PluginContext
     /// </summary>
     /// <remarks>
     ///     Internal on purpose: <see cref="LuaHostBinding" />'s <c>StateProvider</c>/<c>HostObjectPusher</c> are raw host
-    ///     function addresses, and this <see cref="PluginContext" /> is reachable from ordinary, non-<c>unsafe</c> plugin
+    ///     function addresses, and this <see cref="PluginContext" /> is reachable from ordinary, non-<see langword="unsafe" />
+    ///     plugin
     ///     code via <c>CheatEnginePlugin.Context</c> — CheatEngine.SDK.Hosting's public surface speaks spans, structs
     ///     and handles, never raw pointers. This is <c>CheatEngine.SDK.Hosting</c>'s own wiring detail for attaching
     ///     <see cref="LuaRuntime" />, not a plugin-facing capability.

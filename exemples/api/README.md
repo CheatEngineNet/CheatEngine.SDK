@@ -69,7 +69,7 @@ called by generated code only.
 ## Install and build settings
 
 ```powershell
-dotnet add package CheatEngine.SDK --prerelease
+dotnet add package CheatEngine.SDK --version 1.0.0
 ```
 
 | Setting                            | Default from the package | Meaning                                                                                                                                                                        |

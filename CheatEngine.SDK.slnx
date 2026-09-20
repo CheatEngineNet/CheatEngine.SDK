@@ -19,11 +19,11 @@
     <File Path=".github/actions/setup-dotnet/action.yml"/>
   </Folder>
   <Folder Name="/.github/workflows/">
-    <File Path=".github/workflows/_ci.yml"/>
-    <File Path=".github/workflows/_sonar.yml"/>
-    <File Path=".github/workflows/merge.yml"/>
-    <File Path=".github/workflows/publish-nuget.yml"/>
-    <File Path=".github/workflows/pull-request.yml"/>
+    <File Path=".github/workflows/ci.yml"/>
+    <File Path=".github/workflows/sonar.yml"/>
+    <File Path=".github/workflows/main-ci.yml"/>
+    <File Path=".github/workflows/release.yml"/>
+    <File Path=".github/workflows/pull-request-ci.yml"/>
   </Folder>
   <Folder Name="/eng/">
     <File Path="eng/BannedSymbols.txt"/>

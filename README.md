@@ -4,7 +4,7 @@
 
 **Write Cheat Engine plugins as ordinary C# classes.**
 
-[![Build](https://img.shields.io/github/actions/workflow/status/CheatEngineNet/CheatEngine.SDK/merge.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&labelColor=24292f)](https://github.com/CheatEngineNet/CheatEngine.SDK/actions/workflows/merge.yml)
+[![Build](https://img.shields.io/github/actions/workflow/status/CheatEngineNet/CheatEngine.SDK/main-ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&labelColor=24292f)](https://github.com/CheatEngineNet/CheatEngine.SDK/actions/workflows/main-ci.yml)
 [![NuGet](https://img.shields.io/nuget/vpre/CheatEngine.SDK?style=flat-square&logo=nuget&logoColor=white&labelColor=24292f&color=004880)](https://www.nuget.org/packages/CheatEngine.SDK)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet&logoColor=white&labelColor=24292f)](https://dotnet.microsoft.com/download/dotnet/10.0)
 [![Windows x64](https://img.shields.io/badge/platform-Windows%20x64-0078D4?style=flat-square&labelColor=24292f)](#requirements)

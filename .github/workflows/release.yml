@@ -70,8 +70,9 @@ jobs:
           "prerelease=$prerelease" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
   ci:
+    name: CI
     needs: verify
-    uses: ./.github/workflows/_ci.yml
+    uses: ./.github/workflows/ci.yml
     with:
       upload-package: true
       test-release: true

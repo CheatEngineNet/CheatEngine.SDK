@@ -171,7 +171,7 @@ internal static class ExpectedFiles
                                                                          int __top = __L.Top;
                                                                          try
                                                                          {
-                                                                             if (!global::CheatEngine.SDK.Lua.CompilerServices.LuaGlobalFunctions.TryPush(__L, s_luaGlobal_readInteger, "readInteger"u8))
+                                                                             if (!global::CheatEngine.SDK.Lua.CompilerServices.LuaGlobalFunctions.TryPush(__L, global::Demo.Memory.s_luaGlobal_readInteger, "readInteger"u8))
                                                                              {
                                                                                  global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.ThrowUnresolvedGlobal(__L, __top, "readInteger");
                                                                              }
@@ -204,7 +204,7 @@ internal static class ExpectedFiles
                                                                          int __top = __L.Top;
                                                                          try
                                                                          {
-                                                                             if (!global::CheatEngine.SDK.Lua.CompilerServices.LuaGlobalFunctions.TryPush(__L, s_luaGlobal_readInteger, "readInteger"u8))
+                                                                             if (!global::CheatEngine.SDK.Lua.CompilerServices.LuaGlobalFunctions.TryPush(__L, global::Demo.Memory.s_luaGlobal_readInteger, "readInteger"u8))
                                                                              {
                                                                                  return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, out value);
                                                                              }

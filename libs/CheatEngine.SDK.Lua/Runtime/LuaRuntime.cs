@@ -87,6 +87,13 @@ public static unsafe class LuaRuntime
     public static bool IsAttached => Volatile.Read(ref s_services) is not null;
 
     /// <summary>
+    ///     Gets whether the calling thread currently owns an admitted Lua operation. Internal lifecycle code uses this
+    ///     preflight before taking another lifecycle lock, so an invalid nested transition is rejected without waiting
+    ///     behind a transition that is draining this thread's lease.
+    /// </summary>
+    internal static bool IsOperationAdmittedOnCurrentThread => t_operationDepth != 0;
+
+    /// <summary>
     ///     Gets the attach counter: 0 before the first <see cref="Attach" />, incremented by every attach, unchanged by
     ///     <see cref="Detach" /> or a supported state replacement. This compatibility property is the attach component
     ///     of <see cref="CurrentStateIdentity" />; persistent Lua resources must compare the complete identity.
@@ -248,6 +255,7 @@ public static unsafe class LuaRuntime
         Debug.Assert(LuaApi.IsInitialized,
             "CheatEngine.SDK.Lua.Interop.Api.LuaApi must be bound before the runtime is attached.");
 
+        ThrowIfTransitionFromCurrentOperation();
         lock (SGate)
         {
             ThrowIfResetTransitionActive();
@@ -289,6 +297,7 @@ public static unsafe class LuaRuntime
     /// </remarks>
     internal static LuaStateResetTransition BeginStateReset()
     {
+        ThrowIfTransitionFromCurrentOperation();
         lock (SGate)
         {
             ThrowIfResetTransitionActive();
@@ -325,6 +334,7 @@ public static unsafe class LuaRuntime
     /// </summary>
     public static void Detach()
     {
+        ThrowIfTransitionFromCurrentOperation();
         lock (SGate)
         {
             ThrowIfResetTransitionActive();
@@ -488,7 +498,7 @@ public static unsafe class LuaRuntime
     /// </remarks>
     internal static void CloseOperationAdmissionAndDrain()
     {
-        if (t_operationDepth != 0) ThrowTransitionFromOperation();
+        ThrowIfTransitionFromCurrentOperation();
 
         lock (SOperationGate)
         {
@@ -661,6 +671,12 @@ public static unsafe class LuaRuntime
     {
         throw new InvalidOperationException(
             "A Lua lifecycle transition cannot start from an admitted Lua operation because it would wait for itself.");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ThrowIfTransitionFromCurrentOperation()
+    {
+        if (t_operationDepth != 0) ThrowTransitionFromOperation();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

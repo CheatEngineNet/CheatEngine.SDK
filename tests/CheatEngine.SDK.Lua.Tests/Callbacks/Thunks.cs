@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using CheatEngine.SDK.Lua.Callbacks;
 using CheatEngine.SDK.Lua.Marshalling;
 using CheatEngine.SDK.Lua.State;
+using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
 
 namespace CheatEngine.SDK.Lua.Tests.Callbacks;
 
@@ -29,6 +30,8 @@ internal static unsafe class Thunks
     public static LuaNativeFunction Greet => new(&GreetThunk);
 
     public static LuaNativeFunction DeepStackFirstProtected => new(&DeepStackFirstProtectedThunk);
+
+    public static LuaNativeFunction SetUpvalueTable => new(&SetUpvalueTableThunk);
 
     /// <summary><c>add(a, b)</c>: the sum, or the error "add expects two numbers".</summary>
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
@@ -136,6 +139,31 @@ internal static unsafe class Thunks
                 if (!L.TryReadInteger(i + 1, out var value) || value != i)
                     return LuaThunk.Fail(L, "the stack below the protected call was disturbed"u8);
 
+            return 1;
+        }
+        catch (Exception exception)
+        {
+            return LuaThunk.Fail(L, exception);
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static int SetUpvalueTableThunk(nint handle)
+    {
+        LuaState L = new(handle);
+        try
+        {
+            var table = lua_upvalueindex(1);
+            L.PushString("name"u8);
+            L.PushInteger(1);
+            if (!L.TryRawSet(table)) return LuaThunk.Fail(L, "raw set failed"u8);
+
+            L.PushInteger(2);
+            L.RawSetIndex(table, 2);
+
+            L.PushInteger(3);
+            L.RawSetPointer(table, 0x77);
+            L.PushValue(table);
             return 1;
         }
         catch (Exception exception)

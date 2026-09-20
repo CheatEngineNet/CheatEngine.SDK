@@ -264,6 +264,41 @@ public sealed class LuaRuntimeTests
         Assert.Equal(before, LuaRuntime.CurrentStateIdentity);
     }
 
+    [Fact]
+    public async Task Detach_rejects_a_nested_transition_before_waiting_for_another_transition_lock()
+    {
+        LuaTest.RequireNativeLua();
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using NativeLuaState state = new(openLibraries: false);
+        using RuntimeScope scope = new(state);
+        using ManualResetEventSlim admissionClosed = new(initialState: false);
+        LuaRuntime.OperationAdmissionClosedForTesting = admissionClosed.Set;
+        Task? competingDetach = null;
+
+        try
+        {
+            using (LuaRuntime.AcquireOperation())
+            {
+                competingDetach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken,
+                    TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                Assert.True(admissionClosed.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+                    "The competing detach did not close operation admission.");
+
+                var exception = Assert.Throws<InvalidOperationException>(LuaRuntime.Detach);
+
+                Assert.Contains("cannot start", exception.Message, StringComparison.Ordinal);
+                Assert.False(competingDetach.IsCompleted,
+                    "The competing detach completed while the admitted operation was still active.");
+            }
+
+            await competingDetach!.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+        }
+        finally
+        {
+            LuaRuntime.OperationAdmissionClosedForTesting = null;
+        }
+    }
+
     private static void StartAndCompleteStateReset()
     {
         using var transition = LuaRuntime.BeginStateReset();

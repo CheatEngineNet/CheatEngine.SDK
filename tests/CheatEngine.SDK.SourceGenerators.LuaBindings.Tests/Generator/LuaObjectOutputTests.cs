@@ -65,14 +65,37 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
         Assert.Contains("public static bool operator ==", handle, StringComparison.Ordinal);
 
         var members = run.GeneratedText("Demo.Scan.LuaObjectMembers.g.cs");
-        Assert.Contains("Handle.TryPushMethodLeavingObject(__ceState, \"firstScan\"u8)", members,
+        Assert.Contains("this.Handle.TryPushMethodLeavingObject(__ceState, \"firstScan\"u8)", members,
             StringComparison.Ordinal);
         Assert.Contains("__ceState.SetTop(__ceTop);", members, StringComparison.Ordinal);
-        Assert.Contains("Handle.TryGetProperty<global::CheatEngine.SDK.Lua.Marshalling.Int32Marshaller, int>", members,
+        Assert.Contains("this.Handle.TryGetProperty<global::CheatEngine.SDK.Lua.Marshalling.Int32Marshaller, int>", members,
             StringComparison.Ordinal);
-        Assert.Contains("Handle.TrySetProperty<global::CheatEngine.SDK.Lua.Marshalling.Int32Marshaller, int>", members,
+        Assert.Contains("this.Handle.TrySetProperty<global::CheatEngine.SDK.Lua.Marshalling.Int32Marshaller, int>", members,
             StringComparison.Ordinal);
         run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Object_method_parameter_named_handle_does_not_shadow_the_generated_property()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Object")]
+                              public readonly partial struct ObjectHandle
+                              {
+                                  [LuaMethod("call")]
+                                  public partial void Call(int Handle);
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        run.AssertCompilesClean();
+        Assert.Contains("this.Handle.TryPushMethodLeavingObject", run.GeneratedText("Demo.ObjectHandle.LuaObjectMembers.g.cs"),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -152,6 +175,215 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
                               {
                               }
                               """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.Equal("Demo.Good.LuaClass.g.cs", run.HintNames[0]);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Generated_handle_accessor_collision_skips_only_the_affected_handle()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Bad")]
+                              public readonly partial struct Bad
+                              {
+                                  private global::CheatEngine.SDK.Engine.Objects.CEObject get_Handle() => default;
+                              }
+
+                              [LuaClass("Good")]
+                              public readonly partial struct Good
+                              {
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.Equal("Demo.Good.LuaClass.g.cs", run.HintNames[0]);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Generic_handle_accessor_collision_skips_only_the_affected_handle()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Bad")]
+                              public readonly partial struct Bad
+                              {
+                                  private global::CheatEngine.SDK.Engine.Objects.CEObject get_Handle<T>() => default;
+                              }
+
+                              [LuaClass("Good")]
+                              public readonly partial struct Good
+                              {
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.DoesNotContain("Demo.Bad.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Contains("Demo.Good.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Generated_handle_setter_collision_skips_only_the_matching_handle()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("BadSetter")]
+                              public readonly partial struct BadSetter
+                              {
+                                  private void set_Handle(global::CheatEngine.SDK.Engine.Objects.CEObject value) { }
+                              }
+
+                              [LuaClass("GenericSetter")]
+                              public readonly partial struct GenericSetter
+                              {
+                                  private void set_Handle<T>(global::CheatEngine.SDK.Engine.Objects.CEObject value) { }
+                              }
+
+                              [LuaClass("DifferentSetter")]
+                              public readonly partial struct DifferentSetter
+                              {
+                                  private void set_Handle(int value) { }
+                              }
+
+                              [LuaClass("Good")]
+                              public readonly partial struct Good
+                              {
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Equal(2, run.GeneratedSources.Length);
+        Assert.DoesNotContain("Demo.BadSetter.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.DoesNotContain("Demo.GenericSetter.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Contains("Demo.DifferentSetter.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Contains("Demo.Good.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Generated_handle_accessor_named_non_methods_skip_only_the_affected_handles()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Field")]
+                              public readonly partial struct Field
+                              {
+                                  #pragma warning disable CS0169
+                                  private readonly int get_Handle;
+                                  #pragma warning restore CS0169
+                              }
+
+                              [LuaClass("Property")]
+                              public readonly partial struct Property
+                              {
+                                  private int set_Handle => 0;
+                              }
+
+                              [LuaClass("Nested")]
+                              public readonly partial struct Nested
+                              {
+                                  private struct get_Handle { }
+                              }
+
+                              [LuaClass("Good")]
+                              public readonly partial struct Good
+                              {
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.DoesNotContain("Demo.Field.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.DoesNotContain("Demo.Property.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.DoesNotContain("Demo.Nested.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Contains("Demo.Good.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        run.AssertCompilesClean();
+    }
+
+    [Theory]
+    [InlineData("_handle")]
+    [InlineData("Handle")]
+    [InlineData("FromHandle")]
+    [InlineData("Equals")]
+    [InlineData("GetHashCode")]
+    [InlineData("Push")]
+    [InlineData("TryRead")]
+    public void Every_generated_handle_member_name_skips_only_the_affected_handle(string memberName)
+    {
+        var newModifier = memberName is "Equals" or "GetHashCode" ? "new " : string.Empty;
+        var source = $$"""
+                      using CheatEngine.SDK.Annotations.Lua;
+
+                      namespace Demo;
+
+                      [LuaClass("Bad")]
+                      public readonly partial struct Bad
+                      {
+                          private {{newModifier}}int {{memberName}} => 0;
+                      }
+
+                      [LuaClass("Good")]
+                      public readonly partial struct Good
+                      {
+                      }
+                      """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.Equal("Demo.Good.LuaClass.g.cs", run.HintNames[0]);
+        run.AssertCompilesClean();
+    }
+
+    [Theory]
+    [InlineData("_handle")]
+    [InlineData("Handle")]
+    [InlineData("FromHandle")]
+    [InlineData("Equals")]
+    [InlineData("GetHashCode")]
+    [InlineData("Push")]
+    [InlineData("TryRead")]
+    public void Every_generated_handle_type_name_skips_only_the_affected_handle(string typeName)
+    {
+        var source = """
+                      using CheatEngine.SDK.Annotations.Lua;
+
+                      namespace Demo;
+
+                      [LuaClass("Bad")]
+                      public readonly partial struct TYPE
+                      {
+                      }
+
+                      [LuaClass("Good")]
+                      public readonly partial struct Good
+                      {
+                      }
+                      """.Replace("TYPE", typeName, StringComparison.Ordinal);
 
         var run = roslyn.Run(source);
 
@@ -250,7 +482,7 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
         var run = roslyn.Run(source);
         var members = run.GeneratedText("Demo.Wide.LuaObjectMembers.g.cs");
         var stackCheck = members.IndexOf("if (!__ceState.TryEnsureStack(17))", StringComparison.Ordinal);
-        var receiverPush = members.IndexOf("Handle.TryPushMethodLeavingObject(__ceState, \"sum15\"u8)",
+        var receiverPush = members.IndexOf("this.Handle.TryPushMethodLeavingObject(__ceState, \"sum15\"u8)",
             StringComparison.Ordinal);
 
         Assert.True(stackCheck >= 0 && stackCheck < receiverPush,

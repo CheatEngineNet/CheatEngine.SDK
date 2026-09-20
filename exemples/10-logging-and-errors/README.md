@@ -121,7 +121,7 @@ archives, twenty short entries end like this:
 |----------------|------------------------------------------------------------------------------------------------|
 | `plugin.log`   | The newest entries, including `entry 20`                                                       |
 | `plugin.log.1` | The entries before them                                                                        |
-| `plugin.log.2` | The oldest entries still kept. `entry 01` to `entry 12` are gone, and no file passes 200 bytes |
+| `plugin.log.2` | The oldest entries still kept; ordinary entries stay within 200 bytes                    |
 
 Each line has a timestamp in UTC, the level and the message. An exception follows on the next lines, in full:
 
@@ -298,8 +298,9 @@ A `[LuaFunction]` failure reaches the script that called it and is not written t
 - No exception from your plugin reaches Cheat Engine: `OnEnable`, `OnDisable` and every generated thunk catch, log and
   report a failed call.
 - A sink that throws never escapes `HostLog`, and `TeeSink` keeps the other destinations alive.
-- `RollingFileSink` never leaves a file above its limit, keeps at most the configured number of archives, and writes
-  whole entries when several threads log at once.
+- `RollingFileSink` treats its limit as a rotation threshold, keeps at most the configured number of archives, and
+  writes whole entries when several threads log at once. One oversized entry is intentionally not split and can exceed
+  the threshold in its fresh file.
 - `HostLog.MinimumLevel` decides what is written, and `IsEnabled` answers the same question before you build a message.
 
 ## Before you move on

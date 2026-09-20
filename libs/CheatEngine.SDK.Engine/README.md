@@ -49,7 +49,7 @@ host has the same contract.
 | `Errors`                   | `EngineException` and stable subclasses                                       | Separates expected operation failure, global absence, Lua failure, binding violation and marshalling violation instead of exposing a raw Lua stack error as the public Engine contract.                                    |
 
 The per-capability provenance, minimum CE version, architecture, thread, ownership and return semantics belong to the
-external [capability matrix](../../../../documentations/CheatEngine.SDK/capability-matrix.md). Fixture tests validate
+versioned [capability matrix](../../documentations/CheatEngine.SDK/capability-matrix.md). Fixture tests validate
 managed behavior and the pinned Lua fixture; opt-in live evidence is recorded separately and is not implied by these
 wrappers.
 
@@ -148,12 +148,13 @@ internal static class EngineDemo
     {
         LuaState L = LuaRuntime.AcquireState();
         using LuaFrame frame = new(L);
-        if (!L.TryExecute("return createStringlist()"u8, 1).IsOk) return false;
-        if (!CEObject.TryRead(L, -1, out CEObject handle)) return false;
-
-        using Owned<CEObject> list = new(handle);
-        list.Value.TryCallMethod("clear"u8);
-        return list.Value.TryGetProperty<Int32Marshaller, int>("Count"u8, out int count) && count == 0;
+        if (!StringLists.TryCreate(out Owned<StringList>? list)) return false;
+        using (list)
+        {
+            return list.Value.TryClear()
+                   && list.Value.TryGetCount(out int count)
+                   && count == 0;
+        }
     }
 
     internal static bool TryBump(Address address)
@@ -172,8 +173,8 @@ ships in the `CheatEngine.SDK` package under `lib/net10.0`.
 
 The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine object model on a real Lua 5.3 state.
 
-1. `Owned<T>` destroys its object once, never retries a destroy that raised, and never throws from `Dispose`
-   (`OwnedTests`).
+1. `Owned<T>` destroys its object once, never retries a destroy that raised, and only throws from `Dispose` when the
+   protected destroy call cannot begin; a failure returned by CE is consumed after the call starts (`OwnedTests`).
 2. A Lua error never becomes an exception: typed members return `false`, stack-level members return a `LuaStatus` with
    one error value (`CEObjectTests`).
 3. Members that push the object throw `InvalidOperationException` before the plugin is enabled (`CEObjectValueTests`).

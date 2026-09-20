@@ -19,8 +19,11 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, name))
-                return Fail(out value, out failure, MemoryAccessFailure.GlobalUnavailable);
+            if (!TryPushGlobal(state, cache, name, out failure))
+            {
+                value = default;
+                return false;
+            }
 
             state.PushInteger(address);
             if (hasSignedArgument) state.PushBoolean(signed);
@@ -52,8 +55,11 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, name))
-                return Fail(out value, out failure, MemoryAccessFailure.GlobalUnavailable);
+            if (!TryPushGlobal(state, cache, name, out failure))
+            {
+                value = default;
+                return false;
+            }
 
             state.PushInteger(address);
             var status = state.TryCall(1, 1);
@@ -85,8 +91,11 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, name))
-                return Fail(out written, out failure, MemoryAccessFailure.GlobalUnavailable);
+            if (!TryPushGlobal(state, cache, name, out failure))
+            {
+                written = 0;
+                return false;
+            }
 
             state.PushInteger(address);
             state.PushInteger(maximumLength);
@@ -124,8 +133,11 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, name))
-                return Fail(out value, out failure, MemoryAccessFailure.GlobalUnavailable);
+            if (!TryPushGlobal(state, cache, name, out failure))
+            {
+                value = default;
+                return false;
+            }
 
             state.PushInteger(address);
             state.PushInteger(maximumLength);
@@ -152,19 +164,18 @@ internal static class MemoryLua
     internal static bool TryReadBytes(LuaRef cache, ReadOnlySpan<byte> name, long address, Span<byte> destination,
         out MemoryAccessFailure failure)
     {
+        using var operation = LuaRuntime.AcquireOperation();
         if (destination.IsEmpty)
         {
             failure = MemoryAccessFailure.None;
             return true;
         }
 
-        using var operation = LuaRuntime.AcquireOperation();
         var state = operation.State;
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, name))
-                return Fail(out failure, MemoryAccessFailure.GlobalUnavailable);
+            if (!TryPushGlobal(state, cache, name, out failure)) return false;
 
             state.PushInteger(address);
             state.PushInteger(destination.Length);
@@ -215,8 +226,7 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, name))
-                return Fail(out failure, MemoryAccessFailure.GlobalUnavailable);
+            if (!TryPushGlobal(state, cache, name, out failure)) return false;
 
             state.PushInteger(address);
             state.PushInteger(value);
@@ -246,8 +256,7 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, name))
-                return Fail(out failure, MemoryAccessFailure.GlobalUnavailable);
+            if (!TryPushGlobal(state, cache, name, out failure)) return false;
 
             state.PushInteger(address);
             state.PushNumber(value);
@@ -277,8 +286,7 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, name))
-                return Fail(out failure, MemoryAccessFailure.GlobalUnavailable);
+            if (!TryPushGlobal(state, cache, name, out failure)) return false;
 
             state.PushInteger(address);
             state.PushString(value);
@@ -309,8 +317,7 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, name))
-                return Fail(out failure, MemoryAccessFailure.GlobalUnavailable);
+            if (!TryPushGlobal(state, cache, name, out failure)) return false;
 
             state.PushInteger(address);
             state.PushString(value);
@@ -348,8 +355,7 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, cache, name))
-                return Fail(out failure, MemoryAccessFailure.GlobalUnavailable);
+            if (!TryPushGlobal(state, cache, name, out failure)) return false;
 
             state.PushInteger(address);
             state.PushByteTable(value);
@@ -378,6 +384,18 @@ internal static class MemoryLua
     {
         failure = value;
         return false;
+    }
+
+    private static bool TryPushGlobal(LuaState state, LuaRef cache, ReadOnlySpan<byte> name,
+        out MemoryAccessFailure failure)
+    {
+        failure = LuaGlobalFunctions.TryPushWithStatus(state, cache, name) switch
+        {
+            LuaGlobalPushStatus.Success => MemoryAccessFailure.None,
+            LuaGlobalPushStatus.Unavailable => MemoryAccessFailure.GlobalUnavailable,
+            _ => MemoryAccessFailure.LuaError,
+        };
+        return failure == MemoryAccessFailure.None;
     }
 
     private static bool Fail<T>(out T value, out MemoryAccessFailure failure, MemoryAccessFailure failureValue)

@@ -154,19 +154,30 @@ internal static partial class WriteWatcher
     public static bool Stop()
     {
         var address = Volatile.Read(ref s_watched);
-        if (address == 0) return false;
+        if (address != 0)
+        {
+            try
+            {
+                DebuggerCalls.RemoveBreakpoint(address);
+                Volatile.Write(ref s_watched, 0);
+            }
+            catch (LuaException exception)
+            {
+                HostLog.Write(HostLogLevel.Warning, "Removing the write breakpoint failed.", exception);
+                return false;
+            }
+        }
 
-        Volatile.Write(ref s_watched, 0);
+        if (!s_startedDebugger) return address != 0;
         try
         {
-            DebuggerCalls.RemoveBreakpoint(address);
-            if (s_startedDebugger) DebuggerCalls.DetachIfPossible();
+            DebuggerCalls.DetachIfPossible();
             s_startedDebugger = false;
             return true;
         }
         catch (LuaException exception)
         {
-            HostLog.Write(HostLogLevel.Warning, "Removing the write breakpoint failed.", exception);
+            HostLog.Write(HostLogLevel.Warning, "Detaching the debugger failed; retry Stop to detach.", exception);
             return false;
         }
     }

@@ -48,7 +48,8 @@ internal static class LuaGlobalParser
                 signature.Results,
                 signature.ReturnKind,
                 signature.ReturnIsNullable,
-                method.IsExtensionMethod);
+                method.IsExtensionMethod,
+                containingType.FullyQualifiedName + "." + LuaGlobalCallModel.CacheFieldFor(luaName!));
 
         return new LuaGlobalModel(containingType, typeIssues, issues, call, SortKey(method),
             hasGeneratedIdentityCollision);

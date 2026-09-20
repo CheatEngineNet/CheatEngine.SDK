@@ -91,7 +91,7 @@ Before this page gains a working scan-creation example, the vertical slice must 
 - the exact thread/lifecycle boundary for the creation and destruction calls; and
 - fixture tests plus an isolated, opt-in CE 7.7 live probe.
 
-The [capability matrix](../../../../documentations/CheatEngine.SDK/capability-matrix.md) tracks that proof. Until then,
+The [capability matrix](../../documentations/CheatEngine.SDK/capability-matrix.md) tracks that proof. Until then,
 use typed target-memory APIs for scalar reads/writes and `AobScanner` for the ownership-proven AOB result list; reserve
 direct scan construction for a deliberately authorized, source-backed experiment outside the ordinary SDK path.
 

@@ -115,4 +115,36 @@ public sealed class UnmanagedCallersOnlyGuardCodeFixTests
 
         await Verifier.VerifyAsync(source, source);
     }
+
+    [Fact]
+    public async Task Local_unmanaged_callback_inside_the_bootstrap_gets_no_outer_bootstrap_fix()
+    {
+        const string source = """
+                              using System;
+                              using System.Runtime.InteropServices;
+
+                              namespace CESDK;
+
+                              internal static class CESDK
+                              {
+                                  [UnmanagedCallersOnly]
+                                  public static int CEPluginInitialize(IntPtr exportedFunctions, int bootstrap)
+                                  {
+                                      [UnmanagedCallersOnly]
+                                      static int {|CESDK1004:Callback|}(nint state) => throw new InvalidOperationException();
+
+                                      try
+                                      {
+                                          return 1;
+                                      }
+                                      catch (Exception)
+                                      {
+                                          return 0;
+                                      }
+                                  }
+                              }
+                              """;
+
+        await Verifier.VerifyAsync(source, source);
+    }
 }

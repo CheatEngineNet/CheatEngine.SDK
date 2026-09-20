@@ -79,6 +79,9 @@ public sealed class UnmanagedCallersOnlyGuardCodeFixProvider : CodeFixProvider
                     return method;
                 case MethodDeclarationSyntax { ExpressionBody: { } expressionBody } method:
                     return ExceptionGuardRewriter.CanGuard(expressionBody, method.SemicolonToken) ? method : null;
+                case LocalFunctionStatementSyntax:
+                case AnonymousFunctionExpressionSyntax:
+                    return null;
                 case MemberDeclarationSyntax:
                     return null;
             }

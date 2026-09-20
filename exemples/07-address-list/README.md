@@ -152,7 +152,7 @@ not as an opportunity to retain a borrowed record.
 ## Evidence and scope
 
 This slice is sourced from the exact CE `7.7.0.10621` x64 `celua.txt` fixture (digest recorded in the
-[source index](../../../../documentations/CheatEngine.SDK/SOURCES.md)): `getAddressList`, the `Addresslist` class, and
+[source index](../../documentations/CheatEngine.SDK/SOURCES.md)): `getAddressList`, the `Addresslist` class, and
 the
 `MemoryRecord` members used above. Its protected-call tests exercise the managed boundary; they do not prove a live CE
 GUI thread contract. The classic plugin callback type 0 record is a separate ABI concern and is not this object API.

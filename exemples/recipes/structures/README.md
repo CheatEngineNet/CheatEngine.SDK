@@ -51,7 +51,7 @@ the exact CE build:
 | Tests     | Fixture tests for stack/cleanup plus an isolated, opt-in CE 7.7 live probe                                                             |
 
 That work belongs to the evidence and capability process, not to a recipe that guesses from an object pointer. The
-[capability matrix](../../../../documentations/CheatEngine.SDK/capability-matrix.md) is the current source of truth.
+[capability matrix](../../../documentations/CheatEngine.SDK/capability-matrix.md) is the current source of truth.
 
 ## Before you move on
 

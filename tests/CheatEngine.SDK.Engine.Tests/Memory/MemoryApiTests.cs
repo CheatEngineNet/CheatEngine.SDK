@@ -234,26 +234,32 @@ public sealed class MemoryApiTests
     }
 
     [Fact]
-    public void Empty_byte_writes_do_not_resolve_or_invoke_CE_globals()
+    public void Empty_byte_reads_and_writes_do_not_resolve_or_invoke_CE_globals()
     {
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
         using HostScope scope = new(state);
         EngineTest.Run(scope.State,
-            "function writeBytes(_) error('must not run') end function writeBytesLocal(_) error('must not run') end"u8);
+            "function readBytes(_) error('must not run') end function readBytesLocal(_) error('must not run') end function writeBytes(_) error('must not run') end function writeBytesLocal(_) error('must not run') end"u8);
 
         Assert.Equal(0, FakeHost.ProviderCalls);
-        Assert.True(TargetMemory.TryWriteBytes(1UL, [], out var failure));
+        Assert.True(TargetMemory.TryReadBytes(1UL, [], out var failure));
         Assert.Equal(MemoryAccessFailure.None, failure);
         Assert.Equal(1, FakeHost.ProviderCalls);
-        Assert.True(HostMemory.TryWriteBytes(new HostAddress(1), [], out failure));
+        Assert.True(HostMemory.TryReadBytes(new HostAddress(1), [], out failure));
         Assert.Equal(MemoryAccessFailure.None, failure);
         Assert.Equal(2, FakeHost.ProviderCalls);
+        Assert.True(TargetMemory.TryWriteBytes(1UL, [], out failure));
+        Assert.Equal(MemoryAccessFailure.None, failure);
+        Assert.Equal(3, FakeHost.ProviderCalls);
+        Assert.True(HostMemory.TryWriteBytes(new HostAddress(1), [], out failure));
+        Assert.Equal(MemoryAccessFailure.None, failure);
+        Assert.Equal(4, FakeHost.ProviderCalls);
         Assert.Equal(0, scope.State.Top);
     }
 
     [Fact]
-    public void Empty_byte_writes_preserve_detached_runtime_admission()
+    public void Empty_byte_reads_and_writes_preserve_detached_runtime_admission()
     {
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
@@ -261,6 +267,8 @@ public sealed class MemoryApiTests
         {
         }
 
+        Assert.Throws<InvalidOperationException>(() => TargetMemory.TryReadBytes(1UL, [], out _));
+        Assert.Throws<InvalidOperationException>(() => HostMemory.TryReadBytes(new HostAddress(1), [], out _));
         Assert.Throws<InvalidOperationException>(() => TargetMemory.TryWriteBytes(1UL, [], out _));
         Assert.Throws<InvalidOperationException>(() => HostMemory.TryWriteBytes(new HostAddress(1), [], out _));
     }

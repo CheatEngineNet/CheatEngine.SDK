@@ -84,11 +84,14 @@ namespace AssemblyRecipe;
 internal sealed class AutoAssemblerToggle(string script) : IDisposable
 {
     private LuaRef? _disableInfo;
+    private bool _restorationUncertain;
 
     public bool IsEnabled => _disableInfo is { IsCurrent: true };
+    public bool RequiresManualRecovery => _restorationUncertain;
 
     public bool Enable()
     {
+        if (_restorationUncertain) return false;
         if (IsEnabled) return true;
 
         var L = LuaRuntime.AcquireState();
@@ -104,7 +107,9 @@ internal sealed class AutoAssemblerToggle(string script) : IDisposable
 
     public bool Disable()
     {
-        var info = Interlocked.Exchange(ref _disableInfo, null);
+        if (_restorationUncertain) return false;
+
+        var info = Volatile.Read(ref _disableInfo);
         if (info is null) return false;
 
         var L = LuaRuntime.AcquireState();
@@ -113,11 +118,27 @@ internal sealed class AutoAssemblerToggle(string script) : IDisposable
         if (ok)
         {
             StringMarshaller.Push(L, script);
-            ok = L.TryPushRef(info) && L.TryCall(2, 1).IsOk && L.ToBoolean(-1);
+            if (!L.TryPushRef(info)) return false;
+
+            var status = L.TryCall(2, 1);
+            if (!status.IsOk)
+            {
+                _restorationUncertain = true;
+                return false;
+            }
+
+            ok = L.ToBoolean(-1);
+            if (!ok)
+            {
+                _restorationUncertain = true;
+                return false;
+            }
         }
 
-        info.Release(L);
-        return ok;
+        if (!ok) return false;
+
+        if (Interlocked.CompareExchange(ref _disableInfo, null, info) == info) info.Release(L);
+        return true;
     }
 
     public void Dispose() => Disable();
@@ -150,8 +171,12 @@ internal static partial class Patches
 
 `autoAssemble(script)` returns `true` and the disable table when `[ENABLE]` succeeds. `CreateRef` pops that table into
 the Lua registry, and `Disable` pushes it back as the second argument, which is what makes Cheat Engine run `[DISABLE]`.
-The reference is released on every path, and `TryPushRef` refuses a reference from an earlier enable instead of pushing
-a stale value.
+The reference is released only after `[DISABLE]` succeeds. If lookup or reference push fails before dispatch, it remains
+available for a later retry; `IsEnabled` stays true rather than claiming that a patch was removed without evidence. A
+post-dispatch Lua error or false result sets `RequiresManualRecovery`: the reference is retained as evidence, and both
+`Enable` and `Disable` refuse further mutation until an explicit recovery clears the uncertainty. The helper will not
+blindly replay a potentially partial `[DISABLE]`; `TryPushRef` also refuses a reference from an earlier enable instead
+of pushing a stale value.
 
 The script is a raw string literal, so it keeps its own indentation and needs no escaping. The bytes are an example: use
 the pattern and the original bytes of your own target.
@@ -220,7 +245,11 @@ internal static partial class Listing
     public static string Disassemble(long address, long count)
     {
         var lines = Read(Address.FromInt64(address), (int)Math.Clamp(count, 1, 64));
-        return string.Join('\n', lines.Select(l => $"{l.Address}  {l.Bytes,-16}{l.Opcode} {l.Extra}".TrimEnd()));
+        var formatted = new string[lines.Count];
+        for (var i = 0; i < lines.Count; i++)
+            formatted[i] = $"{lines[i].Address}  {lines[i].Bytes,-16}{lines[i].Opcode} {lines[i].Extra}".TrimEnd();
+
+        return string.Join('\n', formatted);
     }
 
     [LuaFunction("my_plugin_instruction_size")]
@@ -287,7 +316,8 @@ the line.
 ## Promise
 
 - A failed `[ENABLE]` returns `false` and leaves no reference behind.
-- `Disable` releases its registry reference on every path and never runs `[DISABLE]` twice.
+- `Disable` releases its registry reference only after `[DISABLE]` succeeds; lookup, reference-push, and post-dispatch
+  failures retain it for diagnosis and never run `[DISABLE]` twice.
 - A Try form never throws for an address that does not disassemble. It returns `false`.
 - The Lua stack returns to its previous height after every call.
 

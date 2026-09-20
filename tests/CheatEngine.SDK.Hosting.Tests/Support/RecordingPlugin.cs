@@ -1,8 +1,11 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CheatEngine.SDK.Abi;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Context;
 using CheatEngine.SDK.Hosting.Plugin;
 using CheatEngine.SDK.Hosting.Threading;
+using CheatEngine.SDK.Lua.Callbacks;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 
@@ -13,7 +16,7 @@ namespace CheatEngine.SDK.Hosting.Tests.Support;
 ///     makes a nested lifecycle call from inside <see cref="OnEnable" /> or <see cref="OnDisable" /> when a test installs
 ///     one (static switches, because the host constructs the instance itself).
 /// </summary>
-internal sealed class RecordingPlugin : CheatEnginePlugin
+internal sealed unsafe class RecordingPlugin : CheatEnginePlugin
 {
     public RecordingPlugin()
     {
@@ -27,6 +30,8 @@ internal sealed class RecordingPlugin : CheatEnginePlugin
     public static bool ThrowInConstructor { get; set; }
 
     public static bool ThrowInOnEnable { get; set; }
+
+    public static bool CreateCallbacksInOnEnable { get; set; }
 
     public static bool ThrowInOnDisable { get; set; }
 
@@ -73,6 +78,10 @@ internal sealed class RecordingPlugin : CheatEnginePlugin
 
     public bool HostEnabledInOnDisable { get; private set; }
 
+    public LuaCallback<object>? CallbackOne { get; private set; }
+
+    public LuaCallback<object>? CallbackTwo { get; private set; }
+
     /// <summary>What the nested call installed in <see cref="NestedCallInOnEnable" /> returned; null when none ran.</summary>
     public Bool32? NestedResultInOnEnable { get; private set; }
 
@@ -89,6 +98,7 @@ internal sealed class RecordingPlugin : CheatEnginePlugin
     {
         ThrowInConstructor = false;
         ThrowInOnEnable = false;
+        CreateCallbacksInOnEnable = false;
         ThrowInOnDisable = false;
         OnEnableEntered = null;
         ContinueOnEnable = null;
@@ -119,6 +129,20 @@ internal sealed class RecordingPlugin : CheatEnginePlugin
                 LuaResultInOnEnable = value;
         }
 
+        if (CreateCallbacksInOnEnable)
+        {
+            if (!LuaCallback.TryCreate(L, new LuaNativeFunction(&NoOpThunk), new object(), out var first).IsOk
+                || first is null)
+                throw new InvalidOperationException("first callback creation failed");
+
+            if (!LuaCallback.TryCreate(L, new LuaNativeFunction(&NoOpThunk), new object(), out var second).IsOk
+                || second is null)
+                throw new InvalidOperationException("second callback creation failed");
+
+            CallbackOne = first;
+            CallbackTwo = second;
+        }
+
         var nested = NestedCallInOnEnable;
         if (nested is not null)
         {
@@ -147,5 +171,11 @@ internal sealed class RecordingPlugin : CheatEnginePlugin
         }
 
         if (ThrowInOnDisable) throw new InvalidOperationException("OnDisable failure requested by the test");
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static int NoOpThunk(nint handle)
+    {
+        return 0;
     }
 }

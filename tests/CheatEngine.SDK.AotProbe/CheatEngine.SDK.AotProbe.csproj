@@ -21,4 +21,15 @@
     <ProjectReference Include="../../libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Project references alone do not retain unused implementation through trimming. Root each shipping assembly so
+         this probe validates the complete package graph before Native AOT compilation. -->
+    <TrimmerRootAssembly Include="CheatEngine.SDK.Abi"/>
+    <TrimmerRootAssembly Include="CheatEngine.SDK.Annotations"/>
+    <TrimmerRootAssembly Include="CheatEngine.SDK.Lua.Interop"/>
+    <TrimmerRootAssembly Include="CheatEngine.SDK.Lua"/>
+    <TrimmerRootAssembly Include="CheatEngine.SDK.Engine"/>
+    <TrimmerRootAssembly Include="CheatEngine.SDK.Hosting"/>
+  </ItemGroup>
+
 </Project>

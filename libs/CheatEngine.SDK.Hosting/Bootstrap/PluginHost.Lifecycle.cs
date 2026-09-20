@@ -10,6 +10,7 @@ using CheatEngine.SDK.Abi.Native;
 using CheatEngine.SDK.Hosting.Context;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Hosting.Threading;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.Runtime;
@@ -108,8 +109,10 @@ public static unsafe partial class PluginHost
     /// </summary>
     /// <returns>
     ///     <c>TRUE</c> after the plugin is disabled, including when <c>OnDisable</c> throws after its failure is logged;
-    ///     <c>FALSE</c> when another lifecycle transition is active, or when the host invokes disable from a thread
-    ///     other than the captured plugin main thread. In either refusal case nothing is changed.
+    ///     <c>FALSE</c> when another lifecycle transition is active, when the host invokes disable from a thread other
+    ///     than the captured plugin main thread, when it is nested in admitted Lua or dispatched work, or when Lua
+    ///     cleanup cannot detach the runtime. Refusals leave the lifecycle unchanged; incomplete cleanup remains in
+    ///     <see cref="PluginHostLifecyclePhase.Disabling" /> for diagnosis rather than reporting a false completion.
     /// </returns>
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static Bool32 DisablePlugin()
@@ -211,6 +214,8 @@ public static unsafe partial class PluginHost
 
     private static bool RunEnable(ManagedExportedFunctions* exports, uint pluginId, PluginDescriptor descriptor)
     {
+        Volatile.Write(ref s_incompleteEnableCleanup, 0);
+        Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
         if (!TryCopyExports(exports, out var copy)) return false;
         if (!TryBindLua(in copy)) return false;
         if (!TryGetOrCreatePlugin(descriptor, out var plugin)) return false;
@@ -275,30 +280,35 @@ public static unsafe partial class PluginHost
 
     private static void CleanupFailedEnable(bool runtimeAttached, CancellationTokenSource? shutdown)
     {
+        var cleanupSucceeded = false;
         try
         {
             if (shutdown is not null) CloseMainThreadWorkAdmissionAndSignalShutdown(Volatile.Read(ref s_context));
+
+            if (runtimeAttached)
+            {
+                LuaRuntime.CloseOperationAdmissionAndDrain();
+                LuaRuntime.Detach();
+            }
+
+            cleanupSucceeded = true;
         }
-        finally
+        catch (Exception exception)
         {
-            try
+            HostLog.Error("EnablePlugin: Lua cleanup after a failed enable threw; shutdown remains incomplete.", exception);
+            if (runtimeAttached)
             {
-                if (runtimeAttached)
-                {
-                    LuaRuntime.CloseOperationAdmissionAndDrain();
-                    LuaRuntime.Detach();
-                }
-            }
-            catch (Exception exception)
-            {
-                HostLog.Error("EnablePlugin: Lua cleanup after a failed enable threw.", exception);
-            }
-            finally
-            {
-                Volatile.Write(ref s_context, null);
-                if (shutdown is not null) EndMainThreadWorkAdmission();
+                Volatile.Write(ref s_incompleteEnableCleanup, 1);
+                SetPhase(PluginHostLifecyclePhase.Disabling);
             }
         }
+
+        if (!cleanupSucceeded) return;
+
+        Volatile.Write(ref s_context, null);
+        Volatile.Write(ref s_incompleteEnableCleanup, 0);
+        Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
+        if (shutdown is not null) EndMainThreadWorkAdmission();
     }
 
     // Honours the size field: a record shorter than the one this SDK knows cannot be copied safely; a longer one
@@ -393,15 +403,26 @@ public static unsafe partial class PluginHost
         if (start is LifecycleStart.Refused) return false;
         if (start is LifecycleStart.AlreadyStable) return true;
 
+        var cleanupSucceeded = false;
         try
         {
             RunDisable(context!, plugin);
-            return true;
         }
         finally
         {
-            CleanupDisable();
+            // A failed detach leaves the attached runtime and context available for diagnosis rather than publishing a
+            // successful Registered state. The native callback must report that incomplete shutdown to the host.
+            cleanupSucceeded = CleanupDisable();
         }
+
+        // Keep the retry claimed through detach failure and its synchronous error log. Only after the whole attempt
+        // has unwound may another host request claim the pending cleanup again.
+        Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
+
+        if (cleanupSucceeded && HostLog.IsEnabled(HostLogLevel.Information))
+            HostLog.Information($"Plugin {context!.PluginId} disabled.");
+
+        return cleanupSucceeded;
     }
 
     private static LifecycleStart TryStartDisable(
@@ -410,8 +431,8 @@ public static unsafe partial class PluginHost
     {
         context = null;
         plugin = null;
+        if (!CanStartDisable()) return LifecycleStart.Refused;
         if (!TryEnterLifecycleCallback("DisablePlugin")) return LifecycleStart.Refused;
-
         try
         {
             if (Phase is PluginHostLifecyclePhase.Registered or PluginHostLifecyclePhase.Uninitialized)
@@ -419,12 +440,31 @@ public static unsafe partial class PluginHost
                 HostLog.Warning("DisablePlugin: the plugin is not enabled; the call is ignored.");
                 return LifecycleStart.AlreadyStable;
             }
-
             context = s_context;
-            if (Phase is not PluginHostLifecyclePhase.Enabled || context is null)
+            if (context is null)
             {
                 HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
-                              "; disable is valid only from Enabled.");
+                              "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
+                return LifecycleStart.Refused;
+            }
+
+            if (Phase is PluginHostLifecyclePhase.Disabling)
+            {
+                if (Volatile.Read(ref s_incompleteEnableCleanup) == 0
+                    || Volatile.Read(ref s_incompleteEnableCleanupActive) != 0)
+                {
+                    HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
+                                  "; a disable transition is already completing.");
+                    return LifecycleStart.Refused;
+                }
+
+                return TryStartIncompleteDisable(context, out plugin);
+            }
+
+            if (Phase is not PluginHostLifecyclePhase.Enabled)
+            {
+                HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
+                              "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
                 return LifecycleStart.Refused;
             }
 
@@ -445,6 +485,41 @@ public static unsafe partial class PluginHost
         }
     }
 
+    private static bool CanStartDisable()
+    {
+        if (LuaRuntime.IsOperationAdmittedOnCurrentThread)
+        {
+            HostLog.Error(
+                "DisablePlugin: disable was requested from an admitted Lua operation; the request is refused because shutdown would wait for that operation to return.");
+            return false;
+        }
+
+        if (MainThreadDispatcher.IsExecutingWorkOnCurrentThread)
+        {
+            HostLog.Error(
+                "DisablePlugin: disable was requested from dispatched main-thread work; the request is refused because shutdown would wait for that work to return.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private static LifecycleStart TryStartIncompleteDisable(PluginContext context, out CheatEnginePlugin? plugin)
+    {
+        plugin = null;
+        if (!context.IsMainThread)
+        {
+            HostLog.Error(
+                "DisablePlugin: retrying incomplete enable cleanup from a different thread is refused; use the captured plugin main thread.");
+            return LifecycleStart.Refused;
+        }
+
+        // SGate is held by the caller, so this claim closes the re-entrant window before the transition is returned.
+        Volatile.Write(ref s_incompleteEnableCleanupActive, 1);
+
+        return LifecycleStart.Started;
+    }
+
     private static void RunDisable(PluginContext context, CheatEnginePlugin? plugin)
     {
         // The dispatcher admission is closed outside SGate, so an admitted worker can finish and release its lease.
@@ -458,30 +533,31 @@ public static unsafe partial class PluginHost
             }
             catch (Exception exception)
             {
-                HostLog.Error("DisablePlugin: OnDisable threw; the plugin is disabled anyway.", exception);
+                HostLog.Error("DisablePlugin: OnDisable threw; cleanup continues and detach determines the final disable result.", exception);
             }
 
-        if (HostLog.IsEnabled(HostLogLevel.Information))
-            HostLog.Information($"Plugin {context.PluginId} disabled.");
     }
 
-    private static void CleanupDisable()
+    private static bool CleanupDisable()
     {
         try
         {
             // The operation gate has already shut out every admitted Lua caller before callback neutralization.
             LuaRuntime.CloseOperationAdmissionAndDrain();
             LuaRuntime.Detach();
+
+            Volatile.Write(ref s_context, null);
+            Volatile.Write(ref s_incompleteEnableCleanup, 0);
+            EndMainThreadWorkAdmission();
+            SetPhase(PluginHostLifecyclePhase.Registered);
+            return true;
         }
         catch (Exception exception)
         {
-            HostLog.Error("DisablePlugin: Lua detach threw; the context is withdrawn anyway.", exception);
-        }
-        finally
-        {
-            Volatile.Write(ref s_context, null);
-            EndMainThreadWorkAdmission();
-            SetPhase(PluginHostLifecyclePhase.Registered);
+            HostLog.Error(
+                "DisablePlugin: Lua detach threw; shutdown remains incomplete and the lifecycle stays Disabling.",
+                exception);
+            return false;
         }
     }
 

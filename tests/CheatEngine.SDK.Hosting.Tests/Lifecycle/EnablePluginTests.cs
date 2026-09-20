@@ -6,6 +6,7 @@ using CheatEngine.SDK.Hosting.Context;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Tests.Support;
 using CheatEngine.SDK.Hosting.Threading;
+using CheatEngine.SDK.Lua.Callbacks;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.Interop.Loading;
 using CheatEngine.SDK.Lua.Runtime;
@@ -244,6 +245,105 @@ public sealed unsafe class EnablePluginTests
         (HostLogLevel, string, Exception?) entry = Assert.Single(sink.Errors("OnEnable threw"));
         var exception = Assert.IsType<InvalidOperationException>(entry.Item3);
         Assert.Contains("requested by the test", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "NativeLua")]
+    public void OnEnable_failure_with_detach_failure_keeps_incomplete_cleanup_retryable()
+    {
+        HostingTest.RequireNativeLua();
+        var sink = HostingTest.Reset();
+        using NativeLuaState state = new();
+        using HostSimulator host = new();
+        HostingTest.UseFixture(state);
+        HostingTest.Bootstrap(host);
+        RecordingPlugin.ThrowInOnEnable = true;
+        RecordingPlugin.CreateCallbacksInOnEnable = true;
+        var releases = 0;
+        LuaCallbackRegistry.AfterReleaseForTesting = () =>
+        {
+            if (++releases == 1) throw new InvalidOperationException("deterministic failed-enable cleanup failure");
+        };
+        var exports = FakeExports.Create();
+
+        try
+        {
+            Assert.False(host.CallEnable(&exports, 1).IsTrue);
+
+            var plugin = RecordingPlugin.LastConstructed!;
+            Assert.NotNull(plugin);
+            Assert.True(LuaRuntime.IsAttached);
+            Assert.Equal(PluginHostLifecyclePhase.Disabling, PluginHost.Phase);
+            Assert.NotNull(PluginHost.Context);
+            Assert.True(plugin.CallbackTwo!.IsReleased);
+            Assert.False(plugin.CallbackOne!.IsReleased);
+            Assert.NotEmpty(sink.Errors("shutdown remains incomplete"));
+
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
+            Assert.True(host.CallDisable().IsTrue);
+            Assert.False(LuaRuntime.IsAttached);
+            Assert.Null(PluginHost.Context);
+            Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
+            Assert.True(plugin.CallbackOne.IsReleased);
+        }
+        finally
+        {
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "NativeLua")]
+    public void A_failed_cleanup_retry_rejects_nested_disable_until_the_retry_unwinds()
+    {
+        HostingTest.RequireNativeLua();
+        var sink = HostingTest.Reset();
+        using NativeLuaState state = new();
+        using HostSimulator host = new();
+        HostingTest.UseFixture(state);
+        HostingTest.Bootstrap(host);
+        RecordingPlugin.ThrowInOnEnable = true;
+        RecordingPlugin.CreateCallbacksInOnEnable = true;
+        var releases = 0;
+        LuaCallbackRegistry.AfterReleaseForTesting = () =>
+        {
+            if (++releases == 1) throw new InvalidOperationException("deterministic failed-enable cleanup failure");
+        };
+        var nestedRequested = false;
+        var nestedResult = true;
+        var exports = FakeExports.Create();
+
+        try
+        {
+            Assert.False(host.CallEnable(&exports, 1).IsTrue);
+
+            releases = 0;
+            sink.OnMessage = message =>
+            {
+                if (!nestedRequested && message.Contains("shutdown remains incomplete", StringComparison.Ordinal))
+                {
+                    nestedRequested = true;
+                    nestedResult = host.CallDisable().IsTrue;
+                }
+            };
+            Assert.False(host.CallDisable().IsTrue);
+            Assert.True(nestedRequested);
+            Assert.False(nestedResult);
+            Assert.True(LuaRuntime.IsAttached);
+            Assert.Equal(PluginHostLifecyclePhase.Disabling, PluginHost.Phase);
+            Assert.True(sink.HasEntry(HostLogLevel.Error, "a disable transition is already completing"));
+
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
+            sink.OnMessage = null;
+            Assert.True(host.CallDisable().IsTrue);
+            Assert.False(LuaRuntime.IsAttached);
+            Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
+        }
+        finally
+        {
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
+            sink.OnMessage = null;
+        }
     }
 
     [Fact]

@@ -84,13 +84,8 @@ internal static class LuaClassParser
     // CESDK2007; the generator just drops this type and leaves independent valid types alone.
     private static bool HasGeneratedIdentityCollision(INamedTypeSymbol type, INamedTypeSymbol? ceObject)
     {
-        return HasMember(type, "_handle")
-               || HasMember(type, "Handle")
-               || HasMember(type, "FromHandle")
-               || HasMember(type, "Equals")
-               || HasMember(type, "GetHashCode")
-               || HasMember(type, "Push")
-               || HasMember(type, "TryRead")
+        return LuaClassGeneratedNames.IsGeneratedType(type.Name)
+               || HasGeneratedMember(type, ceObject)
                || HasMember(type, "op_Equality")
                || HasMember(type, "op_Inequality")
                || HasCEObjectConstructor(type, ceObject);
@@ -109,6 +104,16 @@ internal static class LuaClassParser
                 && SymbolEqualityComparer.Default.Equals(parameter.Type, ceObject))
                 return true;
         }
+
+        return false;
+    }
+
+    private static bool HasGeneratedMember(INamedTypeSymbol type, INamedTypeSymbol? ceObject)
+    {
+        foreach (var member in type.GetMembers())
+            if (LuaClassGeneratedNames.IsGeneratedMember(member.Name)
+                || LuaClassGeneratedNames.IsGeneratedAccessorCollision(member, ceObject))
+                return true;
 
         return false;
     }

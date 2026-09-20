@@ -37,7 +37,9 @@ cd MyPlugin
 dotnet add package CheatEngine.SDK --prerelease
 ```
 
-Set `<PlatformTarget>x64</PlatformTarget>` in the project file. The package supplies defaults for unsafe code and dynamic loading, and copies its bundled Lua bridge into the plugin output on Windows.
+Set `<PlatformTarget>x64</PlatformTarget>` and `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` in the project file. A
+`[LuaFunction]` export needs the explicit unsafe opt-in for its generated registration thunk; the package supplies the
+dynamic-loading default and copies its bundled Lua bridge into the plugin output on Windows.
 
 ## Quick start
 

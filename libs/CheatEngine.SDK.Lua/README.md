@@ -53,10 +53,10 @@ Lua wrapper turns that into `error(message, 2)`, where unwinding is safe. `LuaCa
 object that the thunk reads with `LuaThunk.TryGetState`. Lookup acquires a strong managed reference under the same gate
 as release. Its SDK-owned dispatch closure holds a `LuaRuntimeOperation` for each stateful invocation: an already
 admitted callback can finish during teardown, while a later callback returns a catchable `"the Lua runtime is stopping"`
-error without entering plugin code. SDK references use a private registry table and never participate in the host
-registry free list. Any Lua
-operation that may allocate is called through `cheatengine-sdk-lua-bridge.dll`, so a Lua `longjmp` cannot cross a
-managed frame.
+error without entering plugin code. Active dispatched work prevents clean disable: a lifecycle transition from that
+nesting is refused before taking the shutdown gate. SDK references use a private registry table and never participate in
+the host registry free list. Any Lua operation that may allocate is called through `cheatengine-sdk-lua-bridge.dll`, so
+a Lua `longjmp` cannot cross a managed frame.
 
 `LuaRuntime` identifies a persistent Lua resource with `(attachEpoch, stateGeneration)`. `Attach` advances only the
 attachment epoch. A supported reset begins with the internal host-owned `BeginStateReset` transition: it closes
@@ -64,7 +64,10 @@ admission, drains every `LuaRuntimeOperation`, neutralizes rooted callbacks whil
 advances only the state generation. Its stack-only transition remains open until the host has actually replaced the
 state. `LuaRef`s and generated global caches become stale unless both components match. A stale slot is forgotten rather
 than pushed or released against a replacement registry. `Detach` follows the same close-and-drain rule before it
-neutralizes every live callback. Nothing has a finalizer, because a Lua state belongs to one thread.
+neutralizes every live callback. A lifecycle transition cannot start from an admitted Lua operation or dispatched work
+because shutdown would wait for that caller to return: the transition is refused before waiting for another transition's
+lock. A failed `Detach` leaves the lifecycle in `Disabling` for diagnosis instead of reporting false completion. Nothing
+has a finalizer, because a Lua state belongs to one thread.
 
 Cheat Engine's `resetLuaState` must not be called outside the SDK-owned reset protocol. An external, unnotified reset is
 unsupported: the SDK cannot safely infer whether the old registry, callbacks, CE userdata or thread-local state still
@@ -117,9 +120,9 @@ static class MemoryReads
 ```
 
 Generated bodies restore the stack in `finally`, including a managed exception from a marshaller. A body also handles:
-the global is unresolved, the call raised, or the result is `nil` or of the
-wrong type. A `Try*` form returns `false` through `LuaCallSupport.Fail`. A throwing form calls `ThrowUnresolvedGlobal`,
-`Throw` or `ThrowUnexpectedResult`, which restore the stack and throw `LuaException`.
+the global is unresolved, protected global lookup itself failed, the call raised, or the result is `nil` or of the wrong
+type. A `Try*` form returns `false` through `LuaCallSupport.Fail`. A throwing form calls `ThrowUnresolvedGlobal`, `Throw`
+or `ThrowUnexpectedResult`, which restore the stack and throw `LuaException`.
 
 ### String results
 

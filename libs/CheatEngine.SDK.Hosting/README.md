@@ -65,10 +65,12 @@ The lifecycle state machine is `Uninitialized → Registered → Enabling → En
 `DisablePlugin` moves to `Disabling`, closes worker-dispatch admission, and signals `PluginContext.ShutdownToken`
 before it invokes plugin cleanup. Work admitted before that boundary is drained first. When disable runs on the
 captured GUI thread, Hosting pumps the host's `CheckSynchronize(0)` slot so a worker already waiting in
-`synchronize` can finish; cross-thread dispatch is refused if that slot is absent. `OnDisable` then runs while
-`LuaRuntime` is still attached. Finally, Hosting closes and drains `LuaRuntime`'s independent operation admission,
-then detaches (neutralizing every Lua callback the plugin forgot), the context is withdrawn, and the phase returns to
-`Registered`. The next enable reuses
+`synchronize` can finish; cross-thread dispatch is refused if that slot is absent. A disable nested in an admitted Lua
+operation or already executing dispatched action is refused before it changes lifecycle state. `OnDisable` then runs
+while `LuaRuntime` is still attached. Finally, Hosting closes and drains `LuaRuntime`'s independent operation
+admission, then detaches (neutralizing every Lua callback the plugin forgot), withdraws the context, and returns to
+`Registered`. If detach fails, the callback returns `FALSE` and the host remains visibly `Disabling` with its runtime
+attached rather than reporting a completed shutdown. After a completed shutdown, the next enable reuses
 the plugin instance with a new epoch, so a `PluginContext` or Lua reference from an earlier enable is stale.
 `PluginContext.IsCurrent` tells a kept context from the live one. While the plugin is disabled, `PluginHost.Context`
 returns `null` and `CheatEnginePlugin.Context` throws.

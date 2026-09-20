@@ -95,6 +95,32 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
     }
 
     [Fact]
+    public void Generator_preserves_the_extension_receiver_on_a_copyout_destination()
+    {
+        const string Source = Usings +
+                              "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(this System.Span<byte> destination, out int written); }";
+
+        var run = roslyn.Run(Source);
+
+        run.AssertCompilesClean();
+        Assert.Contains("public static partial bool TryG(this global::System.Span<byte> destination, out int written)",
+            run.SingleGeneratedText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Generator_qualifies_the_cache_when_a_parameter_uses_its_name()
+    {
+        const string Source = Usings +
+                              "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial void G(int s_luaGlobal_g); }";
+
+        var run = roslyn.Run(Source);
+
+        run.AssertCompilesClean();
+        Assert.Contains("TryPush(__L, global::Demo.Holder.s_luaGlobal_g, \"g\"u8)", run.SingleGeneratedText,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Generator_parameter_named_like_a_generated_local_is_skipped_without_poisoning_compilation()
     {
         // A generated partial body shares its parameter scope with the defining declaration. Do not emit CS0136 and

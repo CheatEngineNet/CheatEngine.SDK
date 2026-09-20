@@ -280,6 +280,50 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
         run.AssertCompilesClean();
     }
 
+    [Fact]
+    public void Generated_handle_accessor_named_non_methods_skip_only_the_affected_handles()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Field")]
+                              public readonly partial struct Field
+                              {
+                                  #pragma warning disable CS0169
+                                  private readonly int get_Handle;
+                                  #pragma warning restore CS0169
+                              }
+
+                              [LuaClass("Property")]
+                              public readonly partial struct Property
+                              {
+                                  private int set_Handle => 0;
+                              }
+
+                              [LuaClass("Nested")]
+                              public readonly partial struct Nested
+                              {
+                                  private struct get_Handle { }
+                              }
+
+                              [LuaClass("Good")]
+                              public readonly partial struct Good
+                              {
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.DoesNotContain("Demo.Field.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.DoesNotContain("Demo.Property.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.DoesNotContain("Demo.Nested.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Contains("Demo.Good.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        run.AssertCompilesClean();
+    }
+
     [Theory]
     [InlineData("_handle")]
     [InlineData("Handle")]

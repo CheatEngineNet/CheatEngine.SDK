@@ -274,6 +274,36 @@ public sealed class LuaObjectBindingAnalyzerTests
     }
 
     [Fact]
+    public async Task Generated_handle_accessor_named_non_methods_report_CESDK2007()
+    {
+        await AnalyzerVerifier<LuaObjectBindingAnalyzer>.VerifyAsync(
+            """
+            using CheatEngine.SDK.Annotations.Lua;
+
+            namespace Demo
+            {
+                [LuaClass("Field")]
+                public readonly partial struct Field
+                {
+                    private readonly int {|CESDK2007:get_Handle|};
+                }
+
+                [LuaClass("Property")]
+                public readonly partial struct Property
+                {
+                    private int {|CESDK2007:set_Handle|} => 0;
+                }
+
+                [LuaClass("Nested")]
+                public readonly partial struct Nested
+                {
+                    private struct {|CESDK2007:get_Handle|} { }
+                }
+            }
+            """);
+    }
+
+    [Fact]
     public async Task Record_and_ref_like_borrowed_handles_report_CESDK2006()
     {
         await AnalyzerVerifier<LuaObjectBindingAnalyzer>.VerifyAsync(

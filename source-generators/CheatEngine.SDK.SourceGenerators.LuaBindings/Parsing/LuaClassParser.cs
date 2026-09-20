@@ -112,8 +112,7 @@ internal static class LuaClassParser
     {
         foreach (var member in type.GetMembers())
             if (LuaClassGeneratedNames.IsGeneratedMember(member.Name)
-                || member is IMethodSymbol method
-                && LuaClassGeneratedNames.IsGeneratedAccessorCollision(method, ceObject))
+                || LuaClassGeneratedNames.IsGeneratedAccessorCollision(member, ceObject))
                 return true;
 
         return false;

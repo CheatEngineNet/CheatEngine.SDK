@@ -112,8 +112,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
         {
             if (LuaClassGeneratedNames.IsGeneratedMember(member.Name))
                 ReportCollision(context, member, member.Name);
-            else if (member is IMethodSymbol method
-                     && LuaClassGeneratedNames.IsGeneratedAccessorCollision(method, ceObject))
+            else if (LuaClassGeneratedNames.IsGeneratedAccessorCollision(member, ceObject))
                 ReportCollision(context, member, "Handle");
         }
 

@@ -18,9 +18,12 @@ internal static class LuaClassGeneratedNames
         return IsGeneratedMember(name);
     }
 
-    /// <summary>Whether an authored ordinary method would collide with the generated <c>Handle</c> property.</summary>
-    public static bool IsGeneratedAccessorCollision(IMethodSymbol method, INamedTypeSymbol? ceObject)
+    /// <summary>Whether an authored member would collide with the generated <c>Handle</c> property.</summary>
+    public static bool IsGeneratedAccessorCollision(ISymbol member, INamedTypeSymbol? ceObject)
     {
+        if (member is not IMethodSymbol method)
+            return member.Name is "get_Handle" or "set_Handle";
+
         return method.MethodKind == MethodKind.Ordinary
                && ((string.Equals(method.Name, "get_Handle", StringComparison.Ordinal)
                     && method.Parameters.Length == 0)

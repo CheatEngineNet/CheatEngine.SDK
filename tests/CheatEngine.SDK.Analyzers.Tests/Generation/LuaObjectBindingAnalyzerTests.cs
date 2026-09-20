@@ -222,6 +222,58 @@ public sealed class LuaObjectBindingAnalyzerTests
     }
 
     [Fact]
+    public async Task Generic_handle_accessor_helper_is_not_a_collision()
+    {
+        await AnalyzerVerifier<LuaObjectBindingAnalyzer>.VerifyAsync(
+            """
+            using CheatEngine.SDK.Annotations.Lua;
+
+            namespace CheatEngine.SDK.Engine.Objects
+            {
+                public readonly struct CEObject
+                {
+                }
+            }
+
+            namespace Demo
+            {
+                [LuaClass("Object")]
+                public readonly partial struct ObjectHandle
+                {
+                    private global::CheatEngine.SDK.Engine.Objects.CEObject get_Handle<T>() => default;
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Generated_handle_setter_collision_requires_the_exact_CEObject_signature()
+    {
+        await AnalyzerVerifier<LuaObjectBindingAnalyzer>.VerifyAsync(
+            """
+            using CheatEngine.SDK.Annotations.Lua;
+
+            namespace CheatEngine.SDK.Engine.Objects
+            {
+                public readonly struct CEObject
+                {
+                }
+            }
+
+            namespace Demo
+            {
+                [LuaClass("Object")]
+                public readonly partial struct ObjectHandle
+                {
+                    private void {|CESDK2007:set_Handle|}(global::CheatEngine.SDK.Engine.Objects.CEObject value) { }
+                    private void set_Handle<T>(global::CheatEngine.SDK.Engine.Objects.CEObject value) { }
+                    private void set_Handle(int value) { }
+                }
+            }
+            """);
+    }
+
+    [Fact]
     public async Task Record_and_ref_like_borrowed_handles_report_CESDK2006()
     {
         await AnalyzerVerifier<LuaObjectBindingAnalyzer>.VerifyAsync(

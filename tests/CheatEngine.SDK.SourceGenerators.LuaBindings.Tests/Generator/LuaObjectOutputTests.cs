@@ -210,6 +210,78 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
         run.AssertCompilesClean();
     }
 
+    [Fact]
+    public void Generic_handle_accessor_helper_remains_valid()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Generic")]
+                              public readonly partial struct Generic
+                              {
+                                  private global::CheatEngine.SDK.Engine.Objects.CEObject get_Handle<T>() => default;
+                              }
+
+                              [LuaClass("Good")]
+                              public readonly partial struct Good
+                              {
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Equal(2, run.GeneratedSources.Length);
+        Assert.Contains("Demo.Generic.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Contains("Demo.Good.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Null(run.Result.Exception);
+        Assert.Empty(run.GeneratorDiagnostics);
+    }
+
+    [Fact]
+    public void Generated_handle_setter_collision_skips_only_the_matching_handle()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("BadSetter")]
+                              public readonly partial struct BadSetter
+                              {
+                                  private void set_Handle(global::CheatEngine.SDK.Engine.Objects.CEObject value) { }
+                              }
+
+                              [LuaClass("GenericSetter")]
+                              public readonly partial struct GenericSetter
+                              {
+                                  private void set_Handle<T>(global::CheatEngine.SDK.Engine.Objects.CEObject value) { }
+                              }
+
+                              [LuaClass("DifferentSetter")]
+                              public readonly partial struct DifferentSetter
+                              {
+                                  private void set_Handle(int value) { }
+                              }
+
+                              [LuaClass("Good")]
+                              public readonly partial struct Good
+                              {
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Equal(3, run.GeneratedSources.Length);
+        Assert.DoesNotContain("Demo.BadSetter.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Contains("Demo.GenericSetter.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Contains("Demo.DifferentSetter.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Contains("Demo.Good.LuaClass.g.cs", run.HintNames, StringComparer.Ordinal);
+        Assert.Null(run.Result.Exception);
+        Assert.Empty(run.GeneratorDiagnostics);
+    }
+
     [Theory]
     [InlineData("_handle")]
     [InlineData("Handle")]

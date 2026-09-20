@@ -85,7 +85,7 @@ internal static class LuaClassParser
     private static bool HasGeneratedIdentityCollision(INamedTypeSymbol type, INamedTypeSymbol? ceObject)
     {
         return LuaClassGeneratedNames.IsGeneratedType(type.Name)
-               || HasGeneratedMember(type)
+               || HasGeneratedMember(type, ceObject)
                || HasMember(type, "op_Equality")
                || HasMember(type, "op_Inequality")
                || HasCEObjectConstructor(type, ceObject);
@@ -108,11 +108,12 @@ internal static class LuaClassParser
         return false;
     }
 
-    private static bool HasGeneratedMember(INamedTypeSymbol type)
+    private static bool HasGeneratedMember(INamedTypeSymbol type, INamedTypeSymbol? ceObject)
     {
         foreach (var member in type.GetMembers())
             if (LuaClassGeneratedNames.IsGeneratedMember(member.Name)
-                || member is IMethodSymbol method && LuaClassGeneratedNames.IsGeneratedAccessorCollision(method))
+                || member is IMethodSymbol method
+                && LuaClassGeneratedNames.IsGeneratedAccessorCollision(method, ceObject))
                 return true;
 
         return false;

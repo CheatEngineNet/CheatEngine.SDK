@@ -84,7 +84,7 @@ console, culture and `Random` access.
 
 - Every implemented rule has a descriptor in its range and category. The descriptor links to a page in `analyzers/docs`
   that starts
-  with the identifier. The `0.3.0` baseline is in `AnalyzerReleases.Shipped.md`; new rules are in `Unshipped.md`.
+  with the identifier. The `1.0.0` baseline is in `AnalyzerReleases.Shipped.md`; new rules are in `Unshipped.md`.
   `DiagnosticCatalogTests` fails when a page, a tracking row or release-tracking uniqueness is missing.
 - A rule and its generator agree. `PluginShapeParityTests` and `LuaBindingAnalyzerTests` run the real generator and the
   analyzer over the same compilation. Over a matrix of shapes, the generator emits exactly when the analyzer stays

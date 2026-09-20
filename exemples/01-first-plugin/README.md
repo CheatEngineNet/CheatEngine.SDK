@@ -37,7 +37,7 @@ as a compiler message before Cheat Engine ever starts.
 ```powershell
 dotnet new classlib -n MyPlugin
 cd MyPlugin
-dotnet add package CheatEngine.SDK --prerelease
+dotnet add package CheatEngine.SDK --version 1.0.0
 Remove-Item Class1.cs
 ```
 
@@ -54,7 +54,7 @@ this:
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CheatEngine.SDK" Version="0.3.0" />
+    <PackageReference Include="CheatEngine.SDK" Version="1.0.0" />
   </ItemGroup>
 </Project>
 ```

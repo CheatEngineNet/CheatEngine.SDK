@@ -23,7 +23,7 @@ because the parts are built and packed together.
    ```powershell
    dotnet new classlib -n MyPlugin
    cd MyPlugin
-   dotnet add package CheatEngine.SDK --prerelease
+   dotnet add package CheatEngine.SDK --version 1.0.0
    ```
 2. Add the following to the `PropertyGroup` of `MyPlugin.csproj`, then delete `Class1.cs`:
    ```xml

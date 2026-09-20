@@ -42,7 +42,7 @@ that benefit from a testable .NET project.
    ```powershell
    dotnet new classlib -n MyPlugin
    cd MyPlugin
-   dotnet add package CheatEngine.SDK --prerelease
+   dotnet add package CheatEngine.SDK --version 1.0.0
    ```
 
    Add the following to the `PropertyGroup` of `MyPlugin.csproj`, then delete `Class1.cs`:
@@ -169,6 +169,8 @@ Cheat Engine 7.7 kept in [`native/cheat-engine`](native/cheat-engine/README.md),
 [`tests/CheatEngine.SDK.Tests.Shared`](tests/CheatEngine.SDK.Tests.Shared/README.md) explains how the DLL is found.
 Every project has a README
 that states its design and guarantees.
+
+Maintainers publish through the tag-driven, keyless process in the [release guide](RELEASING.md).
 
 To rebuild the bridge after changing its C source, install xmake and a Windows x64 C toolchain, then follow
 [`native/cheatengine-sdk-lua-bridge/README.md`](native/cheatengine-sdk-lua-bridge/README.md). Normal managed changes do

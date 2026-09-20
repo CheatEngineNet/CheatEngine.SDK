@@ -1,5 +1,7 @@
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Generator;
 
@@ -156,6 +158,245 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
         Assert.Single(run.GeneratedSources);
         Assert.Equal("Demo.Good.LuaClass.g.cs", run.HintNames[0]);
         run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Generated_handle_constructor_collision_skips_only_the_affected_handle()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Bad")]
+                              public readonly partial struct Bad
+                              {
+                                  private Bad(global::CheatEngine.SDK.Engine.Objects.CEObject handle)
+                                  {
+                                      _ = handle;
+                                  }
+                              }
+
+                              [LuaClass("Good")]
+                              public readonly partial struct Good
+                              {
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.Equal("Demo.Good.LuaClass.g.cs", run.HintNames[0]);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Record_and_ref_like_handles_do_not_block_a_valid_sibling()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Record")]
+                              public readonly partial record struct RecordHandle;
+
+                              [LuaClass("Ref")]
+                              public readonly ref partial struct RefHandle
+                              {
+                              }
+
+                              [LuaClass("Good")]
+                              public readonly partial struct Good
+                              {
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.Equal("Demo.Good.LuaClass.g.cs", run.HintNames[0]);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Object_wide_arguments_and_results_preflight_the_stack_before_any_push()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Wide")]
+                              public readonly partial struct Wide
+                              {
+                                  [LuaMethod("sum15")]
+                                  public partial bool TrySum15(
+                                      int a01, int a02, int a03, int a04, int a05,
+                                      int a06, int a07, int a08, int a09, int a10,
+                                      int a11, int a12, int a13, int a14, int a15,
+                                      out long total);
+
+                                  [LuaMethod("fanout")]
+                                  public partial bool TryFanout(
+                                      int input,
+                                      out int r01, out int r02, out int r03, out int r04, out int r05,
+                                      out int r06, out int r07, out int r08, out int r09, out int r10,
+                                      out int r11, out int r12, out int r13, out int r14, out int r15,
+                                      out int r16, out int r17);
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+        var members = run.GeneratedText("Demo.Wide.LuaObjectMembers.g.cs");
+        var stackCheck = members.IndexOf("if (!__ceState.TryEnsureStack(17))", StringComparison.Ordinal);
+        var receiverPush = members.IndexOf("Handle.TryPushMethodLeavingObject(__ceState, \"sum15\"u8)",
+            StringComparison.Ordinal);
+
+        Assert.True(stackCheck >= 0 && stackCheck < receiverPush,
+            "The object receiver, function and all arguments must be preflighted before the first push.");
+        Assert.Contains("return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__ceState, __ceTop, out total);",
+            members, StringComparison.Ordinal);
+        Assert.Contains("if (!__ceState.TryEnsureStack(18))", members, StringComparison.Ordinal);
+        Assert.Contains("__ceState.TryCall(15, 1)", members, StringComparison.Ordinal);
+        Assert.Contains("__ceState.TryCall(1, 17)", members, StringComparison.Ordinal);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Object_try_method_defaults_every_result_when_a_marshaller_push_throws()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Probe")]
+                              public readonly partial struct Probe
+                              {
+                                  [LuaMethod("describe")]
+                                  public partial bool TryDescribe(string input, out string? text, out int count);
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+        var members = run.GeneratedText("Demo.Probe.LuaObjectMembers.g.cs");
+        var root = RoslynFixture.Parse(members, "Demo.Probe.LuaObjectMembers.g.cs")
+            .GetCompilationUnitRoot(TestContext.Current.CancellationToken);
+        var method = FindGeneratedMethod(root, "TryDescribe");
+        Assert.NotNull(method.Body);
+        var luaCall = FindTryStatement(method.Body!);
+        var exceptionCatch = Assert.Single(luaCall.Catches);
+
+        Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller.Push(__ceState, input);", members,
+            StringComparison.Ordinal);
+        Assert.Contains(luaCall.Block.Statements,
+            static statement => statement.ToFullString().Contains("StringMarshaller.Push(__ceState, input)",
+                StringComparison.Ordinal));
+        Assert.Equal("global::CheatEngine.SDK.Lua.Calls.LuaException", exceptionCatch.Declaration!.Type.ToString());
+        Assert.Contains("text = default!;\n                count = default;\n                return false;", members,
+            StringComparison.Ordinal);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Partial_property_modifiers_and_accessor_visibility_are_preserved()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Properties")]
+                              public readonly partial struct Properties
+                              {
+                                  [LuaProperty("Required")]
+                                  public required partial int Required { get; set; }
+
+                                  [LuaProperty("Writable")]
+                                  public partial int Writable { get; private set; }
+
+                                  [LuaProperty("Readable")]
+                                  public partial int Readable { private get; set; }
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+        var members = run.GeneratedText("Demo.Properties.LuaObjectMembers.g.cs");
+
+        Assert.Contains("public required partial int Required", members, StringComparison.Ordinal);
+        Assert.Contains("[global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]",
+            run.GeneratedText("Demo.Properties.LuaClass.g.cs"), StringComparison.Ordinal);
+        Assert.Contains("public partial int Writable", members, StringComparison.Ordinal);
+        Assert.Contains("private set", members, StringComparison.Ordinal);
+        Assert.Contains("public partial int Readable", members, StringComparison.Ordinal);
+        Assert.Contains("private get", members, StringComparison.Ordinal);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Unsupported_partial_property_forms_do_not_emit_object_members()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              public interface IContract
+                              {
+                                  int Explicit { get; }
+                              }
+
+                              [LuaClass("Unsupported")]
+                              public readonly partial struct Unsupported : IContract
+                              {
+                                  [LuaProperty("Init")]
+                                  public partial int Init { get; init; }
+
+                                  [LuaProperty("Ref")]
+                                  public partial ref int Ref { get; }
+
+                                  [LuaProperty("RefReadonly")]
+                                  public partial ref readonly int RefReadonly { get; }
+
+                                  [LuaProperty("Explicit")]
+                                  partial int IContract.Explicit { get; }
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.Equal("Demo.Unsupported.LuaClass.g.cs", run.HintNames[0]);
+    }
+
+    private static MethodDeclarationSyntax FindGeneratedMethod(CompilationUnitSyntax root, string methodName)
+    {
+        MethodDeclarationSyntax? result = null;
+        foreach (var node in root.DescendantNodes())
+            if (node is MethodDeclarationSyntax candidate
+                && string.Equals(candidate.Identifier.ValueText, methodName, StringComparison.Ordinal))
+            {
+                Assert.Null(result);
+                result = candidate;
+            }
+
+        Assert.NotNull(result);
+        return result!;
+    }
+
+    private static TryStatementSyntax FindTryStatement(BlockSyntax body)
+    {
+        TryStatementSyntax? result = null;
+        foreach (var statement in body.Statements)
+            if (statement is TryStatementSyntax candidate)
+            {
+                Assert.Null(result);
+                result = candidate;
+            }
+
+        Assert.NotNull(result);
+        return result!;
     }
 
     [Fact]

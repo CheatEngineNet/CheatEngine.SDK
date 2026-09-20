@@ -74,7 +74,7 @@ dotnet add package CheatEngine.SDK --prerelease
 
 | Setting                            | Default from the package | Meaning                                                                                 |
 |------------------------------------|--------------------------|-----------------------------------------------------------------------------------------|
-| `AllowUnsafeBlocks`                | `true` while empty       | Needed only by `[LuaFunction]` exports, whose generated thunks take native addresses; a `[LuaGlobal]`-only project can set it to `false` |
+| `AllowUnsafeBlocks`                | Consumer opt-in          | Set `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` for `[LuaFunction]` exports, whose generated thunks take native addresses; a `[LuaGlobal]`-only project can leave it `false` |
 | `EnableDynamicLoading`             | `true` while empty       | Copies referenced assemblies next to your plugin and writes its runtime config          |
 | `CheatEngineSdkGenerateEntryPoint` | `true` while empty       | Set `false` to write `CESDK.CESDK.CEPluginInitialize` by hand                           |
 | `PlatformTarget`                   | yours                    | Must not be `x86`: the build stops with `CESDK9101`                                     |

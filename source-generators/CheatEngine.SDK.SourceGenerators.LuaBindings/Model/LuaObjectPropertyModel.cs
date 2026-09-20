@@ -11,6 +11,8 @@ internal sealed record LuaObjectPropertyModel(
     LuaValueKind Kind,
     bool IsNullable,
     bool HasGetter,
+    string GetterModifiers,
     bool HasSetter,
+    string SetterModifiers,
     string SortKey,
     bool IsValid);

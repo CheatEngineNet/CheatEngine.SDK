@@ -40,7 +40,7 @@ dotnet add package CheatEngine.SDK --prerelease
 Remove-Item Class1.cs
 ```
 
-Then open `MyPlugin.csproj` and add the `PlatformTarget` line. The finished file looks like this:
+Then open `MyPlugin.csproj` and add the `PlatformTarget` and `AllowUnsafeBlocks` lines. The finished file looks like this:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -49,6 +49,7 @@ Then open `MyPlugin.csproj` and add the `PlatformTarget` line. The finished file
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CheatEngine.SDK" Version="0.3.0" />
@@ -56,8 +57,9 @@ Then open `MyPlugin.csproj` and add the `PlatformTarget` line. The finished file
 </Project>
 ```
 
-The package also sets `AllowUnsafeBlocks` and `EnableDynamicLoading` for you, each one only while your project leaves it
-empty. Cheat Engine hosts plugins in an x64 process, so an `x86` target stops the build with `CESDK9101`.
+`AllowUnsafeBlocks` is an explicit opt-in because this guide exports a `[LuaFunction]`; its generated registration thunk
+takes a native function address. The package sets `EnableDynamicLoading` while your project leaves it empty. Cheat
+Engine hosts plugins in an x64 process, so an `x86` target stops the build with `CESDK9101`.
 
 ### 2. Write the plugin
 

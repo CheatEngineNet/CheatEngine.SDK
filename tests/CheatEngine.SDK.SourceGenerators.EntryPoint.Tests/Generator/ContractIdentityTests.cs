@@ -23,6 +23,49 @@ public sealed class ContractIdentityTests(RoslynFixture roslyn) : IClassFixture<
     }
 
     [Fact]
+    public void Generator_file_local_entry_point_lookalike_does_not_block_the_bootstrap()
+    {
+        var run = roslyn.Run(
+            PluginSources.Nominal,
+            """
+            namespace CESDK
+            {
+                file static class CESDK
+                {
+                }
+            }
+            """);
+
+        Assert.Equal(ExpectedBootstrap.Text("global::Demo.DemoPlugin", "\"Demo Plugin\"u8"), run.SingleGeneratedText);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
+    public void Generator_referenced_entry_point_lookalike_does_not_block_the_bootstrap()
+    {
+        var foreignEntryPoint = CreateReference(
+            roslyn.Environment,
+            "Foreign.EntryPoint",
+            """
+            namespace CESDK
+            {
+                public static class CESDK
+                {
+                }
+            }
+            """);
+        var compilation = CreateCompilation(
+            roslyn.Environment,
+            roslyn.Environment.PluginReferences.Add(foreignEntryPoint),
+            PluginSources.Nominal);
+
+        var run = RoslynFixture.Run(compilation);
+
+        Assert.Equal(ExpectedBootstrap.Text("global::Demo.DemoPlugin", "\"Demo Plugin\"u8"), run.SingleGeneratedText);
+        run.AssertCompilesClean();
+    }
+
+    [Fact]
     public void Generator_same_named_plugin_attribute_from_a_foreign_assembly_emits_nothing()
     {
         var foreignAttribute = CreateReference(

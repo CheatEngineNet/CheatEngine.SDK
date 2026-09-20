@@ -32,4 +32,19 @@ public sealed class BuildPropertyDefaultsTests(PackagedUmbrellaFixture fixture)
     {
         Assert.Equal("false", fixture.ExplicitUnsafeFalseProperties["AllowUnsafeBlocks"], true);
     }
+
+    [Fact]
+    public void LuaFunction_consumer_with_explicit_unsafe_opt_in_builds()
+    {
+        Assert.True(fixture.LuaFunctionOptInConsumerBuildSucceeded,
+            "The documented <AllowUnsafeBlocks>true</AllowUnsafeBlocks> opt-in did not allow a packed consumer to compile a Lua-function registration thunk.");
+    }
+
+    [Fact]
+    public void LuaFunction_consumer_without_unsafe_opt_in_fails_with_CESDK2001()
+    {
+        Assert.False(fixture.LuaFunctionWithoutUnsafeConsumerBuildSucceeded,
+            "A packed consumer that exports a Lua function unexpectedly built without enabling unsafe compilation.");
+        Assert.Contains("CESDK2001", fixture.LuaFunctionWithoutUnsafeConsumerBuildOutput, StringComparison.Ordinal);
+    }
 }

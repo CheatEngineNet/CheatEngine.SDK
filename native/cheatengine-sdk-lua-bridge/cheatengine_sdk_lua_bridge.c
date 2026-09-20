@@ -57,6 +57,7 @@ typedef struct cheatengine_sdk_lua_bridge_contract {
     uint8_t lua_integer_size;
     uint8_t size_t_size;
     uint8_t reserved;
+    uint8_t reserved_padding[4];
 } cheatengine_sdk_lua_bridge_contract;
 
 enum { LUA_OK = 0, LUA_MULTRET = -1, LUA_TTABLE = 5, LUA_REGISTRYINDEX = -1001000, CHEATENGINE_SDK_NO_ERROR = -100 };
@@ -72,7 +73,8 @@ enum {
     OP_PUSH_REF = 8,
     OP_UNREF = 9,
     OP_PUSH_HOST_OBJECT = 10,
-    CHEATENGINE_SDK_LUA_BRIDGE_OPERATION_COUNT = 11
+    OP_PUSH_BYTE_TABLE = 11,
+    CHEATENGINE_SDK_LUA_BRIDGE_OPERATION_COUNT = 12
 };
 enum { CHEATENGINE_SDK_LUA_BRIDGE_LEGACY_ABI_VERSION = 1, CHEATENGINE_SDK_LUA_BRIDGE_ABI_MAJOR = 1, CHEATENGINE_SDK_LUA_BRIDGE_ABI_MINOR = 1 };
 enum { CHEATENGINE_SDK_LUA_BRIDGE_MAGIC = 0x4345534B };
@@ -82,7 +84,7 @@ enum { CHEATENGINE_SDK_LUA_BRIDGE_MAGIC = 0x4345534B };
      (UINT64_C(1) << OP_RAWSET) | (UINT64_C(1) << OP_RAWSETI) | \
      (UINT64_C(1) << OP_RAWSETP) | (UINT64_C(1) << OP_REF) | \
      (UINT64_C(1) << OP_PUSH_REF) | (UINT64_C(1) << OP_UNREF) | \
-     (UINT64_C(1) << OP_PUSH_HOST_OBJECT))
+     (UINT64_C(1) << OP_PUSH_HOST_OBJECT) | (UINT64_C(1) << OP_PUSH_BYTE_TABLE))
 
 _Static_assert(CHAR_BIT == 8, "The Lua bridge requires eight-bit bytes.");
 _Static_assert(sizeof(int) == 4, "The Lua bridge ABI requires a 32-bit int.");
@@ -123,6 +125,7 @@ _Static_assert(offsetof(cheatengine_sdk_lua_bridge_contract, pointer_size) == 24
 _Static_assert(offsetof(cheatengine_sdk_lua_bridge_contract, lua_integer_size) == 25, "The bridge contract lua_Integer-size offset changed.");
 _Static_assert(offsetof(cheatengine_sdk_lua_bridge_contract, size_t_size) == 26, "The bridge contract size_t-size offset changed.");
 _Static_assert(offsetof(cheatengine_sdk_lua_bridge_contract, reserved) == 27, "The bridge contract reserved offset changed.");
+_Static_assert(offsetof(cheatengine_sdk_lua_bridge_contract, reserved_padding) == 28, "The bridge contract padding offset changed.");
 
 typedef struct call_context {
     const cheatengine_sdk_lua_exports *api;
@@ -155,7 +158,8 @@ CHEATENGINE_SDK_EXPORT int CHEATENGINE_SDK_CALL cheatengine_sdk_lua_bridge_get_c
         (uint8_t)sizeof(void *),
         (uint8_t)sizeof(lua_Integer),
         (uint8_t)sizeof(size_t),
-        0
+        0,
+        { 0 }
     };
 
     if (!contract || contract_size != sizeof(value)) return 0;
@@ -195,6 +199,20 @@ static int CHEATENGINE_SDK_CALL operation(lua_State *L) {
         if (c->input_count != 0 || (c->size != 0 && !c->data))
             return fail(L, "CheatEngine.SDK protected byte push has invalid arguments");
         a->pushlstring(L, c->size ? (const char *)c->data : &empty, c->size);
+        return 1;
+    }
+    case OP_PUSH_BYTE_TABLE: {
+        const uint8_t *bytes = (const uint8_t *)c->data;
+        size_t index;
+        if (c->input_count != 0 || c->size > INT_MAX || (c->size != 0 && !bytes))
+            return fail(L, "CheatEngine.SDK protected byte-table push has invalid arguments");
+        if (!a->checkstack(L, 2))
+            return fail(L, "CheatEngine.SDK protected byte-table push could not reserve stack slots");
+        a->createtable(L, (int)c->size, 0);
+        for (index = 0; index < c->size; ++index) {
+            a->pushinteger(L, (lua_Integer)bytes[index]);
+            a->rawseti(L, -2, (lua_Integer)(index + 1));
+        }
         return 1;
     }
     case OP_CREATE_TABLE:

@@ -26,6 +26,7 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 {
     private const string PartialKeyword = "partial";
+    private const string GeneratedHandleField = "_handle";
     private const string GeneratedHandle = "Handle";
     private const string GeneratedFromHandle = "FromHandle";
     private const string GeneratedEquals = "Equals";
@@ -57,7 +58,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
             SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaFunctionAttribute),
             SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaGlobalAttribute),
             SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaState),
-            context.Compilation.GetTypeByMetadataName("System.ReadOnlySpan`1"));
+            context.Compilation.GetTypeByMetadataName("System.ReadOnlySpan`1"),
+            context.Compilation.GetTypeByMetadataName("CheatEngine.SDK.Engine.Objects.CEObject"));
         if (!symbols.HasAnyLuaObjectAnnotation) return;
 
         context.RegisterSymbolAction(symbolContext => AnalyzeType(symbolContext, symbols), SymbolKind.NamedType);
@@ -78,7 +80,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
             }
             else
             {
-                ReportLuaClassIdentityCollisions(context, type);
+                ReportLuaClassIdentityCollisions(context, type, symbols.CEObject);
             }
         }
 
@@ -111,8 +113,10 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
     }
 
     // CESDK2007 needs all members of the type but no other compilation-wide information, so it remains an IDE-live rule.
-    private static void ReportLuaClassIdentityCollisions(SymbolAnalysisContext context, INamedTypeSymbol type)
+    private static void ReportLuaClassIdentityCollisions(SymbolAnalysisContext context, INamedTypeSymbol type,
+        INamedTypeSymbol? ceObject)
     {
+        ReportNamedMemberCollisions(context, type, GeneratedHandleField, GeneratedHandleField);
         ReportNamedMemberCollisions(context, type, GeneratedHandle, GeneratedHandle);
         ReportNamedMemberCollisions(context, type, GeneratedFromHandle, GeneratedFromHandle);
         ReportNamedMemberCollisions(context, type, GeneratedEquals, GeneratedEquals);
@@ -125,6 +129,14 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
                 && method.Name is "op_Equality" or "op_Inequality")
                 ReportCollision(context, member, "operator " +
                     (string.Equals(method.Name, "op_Equality", System.StringComparison.Ordinal) ? "==" : "!="));
+
+        if (ceObject is null) return;
+
+        foreach (var constructor in type.InstanceConstructors)
+            if (constructor.Parameters.Length == 1
+                && constructor.Parameters[0].RefKind == RefKind.None
+                && SymbolEqualityComparer.Default.Equals(constructor.Parameters[0].Type, ceObject))
+                ReportCollision(context, constructor, type.Name + "(CEObject)");
     }
 
     private static void ReportNamedMemberCollisions(SymbolAnalysisContext context, INamedTypeSymbol type,
@@ -187,21 +199,36 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
             if (!LuaNames.IsValidName(name)) issues |= LuaGlobalShapeIssues.InvalidName;
             if (issues != LuaGlobalShapeIssues.None || containingIssues != ContainingTypeIssues.None) continue;
 
+            ReportLuaGlobalLocalCollisions(context, method);
             var generatedName = LuaGlobalCallModel.CacheFieldFor(name!);
             ReportNamedMemberCollisions(context, type, generatedName, generatedName);
         }
+    }
+
+    private static void ReportLuaGlobalLocalCollisions(SymbolAnalysisContext context, IMethodSymbol method)
+    {
+        foreach (var parameter in method.Parameters)
+            if (IsLuaGlobalGeneratedLocalName(parameter.Name))
+                ReportCollision(context, parameter, "generated local " + parameter.Name);
     }
 
     private static string LuaClassProblem(INamedTypeSymbol type, AttributeData attribute, CancellationToken cancellationToken)
     {
         if (!LuaNames.IsValidName(ReadName(attribute))) return "the Lua class name must be a Lua identifier";
         if (type.TypeKind != TypeKind.Struct) return "[LuaClass] is supported only on a struct";
+        if (type.IsRecord) return "the borrowed handle struct must not be a record struct";
+        if (type.IsRefLikeType) return "the borrowed handle struct must not be ref-like";
         if (!type.IsReadOnly) return "the borrowed handle struct must be readonly";
         if (type.Arity != 0) return "the borrowed handle struct must not be generic";
         if (type.IsFileLocal) return "the borrowed handle struct must not be file-local";
         if (!IsPartial(type, cancellationToken)) return "the borrowed handle struct must be partial";
 
-        for (var containing = type.ContainingType; containing is not null; containing = containing.ContainingType)
+        return ContainingLuaClassProblem(type.ContainingType, cancellationToken);
+    }
+
+    private static string ContainingLuaClassProblem(INamedTypeSymbol? containing, CancellationToken cancellationToken)
+    {
+        for (; containing is not null; containing = containing.ContainingType)
         {
             if (containing.IsGenericType) return "no containing type of the borrowed handle struct may be generic";
             if (containing.IsFileLocal) return "no containing type of the borrowed handle struct may be file-local";
@@ -224,6 +251,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
         if (method.IsAsync) return "the generated object method must not be async";
         if (!method.IsPartialDefinition) return "the member must be the defining declaration of a partial method";
         if (method.PartialImplementationPart is not null) return "the partial method already has an implementation";
+        if (method.ReturnsByRef || method.ReturnsByRefReadonly)
+            return "ref and ref readonly returns are not supported";
 
         var hasOutResult = false;
         foreach (var parameter in method.Parameters)
@@ -246,12 +275,18 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
             if (!IsScalar(parameter.Type, true, symbols.ReadOnlySpan)) return "parameters must be supported scalar values";
         }
 
+        return LuaMethodReturnProblem(method, hasOutResult, symbols.ReadOnlySpan);
+    }
+
+    private static string LuaMethodReturnProblem(IMethodSymbol method, bool hasOutResult,
+        INamedTypeSymbol? readOnlySpan)
+    {
         if (hasOutResult)
             return method.ReturnType.SpecialType == SpecialType.System_Boolean
                 ? string.Empty
                 : "a method with out results must return bool";
 
-        return method.ReturnsVoid || IsScalar(method.ReturnType, false, symbols.ReadOnlySpan)
+        return method.ReturnsVoid || IsScalar(method.ReturnType, false, readOnlySpan)
             ? string.Empty
             : "the throwing form must return void or a supported scalar value";
     }
@@ -264,6 +299,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
         if (classProblem.Length > 0) return classProblem;
         if (!LuaNames.IsValidName(ReadName(attribute))) return "the Lua property name must be a Lua identifier";
         if (property.IsStatic) return "the generated object property needs an instance receiver";
+        if (property.RefKind != RefKind.None)
+            return "ref and ref readonly properties are not supported";
         if (!IsScalar(property.Type, false, symbols.ReadOnlySpan)) return "the property type must be a supported scalar value";
         if (!IsBodylessPartialProperty(property, cancellationToken))
             return "the member must be a partial property with bodyless get and/or set accessors";
@@ -324,13 +361,26 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
             if (!hasPartialModifier || declaration.AccessorList is null || declaration.AccessorList.Accessors.Count == 0)
                 return false;
 
+            if (declaration.ExplicitInterfaceSpecifier is not null) return false;
+
             foreach (var accessor in declaration.AccessorList.Accessors)
                 if (accessor.Kind() is not SyntaxKind.GetAccessorDeclaration and not SyntaxKind.SetAccessorDeclaration
-                    || accessor.Body is not null || accessor.ExpressionBody is not null)
+                    || accessor.Body is not null || accessor.ExpressionBody is not null
+                    || !HasSupportedAccessorModifiers(accessor))
                     return false;
         }
 
         return hasDeclaration;
+    }
+
+    private static bool HasSupportedAccessorModifiers(AccessorDeclarationSyntax accessor)
+    {
+        foreach (var modifier in accessor.Modifiers)
+            if (modifier.Kind() is not (SyntaxKind.PublicKeyword or SyntaxKind.PrivateKeyword
+                or SyntaxKind.ProtectedKeyword or SyntaxKind.InternalKeyword))
+                return false;
+
+        return true;
     }
 
     private static bool IsScalar(ITypeSymbol type, bool allowReadOnlySpan, INamedTypeSymbol? readOnlySpan)
@@ -350,7 +400,12 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 
     private static bool IsGeneratedLocalName(string name)
     {
-        return name is "__ceState" or "__ceTop" or "__ceStatus" or "__ceResult";
+        return name is "__ceState" or "__ceOperation" or "__ceTop" or "__ceStatus" or "__ceResult";
+    }
+
+    private static bool IsLuaGlobalGeneratedLocalName(string name)
+    {
+        return name is "__L" or "__operation" or "__top" or "__ok" or "__status" or "__result";
     }
 
     private static AttributeData? FindAttribute(ISymbol symbol, INamedTypeSymbol attributeClass)
@@ -387,7 +442,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol? luaFunctionAttribute,
         INamedTypeSymbol? luaGlobalAttribute,
         INamedTypeSymbol? luaState,
-        INamedTypeSymbol? readOnlySpan)
+        INamedTypeSymbol? readOnlySpan,
+        INamedTypeSymbol? ceObject)
     {
         public INamedTypeSymbol? LuaClassAttribute { get; } = luaClassAttribute;
 
@@ -402,6 +458,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
         public INamedTypeSymbol? LuaState { get; } = luaState;
 
         public INamedTypeSymbol? ReadOnlySpan { get; } = readOnlySpan;
+
+        public INamedTypeSymbol? CEObject { get; } = ceObject;
 
         public bool HasAnyLuaObjectAnnotation => LuaClassAttribute is not null || LuaMethodAttribute is not null
                                                   || LuaPropertyAttribute is not null || LuaFunctionAttribute is not null

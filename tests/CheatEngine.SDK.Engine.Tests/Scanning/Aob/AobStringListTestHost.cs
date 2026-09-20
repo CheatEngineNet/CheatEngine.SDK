@@ -13,7 +13,10 @@ internal static class AobStringListTestHost
         return FakeHost.CreateObject(state, "Probe", """
                                                      o.props.Count = 2
                                                      o.props.Sorted = false
-                                                     o.props.Duplicates = 'dupAccept'
+                                                     o.props.Duplicates = 1
+                                                     o.setters.Duplicates = function(o, value)
+                                                       o.props.Duplicates = math.tointeger(value) or 0
+                                                     end
                                                      o.props.CaseSensitive = true
                                                      o.items = { '00401000', '7FF6A1B2C3D4' }
                                                      o.getters.add = function(o)

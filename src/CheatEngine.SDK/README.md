@@ -25,7 +25,13 @@ because the parts are built and packed together.
    cd MyPlugin
    dotnet add package CheatEngine.SDK --prerelease
    ```
-2. Add `<PlatformTarget>x64</PlatformTarget>` to the `PropertyGroup` of `MyPlugin.csproj`, and delete `Class1.cs`.
+2. Add the following to the `PropertyGroup` of `MyPlugin.csproj`, then delete `Class1.cs`:
+   ```xml
+   <PlatformTarget>x64</PlatformTarget>
+   <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+   ```
+   The second setting is an explicit opt-in for the `[LuaFunction]` registration thunk in the next step; the package
+   deliberately leaves unsafe compilation disabled for projects that do not export a Lua function.
 3. Add a plugin class with one Lua function. Keep your code in a namespace that does not start with `CESDK`: Cheat
    Engine requires the type `CESDK.CESDK`, which the SDK generates, and inside the `CESDK` namespace the simple name
    `CESDK` binds to that class. `CESDK0004` warns about such a namespace.

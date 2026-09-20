@@ -74,8 +74,11 @@ public sealed class StringListTests
         Assert.Equal(0, L.Top);
     }
 
-    [Fact]
-    public void Duplicate_property_uses_exact_dup_names_and_rejects_unknown_values_before_lua()
+    [Theory]
+    [InlineData(DuplicateHandling.Ignore)]
+    [InlineData(DuplicateHandling.Accept)]
+    [InlineData(DuplicateHandling.Error)]
+    public void Duplicates_property_round_trips_each_numeric_CE_enum_value(DuplicateHandling expected)
     {
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
@@ -85,10 +88,29 @@ public sealed class StringListTests
 
         Assert.True(list.TryGetDuplicates(out var duplicates));
         Assert.Equal(DuplicateHandling.Accept, duplicates);
-        Assert.True(list.TrySetDuplicates(DuplicateHandling.Error));
+        Assert.True(list.TrySetDuplicates(expected));
         Assert.True(list.TryGetDuplicates(out duplicates));
-        Assert.Equal(DuplicateHandling.Error, duplicates);
-        Assert.Throws<ArgumentOutOfRangeException>(() => list.TrySetDuplicates((DuplicateHandling)42));
+        Assert.Equal(expected, duplicates);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(3)]
+    public void TrySetDuplicates_value_is_not_defined_throws_before_lua(int rawValue)
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        StringList list = StringList.FromHandle(AobStringListTestHost.CreateList(L));
+        var providerCalls = FakeHost.ProviderCalls;
+        var pusherCalls = FakeHost.PusherCalls;
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => list.TrySetDuplicates((DuplicateHandling)rawValue));
+
+        Assert.Equal(providerCalls, FakeHost.ProviderCalls);
+        Assert.Equal(pusherCalls, FakeHost.PusherCalls);
         Assert.Equal(0, L.Top);
     }
 

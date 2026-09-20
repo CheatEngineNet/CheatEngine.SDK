@@ -116,7 +116,8 @@ public sealed unsafe class LuaProtectedApiTests
     {
         Assert.Equal(0, (int)LuaProtectedOperation.PushBytes);
         Assert.Equal(10, (int)LuaProtectedOperation.PushHostObject);
-        Assert.Equal(11, LuaProtectedOperationContract.Count);
+        Assert.Equal(11, (int)LuaProtectedOperation.PushByteTable);
+        Assert.Equal(12, LuaProtectedOperationContract.Count);
         Assert.Equal((1UL << LuaProtectedOperationContract.Count) - 1, LuaProtectedOperationContract.RequiredBitmap);
         Assert.False(LuaProtectedOperationContract.IsDefined((LuaProtectedOperation)(-1)));
         Assert.False(LuaProtectedOperationContract.IsDefined((LuaProtectedOperation)LuaProtectedOperationContract.Count));
@@ -140,6 +141,7 @@ public sealed unsafe class LuaProtectedApiTests
     public void Protected_operations_reject_a_null_state_before_loading_the_bridge()
     {
         Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.PushBytes(null, []));
+        Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.PushByteTable(null, []));
         Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.NewUserdata(null, 1));
         Assert.Throws<ArgumentNullException>(() => LuaProtectedApi.PushHostObject(null, 1, 0));
     }

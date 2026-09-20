@@ -881,6 +881,7 @@ internal static class SpecFileParser
     private static bool IsReservedBodyLocal(string name, LuaGlobalCallModel call)
     {
         if (string.Equals(name, "__L", StringComparison.Ordinal)
+            || string.Equals(name, "__operation", StringComparison.Ordinal)
             || string.Equals(name, "__top", StringComparison.Ordinal)
             || string.Equals(name, "__ok", StringComparison.Ordinal)
             || string.Equals(name, "__status", StringComparison.Ordinal)

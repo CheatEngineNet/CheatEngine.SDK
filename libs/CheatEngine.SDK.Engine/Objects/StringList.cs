@@ -27,8 +27,8 @@ namespace CheatEngine.SDK.Engine.Objects;
 ///         ownership contract.
 ///     </para>
 ///     <para>
-///         <c>Duplicates</c> is an RTTI enum property represented by CE's exact <c>dup*</c> name, not by its ordinal.
-///         This wrapper uses <see cref="CEEnumNames" /> to preserve that contract without reflection or an allocation.
+///         <c>Duplicates</c> is CE's numeric <c>TDuplicates</c> enum property. The <c>dup*</c> names document the
+///         values, but CE exchanges the enum ordinal through Lua.
 ///     </para>
 /// </remarks>
 public readonly struct StringList : IEquatable<StringList>, ICEObject<StringList>, ILuaMarshaller<StringList>
@@ -305,33 +305,26 @@ public readonly struct StringList : IEquatable<StringList>, ICEObject<StringList
 
     /// <summary>Reads the CE <c>Duplicates</c> property.</summary>
     /// <param name="value">The enum value, or <see cref="DuplicateHandling.Ignore" /> on failure.</param>
-    /// <returns><see langword="true" /> when CE returned one exact <c>dup*</c> name.</returns>
+    /// <returns><see langword="true" /> when CE returned an integer that fits the enum's underlying type.</returns>
     [RequiresPluginEnabled]
     public bool TryGetDuplicates(out DuplicateHandling value)
     {
-        using var operation = LuaRuntime.AcquireOperation();
-        var state = operation.State;
-        using LuaFrame frame = new(state);
-        if (!Handle.TryGetProperty(state, DuplicatesPropertyName).IsOk || !state.TryReadUtf8(-1, out var ceName))
-        {
-            value = default;
-            return false;
-        }
-
-        return CEEnumNames.TryParseCEName(ceName, out value);
+        return Handle.TryGetProperty<EnumMarshaller<DuplicateHandling>, DuplicateHandling>(DuplicatesPropertyName,
+            out value);
     }
 
-    /// <summary>Sets the CE <c>Duplicates</c> property using its exact <c>dup*</c> name.</summary>
+    /// <summary>Sets the CE <c>Duplicates</c> property with its numeric <c>TDuplicates</c> value.</summary>
     /// <param name="value">The duplicate handling value.</param>
     /// <returns><see langword="true" /> when CE accepted the property assignment.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="value" /> is not a defined member.</exception>
     [RequiresPluginEnabled]
     public bool TrySetDuplicates(DuplicateHandling value)
     {
-        var ceName = value.ToCEName();
-        if (ceName.IsEmpty) ThrowUndefinedDuplicateHandling(value);
+        if (value is not (DuplicateHandling.Ignore or DuplicateHandling.Accept or DuplicateHandling.Error))
+            ThrowUndefinedDuplicateHandling(value);
 
-        return Handle.TrySetProperty<Utf8Marshaller, ReadOnlySpan<byte>>(DuplicatesPropertyName, ceName);
+        return Handle.TrySetProperty<EnumMarshaller<DuplicateHandling>, DuplicateHandling>(DuplicatesPropertyName,
+            value);
     }
 
     /// <summary>Reads the CE <c>CaseSensitive</c> property.</summary>

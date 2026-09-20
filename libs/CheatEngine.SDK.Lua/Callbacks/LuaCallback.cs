@@ -56,6 +56,10 @@ public abstract class LuaCallback : IDisposable
     // its volatile read is deliberately kept out of callback invocation hot paths.
     internal static Action? BeforeRegistryAddForTesting;
 
+    // Deterministic disposal-race seam used only by the SDK's friend test assembly. It runs after an atomic admission
+    // refusal is observed, outside the runtime gate, so tests can let a failed transition reopen admission first.
+    internal static Action? DisposeAdmissionRefusedForTesting;
+
     private readonly LuaRef _closure;
     private readonly LuaRef _wrapped;
     private readonly LuaStateIdentity _identity;
@@ -101,23 +105,34 @@ public abstract class LuaCallback : IDisposable
     internal bool IsLinked { get; set; }
 
     /// <summary>
-    ///     <see cref="Release" /> with the state acquired from <see cref="LuaRuntime" />; abandons the handle when the
-    ///     runtime is detached.
+    ///     <see cref="Release" /> with the state acquired from <see cref="LuaRuntime" />. While an attached runtime is
+    ///     closing admission, lifecycle cleanup retains ownership and neutralizes the closure; when it is detached this
+    ///     method abandons the handle instead.
     /// </summary>
     public void Dispose()
     {
-        if (!LuaRuntime.TryAcquireOperation(out var operation))
+        var result = LuaRuntime.TryAcquireOperationForCallbackDispose(out var operation);
+        if (result == LuaRuntime.LuaCallbackDisposeOperationResult.Acquired)
         {
-            Release(default);
+            using (operation)
+            {
+                Release(operation.State);
+            }
+
             GC.SuppressFinalize(this);
             return;
         }
 
-        using (operation)
+        if (result == LuaRuntime.LuaCallbackDisposeOperationResult.AdmissionClosed)
         {
-            Release(operation.State);
+            // This result was observed atomically with the closed gate. A later failed Detach can reopen admission,
+            // but cannot make it safe to abandon the closure before a transition-owned state neutralizes its upvalue.
+            Volatile.Read(ref DisposeAdmissionRefusedForTesting)?.Invoke();
+            GC.SuppressFinalize(this);
+            return;
         }
 
+        Release(default);
         GC.SuppressFinalize(this);
     }
 

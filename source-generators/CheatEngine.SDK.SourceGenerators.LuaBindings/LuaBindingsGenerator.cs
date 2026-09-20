@@ -119,7 +119,7 @@ public sealed class LuaBindingsGenerator : IIncrementalGenerator
         var luaClasses = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 LuaClassAttributeMetadataName,
-                static (node, _) => node is StructDeclarationSyntax,
+                static (node, _) => node is StructDeclarationSyntax or RecordDeclarationSyntax,
                 static (attributeContext, cancellationToken) => LuaClassParser.Parse(attributeContext, cancellationToken))
             .WithTrackingName(LuaBindingsTrackingNames.LuaClass)
             .Collect()

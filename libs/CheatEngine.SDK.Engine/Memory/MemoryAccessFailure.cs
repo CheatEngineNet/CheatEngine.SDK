@@ -31,7 +31,10 @@ public enum MemoryAccessFailure
     /// <summary>The caller-provided destination was smaller than the Lua string returned by Cheat Engine.</summary>
     DestinationTooSmall,
 
-    /// <summary>Cheat Engine completed a scalar or string write and explicitly returned <see langword="false" />.</summary>
+    /// <summary>
+    ///     Cheat Engine explicitly returned <see langword="false" /> for a scalar or string write, or reported a byte
+    ///     count different from the requested non-empty byte write.
+    /// </summary>
     WriteFailed,
 
     /// <summary>The Lua global returned a value of a different kind or outside the documented range.</summary>

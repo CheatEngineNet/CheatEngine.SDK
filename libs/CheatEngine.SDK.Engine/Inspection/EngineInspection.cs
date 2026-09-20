@@ -58,8 +58,8 @@ public static class EngineInspection
     /// <param name="written">The total module count on success; 0 for any other status.</param>
     /// <returns>
     ///     <see cref="InspectionStatus.Success" />, <see cref="InspectionStatus.DestinationTooSmall" /> before any
-    ///     element is written, or a binding failure. CE documents this call from 7.7; each entry's <c>Size</c> is
-    ///     available from CE 7.6.
+    ///     element is written, or a binding failure. CE documents the name, address, bitness and file path. A host that
+    ///     additionally supplies <c>Size</c> is represented by a non-null <see cref="ModuleInfo.ImageSize" />.
     /// </returns>
     /// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
     [RequiresPluginEnabled]
@@ -461,7 +461,7 @@ public static class EngineInspection
         module = default;
         if (!TryReadRequiredStringField(state, tableIndex, "Name"u8, out var name) ||
             !TryReadAddressField(state, tableIndex, "Address"u8, out var address) ||
-            !TryReadMemorySizeField(state, tableIndex, "Size"u8, out var size) ||
+            !TryReadOptionalMemorySizeField(state, tableIndex, "Size"u8, out var size) ||
             !TryReadBooleanField(state, tableIndex, "Is64Bit"u8, out var is64Bit) ||
             !TryReadRequiredStringField(state, tableIndex, "PathToFile"u8, out var pathToFile))
             return false;
@@ -565,6 +565,24 @@ public static class EngineInspection
         value = default;
         if (!TryReadUInt64Field(state, tableIndex, field, out var bytes)) return false;
         value = new MemorySize(bytes);
+        return true;
+    }
+
+    private static bool TryReadOptionalMemorySizeField(LuaState state, int tableIndex, ReadOnlySpan<byte> field,
+        out MemorySize? value)
+    {
+        value = null;
+        if (!state.TryGetField(tableIndex, field).IsOk) return false;
+        if (state.IsNil(-1))
+        {
+            state.Pop(1);
+            return true;
+        }
+
+        var read = state.TryReadInteger(-1, out var signed);
+        state.Pop(1);
+        if (!read || signed < 0) return false;
+        value = new MemorySize((ulong)signed);
         return true;
     }
 

@@ -25,13 +25,13 @@
   },
   "source": {
     "hashes": {
-      "cheatengine_sdk_lua_bridge.c": "2fa9a327b4b423bfc3f1dacae55ebc36302f93799dcab1708989bc38883f794a",
+      "cheatengine_sdk_lua_bridge.c": "8a63e00c7dd941212e7ef8c13d8c97f73142c5154bfbe5dbc5459e7131bb789b",
       "xmake.lua": "2871368515be4c6fd235e49e793d5557e7c50229fcc8fbfd903efd39f9b754a8"
     },
-    "fingerprint": "2fa9a327b4b423bfc3f1dacae55ebc36302f93799dcab1708989bc38883f794a:2871368515be4c6fd235e49e793d5557e7c50229fcc8fbfd903efd39f9b754a8"
+    "fingerprint": "8a63e00c7dd941212e7ef8c13d8c97f73142c5154bfbe5dbc5459e7131bb789b:2871368515be4c6fd235e49e793d5557e7c50229fcc8fbfd903efd39f9b754a8"
   },
   "nativeAsset": {
-    "sha256": "b45e7dba05686e51409ffbe4f9a785dd9a0653fef71c6f252145b8f8b668325d",
+    "sha256": "5c9923867989efcd256b643fdff61ed2fdfa1ee7133311bd89395e25d6d5cf77",
     "pe": {
       "format": "PE32+",
       "machine": "AMD64",

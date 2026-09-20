@@ -40,7 +40,9 @@ internal static class LuaObjectPropertyParser
             default,
             false,
             false,
+            string.Empty,
             false,
+            string.Empty,
             property.Name,
             false);
     }
@@ -50,87 +52,139 @@ internal static class LuaObjectPropertyParser
     {
         var kind = default(LuaValueKind);
         var isNullable = false;
+        var modifiers = string.Empty;
         var typeIsSupported = LuaValueKindMapper.TryMap(property.Type, out kind, out isNullable)
                               && LuaValueKinds.CanBeResult(kind);
-        var valid = declaration is not null
-                    && !property.IsStatic
-                    && !property.IsIndexer
-                    && declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
-                    && declaration.AccessorList is not null
-                    && property.PartialImplementationPart is null
-                    && typeIsSupported;
-        var hasGetter = false;
-        var hasSetter = false;
-
-        if (declaration?.AccessorList is { } accessorList)
-        {
-            foreach (var accessor in accessorList.Accessors)
-            {
-                if (accessor.Body is not null || accessor.ExpressionBody is not null) valid = false;
-
-                switch (accessor.Kind())
-                {
-                    case SyntaxKind.GetAccessorDeclaration:
-                        hasGetter = true;
-                        break;
-                    case SyntaxKind.SetAccessorDeclaration:
-                        hasSetter = true;
-                        break;
-                    default:
-                        valid = false;
-                        break;
-                }
-            }
-        }
-
-        if (!hasGetter && !hasSetter) valid = false;
+        var definitionIsSupported = IsSupportedDefinition(property, declaration, typeIsSupported,
+            out modifiers);
+        var accessorsAreSupported = TryDescribeAccessors(declaration, out var hasGetter, out var getterModifiers,
+            out var hasSetter, out var setterModifiers);
+        var valid = definitionIsSupported && accessorsAreSupported;
 
         model = new LuaObjectPropertyModel(
             ContainingTypeParser.Parse(property.ContainingType),
             string.Empty,
-            Modifiers(declaration),
+            modifiers,
             Identifiers.Escape(property.Name),
             kind,
             isNullable,
             hasGetter,
+            getterModifiers,
             hasSetter,
+            setterModifiers,
             property.Name,
             valid);
         return valid;
     }
 
-    private static string Modifiers(PropertyDeclarationSyntax? declaration)
+    private static bool IsSupportedDefinition(IPropertySymbol property, PropertyDeclarationSyntax? declaration,
+        bool typeIsSupported, out string modifiers)
     {
-        StringBuilder modifiers = new();
-        var isNew = false;
-        var isUnsafe = false;
-        if (declaration is not null)
-            foreach (var token in declaration.Modifiers)
-                switch (token.Kind())
-                {
-                    case SyntaxKind.PublicKeyword:
-                    case SyntaxKind.InternalKeyword:
-                    case SyntaxKind.ProtectedKeyword:
-                    case SyntaxKind.PrivateKeyword:
-                        Append(modifiers, token.ValueText);
-                        break;
-                    case SyntaxKind.NewKeyword:
-                        isNew = true;
-                        break;
-                    case SyntaxKind.ReadOnlyKeyword:
-                        Append(modifiers, token.ValueText);
-                        break;
-                    case SyntaxKind.UnsafeKeyword:
-                        isUnsafe = true;
-                        break;
-                }
+        modifiers = string.Empty;
+        return declaration is not null
+               && !property.IsStatic
+               && !property.IsIndexer
+               && property.RefKind == RefKind.None
+               && declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
+               && declaration.AccessorList is not null
+               && declaration.ExplicitInterfaceSpecifier is null
+               && property.PartialImplementationPart is null
+               && typeIsSupported
+               && TryModifiers(declaration, out modifiers);
+    }
 
-        if (isNew) Append(modifiers, "new");
+    private static bool TryDescribeAccessors(PropertyDeclarationSyntax? declaration, out bool hasGetter,
+        out string getterModifiers, out bool hasSetter, out string setterModifiers)
+    {
+        hasGetter = false;
+        getterModifiers = string.Empty;
+        hasSetter = false;
+        setterModifiers = string.Empty;
+        if (declaration?.AccessorList is not { } accessorList) return false;
 
-        if (isUnsafe) Append(modifiers, "unsafe");
+        foreach (var accessor in accessorList.Accessors)
+            if (!TryDescribeAccessor(accessor, ref hasGetter, ref getterModifiers, ref hasSetter,
+                    ref setterModifiers))
+                return false;
 
-        Append(modifiers, "partial");
-        return modifiers.ToString();
+        return hasGetter || hasSetter;
+    }
+
+    private static bool TryDescribeAccessor(AccessorDeclarationSyntax accessor, ref bool hasGetter,
+        ref string getterModifiers, ref bool hasSetter, ref string setterModifiers)
+    {
+        if (accessor.Body is not null || accessor.ExpressionBody is not null
+                                  || !TryAccessorModifiers(accessor, out var modifiers))
+            return false;
+
+        switch (accessor.Kind())
+        {
+            case SyntaxKind.GetAccessorDeclaration when !hasGetter:
+                hasGetter = true;
+                getterModifiers = modifiers;
+                return true;
+            case SyntaxKind.SetAccessorDeclaration when !hasSetter:
+                hasSetter = true;
+                setterModifiers = modifiers;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryModifiers(PropertyDeclarationSyntax declaration, out string modifiers)
+    {
+        StringBuilder builder = new();
+        foreach (var token in declaration.Modifiers)
+        {
+            if (!IsSupportedPropertyModifier(token.Kind()))
+            {
+                modifiers = string.Empty;
+                return false;
+            }
+
+            Append(builder, token.ValueText);
+        }
+
+        modifiers = builder.ToString();
+        return true;
+    }
+
+    private static bool IsSupportedPropertyModifier(SyntaxKind kind)
+    {
+        return kind is SyntaxKind.PublicKeyword
+            or SyntaxKind.InternalKeyword
+            or SyntaxKind.ProtectedKeyword
+            or SyntaxKind.PrivateKeyword
+            or SyntaxKind.NewKeyword
+            or SyntaxKind.ReadOnlyKeyword
+            or SyntaxKind.UnsafeKeyword
+            or SyntaxKind.VirtualKeyword
+            or SyntaxKind.OverrideKeyword
+            or SyntaxKind.SealedKeyword
+            or SyntaxKind.RequiredKeyword
+            or SyntaxKind.PartialKeyword;
+    }
+
+    private static bool TryAccessorModifiers(AccessorDeclarationSyntax accessor, out string modifiers)
+    {
+        StringBuilder builder = new();
+        foreach (var token in accessor.Modifiers)
+            switch (token.Kind())
+            {
+                case SyntaxKind.PublicKeyword:
+                case SyntaxKind.InternalKeyword:
+                case SyntaxKind.ProtectedKeyword:
+                case SyntaxKind.PrivateKeyword:
+                    Append(builder, token.ValueText);
+                    break;
+                default:
+                    modifiers = string.Empty;
+                    return false;
+            }
+
+        modifiers = builder.ToString();
+        return true;
     }
 
     private static void Append(StringBuilder builder, string value)

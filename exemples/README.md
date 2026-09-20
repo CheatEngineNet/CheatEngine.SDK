@@ -26,7 +26,9 @@ matters, the code, what to expect, and what the SDK promises.
 
 ## Start here
 
-A plugin is one class and one attribute. This is the whole of [guide 01](01-first-plugin/README.md):
+A plugin is one class and one attribute. Because this starter exports a `[LuaFunction]`, its project file explicitly
+sets `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` as shown in [guide 01](01-first-plugin/README.md). This is the
+whole plugin class:
 
 ```csharp
 using CheatEngine.SDK.Annotations.Lua;

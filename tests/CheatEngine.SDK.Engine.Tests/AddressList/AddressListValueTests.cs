@@ -58,8 +58,7 @@ public sealed class AddressListValueTests
         Assert.False(HasMainThreadOnly(typeof(AddressListAccess).GetMethod(nameof(AddressListAccess.TryGetCurrent))));
         Assert.False(HasMainThreadOnly(typeof(EngineAddressList).GetMethod(nameof(EngineAddressList.TryGetCount))));
         Assert.False(HasMainThreadOnly(typeof(MemoryRecord).GetMethod(nameof(MemoryRecord.TryGetId))));
-        Assert.False(HasMainThreadOnly(typeof(CheatEngine.SDK.Engine.Scanning.Values.MemScan)
-            .GetMethod(nameof(CheatEngine.SDK.Engine.Scanning.Values.MemScan.TryGetFoundCount))));
+        Assert.Null(typeof(CheatEngine.SDK.Engine.Scanning.Values.MemScan).GetMethod("TryGetFoundCount"));
         Assert.False(HasMainThreadOnly(typeof(CheatEngine.SDK.Engine.Scanning.Values.FoundList)
             .GetMethod(nameof(CheatEngine.SDK.Engine.Scanning.Values.FoundList.TryGetCount))));
     }

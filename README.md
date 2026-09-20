@@ -45,7 +45,15 @@ that benefit from a testable .NET project.
    dotnet add package CheatEngine.SDK --prerelease
    ```
 
-   Add `<PlatformTarget>x64</PlatformTarget>` to the `PropertyGroup` of `MyPlugin.csproj` and delete `Class1.cs`.
+   Add the following to the `PropertyGroup` of `MyPlugin.csproj`, then delete `Class1.cs`:
+
+   ```xml
+   <PlatformTarget>x64</PlatformTarget>
+   <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+   ```
+
+   `AllowUnsafeBlocks` is an explicit opt-in for the `[LuaFunction]` in the next step: its generated registration
+   thunk takes a native function address.
 
 2. Add a plugin class with one Lua function.
 

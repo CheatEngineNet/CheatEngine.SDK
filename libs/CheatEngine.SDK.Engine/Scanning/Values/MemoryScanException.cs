@@ -10,8 +10,7 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 /// <remarks>
 ///     The exception preserves a <see cref="LuaException" /> as its inner cause for protected-call failures, but its own
 ///     message and <see cref="Operation" /> use SDK-owned stable identifiers rather than exposing Lua member names or
-///     host-provided error text. A <see cref="MemoryScanCompletion.TimedOut" /> is intentionally not an exception,
-///     because Cheat Engine documents it as the boolean outcome of <c>waitTillDone</c>.
+///     host-provided error text.
 /// </remarks>
 public sealed class MemoryScanException : InvalidOperationException
 {

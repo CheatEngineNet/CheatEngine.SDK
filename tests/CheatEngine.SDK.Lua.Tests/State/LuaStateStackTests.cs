@@ -221,6 +221,34 @@ public sealed class LuaStateStackTests
     }
 
     [Fact]
+    public void PushByteTable_creates_an_ordered_one_based_byte_sequence_in_one_stack_value()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new(false);
+        var L = LuaTest.View(state);
+        ReadOnlySpan<byte> bytes = [0, 1, 127, byte.MaxValue];
+
+        L.PushByteTable(bytes);
+
+        Assert.Equal(1, L.Top);
+        Assert.True(L.IsTable(-1));
+        Assert.Equal((nuint)bytes.Length, L.RawLength(-1));
+        for (var index = 0; index < bytes.Length; index++)
+        {
+            Assert.Equal(LuaType.Number, L.RawGetIndex(-1, index + 1L));
+            Assert.True(L.TryReadInteger(-1, out var value));
+            Assert.Equal(bytes[index], value);
+            L.Pop(1);
+        }
+
+        L.Pop(1);
+        L.PushByteTable([]);
+        Assert.Equal(1, L.Top);
+        Assert.True(L.IsTable(-1));
+        Assert.Equal((nuint)0, L.RawLength(-1));
+    }
+
+    [Fact]
     public void TryNext_walks_a_table_and_raw_equality_is_primitive()
     {
         LuaTest.RequireNativeLua();

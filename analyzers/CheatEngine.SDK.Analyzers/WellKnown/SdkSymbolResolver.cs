@@ -34,9 +34,14 @@ internal static class SdkSymbolResolver
 
     private static INamedTypeSymbol? Resolve(Compilation compilation, string metadataName, string assemblyName)
     {
-        var type = compilation.GetTypeByMetadataName(metadataName);
-        return type is not null && string.Equals(type.ContainingAssembly.Name, assemblyName, StringComparison.Ordinal)
-            ? type
-            : null;
+        foreach (var reference in compilation.References)
+        {
+            if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol assembly
+                || !string.Equals(assembly.Identity.Name, assemblyName, StringComparison.Ordinal)) continue;
+
+            return assembly.GetTypeByMetadataName(metadataName);
+        }
+
+        return null;
     }
 }

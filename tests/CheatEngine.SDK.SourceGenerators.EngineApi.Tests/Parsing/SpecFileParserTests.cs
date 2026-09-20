@@ -747,6 +747,19 @@ public sealed class SpecFileParserTests
             static issue => issue.Message.Contains("Generated member", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void A_parameter_named_operation_is_rejected_as_an_emitter_local_collision()
+    {
+        const string Text = "namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: BadOperation\nform: try\narg: __operation:int32\nresult: value:int32\ndoc: bad.\n";
+
+        var spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
+
+        Assert.Empty(spec.Calls.AsSpan().ToArray());
+        var issue = Assert.Single(spec.Issues.AsSpan().ToArray());
+        Assert.Contains("__operation", issue.Message, StringComparison.Ordinal);
+        Assert.Contains("reserved local", issue.Message, StringComparison.Ordinal);
+    }
+
     private static void AssertIssue(SpecFileModel spec, string messageFragment, int line, int column)
     {
         var issue = Assert.Single(spec.Issues.AsSpan().ToArray(), issue =>

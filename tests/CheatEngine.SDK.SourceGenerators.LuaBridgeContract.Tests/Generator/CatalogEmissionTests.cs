@@ -41,13 +41,14 @@ public sealed class CatalogEmissionTests
             "CreateReference = 7",
             "PushReference = 8",
             "ReleaseReference = 9",
-            "PushHostObject = 10"
+            "PushHostObject = 10",
+            "PushByteTable = 11"
         ];
         for (var i = 0; i < expectedMembers.Length; i++)
             Assert.Contains(expectedMembers[i], generated, StringComparison.Ordinal);
 
-        Assert.Contains("internal const int Count = 11;", generated, StringComparison.Ordinal);
-        Assert.Contains("internal const ulong RequiredBitmap = 0x00000000000007FFUL;", generated, StringComparison.Ordinal);
+        Assert.Contains("internal const int Count = 12;", generated, StringComparison.Ordinal);
+        Assert.Contains("internal const ulong RequiredBitmap = 0x0000000000000FFFUL;", generated, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -26,7 +26,7 @@
     "abiMajor": 1,
     "minimumAbiMinor": 1,
     "operationBitmapWidth": 64,
-    "operationBitmap": "0x00000000000007FF"
+    "operationBitmap": "0x0000000000000FFF"
   },
   "classificationPreconditions": [
     "The Lua state, stack indices, argument types, and target tables satisfy the documented Lua 5.3 C API preconditions.",
@@ -401,6 +401,38 @@
           "verifiedOn": "2026-09-20",
           "verification": "The pusher delegates to userdata and metatable creation; its exact CE 7.7 failure behavior remains a P0-LIVE-005 probe.",
           "note": "Host behavior beyond the pinned implementation is Unknown until live verification."
+        }
+      ]
+    },
+    {
+      "id": "PushByteTable",
+      "nativeEnum": "OP_PUSH_BYTE_TABLE",
+      "managed": { "constant": "PushByteTableOperation", "wrapper": "PushByteTable" },
+      "opcode": 11,
+      "capability": "push-byte-table",
+      "protected": true,
+      "requiresNativeProtection": true,
+      "raises": "memory",
+      "stack": {
+        "scope": "Relative to the stack before the bridge pushes its light C closure; inputs are lua_pcallk arguments.",
+        "inputCount": 0,
+        "inputDescription": "The managed byte span is borrowed for the protected call while the bridge builds its ordered Lua sequence table.",
+        "success": { "resultCount": 1, "delta": "+1", "note": "The protected call returns one Lua table with one-based integer byte entries." },
+        "failure": { "resultCount": 1, "delta": "+1", "note": "lua_pcallk leaves its error object." }
+      },
+      "ownership": {
+        "input": "Managed bytes are borrowed only while the call is active.",
+        "result": "Lua owns the new table and the integer values stored in it."
+      },
+      "hostOperation": "lua_checkstack + lua_createtable + lua_pushinteger + lua_rawseti",
+      "provenance": [
+        {
+          "component": "Lua 5.3 C API",
+          "symbol": "lua_createtable, lua_pushinteger, lua_rawseti",
+          "status": "PinnedUpstream",
+          "source": "https://www.lua.org/manual/5.3/manual.html#lua_createtable",
+          "verifiedOn": "2026-09-20",
+          "verification": "lua_createtable is annotated [-0,+1,m] and lua_rawseti is annotated [-1,+0,m], so the whole table construction remains under one native lua_pcallk boundary."
         }
       ]
     }

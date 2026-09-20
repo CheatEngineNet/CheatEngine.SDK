@@ -347,6 +347,190 @@ public sealed class LuaCallbackTests
     }
 
     [Fact]
+    public async Task Dispose_after_detach_closes_admission_defers_to_callback_neutralization()
+    {
+        LuaTest.RequireNativeLua();
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+        using RuntimeScope scope = new(state);
+        using ManualResetEventSlim admissionClosed = new(false);
+        using ManualResetEventSlim allowCleanup = new(false);
+        Counter counter = new();
+        Assert.True(LuaCallback.TryCreate(L, Thunks.Count, counter, out var callback).IsOk);
+        Assert.NotNull(callback);
+        Assert.True(callback.TryRegister(L, "count"u8).IsOk);
+
+        LuaRuntime.OperationAdmissionClosedForTesting = () =>
+        {
+            admissionClosed.Set();
+            if (!allowCleanup.Wait(TimeSpan.FromSeconds(5), cancellationToken))
+                throw new TimeoutException("The detach-cleanup barrier timed out.");
+        };
+
+        try
+        {
+            Task detach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken, TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+            Assert.True(admissionClosed.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+                "Detach did not close operation admission.");
+
+            callback.Dispose();
+
+            // Detach has the only state that may clear the Lua upvalue. Dispose therefore leaves the callback linked
+            // until that cleanup runs instead of abandoning its handle and losing the closure from the registry.
+            Assert.False(callback.IsReleased);
+            Assert.Equal(1, LuaCallbackRegistry.Count);
+
+            allowCleanup.Set();
+            await detach.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+
+            Assert.True(callback.IsReleased);
+            Assert.Null(callback.StateObject);
+            Assert.Equal(0, LuaCallbackRegistry.Count);
+
+            LuaTest.Run(L, "local ok, err = pcall(count) return ok, err"u8, 2);
+            Assert.False(L.ToBoolean(1));
+            Assert.Contains("callback released", LuaTest.ReadString(L, 2), StringComparison.Ordinal);
+            Assert.Equal(0, counter.Value);
+        }
+        finally
+        {
+            LuaRuntime.OperationAdmissionClosedForTesting = null;
+            allowCleanup.Set();
+        }
+    }
+
+    [Fact]
+    public async Task Dispose_observing_closed_admission_remains_linked_when_detach_failure_reopens_it()
+    {
+        LuaTest.RequireNativeLua();
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+        using RuntimeScope scope = new(state);
+        using DisposeAdmissionFailureRace race = new(cancellationToken);
+        Assert.True(LuaCallback.TryCreate(L, Thunks.Count, new Counter(), out var first).IsOk);
+        Assert.True(first!.TryRegister(L, "first"u8).IsOk);
+        Assert.True(LuaCallback.TryCreate(L, Thunks.Count, new Counter(), out var second).IsOk);
+        Assert.True(second!.TryRegister(L, "second"u8).IsOk);
+
+        Task detach = Task.Factory.StartNew(LuaRuntime.Detach, cancellationToken, TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
+        Assert.True(race.AdmissionClosed.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+            "Detach did not close operation admission.");
+
+        Task dispose = Task.Factory.StartNew(first.Dispose, cancellationToken, TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
+        Assert.True(race.DisposeObservedRefusal.Wait(TimeSpan.FromSeconds(5), cancellationToken),
+            "Dispose did not observe the closed admission gate.");
+
+        race.AllowDetachCleanup.Set();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => detach.WaitAsync(TimeSpan.FromSeconds(5),
+            cancellationToken));
+        Assert.True(second.IsReleased);
+        Assert.False(first.IsReleased);
+        Assert.True(LuaRuntime.IsAttached);
+        Assert.Equal(1, LuaCallbackRegistry.Count);
+
+        race.AllowDisposeToReturn.Set();
+        await dispose.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+
+        Assert.False(first.IsReleased);
+        Assert.Equal(1, LuaCallbackRegistry.Count);
+
+        DisposeAdmissionFailureRace.DisableFailureSeams();
+        LuaRuntime.Detach();
+
+        Assert.True(first.IsReleased);
+        Assert.Equal(0, LuaCallbackRegistry.Count);
+        LuaTest.Run(L, "local ok, err = pcall(first) return ok, err"u8, 2);
+        Assert.False(L.ToBoolean(1));
+        Assert.Contains("callback released", LuaTest.ReadString(L, 2), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Detach_cleanup_failure_keeps_remaining_callbacks_and_allows_a_retry()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+        using RuntimeScope scope = new(state);
+        Counter firstCounter = new();
+        Assert.True(LuaCallback.TryCreate(L, Thunks.Count, firstCounter, out var first).IsOk);
+        Assert.True(first!.TryRegister(L, "first"u8).IsOk);
+        Assert.True(LuaCallback.TryCreate(L, Thunks.Count, new Counter(), out var second).IsOk);
+        Assert.True(second!.TryRegister(L, "second"u8).IsOk);
+        var releases = 0;
+        LuaCallbackRegistry.AfterReleaseForTesting = () =>
+        {
+            if (++releases == 1) throw new InvalidOperationException("deterministic callback cleanup failure");
+        };
+
+        try
+        {
+            Assert.Throws<InvalidOperationException>(LuaRuntime.Detach);
+
+            // The newly created callback was the registry head and was released before the injected error. Its older
+            // sibling remains linked; the old host binding is still published and normal work is admitted again.
+            Assert.True(second.IsReleased);
+            Assert.False(first.IsReleased);
+            Assert.Equal(1, LuaCallbackRegistry.Count);
+            Assert.True(LuaRuntime.IsAttached);
+            Assert.Equal(scope.Binding, LuaRuntime.CurrentBinding);
+            Assert.True(LuaRuntime.TryAcquireOperation(out var operation));
+            operation.Dispose();
+
+            LuaTest.Run(L, "return first()"u8, 1);
+            Assert.Equal(1, firstCounter.Value);
+            L.Pop(1);
+
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
+            LuaRuntime.Detach();
+
+            Assert.True(first.IsReleased);
+            Assert.Equal(0, LuaCallbackRegistry.Count);
+            LuaTest.Run(L, "local ok, err = pcall(first) return ok, err"u8, 2);
+            Assert.False(L.ToBoolean(1));
+            Assert.Contains("callback released", LuaTest.ReadString(L, 2), StringComparison.Ordinal);
+        }
+        finally
+        {
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
+        }
+    }
+
+    [Fact]
+    public unsafe void Failed_attach_replacement_reopens_admission_for_the_previous_binding()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+        using RuntimeScope scope = new(state, false);
+        Counter counter = new();
+        Assert.True(LuaCallback.TryCreate(L, Thunks.Count, counter, out var callback).IsOk);
+        Assert.NotNull(callback);
+        var replacement = HostDouble.CreateBinding(state.L, true);
+        LuaCallbackRegistry.AfterReleaseForTesting = static () =>
+            throw new InvalidOperationException("deterministic callback cleanup failure");
+
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => LuaRuntime.Attach(replacement));
+
+            Assert.True(callback.IsReleased);
+            Assert.True(LuaRuntime.IsAttached);
+            Assert.Equal(scope.Binding, LuaRuntime.CurrentBinding);
+            Assert.True(LuaRuntime.TryAcquireOperation(out var operation));
+            operation.Dispose();
+        }
+        finally
+        {
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
+        }
+    }
+
+    [Fact]
     public void Dispose_with_the_runtime_attached_releases_like_release()
     {
         LuaTest.RequireNativeLua();
@@ -517,6 +701,64 @@ public sealed class LuaCallbackTests
         Assert.Equal(1, counter.Value);
         Assert.NotEqual(state.Pointer, counter.LastState);
         callback.Release(L);
+    }
+
+    private sealed class DisposeAdmissionFailureRace : IDisposable
+    {
+        private readonly CancellationToken _cancellationToken;
+
+        public DisposeAdmissionFailureRace(CancellationToken cancellationToken)
+        {
+            _cancellationToken = cancellationToken;
+            LuaRuntime.OperationAdmissionClosedForTesting = OnAdmissionClosed;
+            LuaCallback.DisposeAdmissionRefusedForTesting = OnDisposeAdmissionRefused;
+            LuaCallbackRegistry.AfterReleaseForTesting = ThrowCleanupFailure;
+        }
+
+        public ManualResetEventSlim AdmissionClosed { get; } = new(false);
+
+        public ManualResetEventSlim AllowDetachCleanup { get; } = new(false);
+
+        public ManualResetEventSlim DisposeObservedRefusal { get; } = new(false);
+
+        public ManualResetEventSlim AllowDisposeToReturn { get; } = new(false);
+
+        public static void DisableFailureSeams()
+        {
+            LuaRuntime.OperationAdmissionClosedForTesting = null;
+            LuaCallback.DisposeAdmissionRefusedForTesting = null;
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
+        }
+
+        public void Dispose()
+        {
+            DisableFailureSeams();
+            AllowDetachCleanup.Set();
+            AllowDisposeToReturn.Set();
+            AdmissionClosed.Dispose();
+            AllowDetachCleanup.Dispose();
+            DisposeObservedRefusal.Dispose();
+            AllowDisposeToReturn.Dispose();
+        }
+
+        private void OnAdmissionClosed()
+        {
+            AdmissionClosed.Set();
+            if (!AllowDetachCleanup.Wait(TimeSpan.FromSeconds(5), _cancellationToken))
+                throw new TimeoutException("The detach-cleanup barrier timed out.");
+        }
+
+        private void OnDisposeAdmissionRefused()
+        {
+            DisposeObservedRefusal.Set();
+            if (!AllowDisposeToReturn.Wait(TimeSpan.FromSeconds(5), _cancellationToken))
+                throw new TimeoutException("The callback-disposal barrier timed out.");
+        }
+
+        private static void ThrowCleanupFailure()
+        {
+            throw new InvalidOperationException("deterministic callback cleanup failure");
+        }
     }
 
     private static void Register(LuaState L, LuaNativeFunction thunk, ReadOnlySpan<byte> name)

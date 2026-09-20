@@ -66,6 +66,9 @@ public sealed class MemoryApiTests
                                                           local copy = {}
                                                           for i = 1, #values do copy[i] = values[i] end
                                                           target.bytes[a] = copy
+                                                          if a == 34 then return #values - 1 end
+                                                          if a == 35 then return 0 end
+                                                          return #values
                                                         end
                                                         """u8;
 
@@ -114,6 +117,9 @@ public sealed class MemoryApiTests
                                                         local copy = {}
                                                         for i = 1, #values do copy[i] = values[i] end
                                                         host.bytes[a] = copy
+                                                        if a == 82 then return #values - 1 end
+                                                        if a == 83 then return 0 end
+                                                        return #values
                                                       end
                                                       function writeSmallIntegerLocal(a, v) host.word[a] = v % 65536; return true end
                                                       function writeIntegerLocal(a, v) host.dword[a] = v % 4294967296; return true end
@@ -200,6 +206,63 @@ public sealed class MemoryApiTests
         Assert.True(TargetMemory.TryReadString(50UL, 100, false, out text, out failure));
         Assert.Equal("text path", text);
         Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void Byte_writes_require_the_full_CE_count_for_target_and_host_memory()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        EngineTest.Run(scope.State, TargetStandIn);
+        EngineTest.Run(scope.State, HostStandIn);
+
+        ReadOnlySpan<byte> payload = [0, 1, 255, 42];
+        Assert.True(TargetMemory.TryWriteBytes(33UL, payload, out var failure));
+        Assert.Equal(MemoryAccessFailure.None, failure);
+        Assert.False(TargetMemory.TryWriteBytes(34UL, payload, out failure));
+        Assert.Equal(MemoryAccessFailure.WriteFailed, failure);
+        Assert.False(TargetMemory.TryWriteBytes(35UL, payload, out failure));
+        Assert.Equal(MemoryAccessFailure.WriteFailed, failure);
+
+        Assert.True(HostMemory.TryWriteBytes(new HostAddress(81), payload, out failure));
+        Assert.Equal(MemoryAccessFailure.None, failure);
+        Assert.False(HostMemory.TryWriteBytes(new HostAddress(82), payload, out failure));
+        Assert.Equal(MemoryAccessFailure.WriteFailed, failure);
+        Assert.False(HostMemory.TryWriteBytes(new HostAddress(83), payload, out failure));
+        Assert.Equal(MemoryAccessFailure.WriteFailed, failure);
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void Empty_byte_writes_do_not_resolve_or_invoke_CE_globals()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        EngineTest.Run(scope.State, "function writeBytes(_) error('must not run') end function writeBytesLocal(_) error('must not run') end"u8);
+
+        Assert.Equal(0, FakeHost.ProviderCalls);
+        Assert.True(TargetMemory.TryWriteBytes(1UL, [], out var failure));
+        Assert.Equal(MemoryAccessFailure.None, failure);
+        Assert.Equal(1, FakeHost.ProviderCalls);
+        Assert.True(HostMemory.TryWriteBytes(new HostAddress(1), [], out failure));
+        Assert.Equal(MemoryAccessFailure.None, failure);
+        Assert.Equal(2, FakeHost.ProviderCalls);
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void Empty_byte_writes_preserve_detached_runtime_admission()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using (HostScope scope = new(state))
+        {
+        }
+
+        Assert.Throws<InvalidOperationException>(() => TargetMemory.TryWriteBytes(1UL, [], out _));
+        Assert.Throws<InvalidOperationException>(() => HostMemory.TryWriteBytes(new HostAddress(1), [], out _));
     }
 
     [Fact]

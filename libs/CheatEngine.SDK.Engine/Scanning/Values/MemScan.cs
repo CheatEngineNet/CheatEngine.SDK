@@ -1,7 +1,6 @@
 using System;
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Engine.Objects;
-using CheatEngine.SDK.Lua.Marshalling;
 
 namespace CheatEngine.SDK.Engine.Scanning.Values;
 
@@ -50,18 +49,6 @@ public readonly partial struct MemScan : ICEObject<MemScan>, IEquatable<MemScan>
 
     /// <summary>Gets a value indicating whether this is the null handle.</summary>
     public bool IsNull => _handle.IsNull;
-
-    /// <summary>
-    ///     Attempts to read the last scan's <c>FoundCount</c> property. This is a raw CE object operation; use
-    ///     <see cref="MemoryScanSession.ResultCount" /> when the object belongs to a session.
-    /// </summary>
-    /// <param name="count">The reported count when the call returns <see langword="true" />.</param>
-    /// <returns><see langword="false" /> when CE raised or did not return a 32-bit integer.</returns>
-    /// <exception cref="InvalidOperationException">The plugin is not enabled or has no host object pusher.</exception>
-    public bool TryGetFoundCount(out int count)
-    {
-        return _handle.TryGetProperty<Int32Marshaller, int>("FoundCount"u8, out count);
-    }
 
     /// <summary>Compares two borrowed handles by native pointer value.</summary>
     /// <param name="left">The first handle.</param>

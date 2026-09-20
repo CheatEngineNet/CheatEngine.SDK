@@ -80,6 +80,7 @@ internal static unsafe class Program
         if (ProbeStringAllocation(state, message) != 0) return 1;
         if (ProbeThunkFailure(state, message) != 0) return 1;
         if (ProbeTableAllocation(state) != 0) return 1;
+        if (ProbeByteTableAllocation(state) != 0) return 1;
         if (ProbeUserdataAllocation(state) != 0) return 1;
         if (ProbeRawSetAllocation(state) != 0) return 1;
         if (ProbeRawSetIndexAllocation(state) != 0) return 1;
@@ -282,6 +283,17 @@ internal static unsafe class Program
         var status = CaptureMemoryException(() => state.CreateTable());
         if (status != LuaStatus.MemoryError) return Fail("CreateTable did not throw LUA_ERRMEM");
         return AssertOnlySentinelRemains(state, "CreateTable");
+    }
+
+    private static int ProbeByteTableAllocation(LuaState state)
+    {
+        if (PushSentinel(state, "PushByteTable") != 0) return 1;
+        var bytes = new byte[4096];
+        var status = CaptureMemoryException(() => state.PushByteTable(bytes));
+        if (status != LuaStatus.MemoryError) return Fail("PushByteTable did not throw LUA_ERRMEM");
+        if (AssertOnlySentinelRemains(state, "PushByteTable") != 0) return 1;
+        WriteMarker("MARK PushByteTable protected allocator boundary recovered");
+        return 0;
     }
 
     private static int ProbeUserdataAllocation(LuaState state)

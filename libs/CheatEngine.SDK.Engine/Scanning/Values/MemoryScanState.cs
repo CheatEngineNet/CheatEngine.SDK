@@ -7,7 +7,7 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 /// <remarks>
 ///     <para>
 ///         Cheat Engine 7.7's <c>celua.txt</c> documents that a <c>MemScan</c> performs a first or next scan,
-///         <c>waitTillDone</c> reports whether it finished, and a <c>FoundList</c> must be initialized after the scan
+///         <c>waitTillDone</c> blocks until it finishes, and a <c>FoundList</c> must be initialized after the scan
 ///         before results are read. The transition model makes those prerequisites explicit:
 ///         <c>New -&gt; Scanning -&gt; ResultsReady</c>, and <c>ResultsReady -&gt; New</c> through <c>newScan</c>.
 ///     </para>
@@ -27,7 +27,7 @@ public enum MemoryScanState
     Scanning = 1,
 
     /// <summary>
-    ///     <c>waitTillDone</c> returned <see langword="true" /> and the attached found list initialized successfully.
+    ///     <c>waitTillDone</c> completed successfully and the attached found list initialized successfully.
     /// </summary>
     ResultsReady = 2,
 

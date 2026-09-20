@@ -56,11 +56,21 @@ public readonly partial struct FoundList : ICEObject<FoundList>, IEquatable<Foun
 
     /// <summary>Attempts to read the CE <c>Count</c> property.</summary>
     /// <param name="count">The number of results, when the method returns <see langword="true" />.</param>
-    /// <returns><see langword="false" /> when CE raised or did not return a 32-bit integer.</returns>
+    /// <returns>
+    ///     <see langword="false" /> when CE raised or did not return a non-negative 64-bit Lua integer. CE stores this
+    ///     count as <c>UInt64</c>; values outside Lua's signed 64-bit integer range are rejected rather than wrapped.
+    /// </returns>
     /// <exception cref="InvalidOperationException">The plugin is not enabled or has no host object pusher.</exception>
-    public bool TryGetCount(out int count)
+    public bool TryGetCount(out ulong count)
     {
-        return _handle.TryGetProperty<Int32Marshaller, int>("Count"u8, out count);
+        if (_handle.TryGetProperty<Int64Marshaller, long>("Count"u8, out var signedCount) && signedCount >= 0)
+        {
+            count = (ulong)signedCount;
+            return true;
+        }
+
+        count = default;
+        return false;
     }
 
     /// <summary>Attempts to read the exact address text at a zero-based result index.</summary>

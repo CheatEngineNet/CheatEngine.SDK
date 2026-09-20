@@ -29,6 +29,11 @@ internal static unsafe partial class LuaProtectedApi
         fixed (byte* data = bytes) return Invoke(state, LuaProtectedOperation.PushBytes, 0, data, (nuint)bytes.Length, 0, 0);
     }
 
+    internal static int PushByteTable(lua_State* state, ReadOnlySpan<byte> bytes)
+    {
+        fixed (byte* data = bytes) return Invoke(state, LuaProtectedOperation.PushByteTable, 0, data, (nuint)bytes.Length, 0, 0);
+    }
+
     internal static int CreateTable(lua_State* state, int arrayCapacity, int recordCapacity)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(arrayCapacity);

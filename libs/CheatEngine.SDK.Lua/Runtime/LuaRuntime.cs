@@ -58,6 +58,14 @@ namespace CheatEngine.SDK.Lua.Runtime;
 /// </remarks>
 public static unsafe class LuaRuntime
 {
+    /// <summary>Result of an internal callback-disposal operation acquisition.</summary>
+    internal enum LuaCallbackDisposeOperationResult
+    {
+        Acquired,
+        Unavailable,
+        AdmissionClosed
+    }
+
     private static readonly Lock SGate = new();
     private static readonly Lock SOperationGate = new();
     private static readonly ManualResetEventSlim SOperationsDrained = new(true);
@@ -149,7 +157,8 @@ public static unsafe class LuaRuntime
     [RequiresPluginEnabled]
     public static LuaRuntimeOperation AcquireOperation()
     {
-        if (TryEnterProviderOperation(out var state)) return new LuaRuntimeOperation(state, true);
+        if (TryEnterProviderOperation(out var state) == LuaCallbackDisposeOperationResult.Acquired)
+            return new LuaRuntimeOperation(state, true);
 
         if (Volatile.Read(ref s_services) is null) ThrowDetached();
         if (!IsOperationAdmissionOpen()) ThrowOperationAdmissionClosed();
@@ -165,7 +174,7 @@ public static unsafe class LuaRuntime
     [RequiresPluginEnabled]
     public static bool TryAcquireOperation(out LuaRuntimeOperation operation)
     {
-        if (TryEnterProviderOperation(out var state))
+        if (TryEnterProviderOperation(out var state) == LuaCallbackDisposeOperationResult.Acquired)
         {
             operation = new LuaRuntimeOperation(state, true);
             return true;
@@ -173,6 +182,26 @@ public static unsafe class LuaRuntime
 
         operation = default;
         return false;
+    }
+
+    /// <summary>
+    ///     Acquires an operation for <see cref="LuaCallback.Dispose" /> and reports whether an attached lifecycle
+    ///     transition, rather than an unavailable state, rejected it.
+    /// </summary>
+    /// <remarks>
+    ///     The result is selected while <c>SOperationGate</c> is held. In particular, an
+    ///     <see cref="LuaCallbackDisposeOperationResult.AdmissionClosed" /> result cannot be reinterpreted as detached
+    ///     after an unsuccessful transition reopens admission: callback disposal must leave registry ownership with that
+    ///     transition until a state has neutralized the Lua closure.
+    /// </remarks>
+    internal static LuaCallbackDisposeOperationResult TryAcquireOperationForCallbackDispose(
+        out LuaRuntimeOperation operation)
+    {
+        var result = TryEnterProviderOperation(out var state);
+        operation = result == LuaCallbackDisposeOperationResult.Acquired
+            ? new LuaRuntimeOperation(state, true)
+            : default;
+        return result;
     }
 
     /// <summary>
@@ -231,7 +260,6 @@ public static unsafe class LuaRuntime
             ThrowIfResetTransitionActive();
             CloseOperationAdmissionAndDrain();
             BeginTransition();
-            var publishSucceeded = false;
             try
             {
                 var previous = s_services;
@@ -243,13 +271,13 @@ public static unsafe class LuaRuntime
                     PublishIdentity(unchecked(identity.AttachEpoch + 1), identity.StateGeneration);
                     Volatile.Write(ref s_services, new LuaHostServices(binding));
                 }
-
-                publishSucceeded = true;
             }
             finally
             {
                 EndTransition();
-                if (publishSucceeded) OpenOperationAdmission();
+                // If replacement cleanup failed, s_services still names the previous usable binding. Reopen it rather
+                // than stranding every caller behind the admission gate until a later lifecycle call happens to retry.
+                OpenOperationAdmission();
             }
         }
     }
@@ -312,14 +340,19 @@ public static unsafe class LuaRuntime
 
             CloseOperationAdmissionAndDrain();
             BeginTransition();
+            var detachSucceeded = false;
             try
             {
                 LuaCallbackRegistry.DetachAll(services);
+                Volatile.Write(ref s_services, null);
+                detachSucceeded = true;
             }
             finally
             {
-                Volatile.Write(ref s_services, null);
                 EndTransition();
+                // A callback release can fail (for example, while Lua rejects a registry operation). Keep the binding
+                // and its remaining registry entries reachable so a caller can retry Detach after that failure clears.
+                if (!detachSucceeded) OpenOperationAdmission();
             }
         }
     }
@@ -498,16 +531,22 @@ public static unsafe class LuaRuntime
         }
     }
 
-    private static bool TryEnterProviderOperation(out LuaState state)
+    private static LuaCallbackDisposeOperationResult TryEnterProviderOperation(out LuaState state)
     {
         LuaHostServices? services;
         lock (SOperationGate)
         {
             services = s_services;
-            if (services is null || !s_acceptOperations)
+            if (services is null)
             {
                 state = default;
-                return false;
+                return LuaCallbackDisposeOperationResult.Unavailable;
+            }
+
+            if (!s_acceptOperations)
+            {
+                state = default;
+                return LuaCallbackDisposeOperationResult.AdmissionClosed;
             }
 
             IncrementActiveOperation();
@@ -520,11 +559,11 @@ public static unsafe class LuaRuntime
             {
                 ExitOperation();
                 state = default;
-                return false;
+                return LuaCallbackDisposeOperationResult.Unavailable;
             }
 
             state = new LuaState(l);
-            return true;
+            return LuaCallbackDisposeOperationResult.Acquired;
         }
         catch
         {

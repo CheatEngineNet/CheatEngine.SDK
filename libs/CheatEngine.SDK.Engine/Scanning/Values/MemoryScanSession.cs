@@ -26,7 +26,7 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 ///     </para>
 ///     <para>
 ///         A session accepts <c>firstScan</c> only from <see cref="MemoryScanState.New" />, <c>nextScan</c> only from
-///         <see cref="MemoryScanState.ResultsReady" />, and reads only after <c>waitTillDone</c> returned true followed
+///         <see cref="MemoryScanState.ResultsReady" />, and reads only after <c>waitTillDone</c> completed successfully followed
 ///         by <c>FoundList.initialize</c>. It uses <c>FoundList.deinitialize</c> before its own next scan and reset to
 ///         release the readable view; this is a session invariant, not a claim that CE rejects every other raw sequence.
 ///     </para>
@@ -120,12 +120,18 @@ public sealed class MemoryScanSession : IDisposable
     }
 
     /// <summary>Gets the number of readable results in the initialized found list.</summary>
+    /// <remarks>
+    ///     Cheat Engine stores the count as <c>UInt64</c>. The Lua boundary supplies a signed 64-bit integer, so this
+    ///     property exposes its non-negative range as <see cref="ulong" /> and rejects an unrepresentable host result.
+    ///     Result-reading methods intentionally retain CE's <see cref="int" /> index parameter and therefore address
+    ///     only indices from zero through <c>Int32.MaxValue</c>.
+    /// </remarks>
     /// <exception cref="MemoryScanStateException">The results are not ready.</exception>
     /// <exception cref="MemoryScanException">CE did not return a valid non-negative integer count.</exception>
     /// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
     [MainThreadOnly]
     [RequiresPluginEnabled]
-    public int ResultCount
+    public ulong ResultCount
     {
         get
         {
@@ -182,29 +188,23 @@ public sealed class MemoryScanSession : IDisposable
     ///     Waits through CE's no-timeout <c>waitTillDone()</c> form, then initializes the attached found list only after
     ///     CE reports completion.
     /// </summary>
-    /// <returns>
-    ///     <see cref="MemoryScanCompletion.Completed" /> when results are ready to read, or
-    ///     <see cref="MemoryScanCompletion.TimedOut" /> if CE returns false. A timeout leaves the state scanning.
-    /// </returns>
     /// <exception cref="MemoryScanStateException">The session is not scanning.</exception>
-    /// <exception cref="MemoryScanException">The protected CE call failed or returned a non-boolean value.</exception>
+    /// <exception cref="MemoryScanException">The protected CE call failed.</exception>
     /// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
     [MainThreadOnly]
     [RequiresPluginEnabled]
-    public MemoryScanCompletion WaitForCompletion()
+    public void WaitForCompletion()
     {
         RequireEnabledMainThread();
         RequireState("WaitForCompletion", MemoryScanState.Scanning);
 
         try
         {
-            var completed = CallWaitTillDone(_scanner!.Value);
-            if (!completed) return MemoryScanCompletion.TimedOut;
+            CallWaitTillDone(_scanner!.Value);
 
             _state = MemoryScanState.Invalidated;
             CallNoResult(_foundList!.Value.Handle, "initialize"u8, InitializeResultsOperation);
             _state = MemoryScanState.ResultsReady;
-            return MemoryScanCompletion.Completed;
         }
         catch
         {
@@ -238,7 +238,10 @@ public sealed class MemoryScanSession : IDisposable
     }
 
     /// <summary>Attempts to read the parsed target address at a zero-based result index.</summary>
-    /// <param name="zeroBasedIndex">The CE found-list index, beginning at zero.</param>
+    /// <param name="zeroBasedIndex">
+    ///     The CE found-list index, beginning at zero. This API deliberately supports only the managed
+    ///     <see cref="int" /> index range even when <see cref="ResultCount" /> is larger.
+    /// </param>
     /// <param name="address">The parsed target address when the method returns <see langword="true" />.</param>
     /// <returns><see langword="false" /> when the index is outside the current result count.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="zeroBasedIndex" /> is negative.</exception>
@@ -252,7 +255,7 @@ public sealed class MemoryScanSession : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(zeroBasedIndex);
         RequireEnabledMainThread();
         var foundList = RequireResults();
-        if (zeroBasedIndex >= ReadResultCount(foundList))
+        if ((ulong)zeroBasedIndex >= ReadResultCount(foundList))
         {
             address = default;
             return false;
@@ -266,7 +269,10 @@ public sealed class MemoryScanSession : IDisposable
     }
 
     /// <summary>Attempts to read the exact value text at a zero-based result index.</summary>
-    /// <param name="zeroBasedIndex">The CE found-list index, beginning at zero.</param>
+    /// <param name="zeroBasedIndex">
+    ///     The CE found-list index, beginning at zero. This API deliberately supports only the managed
+    ///     <see cref="int" /> index range even when <see cref="ResultCount" /> is larger.
+    /// </param>
     /// <param name="value">The copied CE value text when the method returns <see langword="true" />.</param>
     /// <returns><see langword="false" /> when the index is outside the current result count.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="zeroBasedIndex" /> is negative.</exception>
@@ -280,7 +286,7 @@ public sealed class MemoryScanSession : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(zeroBasedIndex);
         RequireEnabledMainThread();
         var foundList = RequireResults();
-        if (zeroBasedIndex >= ReadResultCount(foundList))
+        if ((ulong)zeroBasedIndex >= ReadResultCount(foundList))
         {
             value = null;
             return false;
@@ -295,8 +301,9 @@ public sealed class MemoryScanSession : IDisposable
     ///     parent. Never retries a destruction and is safe to call more than once.
     /// </summary>
     /// <remarks>
-    ///     This method follows <see cref="Owned{T}.Dispose" />: disposing after the runtime detached cannot call CE and
-    ///     may leak native objects. Plugins therefore dispose the session before their disable callback returns.
+    ///     If the runtime cannot admit cleanup, this method throws without releasing either owner or changing the session
+    ///     state, so the plugin can retry before its disable callback returns. Once destruction begins, it follows
+    ///     <see cref="Owned{T}.Dispose" /> and does not retry a protected CE failure.
     /// </remarks>
     [MainThreadOnly]
     public void Dispose()
@@ -310,41 +317,33 @@ public sealed class MemoryScanSession : IDisposable
             throw new InvalidOperationException(
                 "Memory scan disposal must run on Cheat Engine's main thread while the plugin is attached.");
 
-        var releaseResults = _state == MemoryScanState.ResultsReady;
-        _state = MemoryScanState.Disposed;
-        var foundList = _foundList;
-        var scanner = _scanner;
+        // Admit the complete cleanup before publishing any lifetime change. Owned<T> retains an owner when it cannot
+        // begin destroy(), so this session must retain both owners in that case as well.
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
+        var foundList = _foundList!;
+        var scanner = _scanner!;
 
-        try
+        if (_state == MemoryScanState.ResultsReady)
         {
-            if (releaseResults && LuaRuntime.IsAttached && foundList is not null)
-            {
-                try
-                {
-                    using var operation = LuaRuntime.AcquireOperation();
-                    var state = operation.State;
-                    using LuaFrame frame = new(state);
-                    _ = foundList.Value.Handle.TryCallMethod(state, "deinitialize"u8, 0, 0);
-                }
-                catch (InvalidOperationException)
-                {
-                    // The plugin may already be detached. Owned<T>.Dispose uses the same no-throw, leak-on-detach rule.
-                }
-            }
+            using LuaFrame frame = new(state);
+            _ = foundList.Value.Handle.TryCallMethod(state, "deinitialize"u8, 0, 0);
         }
-        finally
+
+        // Each frame removes a protected-call error before the next destroy. TryDestroy consumes an owner only once its
+        // protected invocation begins; the outer admitted operation keeps the binding stable for both child and parent.
+        using (LuaFrame frame = new(state))
         {
-            try
-            {
-                foundList?.Dispose();
-            }
-            finally
-            {
-                scanner?.Dispose();
-                _foundList = null;
-                _scanner = null;
-            }
+            _ = foundList.TryDestroy(state);
         }
+        using (LuaFrame frame = new(state))
+        {
+            _ = scanner.TryDestroy(state);
+        }
+
+        _foundList = null;
+        _scanner = null;
+        _state = MemoryScanState.Disposed;
     }
 
     private FoundList RequireResults()
@@ -464,31 +463,27 @@ public sealed class MemoryScanSession : IDisposable
         if (!status.IsOk) ThrowLua(state, status, NextScanOperation);
     }
 
-    private static bool CallWaitTillDone(MemScan scanner)
+    private static void CallWaitTillDone(MemScan scanner)
     {
         using var operation = LuaRuntime.AcquireOperation();
         var state = operation.State;
         using LuaFrame frame = new(state);
-        var status = scanner.Handle.TryCallMethod(state, "waitTillDone"u8, 0, 1);
+        var status = scanner.Handle.TryCallMethod(state, "waitTillDone"u8, 0, 0);
         if (!status.IsOk) ThrowLua(state, status, WaitForCompletionOperation);
-        if (BooleanMarshaller.TryRead(state, -1, out var completed)) return completed;
-
-        throw new MemoryScanException(MemoryScanFailureKind.UnexpectedResult, WaitForCompletionOperation,
-            "The memory scan completion operation did not return a boolean.");
     }
 
-    private static int ReadResultCount(FoundList foundList)
+    private static ulong ReadResultCount(FoundList foundList)
     {
         using var operation = LuaRuntime.AcquireOperation();
         var state = operation.State;
         using LuaFrame frame = new(state);
         var status = foundList.Handle.TryCallMethod(state, "getCount"u8, 0, 1);
         if (!status.IsOk) ThrowLua(state, status, ResultCountOperation);
-        if (!Int32Marshaller.TryRead(state, -1, out var count) || count < 0)
+        if (!Int64Marshaller.TryRead(state, -1, out var count) || count < 0)
             throw new MemoryScanException(MemoryScanFailureKind.UnexpectedResult, ResultCountOperation,
-                "The memory scan result count was not a non-negative 32-bit integer.");
+                "The memory scan result count was not a non-negative 64-bit Lua integer.");
 
-        return count;
+        return (ulong)count;
     }
 
     private static string CallString(CEObject target, ReadOnlySpan<byte> method, string operation, int index)

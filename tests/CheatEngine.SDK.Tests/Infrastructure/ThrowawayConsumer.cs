@@ -26,6 +26,18 @@ internal sealed class ThrowawayConsumer
                                         }
                                         """;
 
+    private const string LuaFunctionSource = """
+                                             using CheatEngine.SDK.Annotations.Lua;
+
+                                             namespace ThrowawayPlugin;
+
+                                             internal static partial class Functions
+                                             {
+                                                 [LuaFunction("throwaway_ping")]
+                                                 public static long Ping() => 1;
+                                             }
+                                             """;
+
     private ThrowawayConsumer(string directory, string projectPath, string assemblyPath)
     {
         Directory = directory;
@@ -53,11 +65,12 @@ internal sealed class ThrowawayConsumer
     ///     net10.0 class library with one <c>PackageReference</c> to <c>CheatEngine.SDK</c> restored only from
     ///     <paramref name="localFeedDirectory" /> (and nuget.org, for the .NET SDK's own implicit packages, from the
     ///     machine's warm cache), one minimal but valid plugin class, and whatever <paramref name="extraProperties" />
-    ///     adds to its single <c>PropertyGroup</c>. <paramref name="platformTarget" /> defaults to x64, but may be
-    ///     <see langword="null" /> to prove the package behavior when the consumer does not declare it.
+    ///     adds to its single <c>PropertyGroup</c>. When <paramref name="includeLuaFunction" /> is <see langword="true" />,
+    ///     the project also declares one valid <c>[LuaFunction]</c> export. <paramref name="platformTarget" /> defaults to
+    ///     x64, but may be <see langword="null" /> to prove the package behavior when the consumer does not declare it.
     /// </summary>
     public static ThrowawayConsumer Create(string parentDirectory, string name, string cheatEngineSdkVersion,
-        string localFeedDirectory, string extraProperties = "", string? platformTarget = "x64")
+        string localFeedDirectory, string extraProperties = "", string? platformTarget = "x64", bool includeLuaFunction = false)
     {
         var directory = Path.Combine(parentDirectory, name);
         System.IO.Directory.CreateDirectory(directory);
@@ -80,6 +93,8 @@ internal sealed class ThrowawayConsumer
                                         """);
 
         File.WriteAllText(Path.Combine(directory, "Plugin.cs"), PluginSource);
+        if (includeLuaFunction)
+            File.WriteAllText(Path.Combine(directory, "Functions.cs"), LuaFunctionSource);
         // <clear/>: this consumer's restore must depend only on the two sources named here, never on whatever
         // machine- or user-level NuGet.Config the CI/dev box happens to carry (same reasoning as the repo's own
         // root nuget.config).

@@ -93,6 +93,7 @@ internal static class LuaClassFileEmitter
         writer.WriteLine();
 
         writer.WriteLine(GeneratedCodeAttribute);
+        writer.WriteLine("[global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]");
         writer.Write("private ");
         writer.Write(constructorName);
         writer.Write('(');

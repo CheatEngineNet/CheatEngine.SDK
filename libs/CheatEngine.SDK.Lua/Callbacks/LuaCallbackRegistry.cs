@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
@@ -12,6 +13,10 @@ namespace CheatEngine.SDK.Lua.Callbacks;
 internal static class LuaCallbackRegistry
 {
     private static LuaCallback? s_head;
+
+    // Deterministic cleanup-failure seam used only by the SDK's friend test assembly. It runs after a callback was
+    // fully released, so a thrown test exception leaves the remaining callbacks linked for a retry.
+    internal static Action? AfterReleaseForTesting;
 
     /// <summary>Serializes callback list changes and handle release.</summary>
     internal static Lock Gate { get; } = new();
@@ -82,7 +87,11 @@ internal static class LuaCallbackRegistry
             // Release unlinks the head it is called on, so s_head is re-read on every iteration and the loop
             // ends when the list is empty. Keep the explicit re-read: a "condition is always true" IDE quick-fix once
             // turned this loop into while (true), which ended every Detach with a NullReferenceException.
-            for (var head = s_head; head is not null; head = s_head) head.Release(state);
+            for (var head = s_head; head is not null; head = s_head)
+            {
+                head.Release(state);
+                Volatile.Read(ref AfterReleaseForTesting)?.Invoke();
+            }
         }
     }
 }

@@ -23,7 +23,8 @@ internal static class LuaClassParser
             LuaBindingsGenerator.LuaClassAttributeMetadataName);
         var luaName = LuaBindingSymbols.ReadSdkAttributeName(context.Attributes, compilation,
             LuaBindingsGenerator.LuaClassAttributeMetadataName);
-        var isValid = isSdkAttribute && LuaNames.IsValidName(luaName) && IsBorrowedHandleShape(type, cancellationToken);
+        var isValid = isSdkAttribute && LuaNames.IsValidName(luaName)
+                      && IsBorrowedHandleShape(type, compilation, cancellationToken);
 
         return new LuaClassModel(ContainingTypeParser.Parse(type), luaName ?? string.Empty, isValid);
     }
@@ -32,21 +33,23 @@ internal static class LuaClassParser
     ///     Whether <paramref name="type" /> can receive the generated handle surface. Kept internal so the instance
     ///     member parsers use precisely the same ownership and collision rule.
     /// </summary>
-    internal static bool IsBorrowedHandleShape(INamedTypeSymbol type, CancellationToken cancellationToken)
+    internal static bool IsBorrowedHandleShape(INamedTypeSymbol type, Compilation compilation,
+        CancellationToken cancellationToken)
     {
-        if (type.TypeKind != TypeKind.Struct || type.IsGenericType) return false;
+        if (type.TypeKind != TypeKind.Struct || type.IsGenericType || type.IsRecord || type.IsRefLikeType) return false;
 
         if (ContainingTypeShape.Inspect(type, cancellationToken) != ContainingTypeIssues.None) return false;
 
         if (!IsReadOnlyStruct(type, cancellationToken)) return false;
 
-        return !HasGeneratedIdentityCollision(type);
+        return !HasGeneratedIdentityCollision(type,
+            compilation.GetTypeByMetadataName("CheatEngine.SDK.Engine.Objects.CEObject"));
     }
 
     /// <summary>Whether the type carries the actual SDK <c>[LuaClass]</c> marker and can receive generated members.</summary>
     internal static bool IsGeneratedHandle(INamedTypeSymbol type, Compilation compilation, CancellationToken cancellationToken)
     {
-        if (!IsBorrowedHandleShape(type, cancellationToken)) return false;
+        if (!IsBorrowedHandleShape(type, compilation, cancellationToken)) return false;
 
         foreach (var attribute in type.GetAttributes())
         {
@@ -77,7 +80,7 @@ internal static class LuaClassParser
 
     // A generated member never silently replaces an author declaration. The analyzer explains the collision as
     // CESDK2007; the generator just drops this type and leaves independent valid types alone.
-    private static bool HasGeneratedIdentityCollision(INamedTypeSymbol type)
+    private static bool HasGeneratedIdentityCollision(INamedTypeSymbol type, INamedTypeSymbol? ceObject)
     {
         return HasMember(type, "_handle")
                || HasMember(type, "Handle")
@@ -87,7 +90,25 @@ internal static class LuaClassParser
                || HasMember(type, "Push")
                || HasMember(type, "TryRead")
                || HasMember(type, "op_Equality")
-               || HasMember(type, "op_Inequality");
+               || HasMember(type, "op_Inequality")
+               || HasCEObjectConstructor(type, ceObject);
+    }
+
+    private static bool HasCEObjectConstructor(INamedTypeSymbol type, INamedTypeSymbol? ceObject)
+    {
+        if (ceObject is null) return false;
+
+        foreach (var constructor in type.InstanceConstructors)
+        {
+            if (constructor.Parameters.Length != 1) continue;
+
+            var parameter = constructor.Parameters[0];
+            if (parameter.RefKind == RefKind.None
+                && SymbolEqualityComparer.Default.Equals(parameter.Type, ceObject))
+                return true;
+        }
+
+        return false;
     }
 
     private static bool HasMember(INamedTypeSymbol type, string name)

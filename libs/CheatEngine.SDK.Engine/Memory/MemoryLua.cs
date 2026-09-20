@@ -331,6 +331,13 @@ internal static class MemoryLua
         out MemoryAccessFailure failure)
     {
         using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+
+        if (value.IsEmpty)
+        {
+            failure = MemoryAccessFailure.None;
+            return true;
+        }
+
         LuaState state = operation.State;
         int top = state.Top;
         try
@@ -339,16 +346,14 @@ internal static class MemoryLua
                 return Fail(out failure, MemoryAccessFailure.GlobalUnavailable);
 
             state.PushInteger(address);
-            state.CreateTable(value.Length);
-            int table = state.AbsoluteIndex(-1);
-            for (int index = 0; index < value.Length; index++)
-            {
-                state.PushInteger(value[index]);
-                state.RawSetIndex(table, index + 1L);
-            }
+            state.PushByteTable(value);
 
-            LuaStatus status = state.TryCall(2, 0);
+            LuaStatus status = state.TryCall(2, 1);
             if (!status.IsOk) return Fail(out failure, MemoryAccessFailure.LuaError);
+            if (!state.TryReadInteger(-1, out long written))
+                return Fail(out failure, MemoryAccessFailure.InvalidResult);
+            if (written != value.Length)
+                return Fail(out failure, MemoryAccessFailure.WriteFailed);
 
             failure = MemoryAccessFailure.None;
             return true;

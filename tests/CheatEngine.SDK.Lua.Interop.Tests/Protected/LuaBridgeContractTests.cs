@@ -11,7 +11,7 @@ public sealed unsafe class LuaBridgeContractTests
     private const uint ContractMagic = 0x4345534B;
     private const ushort WindowsAmd64Machine = 0x8664;
     private static readonly uint s_exportTableSize = 20u * (uint)IntPtr.Size;
-    private const ulong RequiredOperations = (1UL << 11) - 1;
+    private const ulong RequiredOperations = (1UL << 12) - 1;
     private static readonly string[] s_fixedExports =
     [
         "cheatengine_sdk_lua_bridge_abi_version",

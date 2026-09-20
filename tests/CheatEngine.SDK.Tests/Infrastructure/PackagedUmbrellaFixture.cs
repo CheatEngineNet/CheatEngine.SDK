@@ -107,6 +107,15 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
     /// <summary>Whether that manual bootstrap declares the host-required two-parameter initialization method.</summary>
     public bool EntryPointOffMethodExists { get; private set; }
 
+    /// <summary>Whether a packed consumer with a Lua function and explicit unsafe opt-in built successfully.</summary>
+    public bool LuaFunctionOptInConsumerBuildSucceeded { get; private set; }
+
+    /// <summary>Whether a packed consumer with a Lua function but no unsafe opt-in unexpectedly built successfully.</summary>
+    public bool LuaFunctionWithoutUnsafeConsumerBuildSucceeded { get; private set; }
+
+    /// <summary>Build output from the Lua-function consumer that intentionally leaves unsafe compilation disabled.</summary>
+    public string LuaFunctionWithoutUnsafeConsumerBuildOutput { get; private set; } = "";
+
     /// <summary>The package-controlled properties evaluated by a consumer that references only the carrier package.</summary>
     public IReadOnlyDictionary<string, string> IndirectProperties { get; private set; } =
         new Dictionary<string, string>(StringComparer.Ordinal);
@@ -152,6 +161,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         await InitializeExplicitUnsafeFalseConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
             .ConfigureAwait(false);
         await InitializeEntryPointOffConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
+            .ConfigureAwait(false);
+        await InitializeLuaFunctionConsumersAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
             .ConfigureAwait(false);
         await InitializeIndirectConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory).ConfigureAwait(false);
         await InitializePlatformTargetConsumersAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
@@ -263,6 +274,27 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
                                                                            """);
         await RestoreAndBuildAsync(consumer, packagesDirectory).ConfigureAwait(false);
         (EntryPointOffTypeExists, EntryPointOffMethodExists) = EntryPointProbe.Probe(consumer.AssemblyPath);
+    }
+
+    private async Task InitializeLuaFunctionConsumersAsync(string tempRoot, string feedDirectory,
+        string packagesDirectory)
+    {
+        var optInConsumer = ThrowawayConsumer.Create(tempRoot, "LuaFunctionOptInConsumer", PackageVersion, feedDirectory,
+            "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n", includeLuaFunction: true);
+        var optInRestore = await optInConsumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
+        EnsureSucceeded(optInRestore, "dotnet restore", optInConsumer.ProjectPath);
+        var optInBuild = await optInConsumer.BuildAsync(BuildTimeout).ConfigureAwait(false);
+        LuaFunctionOptInConsumerBuildSucceeded = optInBuild.ExitCode == 0;
+        EnsureSucceeded(optInBuild, "dotnet build", optInConsumer.ProjectPath);
+
+        var withoutUnsafeConsumer = ThrowawayConsumer.Create(tempRoot, "LuaFunctionWithoutUnsafeConsumer", PackageVersion,
+            feedDirectory, includeLuaFunction: true);
+        var restore = await withoutUnsafeConsumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
+        EnsureSucceeded(restore, "dotnet restore", withoutUnsafeConsumer.ProjectPath);
+
+        var build = await withoutUnsafeConsumer.BuildAsync(BuildTimeout).ConfigureAwait(false);
+        LuaFunctionWithoutUnsafeConsumerBuildSucceeded = build.ExitCode == 0;
+        LuaFunctionWithoutUnsafeConsumerBuildOutput = build.CombinedOutput;
     }
 
     private async Task InitializeIndirectConsumerAsync(string tempRoot, string feedDirectory, string packagesDirectory)

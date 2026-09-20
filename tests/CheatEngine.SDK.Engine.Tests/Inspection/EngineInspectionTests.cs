@@ -42,7 +42,8 @@ public sealed class EngineInspectionTests
         Assert.Equal(2, currentCount);
         Assert.Equal("game.exe", current[0].Name);
         Assert.Equal(0x140000000UL, current[0].BaseAddress.Value);
-        Assert.Equal(0x320000UL, current[0].ImageSize.Value);
+        Assert.True(current[0].ImageSize.HasValue);
+        Assert.Equal(0x320000UL, current[0].ImageSize.GetValueOrDefault().Value);
         Assert.True(current[0].Is64Bit);
         Assert.Equal("C:/games/game.exe", current[0].PathToFile);
         Assert.Equal(top, L.Top);
@@ -54,6 +55,32 @@ public sealed class EngineInspectionTests
         Assert.Equal(1, explicitCount);
         Assert.Equal("other.exe", explicitProcess[0].Name);
         Assert.False(explicitProcess[0].Is64Bit);
+        Assert.Equal(top, L.Top);
+    }
+
+    [Fact]
+    public void EnumerateModules_without_size_returns_a_null_image_size()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, """
+                          enumModules = function()
+                            return {
+                              { Name = 'game.exe', Address = 0x140000000, Is64Bit = true, PathToFile = 'C:/games/game.exe' }
+                            }
+                          end
+                          """u8);
+
+        ModuleInfo[] modules = new ModuleInfo[1];
+        var top = L.Top;
+        var status = EngineInspection.EnumerateModules(modules, out var written);
+
+        Assert.Equal(InspectionStatus.Success, status);
+        Assert.Equal(1, written);
+        Assert.Equal("game.exe", modules[0].Name);
+        Assert.Null(modules[0].ImageSize);
         Assert.Equal(top, L.Top);
     }
 

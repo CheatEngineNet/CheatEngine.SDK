@@ -146,7 +146,7 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "The generated registration table takes the address of the UnmanagedCallersOnly thunks emitted for LuaFunction, which needs unsafe code. "
-        + "LuaGlobal bodies do not take function addresses and therefore remain available without AllowUnsafeBlocks. The CheatEngine.SDK package sets it for consumers by default (build/CheatEngine.SDK.props); a project that consumes the analyzers without that prop sets it itself.",
+        + "LuaGlobal bodies do not take function addresses and therefore remain available without AllowUnsafeBlocks. A project that declares a LuaFunction must explicitly set <AllowUnsafeBlocks>true</AllowUnsafeBlocks>.",
         HelpLinkBase + DiagnosticIds.UnsafeBlocksRequired + ".md");
 
     /// <summary>CESDK2002. Message arguments: the member name, then the sentence fragment describing the problem.</summary>

@@ -23,6 +23,8 @@ A project reference proves that the source compiles, not that the installed pack
 |-------------------------------|--------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | `DefaultConsumer`             | Nothing, so it takes every package default | Build properties, entry point, atomic build/publish deployment folder                              |
 | `ExplicitUnsafeFalseConsumer` | `AllowUnsafeBlocks=false`                  | `AllowUnsafeBlocks`                                                                                 |
+| `LuaFunctionOptInConsumer`    | `[LuaFunction]` + `AllowUnsafeBlocks=true` | The documented explicit unsafe opt-in compiles the generated registration thunk                     |
+| `LuaFunctionWithoutUnsafeConsumer` | `[LuaFunction]`, no unsafe opt-in      | The package analyzer rejects the project with `CESDK2001`                                           |
 | `EntryPointOffConsumer`       | `CheatEngineSdkGenerateEntryPoint=false` + manual bootstrap | The author-owned entry point                                                            |
 | `IndirectConsumer`            | Only a reference to a temporary relay pkg  | Direct-only build properties, bootstrap and native bridge stay absent                              |
 | `UnsetPlatformTargetConsumer` | `PlatformTarget` empty                    | The direct package target accepts the host-selected x64 architecture                               |
@@ -65,8 +67,9 @@ dotnet test --project tests/CheatEngine.SDK.Tests
   indirect consumer receives neither the direct property nor a generated bootstrap (`EntryPointTests`,
   `DirectReferenceIsolationTests`). The second parameter remains opaque and is never treated as a record size.
 - For a direct reference, `EnableDynamicLoading` and `CheatEngineSdkGenerateEntryPoint` default to true.
-  `AllowUnsafeBlocks` remains false unless a `[LuaFunction]` consumer opts in (`BuildPropertyDefaultsTests`). An indirect
-  reference does not receive the direct package defaults.
+  `AllowUnsafeBlocks` remains false unless a `[LuaFunction]` consumer explicitly opts in; the fixture compiles the
+  opt-in consumer and observes `CESDK2001` from one that does not (`BuildPropertyDefaultsTests`). An indirect reference
+  does not receive the direct package defaults.
 - A temporary real relay package cannot propagate the defaults, generator or native bridge to its own consumer
   (`DirectReferenceIsolationTests`).
 - Direct package consumers with an unset `PlatformTarget`, `AnyCPU`, or `x64` build successfully. Every other

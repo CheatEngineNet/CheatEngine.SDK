@@ -1,3 +1,6 @@
+using System;
+using Microsoft.CodeAnalysis;
+
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 
 /// <summary>Names reserved by the generated borrowed-handle identity surface.</summary>
@@ -13,5 +16,13 @@ internal static class LuaClassGeneratedNames
     public static bool IsGeneratedType(string name)
     {
         return IsGeneratedMember(name);
+    }
+
+    /// <summary>Whether an authored ordinary method would collide with the generated <c>Handle</c> getter.</summary>
+    public static bool IsGeneratedAccessorCollision(IMethodSymbol method)
+    {
+        return method.MethodKind == MethodKind.Ordinary
+               && string.Equals(method.Name, "get_Handle", StringComparison.Ordinal)
+               && method.Parameters.Length == 0;
     }
 }

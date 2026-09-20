@@ -183,6 +183,33 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
         run.AssertCompilesClean();
     }
 
+    [Fact]
+    public void Generated_handle_accessor_collision_skips_only_the_affected_handle()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+
+                              namespace Demo;
+
+                              [LuaClass("Bad")]
+                              public readonly partial struct Bad
+                              {
+                                  private global::CheatEngine.SDK.Engine.Objects.CEObject get_Handle() => default;
+                              }
+
+                              [LuaClass("Good")]
+                              public readonly partial struct Good
+                              {
+                              }
+                              """;
+
+        var run = roslyn.Run(source);
+
+        Assert.Single(run.GeneratedSources);
+        Assert.Equal("Demo.Good.LuaClass.g.cs", run.HintNames[0]);
+        run.AssertCompilesClean();
+    }
+
     [Theory]
     [InlineData("_handle")]
     [InlineData("Handle")]

@@ -7,6 +7,8 @@ internal sealed class CapturingLogSink : IHostLogSink
 {
     private readonly List<(HostLogLevel Level, string Message, Exception? Exception)> _entries = [];
 
+    public Action<string>? OnMessage { get; set; }
+
     public IReadOnlyList<(HostLogLevel Level, string Message, Exception? Exception)> Entries
     {
         get
@@ -24,6 +26,8 @@ internal sealed class CapturingLogSink : IHostLogSink
         {
             _entries.Add((level, message, exception));
         }
+
+        OnMessage?.Invoke(message);
     }
 
     /// <summary>The error entries whose message contains <paramref name="fragment" /> (ordinal).</summary>

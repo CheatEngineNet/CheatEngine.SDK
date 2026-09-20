@@ -59,6 +59,7 @@ public static unsafe partial class PluginHost
     private static int s_admittedMainThreadWork;
     private static int s_acceptingMainThreadWork;
     private static int s_incompleteEnableCleanup;
+    private static int s_incompleteEnableCleanupActive;
     private static int s_phase;
     private static int s_lastInitRecordArgument = -1;
     private static int s_lastVersionRecordSize = -1;
@@ -255,6 +256,7 @@ public static unsafe partial class PluginHost
             s_name = null;
             Volatile.Write(ref s_descriptor, null);
             Volatile.Write(ref s_incompleteEnableCleanup, 0);
+            Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
             SetPhase(PluginHostLifecyclePhase.Uninitialized);
             Volatile.Write(ref s_lastInitRecordArgument, -1);
             Volatile.Write(ref s_lastVersionRecordSize, -1);

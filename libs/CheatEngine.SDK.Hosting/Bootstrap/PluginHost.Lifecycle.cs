@@ -215,6 +215,7 @@ public static unsafe partial class PluginHost
     private static bool RunEnable(ManagedExportedFunctions* exports, uint pluginId, PluginDescriptor descriptor)
     {
         Volatile.Write(ref s_incompleteEnableCleanup, 0);
+        Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
         if (!TryCopyExports(exports, out var copy)) return false;
         if (!TryBindLua(in copy)) return false;
         if (!TryGetOrCreatePlugin(descriptor, out var plugin)) return false;
@@ -306,6 +307,7 @@ public static unsafe partial class PluginHost
 
         Volatile.Write(ref s_context, null);
         Volatile.Write(ref s_incompleteEnableCleanup, 0);
+        Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
         if (shutdown is not null) EndMainThreadWorkAdmission();
     }
 
@@ -413,6 +415,10 @@ public static unsafe partial class PluginHost
             cleanupSucceeded = CleanupDisable();
         }
 
+        // Keep the retry claimed through detach failure and its synchronous error log. Only after the whole attempt
+        // has unwound may another host request claim the pending cleanup again.
+        Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
+
         if (cleanupSucceeded && HostLog.IsEnabled(HostLogLevel.Information))
             HostLog.Information($"Plugin {context!.PluginId} disabled.");
 
@@ -444,7 +450,8 @@ public static unsafe partial class PluginHost
 
             if (Phase is PluginHostLifecyclePhase.Disabling)
             {
-                if (Volatile.Read(ref s_incompleteEnableCleanup) == 0)
+                if (Volatile.Read(ref s_incompleteEnableCleanup) == 0
+                    || Volatile.Read(ref s_incompleteEnableCleanupActive) != 0)
                 {
                     HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
                                   "; a disable transition is already completing.");
@@ -506,6 +513,9 @@ public static unsafe partial class PluginHost
                 "DisablePlugin: retrying incomplete enable cleanup from a different thread is refused; use the captured plugin main thread.");
             return LifecycleStart.Refused;
         }
+
+        // SGate is held by the caller, so this claim closes the re-entrant window before the transition is returned.
+        Volatile.Write(ref s_incompleteEnableCleanupActive, 1);
 
         return LifecycleStart.Started;
     }

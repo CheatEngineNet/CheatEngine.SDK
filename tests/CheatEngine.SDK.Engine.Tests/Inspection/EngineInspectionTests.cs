@@ -242,12 +242,29 @@ public sealed class EngineInspectionTests
     public void Legacy_positional_host_option_is_preserved_but_rejected_by_target_resolution()
     {
         var legacy = new AddressResolutionOptions(true);
-        legacy.Deconstruct(out var useHostSymbolTable, out var shallow);
+        legacy.Deconstruct(UseHostSymbolTable: out var useHostSymbolTable, Shallow: out var shallow);
 
         Assert.True(useHostSymbolTable);
         Assert.False(shallow);
         Assert.Throws<ArgumentException>(() =>
             EngineInspection.ResolveAddress(new SymbolExpression("hostSymbol"), legacy, out _));
+    }
+
+    [Fact]
+    public void AddressResolutionOptions_preserves_init_and_with_compatibility()
+    {
+        var options = new AddressResolutionOptions { Shallow = true };
+        var updated = options with { Shallow = false };
+
+        Assert.True(options.Shallow);
+        Assert.False(updated.Shallow);
+
+#pragma warning disable CS0618
+        var legacy = new AddressResolutionOptions { UseHostSymbolTable = true };
+#pragma warning restore CS0618
+#pragma warning disable CS0618
+        Assert.True(legacy.UseHostSymbolTable);
+#pragma warning restore CS0618
     }
 
     [Fact]

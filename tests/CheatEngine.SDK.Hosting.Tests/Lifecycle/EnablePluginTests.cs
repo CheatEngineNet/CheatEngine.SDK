@@ -294,6 +294,60 @@ public sealed unsafe class EnablePluginTests
 
     [Fact]
     [Trait("Category", "NativeLua")]
+    public void A_failed_cleanup_retry_rejects_nested_disable_until_the_retry_unwinds()
+    {
+        HostingTest.RequireNativeLua();
+        var sink = HostingTest.Reset();
+        using NativeLuaState state = new();
+        using HostSimulator host = new();
+        HostingTest.UseFixture(state);
+        HostingTest.Bootstrap(host);
+        RecordingPlugin.ThrowInOnEnable = true;
+        RecordingPlugin.CreateCallbacksInOnEnable = true;
+        var releases = 0;
+        LuaCallbackRegistry.AfterReleaseForTesting = () =>
+        {
+            if (++releases == 1) throw new InvalidOperationException("deterministic failed-enable cleanup failure");
+        };
+        var nestedRequested = false;
+        var nestedResult = true;
+        var exports = FakeExports.Create();
+
+        try
+        {
+            Assert.False(host.CallEnable(&exports, 1).IsTrue);
+
+            releases = 0;
+            sink.OnMessage = message =>
+            {
+                if (!nestedRequested && message.Contains("shutdown remains incomplete", StringComparison.Ordinal))
+                {
+                    nestedRequested = true;
+                    nestedResult = host.CallDisable().IsTrue;
+                }
+            };
+            Assert.False(host.CallDisable().IsTrue);
+            Assert.True(nestedRequested);
+            Assert.False(nestedResult);
+            Assert.True(LuaRuntime.IsAttached);
+            Assert.Equal(PluginHostLifecyclePhase.Disabling, PluginHost.Phase);
+            Assert.True(sink.HasEntry(HostLogLevel.Error, "a disable transition is already completing"));
+
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
+            sink.OnMessage = null;
+            Assert.True(host.CallDisable().IsTrue);
+            Assert.False(LuaRuntime.IsAttached);
+            Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
+        }
+        finally
+        {
+            LuaCallbackRegistry.AfterReleaseForTesting = null;
+            sink.OnMessage = null;
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "NativeLua")]
     public void A_throwing_constructor_fails_the_enable_and_is_retried_on_the_next_enable()
     {
         HostingTest.RequireNativeLua();

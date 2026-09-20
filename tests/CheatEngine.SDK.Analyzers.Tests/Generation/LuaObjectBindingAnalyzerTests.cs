@@ -192,6 +192,36 @@ public sealed class LuaObjectBindingAnalyzerTests
     }
 
     [Fact]
+    public async Task Generated_handle_accessor_collision_reports_CESDK2007()
+    {
+        await AnalyzerVerifier<LuaObjectBindingAnalyzer>.VerifyAsync(
+            """
+            using CheatEngine.SDK.Annotations.Lua;
+
+            namespace CheatEngine.SDK.Engine.Objects
+            {
+                public readonly struct CEObject
+                {
+                }
+            }
+
+            namespace Demo
+            {
+                [LuaClass("Object")]
+                public readonly partial struct ObjectHandle
+                {
+                    private global::CheatEngine.SDK.Engine.Objects.CEObject {|CESDK2007:get_Handle|}() => default;
+                }
+
+                [LuaClass("Sibling")]
+                public readonly partial struct Sibling
+                {
+                }
+            }
+            """);
+    }
+
+    [Fact]
     public async Task Record_and_ref_like_borrowed_handles_report_CESDK2006()
     {
         await AnalyzerVerifier<LuaObjectBindingAnalyzer>.VerifyAsync(

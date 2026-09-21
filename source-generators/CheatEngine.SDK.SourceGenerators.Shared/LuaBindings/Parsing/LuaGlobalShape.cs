@@ -23,12 +23,13 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 ///         <c>ReadOnlySpan&lt;byte&gt;</c>, or a copy-out pair <c>Span&lt;byte&gt; destination, out int written</c>.
 ///     </para>
 ///     <para>
-///         The form follows from the results: any <see langword="out" /> result makes the method a non-throwing form,
-///         which returns either <see langword="bool" /> or <c>LuaOperationStatus</c>; no result makes it the throwing form, whose return type is
-///         <see langword="void" />
+///         A <c>LuaOperationStatus</c> return always makes the method a non-throwing Outcome form, whether or not it
+///         has <see langword="out" /> results. Otherwise, any <see langword="out" /> result makes the method a
+///         non-throwing Try form, which returns <see langword="bool" />. No result makes it the throwing form, whose
+///         return type is <see langword="void" />
 ///         or a value of that conversion contract other than <c>ReadOnlySpan&lt;byte&gt;</c> (a <see langword="bool" /> return without
 ///         results is therefore a throwing wrapper that reads a Lua boolean). A Try form without a result cannot be
-///         written: a method with no <see langword="out" /> result is always the throwing form.
+///         written.
 ///     </para>
 /// </remarks>
 [SuppressMessage(
@@ -67,10 +68,10 @@ internal static class LuaGlobalShape
             luaMarshallerContract);
 
         EquatableArray<LuaResultModel> results = new(walk.Results.ToImmutable());
-        var form = results.IsEmpty
-            ? LuaCallForm.Throwing
-            : IsLuaOperationStatus(method.ReturnType)
-                ? LuaCallForm.Outcome
+        var form = IsLuaOperationStatus(method.ReturnType)
+            ? LuaCallForm.Outcome
+            : results.IsEmpty
+                ? LuaCallForm.Throwing
                 : LuaCallForm.Try;
         issues |= InspectReturn(compilation, method, form, luaMarshallerAttribute, luaMarshallerContract,
             out var returnKind, out var returnIsNullable, out var returnMarshaller);

@@ -106,6 +106,9 @@ internal static class BindingSources
                                           [LuaGlobal("readInteger")]
                                           public static partial int ReadInt32(nuint address);
 
+                                          [LuaGlobal("beep")]
+                                          public static partial LuaOperationStatus BeepDetailed();
+
                                           [LuaGlobal("readString")]
                                           public static partial bool TryReadString(nuint address, int maxLength, Span<byte> destination, out int written);
 

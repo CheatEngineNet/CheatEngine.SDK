@@ -2,7 +2,7 @@
 
 # Recipe · Assembly
 
-**Toggle an Auto Assembler patch from C#, list the instructions at an address, and assemble a line on demand.**
+**Apply one reversible Auto Assembler patch, then inspect or assemble individual instructions through an explicit target profile.**
 
 **Level** `Advanced` · **Time** `30 min` · **Needs** `Guide 03`
 
@@ -12,320 +12,161 @@
 
 ---
 
-|                            |                                                                                                                                                 |
-|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| **You build**              | A patch you can switch on and off, a disassembly listing, an instruction size query and a line assembler                                        |
-| **You learn**              | Keeping an Auto Assembler `[DISABLE]` state alive with a registry reference, and reading Lua strings and tables into C#                         |
+|                            |                                                                                                                                                  |
+|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| **You build**              | A reversible Auto Assembler patch, a bounded disassembly listing, and a bounded one-line assembler                                               |
+| **You learn**              | The difference between a script lifecycle and profile-qualified instruction operations                                                           |
 | **You need**               | [03 · Calling Cheat Engine](../../03-calling-cheat-engine/README.md) and the toolkit tour of [08 · Running Lua](../../08-running-lua/README.md) |
-| **Cheat Engine functions** | `autoAssemble`, `assemble`, `disassemble`, `splitDisassembledString`, `getInstructionSize`, `getPreviousOpcode`, `getComment`, `setComment`     |
+| **Cheat Engine functions** | `autoAssemble`, `assemble`, `disassemble`, `splitDisassembledString`, `getInstructionSize`, and `getPreviousOpcode`                             |
 
 ## Objective
 
-Patch code in the target and undo the patch cleanly, and read the code around an address, all from C#.
+Patch code reversibly, read a short instruction listing, and assemble a line without exposing Cheat Engine's
+historical classic instruction slots or manually borrowing Lua display text.
 
 ## Why it matters
 
-An Auto Assembler script has two halves. `[ENABLE]` installs the patch, and `[DISABLE]` removes it. Cheat Engine hands
-you a table of disable information when the enable succeeds, and it needs that same table back to run `[DISABLE]`. A
-plugin that forgets the table can install a patch it can never take out. The recipe keeps the table in a registry
-reference, so the patch stays reversible.
+`autoAssemble` is a script lifecycle: its successful result contains the one disable-info table needed to execute
+`[DISABLE]`. It is not the same operation as assembling one textual instruction. For individual instructions, the SDK
+first observes an `InstructionTargetProfile` from the selected PID and CE target probes. It then validates each target
+address against that observed profile, bounds every result, and reports a factual failure status.
+
+The observation is deliberately not a target lock. Cheat Engine can change its ambient target after a PID check; each
+individual operation therefore checks the PID again before and after its Lua call. A live Cheat Engine assembler,
+target ISA, relocation backend, thread affinity, and Native AOT plugin loading are not qualified by this fixture-backed
+recipe.
 
 ## How it works
 
-### 1. Bind the simple functions
+### 1. Observe an instruction profile
 
 ```csharp
-using System.Diagnostics.CodeAnalysis;
-using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Engine.Assembly;
 
-namespace AssemblyRecipe;
-
-internal static partial class AsmCalls
+InstructionOperationStatus profileStatus = InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile target);
+if (profileStatus != InstructionOperationStatus.Success)
 {
-    [LuaGlobal("disassemble")]
-    public static partial bool TryDisassemble(nuint address, [MaybeNullWhen(false)] out string line);
-
-    [LuaGlobal("splitDisassembledString")]
-    public static partial bool TrySplit(
-        string line,
-        [MaybeNullWhen(false)] out string address,
-        [MaybeNullWhen(false)] out string bytes,
-        [MaybeNullWhen(false)] out string opcode,
-        [MaybeNullWhen(false)] out string extra);
-
-    [LuaGlobal("getInstructionSize")]
-    public static partial bool TryGetInstructionSize(nuint address, out int size);
-
-    [LuaGlobal("getPreviousOpcode")]
-    public static partial bool TryGetPreviousOpcode(nuint address, out nuint previous);
-
-    [LuaGlobal("getComment")]
-    public static partial bool TryGetComment(nuint address, [MaybeNullWhen(false)] out string comment);
-
-    [LuaGlobal("setComment")]
-    public static partial void SetComment(nuint address, string text);
+    // No selected target, unavailable CE probe, inconsistent ISA facts, or a protected Lua failure.
+    return;
 }
+
+// target.Profile is an x86/x64/ARM32/ARM64 fact with its matching address width.
+// It validates addresses; it never changes Cheat Engine's selected target or assembler configuration.
 ```
 
-`splitDisassembledString` returns four strings, so the Try form ends with four `out` results. A binding reads exactly as
-many results as you declare.
+Keep this value only for a short operation. A later selection transition, including an unseen A→B→A transition, is not
+made safe by the observation.
 
-### 2. A patch you can switch on and off
+### 2. Apply a reversible Auto Assembler patch
 
 ```csharp
-using CheatEngine.SDK.Annotations.Lua;
-using CheatEngine.SDK.Lua.Marshalling;
-using CheatEngine.SDK.Lua.References;
-using CheatEngine.SDK.Lua.Runtime;
-using CheatEngine.SDK.Lua.State;
+using CheatEngine.SDK.Engine.Assembly;
 
-namespace AssemblyRecipe;
+const string script = """
+    [ENABLE]
+    aobscanmodule(recoilWrite, game.exe, F3 0F 11 83 A0 01 00 00)
+    registersymbol(recoilWrite)
+    recoilWrite:
+      nop 8
 
-internal sealed class AutoAssemblerToggle(string script) : IDisposable
-{
-    private LuaRef? _disableInfo;
-    private bool _restorationUncertain;
+    [DISABLE]
+    recoilWrite:
+      db F3 0F 11 83 A0 01 00 00
+    unregistersymbol(recoilWrite)
+    """;
 
-    public bool IsEnabled => _disableInfo is { IsCurrent: true };
-    public bool RequiresManualRecovery => _restorationUncertain;
-
-    public bool Enable()
-    {
-        if (_restorationUncertain) return false;
-        if (IsEnabled) return true;
-
-        var L = LuaRuntime.AcquireState();
-        using LuaFrame frame = new(L);
-        if (!L.TryGetGlobal("autoAssemble"u8).IsOk) return false;
-
-        StringMarshaller.Push(L, script);
-        if (!L.TryCall(1, 2).IsOk || !L.ToBoolean(-2)) return false;
-
-        _disableInfo = L.CreateRef();
-        return true;
-    }
-
-    public bool Disable()
-    {
-        if (_restorationUncertain) return false;
-
-        var info = Volatile.Read(ref _disableInfo);
-        if (info is null) return false;
-
-        var L = LuaRuntime.AcquireState();
-        using LuaFrame frame = new(L);
-        var ok = L.TryGetGlobal("autoAssemble"u8).IsOk;
-        if (ok)
-        {
-            StringMarshaller.Push(L, script);
-            if (!L.TryPushRef(info)) return false;
-
-            var status = L.TryCall(2, 1);
-            if (!status.IsOk)
-            {
-                _restorationUncertain = true;
-                return false;
-            }
-
-            ok = L.ToBoolean(-1);
-            if (!ok)
-            {
-                _restorationUncertain = true;
-                return false;
-            }
-        }
-
-        if (!ok) return false;
-
-        if (Interlocked.CompareExchange(ref _disableInfo, null, info) == info) info.Release(L);
-        return true;
-    }
-
-    public void Dispose() => Disable();
-}
-
-internal static partial class Patches
-{
-    private const string NoRecoilScript = """
-        [ENABLE]
-        aobscanmodule(recoilWrite, game.exe, F3 0F 11 83 A0 01 00 00)
-        registersymbol(recoilWrite)
-        recoilWrite:
-          nop 8
-
-        [DISABLE]
-        recoilWrite:
-          db F3 0F 11 83 A0 01 00 00
-        unregistersymbol(recoilWrite)
-        """;
-
-    private static readonly AutoAssemblerToggle s_noRecoil = new(NoRecoilScript);
-
-    [LuaFunction("my_plugin_no_recoil")]
-    public static bool NoRecoil(bool enable) => enable ? s_noRecoil.Enable() : s_noRecoil.Disable();
-
-    // Call from OnDisable, while the Lua runtime is still attached, so the game is left as it was found.
-    public static void RestoreAll() => s_noRecoil.Dispose();
-}
+using AutoAssemblerPatch patch = AutoAssemblerPatcher.Apply(script);
+// The patch owns CE's disable-info table. Dispose attempts [DISABLE] once and never retries an uncertain result.
 ```
 
-`autoAssemble(script)` returns `true` and the disable table when `[ENABLE]` succeeds. `CreateRef` pops that table into
-the Lua registry, and `Disable` pushes it back as the second argument, which is what makes Cheat Engine run `[DISABLE]`.
-The reference is released only after `[DISABLE]` succeeds. If lookup or reference push fails before dispatch, it remains
-available for a later retry; `IsEnabled` stays true rather than claiming that a patch was removed without evidence. A
-post-dispatch Lua error or false result sets `RequiresManualRecovery`: the reference is retained as evidence, and both
-`Enable` and `Disable` refuse further mutation until an explicit recovery clears the uncertainty. The helper will not
-blindly replay a potentially partial `[DISABLE]`; `TryPushRef` also refuses a reference from an earlier enable instead
-of pushing a stale value.
-
-The script is a raw string literal, so it keeps its own indentation and needs no escaping. The bytes are an example: use
-the pattern and the original bytes of your own target.
+`AutoAssemblerPatcher` owns the returned disable-info table and validates its target incarnation before cleanup. It
+never supplies `targetSelf`, opens a process, or silently reselects a target. If `Dispose` records
+`RequiresManualRecovery`, retain that fact for operator recovery instead of replaying `[DISABLE]`.
 
 ### 3. Read code and assemble a line
 
 ```csharp
-using CheatEngine.SDK.Annotations.Lua;
+using CheatEngine.SDK.Engine.Assembly;
 using CheatEngine.SDK.Engine.Values;
-using CheatEngine.SDK.Lua.Marshalling;
-using CheatEngine.SDK.Lua.Runtime;
-using CheatEngine.SDK.Lua.State;
 
 namespace AssemblyRecipe;
 
-internal readonly record struct Instruction(Address Address, string Bytes, string Opcode, string Extra);
-
-internal static partial class Listing
+internal static class Listing
 {
-    public static List<Instruction> Read(Address start, int count)
+    internal static InstructionOperationStatus TryRead(
+        InstructionTargetProfile target,
+        Address start,
+        int count,
+        List<InstructionDisassembly> destination)
     {
-        List<Instruction> lines = new(count);
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        ArgumentNullException.ThrowIfNull(destination);
+
         var address = start;
-        for (var i = 0; i < count; i++)
+        for (var index = 0; index < count; index++)
         {
-            var target = unchecked((nuint)address.ToUInt64());
-            if (!AsmCalls.TryDisassemble(target, out var text)) break;
-            if (!AsmCalls.TrySplit(text, out _, out var bytes, out var opcode, out var extra)) break;
-            if (!AsmCalls.TryGetInstructionSize(target, out var size) || size <= 0) break;
+            var status = InstructionDisassembler.TryDisassemble(target, address, maximumUtf8Bytes: 512,
+                out var instruction, out _);
+            if (status != InstructionOperationStatus.Success) return status;
 
-            lines.Add(new Instruction(address, bytes, opcode, extra));
-            address += size;
+            status = InstructionNavigator.TryGetLength(target, address, out var length);
+            if (status != InstructionOperationStatus.Success) return status;
+
+            destination.Add(instruction);
+            address += length;
         }
 
-        return lines;
+        return InstructionOperationStatus.Success;
     }
 
-    public static bool TryAssemble(string line, Address at, out byte[] bytes)
+    internal static InstructionOperationStatus TryAssemble(
+        InstructionTargetProfile target,
+        string line,
+        Address origin,
+        Span<byte> destination,
+        out int written,
+        out int requiredLength)
     {
-        bytes = [];
-        var L = LuaRuntime.AcquireState();
-        using LuaFrame frame = new(L);
-        if (!L.TryGetGlobal("assemble"u8).IsOk) return false;
-
-        StringMarshaller.Push(L, line);
-        Address.Push(L, at);
-        if (!L.TryCall(2, 1).IsOk || !L.IsTable(-1)) return false;
-
-        var table = L.AbsoluteIndex(-1);
-        var count = L.RawSequenceCount(table);
-        var result = new byte[count];
-        for (var i = 0; i < count; i++)
-        {
-            L.RawGetSequenceItem(table, i);
-            if (!L.TryReadInteger(-1, out var value) || value is < 0 or > 255) return false;
-
-            result[i] = (byte)value;
-            L.Pop(1);
-        }
-
-        bytes = result;
-        return true;
-    }
-
-    [LuaFunction("my_plugin_disassemble")]
-    public static string Disassemble(long address, long count)
-    {
-        var lines = Read(Address.FromInt64(address), (int)Math.Clamp(count, 1, 64));
-        var formatted = new string[lines.Count];
-        for (var i = 0; i < lines.Count; i++)
-            formatted[i] = $"{lines[i].Address}  {lines[i].Bytes,-16}{lines[i].Opcode} {lines[i].Extra}".TrimEnd();
-
-        return string.Join('\n', formatted);
-    }
-
-    [LuaFunction("my_plugin_instruction_size")]
-    public static long InstructionSize(long address) =>
-        AsmCalls.TryGetInstructionSize(unchecked((nuint)address), out var size) ? size : -1;
-
-    [LuaFunction("my_plugin_assemble")]
-    public static string? AssembleHex(string line, long address) =>
-        TryAssemble(line, Address.FromInt64(address), out var bytes) ? Convert.ToHexString(bytes) : null;
-
-    [LuaFunction("my_plugin_annotate")]
-    public static bool Annotate(long address, string text)
-    {
-        var target = unchecked((nuint)address);
-        if (AsmCalls.TryGetComment(target, out var existing) && existing.Length > 0) return false;
-
-        AsmCalls.SetComment(target, text);
-        return true;
+        // CE receives origin every time: it is the explicit base for a relative operand such as "jmp rel".
+        // A short destination returns DestinationTooSmall with requiredLength and does not write a byte prefix.
+        return InstructionAssembler.TryAssemble(target, line, origin, destination, out written, out requiredLength);
     }
 }
 ```
 
-`Disassemble` walks instruction by instruction: it disassembles an address, splits the line into its four fields, asks
-for the instruction size, and steps forward by that size. `assemble` answers with a Lua table of byte values, so
-`TryAssemble` reads it as a zero based sequence and checks that every value fits in a byte.
+`InstructionDisassembler` copies and bounds the raw UTF-8 display line before it asks CE to split the line, then
+checks the collective byte length of the four raw fields before it decodes any of them. The returned
+`InstructionDisassembly` fields are managed strings, so the caller does not parse or retain Lua UI text.
+`InstructionAssembler` validates every element in CE's byte table before it copies anything into the caller's span.
+The `TargetChanged`, `InvalidProfile`, `AddressExceedsProfileWidth`, `DestinationTooSmall`, `OutputTooLong`,
+`InstructionRejected`, `GlobalUnavailable`, `LuaFailure`, and `InvalidResult` outcomes are intentionally distinct.
 
-### 4. Try it
-
-```lua
-print(my_plugin_no_recoil(true))       -- true: the patch is installed
-print(my_plugin_no_recoil(false))      -- true: [DISABLE] ran with the saved information
-print(my_plugin_disassemble(getAddress("game.exe"), 4))
-print(my_plugin_instruction_size(getAddress("game.exe")))
-print(my_plugin_assemble("jmp 0x140001000", getAddress("game.exe")))
-```
-
-```text
-true
-true
-0000000140000000  48 89 5C 24 08  mov [rsp+08],rbx
-0000000140000005  57              push rdi
-0000000140000006  48 83 EC 20     sub rsp,20
-000000014000000A  48 8B D9        mov rbx,rcx
-5
-E9FB0F0000
-```
-
-The listing and the bytes depend on your target. `my_plugin_assemble` returns `nil` when Cheat Engine cannot assemble
-the line.
+`InstructionNavigator.TryGetPrevious` is available for display tooling, but it keeps Cheat Engine's own estimated
+previous-opcode semantics. It is not a safe general-purpose backwards decoder. The historical native `Assembler`,
+`Disassembler`, `disassembleEx`, `previousOpcode`, and `nextOpcode` slots are not this API: their ABI and string-buffer
+evidence has unresolved conflicts, so the SDK does not project them.
 
 ## Good to know
 
-- **Keep the toggle for the whole enable.** Call `Patches.RestoreAll()` from `OnDisable`. That method runs while the Lua
-  runtime is still attached, so `[DISABLE]` can still reach Cheat Engine.
-- **The script text decides the target.** `autoAssemble(text, targetSelf)` can assemble into Cheat Engine itself. The
-  toggle above patches the opened process, which is what a trainer wants.
-- **`getPreviousOpcode` is a guess.** Cheat Engine documents the answer as an estimate, so use it to step backwards for
-  display and not to rewrite code.
-- **Comments are per address.** `Annotate` refuses to overwrite a comment that already exists, so a plugin never erases
-  a note that a person wrote.
-- **A binding reads only the results you declare.** `autoAssemble` returns two values, and the toolkit code above asks
-  for both because it needs the table.
+- Keep an `AutoAssemblerPatch` alive for the whole enabled period and dispose it while the Lua runtime is still attached.
+- Treat a profile as an observed validation input, not a request to configure CE. Re-observe after a meaningful target transition.
+- Select a raw UTF-8 disassembly bound suitable for your UI. A longer CE line, or collectively longer split fields,
+  is rejected before the SDK decodes it.
+- Retry assembly with a larger caller-owned buffer only after handling `DestinationTooSmall`; the initial call publishes no partial bytes.
+- `getPreviousOpcode` is an estimate. Use it for display navigation, not patch planning.
 
 ## Promise
 
-- A failed `[ENABLE]` returns `false` and leaves no reference behind.
-- `Disable` releases its registry reference only after `[DISABLE]` succeeds; lookup, reference-push, and post-dispatch
-  failures retain it for diagnosis and never run `[DISABLE]` twice.
-- A Try form never throws for an address that does not disassemble. It returns `false`.
-- The Lua stack returns to its previous height after every call.
+- Auto Assembler cleanup consumes the disable-info owner before its one disable attempt and does not replay uncertain work.
+- A failed instruction operation leaves no borrowed Lua string, Lua table, native disassembler object, or partial assembly prefix in managed output.
+- Every instruction address is checked against the target profile's explicit width, never `IntPtr.Size`.
+- Fixture tests exercise the managed Lua shapes and negative paths; they are not evidence of a live Cheat Engine qualification.
 
 ## Before you move on
 
-- [ ] `my_plugin_no_recoil(true)` followed by `my_plugin_no_recoil(false)` returns `true` twice and restores the bytes.
-- [ ] `my_plugin_disassemble(address, 4)` prints four instructions whose addresses advance by each instruction size.
-- [ ] `Patches.RestoreAll()` is called from your `OnDisable`.
+- [ ] Verify the patch's `[DISABLE]` branch against an authorized disposable target before shipping an application workflow.
+- [ ] Choose a maximum UTF-8 display-line length and a caller-owned assembly buffer for your UI.
+- [ ] Record a controlled live capture before claiming support for a particular CE host and target ISA.
 
 ---
 

@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using CheatEngine.SDK.Engine.Assembly;
+using CheatEngine.SDK.Engine.Runtime;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Lua.Callbacks;
@@ -25,7 +27,12 @@ internal static class Program
         LuaRegistrationCollisionPolicy collisionPolicy = KeepGenericPath(LuaRegistrationCollisionPolicy.RejectExisting);
         _ = typeof(LuaRegistrationSet);
         _ = typeof(LuaRegistrationLease);
-        return $"{typeof(Address).Assembly.GetName().Name}, {status}, {collisionPolicy}";
+        if (!InstructionProfile.X64.IsValid || InstructionProfile.X86.AddressWidth != PointerSize.Bit32)
+            throw new InvalidOperationException("Instruction profile probe failed.");
+
+        _ = default(InstructionDisassembly);
+        _ = default(InstructionTargetProfile);
+        return $"{typeof(Address).Assembly.GetName().Name}, {status}, {collisionPolicy}, {InstructionOperationStatus.Success}";
     }
 
     private static T KeepGenericPath<T>(T value) where T : struct => value;

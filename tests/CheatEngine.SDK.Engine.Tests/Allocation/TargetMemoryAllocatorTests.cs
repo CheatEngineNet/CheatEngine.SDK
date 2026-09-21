@@ -4,6 +4,7 @@ using CheatEngine.SDK.Annotations.Threading;
 using CheatEngine.SDK.Engine.Allocation;
 using CheatEngine.SDK.Engine.Enums;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Calls;
 
@@ -14,6 +15,77 @@ namespace CheatEngine.SDK.Engine.Tests.Allocation;
 /// </summary>
 public sealed class TargetMemoryAllocatorTests
 {
+    [Fact]
+    public void Allocate_when_owner_publication_fails_compensates_once_and_exposes_the_confirmed_cleanup()
+    {
+        AllocationOperationsFake operations = new();
+        TargetMemoryAllocator allocator = new(operations);
+        var cause = new InvalidOperationException("injected region publication failure");
+
+        var exception = Assert.Throws<EngineResourceHandoffException>(() => allocator.AllocateCore(
+            new TargetAllocationRequest(new TargetAllocationSize(4096)),
+            (_, _, _, _) => throw cause));
+
+        Assert.Same(cause, exception.InnerException);
+        Assert.Equal(TargetReleaseStatus.Released, exception.CleanupOutcome.Status);
+        Assert.Equal(1, operations.AllocateCalls);
+        Assert.Equal(1, operations.DeallocateCalls);
+        Assert.Equal(operations.AllocatedAddress, operations.LastDeallocatedAddress);
+    }
+
+    [Fact]
+    public void Allocate_when_owner_publication_and_compensation_fail_reports_an_unconfirmed_effect_without_retrying()
+    {
+        AllocationOperationsFake operations = new() { DeallocationResult = false };
+        TargetMemoryAllocator allocator = new(operations);
+
+        var exception = Assert.Throws<EngineResourceHandoffException>(() => allocator.AllocateCore(
+            new TargetAllocationRequest(new TargetAllocationSize(4096)),
+            static (_, _, _, _) => throw new InvalidOperationException("injected region publication failure")));
+
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, exception.CleanupOutcome.Status);
+        Assert.Equal(EngineFailureKind.ExpectedOperationFailure, exception.CleanupOutcome.FailureKind);
+        Assert.Equal(1, operations.AllocateCalls);
+        Assert.Equal(1, operations.DeallocateCalls);
+    }
+
+    [Fact]
+    public void Allocate_when_owner_publication_and_compensation_raise_keeps_the_primary_cause_and_marks_the_effect_unknown()
+    {
+        var cleanupFailure = new EngineLuaException("TargetMemoryDeallocate", LuaStatus.RuntimeError);
+        AllocationOperationsFake operations = new() { DeallocationException = cleanupFailure };
+        TargetMemoryAllocator allocator = new(operations);
+        var cause = new InvalidOperationException("injected region publication failure");
+
+        var exception = Assert.Throws<EngineResourceHandoffException>(() => allocator.AllocateCore(
+            new TargetAllocationRequest(new TargetAllocationSize(4096)),
+            (_, _, _, _) => throw cause));
+
+        Assert.Same(cause, exception.InnerException);
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, exception.CleanupOutcome.Status);
+        Assert.Equal(EngineFailureKind.ProtectedLuaFailure, exception.CleanupOutcome.FailureKind);
+        Assert.Equal(1, operations.DeallocateCalls);
+    }
+
+    [Fact]
+    public void Allocate_when_owner_publication_observes_a_replacement_target_refuses_compensation_without_touching_it()
+    {
+        AllocationOperationsFake operations = new();
+        TargetMemoryAllocator allocator = new(operations);
+        TargetProcessIncarnation replacement = new(4343, 2);
+
+        var exception = Assert.Throws<EngineResourceHandoffException>(() => allocator.AllocateCore(
+            new TargetAllocationRequest(new TargetAllocationSize(4096)),
+            (_, _, _, _) =>
+            {
+                operations.TargetObservation = TargetSelectionObservation.Qualified(replacement);
+                throw new InvalidOperationException("injected region publication failure");
+            }));
+
+        Assert.Equal(TargetReleaseStatus.RefusedTargetChanged, exception.CleanupOutcome.Status);
+        Assert.Equal(0, operations.DeallocateCalls);
+    }
+
     [Fact]
     public void Allocate_on_success_returns_an_owned_region_and_forwards_the_full_request()
     {
@@ -44,13 +116,26 @@ public sealed class TargetMemoryAllocatorTests
         Assert.Equal(1, operations.AllocateCalls);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void Allocate_when_the_success_shape_contains_a_null_or_inconsistent_address_throws_marshalling(bool result)
+    [Fact]
+    public void Allocate_when_CE_reports_success_without_an_address_preserves_the_unknown_effect_diagnostic()
     {
-        AllocationOperationsFake operations = new() { AllocationResult = result, AllocatedAddress = Address.Zero };
-        if (!result) operations.AllocatedAddress = new Address(0x1234);
+        AllocationOperationsFake operations = new() { AllocatedAddress = Address.Zero };
+        TargetMemoryAllocator allocator = new(operations);
+
+        var exception = Assert.Throws<EngineResourceHandoffException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, exception.CleanupOutcome.Status);
+        Assert.Equal(EngineFailureKind.MarshallingFailure, exception.CleanupOutcome.FailureKind);
+        Assert.IsType<EngineMarshallingException>(exception.InnerException);
+        Assert.Equal(1, operations.AllocateCalls);
+        Assert.Equal(0, operations.DeallocateCalls);
+    }
+
+    [Fact]
+    public void Allocate_when_CE_reports_failure_with_an_address_throws_marshalling()
+    {
+        AllocationOperationsFake operations = new() { AllocationResult = false, AllocatedAddress = new Address(0x1234) };
         TargetMemoryAllocator allocator = new(operations);
 
         var exception = Assert.Throws<EngineMarshallingException>(() =>

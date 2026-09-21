@@ -1,7 +1,9 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Targets;
+using CheatEngine.SDK.Engine.Values;
 
 namespace CheatEngine.SDK.Engine.Allocation;
 
@@ -55,9 +57,21 @@ public sealed class TargetMemoryAllocator
     /// <exception cref="EngineMarshallingException">The binding returned an invalid success/failure shape.</exception>
     /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
     /// <exception cref="EngineTargetIdentityException">The operation cannot qualify a target incarnation.</exception>
+    /// <exception cref="EngineResourceHandoffException">
+    ///     Cheat Engine accepted an allocation but an owner could not be published; <see cref="EngineResourceHandoffException.CleanupOutcome" />
+    ///     records the one target-qualified compensation attempt or an unconfirmed effect when no address was available.
+    /// </exception>
     [RequiresPluginEnabled]
     public AllocatedRegion Allocate(TargetAllocationRequest request)
     {
+        return AllocateCore(request, CreateRegion);
+    }
+
+    // The factory is internal so tests can fail publication after the effect without allowing consumers to choose a
+    // different ownership policy. Keep the target-bound tuple local until the owner has been published.
+    internal AllocatedRegion AllocateCore(TargetAllocationRequest request, AllocatedRegionFactory factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
         if (request.Size.Value <= 0)
             throw new ArgumentOutOfRangeException(nameof(request), request.Size.Value,
                 "An allocation request must have a positive size.");
@@ -68,10 +82,11 @@ public sealed class TargetMemoryAllocator
         var allocationOutcome = targetBound.AllocateBoundWithOutcome(request, out var incarnation, out var observation);
         var allocated = allocationOutcome.IsSuccess;
         var address = allocationOutcome.Address;
-        if (!observation.IsQualified)
-            throw new EngineTargetIdentityException("TargetMemoryAllocate", TargetSelection.CreateUnavailableCheck(observation));
         if (!allocated)
         {
+            if (!observation.IsQualified)
+                throw new EngineTargetIdentityException("TargetMemoryAllocate",
+                    TargetSelection.CreateUnavailableCheck(observation));
             if (!address.IsZero)
                 throw new EngineMarshallingException("TargetMemoryAllocate", EngineMarshallingDirection.Result,
                     "a null target address on failure", "a nonzero target address on failure");
@@ -80,10 +95,20 @@ public sealed class TargetMemoryAllocator
         }
 
         if (address.IsZero)
-            throw new EngineMarshallingException("TargetMemoryAllocate", EngineMarshallingDirection.Result,
-                "a nonzero target address on success", "a null target address on success");
+            ThrowUnknownSuccessfulAllocation();
 
-        return new AllocatedRegion(targetBound, address, request.Size, incarnation);
+        if (!observation.IsQualified)
+            ThrowUnqualifiedSuccessfulAllocation(observation);
+
+        try
+        {
+            return factory(targetBound, address, request.Size, incarnation);
+        }
+        catch (Exception exception)
+        {
+            var cleanupOutcome = CompensateFailedPublication(targetBound, address, request.Size, incarnation);
+            throw new EngineResourceHandoffException("TargetMemoryAllocate", cleanupOutcome, exception);
+        }
     }
 
     /// <summary>
@@ -128,6 +153,51 @@ public sealed class TargetMemoryAllocator
         return exception is EngineLuaException lua
             ? TargetMemoryOperationOutcome.FromFailureKind(exception.Kind, lua.Status)
             : TargetMemoryOperationOutcome.FromFailureKind(exception.Kind);
+    }
+
+    private static AllocatedRegion CreateRegion(ITargetBoundMemoryAllocationOperations operations, Address address,
+        TargetAllocationSize size, TargetProcessIncarnation targetIncarnation)
+    {
+        return new AllocatedRegion(operations, address, size, targetIncarnation);
+    }
+
+    private static TargetReleaseOutcome CompensateFailedPublication(ITargetBoundMemoryAllocationOperations operations,
+        Address address, TargetAllocationSize size, TargetProcessIncarnation targetIncarnation)
+    {
+        try
+        {
+            var outcome = operations.DeallocateBoundWithOutcome(targetIncarnation, address, size, out var targetCheck);
+            if (!targetCheck.IsCurrent) return TargetReleaseOutcome.Refused(targetCheck);
+
+            return outcome.IsSuccess
+                ? TargetReleaseOutcome.Released()
+                : TargetReleaseOutcome.Unconfirmed(outcome.FailureKind);
+        }
+        catch (EngineException exception)
+        {
+            return TargetReleaseOutcome.Unconfirmed(exception.Kind);
+        }
+        catch (Exception)
+        {
+            return TargetReleaseOutcome.Unconfirmed(failureKind: null);
+        }
+    }
+
+    [DoesNotReturn]
+    private static void ThrowUnknownSuccessfulAllocation()
+    {
+        var cause = new EngineMarshallingException("TargetMemoryAllocate", EngineMarshallingDirection.Result,
+            "a nonzero target address on success", "a null target address on success");
+        throw new EngineResourceHandoffException("TargetMemoryAllocate",
+            TargetReleaseOutcome.Unconfirmed(EngineFailureKind.MarshallingFailure), cause);
+    }
+
+    [DoesNotReturn]
+    private static void ThrowUnqualifiedSuccessfulAllocation(TargetSelectionObservation observation)
+    {
+        var check = TargetSelection.CreateUnavailableCheck(observation);
+        var cause = new EngineTargetIdentityException("TargetMemoryAllocate", check);
+        throw new EngineResourceHandoffException("TargetMemoryAllocate", TargetReleaseOutcome.Refused(check), cause);
     }
 
     private static void ThrowForAllocationOutcome(TargetMemoryOperationOutcome outcome)

@@ -181,6 +181,11 @@ public sealed class AllocatedRegion : IDisposable
             _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(exception.Kind);
             throw;
         }
+        catch (Exception)
+        {
+            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(failureKind: null);
+            throw;
+        }
     }
 
     private void ThrowForReleaseOutcome(TargetMemoryOperationOutcome outcome)

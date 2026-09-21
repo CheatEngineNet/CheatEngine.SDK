@@ -19,9 +19,10 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 ///         the stateful session to managed code.
 ///     </para>
 ///     <para>
-///         Both globals are resolved in one held <see cref="LuaRuntimeOperation" />. If creating or decoding the child
-///         fails after the scanner was created, the factory invokes <c>destroy()</c> on that scanner before it returns
-///         failure. A successfully created session owns the child before the parent and preserves
+///         Both globals are resolved in one held <see cref="LuaRuntimeOperation" />. If creating, decoding, or publishing
+///         either owner fails after the scanner was created, the factory invokes <c>destroy()</c> on the still-unpublished
+///         child first and then on its scanner before it returns failure. A successfully created session owns the child
+///         before the parent and preserves
 ///         <see cref="MemoryScanSession" />'s child-before-parent disposal order. A caller cannot construct an
 ///         <see cref="Owned{T}" /> for either handle from a borrowed value because that constructor remains internal to
 ///         the SDK.
@@ -37,7 +38,8 @@ public static class MemoryScanSessions
     /// <returns>
     ///     <see langword="true" /> when both documented factory calls returned valid host objects. Returns
     ///     <see langword="false" /> when either global is unavailable, either protected call fails, or a result is not
-    ///     a non-null host object. In every failure after scanner creation, the scanner is rolled back before returning.
+    ///     a non-null host object. In every failure after scanner creation, the child (if present) is rolled back before
+    ///     the scanner, including a failure while publishing either managed owner.
     /// </returns>
     /// <exception cref="InvalidOperationException">
     ///     The plugin is not enabled, the caller has no host Lua state, the host cannot push objects, or the caller is
@@ -50,8 +52,10 @@ public static class MemoryScanSessions
         return TryCreateCore(out session, CreateSession);
     }
 
-    // Tests use this seam to prove that an ownership-transfer failure rolls the child back before its parent. It is
-    // internal deliberately: callers can select neither the owner construction nor a different adoption policy.
+    // Tests use this seam to prove that an ownership-transfer failure rolls the child back before its parent. The raw
+    // handles remain available until their wrapper is constructed, so even an allocation failure during publication
+    // has one direct rollback authority. This is internal deliberately: callers can select neither the owner
+    // construction nor a different adoption policy.
     internal static bool TryCreateCore([NotNullWhen(true)] out MemoryScanSession? session,
         MemoryScanSessionAdopter adopter)
     {
@@ -63,17 +67,20 @@ public static class MemoryScanSessions
         using LuaFrame frame = new(state);
         Owned<MemScan>? scanner = null;
         Owned<FoundList>? foundList = null;
+        CEObject scannerHandle = CEObject.Null;
+        CEObject foundListHandle = CEObject.Null;
         try
         {
             if (!LuaGlobalFunctions.TryPush(state, SCreateMemScan, "createMemScan"u8) ||
                 !state.TryCall(0, 1).IsOk ||
-                !CEObject.TryRead(state, -1, out var scannerHandle))
+                !CEObject.TryRead(state, -1, out scannerHandle))
             {
                 session = null;
                 return false;
             }
 
             scanner = new Owned<MemScan>(MemScan.FromHandle(scannerHandle));
+            scannerHandle = CEObject.Null;
 
             if (!LuaGlobalFunctions.TryPush(state, SCreateFoundList, "createFoundList"u8))
             {
@@ -84,14 +91,21 @@ public static class MemoryScanSessions
             scanner.Value.Handle.Push(state);
             // An aliased child would create a second owner for the scanner.
             if (!state.TryCall(1, 1).IsOk ||
-                !CEObject.TryRead(state, -1, out var foundListHandle) ||
-                foundListHandle == scannerHandle)
+                !CEObject.TryRead(state, -1, out foundListHandle))
             {
                 session = null;
                 return false;
             }
 
+            if (foundListHandle == scanner.Value.Handle)
+            {
+                foundListHandle = CEObject.Null;
+                session = null;
+                return false;
+            }
+
             foundList = new Owned<FoundList>(FoundList.FromHandle(foundListHandle));
+            foundListHandle = CEObject.Null;
             session = adopter(scanner, foundList);
             return true;
         }
@@ -100,18 +114,19 @@ public static class MemoryScanSessions
             // Adoption transfers and empties both wrappers. Every other exit after construction must release the child
             // before the parent while the original operation is still admitted. Swallowing a protected destroy failure
             // avoids hiding the factory failure and, like Owned<T>.Dispose, never retries an unknown native state.
-            if (foundList is not null && !foundList.IsDisposed)
-            {
-                using LuaFrame rollbackFrame = new(state);
-                _ = foundList.TryDestroy(state);
-            }
-
-            if (scanner is not null && !scanner.IsDisposed)
-            {
-                using LuaFrame rollbackFrame = new(state);
-                _ = scanner.TryDestroy(state);
-            }
+            TryRollback(state, foundList, foundListHandle);
+            TryRollback(state, scanner, scannerHandle);
         }
+    }
+
+    private static void TryRollback<T>(LuaState state, Owned<T>? owner, CEObject unpublishedHandle)
+        where T : struct, ICEObject<T>
+    {
+        using LuaFrame rollbackFrame = new(state);
+        if (owner is not null && !owner.IsDisposed)
+            _ = owner.TryDestroy(state);
+        else if (!unpublishedHandle.IsNull)
+            _ = unpublishedHandle.TryDestroy(state);
     }
 
     private static MemoryScanSession CreateSession(Owned<MemScan> scanner, Owned<FoundList> foundList)

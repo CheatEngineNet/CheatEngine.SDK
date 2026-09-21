@@ -1,5 +1,6 @@
 using CheatEngine.SDK.Engine.Allocation;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Calls;
 
@@ -159,6 +160,24 @@ public sealed class AllocatedRegionTests
         region.Dispose();
 
         Assert.True(region.IsDisposed);
+        Assert.Equal(1, operations.DeallocateCalls);
+    }
+
+    [Fact]
+    public void Release_when_a_non_engine_deallocator_exception_occurs_records_an_unconfirmed_outcome_without_retrying()
+    {
+        AllocationOperationsFake operations = new()
+        {
+            DeallocationException = new InvalidOperationException("injected non-Engine deallocation failure"),
+        };
+        var region = Allocate(operations, 4096);
+
+        Assert.Throws<InvalidOperationException>(region.Release);
+
+        Assert.True(region.IsDisposed);
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, region.LastReleaseOutcome.Status);
+        Assert.Null(region.LastReleaseOutcome.FailureKind);
+        region.Dispose();
         Assert.Equal(1, operations.DeallocateCalls);
     }
 

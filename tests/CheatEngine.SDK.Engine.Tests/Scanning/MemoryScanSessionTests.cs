@@ -330,6 +330,29 @@ public sealed class MemoryScanSessionTests
     }
 
     [Fact]
+    public void Adopt_when_session_publication_fails_keeps_the_source_owners_for_child_before_parent_cleanup()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        EngineTest.Run(scope.State, "trace = {}"u8);
+        var scan = FakeHost.CreateObject(scope.State, "Object", ScanInitializer(firstScanRaises: false, waitRaises: false));
+        var foundList = FakeHost.CreateObject(scope.State, "Object", FoundListInitializer());
+        var scanOwner = new Owned<MemScan>(MemScan.FromHandle(scan));
+        var foundListOwner = new Owned<FoundList>(FoundList.FromHandle(foundList));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => MemoryScanSession.AdoptCore(scanOwner,
+            foundListOwner, static (_, _) => throw new InvalidOperationException("injected session publication failure")));
+
+        Assert.Equal("injected session publication failure", exception.Message);
+        Assert.False(scanOwner.IsDisposed);
+        Assert.False(foundListOwner.IsDisposed);
+        foundListOwner.Dispose();
+        scanOwner.Dispose();
+        Assert.Equal("list.destroy,scan.destroy", ReadTrace(scope.State));
+    }
+
+    [Fact]
     public void A_non_hexadecimal_address_text_is_a_stable_unexpected_host_result()
     {
         EngineTest.RequireNativeLua();

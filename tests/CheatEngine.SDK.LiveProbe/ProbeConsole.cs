@@ -15,6 +15,13 @@ internal static partial class ProbeConsole
         return LiveProbeState.GetStatus();
     }
 
+    /// <summary>Captures a JSON identity record for the authorized CE host, Lua, bridge, plugin, and disposable target.</summary>
+    [LuaFunction("ce77_live_probe_host_profile")]
+    public static string HostProfile()
+    {
+        return LiveProbeState.CaptureHostProfile();
+    }
+
     /// <summary>Starts the non-mutating worker-to-GUI synchronize probe and returns immediately.</summary>
     [LuaFunction("ce77_live_probe_begin_synchronize")]
     public static string BeginSynchronize()

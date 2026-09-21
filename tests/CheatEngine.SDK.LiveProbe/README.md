@@ -48,6 +48,7 @@ Run every command from CE's Lua Engine and preserve the command, UTC time, retur
 | Command | Observation | Operator action / interpretation |
 |---|---|---|
 | `ce77_live_probe_status()` | Every raw bootstrap integer, tail-canary record, gate decision and prior outcome. | The second integer is reported as `opaqueSecondInt`; never label it size/version from this output alone. |
+| `ce77_live_probe_host_profile()` | One JSON identity record for the authorized CE host, loaded Lua module, adjacent bridge binary, plugin binary, and disposable target. | Save the returned JSON with the DebugView transcript outside the repository. An observed file is not a live qualification until the artifact is reviewed against the catalogue. |
 | `ce77_live_probe_begin_synchronize()` then `ce77_live_probe_synchronize_status()` | Worker, thunk and nested-invoke managed thread IDs; return round-trip and propagated exception. | Do not block the GUI; poll until completion. Compare IDs with the enable-thread log. |
 | `ce77_live_probe_begin_lua_threads()` then `ce77_live_probe_lua_threads_status()` | GUI and worker `lua_State*` identities and a private raw-registry marker read by the worker. | Do not execute other Lua for one second. This is a narrow observation, not permission for arbitrary concurrent Lua. |
 | `ce77_live_probe_snapshot_before_reset()` | State pointer, SDK epoch and reference slot before reset. | Manually call CE's `resetLuaState()`; the harness never calls it. |

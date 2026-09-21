@@ -74,12 +74,17 @@ jobs:
           sparse-checkout: |
             eng
             documentations/engineering
+            documentations/CheatEngine.SDK/catalog
+            libs
+            source-generators
+            tests/CheatEngine.SDK.LiveProbe
             ROADMAP.md
           persist-credentials: false
 
       - name: Validate checked-in engineering graph
         run: |
           python eng/Validate-EngineeringManifest.py
+          python eng/Validate-CeSurfaceCatalog.py
           python -m unittest discover -s eng/tests -v
 
   native:

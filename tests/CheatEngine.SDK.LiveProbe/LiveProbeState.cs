@@ -170,6 +170,19 @@ internal static unsafe class LiveProbeState
         }
     }
 
+    internal static string CaptureHostProfile()
+    {
+        if (!TryRequireRuntimeAuthorization(out var denied)) return denied;
+
+        AuthorizationDecision authorization;
+        lock (Gate)
+        {
+            authorization = s_enableAuthorization;
+        }
+
+        return HostProfileObservation.Capture(authorization);
+    }
+
     internal static string BeginSynchronizeProbe()
     {
         if (!TryRequireRuntimeAuthorization(out var denied)) return denied;

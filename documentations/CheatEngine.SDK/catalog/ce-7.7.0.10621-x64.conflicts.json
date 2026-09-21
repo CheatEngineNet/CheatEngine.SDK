@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "catalog_id": "cheat-engine-extension-surface",
+  "conflicts": [
+    {
+      "id": "classic.type0-address-width",
+      "affected_capability_ids": ["classic.callback.address-list"],
+      "c_declaration": "UINT_PTR address; BOOL32 result",
+      "pascal_declaration": "historical variants use dword address and boolean result",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 40, "line_end": 52 }, { "source_id": "ce-classic-pascal-sdk", "path": "Cheat Engine/plugin/cepluginsdk.pas", "line_start": 159, "line_end": 170 }],
+      "resolution": "unresolved", "required_availability": "opaque", "blocks_live_qualification": true
+    },
+    {
+      "id": "classic.type3-return-and-width",
+      "affected_capability_ids": ["classic.callback.process-watcher"],
+      "c_declaration": "void(ULONG processId, ULONG peProcess, BOOL created)",
+      "pascal_declaration": "integer(dword processId, ptruint peProcess, BOOL created)",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 43, "line_end": 43 }, { "source_id": "ce-classic-pascal-sdk", "path": "Cheat Engine/plugin/cepluginsdk.pas", "line_start": 174, "line_end": 174 }],
+      "resolution": "unresolved", "required_availability": "opaque", "blocks_live_qualification": true
+    },
+    {
+      "id": "classic.type4-return-shape",
+      "affected_capability_ids": ["classic.callback.function-pointer-change"],
+      "c_declaration": "void(int section)", "pascal_declaration": "boolean(integer section)",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 44, "line_end": 44 }, { "source_id": "ce-classic-pascal-sdk", "path": "Cheat Engine/plugin/cepluginsdk.pas", "line_start": 177, "line_end": 177 }],
+      "resolution": "unresolved", "required_availability": "opaque", "blocks_live_qualification": true
+    },
+    {
+      "id": "classic.type6-bool-width",
+      "affected_capability_ids": ["classic.callback.disassembler-context-click"],
+      "c_declaration": "BOOL32 result", "pascal_declaration": "bool result",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 46, "line_end": 46 }, { "source_id": "ce-classic-pascal-sdk", "path": "Cheat Engine/plugin/cepluginsdk.pas", "line_start": 186, "line_end": 186 }],
+      "resolution": "unresolved", "required_availability": "opaque", "blocks_live_qualification": true
+    },
+    {
+      "id": "classic.type6-popup-bool-pointer-width",
+      "affected_capability_ids": ["classic.callback.disassembler-context-popup"],
+      "c_declaration": "BOOL32* popup", "pascal_declaration": "PBool popup (one-byte Boolean)",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 46, "line_end": 46 }, { "source_id": "ce-classic-pascal-sdk", "path": "Cheat Engine/plugin/cepluginsdk.pas", "line_start": 187, "line_end": 187 }],
+      "resolution": "unresolved", "required_availability": "opaque", "blocks_live_qualification": true
+    },
+    {
+      "id": "classic.get-address-from-pointer-return-width",
+      "affected_capability_ids": [],
+      "c_declaration": "UINT_PTR GetAddressFromPointer(UINT_PTR, int, int*)",
+      "pascal_declaration": "dword GetAddressFromPointer(ptruint, integer, pinteger)",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 177, "line_end": 177 }, { "source_id": "ce-classic-pascal-sdk", "path": "Cheat Engine/plugin/cepluginsdk.pas", "line_start": 239, "line_end": 239 }, { "source_id": "ce-plugin-exports", "path": "Cheat Engine/pluginexports.pas", "line_start": 468, "line_end": 487 }],
+      "resolution": "unresolved; no public pointer-chain primitive through this slot", "required_availability": "opaque", "blocks_live_qualification": true
+    },
+    {
+      "id": "classic.fixmem-null-host-slot",
+      "affected_capability_ids": [],
+      "c_declaration": "CEP_FIXMEM direct prefix field", "pascal_declaration": "host assigns nil in the pinned historical implementation",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 289, "line_end": 289 }, { "source_id": "ce-plugin-host", "path": "Cheat Engine/plugin.pas", "line_start": 1869, "line_end": 1874 }],
+      "resolution": "unavailable until an exact host profile demonstrates otherwise", "required_availability": "unavailable", "blocks_live_qualification": true
+    },
+    {
+      "id": "classic.get-lua-state-calling-convention",
+      "affected_capability_ids": [],
+      "c_declaration": "__fastcall GetLuaState", "pascal_declaration": "stdcall GetLuaState",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 455, "line_end": 455 }, { "source_id": "ce-classic-pascal-sdk", "path": "Cheat Engine/plugin/cepluginsdk.pas", "line_start": 437, "line_end": 437 }],
+      "resolution": "classic slot opaque; managed V1 export is catalogued independently", "required_availability": "opaque", "blocks_live_qualification": true
+    }
+  ]
+}

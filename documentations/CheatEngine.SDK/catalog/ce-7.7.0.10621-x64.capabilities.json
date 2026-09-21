@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "catalog_id": "cheat-engine-extension-surface",
+  "catalog_revision": "ce-7.7.0.10621-x64-source-index",
+  "capabilities": [
+    {
+      "id": "classic.callback.address-list",
+      "layer": "classic-callback",
+      "symbol": "PluginType0 / PLUGINTYPE0_RECORD",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 40, "line_end": 52 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "record pointer; C address UINT_PTR", "result": "BOOL32", "indirection": "plugin callback pointer" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical-source-only" },
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "borrowed-for-invocation" },
+      "failure_shape": "registration id or historical -1; not live-qualified",
+      "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"],
+      "conflict_ids": ["classic.type0-address-width"]
+    },
+    {
+      "id": "classic.callback.memory-view",
+      "layer": "classic-callback", "symbol": "PluginType1 / PLUGINTYPE1_RECORD",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 41, "line_end": 59 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "three UINT_PTR* in/out", "result": "BOOL32", "indirection": "plugin callback pointer" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical-source-only" },
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "borrowed-for-invocation" },
+      "failure_shape": "BOOL32; result semantics require live canary", "availability": "catalogued-only", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": []
+    },
+    {
+      "id": "classic.callback.debug-event",
+      "layer": "classic-callback", "symbol": "PluginType2 / PLUGINTYPE2_RECORD",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 42, "line_end": 66 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "DEBUG_EVENT*", "result": "int32", "indirection": "plugin callback pointer" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical-host-dispatch; no CE 7.7 measurement" },
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "borrowed-for-invocation" },
+      "failure_shape": "0 host continues; 1 plugin owns continuation in historical host", "availability": "catalogued-only", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": []
+    },
+    {
+      "id": "classic.callback.process-watcher",
+      "layer": "classic-callback", "symbol": "PluginType3 / PLUGINTYPE3_RECORD",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 43, "line_end": 73 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "ULONG, ULONG, BOOL32", "result": "void in C", "indirection": "plugin callback pointer" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical-source-only" },
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "borrowed-for-invocation" },
+      "failure_shape": "unresolved C/Pascal return and width divergence", "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": ["classic.type3-return-and-width"]
+    },
+    {
+      "id": "classic.callback.function-pointer-change",
+      "layer": "classic-callback", "symbol": "PluginType4 / PLUGINTYPE4_RECORD",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 44, "line_end": 80 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "int32", "result": "void in C", "indirection": "plugin callback pointer" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical-source-only" },
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "borrowed-for-invocation" },
+      "failure_shape": "unresolved C/Pascal return divergence", "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": ["classic.type4-return-shape"]
+    },
+    {
+      "id": "classic.callback.main-menu",
+      "layer": "classic-callback", "symbol": "PluginType5 / PLUGINTYPE5_RECORD",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 45, "line_end": 87 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "none", "result": "void", "indirection": "plugin callback pointer" },
+      "thread_affinity": { "value": "GUI-inferred", "evidence": "historical-host-menu-path; not a CE 7.7 guarantee" },
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "none" },
+      "failure_shape": "void", "availability": "catalogued-only", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": []
+    },
+    {
+      "id": "classic.callback.disassembler-context-click",
+      "layer": "classic-callback", "symbol": "PluginType6 / click callback",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 46, "line_end": 95 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "UINT_PTR* in/out", "result": "BOOL32", "indirection": "plugin callback pointer" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical-source-only" },
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "borrowed-for-invocation" },
+      "failure_shape": "BOOL result requires profile canary", "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": ["classic.type6-bool-width"]
+    },
+    {
+      "id": "classic.callback.disassembler-context-popup",
+      "layer": "classic-callback", "symbol": "PluginType6 / popup callback",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 46, "line_end": 95 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "UINT_PTR, char**, BOOL32*", "result": "BOOL32", "indirection": "plugin callback pointer" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical-source-only" },
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "borrowed-for-invocation; replacement-string lifetime unknown" },
+      "failure_shape": "unresolved BOOL pointer-width divergence", "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": ["classic.type6-popup-bool-pointer-width"]
+    },
+    {
+      "id": "classic.callback.disassembler-render-line",
+      "layer": "classic-callback", "symbol": "PluginType7 / PLUGINTYPE7_RECORD",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 47, "line_end": 102 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "UINT_PTR, four char** and ULONG*", "result": "void", "indirection": "plugin callback pointer" },
+      "thread_affinity": { "value": "GUI-inferred", "evidence": "historical-disassembly-render-path; no live measurement" },
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "borrowed-for-invocation; string replacement lifetime unknown" },
+      "failure_shape": "void", "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": []
+    },
+    {
+      "id": "classic.callback.auto-assembler",
+      "layer": "classic-callback", "symbol": "PluginType8 / PLUGINTYPE8_RECORD",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 48, "line_end": 109 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "char**, enum32, int32", "result": "void", "indirection": "plugin callback pointer" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical-source-only" },
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "borrowed-for-invocation; script replacement lifetime unknown" },
+      "failure_shape": "void", "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": []
+    },
+    {
+      "id": "hosting.bootstrap.managed-entrypoint",
+      "layer": "managed-hosting", "symbol": "CESDK.CESDK.CEPluginInitialize(nint, int)",
+      "declaration_refs": [{ "source_id": "sdk-entrypoint-generator", "path": "source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/Emit/BootstrapEmitter.cs", "line_start": 108, "line_end": 130 }],
+      "interop": { "calling_convention": "hostfxr managed lookup", "parameter_widths": "native pointer, opaque int32", "result": "int32", "indirection": "exported managed method" },
+      "thread_affinity": { "value": "unknown", "evidence": "SDK implementation; host behavior unqualified" },
+      "ownership": { "registration": "host init record is copied", "callback": "SDK roots plugin instance", "arguments": "init record is foreign and not retained" },
+      "failure_shape": "0 on generated bootstrap failure; opaque host argument", "availability": "mapped", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
+      "id": "hosting.lifecycle.v1-exports",
+      "layer": "managed-hosting", "symbol": "GetLuaState, LuaRegister, LuaPushClassInstance, ProcessMessages, CheckSynchronize",
+      "declaration_refs": [{ "source_id": "ce-plugin-host", "path": "Cheat Engine/plugin.pas", "line_start": 37, "line_end": 44 }, { "source_id": "sdk-host-binding", "path": "libs/CheatEngine.SDK.Hosting/Context/PluginContext.cs", "line_start": 1, "line_end": 240 }],
+      "interop": { "calling_convention": "stdcall host function pointers", "parameter_widths": "x64 pointer slots", "result": "mixed; raw state never public", "indirection": "copied host export table" },
+      "thread_affinity": { "value": "main-thread-required where SDK dispatches", "evidence": "SDK implementation; CE scheduling unqualified" },
+      "ownership": { "registration": "PluginContext copies table", "callback": "internal HostBinding only", "arguments": "host owns export targets" },
+      "failure_shape": "missing slot prevents enable", "availability": "mapped", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
+      "id": "lua.module.locate-and-bind",
+      "layer": "lua-runtime", "symbol": "LuaModuleLocator / protected Lua bridge ABI 1.1",
+      "declaration_refs": [{ "source_id": "sdk-lua-locator", "path": "libs/CheatEngine.SDK.Hosting/Bootstrap/LuaModuleLocator.cs", "line_start": 1, "line_end": 240 }, { "source_id": "bridge-contract", "path": "eng/lua-bridge/protected-operations.json", "line_start": 1, "line_end": 1 }],
+      "interop": { "calling_convention": "Lua C API and bridge C ABI", "parameter_widths": "native Lua ABI", "result": "status enum", "indirection": "already-loaded lua53-64.dll only" },
+      "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK contract" },
+      "ownership": { "registration": "CE owns Lua module and state", "callback": "SDK owns attachment only", "arguments": "bridge protects longjmp boundary" },
+      "failure_shape": "bind refusal or protected status; no second Lua load", "availability": "mapped", "qualification": "fixture-qualified", "profile_ids": ["sdk-fixture-lua53-x64"], "conflict_ids": []
+    },
+    {
+      "id": "lua.runtime.operation",
+      "layer": "lua-runtime", "symbol": "LuaRuntime.AcquireOperation / LuaRuntimeOperation",
+      "declaration_refs": [{ "source_id": "sdk-lua-runtime", "path": "libs/CheatEngine.SDK.Lua/Runtime/LuaRuntime.cs", "line_start": 1, "line_end": 260 }],
+      "interop": { "calling_convention": "managed", "parameter_widths": "n/a", "result": "ref struct admission", "indirection": "current (attach epoch, state generation) identity" },
+      "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK contract" },
+      "ownership": { "registration": "admission gate", "callback": "drained before detach", "arguments": "operation cannot escape scope" },
+      "failure_shape": "unavailable when detached, stale, or admission closed", "availability": "mapped", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
+      "id": "lua.generated.bindings",
+      "layer": "lua-generated", "symbol": "LuaFunction, LuaGlobal, LuaClass, LuaMethod, LuaProperty",
+      "declaration_refs": [{ "source_id": "sdk-lua-generator", "path": "source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/Emit/LuaFunctionFileEmitter.cs", "line_start": 1, "line_end": 110 }],
+      "interop": { "calling_convention": "Cdecl thunk guarded by bridge", "parameter_widths": "generated scalar binding shapes", "result": "Lua status / generated return", "indirection": "generated static registration" },
+      "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK generated contract" },
+      "ownership": { "registration": "explicit generated register/unregister", "callback": "SDK callback registry", "arguments": "borrowed CE objects only" },
+      "failure_shape": "some Try globals collapse absent/raise/wrong-kind", "availability": "mapped", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
+      "id": "lua.registration-set",
+      "layer": "lua-runtime", "symbol": "transactional multi-symbol Lua registration",
+      "declaration_refs": [{ "source_id": "catalogue-planning-boundary", "path": "documentations/CheatEngine.SDK/catalog/README.md", "line_start": 1, "line_end": 1 }],
+      "interop": { "calling_convention": "n/a", "parameter_widths": "n/a", "result": "n/a", "indirection": "n/a" },
+      "thread_affinity": { "value": "not-applicable", "evidence": "planned only" },
+      "ownership": { "registration": "planned", "callback": "planned", "arguments": "planned" },
+      "failure_shape": "planned; no atomic preflight/mutation/rollback surface exists", "availability": "planned", "qualification": "not-qualified", "profile_ids": [], "conflict_ids": []
+    },
+    {
+      "id": "lua.ref.private-registry",
+      "layer": "lua-runtime", "symbol": "LuaRef / LuaReferences",
+      "declaration_refs": [{ "source_id": "sdk-lua-reference", "path": "libs/CheatEngine.SDK.Lua/References/LuaRef.cs", "line_start": 1, "line_end": 240 }],
+      "interop": { "calling_convention": "Lua protected operations", "parameter_widths": "Lua registry reference int32", "result": "IDisposable value owner", "indirection": "private SDK registry table" },
+      "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK contract" },
+      "ownership": { "registration": "SDK private table", "callback": "none", "arguments": "stale dispose never touches a new registry" },
+      "failure_shape": "stale cleanup intentionally leaks host value rather than UAF", "availability": "mapped", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
+      "id": "engine.object.borrowed",
+      "layer": "lua-object", "symbol": "CEObject and generated LuaClass handle",
+      "declaration_refs": [{ "source_id": "sdk-ce-object", "path": "libs/CheatEngine.SDK.Engine/Objects/CEObject.cs", "line_start": 1, "line_end": 240 }],
+      "interop": { "calling_convention": "Lua userdata", "parameter_widths": "native pointer word", "result": "borrowed CE object", "indirection": "userdata first-word layout assumption" },
+      "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK contract; host userdata layout needs live probe" },
+      "ownership": { "registration": "host owns object", "callback": "none", "arguments": "borrowed and non-disposable" },
+      "failure_shape": "invalid userdata/object results false", "availability": "mapped", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
+      "id": "engine.object.owned",
+      "layer": "lua-object", "symbol": "Owned<T>",
+      "declaration_refs": [{ "source_id": "sdk-owned-object", "path": "libs/CheatEngine.SDK.Engine/Objects/Owned.cs", "line_start": 1, "line_end": 240 }],
+      "interop": { "calling_convention": "Lua protected destroy", "parameter_widths": "native CE object pointer", "result": "IDisposable owner", "indirection": "managed owner around borrowed CEObject" },
+      "thread_affinity": { "value": "unknown", "evidence": "generic owner does not infer type-specific affinity" },
+      "ownership": { "registration": "SDK owner", "callback": "none", "arguments": "destruction attempt consumes ownership; no finalizer" },
+      "failure_shape": "release outcome unknown after protected destroy attempt", "availability": "mapped", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
+      "id": "engine.scan.session",
+      "layer": "memory-scan", "symbol": "MemoryScanSessions / MemoryScanSession",
+      "declaration_refs": [{ "source_id": "sdk-memory-scan", "path": "libs/CheatEngine.SDK.Engine/Scanning/Values/MemoryScanSessions.cs", "line_start": 1, "line_end": 260 }],
+      "interop": { "calling_convention": "Lua globals createMemScan/createFoundList", "parameter_widths": "CE object pointers", "result": "session state machine", "indirection": "owned FoundList then MemScan" },
+      "thread_affinity": { "value": "main-CE-thread-required", "evidence": "SDK contract; CE behavior unqualified" },
+      "ownership": { "registration": "SDK session", "callback": "none", "arguments": "dispose child before parent; idempotent no finalizer" },
+      "failure_shape": "bool failure aggregates global/call/object/adoption cause", "availability": "source-only", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
+      "id": "engine.target.allocation",
+      "layer": "target-memory", "symbol": "AllocatedRegion",
+      "declaration_refs": [{ "source_id": "sdk-allocated-region", "path": "libs/CheatEngine.SDK.Engine/Allocation/AllocatedRegion.cs", "line_start": 1, "line_end": 240 }],
+      "interop": { "calling_convention": "Lua allocation/deallocation", "parameter_widths": "target address and size", "result": "IDisposable allocation lease", "indirection": "managed owner" },
+      "thread_affinity": { "value": "unknown", "evidence": "catalog has no CE 7.7 affinity proof" },
+      "ownership": { "registration": "SDK owner", "callback": "none", "arguments": "target identity is not tracked" },
+      "failure_shape": "release consumes before deallocation result; target-switch safety gap", "availability": "implemented-with-known-contract-gap", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
+      "id": "engine.auto-assembler.patch",
+      "layer": "target-memory", "symbol": "AutoAssemblerPatcher / AutoAssemblerPatch",
+      "declaration_refs": [{ "source_id": "sdk-auto-assembler", "path": "libs/CheatEngine.SDK.Engine/Assembly/AutoAssemblerPatcher.cs", "line_start": 1, "line_end": 260 }],
+      "interop": { "calling_convention": "Lua autoAssemble", "parameter_widths": "Lua values", "result": "patch owner", "indirection": "disable info held in LuaRef" },
+      "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK contract" },
+      "ownership": { "registration": "SDK patch owner", "callback": "none", "arguments": "manual recovery required after stale state or failed disable" },
+      "failure_shape": "false/raise after apply can require manual recovery; no target identity", "availability": "implemented-with-known-contract-gap", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    }
+  ],
+  "examples": [
+    { "id": "example.generated-lua-global", "capability_id": "lua.generated.bindings", "source": "tests/CheatEngine.SDK.LivePlugin/MemoryBindings.cs", "purpose": "Generated typed getOpenedProcessID binding." },
+    { "id": "example.live-probe-dispatch", "capability_id": "hosting.lifecycle.v1-exports", "source": "tests/CheatEngine.SDK.LiveProbe/LiveProbeState.cs", "purpose": "Opt-in worker-to-main-thread observation." },
+    { "id": "example.scan-lifecycle", "capability_id": "engine.scan.session", "source": "libs/CheatEngine.SDK.Engine/Scanning/Values/MemoryScanSession.cs", "purpose": "Created, scanning, results-ready and disposal lifecycle." }
+  ]
+}

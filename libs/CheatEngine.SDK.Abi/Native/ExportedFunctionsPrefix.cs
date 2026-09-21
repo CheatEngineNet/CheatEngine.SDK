@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace CheatEngine.SDK.Abi.Native;
 
 /// <summary>
-///     The direct-call prefix of the classic <c>ExportedFunctions</c> table.
+///     The physically contiguous prefix of the classic <c>ExportedFunctions</c> table.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -14,15 +14,14 @@ namespace CheatEngine.SDK.Abi.Native;
 ///     </para>
 ///     <para>
 ///         <b>
-///             Evidence status: ExactInstalledFile for fields and calling conventions; InferredUntilFixture for x64
-///             offsets.
+///             Evidence status: source-indexed C header plus compiled-transcription fixture for x64 layout.
 ///         </b>
 ///         The fields through
-///         <see cref="GetAddressFromPointer" /> are the contiguous direct-function part of
-///         <c>ExportedFunctions</c> in the <c>cepluginsdk.h</c> distributed with Cheat Engine 7.7.0.10621 x64
-///         (SHA-256 <c>9C0E31BB753D782CE20710D19828F4E97B4371C8733ABD0C5C6F7F485306FB28</c>). The installed Pascal SDK
-///         has the same prefix (SHA-256 <c>CDA5269F441120E5A3BFF2F87E289CD71DE9158CA2A619C7D0A734EB98EE6052</c>). All
-///         direct functions are declared <c>__stdcall</c> in the C header.
+///         <see cref="GetAddressFromPointer" /> are the contiguous C-header-declared part of
+///         <c>ExportedFunctions</c> in the pinned historical <c>cepluginsdk.h</c>. The MSVC x64 fixture validates the
+///         physical 144-byte transcription, not a live host. All direct functions are declared <c>__stdcall</c> in the
+///         C header. That declaration does not itself make an individual slot callable: conflicting and historically
+///         null slots remain opaque below.
 ///     </para>
 ///     <para>
 ///         The next native field is <c>ReadProcessMemory</c>, documented by the header as a pointer to a pointer that
@@ -78,8 +77,12 @@ internal unsafe struct ExportedFunctionsPrefix
     /// <summary>Removes a memory freeze by host identifier (offset 104 on x64).</summary>
     public delegate* unmanaged[Stdcall]<int, Bool32> UnfreezeMemory;
 
-    /// <summary>Applies pending freezes (offset 112 on x64).</summary>
-    public delegate* unmanaged[Stdcall]<Bool32> FixMemory;
+    /// <summary>Opaque address of the historically nullable <c>FixMem</c> slot (offset 112 on x64).</summary>
+    /// <remarks>
+    ///     The historical Pascal host initializes this slot to <c>nil</c>. A non-null C-header declaration is not
+    ///     evidence that the host exposes a callable implementation, so this SDK never invokes it.
+    /// </remarks>
+    public void* FixMemory;
 
     /// <summary>Writes the host process list to a caller-provided byte buffer (offset 120 on x64).</summary>
     public delegate* unmanaged[Stdcall]<byte*, int, Bool32> ProcessList;
@@ -87,6 +90,11 @@ internal unsafe struct ExportedFunctionsPrefix
     /// <summary>Reloads Cheat Engine settings (offset 128 on x64).</summary>
     public delegate* unmanaged[Stdcall]<Bool32> ReloadSettings;
 
-    /// <summary>Resolves a base address through a caller-provided 32-bit offset array (offset 136 on x64).</summary>
-    public delegate* unmanaged[Stdcall]<nuint, int, int*, nuint> GetAddressFromPointer;
+    /// <summary>Opaque address of the conflicting <c>GetAddressFromPointer</c> slot (offset 136 on x64).</summary>
+    /// <remarks>
+    ///     The C header returns <c>UINT_PTR</c>, whereas the historical Pascal declaration returns a 32-bit
+    ///     <c>dword</c>. The SDK therefore preserves only the physical slot and does not publish or invoke a
+    ///     pointer-chain signature until a controlled CE 7.7 host canary resolves the return width.
+    /// </remarks>
+    public void* GetAddressFromPointer;
 }

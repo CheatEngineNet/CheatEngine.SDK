@@ -4,6 +4,15 @@
   "catalog_revision": "ce-7.7.0.10621-x64-source-index",
   "capabilities": [
     {
+      "id": "classic.abi.header-fixture.x64",
+      "layer": "classic-fixture", "symbol": "ce77_native_abi_probe",
+      "declaration_refs": [{ "source_id": "sdk-classic-abi-fixture", "path": "tests/native-abi-fixture/ce77_plugin_abi_contract.h", "line_start": 1, "line_end": 1 }],
+      "interop": { "calling_convention": "MSVC x64 compilation", "parameter_widths": "x64 C++ transcription of the pinned C-header subset", "result": "104 versioned facts", "indirection": "synthetic direct slot, borrowed value cells, null slot, and excluded hookable suffix" },
+      "thread_affinity": { "value": "not-applicable", "evidence": "offline native fixture" },
+      "ownership": { "registration": "not-applicable", "callback": "no callback is invoked", "arguments": "fixture-local storage only" },
+      "failure_shape": "compile, DLL export, fact-schema, or layout mismatch", "availability": "fixture-only", "qualification": "fixture-qualified", "profile_ids": ["ce-7.7-classic-header-fixture-x64"], "conflict_ids": []
+    },
+    {
       "id": "classic.callback.address-list",
       "layer": "classic-callback",
       "symbol": "PluginType0 / PLUGINTYPE0_RECORD",

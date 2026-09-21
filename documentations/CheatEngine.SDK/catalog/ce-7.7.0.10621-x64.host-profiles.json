@@ -10,6 +10,13 @@
       "qualification": "unqualified", "public_availability": "catalogued-only"
     },
     {
+      "id": "ce-7.7-classic-header-fixture-x64",
+      "host": { "operating_system": "Windows", "architecture": "x64", "pointer_width_bits": 64 },
+      "target": { "architecture": "not-applicable", "pointer_width_bits": "not-applicable", "identity": "not-applicable" },
+      "evidence": { "kind": "compiled-transcription-fixture", "fixture": "tests/native-abi-fixture", "command": "build.ps1", "fact_schema": 2, "scope": "MSVC x64 layout, export, and synthetic-table topology only; no CE host is loaded" },
+      "qualification": "fixture-qualified", "public_availability": "fixture-only"
+    },
+    {
       "id": "sdk-fixture-lua53-x64",
       "host": { "operating_system": "Windows", "architecture": "x64", "pointer_width_bits": 64 },
       "target": { "architecture": "unknown", "pointer_width_bits": "not-observed", "identity": "not-observed" },

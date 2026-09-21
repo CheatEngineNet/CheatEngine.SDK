@@ -7,8 +7,8 @@ using CheatEngine.SDK.Abi.Tests.Support;
 namespace CheatEngine.SDK.Abi.Tests.Native;
 
 /// <summary>
-///     Structural and call-shape regressions for the direct-call prefix of <c>ExportedFunctions</c> in the installed
-///     CE 7.7.0.10621 C SDK (SHA-256 <c>9C0E31BB753D782CE20710D19828F4E97B4371C8733ABD0C5C6F7F485306FB28</c>).
+///     Structural and call-shape regressions for the physically contiguous C-header prefix of
+///     <c>ExportedFunctions</c>. Conflicting or nullable slots are verified as opaque and are never invoked.
 /// </summary>
 public sealed unsafe class ExportedFunctionsPrefixTests
 {
@@ -57,7 +57,7 @@ public sealed unsafe class ExportedFunctionsPrefixTests
             Assert.Equal(typeof(CallConvStdcall), convention);
         }
 
-        Assert.Equal(15, functionPointerCount);
+        Assert.Equal(13, functionPointerCount);
     }
 
     [Fact]
@@ -81,6 +81,26 @@ public sealed unsafe class ExportedFunctionsPrefixTests
 
         Assert.Null(typeof(ExportedFunctionsPrefix).GetField("ReadProcessMemory",
             BindingFlags.Instance | BindingFlags.Public));
+    }
+
+    [Fact]
+    public void Historically_null_and_conflicting_slots_stay_opaque()
+    {
+        var fixMemory = typeof(ExportedFunctionsPrefix).GetField(nameof(ExportedFunctionsPrefix.FixMemory),
+            BindingFlags.Instance | BindingFlags.Public)
+                        ?? throw new InvalidOperationException("The FixMemory field was not found.");
+        var getAddressFromPointer = typeof(ExportedFunctionsPrefix).GetField(
+                                        nameof(ExportedFunctionsPrefix.GetAddressFromPointer),
+                                        BindingFlags.Instance | BindingFlags.Public)
+                                    ?? throw new InvalidOperationException("The GetAddressFromPointer field was not found.");
+
+        var fixMemoryType = fixMemory.GetModifiedFieldType().UnderlyingSystemType;
+        var getAddressFromPointerType = getAddressFromPointer.GetModifiedFieldType().UnderlyingSystemType;
+
+        Assert.True(fixMemoryType.IsPointer);
+        Assert.Equal(typeof(void), fixMemoryType.GetElementType());
+        Assert.True(getAddressFromPointerType.IsPointer);
+        Assert.Equal(typeof(void), getAddressFromPointerType.GetElementType());
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]

@@ -78,6 +78,7 @@ jobs:
             libs
             source-generators
             tests/CheatEngine.SDK.LiveProbe
+            tests/native-abi-fixture
             ROADMAP.md
           persist-credentials: false
 
@@ -178,6 +179,35 @@ jobs:
           if ($actual -ne $expected) {
             throw "The checked-in bridge is stale. Expected source fingerprint '$expected', found '$actual'. Download the lua-protection-bridge artifact from this run and commit it."
           }
+
+      # This compiles the C++ transcription under MSVC x64 and validates its emitted facts. It proves the checked-in
+      # header fixture and managed layout numbers agree; it does not contact or qualify a live Cheat Engine host.
+      - name: Build and validate classic ABI fixture
+        run: ./tests/native-abi-fixture/build.ps1 -OutputDirectory artifacts/native-abi-fixture
+
+      # The fixture's fixed facts are first schema-validated in its build script. Build the managed ABI test app and
+      # pass that same file to its direct comparer so C++ x64 measurements are checked against managed sizeof, offset,
+      # and alignment measurements in one CI execution. The executable is used deliberately: native MTP currently
+      # discovers this xUnit v3 app reliably through its generated host, while the SDK command only sees its module.
+      - name: Setup .NET for classic ABI fact comparison
+        uses: ./.github/actions/setup-dotnet
+        with:
+          restore: tests/CheatEngine.SDK.Abi.Tests/CheatEngine.SDK.Abi.Tests.csproj
+
+      - name: Compare native fixture facts with managed ABI measurements
+        env:
+          CE77_NATIVE_ABI_FACTS_PATH: ${{ github.workspace }}/artifacts/native-abi-fixture/ce77-native-abi-facts.txt
+        run: |
+          dotnet build tests/CheatEngine.SDK.Abi.Tests/CheatEngine.SDK.Abi.Tests.csproj -c Debug --no-restore --disable-build-servers
+          & ./artifacts/bin/CheatEngine.SDK.Abi.Tests/debug/CheatEngine.SDK.Abi.Tests.exe --fail-skips on
+
+      - name: Upload classic ABI fixture facts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: classic-abi-fixture-facts
+          path: artifacts/native-abi-fixture/ce77-native-abi-facts.txt
+          if-no-files-found: error
+          retention-days: 14
 
   build:
     name: Build

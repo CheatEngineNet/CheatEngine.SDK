@@ -13,13 +13,12 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         no public API accepts it.
 ///     </para>
 ///     <para>
-///         <b>Evidence status: ExactInstalledFile for fields; InferredUntilFixture for x64 offsets.</b> This is the AMD64
-///         branch of
-///         <c>REGISTERMODIFICATIONINFO</c> in the <c>cepluginsdk.h</c> distributed with Cheat Engine 7.7.0.10621 x64
-///         (SHA-256 <c>9C0E31BB753D782CE20710D19828F4E97B4371C8733ABD0C5C6F7F485306FB28</c>). The installed Pascal SDK
-///         contains the matching <c>TRegisterModificationBP64</c> field sequence (SHA-256
-///         <c>CDA5269F441120E5A3BFF2F87E289CD71DE9158CA2A619C7D0A734EB98EE6052</c>). Both use 4-byte Windows
-///         <c>BOOL</c> fields and pointer-sized x64 register values.
+///         <b>Evidence status: source-indexed C header plus compiled-transcription fixture for x64 layout.</b> This is
+///         the AMD64 branch of <c>REGISTERMODIFICATIONINFO</c> in the pinned historical
+///         <c>cepluginsdk.h</c>. The MSVC x64 fixture validates its physical 264-byte layout; that fixture does not
+///         establish that a live CE host ever accepts or applies a register-change request. The historical Pascal SDK
+///         contains the matching <c>TRegisterModificationBP64</c> field sequence and uses 4-byte Windows <c>BOOL</c>
+///         fields with pointer-sized x64 register values.
 ///     </para>
 ///     <para>
 ///         Every <c>Change*</c> field selects whether the paired <c>New*</c> value is applied. The record is supplied

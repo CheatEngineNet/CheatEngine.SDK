@@ -9,10 +9,9 @@ namespace CheatEngine.SDK.Abi.Native;
 /// <remarks>
 ///     <para><b>Layout (64-bit): 16 bytes.</b> <see cref="Name" /> 0, <see cref="Callback" /> 8.</para>
 ///     <para>
-///         <b>Evidence.</b> Record layout: the type-0 init structure of <c>cepluginsdk.h</c> and the matching record of
-///         <c>cepluginsdk.pas</c> (CE 7.7.0.10621) agree on two pointer-sized fields in this order - <i>verified</i>.
-///         Callback shape (one record pointer in, 4-byte boolean out, <c>stdcall</c>): both files agree -
-///         <i>verified</i>.
+///         <b>Evidence.</b> The type-0 init structure's two pointer-sized fields are source-indexed and its x64 layout
+///         is validated by the compiled C-header transcription. The C callback declaration is compiled only as part of
+///         that transcription; it does not qualify a live callback boundary.
 ///     </para>
 ///     <para>
 ///         <b>Not mapped: the selection record the callback receives.</b> The header declares its address field
@@ -35,11 +34,12 @@ public unsafe struct AddressListPluginInit
     /// </remarks>
     public byte* Name;
 
-    /// <summary>
-    ///     Invoked when the user picks the menu entry (offset 8). Argument: the selection record (layout disputed,
-    ///     see the type remarks). Result: true when the callback changed the record and the host should apply the
-    ///     change to the table (stated by the official C sample plugin).
-    /// </summary>
-    /// <remarks>Must stay valid until the function is unregistered. Must not let an exception escape.</remarks>
-    public delegate* unmanaged[Stdcall]<void*, Bool32> Callback;
+    /// <summary>Opaque address of the address-list callback (offset 8).</summary>
+    /// <remarks>
+    ///     The C declaration suggests a <c>stdcall</c> callback taking a selected-record pointer and returning a
+    ///     four-byte <c>BOOL</c>. The historical Pascal declaration disagrees about the selected-record address width.
+    ///     Keeping this slot untyped preserves the record layout while preventing an unsupported callback invocation.
+    ///     Do not assign or invoke it until a CE 7.7 host canary qualifies the record and callback together.
+    /// </remarks>
+    public void* Callback;
 }

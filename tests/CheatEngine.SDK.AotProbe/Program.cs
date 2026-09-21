@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.Engine.Assembly;
 using CheatEngine.SDK.Engine.Runtime;
+using CheatEngine.SDK.Engine.AddressList;
+using CheatEngine.SDK.Engine.Inspection;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Lua.Callbacks;
@@ -32,6 +34,10 @@ internal static class Program
 
         _ = default(InstructionDisassembly);
         _ = default(InstructionTargetProfile);
+        _ = typeof(AddressListMutations);
+        _ = typeof(MemoryRecordMutationOutcome);
+        _ = typeof(SymbolRegistrationLease);
+        _ = typeof(SymbolRegistrationReleaseOutcome);
         return $"{typeof(Address).Assembly.GetName().Name}, {status}, {collisionPolicy}, {InstructionOperationStatus.Success}";
     }
 

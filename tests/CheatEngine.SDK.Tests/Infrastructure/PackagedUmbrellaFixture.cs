@@ -300,7 +300,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
     private async Task InitializeDefaultConsumerAsync(string tempRoot, string feedDirectory, string packagesDirectory)
     {
         var consumer = ThrowawayConsumer.Create(tempRoot, "DefaultConsumer", PackageVersion, feedDirectory,
-            includeLegacyAobConsumer: true, includeTargetBoundAllocationConsumer: true);
+            includeLegacyAobConsumer: true, includeTargetBoundAllocationConsumer: true,
+            includeRecordAndSymbolContract: true);
         await RestoreAndBuildAsync(consumer, packagesDirectory).ConfigureAwait(false);
         LegacyAobConsumerBuildSucceeded = File.Exists(Path.Combine(consumer.Directory, "LegacyAobConsumer.cs"));
         DefaultProperties = await consumer.GetPropertiesAsync(BuildTimeout, "AllowUnsafeBlocks", "EnableDynamicLoading",

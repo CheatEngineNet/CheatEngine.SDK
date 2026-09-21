@@ -117,4 +117,167 @@ public sealed class SymbolRegistryTests
         Assert.NotEqual(upper, differentCase);
         Assert.Equal("Player.Health", upper.ToString());
     }
+
+    [Fact]
+    public void Owned_registration_lease_never_unregisters_a_newer_coordinated_registration()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, """
+                          registrations = 0
+                          removals = 0
+                          registerSymbol = function(name, address, doNotSave) registrations = registrations + 1 end
+                          unregisterSymbol = function(name) removals = removals + 1 end
+                          """u8);
+        SymbolName name = new("Player.Health");
+
+        var first = SymbolRegistry.TryRegisterOwned(name, 0x140001000UL);
+        var second = SymbolRegistry.TryRegisterOwned(name, 0x140002000UL);
+
+        Assert.True(first.HasLease);
+        Assert.True(second.HasLease);
+        Assert.Equal(SymbolRegistrationReleaseKind.Superseded, first.Lease!.Release().Kind);
+        Assert.Equal(SymbolRegistrationReleaseKind.AlreadyReleased, first.Lease.Release().Kind);
+        Assert.Equal(SymbolRegistrationReleaseKind.Released, second.Lease!.Release().Kind);
+        Assert.Equal(SymbolRegistrationReleaseKind.AlreadyReleased, second.Lease.Release().Kind);
+        EngineTest.Run(L, "assert(registrations == 2 and removals == 1)"u8);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void Symbol_mutations_that_raise_after_starting_supersede_tracked_leases()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, """
+                          registerFailures = 0
+                          unregisterFailures = 0
+                          registerSymbol = function(name, address, doNotSave)
+                            if address == 0x140002000 then
+                              registerFailures = registerFailures + 1
+                              error('raised after registering')
+                            end
+                          end
+                          unregisterSymbol = function(name)
+                            unregisterFailures = unregisterFailures + 1
+                            error('raised after unregistering')
+                          end
+                          """u8);
+        SymbolName name = new("Player.Health");
+
+        var first = SymbolRegistry.TryRegisterOwned(name, 0x140001000UL);
+        var failedOwned = SymbolRegistry.TryRegisterOwned(name, 0x140002000UL);
+
+        Assert.True(first.HasLease);
+        Assert.False(failedOwned.HasLease);
+        Assert.Equal(LuaOperationStatusKind.LuaFailure, failedOwned.Status.Kind);
+        Assert.Equal(SymbolRegistrationReleaseKind.Superseded, first.Lease!.Release().Kind);
+
+        var second = SymbolRegistry.TryRegisterOwned(name, 0x140001000UL);
+        var failedDirectRegistration = SymbolRegistry.Register(name, 0x140002000UL);
+
+        Assert.True(second.HasLease);
+        Assert.Equal(LuaOperationStatusKind.LuaFailure, failedDirectRegistration.Kind);
+        Assert.Equal(SymbolRegistrationReleaseKind.Superseded, second.Lease!.Release().Kind);
+
+        var third = SymbolRegistry.TryRegisterOwned(name, 0x140001000UL);
+        var failedDirectUnregistration = SymbolRegistry.Unregister(name);
+
+        Assert.True(third.HasLease);
+        Assert.Equal(LuaOperationStatusKind.LuaFailure, failedDirectUnregistration.Kind);
+        Assert.Equal(SymbolRegistrationReleaseKind.Superseded, third.Lease!.Release().Kind);
+        EngineTest.Run(L, "assert(registerFailures == 2 and unregisterFailures == 1)"u8);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void Owned_registration_becomes_stale_without_unregistering_after_runtime_detaches()
+    {
+        EngineTest.RequireNativeLua();
+        SymbolRegistrationLease lease;
+        using (NativeLuaState state = new())
+        using (HostScope scope = new(state))
+        {
+            var L = scope.State;
+            EngineTest.Run(L, """
+                              registerSymbol = function(name, address, doNotSave) end
+                              unregisterSymbol = function(name) error('must not run after detach') end
+                              """u8);
+            var acquired = SymbolRegistry.TryRegisterOwned(new SymbolName("Player.Health"), 0x140001000UL);
+            Assert.True(acquired.HasLease);
+            lease = acquired.Lease!;
+        }
+
+        var release = lease.Release();
+
+        Assert.Equal(SymbolRegistrationReleaseKind.StaleRuntime, release.Kind);
+        Assert.True(lease.IsTerminal);
+    }
+
+    [Fact]
+    public void Owned_registration_reports_failed_acquisition_without_creating_a_lease()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+
+        var outcome = SymbolRegistry.TryRegisterOwned(new SymbolName("Player.Health"), 0x140001000UL);
+
+        Assert.False(outcome.HasLease);
+        Assert.Null(outcome.Lease);
+        Assert.Equal(LuaOperationStatusKind.GlobalUnavailable, outcome.Status.Kind);
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void Owned_registration_cleanup_can_retry_unavailability_and_dispose_only_once()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, "registerSymbol = function(name, address, doNotSave) end"u8);
+
+        var retryable = SymbolRegistry.TryRegisterOwned(new SymbolName("Player.Health"), 0x140001000UL,
+            new SymbolRegistrationOptions(DoNotSave: true));
+
+        Assert.True(retryable.HasLease);
+        Assert.True(retryable.Lease!.Options.DoNotSave);
+        var unavailable = retryable.Lease.Release();
+        Assert.Equal(SymbolRegistrationReleaseKind.CleanupUnavailable, unavailable.Kind);
+        Assert.False(unavailable.IsTerminal);
+        Assert.False(retryable.Lease.IsTerminal);
+
+        EngineTest.Run(L, "unregisterSymbol = function(name) end"u8);
+        var released = retryable.Lease.Release();
+        Assert.Equal(SymbolRegistrationReleaseKind.Released, released.Kind);
+        Assert.True(released.IsTerminal);
+        retryable.Lease.Dispose();
+        Assert.Equal(SymbolRegistrationReleaseKind.AlreadyReleased, retryable.Lease.Release().Kind);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void Owned_registration_cleanup_after_a_lua_failure_is_indeterminate_and_terminal()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+
+        EngineTest.Run(L, "registerSymbol = function(name, address, doNotSave) end; unregisterSymbol = function(name) error('cleanup started then failed') end"u8);
+        var failed = SymbolRegistry.TryRegisterOwned(new SymbolName("Player.Mana"), 0x140002000UL);
+        var indeterminate = failed.Lease!.Release();
+
+        Assert.Equal(SymbolRegistrationReleaseKind.CleanupIndeterminate, indeterminate.Kind);
+        Assert.True(indeterminate.IsTerminal);
+        Assert.False(indeterminate.Status.IsSuccess);
+        Assert.True(failed.Lease.IsTerminal);
+        Assert.Equal(SymbolRegistrationReleaseKind.AlreadyReleased, failed.Lease.Release().Kind);
+        Assert.Equal(0, L.Top);
+    }
 }

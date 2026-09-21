@@ -28,7 +28,7 @@ Cheat Engine. This library encodes each rule once, in a type.
 | `CheatEngine.SDK.Engine.Memory`       | `TargetMemory`, `HostMemory`, `HostAddress`     | Separate target/CE-host scalar, bounded span, target-width pointer, string and byte-table access       |
 | `CheatEngine.SDK.Engine.Inspection`   | `EngineInspection`                              | Copied modules, sections, symbols, address resolution and memory-region snapshots                     |
 | `CheatEngine.SDK.Engine.Allocation`   | `TargetMemoryAllocator`, `AllocatedRegion`      | Explicit ownership for target allocation, via a reviewed binding seam                                 |
-| `CheatEngine.SDK.Engine.Assembly`     | `AutoAssemblerPatcher`, `AutoAssemblerPatch`    | Low-level, single-disable ownership for Auto Assembler `disableInfo`; Client availability remains live-gated |
+| `CheatEngine.SDK.Engine.Assembly`     | `AutoAssemblerPatcher`, `AutoAssemblerPatch`, `InstructionProfiles`, `InstructionAssembler`, `InstructionDisassembler`, `InstructionNavigator` | Auto Assembler owns a single `disableInfo`; separately, bounded profile-qualified Lua instruction operations return copied values and structured outcomes |
 | `CheatEngine.SDK.Engine.Scanning`     | `AobScanner`, `StringList`, `MemoryScanSession` | AOB result ownership and conservative MemScan/FoundList state transitions                             |
 | `CheatEngine.SDK.Engine.AddressLists` | `AddressList`, `MemoryRecord`                   | Borrowed Cheat-Engine GUI handles and strongly typed record identifiers                               |
 | `CheatEngine.SDK.Engine.Errors`       | `EngineException` hierarchy, `EngineResourceHandoffException` | Stable distinction between expected CE, unavailable global, Lua, binding and marshalling failures; post-effect ownership publication reports its one cleanup attempt |
@@ -47,6 +47,7 @@ host has the same contract.
 | `Objects` / `Scanning.Aob` | `StringList`, `StringLists`, `AobScanner`                                     | `StringLists.TryCreate` and a successful `AobScanner.TryScan` out value yield `Owned<StringList>` only after a host object is returned. A list borrowed from CE must never be wrapped or destroyed by plugin code.          |
 | `Scanning.Values`          | `MemScan`, `FoundList`, `MemoryScanSessions`, `MemoryScanSession`, scan requests and states | The factory creates and owns the scanner/child pair, retains rollback authority through publication, and the session serializes documented state transitions and releases the child before the parent. It is explicitly main-thread-only; the generic `Owned<T>` wrapper is not. |
 | `AddressLists`             | `AddressListAccess`, `AddressList`, `MemoryRecord`, `MemoryRecordId`          | The current GUI list and records are borrowed CE-owned handles. The source catalogue does not by itself prove a runtime-enforceable GUI-thread guard, so this API does not declare one yet.                                |
+| `Assembly`                 | `InstructionTargetProfile`, `InstructionAssembler`, `InstructionDisassembler`, `InstructionNavigator`, `InstructionDisassembly`, `InstructionOperationStatus` | `InstructionProfiles` observes PID/probe/PID under one Lua admission. Each instruction call validates target width and rechecks that PID before and after CE's ambient operation; its result is copied and bounded, but that coherence check is not a target lock or a live-host qualification. |
 | `Errors`                   | `EngineException` and stable subclasses                                       | Separates expected operation failure, global absence, Lua failure, binding violation and marshalling violation instead of exposing a raw Lua stack error as the public Engine contract.                                    |
 
 The per-capability provenance, minimum CE version, architecture, thread, ownership and return semantics belong to the
@@ -126,6 +127,19 @@ malformed, inaccessible and no-target facts remain explicit observations instead
 opens nor selects a process. It can only compare observations: no inspected CE primitive makes an observation atomic
 with a following ambient-target Lua effect, so an external selection transition in that interval, including an unseen
 A→B→A sequence, remains unqualified.
+
+`InstructionProfiles.TryObserveCurrent` has a narrower purpose than process qualification: it reads CE's selected PID,
+the documented target ISA probes, and the PID again to construct an `InstructionTargetProfile`. It refuses
+contradictory or unknown ISA facts instead of using the managed host width. `InstructionAssembler` always sends its
+explicit `Address` to CE as the relative-operand origin, validates the complete returned byte table, and copies no
+prefix on a malformed result, short destination, or observed target change. `InstructionDisassembler` bounds and copies
+the raw UTF-8 display line before resolving the split helper, bounds all four raw split fields before decoding them,
+then returns managed strings; consumers never need to parse that UI text. `InstructionNavigator.TryGetPrevious` retains
+CE's documented estimate semantics. These mappings use protected Lua globals only. The historical classic `Assembler`,
+`Disassembler`, `disassembleEx`, `previousOpcode`,
+and `nextOpcode` slots remain unprojected because their reviewed ABI and output-capacity evidence is conflicting or
+insufficient. Fixture tests verify these managed contracts; no test in this repository qualifies a live CE target,
+target architecture, selection lock, relocation backend, or plugin Native AOT loading.
 
 `TargetMemoryAllocator` uses `LuaTargetMemoryAllocationOperations` by default and retains
 `ITargetMemoryAllocationOperations` as the direct compatibility seam. The production binding preserves CE's optional

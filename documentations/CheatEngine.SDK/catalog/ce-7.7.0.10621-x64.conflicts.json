@@ -60,6 +60,30 @@
       "c_declaration": "__fastcall GetLuaState", "pascal_declaration": "stdcall GetLuaState",
       "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 455, "line_end": 455 }, { "source_id": "ce-classic-pascal-sdk", "path": "Cheat Engine/plugin/cepluginsdk.pas", "line_start": 437, "line_end": 437 }],
       "resolution": "classic slot opaque; managed V1 export is catalogued independently", "required_availability": "opaque", "blocks_live_qualification": true
+    },
+    {
+      "id": "classic.instruction-disassembler-nul-capacity",
+      "affected_capability_ids": ["classic.instruction.disassembler"],
+      "c_declaration": "BOOL Disassembler(UINT_PTR address, char* output, int maxsize)",
+      "pascal_declaration": "ce_disassembler compares length(s) to maxsize then calls StrCopy(output, pchar(s))",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 170, "line_end": 170 }, { "source_id": "ce-plugin-exports", "path": "Cheat Engine/pluginexports.pas", "line_start": 793, "line_end": 807 }],
+      "resolution": "unresolved; preserve the classic slot as opaque until a reviewed host profile proves the output capacity including NUL semantics", "required_availability": "opaque", "blocks_live_qualification": true
+    },
+    {
+      "id": "classic.instruction-navigation-return-width",
+      "affected_capability_ids": ["classic.instruction.navigation"],
+      "c_declaration": "DWORD previousOpcode(UINT_PTR address); DWORD nextOpcode(UINT_PTR address)",
+      "pascal_declaration": "ptrUint ce_previousOpcode(ptrUint address); ptrUint ce_nextOpcode(ptrUint address)",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 185, "line_end": 186 }, { "source_id": "ce-plugin-exports", "path": "Cheat Engine/pluginexports.pas", "line_start": 833, "line_end": 841 }],
+      "resolution": "unresolved; preserve both classic navigation slots as opaque and use the separately bounded Lua mapping only", "required_availability": "opaque", "blocks_live_qualification": true
+    },
+    {
+      "id": "classic.instruction-disassemble-ex-indirection",
+      "affected_capability_ids": ["classic.instruction.disassemble-ex"],
+      "c_declaration": "BOOL disassembleEx(UINT_PTR address, char* output, int maxsize)",
+      "pascal_declaration": "ce_disassemble(address: pptrUint; output: pchar; maxsize: integer): BOOL",
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 188, "line_end": 188 }, { "source_id": "ce-plugin-exports", "path": "Cheat Engine/pluginexports.pas", "line_start": 810, "line_end": 829 }],
+      "resolution": "unresolved; preserve the classic slot as opaque because C passes a value while Pascal dereferences an address and copies NUL-terminated output", "required_availability": "opaque", "blocks_live_qualification": true
     }
   ]
 }

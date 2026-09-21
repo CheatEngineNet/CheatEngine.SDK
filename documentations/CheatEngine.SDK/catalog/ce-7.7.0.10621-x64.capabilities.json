@@ -257,12 +257,85 @@
       "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK contract" },
       "ownership": { "registration": "SDK patch owner", "callback": "none", "arguments": "captures a qualified incarnation and never reselects a target; manual recovery is required after refusal, stale state, or failed disable" },
       "failure_shape": "observed target mismatch refuses disable before autoAssemble; false/raise remains unconfirmed, and an external switch between observation and ambient Lua effect remains unqualified", "availability": "implemented-with-known-contract-gap", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
+      "id": "engine.instruction.profile",
+      "layer": "target-memory", "symbol": "InstructionProfiles / InstructionTargetProfile / InstructionProfile",
+      "declaration_refs": [{ "source_id": "sdk-instruction-profile", "path": "libs/CheatEngine.SDK.Engine/Assembly/InstructionProfiles.cs", "line_start": 1, "line_end": 153 }, { "source_id": "ce-lua-handler", "path": "Cheat Engine/LuaHandler.pas", "line_start": 8165, "line_end": 8183 }],
+      "interop": { "calling_convention": "protected CE Lua globals", "parameter_widths": "positive int32 PID plus explicit target ISA probes", "result": "copied target PID and 32/64-bit ISA profile", "indirection": "ambient CE target selection; PID/probe/PID coherence check, no selection lock" },
+      "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK protected-operation contract; CE host scheduling remains unqualified" },
+      "ownership": { "registration": "none", "callback": "none", "arguments": "copied scalar facts only; no process is opened, selected, or retained" },
+      "failure_shape": "no target, unavailable or protected Lua probe, malformed scalar, contradictory ISA facts, or observed PID transition", "availability": "implemented-with-known-contract-gap", "qualification": "fixture-qualified", "profile_ids": ["sdk-fixture-lua53-x64"], "conflict_ids": []
+    },
+    {
+      "id": "engine.instruction.assemble",
+      "layer": "target-memory", "symbol": "InstructionAssembler.TryAssemble",
+      "declaration_refs": [{ "source_id": "sdk-instruction-assembler", "path": "libs/CheatEngine.SDK.Engine/Assembly/InstructionAssembler.cs", "line_start": 1, "line_end": 132 }, { "source_id": "ce-lua-handler", "path": "Cheat Engine/LuaHandler.pas", "line_start": 8165, "line_end": 8183 }],
+      "interop": { "calling_convention": "protected CE Lua assemble", "parameter_widths": "profile-validated target address, UTF-8 instruction text, caller Span<byte>", "result": "complete copied byte table and exact required length", "indirection": "ambient CE target selection; explicit address is the relative-operand origin" },
+      "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK protected-operation contract; no live CE affinity measurement" },
+      "ownership": { "registration": "none", "callback": "none", "arguments": "caller owns destination; Lua table and UTF-8 text are not retained" },
+      "failure_shape": "profile or address-width refusal, PID change, instruction rejection, short destination with no prefix, unavailable global, protected Lua failure, or malformed table", "availability": "implemented-with-known-contract-gap", "qualification": "fixture-qualified", "profile_ids": ["sdk-fixture-lua53-x64"], "conflict_ids": []
+    },
+    {
+      "id": "engine.instruction.disassemble",
+      "layer": "target-memory", "symbol": "InstructionDisassembler.TryDisassemble / InstructionDisassembly",
+      "declaration_refs": [{ "source_id": "sdk-instruction-disassembler", "path": "libs/CheatEngine.SDK.Engine/Assembly/InstructionDisassembler.cs", "line_start": 1, "line_end": 142 }, { "source_id": "ce-lua-handler", "path": "Cheat Engine/LuaHandler.pas", "line_start": 8165, "line_end": 8183 }],
+      "interop": { "calling_convention": "protected CE Lua disassemble then splitDisassembledString", "parameter_widths": "profile-validated target address and caller raw UTF-8 bound", "result": "four copied managed text fields", "indirection": "raw Lua UTF-8 is bounded and copied before resolving the split global; raw split fields are collectively bounded before decoding" },
+      "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK protected-operation contract; no live CE affinity measurement" },
+      "ownership": { "registration": "none", "callback": "none", "arguments": "returned strings own copied managed text; no Lua display buffer or disassembler object escapes" },
+      "failure_shape": "profile or PID refusal, raw/output bound, unavailable global, protected Lua failure, or malformed display/split result", "availability": "implemented-with-known-contract-gap", "qualification": "fixture-qualified", "profile_ids": ["sdk-fixture-lua53-x64"], "conflict_ids": []
+    },
+    {
+      "id": "engine.instruction.navigate",
+      "layer": "target-memory", "symbol": "InstructionNavigator.TryGetLength / TryGetPrevious",
+      "declaration_refs": [{ "source_id": "sdk-instruction-navigator", "path": "libs/CheatEngine.SDK.Engine/Assembly/InstructionNavigator.cs", "line_start": 1, "line_end": 110 }, { "source_id": "ce-lua-handler", "path": "Cheat Engine/LuaHandler.pas", "line_start": 8165, "line_end": 8183 }],
+      "interop": { "calling_convention": "protected CE Lua getInstructionSize/getPreviousOpcode", "parameter_widths": "profile-validated target address and strict Lua number result", "result": "positive int32 length or profile-valid previous Address", "indirection": "ambient CE target selection; previous opcode is CE's estimate" },
+      "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK protected-operation contract; no live CE affinity measurement" },
+      "ownership": { "registration": "none", "callback": "none", "arguments": "copied scalar results only" },
+      "failure_shape": "profile or PID refusal, unavailable global, protected Lua failure, nonnumeric/nonpositive length, or overwide returned address", "availability": "implemented-with-known-contract-gap", "qualification": "fixture-qualified", "profile_ids": ["sdk-fixture-lua53-x64"], "conflict_ids": []
+    },
+    {
+      "id": "classic.instruction.assembler",
+      "layer": "classic-abi", "symbol": "Assembler / CEP_ASSEMBLER",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 169, "line_end": 169 }, { "source_id": "ce-plugin-exports", "path": "Cheat Engine/pluginexports.pas", "line_start": 769, "line_end": 790 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "UINT_PTR address, char*, BYTE*, int32 capacity, int32* length", "result": "BOOL32 in C declaration", "indirection": "historical direct function-pointer slot" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical source only; no host-slot or callability probe" },
+      "ownership": { "registration": "host export table owns slot", "callback": "none", "arguments": "caller-owned instruction, byte buffer, and returned-length storage; no managed projection" },
+      "failure_shape": "historical BOOL and last-error behavior only; host slot and full contract unqualified", "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": []
+    },
+    {
+      "id": "classic.instruction.disassembler",
+      "layer": "classic-abi", "symbol": "Disassembler / CEP_DISASSEMBLER",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 170, "line_end": 170 }, { "source_id": "ce-plugin-exports", "path": "Cheat Engine/pluginexports.pas", "line_start": 793, "line_end": 807 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "UINT_PTR address, char* output, int32 maxsize", "result": "BOOL32 in C declaration", "indirection": "historical direct function-pointer slot" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical source only; no host-slot or callability probe" },
+      "ownership": { "registration": "host export table owns slot", "callback": "none", "arguments": "caller-owned output buffer; Pascal copies a NUL-terminated string; no managed projection" },
+      "failure_shape": "unresolved output capacity/NUL contract", "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": ["classic.instruction-disassembler-nul-capacity"]
+    },
+    {
+      "id": "classic.instruction.navigation",
+      "layer": "classic-abi", "symbol": "previousOpcode / nextOpcode",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 185, "line_end": 186 }, { "source_id": "ce-plugin-exports", "path": "Cheat Engine/pluginexports.pas", "line_start": 833, "line_end": 841 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "UINT_PTR address", "result": "DWORD in C declaration versus ptrUint in Pascal", "indirection": "historical direct function-pointer slots" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical source only; no host-slot or callability probe" },
+      "ownership": { "registration": "host export table owns slots", "callback": "none", "arguments": "scalar address/result only; no managed projection" },
+      "failure_shape": "unresolved 32/64-bit result width; historical next operation also invokes disassembly", "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": ["classic.instruction-navigation-return-width"]
+    },
+    {
+      "id": "classic.instruction.disassemble-ex",
+      "layer": "classic-abi", "symbol": "disassembleEx / CEP_DISASSEMBLEEX",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 188, "line_end": 188 }, { "source_id": "ce-plugin-exports", "path": "Cheat Engine/pluginexports.pas", "line_start": 810, "line_end": 829 }],
+      "interop": { "calling_convention": "stdcall", "parameter_widths": "C UINT_PTR value versus Pascal pptrUint address indirection; char* output and int32 maxsize", "result": "BOOL32", "indirection": "historical direct function-pointer slot" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical source only; no host-slot or callability probe" },
+      "ownership": { "registration": "host export table owns slot", "callback": "none", "arguments": "unresolved input pointer and output buffer contract; no managed projection" },
+      "failure_shape": "unresolved address indirection and output capacity/NUL contract", "availability": "opaque", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": ["classic.instruction-disassemble-ex-indirection"]
     }
   ],
   "examples": [
     { "id": "example.generated-lua-global", "capability_id": "lua.generated.bindings", "source": "tests/CheatEngine.SDK.LivePlugin/MemoryBindings.cs", "purpose": "Generated typed getOpenedProcessID binding." },
     { "id": "example.live-probe-dispatch", "capability_id": "hosting.lifecycle.v1-exports", "source": "tests/CheatEngine.SDK.LiveProbe/LiveProbeState.cs", "purpose": "Opt-in worker-to-main-thread observation." },
     { "id": "example.scan-lifecycle", "capability_id": "engine.scan.session", "source": "libs/CheatEngine.SDK.Engine/Scanning/Values/MemoryScanSession.cs", "purpose": "Created, scanning, results-ready and disposal lifecycle." },
-    { "id": "example.aob-outcome", "capability_id": "engine.scan.aob", "source": "exemples/05-aob-scans/README.md", "purpose": "Copies a structured AOB result while its sole owner remains alive." }
+    { "id": "example.aob-outcome", "capability_id": "engine.scan.aob", "source": "exemples/05-aob-scans/README.md", "purpose": "Copies a structured AOB result while its sole owner remains alive." },
+    { "id": "example.instruction-profile", "capability_id": "engine.instruction.assemble", "source": "exemples/recipes/assembly/README.md", "purpose": "Profile-qualified bounded assembly and disassembly recipe." }
   ]
 }

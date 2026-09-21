@@ -25,7 +25,7 @@ Cheat Engine. This library encodes each rule once, in a type.
 | `CheatEngine.SDK.Engine.Values`       | `IndexBase`, `LuaSequence`                      | Zero-based indices over Cheat Engine objects and Lua sequences                                        |
 | `CheatEngine.SDK.Engine.Enums`        | Enums, `CEEnumNames`, `EnumMarshaller<TEnum>`   | Numeric constants, their Cheat Engine names, and Lua integer marshalling                              |
 | `CheatEngine.SDK.Engine.Runtime`      | `RuntimeInfo`, `RuntimeCapabilities`            | Explicit runtime observations and evidence metadata; never inferred host facts                        |
-| `CheatEngine.SDK.Engine.Memory`       | `TargetMemory`, `HostMemory`, `HostAddress`     | Separate target/CE-host scalar, span, pointer, string and byte-table access                           |
+| `CheatEngine.SDK.Engine.Memory`       | `TargetMemory`, `HostMemory`, `HostAddress`     | Separate target/CE-host scalar, bounded span, target-width pointer, string and byte-table access       |
 | `CheatEngine.SDK.Engine.Inspection`   | `EngineInspection`                              | Copied modules, sections, symbols, address resolution and memory-region snapshots                     |
 | `CheatEngine.SDK.Engine.Allocation`   | `TargetMemoryAllocator`, `AllocatedRegion`      | Explicit ownership for target allocation, via a reviewed binding seam                                 |
 | `CheatEngine.SDK.Engine.Assembly`     | `AutoAssemblerPatcher`, `AutoAssemblerPatch`    | Low-level, single-disable ownership for Auto Assembler `disableInfo`; Client availability remains live-gated |
@@ -41,7 +41,7 @@ host has the same contract.
 | Namespace                  | Public surface                                                                | Boundary and result contract                                                                                                                                                                                               |
 |----------------------------|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Runtime`                  | `RuntimeInfo`, `RuntimeCapabilities`, and `RuntimeCapabilityContract`         | An immutable snapshot of explicitly observed version, architecture, pointer-width and availability facts. Unknown remains unknown; an available global does not fill an unobserved ownership, thread or return field.      |
-| `Memory`                   | `TargetMemory`, `HostMemory`, `Address`, `HostAddress`, `MemoryAccessFailure` | Keeps attached-target addresses distinct from CE-host addresses. Scalar, span and string calls report expected CE/binding/Lua/result failures through `Try*` results; they do not claim a universal GUI-thread rule.       |
+| `Memory`                   | `TargetMemory`, `HostMemory`, `Address`, `HostAddress`, `PointerSize`, `MemoryAccessFailure` | Keeps attached-target addresses distinct from CE-host addresses. Target-width pointer, scalar, bounded-span, and string calls report expected CE/binding/Lua/result failures through `Try*` results; they do not claim a universal GUI-thread rule.       |
 | `Inspection`               | `EngineInspection` and module, section, symbol and region value types         | Returns copied managed snapshots. `NotFound` is used only where the CE 7.7 Lua contract documents `nil`; malformed data and Lua failures remain distinct status values.                                                    |
 | `Allocation`               | `TargetMemoryAllocator`, `AllocatedRegion`                                    | Models one target allocation as an explicit, single-use owner. It does not infer a GUI-thread requirement from an unspecific CE global, and reports a failed post-effect owner handoff with its one compensation outcome. |
 | `Objects` / `Scanning.Aob` | `StringList`, `StringLists`, `AobScanner`                                     | `StringLists.TryCreate` and a successful `AobScanner.TryScan` out value yield `Owned<StringList>` only after a host object is returned. A list borrowed from CE must never be wrapped or destroyed by plugin code.          |
@@ -104,9 +104,15 @@ available, unavailable or unknown with the evidence fields that are actually kno
 
 `TargetMemory` accepts only target `Address` values; `HostMemory` accepts only `HostAddress`. Neither type converts
 implicitly to the other. Both expose signed and unsigned 8/16/32/64-bit scalars, pointers, `float`/`double`, ordered
-`Span<byte>`/`ReadOnlySpan<byte>` buffers, and UTF-8 or UTF-16 string forms. Their `Try*` methods restore the Lua stack
-and classify `GlobalUnavailable`, protected `LuaError`, expected read/write failure, destination capacity, and malformed
-result through `MemoryAccessFailure`; a detached plugin still throws as a lifecycle violation.
+`Span<byte>`/`ReadOnlySpan<byte>` buffers, and UTF-8 or UTF-16 string forms. The target-qualified pointer overloads take
+the caller's observed `PointerSize`, not `IntPtr.Size`: unknown width and a 64-bit value that cannot fit an x86 target
+are structured failures. That observation does not make CE's ambient target selection atomic. Detailed byte overloads
+report a verified partial prefix or CE-reported partial write count; legacy read overloads remain all-or-nothing. UTF-8
+short-buffer calls leave the caller buffer unchanged and return its required byte capacity. No returned buffer borrows
+Lua storage. Their `Try*` methods restore the Lua stack and classify `GlobalUnavailable`, protected `LuaError`, expected
+read/write failure, destination capacity, target-width, and malformed-result failures through `MemoryAccessFailure`; a
+detached plugin still throws as a lifecycle violation. These are fixture contracts, not a claim that live CE transfer,
+target architecture, or affinity has been measured.
 
 `EngineInspection` copies cold snapshots of modules, sections, symbols and memory regions into caller buffers. It does
 not publish a partial collection when the destination is too small or a later Lua table entry is malformed. Its

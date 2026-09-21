@@ -339,6 +339,14 @@ print(my_plugin_entity("game.exe+2A5000"))
 - **`MemoryScalars` needs an enabled plugin.** It reaches Cheat Engine through the runtime that attaches on enable.
 - **Wrong width, wrong value.** `readInteger` reads four bytes. Bind `readQword` for pointers on a 64-bit target and
   `readSmallInteger` for 16-bit fields.
+- **Target width is a target fact.** For the typed surface, prefer `TargetMemory.TryReadPointer` and
+  `TryWritePointer` overloads that receive an observed `PointerSize`. They refuse an unknown width and an x86-overwide
+  value; they do not infer width from the x64 Cheat Engine host. The observation still is not an atomic target lock.
+- **Buffers are caller-owned and bounded.** On `PartialRead`, the detailed `TryReadBytes` overload copies a contiguous
+  prefix into the caller-owned destination and reports its byte count. The legacy overload leaves its destination
+  unchanged unless all bytes arrived. Detailed writes expose
+  CE's reported count, and UTF-8 reads report required capacity without retaining Lua-owned text. These contracts are
+  Lua-fixture-tested, not a live CE throughput or architecture measurement.
 - **Allocation, protection and hashes** (`allocateMemory`, `fullAccess`, `md5memory`) are Cheat Engine functions too.
   See the [recipes](../recipes/README.md).
 

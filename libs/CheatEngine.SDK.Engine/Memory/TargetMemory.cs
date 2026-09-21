@@ -1,5 +1,6 @@
 using System;
 using CheatEngine.SDK.Annotations.Lifetime;
+using CheatEngine.SDK.Engine.Runtime;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.References;
 
@@ -171,6 +172,38 @@ public static class TargetMemory
         return true;
     }
 
+    /// <summary>Reads a pointer and verifies that it fits the explicitly observed target pointer width.</summary>
+    /// <param name="address">The target address of the pointer value.</param>
+    /// <param name="pointerSize">The observed target pointer width; <see cref="PointerSize.Unknown" /> is refused.</param>
+    /// <param name="value">The pointer address, or zero when this method returns <see langword="false" />.</param>
+    /// <param name="failure">The factual CE or target-width failure.</param>
+    /// <returns><see langword="true" /> when CE returned a pointer that fits <paramref name="pointerSize" />.</returns>
+    /// <remarks>
+    ///     This overload qualifies an ambient CE <c>readPointer</c> result with a target fact supplied by the caller.
+    ///     It deliberately never uses <see cref="IntPtr.Size" />: the x64 plugin host can inspect an x86 target.
+    /// </remarks>
+    public static bool TryReadPointer(Address address, PointerSize pointerSize, out Address value,
+        out MemoryAccessFailure failure)
+    {
+        if (!pointerSize.IsKnown)
+        {
+            value = default;
+            failure = MemoryAccessFailure.PointerWidthUnknown;
+            return false;
+        }
+
+        if (!TryReadPointer(address, out value, out failure)) return false;
+
+        if (pointerSize == PointerSize.Bit32 && value.Value > uint.MaxValue)
+        {
+            value = default;
+            failure = MemoryAccessFailure.PointerValueExceedsTargetWidth;
+            return false;
+        }
+
+        return true;
+    }
+
     /// <summary>Reads a single-precision floating-point value from the target.</summary>
     public static bool TryReadSingle(Address address, out float value, out MemoryAccessFailure failure)
     {
@@ -241,11 +274,43 @@ public static class TargetMemory
         return MemoryLua.TryWriteInteger(SWriteQword, "writeQword"u8, address.ToInt64(), value, out failure);
     }
 
-    /// <summary>Writes a target-aware pointer value to the target.</summary>
+    /// <summary>Writes a target-aware pointer value to the target without independently qualifying its target width.</summary>
+    /// <remarks>
+    ///     Retained for compatibility. Call the overload that accepts an observed <see cref="PointerSize" /> whenever
+    ///     a 32-bit target could be selected: CE's legacy x86 pointer primitive truncates a value wider than 32 bits.
+    /// </remarks>
     public static bool TryWritePointer(Address address, Address value, out MemoryAccessFailure failure)
     {
         return MemoryLua.TryWriteInteger(SWritePointer, "writePointer"u8, address.ToInt64(), value.ToInt64(),
             out failure);
+    }
+
+    /// <summary>Writes a pointer after verifying that it fits the explicitly observed target pointer width.</summary>
+    /// <param name="address">The target address of the pointer value.</param>
+    /// <param name="value">The pointer value to write.</param>
+    /// <param name="pointerSize">The observed target pointer width; <see cref="PointerSize.Unknown" /> is refused.</param>
+    /// <param name="failure">The factual CE or target-width failure.</param>
+    /// <returns><see langword="true" /> when <paramref name="value" /> fits <paramref name="pointerSize" /> and CE reports success.</returns>
+    /// <remarks>
+    ///     The observation is supplied by the caller and cannot make CE's ambient target selection atomic with this
+    ///     write. It does prevent this SDK call from silently narrowing a 64-bit value through CE's x86 primitive.
+    /// </remarks>
+    public static bool TryWritePointer(Address address, Address value, PointerSize pointerSize,
+        out MemoryAccessFailure failure)
+    {
+        if (!pointerSize.IsKnown)
+        {
+            failure = MemoryAccessFailure.PointerWidthUnknown;
+            return false;
+        }
+
+        if (pointerSize == PointerSize.Bit32 && value.Value > uint.MaxValue)
+        {
+            failure = MemoryAccessFailure.PointerValueExceedsTargetWidth;
+            return false;
+        }
+
+        return TryWritePointer(address, value, out failure);
     }
 
     /// <summary>Writes a single-precision floating-point value to the target.</summary>
@@ -266,21 +331,65 @@ public static class TargetMemory
         return MemoryLua.TryReadBytes(SReadBytes, "readBytes"u8, address.ToInt64(), destination, out failure);
     }
 
+    /// <summary>
+    ///     Reads exactly <paramref name="destination" />.Length bytes into caller-owned storage and reports the number
+    ///     copied.
+    /// </summary>
+    /// <param name="address">The target address to read.</param>
+    /// <param name="destination">The caller-owned storage. This overload can copy a validated contiguous prefix before it observes an incomplete or malformed table.</param>
+    /// <param name="written">The verified number copied, including a confirmed contiguous prefix on <see cref="MemoryAccessFailure.PartialRead" />.</param>
+    /// <param name="failure">The factual CE or buffer-contract failure.</param>
+    /// <returns><see langword="true" /> only after all requested bytes have been copied.</returns>
+    public static bool TryReadBytes(Address address, Span<byte> destination, out int written,
+        out MemoryAccessFailure failure)
+    {
+        return MemoryLua.TryReadBytes(SReadBytes, "readBytes"u8, address.ToInt64(), destination, out written,
+            out failure);
+    }
+
     /// <summary>Writes the caller-owned byte sequence as one ordered Lua byte table.</summary>
     public static bool TryWriteBytes(Address address, ReadOnlySpan<byte> value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteBytes(SWriteBytes, "writeBytes"u8, address.ToInt64(), value, out failure);
+        return TryWriteBytes(address, value, out _, out failure);
+    }
+
+    /// <summary>Writes a caller-owned byte sequence and reports the exact byte count returned by Cheat Engine.</summary>
+    /// <param name="address">The target address to write.</param>
+    /// <param name="value">The caller-owned bytes in source order.</param>
+    /// <param name="written">The CE-reported count, including a confirmed partial count on <see cref="MemoryAccessFailure.WriteFailed" />.</param>
+    /// <param name="failure">The factual CE or result-contract failure.</param>
+    /// <returns><see langword="true" /> only when CE reports the complete requested count.</returns>
+    public static bool TryWriteBytes(Address address, ReadOnlySpan<byte> value, out int written,
+        out MemoryAccessFailure failure)
+    {
+        return MemoryLua.TryWriteBytes(SWriteBytes, "writeBytes"u8, address.ToInt64(), value, out written,
+            out failure);
     }
 
     /// <summary>Reads a UTF-8 Lua string into caller-owned storage without retaining a Lua-owned span.</summary>
     public static bool TryReadUtf8(Address address, int maximumLength, Span<byte> destination, bool wideCharacter,
         out int written, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryReadUtf8(SReadString, "readString"u8, address.ToInt64(), maximumLength, wideCharacter,
-            destination, out written, out failure);
+        return TryReadUtf8(address, maximumLength, destination, wideCharacter, out written, out _, out failure);
     }
 
-    /// <summary>Reads a UTF-8 Lua string into a managed string; use <see cref="TryReadUtf8" /> on allocation-sensitive paths.</summary>
+    /// <summary>Reads UTF-8 text into caller-owned storage and reports the exact capacity required by the returned text.</summary>
+    /// <param name="address">The target address to read.</param>
+    /// <param name="maximumLength">The maximum character count passed to CE's documented string primitive.</param>
+    /// <param name="destination">The caller-owned UTF-8 storage; it is unchanged when it is too small.</param>
+    /// <param name="wideCharacter">Whether CE should read a wide-character string.</param>
+    /// <param name="written">The copied byte count, which is zero on failure.</param>
+    /// <param name="requiredLength">The returned UTF-8 byte count when CE supplied a string, including a short destination.</param>
+    /// <param name="failure">The factual CE or capacity failure.</param>
+    /// <returns><see langword="true" /> only after the complete UTF-8 value has been copied.</returns>
+    public static bool TryReadUtf8(Address address, int maximumLength, Span<byte> destination, bool wideCharacter,
+        out int written, out int requiredLength, out MemoryAccessFailure failure)
+    {
+        return MemoryLua.TryReadUtf8(SReadString, "readString"u8, address.ToInt64(), maximumLength, wideCharacter,
+            destination, out written, out requiredLength, out failure);
+    }
+
+    /// <summary>Reads a UTF-8 Lua string into a managed string; use the byte-span overload on allocation-sensitive paths.</summary>
     public static bool TryReadString(Address address, int maximumLength, bool wideCharacter, out string? value,
         out MemoryAccessFailure failure)
     {

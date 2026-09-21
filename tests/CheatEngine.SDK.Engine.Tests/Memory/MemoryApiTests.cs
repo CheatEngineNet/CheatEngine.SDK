@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using CheatEngine.SDK.Engine.Memory;
+using CheatEngine.SDK.Engine.Runtime;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
@@ -10,17 +11,19 @@ namespace CheatEngine.SDK.Engine.Tests.Memory;
 [Trait("Category", "NativeLua")]
 public sealed class MemoryApiTests
 {
+    [SuppressMessage("Meziantou.Analyzer", "MA0051",
+        Justification = "The CE-shaped fixture is kept in one raw Lua source for its full primitive contract.")]
     private static ReadOnlySpan<byte> TargetStandIn => """
                                                        local target = {
                                                          byte = {[16] = 255},
                                                          word = {[17] = 65534},
-                                                         dword = {[18] = 4294967294},
+                                                         dword = {[18] = 4294967294, [27] = "12"},
                                                          qword = {[19] = -2},
-                                                         pointer = {[20] = -16},
+                                                         pointer = {[20] = -16, [23] = 0xFEDCBA98, [24] = 0x123456789ABCDEF, [25] = 4294967296},
                                                          single = {[21] = 1.5},
-                                                         double = {[22] = 3.25},
-                                                         bytes = {[32] = {3, 1, 4, 1}},
-                                                         text = {[48] = "target-text"},
+                                                         double = {[22] = 3.25, [28] = "3.25"},
+                                                         bytes = {[32] = {3, 1, 4, 1}, [37] = {3, 1}, [42] = {3, "1"}},
+                                                         text = {[48] = "target-text", [51] = "\195\169"},
                                                        }
                                                        local function signed(v, width)
                                                          local top = 2 ^ (width - 1)
@@ -47,8 +50,8 @@ public sealed class MemoryApiTests
                                                          local source = target.bytes[a]
                                                          if source == nil then return nil end
                                                          local result = {}
-                                                         for i = 1, count do
-                                                           if source[i] == nil then return nil end
+                                                         local limit = math.min(count, #source)
+                                                         for i = 1, limit do
                                                            result[i] = source[i]
                                                          end
                                                          return asTable and result or table.unpack(result)
@@ -57,17 +60,25 @@ public sealed class MemoryApiTests
                                                        function writeSmallInteger(a, v) target.word[a] = v % 65536; return true end
                                                        function writeInteger(a, v) target.dword[a] = v % 4294967296; return a ~= 57005 end
                                                        function writeQword(a, v) target.qword[a] = v; return true end
-                                                       function writePointer(a, v) target.pointer[a] = v; return true end
+                                                       function writePointer(a, v)
+                                                         if a == 26 then error("qualified overflow must not invoke CE") end
+                                                         target.pointer[a] = v
+                                                         return true
+                                                       end
                                                        function writeFloat(a, v) target.single[a] = v; return true end
                                                        function writeDouble(a, v) target.double[a] = v; return true end
                                                        function writeString(a, v, _) target.text[a] = v; return true end
                                                        function writeBytes(a, values)
+                                                         if a == 38 then return -1 end
+                                                         if a == 39 then return #values + 1 end
+                                                         if a == 40 then return "4" end
+                                                         local completed = #values
+                                                         if a == 34 then completed = #values - 1 end
+                                                         if a == 35 then completed = 0 end
                                                          local copy = {}
-                                                         for i = 1, #values do copy[i] = values[i] end
+                                                         for i = 1, completed do copy[i] = values[i] end
                                                          target.bytes[a] = copy
-                                                         if a == 34 then return #values - 1 end
-                                                         if a == 35 then return 0 end
-                                                         return #values
+                                                         return completed
                                                        end
                                                        """u8;
 
@@ -79,7 +90,7 @@ public sealed class MemoryApiTests
                                                        pointer = {[68] = -32},
                                                        single = {[69] = 2.5},
                                                        double = {[70] = 6.5},
-                                                       bytes = {[64] = {255}, [80] = {9, 8, 7}},
+                                                       bytes = {[64] = {255}, [80] = {9, 8, 7}, [84] = {9}},
                                                        text = {[96] = "host-text"},
                                                      }
                                                      local function signed(v, width)
@@ -91,8 +102,8 @@ public sealed class MemoryApiTests
                                                        local source = host.bytes[a]
                                                        if source == nil then return nil end
                                                        local result = {}
-                                                       for i = 1, count do
-                                                         if source[i] == nil then return nil end
+                                                       local limit = math.min(count, #source)
+                                                       for i = 1, limit do
                                                          result[i] = source[i]
                                                        end
                                                        return asTable and result or table.unpack(result)
@@ -208,6 +219,103 @@ public sealed class MemoryApiTests
     }
 
     [Fact]
+    public void Target_pointer_width_qualification_uses_the_observed_target_not_the_host_and_refuses_x86_overflow()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        EngineTest.Run(scope.State, TargetStandIn);
+
+        Assert.True(TargetMemory.TryReadPointer(23UL, PointerSize.Bit32, out var x86Pointer, out var failure));
+        Assert.Equal(0xFEDCBA98UL, x86Pointer.Value);
+        Assert.True(TargetMemory.TryReadPointer(24UL, PointerSize.Bit64, out var x64Pointer, out failure));
+        Assert.Equal(0x123456789ABCDEFUL, x64Pointer.Value);
+        Assert.False(TargetMemory.TryReadPointer(25UL, PointerSize.Bit32, out var overflowPointer, out failure));
+        Assert.Equal(MemoryAccessFailure.PointerValueExceedsTargetWidth, failure);
+        Assert.Equal(0UL, overflowPointer.Value);
+        Assert.False(TargetMemory.TryReadPointer(23UL, PointerSize.Unknown, out var unknownWidthPointer, out failure));
+        Assert.Equal(MemoryAccessFailure.PointerWidthUnknown, failure);
+        Assert.Equal(0UL, unknownWidthPointer.Value);
+
+        Assert.True(TargetMemory.TryWritePointer(23UL, 0x1234UL, PointerSize.Bit32, out failure));
+        Assert.True(TargetMemory.TryReadPointer(23UL, PointerSize.Bit32, out x86Pointer, out failure));
+        Assert.Equal(0x1234UL, x86Pointer.Value);
+        Assert.True(TargetMemory.TryWritePointer(24UL, 0x123456789ABCDEFUL, PointerSize.Bit64, out failure));
+        Assert.True(TargetMemory.TryReadPointer(24UL, PointerSize.Bit64, out x64Pointer, out failure));
+        Assert.Equal(0x123456789ABCDEFUL, x64Pointer.Value);
+        Assert.False(TargetMemory.TryWritePointer(26UL, 0x1_0000_0000UL, PointerSize.Bit32, out failure));
+        Assert.Equal(MemoryAccessFailure.PointerValueExceedsTargetWidth, failure);
+        Assert.False(TargetMemory.TryWritePointer(23UL, 0x1234UL, PointerSize.Unknown, out failure));
+        Assert.Equal(MemoryAccessFailure.PointerWidthUnknown, failure);
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void Detailed_target_buffer_reads_preserve_a_partial_prefix_and_required_utf8_capacity_without_lua_owned_storage()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        EngineTest.Run(scope.State, TargetStandIn);
+
+        Span<byte> detailedDestination = stackalloc byte[4];
+        detailedDestination.Fill(0xA5);
+        Assert.False(TargetMemory.TryReadBytes(37UL, detailedDestination, out var copied, out var failure));
+        Assert.Equal(MemoryAccessFailure.PartialRead, failure);
+        Assert.Equal(2, copied);
+        Assert.True(detailedDestination.SequenceEqual(new byte[] { 3, 1, 0xA5, 0xA5 }));
+
+        Span<byte> malformedDestination = stackalloc byte[2];
+        malformedDestination.Fill(0xA5);
+        Assert.False(TargetMemory.TryReadBytes(42UL, malformedDestination, out copied, out failure));
+        Assert.Equal(MemoryAccessFailure.InvalidResult, failure);
+        Assert.Equal(1, copied);
+        Assert.True(malformedDestination.SequenceEqual(new byte[] { 3, 0xA5 }));
+
+        Span<byte> legacyDestination = stackalloc byte[4];
+        legacyDestination.Fill(0xA5);
+        Assert.False(TargetMemory.TryReadBytes(37UL, legacyDestination, out failure));
+        Assert.Equal(MemoryAccessFailure.ReadFailed, failure);
+        Assert.True(legacyDestination.SequenceEqual(new byte[] { 0xA5, 0xA5, 0xA5, 0xA5 }));
+
+        Span<byte> tooSmall = stackalloc byte[1];
+        tooSmall[0] = 0xA5;
+        Assert.False(TargetMemory.TryReadUtf8(51UL, 100, tooSmall, wideCharacter: false, out var written,
+            out var requiredLength, out failure));
+        Assert.Equal(MemoryAccessFailure.DestinationTooSmall, failure);
+        Assert.Equal(0, written);
+        Assert.Equal(2, requiredLength);
+        Assert.Equal(0xA5, tooSmall[0]);
+
+        Span<byte> exact = stackalloc byte[2];
+        Assert.True(TargetMemory.TryReadUtf8(51UL, 100, exact, wideCharacter: false, out written,
+            out requiredLength, out failure));
+        Assert.Equal(MemoryAccessFailure.None, failure);
+        Assert.Equal(2, written);
+        Assert.Equal(2, requiredLength);
+        Assert.True(exact.SequenceEqual("é"u8));
+
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void Detailed_host_buffer_read_preserves_a_partial_prefix()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        EngineTest.Run(scope.State, HostStandIn);
+
+        Span<byte> destination = stackalloc byte[3];
+        destination.Fill(0xA5);
+        Assert.False(HostMemory.TryReadBytes(new HostAddress(84), destination, out var copied, out var failure));
+        Assert.Equal(MemoryAccessFailure.PartialRead, failure);
+        Assert.Equal(1, copied);
+        Assert.True(destination.SequenceEqual(new byte[] { 9, 0xA5, 0xA5 }));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
     public void Byte_writes_require_the_full_CE_count_for_target_and_host_memory()
     {
         EngineTest.RequireNativeLua();
@@ -219,17 +327,30 @@ public sealed class MemoryApiTests
         ReadOnlySpan<byte> payload = [0, 1, 255, 42];
         Assert.True(TargetMemory.TryWriteBytes(33UL, payload, out var failure));
         Assert.Equal(MemoryAccessFailure.None, failure);
-        Assert.False(TargetMemory.TryWriteBytes(34UL, payload, out failure));
+        Assert.False(TargetMemory.TryWriteBytes(34UL, payload, out var targetPartialCount, out failure));
         Assert.Equal(MemoryAccessFailure.WriteFailed, failure);
-        Assert.False(TargetMemory.TryWriteBytes(35UL, payload, out failure));
+        Assert.Equal(payload.Length - 1, targetPartialCount);
+        Assert.False(TargetMemory.TryWriteBytes(35UL, payload, out var targetZeroCount, out failure));
         Assert.Equal(MemoryAccessFailure.WriteFailed, failure);
+        Assert.Equal(0, targetZeroCount);
+        Assert.False(TargetMemory.TryWriteBytes(38UL, payload, out var targetInvalidCount, out failure));
+        Assert.Equal(MemoryAccessFailure.InvalidResult, failure);
+        Assert.Equal(0, targetInvalidCount);
+        Assert.False(TargetMemory.TryWriteBytes(39UL, payload, out targetInvalidCount, out failure));
+        Assert.Equal(MemoryAccessFailure.InvalidResult, failure);
+        Assert.Equal(0, targetInvalidCount);
+        Assert.False(TargetMemory.TryWriteBytes(40UL, payload, out targetInvalidCount, out failure));
+        Assert.Equal(MemoryAccessFailure.InvalidResult, failure);
+        Assert.Equal(0, targetInvalidCount);
 
         Assert.True(HostMemory.TryWriteBytes(new HostAddress(81), payload, out failure));
         Assert.Equal(MemoryAccessFailure.None, failure);
-        Assert.False(HostMemory.TryWriteBytes(new HostAddress(82), payload, out failure));
+        Assert.False(HostMemory.TryWriteBytes(new HostAddress(82), payload, out var hostPartialCount, out failure));
         Assert.Equal(MemoryAccessFailure.WriteFailed, failure);
-        Assert.False(HostMemory.TryWriteBytes(new HostAddress(83), payload, out failure));
+        Assert.Equal(payload.Length - 1, hostPartialCount);
+        Assert.False(HostMemory.TryWriteBytes(new HostAddress(83), payload, out var hostZeroCount, out failure));
         Assert.Equal(MemoryAccessFailure.WriteFailed, failure);
+        Assert.Equal(0, hostZeroCount);
         Assert.Equal(0, scope.State.Top);
     }
 
@@ -342,11 +463,26 @@ public sealed class MemoryApiTests
 
         Assert.False(TargetMemory.TryReadUInt32(999UL, out _, out var failure));
         Assert.Equal(MemoryAccessFailure.ReadFailed, failure);
+        Assert.False(TargetMemory.TryReadUInt32(27UL, out _, out failure));
+        Assert.Equal(MemoryAccessFailure.InvalidResult, failure);
         Assert.False(TargetMemory.TryWriteUInt32(57005UL, 1, out failure));
         Assert.Equal(MemoryAccessFailure.WriteFailed, failure);
         EngineTest.Run(scope.State, "function readDouble(_) error('fixture failure') end"u8);
         Assert.False(TargetMemory.TryReadDouble(22UL, out _, out failure));
         Assert.Equal(MemoryAccessFailure.LuaError, failure);
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void Scalar_number_reads_reject_coercible_Lua_strings()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        EngineTest.Run(scope.State, TargetStandIn);
+
+        Assert.False(TargetMemory.TryReadDouble(28UL, out _, out var failure));
+        Assert.Equal(MemoryAccessFailure.InvalidResult, failure);
         Assert.Equal(0, scope.State.Top);
     }
 

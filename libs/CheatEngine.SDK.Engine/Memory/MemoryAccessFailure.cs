@@ -28,8 +28,20 @@ public enum MemoryAccessFailure
     /// <summary>Cheat Engine returned <see langword="nil" /> or an incomplete byte table for a read operation.</summary>
     ReadFailed,
 
+    /// <summary>
+    ///     Cheat Engine returned a contiguous byte-table prefix that was shorter than the requested destination. This is
+    ///     reported only by the overload that returns a copied byte count.
+    /// </summary>
+    PartialRead,
+
     /// <summary>The caller-provided destination was smaller than the Lua string returned by Cheat Engine.</summary>
     DestinationTooSmall,
+
+    /// <summary>The caller requested a target-qualified pointer read without an observed target pointer width.</summary>
+    PointerWidthUnknown,
+
+    /// <summary>The pointer returned by Cheat Engine cannot fit in the caller's observed target pointer width.</summary>
+    PointerValueExceedsTargetWidth,
 
     /// <summary>
     ///     Cheat Engine explicitly returned <see langword="false" /> for a scalar or string write, or reported a byte

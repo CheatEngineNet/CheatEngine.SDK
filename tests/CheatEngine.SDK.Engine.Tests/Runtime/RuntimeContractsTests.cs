@@ -96,6 +96,32 @@ public sealed class RuntimeContractsTests
     }
 
     [Fact]
+    public void PointerSize_little_endian_primitives_use_the_explicit_target_width_and_preserve_destinations_on_rejection()
+    {
+        ReadOnlySpan<byte> bytes = [0x98, 0xBA, 0xDC, 0xFE, 0xEF, 0xCD, 0xAB, 0x89];
+        Span<byte> narrow = stackalloc byte[4];
+        Span<byte> wide = stackalloc byte[8];
+        Span<byte> untouched = stackalloc byte[3];
+        untouched.Fill(0xA5);
+
+        Assert.True(PointerSize.Bit32.TryReadLittleEndian(bytes[..4], out var x86Pointer));
+        Assert.Equal(0xFEDCBA98UL, x86Pointer);
+        Assert.True(PointerSize.Bit64.TryReadLittleEndian(bytes, out var x64Pointer));
+        Assert.Equal(0x89ABCDEF_FEDCBA98UL, x64Pointer);
+        Assert.False(PointerSize.Bit32.TryReadLittleEndian(bytes, out _));
+        Assert.False(PointerSize.Bit64.TryReadLittleEndian(bytes[..7], out _));
+        Assert.False(PointerSize.Unknown.TryReadLittleEndian(ReadOnlySpan<byte>.Empty, out _));
+
+        Assert.True(PointerSize.Bit32.TryWriteLittleEndian(0xFEDCBA98UL, narrow));
+        Assert.True(narrow.SequenceEqual(bytes[..4]));
+        Assert.True(PointerSize.Bit64.TryWriteLittleEndian(0x89ABCDEF_FEDCBA98UL, wide));
+        Assert.True(wide.SequenceEqual(bytes));
+        Assert.False(PointerSize.Bit32.TryWriteLittleEndian(0x1_0000_0000UL, narrow));
+        Assert.False(PointerSize.Bit32.TryWriteLittleEndian(0x1234UL, untouched));
+        Assert.True(untouched.SequenceEqual(new byte[] { 0xA5, 0xA5, 0xA5 }));
+    }
+
+    [Fact]
     public void RuntimeCapabilities_creation_copies_entries_and_preserves_full_contract_metadata()
     {
         var contract = new RuntimeCapabilityContract(

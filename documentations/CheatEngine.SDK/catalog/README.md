@@ -13,7 +13,7 @@ Classic Cheat Engine headers, Pascal declarations, host implementation details, 
 The catalogue makes that distinction reviewable:
 
 - `ce-7.7.0.10621-x64.declarations.json` contains the exact 159-slot historical `ExportedFunctions` table, with a canonical slot-manifest hash and a source locator for every entry.
-- `ce-7.7.0.10621-x64.capabilities.json` describes classic callback families, managed hosting, Lua, object ownership, scan, allocation, and patch surfaces. Every entry includes interop shape, affinity evidence, ownership, failure shape, availability, qualification, and profile references.
+- `ce-7.7.0.10621-x64.capabilities.json` describes classic callback families, managed hosting, Lua, object ownership, target/host memory, scan, allocation, and patch surfaces. Every entry includes interop shape, affinity evidence, ownership, failure shape, availability, qualification, and profile references.
 - `ce-7.7.0.10621-x64.conflicts.json` makes known historical conflicts declarative. An unresolved conflict blocks public callability and live qualification.
 - `ce-7.7.0.10621-x64.host-profiles.json` keeps host facts and target facts separate. A host x64 observation never infers the target architecture or pointer width.
 - `ce-7.7.0.10621-x64.advanced-families.json` is the SDK-020 deferred ledger for independently gated advanced research. Its families remain unavailable and not-qualified; it records the distinct contract, artifact, host, live, policy, and lifecycle gates required for any later adoption decision.
@@ -34,3 +34,11 @@ The validator is intentionally offline: review and CI use only committed provena
 `tests/CheatEngine.SDK.LiveProbe` provides `ce77_live_probe_host_profile()` for an explicitly authorized, disposable target. The command records host, Lua, bridge, plugin, and target identities in a JSON result while keeping the artifact operator-retained. A result becomes evidence only after its exact artifact is reviewed; the command, its source code, or the pinned fixture does not qualify a profile by itself.
 
 The live probe is opt-in and outside ordinary CI. It does not make the SDK, nor a CE plugin, a Native AOT unloadable plugin host. Native AOT library compatibility remains a separate build-only profile.
+
+## Target-memory boundary
+
+`engine.target.memory-primitives` is fixture-qualified only. The SDK maps CE's documented scalar, pointer, byte-table,
+and text globals behind protected calls, but its tests use a pinned Lua stand-in rather than a live target. The entry
+therefore records the explicit target-width and caller-buffer rules without claiming measured CE transfer, target
+architecture, process identity, or thread affinity. A future controlled live capture must record the host and each x86
+or x64 target separately before changing that qualification.

@@ -33,6 +33,7 @@ public sealed class AssemblyConformanceTests
         [nameof(AddressListPluginInit)] = 16,
         [nameof(MemoryViewPluginInit)] = 24,
         [nameof(DebugEventPluginInit)] = 8,
+        [nameof(DebugEventObservation)] = 24,
         [nameof(ProcessWatcherPluginInit)] = 8,
         [nameof(FunctionPointerChangePluginInit)] = 8,
         [nameof(MainMenuPluginInit)] = 24,

@@ -39,8 +39,8 @@
       "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 42, "line_end": 66 }],
       "interop": { "calling_convention": "stdcall", "parameter_widths": "DEBUG_EVENT*", "result": "int32", "indirection": "plugin callback pointer" },
       "thread_affinity": { "value": "unknown", "evidence": "historical-host-dispatch; no CE 7.7 measurement" },
-      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots-until-unregister-confirmed", "arguments": "borrowed-for-invocation" },
-      "failure_shape": "0 host continues; 1 plugin owns continuation in historical host", "availability": "catalogued-only", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": []
+      "ownership": { "registration": "host-borrows-during-registration", "callback": "plugin-roots until unregister is confirmed; SDK closes admission, unregisters, drains, then releases", "arguments": "borrowed-for-invocation; SDK observations copy only event code, process id, and thread id", "continuation": "current SDK dispatcher returns 0 (CE-owned); it rejects 1 until a live canary qualifies the hookable ContinueDebugEvent pointer cell" },
+      "failure_shape": "historical host: 0 CE continues; 1 plugin owns continuation. Current SDK dispatcher: 0 only; handler faults, cancellation, closed admission, and unqualified ownership all fall back to CE continuation", "availability": "catalogued-only", "qualification": "unqualified", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": []
     },
     {
       "id": "classic.callback.process-watcher",

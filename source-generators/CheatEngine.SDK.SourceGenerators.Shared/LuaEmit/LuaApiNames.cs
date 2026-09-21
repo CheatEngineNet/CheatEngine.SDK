@@ -30,6 +30,19 @@ internal static class LuaApiNames
     /// <summary>The address of a managed <c>lua_CFunction</c>.</summary>
     public const string LuaNativeFunction = "global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction";
 
+    /// <summary>The SDK-owned result of a lease-producing Lua registration transaction.</summary>
+    public const string LuaRegistrationResult = "global::CheatEngine.SDK.Lua.Registration.LuaRegistrationResult";
+
+    /// <summary>The collision policy passed explicitly to the SDK registration transaction.</summary>
+    public const string LuaRegistrationCollisionPolicy =
+        "global::CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy";
+
+    /// <summary>One generated global-name/native-thunk registration descriptor.</summary>
+    public const string LuaRegistrationEntry = "global::CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry";
+
+    /// <summary>The SDK-owned registration-set transaction.</summary>
+    public const string LuaRegistrationSet = "global::CheatEngine.SDK.Lua.Registration.LuaRegistrationSet";
+
     /// <summary>What a thunk calls to report failures.</summary>
     public const string LuaThunk = "global::CheatEngine.SDK.Lua.Callbacks.LuaThunk";
 

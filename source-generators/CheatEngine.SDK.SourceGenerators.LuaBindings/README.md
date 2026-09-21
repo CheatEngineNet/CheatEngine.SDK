@@ -44,15 +44,28 @@ internal static partial class Bindings
 }
 ```
 
-In `OnEnable`, acquire one operation lease, then call `Bindings.RegisterLuaFunctions(operation.State)` and check the
-returned `LuaStatus`:
+In `OnEnable`, acquire one operation lease, then call the ownership-aware generated registration method and retain its
+lease for the matching disable path:
 
 ```csharp
 using var operation = LuaRuntime.AcquireOperation();
-Bindings.RegisterLuaFunctions(operation.State);
+var registration = Bindings.TryRegisterLuaFunctions(operation.State);
+if (!registration.IsSuccess)
+{
+    _ = registration.Lease?.ReleaseWithOutcome(operation.State);
+    throw new InvalidOperationException(registration.Kind.ToString());
+}
+_bindingsLease = registration.Lease;
 ```
 
-`UnregisterLuaFunctions(operation.State)` assigns `nil` to each name while the caller holds the corresponding lease.
+The default collision policy rejects an already effective global before publication. `ReplaceExisting` is explicit; its
+lease retains the prior value and restores it only while the installed closure still owns that global. A release after
+detach or state reset is stale and does not touch a replacement registry. Protected lookup/set metamethod side effects
+remain outside the transaction's rollback guarantee.
+
+`RegisterLuaFunctions` and `UnregisterLuaFunctions` remain generated legacy APIs for source compatibility. They retain
+their historical unconditional assignment behavior; new code should use `TryRegisterLuaFunctions` and dispose the
+returned lease instead.
 
 For this type the build adds two files. `MyTrainer.Bindings.LuaFunctions.g.cs` holds the registration pair and one thunk
 per function. `MyTrainer.Bindings.LuaGlobals.g.cs` holds one cached `LuaRef` per global and the method bodies.
@@ -96,7 +109,8 @@ the public `int` API from receiving an unsigned value that cannot represent nega
 - `[LuaProperty]` is a bodyless partial `get` and/or `set` property on a valid Lua class handle, with one scalar type.
   Its accessors use `CEObject.TryGetProperty`/`TrySetProperty`, whose operations are protected and stack-balanced.
 - Two `[LuaFunction]` methods of one type with the same name are both skipped. The check covers one type: two types can
-  register the same name, and the later `RegisterLuaFunctions` call wins.
+  request the same name. The new lease API rejects that collision by default; the legacy `RegisterLuaFunctions` method
+  retains its historical later-write behavior.
 - Several `[LuaGlobal]` methods can bind one global and share one cache.
 - `[LuaGlobal]` targets methods only. Lua global variables require a separate future contract.
 - A `string?` argument rejects `nil` like a `string` argument. A `null` string result becomes `nil`.

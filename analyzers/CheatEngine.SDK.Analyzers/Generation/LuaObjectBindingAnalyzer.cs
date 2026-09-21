@@ -173,6 +173,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 
         if (!containsValidFunction) return;
 
+        ReportNamedMemberCollisions(context, type, LuaRegistrationEmitter.RegisterLeaseMethodName,
+            LuaRegistrationEmitter.RegisterLeaseMethodName);
         ReportNamedMemberCollisions(context, type, LuaRegistrationEmitter.RegisterMethodName,
             LuaRegistrationEmitter.RegisterMethodName);
         ReportNamedMemberCollisions(context, type, LuaRegistrationEmitter.UnregisterMethodName,

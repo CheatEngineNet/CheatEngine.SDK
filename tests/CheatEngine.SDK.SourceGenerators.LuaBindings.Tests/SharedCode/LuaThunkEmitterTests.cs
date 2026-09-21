@@ -76,12 +76,18 @@ public sealed class LuaThunkEmitterTests
     }
 
     [Fact]
-    public void Registration_registers_and_unregisters_in_the_given_order()
+    public void Registration_emits_a_lease_and_legacy_registration_pair_in_the_given_order()
     {
         SourceWriter writer = new();
         LuaRegistrationEmitter.Emit(writer, new EquatableArray<LuaThunkModel>([IsInteger, Ping]), string.Empty);
         var text = writer.ToString();
 
+        Assert.Contains(
+            "public static unsafe global::CheatEngine.SDK.Lua.Registration.LuaRegistrationResult TryRegisterLuaFunctions(global::CheatEngine.SDK.Lua.State.LuaState state, global::CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy collisionPolicy = global::CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy.RejectExisting)\n",
+            text, StringComparison.Ordinal);
+        Assert.Contains(
+            "new global::CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry(\"isint\", new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_isint)),",
+            text, StringComparison.Ordinal);
         Assert.Contains(
             "public static unsafe global::CheatEngine.SDK.Lua.Calls.LuaStatus RegisterLuaFunctions(global::CheatEngine.SDK.Lua.State.LuaState state)\n",
             text, StringComparison.Ordinal);
@@ -101,12 +107,15 @@ public sealed class LuaThunkEmitterTests
     }
 
     [Fact]
-    public void Registration_puts_the_member_attributes_on_both_methods()
+    public void Registration_puts_the_member_attributes_on_every_generated_registration_method()
     {
         SourceWriter writer = new();
         LuaRegistrationEmitter.Emit(writer, new EquatableArray<LuaThunkModel>([Ping]), "[Marker]");
         var text = writer.ToString();
 
+        Assert.Contains(
+            "[Marker]\npublic static unsafe global::CheatEngine.SDK.Lua.Registration.LuaRegistrationResult TryRegisterLuaFunctions",
+            text, StringComparison.Ordinal);
         Assert.Contains(
             "[Marker]\npublic static unsafe global::CheatEngine.SDK.Lua.Calls.LuaStatus RegisterLuaFunctions", text,
             StringComparison.Ordinal);

@@ -8,7 +8,8 @@ namespace CheatEngine.SDK.Tests.Infrastructure;
 ///     and indirect plugin consumers against it: a default one that takes every package default, one that sets
 ///     <c>AllowUnsafeBlocks=false</c> itself, one that sets <c>CheatEngineSdkGenerateEntryPoint=false</c>, and one that
 ///     reaches the umbrella only through a second packed package. It also builds direct consumers for every supported
-///     and explicitly unsupported <c>PlatformTarget</c> value. Every fact
+///     and explicitly unsupported <c>PlatformTarget</c> value, runs a package-only executable against the bundled
+///     offline Lua fixture, and publishes then runs a separate package-only trim and Native AOT executable. Every fact
 ///     <c>Packaging/*.cs</c> asserts on is read here, once, through <see cref="Xunit.IClassFixture{TFixture}" />,
 ///     because the pipeline (real package, restore, build, clean/rebuild and publish operations)
 ///     is too expensive to repeat per test.
@@ -33,6 +34,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
     private static readonly TimeSpan RestoreTimeout = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan BuildTimeout = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan PublishTimeout = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan RuntimeRunTimeout = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan AotPublishTimeout = TimeSpan.FromMinutes(10);
 
     private static readonly (string Key, string ConsumerName, string? PlatformTarget)[] PlatformTargetConsumers =
     [
@@ -115,11 +118,63 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
     /// <summary>Whether a packed consumer with a Lua function and explicit unsafe opt-in built successfully.</summary>
     public bool LuaFunctionOptInConsumerBuildSucceeded { get; private set; }
 
+    /// <summary>
+    ///     Whether the default packaged consumer built the historical <c>AobScanner.TryScan</c> overload compilation
+    ///     probe.
+    /// </summary>
+    public bool LegacyAobConsumerBuildSucceeded { get; private set; }
+
     /// <summary>Whether a packed consumer with a Lua function but no unsafe opt-in unexpectedly built successfully.</summary>
     public bool LuaFunctionWithoutUnsafeConsumerBuildSucceeded { get; private set; }
 
     /// <summary>Build output from the Lua-function consumer that intentionally leaves unsafe compilation disabled.</summary>
     public string LuaFunctionWithoutUnsafeConsumerBuildOutput { get; private set; } = "";
+
+    /// <summary>
+    ///     Whether the package-only Lua runtime executable completed its controlled, offline Lua fixture run
+    ///     successfully.
+    /// </summary>
+    /// <remarks>
+    ///     The executable receives this repository's bundled test-only <c>native/cheat-engine/lua53-64.dll</c> as an
+    ///     explicit argument. That DLL is an offline controlled Lua fixture, never a Cheat Engine host; this result does
+    ///     not claim a live Cheat Engine load or host interaction.
+    /// </remarks>
+    public bool PackedRuntimeConsumerRunSucceeded { get; private set; }
+
+    /// <summary>Console output captured from the package-only Lua runtime executable.</summary>
+    public string PackedRuntimeConsumerRunOutput { get; private set; } = "";
+
+    /// <summary>
+    ///     Whether the package-only consumer with two otherwise valid Lua exports of one name unexpectedly built.
+    /// </summary>
+    public bool DuplicateLuaFunctionConsumerBuildSucceeded { get; private set; }
+
+    /// <summary>Build output from the package-only duplicate-Lua-function consumer.</summary>
+    public string DuplicateLuaFunctionConsumerBuildOutput { get; private set; } = "";
+
+    /// <summary>
+    ///     Whether the package-only trim and Native AOT executable published successfully as a self-contained
+    ///     <c>win-x64</c> executable.
+    /// </summary>
+    /// <remarks>
+    ///     This proves only standalone package-consumer publication. It neither establishes nor implies that Cheat
+    ///     Engine can load, host, or unload an AOT plugin.
+    /// </remarks>
+    public bool PackedAotConsumerPublishSucceeded { get; private set; }
+
+    /// <summary>Console output captured from the package-only trim and Native AOT publish operation.</summary>
+    public string PackedAotConsumerPublishOutput { get; private set; } = "";
+
+    /// <summary>
+    ///     Whether the published package-only trim and Native AOT executable completed successfully.
+    /// </summary>
+    /// <remarks>
+    ///     This standalone execution is not a Cheat Engine plugin load, host, or unload result.
+    /// </remarks>
+    public bool PackedAotConsumerRunSucceeded { get; private set; }
+
+    /// <summary>Console output captured from the published package-only trim and Native AOT executable.</summary>
+    public string PackedAotConsumerRunOutput { get; private set; } = "";
 
     /// <summary>The package-controlled properties evaluated by a consumer that references only the carrier package.</summary>
     public IReadOnlyDictionary<string, string> IndirectProperties { get; private set; } =
@@ -171,6 +226,12 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         await InitializeEntryPointOffConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
             .ConfigureAwait(false);
         await InitializeLuaFunctionConsumersAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
+            .ConfigureAwait(false);
+        await InitializePackedRuntimeConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
+            .ConfigureAwait(false);
+        await InitializeDuplicateLuaFunctionConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
+            .ConfigureAwait(false);
+        await InitializePackedAotConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
             .ConfigureAwait(false);
         await InitializeIndirectConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
             .ConfigureAwait(false);
@@ -241,6 +302,7 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         var consumer = ThrowawayConsumer.Create(tempRoot, "DefaultConsumer", PackageVersion, feedDirectory,
             includeLegacyAobConsumer: true, includeTargetBoundAllocationConsumer: true);
         await RestoreAndBuildAsync(consumer, packagesDirectory).ConfigureAwait(false);
+        LegacyAobConsumerBuildSucceeded = File.Exists(Path.Combine(consumer.Directory, "LegacyAobConsumer.cs"));
         DefaultProperties = await consumer.GetPropertiesAsync(BuildTimeout, "AllowUnsafeBlocks", "EnableDynamicLoading",
                 "CheatEngineSdkGenerateEntryPoint")
             .ConfigureAwait(false);
@@ -308,6 +370,68 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
         var build = await withoutUnsafeConsumer.BuildAsync(BuildTimeout).ConfigureAwait(false);
         LuaFunctionWithoutUnsafeConsumerBuildSucceeded = build.ExitCode == 0;
         LuaFunctionWithoutUnsafeConsumerBuildOutput = build.CombinedOutput;
+    }
+
+    private async Task InitializePackedRuntimeConsumerAsync(string tempRoot, string feedDirectory,
+        string packagesDirectory)
+    {
+        var consumer = ThrowawayConsumer.CreateRuntimeExecutable(tempRoot, "PackedRuntimeConsumer", PackageVersion,
+            feedDirectory, "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n");
+        var restore = await consumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
+        EnsureSucceeded(restore, "dotnet restore", consumer.ProjectPath);
+        var build = await consumer.BuildAsync(BuildTimeout).ConfigureAwait(false);
+        EnsureSucceeded(build, "dotnet build", consumer.ProjectPath);
+
+        var bundledLuaPath = RepositoryLayout.PathOf("native/cheat-engine/lua53-64.dll");
+        if (!File.Exists(bundledLuaPath))
+            throw new InvalidOperationException(
+                $"The package-only Lua runtime consumer requires the bundled test-only Lua fixture at '{bundledLuaPath}'.");
+
+        var run = await consumer.RunAsync(bundledLuaPath, RuntimeRunTimeout).ConfigureAwait(false);
+        PackedRuntimeConsumerRunSucceeded = run.ExitCode == 0;
+        PackedRuntimeConsumerRunOutput = run.CombinedOutput;
+    }
+
+    private async Task InitializeDuplicateLuaFunctionConsumerAsync(string tempRoot, string feedDirectory,
+        string packagesDirectory)
+    {
+        var consumer = ThrowawayConsumer.CreateInvalidDuplicateLuaFunctionConsumer(tempRoot,
+            "DuplicateLuaFunctionConsumer", PackageVersion, feedDirectory,
+            "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n");
+        var restore = await consumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
+        EnsureSucceeded(restore, "dotnet restore", consumer.ProjectPath);
+
+        var build = await consumer.BuildAsync(BuildTimeout).ConfigureAwait(false);
+        DuplicateLuaFunctionConsumerBuildSucceeded = build.ExitCode == 0;
+        DuplicateLuaFunctionConsumerBuildOutput = build.CombinedOutput;
+    }
+
+    private async Task InitializePackedAotConsumerAsync(string tempRoot, string feedDirectory, string packagesDirectory)
+    {
+        const string consumerName = "PackedAotConsumer";
+        var consumer = ThrowawayConsumer.CreateAotExecutable(tempRoot, consumerName, PackageVersion, feedDirectory,
+            """
+                <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+                <SelfContained>true</SelfContained>
+                <PublishTrimmed>true</PublishTrimmed>
+                <PublishAot>true</PublishAot>
+                <VerifyReferenceAotCompatibility>true</VerifyReferenceAotCompatibility>
+                <WarningsAsErrors>IL3058</WarningsAsErrors>
+            """);
+        var restore = await consumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
+        EnsureSucceeded(restore, "dotnet restore", consumer.ProjectPath);
+        var build = await consumer.BuildAsync(BuildTimeout).ConfigureAwait(false);
+        EnsureSucceeded(build, "dotnet build", consumer.ProjectPath);
+
+        var publishDirectory = Path.Combine(tempRoot, "published-packed-aot");
+        var publish = await consumer.PublishAsync(AotPublishTimeout, publishDirectory).ConfigureAwait(false);
+        PackedAotConsumerPublishSucceeded = publish.ExitCode == 0;
+        PackedAotConsumerPublishOutput = publish.CombinedOutput;
+        if (!PackedAotConsumerPublishSucceeded) return;
+
+        var run = await consumer.RunPublishedAsync(publishDirectory, RuntimeRunTimeout).ConfigureAwait(false);
+        PackedAotConsumerRunSucceeded = run.ExitCode == 0;
+        PackedAotConsumerRunOutput = run.CombinedOutput;
     }
 
     private async Task InitializeIndirectConsumerAsync(string tempRoot, string feedDirectory, string packagesDirectory)

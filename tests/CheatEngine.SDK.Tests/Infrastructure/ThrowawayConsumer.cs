@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace CheatEngine.SDK.Tests.Infrastructure;
 
@@ -51,6 +52,262 @@ internal sealed class ThrowawayConsumer
                                                  }
                                              }
                                              """;
+
+    // This is a standalone native-Lua proof, not a Cheat Engine host integration. It binds only the fixture-provided
+    // Lua 5.3 module, creates one state it owns and supplies that state through a short-lived SDK runtime binding so
+    // generated [LuaGlobal] bodies and ownership-aware generated [LuaFunction] registration both run for real.
+    private const string RuntimeProgramSource = """"
+                                                using System;
+                                                using System.Runtime.CompilerServices;
+                                                using System.Runtime.InteropServices;
+                                                using CheatEngine.SDK.Annotations.Lua;
+                                                using CheatEngine.SDK.Lua.Calls;
+                                                using CheatEngine.SDK.Lua.Interop.Api;
+                                                using CheatEngine.SDK.Lua.Interop.Types;
+                                                using CheatEngine.SDK.Lua.Marshalling;
+                                                using CheatEngine.SDK.Lua.Registration;
+                                                using CheatEngine.SDK.Lua.Runtime;
+                                                using CheatEngine.SDK.Lua.State;
+
+                                                namespace ThrowawayRuntime;
+
+                                                internal readonly struct FixtureToken<T>
+                                                {
+                                                    public FixtureToken(long value)
+                                                    {
+                                                        Value = value;
+                                                    }
+
+                                                    public long Value { get; }
+                                                }
+
+                                                internal readonly struct FixtureTokenMarshaller<T> : ILuaMarshaller<FixtureToken<T>>
+                                                {
+                                                    public static void Push(LuaState state, FixtureToken<T> value)
+                                                    {
+                                                        state.PushInteger(value.Value);
+                                                    }
+
+                                                    public static bool TryRead(LuaState state, int index, out FixtureToken<T> value)
+                                                    {
+                                                        if (state.TryReadInteger(index, out var number))
+                                                        {
+                                                            value = new FixtureToken<T>(number);
+                                                            return true;
+                                                        }
+
+                                                        value = default;
+                                                        return false;
+                                                    }
+                                                }
+
+                                                internal static partial class GeneratedGlobals
+                                                {
+                                                    [LuaGlobal("sdk022_increment")]
+                                                    public static partial LuaOperationStatus TryIncrement(
+                                                        LuaState state,
+                                                        [LuaMarshaller(typeof(FixtureTokenMarshaller<int>))] FixtureToken<int> value,
+                                                        [LuaMarshaller(typeof(FixtureTokenMarshaller<int>))] out FixtureToken<int> result);
+
+                                                    [LuaGlobal("sdk022_fail")]
+                                                    public static partial LuaOperationStatus TryFail(LuaState state);
+                                                }
+
+                                                internal static partial class GeneratedFunctions
+                                                {
+                                                    [LuaFunction("sdk022_callback")]
+                                                    [return: LuaMarshaller(typeof(FixtureTokenMarshaller<int>))]
+                                                    public static FixtureToken<int> Increment(
+                                                        [LuaMarshaller(typeof(FixtureTokenMarshaller<int>))] FixtureToken<int> value)
+                                                    {
+                                                        return new FixtureToken<int>(value.Value + 1);
+                                                    }
+                                                }
+
+                                                internal static unsafe class Program
+                                                {
+                                                    private static nint s_state;
+
+                                                    public static int Main(string[] args)
+                                                    {
+                                                        if (args.Length != 1)
+                                                        {
+                                                            Console.Error.WriteLine("Expected exactly one Lua 5.3 DLL path.");
+                                                            return 64;
+                                                        }
+
+                                                        try
+                                                        {
+                                                            Run(args[0]);
+                                                            return 0;
+                                                        }
+                                                        catch (Exception exception)
+                                                        {
+                                                            Console.Error.WriteLine(exception);
+                                                            return 1;
+                                                        }
+                                                    }
+
+                                                    private static void Run(string luaLibraryPath)
+                                                    {
+                                                        ArgumentException.ThrowIfNullOrWhiteSpace(luaLibraryPath);
+
+                                                        // LuaApi retains raw function pointers for the process lifetime, so this loaded fixture module
+                                                        // intentionally remains loaded until process exit.
+                                                        LuaApi.Initialize(NativeLibrary.Load(luaLibraryPath));
+                                                        lua_State* statePointer = LuaApi.luaL_newstate();
+                                                        if (statePointer is null)
+                                                            throw new InvalidOperationException("The Lua fixture could not create a state.");
+
+                                                        try
+                                                        {
+                                                            LuaApi.luaL_openlibs(statePointer);
+                                                            LuaState state = new((nint)statePointer);
+                                                            s_state = state.Handle;
+                                                            delegate* unmanaged[Stdcall]<void*> stateProvider = &ProvideState;
+                                                            LuaHostBinding binding = new((nint)stateProvider, 0,
+                                                                Environment.CurrentManagedThreadId);
+                                                            LuaRuntime.Attach(in binding);
+                                                            try
+                                                            {
+                                                                VerifyGeneratedBindings(state);
+                                                            }
+                                                            finally
+                                                            {
+                                                                LuaRuntime.Detach();
+                                                                s_state = 0;
+                                                            }
+                                                        }
+                                                        finally
+                                                        {
+                                                            LuaApi.lua_close(statePointer);
+                                                        }
+                                                    }
+
+                                                    private static void VerifyGeneratedBindings(LuaState state)
+                                                    {
+                                                        Execute(state, """
+                                                                       function sdk022_increment(value)
+                                                                         return value + 1
+                                                                       end
+                                                                       function sdk022_fail()
+                                                                         error("sdk-022 fixture failure")
+                                                                       end
+                                                                       sdk022_callback = function(value)
+                                                                         return -1
+                                                                       end
+                                                                       """u8);
+
+                                                        LuaOperationStatus global = GeneratedGlobals.TryIncrement(state,
+                                                            new FixtureToken<int>(41), out var globalResult);
+                                                        if (!global.IsSuccess || globalResult.Value != 42)
+                                                            throw new InvalidOperationException("The generated Lua global did not marshal its generic token.");
+                                                        Console.WriteLine("SDK-022-RUNTIME-GLOBAL-MARSHALLER");
+
+                                                        LuaRegistrationResult collision = GeneratedFunctions.TryRegisterLuaFunctions(state,
+                                                            LuaRegistrationCollisionPolicy.RejectExisting);
+                                                        if (collision.Kind != LuaRegistrationResultKind.Collision || collision.Lease is not null)
+                                                            throw new InvalidOperationException("Generated registration did not reject the existing callback global.");
+
+                                                        LuaRegistrationResult registration = GeneratedFunctions.TryRegisterLuaFunctions(state,
+                                                            LuaRegistrationCollisionPolicy.ReplaceExisting);
+                                                        LuaRegistrationLease lease = registration.Lease
+                                                            ?? throw new InvalidOperationException("Generated registration did not return its ownership lease.");
+                                                        if (!registration.IsSuccess)
+                                                            throw new InvalidOperationException("Generated registration did not replace the callback global.");
+
+                                                        if (ExecuteForInteger(state, "return sdk022_callback(41)"u8) != 42)
+                                                            throw new InvalidOperationException("The generated Lua callback did not marshal its generic token.");
+                                                        Console.WriteLine("SDK-022-RUNTIME-CALLBACK-MARSHALLER");
+
+                                                        LuaRegistrationReleaseOutcome released = lease.ReleaseWithOutcome(state);
+                                                        if (released.Kind != LuaRegistrationReleaseKind.Released || released.RestoredCount != 1 ||
+                                                            ExecuteForInteger(state, "return sdk022_callback(41)"u8) != -1)
+                                                            throw new InvalidOperationException("The generated registration lease did not restore the prior callback.");
+                                                        Console.WriteLine("SDK-022-RUNTIME-COLLISION-LEASE");
+
+                                                        LuaOperationStatus failure = GeneratedGlobals.TryFail(state);
+                                                        if (failure.Kind != LuaOperationStatusKind.LuaFailure || failure.LuaStatus != LuaStatus.RuntimeError)
+                                                            throw new InvalidOperationException("The generated Lua global did not preserve the runtime-error status.");
+                                                        Console.WriteLine("SDK-022-RUNTIME-LUA-RUNTIME-ERROR");
+                                                        Console.WriteLine("SDK-022-RUNTIME-PROOF");
+                                                    }
+
+                                                    private static void Execute(LuaState state, ReadOnlySpan<byte> source)
+                                                    {
+                                                        using LuaFrame frame = new(state);
+                                                        LuaStatus status = state.TryExecute(source, 0, "=sdk022-runtime"u8);
+                                                        if (!status.IsOk)
+                                                            throw new InvalidOperationException("The Lua fixture setup failed with " + status + ".");
+                                                    }
+
+                                                    private static long ExecuteForInteger(LuaState state, ReadOnlySpan<byte> source)
+                                                    {
+                                                        using LuaFrame frame = new(state);
+                                                        LuaStatus status = state.TryExecute(source, 1, "=sdk022-runtime"u8);
+                                                        if (!status.IsOk || !state.TryReadInteger(-1, out var value))
+                                                            throw new InvalidOperationException("The Lua fixture did not return the expected integer.");
+
+                                                        return value;
+                                                    }
+
+                                                    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+                                                    private static void* ProvideState()
+                                                    {
+                                                        return (void*)s_state;
+                                                    }
+                                                }
+                                                """";
+
+    private const string AotProgramSource = """
+                                            using System;
+                                            using CheatEngine.SDK.Annotations.Lua;
+                                            using CheatEngine.SDK.Lua.Calls;
+                                            using CheatEngine.SDK.Lua.State;
+
+                                            namespace ThrowawayAot;
+
+                                            internal static partial class GeneratedAotBinding
+                                            {
+                                                [LuaGlobal("sdk022_aot_probe")]
+                                                public static partial LuaOperationStatus TryProbe(LuaState state);
+                                            }
+
+                                            internal static class Program
+                                            {
+                                                public static int Main(string[] args)
+                                                {
+                                                    // Native AOT keeps this generated body because the non-default command-line
+                                                    // path references it, while the normal no-host test run never invokes it.
+                                                    if (args.Length != 0)
+                                                        _ = GeneratedAotBinding.TryProbe(default);
+
+                                                    Console.WriteLine("SDK-022-AOT-STANDALONE");
+                                                    Console.WriteLine("SDK-022-AOT-NO-CE-HOST");
+                                                    return 0;
+                                                }
+                                            }
+                                            """;
+
+    private const string DuplicateLuaFunctionProgramSource = """
+                                                             using CheatEngine.SDK.Annotations.Lua;
+
+                                                             namespace ThrowawayDuplicate;
+
+                                                             internal static partial class DuplicateFunctions
+                                                             {
+                                                                 [LuaFunction("sdk022_duplicate")]
+                                                                 public static int First() => 1;
+
+                                                                 [LuaFunction("sdk022_duplicate")]
+                                                                 public static int Second() => 2;
+                                                             }
+
+                                                             internal static class Program
+                                                             {
+                                                                 public static int Main() => 0;
+                                                             }
+                                                             """;
 
     private const string LegacyAobSource = """
                                            using CheatEngine.SDK.Engine.Objects;
@@ -160,10 +417,11 @@ internal sealed class ThrowawayConsumer
 
     /// <summary>
     ///     Scaffolds a project named <paramref name="name" /> under <paramref name="parentDirectory" />: an
-    ///     net10.0 class library with one <c>PackageReference</c> to <c>CheatEngine.SDK</c> restored only from
-    ///     <paramref name="localFeedDirectory" /> (and nuget.org, for the .NET SDK's own implicit packages, from the
-    ///     machine's warm cache), one minimal but valid plugin class, and whatever <paramref name="extraProperties" />
-    ///     adds to its single <c>PropertyGroup</c>. When <paramref name="includeLuaFunction" /> is <see langword="true" />,
+    ///     net10.0 class library with one <c>PackageReference</c> to <c>CheatEngine.SDK</c>. Its generated
+    ///     <c>NuGet.Config</c> maps that exact package identity to <paramref name="localFeedDirectory" /> while retaining
+    ///     nuget.org for other package identities. The project has one minimal but valid plugin class and whatever
+    ///     <paramref name="extraProperties" /> adds to its single <c>PropertyGroup</c>. When
+    ///     <paramref name="includeLuaFunction" /> is <see langword="true" />,
     ///     the project also declares one valid <c>[LuaFunction]</c> export. When <paramref name="includeLegacyAobConsumer" />
     ///     is <see langword="true" />, it compiles both historical <c>AobScanner.TryScan</c> overloads against the packed
     ///     SDK. When <paramref name="includeTargetBoundAllocationConsumer" /> is <see langword="true" />, it compiles an
@@ -203,22 +461,45 @@ internal sealed class ThrowawayConsumer
             File.WriteAllText(Path.Combine(directory, "LegacyAobConsumer.cs"), LegacyAobSource);
         if (includeTargetBoundAllocationConsumer)
             File.WriteAllText(Path.Combine(directory, "TargetBoundAllocationBackend.cs"), TargetBoundAllocationSource);
-        // <clear/>: this consumer's restore must depend only on the two sources named here, never on whatever
-        // machine- or user-level NuGet.Config the CI/dev box happens to carry (same reasoning as the repo's own
-        // root nuget.config).
-        File.WriteAllText(Path.Combine(directory, "NuGet.Config"), $"""
-                                                                    <?xml version="1.0" encoding="utf-8"?>
-                                                                    <configuration>
-                                                                      <packageSources>
-                                                                        <clear />
-                                                                        <add key="cheatengine-sdk-local" value="{localFeedDirectory}" />
-                                                                        <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
-                                                                      </packageSources>
-                                                                    </configuration>
-                                                                    """);
+        WriteNuGetConfig(directory, localFeedDirectory, UmbrellaPackage.Id);
 
         var assemblyPath = Path.Combine(directory, "bin", "Release", "net10.0", $"{name}.dll");
         return new ThrowawayConsumer(directory, projectPath, assemblyPath);
+    }
+
+    /// <summary>
+    ///     Scaffolds a package-only executable that runs generated Lua bindings against exactly one fixture-supplied
+    ///     Lua 5.3 DLL. <paramref name="extraProperties" /> is required so the fixture, rather than this scaffold,
+    ///     explicitly opts into the unsafe compilation generated <c>[LuaFunction]</c> thunks require.
+    /// </summary>
+    public static ThrowawayConsumer CreateRuntimeExecutable(string parentDirectory, string name,
+        string cheatEngineSdkVersion, string localFeedDirectory, string extraProperties)
+    {
+        return CreateExecutable(parentDirectory, name, cheatEngineSdkVersion, localFeedDirectory, extraProperties,
+            "Program.cs", RuntimeProgramSource);
+    }
+
+    /// <summary>
+    ///     Scaffolds the intentional CESDK2005 consumer: two otherwise valid generated Lua functions share one Lua
+    ///     global name. <paramref name="extraProperties" /> must explicitly enable unsafe code so CESDK2001 does not
+    ///     mask that duplicate-name diagnostic.
+    /// </summary>
+    public static ThrowawayConsumer CreateInvalidDuplicateLuaFunctionConsumer(string parentDirectory, string name,
+        string cheatEngineSdkVersion, string localFeedDirectory, string extraProperties)
+    {
+        return CreateExecutable(parentDirectory, name, cheatEngineSdkVersion, localFeedDirectory, extraProperties,
+            "Program.cs", DuplicateLuaFunctionProgramSource);
+    }
+
+    /// <summary>
+    ///     Scaffolds a package-only executable whose source includes a generated Lua binding but whose program neither
+    ///     loads a native Lua module nor activates a Cheat Engine host. The fixture supplies trim/AOT/RID properties.
+    /// </summary>
+    public static ThrowawayConsumer CreateAotExecutable(string parentDirectory, string name, string cheatEngineSdkVersion,
+        string localFeedDirectory, string extraProperties)
+    {
+        return CreateExecutable(parentDirectory, name, cheatEngineSdkVersion, localFeedDirectory, extraProperties,
+            "Program.cs", AotProgramSource);
     }
 
     /// <summary>
@@ -247,6 +528,50 @@ internal sealed class ThrowawayConsumer
                                         </Project>
                                         """);
         File.WriteAllText(Path.Combine(directory, "Plugin.cs"), PluginSource);
+        WriteNuGetConfig(directory, localFeedDirectory, carrierPackageId, UmbrellaPackage.Id);
+
+        var assemblyPath = Path.Combine(directory, "bin", "Release", "net10.0", $"{consumerName}.dll");
+        return new ThrowawayConsumer(directory, projectPath, assemblyPath);
+    }
+
+    private static ThrowawayConsumer CreateExecutable(string parentDirectory, string name, string cheatEngineSdkVersion,
+        string localFeedDirectory, string extraProperties, string sourceFileName, string source)
+    {
+        var directory = Path.Combine(parentDirectory, name);
+        System.IO.Directory.CreateDirectory(directory);
+
+        var projectPath = Path.Combine(directory, $"{name}.csproj");
+        File.WriteAllText(projectPath, $"""
+                                        <Project Sdk="Microsoft.NET.Sdk">
+                                          <PropertyGroup>
+                                            <TargetFramework>net10.0</TargetFramework>
+                                            <OutputType>Exe</OutputType>
+                                            <Nullable>enable</Nullable>
+                                        {extraProperties}  </PropertyGroup>
+                                          <ItemGroup>
+                                            <PackageReference Include="{UmbrellaPackage.Id}" Version="{cheatEngineSdkVersion}" />
+                                          </ItemGroup>
+                                        </Project>
+                                        """);
+        File.WriteAllText(Path.Combine(directory, sourceFileName), source);
+        WriteNuGetConfig(directory, localFeedDirectory, UmbrellaPackage.Id);
+
+        var assemblyPath = Path.Combine(directory, "bin", "Release", "net10.0", $"{name}.dll");
+        return new ThrowawayConsumer(directory, projectPath, assemblyPath);
+    }
+
+    // <clear/> isolates restore from arbitrary user/machine configuration. The exact CheatEngine.SDK mapping keeps
+    // package restore on this fixture's freshly packed feed; nuget.org remains only for external SDK dependencies.
+    private static void WriteNuGetConfig(string directory, string localFeedDirectory, params string[] localPackageIds)
+    {
+        StringBuilder packageMappings = new();
+        foreach (var packageId in localPackageIds)
+        {
+            packageMappings.Append("          <package pattern=\"");
+            packageMappings.Append(packageId);
+            packageMappings.Append("\" />\n");
+        }
+
         File.WriteAllText(Path.Combine(directory, "NuGet.Config"), $"""
                                                                     <?xml version="1.0" encoding="utf-8"?>
                                                                     <configuration>
@@ -255,15 +580,21 @@ internal sealed class ThrowawayConsumer
                                                                         <add key="cheatengine-sdk-local" value="{localFeedDirectory}" />
                                                                         <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
                                                                       </packageSources>
+                                                                      <packageSourceMapping>
+                                                                        <clear />
+                                                                        <packageSource key="cheatengine-sdk-local">
+                                                                    {packageMappings}        </packageSource>
+                                                                        <packageSource key="nuget.org">
+                                                                          <package pattern="*" />
+                                                                        </packageSource>
+                                                                      </packageSourceMapping>
                                                                     </configuration>
                                                                     """);
-
-        var assemblyPath = Path.Combine(directory, "bin", "Release", "net10.0", $"{consumerName}.dll");
-        return new ThrowawayConsumer(directory, projectPath, assemblyPath);
     }
 
     /// <summary>
-    ///     Restores from the local feed only (see <see cref="Create" />); no other consumer step restores again.
+    ///     Restores the package identities mapped to the local feed (see <see cref="Create" />); no other consumer step
+    ///     restores again. Nuget.org remains available only for package identities not mapped to that feed.
     ///     <paramref name="packagesDirectory" /> is passed as <c>--packages</c> so extraction lands in a directory the
     ///     caller controls, never the machine-wide global-packages folder: NuGet treats a given package id+version as
     ///     immutable once extracted there, so a stale extraction left by an earlier run (this fixture, a developer's own
@@ -275,7 +606,7 @@ internal sealed class ThrowawayConsumer
     {
         return ProcessRunner.RunAsync(
             "dotnet",
-            $"restore \"{ProjectPath}\" --configfile \"{Path.Combine(Directory, "NuGet.Config")}\" --packages \"{packagesDirectory}\" --nologo",
+            $"restore \"{ProjectPath}\" --configfile \"{Path.Combine(Directory, "NuGet.Config")}\" --packages \"{packagesDirectory}\" --no-http-cache --force-evaluate --nologo",
             Directory,
             timeout);
     }
@@ -285,6 +616,13 @@ internal sealed class ThrowawayConsumer
     {
         return ProcessRunner.RunAsync("dotnet", $"build \"{ProjectPath}\" -c Release --no-restore --nologo", Directory,
             timeout);
+    }
+
+    /// <summary>Runs the built executable with its required one argument: the test fixture's Lua 5.3 DLL path.</summary>
+    public Task<ProcessResult> RunAsync(string luaLibraryPath, TimeSpan timeout)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(luaLibraryPath);
+        return ProcessRunner.RunAsync("dotnet", $"\"{AssemblyPath}\" \"{luaLibraryPath}\"", Directory, timeout);
     }
 
     /// <summary>Cleans the consumer output without restoring, so the following build validates normal SDK copy bookkeeping.</summary>
@@ -300,6 +638,15 @@ internal sealed class ThrowawayConsumer
         return ProcessRunner.RunAsync("dotnet",
             $"publish \"{ProjectPath}\" -c Release --no-restore --nologo -o \"{outputDirectory}\"", Directory,
             timeout);
+    }
+
+    /// <summary>Runs the native executable emitted by a publish into <paramref name="outputDirectory" />.</summary>
+    public Task<ProcessResult> RunPublishedAsync(string outputDirectory, TimeSpan timeout)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+        var executableName = Path.GetFileNameWithoutExtension(ProjectPath) + ".exe";
+        var executablePath = Path.Combine(outputDirectory, executableName);
+        return ProcessRunner.RunAsync(executablePath, "", outputDirectory, timeout);
     }
 
     /// <summary>

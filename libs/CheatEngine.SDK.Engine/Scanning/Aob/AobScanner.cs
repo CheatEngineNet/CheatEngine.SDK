@@ -22,12 +22,21 @@ namespace CheatEngine.SDK.Engine.Scanning.Aob;
 ///     </para>
 ///     <para>
 ///         <see cref="TryScanDetailed(string, out Owned{StringList}?)" /> preserves the distinct outcomes of an
-///         unresolved global, protected Lua failure, CE <c>nil</c>, and a malformed non-nil result. The boolean
+///         unresolved global, protected Lua failure, CE <c>nil</c>, and a malformed non-nil result.
+///         <see cref="TryScanOutcome(string, out Owned{StringList}?)" /> further distinguishes a validated empty
+///         StringList from those failures without assigning no-match meaning to raw <c>nil</c>. The boolean
 ///         <c>TryScan</c> overloads retain their existing convenience contract by returning <see langword="false" /> for
 ///         all of those outcomes. The stack is restored in every case. A detached runtime throws
 ///         <see cref="InvalidOperationException" />. CE's documentation does not state AOB scan thread affinity, so this
 ///         method makes no unverified main-thread claim and uses the calling thread's host Lua state. The owner it
 ///         returns follows <see cref="Owned{T}" />'s existing main-thread destruction contract.
+///     </para>
+///     <para>
+///         The CE primitive is synchronous and this SDK exposes no range/module restriction, result limit, early-stop,
+///         or <c>CancellationToken</c> parameter for it: none is a verified <c>AOBScan</c> execution control. A Client
+///         may decide whether to admit or wait for work and may cap strings after copying them, but neither action
+///         interrupts a running CE scan or proves a bound on CE work. Copy every needed string while the returned owner
+///         is alive, then dispose that owner exactly once.
 ///     </para>
 /// </remarks>
 public static class AobScanner
@@ -84,23 +93,92 @@ public static class AobScanner
         using var operation = LuaRuntime.AcquireOperation();
         var state = operation.State;
         using LuaFrame frame = new(state);
+        return TryScanCore(state, pattern, options, out results, out _);
+    }
+
+    /// <summary>Runs AOBScan and reports whether a valid returned StringList contains matches.</summary>
+    /// <param name="pattern">CE's AOB pattern string, passed without normalization.</param>
+    /// <param name="results">
+    ///     The caller-owned list when <see cref="AobScanOutcome.IsSuccess" /> is <see langword="true" />; otherwise
+    ///     <see langword="null" />. Copy required entries before disposing the owner exactly once.
+    /// </param>
+    /// <returns>
+    ///     A factual outcome that classifies no matches only from a valid StringList with count zero. Raw Lua
+    ///     <c>nil</c>, unavailable globals, protected Lua failures, malformed return values, and unreadable counts remain
+    ///     distinct.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+    [RequiresPluginEnabled]
+    public static AobScanOutcome TryScanOutcome(string pattern, out Owned<StringList>? results)
+    {
+        return TryScanOutcome(pattern, AobScanOptions.Default, out results);
+    }
+
+    /// <summary>Runs AOBScan with explicit CE protection/alignment options and reports a structured result.</summary>
+    /// <param name="pattern">CE's AOB pattern string, passed without normalization.</param>
+    /// <param name="options">The optional CE arguments and their exact positions.</param>
+    /// <param name="results">
+    ///     The caller-owned list when <see cref="AobScanOutcome.IsSuccess" /> is <see langword="true" />; otherwise
+    ///     <see langword="null" />. Copy required entries before disposing the owner exactly once.
+    /// </param>
+    /// <returns>The factual protected AOB result, including a valid empty-list no-match classification.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+    [RequiresPluginEnabled]
+    public static AobScanOutcome TryScanOutcome(string pattern, AobScanOptions options,
+        out Owned<StringList>? results)
+    {
+        ArgumentNullException.ThrowIfNull(pattern);
+
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
+        using LuaFrame frame = new(state);
+        var status = TryScanCore(state, pattern, options, out results, out var luaStatus);
+        if (status != AobScanStatus.Success)
+            return FromStatus(status, luaStatus);
+
+        var owned = results!;
         try
         {
-            var global = LuaGlobalFunctions.TryPushWithStatus(state, SAobScan, "AOBScan"u8);
-            if (global == LuaGlobalPushStatus.Unavailable)
+            if (!owned.Value.TryGetCount(out var resultCount) || resultCount < 0)
+            {
+                owned.Dispose();
+                results = null;
+                return AobScanOutcome.ResultListCountUnavailable;
+            }
+
+            return resultCount == 0 ? AobScanOutcome.NoMatches : AobScanOutcome.Matches(resultCount);
+        }
+        catch (LuaException exception)
+        {
+            owned.Dispose();
+            results = null;
+            return AobScanOutcome.ProtectedLuaFailure(ToFailureStatus(exception.Status));
+        }
+    }
+
+    private static AobScanStatus TryScanCore(LuaState state, string pattern, AobScanOptions options,
+        out Owned<StringList>? results, out LuaStatus luaStatus)
+    {
+        luaStatus = LuaStatus.Ok;
+        try
+        {
+            var global = LuaGlobalFunctions.TryPushWithOutcome(state, SAobScan, "AOBScan"u8);
+            if (global.Status == LuaGlobalPushStatus.Unavailable)
             {
                 results = null;
                 return AobScanStatus.GlobalUnavailable;
             }
 
-            if (global != LuaGlobalPushStatus.Success)
+            if (!global.IsSuccess)
             {
                 results = null;
+                luaStatus = ToFailureStatus(global.LuaStatus);
                 return AobScanStatus.LuaFailure;
             }
 
             var argumentCount = PushArguments(state, pattern, options);
-            if (!state.TryCall(argumentCount, 1).IsOk)
+            luaStatus = state.TryCall(argumentCount, 1);
+            if (!luaStatus.IsOk)
             {
                 results = null;
                 return AobScanStatus.LuaFailure;
@@ -121,11 +199,29 @@ public static class AobScanner
             results = new Owned<StringList>(StringList.FromHandle(handle));
             return AobScanStatus.Success;
         }
-        catch (LuaException)
+        catch (LuaException exception)
         {
             results = null;
+            luaStatus = ToFailureStatus(exception.Status);
             return AobScanStatus.LuaFailure;
         }
+    }
+
+    private static AobScanOutcome FromStatus(AobScanStatus status, LuaStatus luaStatus)
+    {
+        return status switch
+        {
+            AobScanStatus.GlobalUnavailable => AobScanOutcome.GlobalUnavailable,
+            AobScanStatus.LuaFailure => AobScanOutcome.ProtectedLuaFailure(ToFailureStatus(luaStatus)),
+            AobScanStatus.NoResult => AobScanOutcome.NoResult,
+            AobScanStatus.InvalidResult => AobScanOutcome.InvalidResult,
+            _ => AobScanOutcome.ResultListCountUnavailable,
+        };
+    }
+
+    private static LuaStatus ToFailureStatus(LuaStatus luaStatus)
+    {
+        return luaStatus.IsOk ? LuaStatus.RuntimeError : luaStatus;
     }
 
     private static int PushArguments(LuaState state, string pattern, AobScanOptions options)

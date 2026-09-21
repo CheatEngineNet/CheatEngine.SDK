@@ -64,6 +64,12 @@ internal static class AobStringListTestHost
         return FakeHost.CreateObject(state, "Probe", "o.props.Count = 0");
     }
 
+    /// <summary>Creates a CE-shaped object whose Count is deliberately invalid for result-shape failure coverage.</summary>
+    public static CEObject CreateInvalidCountList(LuaState state)
+    {
+        return FakeHost.CreateObject(state, "Probe", "o.props.Count = -1");
+    }
+
     /// <summary>Publishes a fake host object as a Lua global through the protected setter.</summary>
     public static void SetGlobalObject(LuaState state, ReadOnlySpan<byte> name, CEObject value)
     {
@@ -86,6 +92,7 @@ internal static class AobStringListTestHost
                                 if aob_pattern == 'nil-result' then return nil end
                                 if aob_pattern == 'raise' then error('AOBScan stand-in raised') end
                                 if aob_pattern == 'invalid-result' then return 42 end
+                                if aob_pattern == 'malformed-result' then return aob_malformed end
                                 return aob_results
                               end
                               """u8);

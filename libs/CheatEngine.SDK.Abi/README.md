@@ -116,6 +116,28 @@ addresses: `AddressListPluginInit.Callback`, `DisassemblerContextPluginInit.Call
 one of these fields must stop doing so. A replacement can be introduced only by an exact CE 7.7 host profile that
 qualifies the signature, nullability, ownership, and invocation lifetime together.
 
+## Classic debugger callback contract (SDK-018)
+
+`DebugEventPluginInit.Callback` has the historical shape `stdcall int(void* DEBUG_EVENT)`. The native event pointer,
+including every nested union it reaches, is borrowed only for that invocation. SDK-018 copies only the scalar event
+code, process id, and thread id into `DebugEventObservation`; it does not publish the native pointer.
+
+`DebugEventDecisionHandler` is synchronous and returns a `DebugEventDecision`, not a `Task`. A
+`BoundedDebugEventObservationBuffer` is strictly telemetry: its reader never owns the callback result, and its
+overflow policy can drop observations without changing the native disposition.
+
+The current catalogued classic profile has no qualified `ContinueDebugEvent` entry point. Consequently the internal
+dispatcher always returns zero, leaving continuation to Cheat Engine. A request for
+`DebugEventDecision.PluginOwnsContinuation` is counted and rejected to that zero fallback. It can become a real
+continuation path only after a live canary qualifies the suffix location, pointer-cell indirection, nullability,
+calling convention, failure behavior, and exactly-once-before-return rule.
+
+The dispatcher roots its static thunk and handler before registration, then closes admission, unregisters, drains
+admitted callbacks, and finally frees the callback record. An unconfirmed unregister deliberately retains the root
+for a retry. A callback cannot release itself, because classic host locking would otherwise risk a deadlock. This is
+an internal, source-contract implementation; deterministic fixtures exercise it but do not qualify a live Cheat
+Engine host profile.
+
 ## Promise
 
 1. Every public struct has the x64 size and field offsets asserted with literal numbers. A struct without a row in the

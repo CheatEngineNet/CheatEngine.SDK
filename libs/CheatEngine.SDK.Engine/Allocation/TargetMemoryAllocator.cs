@@ -1,6 +1,7 @@
 using System;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Targets;
 
 namespace CheatEngine.SDK.Engine.Allocation;
 
@@ -11,8 +12,9 @@ namespace CheatEngine.SDK.Engine.Allocation;
 ///     This facade validates the strongly typed request and makes an expected CE failure explicit as
 ///     <see cref="EngineOperationFailedException" />. Protected Lua, binding, and marshalling failures use the canonical
 ///     Engine error hierarchy instead of being folded into an expected CE result. The generated CE binding is supplied
-///     through <see cref="ITargetMemoryAllocationOperations" /> so the lifetime wrapper is testable without an attached
-///     Cheat Engine process.
+///     through <see cref="ITargetMemoryAllocationOperations" />. An owned allocation additionally requires the
+///     implementation to opt in to <see cref="ITargetBoundMemoryAllocationOperations" />; a legacy direct-operation
+///     implementation is never silently used to create an owner with an unverified cleanup target.
 /// </remarks>
 public sealed class TargetMemoryAllocator
 {
@@ -52,6 +54,7 @@ public sealed class TargetMemoryAllocator
     /// <exception cref="EngineBindingException">The CE binding cannot uphold its documented contract.</exception>
     /// <exception cref="EngineMarshallingException">The binding returned an invalid success/failure shape.</exception>
     /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
+    /// <exception cref="EngineTargetIdentityException">The operation cannot qualify a target incarnation.</exception>
     [RequiresPluginEnabled]
     public AllocatedRegion Allocate(TargetAllocationRequest request)
     {
@@ -59,21 +62,28 @@ public sealed class TargetMemoryAllocator
             throw new ArgumentOutOfRangeException(nameof(request), request.Size.Value,
                 "An allocation request must have a positive size.");
 
-        var allocated = _operations.TryAllocate(request, out var address);
+        if (_operations is not ITargetBoundMemoryAllocationOperations targetBound)
+            throw new EngineTargetIdentityException("TargetMemoryAllocate", GetUnavailableTargetCheck());
+
+        var allocationOutcome = targetBound.AllocateBoundWithOutcome(request, out var incarnation, out var observation);
+        var allocated = allocationOutcome.IsSuccess;
+        var address = allocationOutcome.Address;
+        if (!observation.IsQualified)
+            throw new EngineTargetIdentityException("TargetMemoryAllocate", TargetSelection.CreateUnavailableCheck(observation));
         if (!allocated)
         {
             if (!address.IsZero)
                 throw new EngineMarshallingException("TargetMemoryAllocate", EngineMarshallingDirection.Result,
                     "a null target address on failure", "a nonzero target address on failure");
 
-            throw new EngineOperationFailedException("TargetMemoryAllocate");
+            ThrowForAllocationOutcome(allocationOutcome.Operation);
         }
 
         if (address.IsZero)
             throw new EngineMarshallingException("TargetMemoryAllocate", EngineMarshallingDirection.Result,
                 "a nonzero target address on success", "a null target address on success");
 
-        return new AllocatedRegion(_operations, address, request.Size);
+        return new AllocatedRegion(targetBound, address, request.Size, incarnation);
     }
 
     /// <summary>
@@ -83,10 +93,10 @@ public sealed class TargetMemoryAllocator
     /// <param name="request">The allocation size, optional target base preference, and optional initial protection.</param>
     /// <returns>The structured allocation outcome and a nonzero target address on success.</returns>
     /// <remarks>
-    ///     This additive API does not change <see cref="Allocate" /> or
-    ///     <see cref="ITargetMemoryAllocationOperations.TryAllocate" />. A legacy implementation is adapted by its
-    ///     documented <see langword="bool" />/exception contract; no exception message is inspected. Lifecycle failures
-    ///     outside the Engine failure hierarchy still throw.
+    ///     This additive API does not change the direct <see cref="ITargetMemoryAllocationOperations" /> contract.
+    ///     It reports <see cref="EngineFailureKind.TargetIdentityUnavailable" /> when an implementation has not opted
+    ///     into <see cref="ITargetBoundMemoryAllocationOperations" />, because creating an owner without a qualified
+    ///     cleanup target would be unsafe. Lifecycle failures outside the Engine failure hierarchy still throw.
     /// </remarks>
     [RequiresPluginEnabled]
     public TargetMemoryAllocationOutcome AllocateWithOutcome(TargetAllocationRequest request)
@@ -95,24 +105,17 @@ public sealed class TargetMemoryAllocator
             return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
                 EngineFailureKind.MarshallingFailure));
 
-        if (_operations is ITargetMemoryAllocationOutcomeOperations detailed)
-            return detailed.AllocateWithOutcome(request);
+        if (_operations is not ITargetBoundMemoryAllocationOperations targetBound)
+            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                EngineFailureKind.TargetIdentityUnavailable));
 
         try
         {
-            var allocated = _operations.TryAllocate(request, out var address);
-            if (allocated)
-            {
-                return address.IsZero
-                    ? TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
-                        EngineFailureKind.MarshallingFailure))
-                    : TargetMemoryAllocationOutcome.Succeeded(address);
-            }
-
-            return address.IsZero
-                ? TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.ExpectedFailure())
-                : TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
-                    EngineFailureKind.MarshallingFailure));
+            var outcome = targetBound.AllocateBoundWithOutcome(request, out _, out var observation);
+            if (!observation.IsQualified)
+                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                    EngineFailureKind.TargetIdentityUnavailable));
+            return outcome;
         }
         catch (EngineException exception)
         {
@@ -125,5 +128,39 @@ public sealed class TargetMemoryAllocator
         return exception is EngineLuaException lua
             ? TargetMemoryOperationOutcome.FromFailureKind(exception.Kind, lua.Status)
             : TargetMemoryOperationOutcome.FromFailureKind(exception.Kind);
+    }
+
+    private static void ThrowForAllocationOutcome(TargetMemoryOperationOutcome outcome)
+    {
+        if (outcome.Kind == TargetMemoryOperationOutcomeKind.ExpectedFailure)
+            throw new EngineOperationFailedException("TargetMemoryAllocate");
+
+        if (outcome.Kind == TargetMemoryOperationOutcomeKind.GlobalUnavailable)
+            throw new EngineGlobalUnavailableException("TargetMemoryAllocate");
+
+        if (outcome.Kind == TargetMemoryOperationOutcomeKind.CapabilityUnavailable)
+            throw new EngineCapabilityUnavailableException("TargetMemoryAllocation");
+
+        if (outcome.Kind == TargetMemoryOperationOutcomeKind.ProtectedLuaFailure)
+            throw new EngineLuaException("TargetMemoryAllocate", outcome.LuaStatus);
+
+        if (outcome.Kind == TargetMemoryOperationOutcomeKind.MarshallingFailure)
+            throw new EngineMarshallingException("TargetMemoryAllocate", EngineMarshallingDirection.Result,
+                "a target address or nil", "a result that is neither an address nor nil");
+
+        if (outcome.Kind is TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable or
+            TargetMemoryOperationOutcomeKind.TargetIdentityMismatch)
+        {
+            throw new EngineTargetIdentityException("TargetMemoryAllocate", GetUnavailableTargetCheck());
+        }
+
+        throw new EngineBindingException("TargetMemoryAllocate");
+    }
+
+    private static TargetIdentityCheck GetUnavailableTargetCheck()
+    {
+        var observation = TargetSelectionObservation.FromStatus(
+            TargetSelectionObservationStatus.CurrentTargetUnqualified);
+        return TargetSelection.CreateUnavailableCheck(observation);
     }
 }

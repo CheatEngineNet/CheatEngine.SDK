@@ -1,6 +1,7 @@
 using System;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.CompilerServices;
 using CheatEngine.SDK.Lua.References;
@@ -21,7 +22,7 @@ namespace CheatEngine.SDK.Engine.Allocation;
 ///     failure. The class is stateless and may be shared by multiple <see cref="TargetMemoryAllocator" /> instances.
 /// </remarks>
 public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocationOperations,
-    ITargetMemoryAllocationOutcomeOperations
+    ITargetMemoryAllocationOutcomeOperations, ITargetBoundMemoryAllocationOperations
 {
     private const string AllocateOperation = "TargetMemoryAllocate";
     private const string DeallocateOperation = "TargetMemoryDeallocate";
@@ -69,42 +70,7 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
         var top = state.Top;
         try
         {
-            var globalOutcome = TryPushGlobal(state, SAllocateMemory, "allocateMemory"u8);
-            if (!globalOutcome.IsSuccess) return TargetMemoryAllocationOutcome.FromOperation(globalOutcome);
-            state.PushInteger(request.Size.Value);
-            var argumentCount = 1;
-            if (request.PreferredBaseAddress.HasValue)
-            {
-                Address.Push(state, request.PreferredBaseAddress.Value);
-                argumentCount++;
-            }
-
-            if (request.Protection.HasValue)
-            {
-                if (!request.PreferredBaseAddress.HasValue)
-                {
-                    state.PushNil();
-                    argumentCount++;
-                }
-
-                state.PushInteger((long)(uint)request.Protection.Value);
-                argumentCount++;
-            }
-
-            var status = state.TryCall(argumentCount, 1);
-            if (!status.IsOk)
-                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
-                    EngineFailureKind.ProtectedLuaFailure, status));
-            if (state.IsNil(-1))
-                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.ExpectedFailure());
-
-            if (!Address.TryRead(state, -1, out var address))
-                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
-                    EngineFailureKind.MarshallingFailure));
-
-            return address.IsZero
-                ? TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.ExpectedFailure())
-                : TargetMemoryAllocationOutcome.Succeeded(address);
+            return AllocateCore(state, request);
         }
         finally
         {
@@ -124,24 +90,142 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
         var top = state.Top;
         try
         {
-            var globalOutcome = TryPushGlobal(state, SDeallocate, "deAlloc"u8);
-            if (!globalOutcome.IsSuccess) return globalOutcome;
-            Address.Push(state, address);
-            state.PushInteger(size.Value);
-            var status = state.TryCall(2, 1);
-            if (!status.IsOk)
-                return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.ProtectedLuaFailure, status);
-            if (state.TypeOf(-1) != LuaType.Boolean)
-                return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.MarshallingFailure);
-
-            return state.ToBoolean(-1)
-                ? TargetMemoryOperationOutcome.Succeeded()
-                : TargetMemoryOperationOutcome.ExpectedFailure();
+            return DeallocateCore(state, address, size);
         }
         finally
         {
             state.SetTop(top);
         }
+    }
+
+    TargetMemoryAllocationOutcome ITargetBoundMemoryAllocationOperations.AllocateBoundWithOutcome(
+        TargetAllocationRequest request,
+        out TargetProcessIncarnation incarnation, out TargetSelectionObservation observation)
+    {
+        incarnation = default;
+        observation = default;
+        if (request.Size.Value <= 0)
+            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                EngineFailureKind.MarshallingFailure));
+
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
+        var top = state.Top;
+        try
+        {
+            observation = TargetSelection.ObserveCurrent(state);
+            if (!observation.IsQualified)
+                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                    EngineFailureKind.TargetIdentityUnavailable));
+
+            var outcome = AllocateCore(state, request);
+            incarnation = observation.Incarnation.GetValueOrDefault();
+            return outcome;
+        }
+        finally
+        {
+            state.SetTop(top);
+        }
+    }
+
+    bool ITargetBoundMemoryAllocationOperations.TryDeallocateBound(TargetProcessIncarnation expected, Address address,
+        TargetAllocationSize size, out TargetIdentityCheck targetCheck)
+    {
+        var outcome = DeallocateBoundWithOutcomeCore(expected, address, size, out targetCheck);
+        return targetCheck.IsCurrent && outcome.IsSuccess;
+    }
+
+    TargetMemoryOperationOutcome ITargetBoundMemoryAllocationOperations.DeallocateBoundWithOutcome(
+        TargetProcessIncarnation expected, Address address, TargetAllocationSize size, out TargetIdentityCheck targetCheck)
+    {
+        return DeallocateBoundWithOutcomeCore(expected, address, size, out targetCheck);
+    }
+
+    private static TargetMemoryAllocationOutcome AllocateCore(LuaState state, TargetAllocationRequest request)
+    {
+        var globalOutcome = TryPushGlobal(state, SAllocateMemory, "allocateMemory"u8);
+        if (!globalOutcome.IsSuccess) return TargetMemoryAllocationOutcome.FromOperation(globalOutcome);
+        state.PushInteger(request.Size.Value);
+        var argumentCount = 1;
+        if (request.PreferredBaseAddress.HasValue)
+        {
+            Address.Push(state, request.PreferredBaseAddress.Value);
+            argumentCount++;
+        }
+
+        if (request.Protection.HasValue)
+        {
+            if (!request.PreferredBaseAddress.HasValue)
+            {
+                state.PushNil();
+                argumentCount++;
+            }
+
+            state.PushInteger((long)(uint)request.Protection.Value);
+            argumentCount++;
+        }
+
+        var status = state.TryCall(argumentCount, 1);
+        if (!status.IsOk)
+            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                EngineFailureKind.ProtectedLuaFailure, status));
+        if (state.IsNil(-1))
+            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.ExpectedFailure());
+
+        if (!Address.TryRead(state, -1, out var address))
+            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                EngineFailureKind.MarshallingFailure));
+
+        return address.IsZero
+            ? TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.ExpectedFailure())
+            : TargetMemoryAllocationOutcome.Succeeded(address);
+    }
+
+    private static TargetMemoryOperationOutcome DeallocateCore(LuaState state, Address address, TargetAllocationSize size)
+    {
+        var globalOutcome = TryPushGlobal(state, SDeallocate, "deAlloc"u8);
+        if (!globalOutcome.IsSuccess) return globalOutcome;
+        Address.Push(state, address);
+        state.PushInteger(size.Value);
+        var status = state.TryCall(2, 1);
+        if (!status.IsOk)
+            return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.ProtectedLuaFailure, status);
+        if (state.TypeOf(-1) != LuaType.Boolean)
+            return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.MarshallingFailure);
+
+        return state.ToBoolean(-1)
+            ? TargetMemoryOperationOutcome.Succeeded()
+            : TargetMemoryOperationOutcome.ExpectedFailure();
+    }
+
+    private static TargetMemoryOperationOutcome DeallocateBoundWithOutcomeCore(TargetProcessIncarnation expected,
+        Address address, TargetAllocationSize size, out TargetIdentityCheck targetCheck)
+    {
+        targetCheck = default;
+        if (address.IsZero || size.Value <= 0)
+            return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.MarshallingFailure);
+
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
+        var top = state.Top;
+        try
+        {
+            targetCheck = TargetSelection.ValidateCurrent(state, expected);
+            return targetCheck.IsCurrent
+                ? DeallocateCore(state, address, size)
+                : TargetMemoryOperationOutcome.FromFailureKind(GetFailureKind(targetCheck));
+        }
+        finally
+        {
+            state.SetTop(top);
+        }
+    }
+
+    private static EngineFailureKind GetFailureKind(TargetIdentityCheck check)
+    {
+        return check.Kind is TargetIdentityCheckKind.TargetChanged or TargetIdentityCheckKind.ProcessReused
+            ? EngineFailureKind.TargetIdentityMismatch
+            : EngineFailureKind.TargetIdentityUnavailable;
     }
 
     private static bool GetAllocationResultOrThrow(TargetMemoryAllocationOutcome outcome)

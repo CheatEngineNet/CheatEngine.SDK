@@ -5,8 +5,7 @@ using CheatEngine.SDK.Engine.Values;
 namespace CheatEngine.SDK.Engine.Allocation;
 
 /// <summary>
-///     The narrow, generated-binding-facing operations behind <see cref="TargetMemoryAllocator" /> and
-///     <see cref="AllocatedRegion" />.
+///     The narrow, generated-binding-facing compatibility operations behind <see cref="TargetMemoryAllocator" />.
 /// </summary>
 /// <remarks>
 ///     A CE 7.7 implementation maps <see cref="TryAllocate" /> to <c>allocateMemory</c> and
@@ -18,7 +17,11 @@ namespace CheatEngine.SDK.Engine.Allocation;
 ///     protection-changing call:
 ///     CE 7.7's documented allocation global receives protection as an optional input. The CE 7.7 catalog establishes
 ///     no GUI-thread affinity for either global; implementations use the calling thread's host Lua state and must not
-///     claim <c>MainThreadOnly</c> until a live probe establishes that contract.
+///     claim <c>MainThreadOnly</c> until a live probe establishes that contract. These direct operations preserve their
+///     original ambient-target behavior for compatibility and do not establish a release authority. An implementation
+///     must also implement <see cref="ITargetBoundMemoryAllocationOperations" /> before
+///     <see cref="TargetMemoryAllocator" /> can issue an <see cref="AllocatedRegion" />; otherwise that facade safely
+///     refuses to create an owner rather than later freeing against an unverified current target.
 /// </remarks>
 public interface ITargetMemoryAllocationOperations
 {

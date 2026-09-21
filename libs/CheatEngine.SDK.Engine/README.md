@@ -114,15 +114,24 @@ not publish a partial collection when the destination is too small or a later Lu
 invalid result separate. The CE 7.7 catalog does not establish affinity for these globals, so these APIs neither
 dispatch nor carry a main-thread assertion.
 
+`TargetSelection` keeps a Cheat Engine selection observation separate from a process incarnation. A qualified
+incarnation combines the selected PID read from `getOpenedProcessID` with the local process creation time; missing,
+malformed, inaccessible and no-target facts remain explicit observations instead of fabricated identities. It neither
+opens nor selects a process. It can only compare observations: no inspected CE primitive makes an observation atomic
+with a following ambient-target Lua effect, so an external selection transition in that interval, including an unseen
+A→B→A sequence, remains unqualified.
+
 `TargetMemoryAllocator` uses `LuaTargetMemoryAllocationOperations` by default and retains
-`ITargetMemoryAllocationOperations` as the narrow testable binding seam. The production binding preserves CE's optional
-target address and page-protection positions, returns an `AllocatedRegion` only after a nonzero target address, and
-uses the original size for `deAlloc`. `AllocateWithOutcome` and `ReleaseWithOutcome` are additive structured views:
-they distinguish success, documented negative results, unavailable globals, protected Lua failures and malformed
-results without exposing a Lua state or parsing an error message. The existing bool seam and throwing `Allocate`/
-`Release` APIs retain their behavior. `Dispose` is best-effort, no-throw cleanup. Both release paths consume ownership
-first, so a potentially partial deallocation is never retried. CE 7.7 has no documented separate post-allocation
-protection call in this surface.
+`ITargetMemoryAllocationOperations` as the direct compatibility seam. The production binding preserves CE's optional
+target address and page-protection positions. To create an `AllocatedRegion`, an implementation must additionally opt
+into `ITargetBoundMemoryAllocationOperations`, which captures a qualified incarnation and refuses a later observed
+mismatch without selecting a replacement target. A legacy direct seam remains usable for its original ambient-target
+operations, but is not silently converted into an owner with an unverified cleanup target. `AllocateWithOutcome` and
+`ReleaseWithOutcome` are additive structured views: they distinguish success, documented negative results, unavailable
+globals, protected Lua failures, malformed results, and target-identity refusal without exposing a Lua state or parsing
+an error message. `Dispose` is best-effort, no-throw cleanup. Both release paths consume ownership first, so a
+potentially partial deallocation is never retried. CE 7.7 has no documented separate post-allocation protection call in
+this surface.
 
 `AobScanner.TryScanDetailed` retains global-unavailable, protected-Lua-failure, raw `nil`, malformed-result and
 successful-list outcomes; `TryScan` keeps its compatible `bool` projection. A valid empty list is still a successful

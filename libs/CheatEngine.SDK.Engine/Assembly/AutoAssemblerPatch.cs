@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
 
@@ -28,19 +29,23 @@ namespace CheatEngine.SDK.Engine.Assembly;
 public sealed class AutoAssemblerPatch : IDisposable
 {
     private readonly string _script;
+    private readonly TargetProcessIncarnation _targetIncarnation;
     private LuaRef? _disableInfo;
+    private TargetReleaseOutcome _lastReleaseOutcome;
     private int _requiresManualRecovery;
 
-    internal AutoAssemblerPatch(string script, LuaRef disableInfo)
+    internal AutoAssemblerPatch(string script, LuaRef disableInfo, TargetProcessIncarnation targetIncarnation)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(script);
         ArgumentNullException.ThrowIfNull(disableInfo);
         _script = script;
         _disableInfo = disableInfo;
+        _targetIncarnation = targetIncarnation;
     }
 
     /// <summary>
-    ///     Gets whether the patch still owns a current CE disable-info table and can attempt a normal disable.
+    ///     Gets whether the patch still owns a current CE disable-info table and can attempt target validation before a
+    ///     normal disable.
     /// </summary>
     public bool IsEnabled
     {
@@ -66,17 +71,25 @@ public sealed class AutoAssemblerPatch : IDisposable
     /// </summary>
     public bool IsDisposed => Volatile.Read(ref _disableInfo) is null;
 
+    /// <summary>Gets the copied process incarnation that was qualified when this patch was applied.</summary>
+    public TargetProcessIncarnation TargetIncarnation => _targetIncarnation;
+
+    /// <summary>Gets the factual result of the one disable attempt, including a safe target refusal.</summary>
+    public TargetReleaseOutcome LastReleaseOutcome => _lastReleaseOutcome;
+
     /// <summary>
     ///     Disables the patch and observes failure.
     /// </summary>
     /// <exception cref="ObjectDisposedException">The owner was already released or disposed.</exception>
     /// <exception cref="EngineOperationFailedException">Cheat Engine did not confirm that the disable completed.</exception>
+    /// <exception cref="EngineTargetIdentityException">The patch target is no longer the current qualified target.</exception>
     /// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or not a function.</exception>
     /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
     /// <exception cref="EngineMarshallingException">CE returned a non-boolean disable result.</exception>
     /// <remarks>
     ///     Ownership is consumed before the CE call. If the call returns false, raises, or cannot use an invalidated
-    ///     state, <see cref="RequiresManualRecovery" /> is set and a future call cannot re-run <c>[DISABLE]</c>.
+    ///     state, <see cref="RequiresManualRecovery" /> is set and a future call cannot re-run <c>[DISABLE]</c>. A
+    ///     mismatched or unavailable target is refused without selecting another target or invoking the disable script.
     /// </remarks>
     [RequiresPluginEnabled]
     public void Release()
@@ -84,13 +97,29 @@ public sealed class AutoAssemblerPatch : IDisposable
         var disableInfo = TakeOwnership();
         try
         {
-            if (AutoAssemblerPatcher.TryDisable(_script, disableInfo)) return;
+            _lastReleaseOutcome = AutoAssemblerPatcher.TryDisable(_script, disableInfo, _targetIncarnation);
+            if (_lastReleaseOutcome.Status == TargetReleaseStatus.Released) return;
 
             Volatile.Write(ref _requiresManualRecovery, 1);
+            if (_lastReleaseOutcome.TargetCheck.HasValue)
+                throw new EngineTargetIdentityException("AutoAssemblerDisable", _lastReleaseOutcome.TargetCheck.Value);
+
             throw new EngineOperationFailedException("AutoAssemblerDisable");
+        }
+        catch (EngineTargetIdentityException)
+        {
+            Volatile.Write(ref _requiresManualRecovery, 1);
+            throw;
+        }
+        catch (EngineException exception)
+        {
+            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(exception.Kind);
+            Volatile.Write(ref _requiresManualRecovery, 1);
+            throw;
         }
         catch
         {
+            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(failureKind: null);
             Volatile.Write(ref _requiresManualRecovery, 1);
             throw;
         }
@@ -107,11 +136,18 @@ public sealed class AutoAssemblerPatch : IDisposable
 
         try
         {
-            if (!AutoAssemblerPatcher.TryDisable(_script, disableInfo))
+            _lastReleaseOutcome = AutoAssemblerPatcher.TryDisable(_script, disableInfo, _targetIncarnation);
+            if (_lastReleaseOutcome.Status != TargetReleaseStatus.Released)
                 Volatile.Write(ref _requiresManualRecovery, 1);
+        }
+        catch (EngineException exception)
+        {
+            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(exception.Kind);
+            Volatile.Write(ref _requiresManualRecovery, 1);
         }
         catch (Exception)
         {
+            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(failureKind: null);
             Volatile.Write(ref _requiresManualRecovery, 1);
         }
     }

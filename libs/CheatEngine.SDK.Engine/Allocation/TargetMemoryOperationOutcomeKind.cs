@@ -36,4 +36,10 @@ public enum TargetMemoryOperationOutcomeKind
 
     /// <summary>The call result or an input could not be represented by the declared contract.</summary>
     MarshallingFailure = 7,
+
+    /// <summary>The target identity required to begin the operation could not be established.</summary>
+    TargetIdentityUnavailable = 8,
+
+    /// <summary>The current target no longer matches the target-bound owner.</summary>
+    TargetIdentityMismatch = 9,
 }

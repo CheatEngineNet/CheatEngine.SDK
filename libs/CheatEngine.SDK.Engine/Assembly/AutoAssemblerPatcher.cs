@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Marshalling;
 using CheatEngine.SDK.Lua.References;
@@ -18,7 +19,10 @@ namespace CheatEngine.SDK.Engine.Assembly;
 ///     This is deliberately the low-level SDK escape hatch. It passes only the script to CE's
 ///     <c>autoAssemble</c> global and never supplies CE's <c>targetSelf</c> argument. A caller that reaches this API
 ///     is responsible for the script's content; higher-level APIs should expose typed, capability-gated patches
-///     rather than arbitrary script execution.
+///     rather than arbitrary script execution. The SDK captures a qualified target incarnation before it applies a
+///     script and validates it before disabling the resulting owner; it never supplies <c>targetSelf</c>, opens, or
+///     selects a process. CE exposes no inspected primitive that binds that observation atomically to the following
+///     ambient-target call, so an external selection transition in that interval is not live-qualified as safe.
 /// </remarks>
 public static class AutoAssemblerPatcher
 {
@@ -35,6 +39,7 @@ public static class AutoAssemblerPatcher
     /// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or not a function.</exception>
     /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
     /// <exception cref="EngineMarshallingException">CE returned a success result without a disable-info table.</exception>
+    /// <exception cref="EngineTargetIdentityException">The selected target cannot be qualified as an incarnation.</exception>
     [RequiresPluginEnabled]
     public static AutoAssemblerPatch Apply(string script)
     {
@@ -54,6 +59,7 @@ public static class AutoAssemblerPatcher
     /// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or not a function.</exception>
     /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
     /// <exception cref="EngineMarshallingException">CE returned a success result without a disable-info table.</exception>
+    /// <exception cref="EngineTargetIdentityException">The selected target cannot be qualified as an incarnation.</exception>
     [RequiresPluginEnabled]
     public static bool TryApply(string script, [NotNullWhen(true)] out AutoAssemblerPatch? patch)
     {
@@ -62,6 +68,11 @@ public static class AutoAssemblerPatcher
         using var operation = LuaRuntime.AcquireOperation();
         var state = operation.State;
         using LuaFrame frame = new(state);
+
+        var targetObservation = TargetSelection.ObserveCurrent(state);
+        if (!targetObservation.IsQualified)
+            throw new EngineTargetIdentityException(ApplyOperation,
+                TargetSelection.CreateUnavailableCheck(targetObservation));
 
         PushAutoAssemble(state, ApplyOperation);
         StringMarshaller.Push(state, script);
@@ -81,20 +92,20 @@ public static class AutoAssemblerPatcher
             ThrowUnexpectedResult(ApplyOperation, "a disable-info table on success", state.TypeOf(-1));
 
         // CreateRef consumes only the table. The enclosing frame drops the accompanying true result.
-        patch = new AutoAssemblerPatch(script, state.CreateRef());
+        patch = new AutoAssemblerPatch(script, state.CreateRef(), targetObservation.Incarnation.GetValueOrDefault());
         return true;
     }
 
     // The owner always routes cleanup through this method. Keeping the LuaRef release in its finally block prevents a
     // failed protected call from pinning CE's disable-info table and makes retrying a possibly partial disable impossible.
-    internal static bool TryDisable(string script, LuaRef disableInfo)
+    internal static TargetReleaseOutcome TryDisable(string script, LuaRef disableInfo, TargetProcessIncarnation target)
     {
         ArgumentNullException.ThrowIfNull(disableInfo);
 
         if (!LuaRuntime.IsAttached || !disableInfo.IsCurrent)
         {
             disableInfo.Dispose();
-            return false;
+            return TargetReleaseOutcome.Unconfirmed(failureKind: null);
         }
 
         try
@@ -104,9 +115,12 @@ public static class AutoAssemblerPatcher
             try
             {
                 using LuaFrame frame = new(state);
+                var targetCheck = TargetSelection.ValidateCurrent(state, target);
+                if (!targetCheck.IsCurrent) return TargetReleaseOutcome.Refused(targetCheck);
+
                 PushAutoAssemble(state, DisableOperation);
                 StringMarshaller.Push(state, script);
-                if (!state.TryPushRef(disableInfo)) return false;
+                if (!state.TryPushRef(disableInfo)) return TargetReleaseOutcome.Unconfirmed(failureKind: null);
 
                 var status = state.TryCall(2, 1);
                 if (!status.IsOk) ThrowLua(state, status, DisableOperation);
@@ -114,7 +128,9 @@ public static class AutoAssemblerPatcher
                 if (state.TypeOf(-1) != LuaType.Boolean)
                     ThrowUnexpectedResult(DisableOperation, "a boolean disable result", state.TypeOf(-1));
 
-                return state.ToBoolean(-1);
+                return state.ToBoolean(-1)
+                    ? TargetReleaseOutcome.Released()
+                    : TargetReleaseOutcome.Unconfirmed(EngineFailureKind.ExpectedOperationFailure);
             }
             finally
             {

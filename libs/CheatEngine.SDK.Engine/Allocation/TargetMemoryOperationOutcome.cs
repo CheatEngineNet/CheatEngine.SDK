@@ -49,6 +49,8 @@ public readonly record struct TargetMemoryOperationOutcome
         TargetMemoryOperationOutcomeKind.ProtectedLuaFailure => EngineFailureKind.ProtectedLuaFailure,
         TargetMemoryOperationOutcomeKind.BindingFailure => EngineFailureKind.BindingFailure,
         TargetMemoryOperationOutcomeKind.MarshallingFailure => EngineFailureKind.MarshallingFailure,
+        TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable => EngineFailureKind.TargetIdentityUnavailable,
+        TargetMemoryOperationOutcomeKind.TargetIdentityMismatch => EngineFailureKind.TargetIdentityMismatch,
         _ => null,
     };
 
@@ -77,6 +79,10 @@ public readonly record struct TargetMemoryOperationOutcome
                 TargetMemoryOperationOutcomeKind.BindingFailure, LuaStatus.Ok),
             EngineFailureKind.MarshallingFailure => new TargetMemoryOperationOutcome(
                 TargetMemoryOperationOutcomeKind.MarshallingFailure, LuaStatus.Ok),
+            EngineFailureKind.TargetIdentityUnavailable => new TargetMemoryOperationOutcome(
+                TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable, LuaStatus.Ok),
+            EngineFailureKind.TargetIdentityMismatch => new TargetMemoryOperationOutcome(
+                TargetMemoryOperationOutcomeKind.TargetIdentityMismatch, LuaStatus.Ok),
             _ => new TargetMemoryOperationOutcome(TargetMemoryOperationOutcomeKind.Unspecified, LuaStatus.Ok),
         };
     }

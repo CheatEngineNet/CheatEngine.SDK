@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Values;
 
 namespace CheatEngine.SDK.Engine.Allocation;
@@ -16,25 +17,33 @@ namespace CheatEngine.SDK.Engine.Allocation;
 ///     <see langword="using" /> block for best-effort, no-throw cleanup, or <see cref="Release" /> when the caller must observe a
 ///     failure. Both paths consume ownership before invoking CE; an expected failure, a binding/marshalling failure, or a
 ///     Lua exception never causes a retry. This makes concurrent and repeated cleanup deterministic and prevents a stale
-///     address from being freed twice.
+///     address from being freed twice. Before invoking CE, the owner reads the current selection and refuses when it is
+///     not the captured process incarnation; it never selects a process for cleanup. CE exposes no primitive that makes
+///     that observation atomic with a following ambient-target Lua call, so a selection change in that external interval
+///     remains unqualified rather than being represented as a stronger guarantee.
 /// </remarks>
 public sealed class AllocatedRegion : IDisposable
 {
     private readonly Address _address;
-    private readonly ITargetMemoryAllocationOperations _operations;
+    private readonly ITargetBoundMemoryAllocationOperations _targetBoundOperations;
+    private readonly TargetProcessIncarnation _targetIncarnation;
     private readonly TargetAllocationSize _size;
+    private TargetReleaseOutcome _lastReleaseOutcome;
     private int _released;
 
-    internal AllocatedRegion(ITargetMemoryAllocationOperations operations, Address address, TargetAllocationSize size)
+    internal AllocatedRegion(ITargetBoundMemoryAllocationOperations targetBoundOperations, Address address,
+        TargetAllocationSize size,
+        TargetProcessIncarnation targetIncarnation)
     {
-        ArgumentNullException.ThrowIfNull(operations);
+        ArgumentNullException.ThrowIfNull(targetBoundOperations);
         if (address.IsZero)
             throw new ArgumentException("An allocated region needs a nonzero target address.", nameof(address));
         if (size.Value <= 0)
             throw new ArgumentOutOfRangeException(nameof(size), size.Value,
                 "An allocated region needs a positive allocation size.");
 
-        _operations = operations;
+        _targetBoundOperations = targetBoundOperations;
+        _targetIncarnation = targetIncarnation;
         _address = address;
         _size = size;
     }
@@ -70,6 +79,12 @@ public sealed class AllocatedRegion : IDisposable
     /// </summary>
     public bool IsDisposed => Volatile.Read(ref _released) != 0;
 
+    /// <summary>Gets the copied process incarnation that was qualified when this allocation was created.</summary>
+    public TargetProcessIncarnation TargetIncarnation => _targetIncarnation;
+
+    /// <summary>Gets the factual outcome of the one release attempt, including a safe target refusal.</summary>
+    public TargetReleaseOutcome LastReleaseOutcome => _lastReleaseOutcome;
+
     /// <summary>
     ///     Best-effort no-throw release of the target allocation. Idempotent, including concurrent calls.
     /// </summary>
@@ -85,10 +100,11 @@ public sealed class AllocatedRegion : IDisposable
 
         try
         {
-            _ = _operations.TryDeallocate(_address, _size);
+            _ = ReleaseTakenWithOutcome();
         }
         catch (Exception)
         {
+            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(failureKind: null);
             // IDisposable cleanup must not hide another failure or retry a possibly partial CE deallocation.
         }
     }
@@ -111,8 +127,10 @@ public sealed class AllocatedRegion : IDisposable
     {
         if (!TryTakeOwnership()) ThrowDisposed();
 
-        if (!_operations.TryDeallocate(_address, _size))
-            throw new EngineOperationFailedException("TargetMemoryDeallocate");
+        var outcome = ReleaseTakenWithOutcome();
+        if (outcome.IsSuccess) return;
+
+        ThrowForReleaseOutcome(outcome);
     }
 
     /// <summary>
@@ -122,8 +140,8 @@ public sealed class AllocatedRegion : IDisposable
     /// <returns>The outcome of the one permitted deallocation attempt.</returns>
     /// <remarks>
     ///     Ownership is consumed before the CE call just as it is for <see cref="Release" />. This method does not
-    ///     retry an expected failure or a boundary failure. It adapts an implementation that exposes only
-    ///     <see cref="ITargetMemoryAllocationOperations" /> without inspecting exception text.
+    ///     retry an expected failure or a boundary failure. It exposes the allocation binding outcome and a separate
+    ///     <see cref="LastReleaseOutcome" /> for the target-incarnation check without inspecting exception text.
     /// </remarks>
     /// <exception cref="ObjectDisposedException">Ownership was already released or disposed.</exception>
     [RequiresPluginEnabled]
@@ -131,19 +149,66 @@ public sealed class AllocatedRegion : IDisposable
     {
         if (!TryTakeOwnership()) ThrowDisposed();
 
-        if (_operations is ITargetMemoryAllocationOutcomeOperations detailed)
-            return detailed.DeallocateWithOutcome(_address, _size);
+        return ReleaseTakenWithOutcome();
+    }
 
+    /// <summary>Releases this owner and returns the target-bound outcome, including safe target refusal.</summary>
+    /// <exception cref="ObjectDisposedException">Ownership was already released or disposed.</exception>
+    [RequiresPluginEnabled]
+    public TargetReleaseOutcome ReleaseWithTargetOutcome()
+    {
+        if (!TryTakeOwnership()) ThrowDisposed();
+
+        _ = ReleaseTakenWithOutcome();
+        return LastReleaseOutcome;
+    }
+
+    private TargetMemoryOperationOutcome ReleaseTakenWithOutcome()
+    {
         try
         {
-            return _operations.TryDeallocate(_address, _size)
-                ? TargetMemoryOperationOutcome.Succeeded()
-                : TargetMemoryOperationOutcome.ExpectedFailure();
+            var outcome = _targetBoundOperations.DeallocateBoundWithOutcome(_targetIncarnation, _address, _size,
+                out var targetCheck);
+            _lastReleaseOutcome = targetCheck.IsCurrent
+                ? outcome.IsSuccess
+                    ? TargetReleaseOutcome.Released()
+                    : TargetReleaseOutcome.Unconfirmed(outcome.FailureKind)
+                : TargetReleaseOutcome.Refused(targetCheck);
+            return outcome;
         }
         catch (EngineException exception)
         {
-            return TargetMemoryAllocator.CreateOutcome(exception);
+            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(exception.Kind);
+            throw;
         }
+    }
+
+    private void ThrowForReleaseOutcome(TargetMemoryOperationOutcome outcome)
+    {
+        if (outcome.Kind is TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable or
+            TargetMemoryOperationOutcomeKind.TargetIdentityMismatch)
+        {
+            throw new EngineTargetIdentityException("TargetMemoryDeallocate",
+                LastReleaseOutcome.TargetCheck.GetValueOrDefault());
+        }
+
+        if (outcome.Kind == TargetMemoryOperationOutcomeKind.ExpectedFailure)
+            throw new EngineOperationFailedException("TargetMemoryDeallocate");
+
+        if (outcome.Kind == TargetMemoryOperationOutcomeKind.GlobalUnavailable)
+            throw new EngineGlobalUnavailableException("TargetMemoryDeallocate");
+
+        if (outcome.Kind == TargetMemoryOperationOutcomeKind.CapabilityUnavailable)
+            throw new EngineCapabilityUnavailableException("TargetMemoryAllocation");
+
+        if (outcome.Kind == TargetMemoryOperationOutcomeKind.ProtectedLuaFailure)
+            throw new EngineLuaException("TargetMemoryDeallocate", outcome.LuaStatus);
+
+        if (outcome.Kind == TargetMemoryOperationOutcomeKind.MarshallingFailure)
+            throw new EngineMarshallingException("TargetMemoryDeallocate", EngineMarshallingDirection.Result,
+                "a Boolean deallocation result", "a non-Boolean result");
+
+        throw new EngineBindingException("TargetMemoryDeallocate");
     }
 
     private bool TryTakeOwnership()

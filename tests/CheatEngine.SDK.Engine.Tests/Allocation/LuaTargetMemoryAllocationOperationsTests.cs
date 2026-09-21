@@ -175,6 +175,7 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
         using NativeLuaState missingState = new();
         using (HostScope missingScope = new(missingState))
         {
+            InstallCurrentTarget(missingScope.State);
             TargetMemoryAllocator allocator = new();
             var missing = Assert.Throws<EngineGlobalUnavailableException>(() =>
                 allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
@@ -293,6 +294,7 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
 
     private static void InstallAllocationGlobals(CheatEngine.SDK.Lua.State.LuaState state)
     {
+        InstallCurrentTarget(state);
         EngineTest.Run(state, """
                               function allocateMemory(...)
                                 allocation_argument_count = select('#', ...)
@@ -308,6 +310,12 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
                                 return true
                               end
                               """u8);
+    }
+
+    private static void InstallCurrentTarget(CheatEngine.SDK.Lua.State.LuaState state)
+    {
+        EngineTest.Run(state, Encoding.UTF8.GetBytes("function getOpenedProcessID() return " +
+                                                     Environment.ProcessId + " end"));
     }
 
     private static void AssertLuaInteger(CheatEngine.SDK.Lua.State.LuaState state, string name, long expected)

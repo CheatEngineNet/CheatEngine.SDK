@@ -69,12 +69,22 @@ because shutdown would wait for that caller to return: the transition is refused
 lock. A failed `Detach` leaves the lifecycle in `Disabling` for diagnosis instead of reporting false completion. Nothing
 has a finalizer, because a Lua state belongs to one thread.
 
+The universe identity intentionally omits the state pointer. In the pinned Cheat Engine source, a worker obtains a
+coroutine through lua_newthread and roots it in the main registry. That coroutine has a separate stack pointer, but it
+shares the main virtual machine, heap and registry. A different worker pointer therefore does not establish an
+independent Lua heap or a safe concurrent-execution policy.
+
 Cheat Engine's `resetLuaState` must not be called outside the SDK-owned reset protocol. An external, unnotified reset is
 unsupported: the SDK cannot safely infer whether the old registry, callbacks, CE userdata or thread-local state still
 exist, so it deliberately does not attempt best-effort cleanup against a potentially replacement state. The
 deterministic
 fixture tests below prove the managed invalidation ordering only; CE 7.7 reset/thread/userdata behavior remains subject
 to the opt-in live probe.
+
+SDK-012 exercises this ordering with a deterministic native fixture: a worker first has no provider state, then receives
+a rooted coroutine with a pointer distinct from the main state; it can read the shared global and private-registry
+reference, and a reset invalidates that reference and its callback before later worker execution. This fixture proves
+the SDK lifecycle contract, not live Cheat Engine multi-threaded execution.
 
 Never store a `LuaState`. Start normal work with `using var operation = LuaRuntime.AcquireOperation();` and use
 `operation.State` until that synchronous scope ends. This admission is what lets attach, detach and reset reject new

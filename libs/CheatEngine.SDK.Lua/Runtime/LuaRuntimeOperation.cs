@@ -11,7 +11,9 @@ namespace CheatEngine.SDK.Lua.Runtime;
 ///     <c>using var operation = LuaRuntime.AcquireOperation(); var state = operation.State;</c>. The operation begins
 ///     before the host state provider runs and ends only when disposed, so it covers every stack operation and resource
 ///     publication in the body. It is a <c>ref struct</c>: do not copy, store, box, capture or await across it. Lua work
-///     is synchronous and thread-affine; dispose on the acquiring thread before returning to the host.
+///     is synchronous and thread-affine; dispose on the acquiring thread before returning to the host. The lease is a
+///     lifecycle admission, not a cross-plugin or process-wide Lua lock: distinct state pointers can still share one
+///     underlying Lua universe.
 /// </remarks>
 public ref struct LuaRuntimeOperation
 {

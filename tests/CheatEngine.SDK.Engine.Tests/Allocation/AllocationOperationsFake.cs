@@ -35,6 +35,8 @@ internal sealed class AllocationOperationsFake : ITargetMemoryAllocationOperatio
 
     public TargetSelectionObservation TargetObservation { get; set; } = TargetSelectionObservation.Qualified(STarget);
 
+    public TargetMemoryAllocationOutcome? BoundAllocationOutcomeOverride { get; set; }
+
     public bool TryAllocate(TargetAllocationRequest request, out Address address)
     {
         AllocateCalls++;
@@ -63,6 +65,9 @@ internal sealed class AllocationOperationsFake : ITargetMemoryAllocationOperatio
         if (!observation.IsQualified)
             return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
                 EngineFailureKind.TargetIdentityUnavailable));
+
+        if (BoundAllocationOutcomeOverride.HasValue)
+            return BoundAllocationOutcomeOverride.GetValueOrDefault();
 
         var allocated = TryAllocate(request, out var address);
         return allocated

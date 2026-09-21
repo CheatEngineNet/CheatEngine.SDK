@@ -4,6 +4,7 @@ using CheatEngine.SDK.Annotations.Threading;
 using CheatEngine.SDK.Engine.Allocation;
 using CheatEngine.SDK.Engine.Enums;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Calls;
 
@@ -134,6 +135,54 @@ public sealed class TargetMemoryAllocatorTests
     }
 
     [Fact]
+    public void Allocate_with_only_the_compatibility_seam_refuses_an_unqualified_owner_before_an_effectful_call()
+    {
+        DirectOnlyAllocationOperations operations = new();
+        TargetMemoryAllocator allocator = new(operations);
+        var request = new TargetAllocationRequest(new TargetAllocationSize(4096));
+
+        var exception = Assert.Throws<EngineTargetIdentityException>(() => allocator.Allocate(request));
+        var outcome = allocator.AllocateWithOutcome(request);
+
+        Assert.Equal(TargetIdentityCheckKind.CurrentTargetUnqualified, exception.Check.Kind);
+        Assert.Equal(EngineFailureKind.TargetIdentityUnavailable, exception.Kind);
+        Assert.Equal(TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable, outcome.Operation.Kind);
+        Assert.Equal(0, operations.AllocateCalls);
+        Assert.Equal(0, operations.DeallocateCalls);
+    }
+
+    [Theory]
+    [InlineData(EngineFailureKind.CapabilityUnavailable, typeof(EngineCapabilityUnavailableException))]
+    [InlineData(EngineFailureKind.ProtectedLuaFailure, typeof(EngineLuaException))]
+    [InlineData(EngineFailureKind.MarshallingFailure, typeof(EngineMarshallingException))]
+    [InlineData(EngineFailureKind.TargetIdentityUnavailable, typeof(EngineTargetIdentityException))]
+    [InlineData(EngineFailureKind.BindingFailure, typeof(EngineBindingException))]
+    public void Allocate_with_a_target_bound_boundary_failure_throws_its_stable_public_exception(
+        EngineFailureKind failureKind, Type expectedExceptionType)
+    {
+        AllocationOperationsFake operations = new()
+        {
+            BoundAllocationOutcomeOverride = TargetMemoryAllocationOutcome.FromOperation(
+                TargetMemoryOperationOutcome.FromFailureKind(failureKind, LuaStatus.SyntaxError)),
+        };
+        TargetMemoryAllocator allocator = new(operations);
+
+        var exception = Assert.ThrowsAny<EngineException>(() =>
+            allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))));
+
+        Assert.IsType(expectedExceptionType, exception);
+        Assert.Equal(0, operations.AllocateCalls);
+        Assert.Equal(0, operations.DeallocateCalls);
+
+        if (exception is EngineLuaException lua)
+            Assert.Equal(LuaStatus.SyntaxError, lua.Status);
+        if (exception is EngineMarshallingException marshalling)
+            Assert.Equal(EngineMarshallingDirection.Result, marshalling.Direction);
+        if (exception is EngineTargetIdentityException identity)
+            Assert.Equal(TargetIdentityCheckKind.CurrentTargetUnqualified, identity.Check.Kind);
+    }
+
+    [Fact]
     public void ReleaseWithOutcome_adapts_the_legacy_bool_seam_and_consumes_ownership()
     {
         AllocationOperationsFake operations = new() { DeallocationResult = false };
@@ -181,5 +230,25 @@ public sealed class TargetMemoryAllocatorTests
     {
         Assert.True(Attribute.IsDefined(method, typeof(RequiresPluginEnabledAttribute)));
         Assert.False(Attribute.IsDefined(method, typeof(MainThreadOnlyAttribute)));
+    }
+
+    private sealed class DirectOnlyAllocationOperations : ITargetMemoryAllocationOperations
+    {
+        public int AllocateCalls { get; private set; }
+
+        public int DeallocateCalls { get; private set; }
+
+        public bool TryAllocate(TargetAllocationRequest request, out Address address)
+        {
+            AllocateCalls++;
+            address = new Address(0x7FF6_1000_0000);
+            return true;
+        }
+
+        public bool TryDeallocate(Address address, TargetAllocationSize size)
+        {
+            DeallocateCalls++;
+            return true;
+        }
     }
 }

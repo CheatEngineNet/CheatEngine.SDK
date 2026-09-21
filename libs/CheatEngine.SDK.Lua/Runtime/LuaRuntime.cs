@@ -29,9 +29,8 @@ namespace CheatEngine.SDK.Lua.Runtime;
 ///         supported in-place state replacement instead advances <see cref="StateGeneration" /> while retaining its
 ///         attachment epoch; persistent resources compare both values. Detach neutralizes and frees every live
 ///         <see cref="Callbacks.LuaCallback" /> while the state can still be reached, so no managed state is ever freed
-///         behind a
-///         closure
-///         Lua can still call.
+///         behind a closure Lua can still call. Internal host-subscription owners are first made inert and then
+///         unregistered while their old state remains reachable; this does not expose a timer or hotkey API.
 ///     </para>
 ///     <para>
 ///         <b>Acquiring a state.</b> Cheat Engine hands out one Lua thread per OS thread. Start every normal operation
@@ -291,13 +290,18 @@ public static unsafe class LuaRuntime
             try
             {
                 var previous = s_services;
-                if (previous is not null) LuaCallbackRegistry.DetachAll(previous);
+                if (previous is not null)
+                {
+                    LuaHostSubscriptionRegistry.DetachAll(new LuaState(previous.Provider()));
+                    LuaCallbackRegistry.DetachAll(previous);
+                }
 
                 lock (LuaReferences.Gate)
                 {
                     var identity = CurrentStateIdentity;
                     PublishIdentity(unchecked(identity.AttachEpoch + 1), identity.StateGeneration);
                     Volatile.Write(ref s_services, new LuaHostServices(binding));
+                    LuaHostSubscriptionRegistry.OpenRegistrationAdmission();
                 }
             }
             finally
@@ -306,6 +310,7 @@ public static unsafe class LuaRuntime
                 // If replacement cleanup failed, s_services still names the previous usable binding. Reopen it rather
                 // than stranding every caller behind the admission gate until a later lifecycle call happens to retry.
                 OpenOperationAdmission();
+                if (Volatile.Read(ref s_services) is not null) LuaHostSubscriptionRegistry.OpenRegistrationAdmission();
             }
         }
     }
@@ -335,6 +340,7 @@ public static unsafe class LuaRuntime
             BeginTransition();
             try
             {
+                LuaHostSubscriptionRegistry.DetachAll(new LuaState(services.Provider()));
                 LuaCallbackRegistry.DetachAll(services);
                 lock (LuaReferences.Gate)
                 {
@@ -349,6 +355,7 @@ public static unsafe class LuaRuntime
             {
                 EndTransition();
                 OpenOperationAdmission();
+                LuaHostSubscriptionRegistry.OpenRegistrationAdmission();
                 throw;
             }
         }
@@ -373,6 +380,7 @@ public static unsafe class LuaRuntime
             var detachSucceeded = false;
             try
             {
+                LuaHostSubscriptionRegistry.DetachAll(new LuaState(services.Provider()));
                 LuaCallbackRegistry.DetachAll(services);
                 Volatile.Write(ref s_services, null);
                 detachSucceeded = true;
@@ -382,7 +390,11 @@ public static unsafe class LuaRuntime
                 EndTransition();
                 // A callback release can fail (for example, while Lua rejects a registry operation). Keep the binding
                 // and its remaining registry entries reachable so a caller can retry Detach after that failure clears.
-                if (!detachSucceeded) OpenOperationAdmission();
+                if (!detachSucceeded)
+                {
+                    OpenOperationAdmission();
+                    LuaHostSubscriptionRegistry.OpenRegistrationAdmission();
+                }
             }
         }
     }
@@ -515,6 +527,19 @@ public static unsafe class LuaRuntime
         return false;
     }
 
+    /// <summary>
+    ///     Closes admission for every internal host-subscription callback and drains callbacks already admitted. Hosting
+    ///     calls this before plugin <c>OnDisable</c>, while Lua remains attached; <see cref="Detach" /> later owns the
+    ///     state-bound unregister attempt. This is not a timer or hotkey capability surface.
+    /// </summary>
+    internal static void CloseHostSubscriptionAdmissionAndDrain()
+    {
+        ThrowIfTransitionFromCurrentOperation();
+        if (Volatile.Read(ref s_services) is null) return;
+
+        LuaHostSubscriptionRegistry.CloseCallbackAdmissionAndDrain();
+    }
+
     // A generated [LuaFunction] closure stores this pair in Lua upvalues. Keeping the test and the following
     // admission attempt distinct is intentional: once admission closes, a closure that raced with disable is rejected
     // before user code; one admitted before the boundary retains its lease until its unmanaged thunk returns.
@@ -557,6 +582,7 @@ public static unsafe class LuaRuntime
             s_resetTransitionActive = false;
             EndTransition();
             OpenOperationAdmission();
+            if (Volatile.Read(ref s_services) is not null) LuaHostSubscriptionRegistry.OpenRegistrationAdmission();
         }
     }
 

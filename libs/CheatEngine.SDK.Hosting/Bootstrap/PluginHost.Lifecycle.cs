@@ -531,6 +531,9 @@ public static unsafe partial class PluginHost
     {
         // Main-thread work admission is closed outside SGate, so an admitted worker can finish and release its lease.
         CloseMainThreadWorkAdmissionAndSignalShutdown(context);
+        // Subscription callbacks are made inert before plugin state is torn down. Their host-object unregister actions
+        // still run later in LuaRuntime.Detach, while the attached state can be reached.
+        LuaRuntime.CloseHostSubscriptionAdmissionAndDrain();
 
         if (plugin is not null)
             try

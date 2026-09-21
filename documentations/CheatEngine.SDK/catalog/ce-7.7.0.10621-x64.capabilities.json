@@ -142,6 +142,24 @@
       "failure_shape": "unavailable when detached, stale, or admission closed", "availability": "mapped", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
     },
     {
+      "id": "lua.subscription.timer",
+      "layer": "lua-subscription", "symbol": "createTimer / timer_setInterval / timer_onTimer",
+      "declaration_refs": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 239, "line_end": 265 }, { "source_id": "sdk-subscription-owner", "path": "libs/CheatEngine.SDK.Lua/Callbacks/LuaHostSubscription.cs", "line_start": 1, "line_end": 260 }],
+      "interop": { "calling_convention": "historical stdcall slots; no managed V1 export mapping", "parameter_widths": "historical x64 table inventory only", "result": "no SDK timer registration result", "indirection": "no public adapter" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical source only; no controlled CE 7.7 timer observation" },
+      "ownership": { "registration": "unavailable; future mapping must return a complete unregister action before publication", "callback": "internal owner closes and drains before state-bound LIFO teardown", "arguments": "no public event payload or borrowed host object" },
+      "failure_shape": "no public API; registration, enable, callback affinity and destruction outcomes require a live profile", "availability": "unavailable", "qualification": "source-indexed-only", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": []
+    },
+    {
+      "id": "lua.subscription.generic-hotkey",
+      "layer": "lua-subscription", "symbol": "createHotkey / TGenericHotkey",
+      "declaration_refs": [{ "source_id": "ce-lua-generic-hotkey", "path": "Cheat Engine/LuaGenericHotkey.pas", "line_start": 27, "line_end": 87 }, { "source_id": "sdk-subscription-owner", "path": "libs/CheatEngine.SDK.Lua/Callbacks/LuaHostSubscription.cs", "line_start": 1, "line_end": 260 }],
+      "interop": { "calling_convention": "Lua object path; no classic or managed generic-hotkey registration export", "parameter_widths": "host object and Lua callback are not a public managed ABI", "result": "no observable SDK registration or unregister confirmation", "indirection": "no public adapter" },
+      "thread_affinity": { "value": "unknown", "evidence": "historical synchronize path only; no controlled CE 7.7 hotkey observation" },
+      "ownership": { "registration": "unavailable; source does not expose conflict or removal confirmation", "callback": "internal owner is not a hotkey lease and must not claim safe self-disposal", "arguments": "no public event payload or borrowed host object" },
+      "failure_shape": "unavailable: source review identifies a possible lock/synchronize teardown deadlock; exact-host canary is required", "availability": "unavailable", "qualification": "source-indexed-only", "profile_ids": ["ce-7.7-source-x64-historical"], "conflict_ids": []
+    },
+    {
       "id": "lua.generated.bindings",
       "layer": "lua-generated", "symbol": "LuaFunction, LuaGlobal, LuaClass, LuaMethod, LuaProperty",
       "declaration_refs": [{ "source_id": "sdk-lua-generator", "path": "source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/Emit/LuaFunctionFileEmitter.cs", "line_start": 1, "line_end": 110 }],

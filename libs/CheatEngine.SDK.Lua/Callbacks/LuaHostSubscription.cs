@@ -1,0 +1,314 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
+
+namespace CheatEngine.SDK.Lua.Callbacks;
+
+/// <summary>
+///     An SDK-internal owner for a host callback registration whose host object must be released while its Lua state is
+///     still reachable.
+/// </summary>
+/// <remarks>
+///     This is deliberately not a timer or hotkey API. The managed CE export contract does not contain those operations,
+///     and their Lua paths have not received a controlled live-host qualification. A future, qualified mapper supplies a
+///     registrar that returns an unregister action only after it has completely created the host subscription. The owner
+///     then gives that action one state-bound, LIFO teardown attempt during reset, disable, or replacement.
+/// </remarks>
+internal sealed class LuaHostSubscription : IDisposable
+{
+    [ThreadStatic] private static List<LuaHostSubscription>? t_dispatchStack;
+
+    private readonly Lock _gate = new();
+    private readonly ManualResetEventSlim _callbacksDrained = new(initialState: true);
+    private readonly ManualResetEventSlim _disposed = new(initialState: false);
+    private readonly LuaStateIdentity _identity;
+
+    private Action? _callback;
+    private Action<LuaState>? _unregister;
+    private int _activeCallbacks;
+    private int _disposeStarted;
+    private bool _acceptCallbacks;
+    private bool _isDisposed;
+
+    private LuaHostSubscription(Action callback, LuaStateIdentity identity)
+    {
+        _callback = callback;
+        _identity = identity;
+    }
+
+    /// <summary>Gets the attachment and state generation that owns this registration.</summary>
+    internal LuaStateIdentity Identity => _identity;
+
+    /// <summary>Gets whether teardown has consumed this host registration.</summary>
+    internal bool IsDisposed => Volatile.Read(ref _isDisposed);
+
+    /// <summary>Gets the last managed handler failure, which is contained instead of reaching the host callback.</summary>
+    internal Exception? LastCallbackException { get; private set; }
+
+    /// <summary>Gets the last unregister failure; ownership remains consumed and the action is never retried.</summary>
+    internal Exception? LastUnregisterException { get; private set; }
+
+    // Deterministic drain seam used only by the SDK's friend test assembly. It runs in the individual owner drain and
+    // therefore exposes whether a registry caller kept its gate while asking that owner to wait for a callback.
+    internal static Action? CallbackDrainStartedForTesting;
+
+    internal LuaHostSubscription? Next { get; set; }
+
+    internal LuaHostSubscription? Previous { get; set; }
+
+    internal bool IsLinked { get; set; }
+
+    /// <summary>
+    ///     Creates and publishes one owner transactionally. The registrar receives an inert callback and must return an
+    ///     unregister action only after the host has accepted the registration. A <see langword="null" /> return or a
+    ///     thrown registrar must mean that no host subscription requiring cleanup was created.
+    /// </summary>
+    internal static bool TryRegister(LuaState state, Action callback,
+        Func<LuaState, Action, Action<LuaState>?> registrar, out LuaHostSubscription? subscription)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        ArgumentNullException.ThrowIfNull(registrar);
+
+        subscription = null;
+        if (state.IsNull || !LuaRuntime.IsAttached) return false;
+
+        using var operation = LuaRuntime.EnterStateOperation(state);
+        if (!LuaRuntime.IsAttached) return false;
+
+        LuaHostSubscription candidate = new(callback, LuaRuntime.CurrentStateIdentity);
+        Action<LuaState>? unregister;
+        try
+        {
+            unregister = registrar(state, candidate.Dispatch);
+        }
+        catch
+        {
+            candidate.CancelUnregisteredRegistration();
+            throw;
+        }
+
+        if (unregister is null)
+        {
+            candidate.CancelUnregisteredRegistration();
+            return false;
+        }
+
+        candidate._unregister = unregister;
+        if (!LuaHostSubscriptionRegistry.TryAdd(candidate))
+        {
+            candidate.ReleaseUnpublishedRegistration(state);
+            return false;
+        }
+
+        subscription = candidate;
+        return true;
+    }
+
+    /// <summary>
+    ///     Releases this owner with a state borrowed from the active attachment. If a lifecycle transition has already
+    ///     closed operation admission, its registry entry remains owned by that transition instead of attempting a raw
+    ///     state access after teardown started.
+    /// </summary>
+    public void Dispose()
+    {
+        if (IsDispatchingOnCurrentThread())
+            throw new InvalidOperationException(
+                "A host subscription cannot be disposed from its own callback; request teardown after the callback returns.");
+
+        var result = LuaRuntime.TryAcquireOperationForCallbackDispose(out var operation);
+        if (result == LuaRuntime.LuaCallbackDisposeOperationResult.Acquired)
+        {
+            using (operation)
+            {
+                ReleaseWithState(operation.State);
+            }
+
+            return;
+        }
+
+        if (result == LuaRuntime.LuaCallbackDisposeOperationResult.AdmissionClosed)
+        {
+            // The lifecycle transition still owns the linked registration and has the only state allowed to unregister
+            // it. In particular, do not consume the action here: a failed transition can reopen the old binding.
+            return;
+        }
+
+        AbandonWithoutState();
+    }
+
+    /// <summary>Stops new handler entry and waits for admitted handlers to leave without unregistering the host object.</summary>
+    internal void CloseCallbackAdmissionAndDrain()
+    {
+        lock (_gate)
+        {
+            _acceptCallbacks = false;
+        }
+
+        Volatile.Read(ref CallbackDrainStartedForTesting)?.Invoke();
+        _callbacksDrained.Wait();
+    }
+
+    /// <summary>Called only by the lifecycle registry while the old state is still valid.</summary>
+    internal void ReleaseFromLifecycle(LuaState state)
+    {
+        ReleaseWithState(state);
+    }
+
+    private void Dispatch()
+    {
+        if (!LuaRuntime.TryEnterCallbackOperation(out var operation)) return;
+
+        using (operation)
+        {
+            if (!TryEnterCallback(out var callback)) return;
+
+            var stack = t_dispatchStack ??= [];
+            stack.Add(this);
+            try
+            {
+                callback();
+            }
+            catch (Exception exception)
+            {
+                LastCallbackException = exception;
+            }
+            finally
+            {
+                stack.RemoveAt(stack.Count - 1);
+                ExitCallback();
+            }
+        }
+    }
+
+    private bool TryEnterCallback(out Action callback)
+    {
+        lock (_gate)
+        {
+            callback = null!;
+            if (!_acceptCallbacks
+                || !LuaRuntime.IsAttached
+                || LuaRuntime.CurrentStateIdentity != _identity
+                || _callback is null)
+                return false;
+
+            checked
+            {
+                _activeCallbacks++;
+            }
+
+            _callbacksDrained.Reset();
+            callback = _callback;
+            return true;
+        }
+    }
+
+    private void ExitCallback()
+    {
+        lock (_gate)
+        {
+            if (--_activeCallbacks == 0) _callbacksDrained.Set();
+        }
+    }
+
+    private bool IsDispatchingOnCurrentThread()
+    {
+        var stack = t_dispatchStack;
+        if (stack is null) return false;
+
+        for (var index = stack.Count - 1; index >= 0; index--)
+        {
+            if (ReferenceEquals(stack[index], this)) return true;
+        }
+
+        return false;
+    }
+
+    private void ReleaseWithState(LuaState state)
+    {
+        if (Interlocked.CompareExchange(ref _disposeStarted, 1, 0) != 0)
+        {
+            _disposed.Wait();
+            return;
+        }
+
+        try
+        {
+            CloseCallbackAdmissionAndDrain();
+            Action<LuaState>? unregister;
+            lock (_gate)
+            {
+                _callback = null;
+                unregister = _unregister;
+                _unregister = null;
+            }
+
+            if (unregister is not null)
+                try
+                {
+                    unregister(state);
+                }
+                catch (Exception exception)
+                {
+                    LastUnregisterException = exception;
+                }
+        }
+        finally
+        {
+            LuaHostSubscriptionRegistry.Remove(this);
+            Volatile.Write(ref _isDisposed, true);
+            _disposed.Set();
+        }
+    }
+
+    private void ReleaseUnpublishedRegistration(LuaState state)
+    {
+        ReleaseWithState(state);
+    }
+
+    private void CancelUnregisteredRegistration()
+    {
+        lock (_gate)
+        {
+            _acceptCallbacks = false;
+            _callback = null;
+        }
+
+        Volatile.Write(ref _isDisposed, true);
+        _disposed.Set();
+    }
+
+    private void AbandonWithoutState()
+    {
+        if (Interlocked.CompareExchange(ref _disposeStarted, 1, 0) != 0)
+        {
+            _disposed.Wait();
+            return;
+        }
+
+        try
+        {
+            CloseCallbackAdmissionAndDrain();
+            lock (_gate)
+            {
+                _callback = null;
+                _unregister = null;
+            }
+        }
+        finally
+        {
+            LuaHostSubscriptionRegistry.Remove(this);
+            Volatile.Write(ref _isDisposed, true);
+            _disposed.Set();
+        }
+    }
+
+    internal void Publish()
+    {
+        lock (_gate)
+        {
+            _acceptCallbacks = true;
+        }
+    }
+}

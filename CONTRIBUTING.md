@@ -50,7 +50,7 @@ PR descriptions should state the problem, resulting behavior, related issues, va
 
 ## Commits
 
-Use focused commits with short, imperative subjects, such as `Fix the SonarCloud quality gate findings`. Conventional Commit prefixes are not required. Do not add `Co-authored-by` trailers.
+Use focused commits with short, imperative subjects, such as `Fix CI validation findings`. Conventional Commit prefixes are not required. Do not add `Co-authored-by` trailers.
 
 ## Releases
 

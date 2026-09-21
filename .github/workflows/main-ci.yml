@@ -18,14 +18,3 @@ jobs:
   ci:
     name: CI
     uses: ./.github/workflows/ci.yml
-    with:
-      collect-coverage: ${{ vars.SONAR_CI_ENABLED == 'true' && github.ref == 'refs/heads/main' }}
-
-  # The branch analysis of main is the baseline that pull request analyses compare against. A merge queue branch never matches the ref.
-  sonar:
-    name: Sonar
-    needs: ci
-    if: vars.SONAR_CI_ENABLED == 'true' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/sonar.yml
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

@@ -3,10 +3,6 @@ name: CI
 on:
   workflow_call:
     inputs:
-      collect-coverage:
-        description: Emit Visual Studio XML coverage from every test job and upload it as coverage-<project>.
-        type: boolean
-        default: false
       upload-package:
         description: Upload the packed package as the nuget-package artifact.
         type: boolean
@@ -277,11 +273,9 @@ jobs:
           PROJECT: ${{ matrix.project }}
           CONFIGURATION: ${{ matrix.configuration }}
           RESULTS: artifacts/test-results/${{ matrix.artifact }}
-          COLLECT_COVERAGE: ${{ inputs.collect-coverage }}
         run: |
           $options = '--project', $env:PROJECT, '-c', $env:CONFIGURATION, '--report-trx', '--results-directory', $env:RESULTS
           if ($env:CONFIGURATION -eq 'Debug') { $options += '--fail-skips', 'on' }
-          if ($env:CONFIGURATION -eq 'Debug' -and $env:COLLECT_COVERAGE -eq 'true') { $options += '--coverage', '--coverage-output-format', 'xml', '--coverage-output', 'coverage.xml' }
           dotnet test @options
 
       - name: Summarize results
@@ -311,21 +305,6 @@ jobs:
           }
           $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
-      - name: Summarize coverage
-        if: ${{ inputs.collect-coverage && matrix.configuration == 'Debug' && !cancelled() }}
-        env:
-          RESULTS: artifacts/test-results/${{ matrix.artifact }}
-        run: |
-          $modules = @(Get-ChildItem -Path $env:RESULTS -Filter *.xml -File -ErrorAction SilentlyContinue | ForEach-Object {
-            ([xml](Get-Content -LiteralPath $_.FullName -Raw)).results.modules.module
-          } | Where-Object { $_ })
-          if ($modules.Count -eq 0) { Write-Host 'The coverage report lists no instrumented module.'; return }
-          $rows = $modules | Sort-Object name | ForEach-Object {
-            "| $($_.name) | $($_.line_coverage)% | $($_.lines_covered) | $($_.lines_not_covered) |"
-          }
-          '', '#### Coverage', '', '| Module | Line coverage | Lines covered | Lines not covered |', '| --- | ---: | ---: | ---: |', $rows |
-            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-
       - name: Upload test results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -334,15 +313,6 @@ jobs:
           path: artifacts/test-results/${{ matrix.artifact }}/*.trx
           if-no-files-found: warn
           retention-days: 14
-
-      - name: Upload coverage
-        if: ${{ inputs.collect-coverage && matrix.configuration == 'Debug' && !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: coverage-${{ matrix.name }}
-          path: artifacts/test-results/${{ matrix.artifact }}/coverage.xml
-          if-no-files-found: error
-          retention-days: 7
 
   pack:
     name: Pack

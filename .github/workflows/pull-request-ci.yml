@@ -16,20 +16,6 @@ jobs:
     name: CI
     if: github.event.pull_request.draft == false
     uses: ./.github/workflows/ci.yml
-    with:
-      collect-coverage: ${{ vars.SONAR_CI_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
-
-  # Fork and Dependabot runs receive no secrets, so the analysis skips them. Keep this condition equal to collect-coverage above.
-  sonar:
-    name: Sonar
-    needs: ci
-    if: >-
-      vars.SONAR_CI_ENABLED == 'true'
-      && github.event.pull_request.head.repo.full_name == github.repository
-      && github.actor != 'dependabot[bot]'
-    uses: ./.github/workflows/sonar.yml
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   # Lints every workflow and local action reference, since main-ci.yml and release.yml never run on a pull request.
   lint-workflows:

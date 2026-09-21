@@ -15,10 +15,15 @@ public sealed unsafe class NativeAbiFixtureManagedComparisonTests
     /// <summary>Name of the CI-provided absolute path to the validated native fixture facts file.</summary>
     internal const string FactsPathEnvironmentVariable = "CE77_NATIVE_ABI_FACTS_PATH";
 
+    /// <summary>Name of the opt-in gate that makes the native fixture facts mandatory.</summary>
+    internal const string RequiredEnvironmentVariable = "CE77_NATIVE_ABI_REQUIRED";
+
     [Fact]
     public void Native_fixture_layout_facts_match_the_managed_x64_measurements_when_CI_supplies_them()
     {
-        var factsPath = Environment.GetEnvironmentVariable(FactsPathEnvironmentVariable);
+        var factsPath = ResolveFactsPath(
+            Environment.GetEnvironmentVariable(FactsPathEnvironmentVariable),
+            Environment.GetEnvironmentVariable(RequiredEnvironmentVariable));
         if (factsPath is null)
         {
             Assert.Null(factsPath);
@@ -26,7 +31,6 @@ public sealed unsafe class NativeAbiFixtureManagedComparisonTests
         }
 
         Assert.True(Layout.Is64BitProcess, Layout.Requires64BitProcess);
-        Assert.True(File.Exists(factsPath), $"The native ABI fixture facts file '{factsPath}' was not found.");
 
         var nativeFacts = ReadFacts(factsPath);
         var managedFacts = CreateManagedLayoutFacts();
@@ -38,8 +42,55 @@ public sealed unsafe class NativeAbiFixtureManagedComparisonTests
         }
     }
 
+    [Fact]
+    public void Native_fixture_facts_path_is_optional_when_required_mode_is_not_enabled()
+    {
+        Assert.Null(ResolveFactsPath(null, null));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" \t")]
+    public void Native_fixture_required_mode_rejects_an_absent_facts_path(string? factsPath)
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() => ResolveFactsPath(factsPath, "true"));
+
+        Assert.Equal(
+            $"'{RequiredEnvironmentVariable}=true' requires '{FactsPathEnvironmentVariable}' to name a validated native ABI fixture facts file.",
+            exception.Message);
+    }
+
+    [Fact]
+    public void Native_fixture_comparison_rejects_a_supplied_missing_facts_file()
+    {
+        var factsPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.txt");
+
+        var exception = Assert.Throws<FileNotFoundException>(() => ReadFacts(factsPath));
+
+        Assert.Equal(factsPath, exception.FileName);
+    }
+
+    private static string? ResolveFactsPath(string? factsPath, string? requiredMode)
+    {
+        if (!string.IsNullOrWhiteSpace(factsPath)) return factsPath;
+
+        if (string.Equals(requiredMode, "true", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"'{RequiredEnvironmentVariable}=true' requires '{FactsPathEnvironmentVariable}' to name a validated native ABI fixture facts file.");
+        }
+
+        return null;
+    }
+
     private static Dictionary<string, string> ReadFacts(string factsPath)
     {
+        if (!File.Exists(factsPath))
+        {
+            throw new FileNotFoundException($"The native ABI fixture facts file '{factsPath}' was not found.", factsPath);
+        }
+
         var facts = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var line in File.ReadLines(factsPath))
         {

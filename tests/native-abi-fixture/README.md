@@ -62,5 +62,7 @@ sentinel.plugin_version.outer_guard=passed
 ```
 
 The script writes `ce77-native-abi-facts.txt` and validates every emitted key and value with
-`Validate-Facts.ps1`. CI invokes this fixture in the native job; the ordinary ABI tests remain pure .NET tests in
-`tests/CheatEngine.SDK.Abi.Tests` and never require a C++ compiler.
+`Validate-Facts.ps1`. CI invokes this fixture in the native job, then passes its facts path to the compiled managed ABI
+test with `CE77_NATIVE_ABI_REQUIRED=true`; that required mode fails the comparison gate if the path is absent. Ordinary
+ABI tests remain pure .NET tests in `tests/CheatEngine.SDK.Abi.Tests`: their local opt-out does not require a C++
+compiler or the facts file.

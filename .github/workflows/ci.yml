@@ -197,6 +197,7 @@ jobs:
       - name: Compare native fixture facts with managed ABI measurements
         env:
           CE77_NATIVE_ABI_FACTS_PATH: ${{ github.workspace }}/artifacts/native-abi-fixture/ce77-native-abi-facts.txt
+          CE77_NATIVE_ABI_REQUIRED: 'true'
         run: |
           dotnet build tests/CheatEngine.SDK.Abi.Tests/CheatEngine.SDK.Abi.Tests.csproj -c Debug --no-restore --disable-build-servers
           & ./artifacts/bin/CheatEngine.SDK.Abi.Tests/debug/CheatEngine.SDK.Abi.Tests.exe --fail-skips on

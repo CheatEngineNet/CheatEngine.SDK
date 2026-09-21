@@ -12,6 +12,7 @@
 namespace
 {
 constexpr unsigned char Guard = 0xA5;
+char ExpectedPluginName[] = "CE77 native ABI fixture";
 
 void CE77_STDCALL FixtureShowMessage(char* message)
 {
@@ -49,6 +50,37 @@ bool IsGuarded(const unsigned char* bytes, size_t count)
     }
 
     return true;
+}
+
+// This local negative fixture satisfies the version-export contract except for
+// corrupting the four padding bytes between Version and PluginName. It proves
+// that the probe observes the padding only after the export returns.
+CE77_BOOL CE77_STDCALL PaddingWritingGetVersion(CE77PluginVersion* version, int32_t versionSize)
+{
+    if (version == nullptr || versionSize < static_cast<int32_t>(sizeof(CE77PluginVersion))) return 0;
+
+    version->Version = 6;
+    auto* bytes = reinterpret_cast<unsigned char*>(version);
+    bytes[sizeof(version->Version)] = 0;
+    version->PluginName = ExpectedPluginName;
+    return 1;
+}
+
+bool ValidateGetVersion(CE77GetVersionExport getVersion)
+{
+    std::array<unsigned char, sizeof(CE77PluginVersion) + 16> guardedVersion{};
+    guardedVersion.fill(Guard);
+    auto* version = reinterpret_cast<CE77PluginVersion*>(guardedVersion.data() + 8);
+    bool sentinelsAreIntact = IsGuarded(guardedVersion.data(), 8) &&
+        IsGuarded(guardedVersion.data() + 8 + sizeof(CE77PluginVersion), 8);
+    bool getVersionSucceeded = getVersion(version, static_cast<int32_t>(sizeof(*version))) != 0 &&
+        version->Version == 6 && std::strcmp(version->PluginName, ExpectedPluginName) == 0;
+    bool paddingWasNotWritten = IsGuarded(guardedVersion.data() + 8 + sizeof(version->Version),
+        offsetof(CE77PluginVersion, PluginName) - sizeof(version->Version));
+    sentinelsAreIntact = sentinelsAreIntact && IsGuarded(guardedVersion.data(), 8) &&
+        IsGuarded(guardedVersion.data() + 8 + sizeof(CE77PluginVersion), 8);
+
+    return getVersionSucceeded && sentinelsAreIntact && paddingWasNotWritten;
 }
 
 void EmitFacts()
@@ -194,20 +226,12 @@ int wmain(int argc, wchar_t** argv)
             break;
         }
 
-        std::array<unsigned char, sizeof(CE77PluginVersion) + 16> guardedVersion{};
-        guardedVersion.fill(Guard);
-        auto* version = reinterpret_cast<CE77PluginVersion*>(guardedVersion.data() + 8);
-        bool sentinelsAreIntact = IsGuarded(guardedVersion.data(), 8) &&
-            IsGuarded(guardedVersion.data() + 8 + sizeof(CE77PluginVersion), 8);
-        bool paddingWasNotWritten = IsGuarded(guardedVersion.data() + 8 + 4, 4);
-        bool getVersionSucceeded = getVersion(version, static_cast<int32_t>(sizeof(*version))) != 0 &&
-            version->Version == 6 && std::strcmp(version->PluginName, "CE77 native ABI fixture") == 0;
-        sentinelsAreIntact = sentinelsAreIntact && IsGuarded(guardedVersion.data(), 8) &&
-            IsGuarded(guardedVersion.data() + 8 + sizeof(CE77PluginVersion), 8);
+        bool paddingNegativeTestRejected = !ValidateGetVersion(&PaddingWritingGetVersion);
+        bool getVersionSucceeded = ValidateGetVersion(getVersion);
 
         CE77ExportedFunctionsPrefix prefix{};
         bool exportsSucceeded = initialize(&prefix, 0x10203040) != 0 && disable() != 0;
-        if (!getVersionSucceeded || !sentinelsAreIntact || !paddingWasNotWritten || !exportsSucceeded)
+        if (!paddingNegativeTestRejected || !getVersionSucceeded || !exportsSucceeded)
         {
             std::fputs("fixture sentinel call failed\n", stderr);
             result = 67;

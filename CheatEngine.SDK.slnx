@@ -85,6 +85,12 @@
     <Project Path="tests/CheatEngine.SDK.LivePlugin/CheatEngine.SDK.LivePlugin.csproj">
       <Platform Project="x64"/>
     </Project>
+    <Project Path="tests/CheatEngine.SDK.LivePlugin.Coexistence/PluginA/CheatEngine.SDK.LivePlugin.Coexistence.PluginA.csproj">
+      <Platform Project="x64"/>
+    </Project>
+    <Project Path="tests/CheatEngine.SDK.LivePlugin.Coexistence/PluginB/CheatEngine.SDK.LivePlugin.Coexistence.PluginB.csproj">
+      <Platform Project="x64"/>
+    </Project>
     <Project Path="tests/CheatEngine.SDK.Lua.Interop.Tests/CheatEngine.SDK.Lua.Interop.Tests.csproj"/>
     <Project Path="tests/CheatEngine.SDK.Lua.FailureProbe/CheatEngine.SDK.Lua.FailureProbe.csproj"/>
     <Project Path="tests/CheatEngine.SDK.Lua.Tests/CheatEngine.SDK.Lua.Tests.csproj"/>

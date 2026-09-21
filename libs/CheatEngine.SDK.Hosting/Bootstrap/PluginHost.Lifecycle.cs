@@ -494,6 +494,13 @@ public static unsafe partial class PluginHost
             return false;
         }
 
+        if (MainThreadDispatcher.IsExecutingInlineWorkOnCurrentThread)
+        {
+            HostLog.Error(
+                "DisablePlugin: disable was requested from inline main-thread work; the request is refused because shutdown would wait for that work to return.");
+            return false;
+        }
+
         if (MainThreadDispatcher.IsExecutingWorkOnCurrentThread)
         {
             HostLog.Error(
@@ -522,7 +529,7 @@ public static unsafe partial class PluginHost
 
     private static void RunDisable(PluginContext context, CheatEnginePlugin? plugin)
     {
-        // The dispatcher admission is closed outside SGate, so an admitted worker can finish and release its lease.
+        // Main-thread work admission is closed outside SGate, so an admitted worker can finish and release its lease.
         CloseMainThreadWorkAdmissionAndSignalShutdown(context);
 
         if (plugin is not null)

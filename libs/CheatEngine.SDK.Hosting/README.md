@@ -93,6 +93,32 @@ the captured main thread and rejects an inline/wrong-thread host implementation.
 still needs its opt-in live probe. A main thread that disables while a worker already waits in `synchronize` pumps
 `CheckSynchronize` as part of the shutdown drain; no fire-and-forget `queue(function, ...)` API is exposed.
 
+## Plugin identity and coexistence
+
+`PluginHost` is static, so its descriptor, runtime context, lifecycle lock and callback admission belong to the loaded
+`CheatEngine.SDK.Hosting` assembly instance. They are not automatically scoped to an individual plugin DLL, a Client
+service provider, or the process. Within one loaded Hosting assembly instance, the first factory registered by
+`InitializeManaged<TFactory>` wins and a different factory is rejected; this is an intentional one-plugin admission
+boundary for that assembly instance.
+
+The exact Cheat Engine loader/runtime profile decides whether two plugin DLLs share that Hosting assembly instance or
+receive distinct instances. The SDK does not configure an `AssemblyLoadContext`, and neither a .NET load-context type
+nor a successful single-plugin test proves the host's behaviour. Consequently, multi-plugin and side-by-side SDK
+dependency graphs are **not yet qualified capabilities**. Do not use Client-local DI scopes or locks as evidence that
+all CE/Lua participants are serialized.
+
+The opt-in [two-plugin live fixture](../../tests/CheatEngine.SDK.LivePlugin.Coexistence/README.md) logs the exact
+plugin, Hosting-assembly and runtime `AssemblyLoadContext` identities for a controlled host run. It is an observation
+protocol, not a CI test or a portability promise. It must be run and recorded before a supported coexistence profile is
+claimed. The related architecture-review scenarios R25/T049–T050, R26/T051–T052 and R34/T067–T068/T076 remain
+specified, not executed.
+
+The current supported route is the managed, framework-dependent plugin route. The standalone Native AOT probe checks
+library publication constraints; it does not establish that Cheat Engine can load, disable, unload or remove a Native
+AOT plugin. Microsoft documents that Native AOT libraries cannot be unloaded through `FreeLibrary`/`dlclose`; a native
+plugin mode needs an explicit resident-core/adapter design and separate exact-host qualification. See
+[Native AOT libraries](https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries).
+
 `HostLog` receives every failure that a callback turns into `FALSE` or 0. The default sink writes to
 `OutputDebugStringW`, so a debugger attached to Cheat Engine or DebugView shows the entries. Set `HostLog.Sink` to route
 entries elsewhere and `HostLog.MinimumLevel` (default `Information`) to filter. `Trace` adds every lifecycle call.

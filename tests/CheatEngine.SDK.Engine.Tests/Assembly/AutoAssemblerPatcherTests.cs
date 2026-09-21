@@ -1,7 +1,9 @@
 using System.Reflection;
+using System.Text;
 using CheatEngine.SDK.Engine.Assembly;
 using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Tests.Support;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
@@ -148,6 +150,25 @@ public sealed class AutoAssemblerPatcherTests
     }
 
     [Fact]
+    public void Release_after_an_external_target_termination_refuses_without_disabling_the_patch()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+        var patch = AutoAssemblerPatcher.Apply("success");
+
+        EngineTest.Run(scope.State, "auto_assembler_target_process_id = 0"u8);
+        var exception = Assert.Throws<EngineTargetIdentityException>(patch.Release);
+
+        Assert.Equal(TargetIdentityCheckKind.NoTargetSelected, exception.Check.Kind);
+        Assert.Equal(TargetReleaseStatus.RefusedNoTarget, patch.LastReleaseOutcome.Status);
+        Assert.True(patch.RequiresManualRecovery);
+        Assert.Equal(0, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
     public void Dispose_after_disable_and_reenable_does_not_route_a_stale_disable_info_into_the_new_lifecycle()
     {
         EngineTest.RequireNativeLua();
@@ -188,6 +209,9 @@ public sealed class AutoAssemblerPatcherTests
 
     private static void InstallAutoAssembler(CheatEngine.SDK.Lua.State.LuaState state)
     {
+        EngineTest.Run(state, Encoding.UTF8.GetBytes("auto_assembler_target_process_id = " +
+                                                     Environment.ProcessId +
+                                                     "\nfunction getOpenedProcessID() return auto_assembler_target_process_id end"));
         EngineTest.Run(state, """
                               auto_assembler_apply_count = 0
                               auto_assembler_disable_count = 0

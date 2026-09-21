@@ -1,4 +1,5 @@
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Lua.Calls;
 
 namespace CheatEngine.SDK.Engine.Tests.Errors;
@@ -105,6 +106,27 @@ public sealed class EngineExceptionTests
                 "a 32-bit signed integer", "a table"));
 
         Assert.Equal("direction", exception.ParamName);
+    }
+
+    [Fact]
+    public void Target_identity_failure_preserves_the_observed_mismatch_category()
+    {
+        TargetProcessIncarnation observedIncarnation = new(43, 2);
+        var observed = TargetSelectionObservation.Qualified(observedIncarnation);
+        var check = new TargetIdentityCheck(TargetIdentityCheckKind.TargetChanged, observed);
+        var exception = new EngineTargetIdentityException("TargetMemoryDeallocate", check);
+
+        Assert.Equal(EngineFailureKind.TargetIdentityMismatch, exception.Kind);
+        Assert.Equal(TargetIdentityCheckKind.TargetChanged, exception.Check.Kind);
+        Assert.True(exception.Check.Observed.Incarnation.HasValue);
+        Assert.Equal(observedIncarnation, exception.Check.Observed.Incarnation.GetValueOrDefault());
+    }
+
+    [Fact]
+    public void Target_identity_failure_kinds_append_without_reassigning_the_existing_failure_values()
+    {
+        Assert.Equal(6, (int)EngineFailureKind.TargetIdentityUnavailable);
+        Assert.Equal(7, (int)EngineFailureKind.TargetIdentityMismatch);
     }
 
     [Theory]

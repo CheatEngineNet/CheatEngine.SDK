@@ -36,4 +36,14 @@ public enum EngineFailureKind
     ///     A value crossing the Engine/Lua boundary could not be marshalled according to its declared contract.
     /// </summary>
     MarshallingFailure = 5,
+
+    /// <summary>
+    ///     A target-bound operation could not establish the current target's required identity facts.
+    /// </summary>
+    TargetIdentityUnavailable = 6,
+
+    /// <summary>
+    ///     A target-bound owner no longer matches the target currently selected by Cheat Engine.
+    /// </summary>
+    TargetIdentityMismatch = 7,
 }

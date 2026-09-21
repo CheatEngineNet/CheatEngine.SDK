@@ -196,13 +196,22 @@
       "failure_shape": "bool failure aggregates global/call/object/adoption cause", "availability": "source-only", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
     },
     {
+      "id": "engine.target.identity",
+      "layer": "target-memory", "symbol": "TargetSelection / TargetProcessIncarnation",
+      "declaration_refs": [{ "source_id": "sdk-target-selection", "path": "libs/CheatEngine.SDK.Engine/Targets/TargetSelection.cs", "line_start": 1, "line_end": 160 }],
+      "interop": { "calling_convention": "Lua getOpenedProcessID plus local Process.StartTime", "parameter_widths": "positive int32 PID and UTC ticks", "result": "copied selection observation and optional incarnation", "indirection": "ambient CE selection; no target lock" },
+      "thread_affinity": { "value": "unknown", "evidence": "catalog has no CE 7.7 affinity proof" },
+      "ownership": { "registration": "none", "callback": "none", "arguments": "never opens or selects a process; observations do not grant target authority" },
+      "failure_shape": "no target, unqualified PID, missing global, protected Lua failure, or malformed PID remain factual observations", "availability": "implemented-with-known-contract-gap", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+    },
+    {
       "id": "engine.target.allocation",
       "layer": "target-memory", "symbol": "AllocatedRegion",
       "declaration_refs": [{ "source_id": "sdk-allocated-region", "path": "libs/CheatEngine.SDK.Engine/Allocation/AllocatedRegion.cs", "line_start": 1, "line_end": 240 }],
       "interop": { "calling_convention": "Lua allocation/deallocation", "parameter_widths": "target address and size", "result": "IDisposable allocation lease", "indirection": "managed owner" },
       "thread_affinity": { "value": "unknown", "evidence": "catalog has no CE 7.7 affinity proof" },
-      "ownership": { "registration": "SDK owner", "callback": "none", "arguments": "target identity is not tracked" },
-      "failure_shape": "release consumes before deallocation result; target-switch safety gap", "availability": "implemented-with-known-contract-gap", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+      "ownership": { "registration": "SDK owner", "callback": "none", "arguments": "captures a qualified incarnation; a later observed mismatch consumes and refuses without target reselection" },
+      "failure_shape": "release distinguishes confirmed, observed target refusal, and attempted-but-unconfirmed cleanup; an external switch between observation and ambient Lua effect remains unqualified", "availability": "implemented-with-known-contract-gap", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
     },
     {
       "id": "engine.auto-assembler.patch",
@@ -210,8 +219,8 @@
       "declaration_refs": [{ "source_id": "sdk-auto-assembler", "path": "libs/CheatEngine.SDK.Engine/Assembly/AutoAssemblerPatcher.cs", "line_start": 1, "line_end": 260 }],
       "interop": { "calling_convention": "Lua autoAssemble", "parameter_widths": "Lua values", "result": "patch owner", "indirection": "disable info held in LuaRef" },
       "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK contract" },
-      "ownership": { "registration": "SDK patch owner", "callback": "none", "arguments": "manual recovery required after stale state or failed disable" },
-      "failure_shape": "false/raise after apply can require manual recovery; no target identity", "availability": "implemented-with-known-contract-gap", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+      "ownership": { "registration": "SDK patch owner", "callback": "none", "arguments": "captures a qualified incarnation and never reselects a target; manual recovery is required after refusal, stale state, or failed disable" },
+      "failure_shape": "observed target mismatch refuses disable before autoAssemble; false/raise remains unconfirmed, and an external switch between observation and ambient Lua effect remains unqualified", "availability": "implemented-with-known-contract-gap", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
     }
   ],
   "examples": [

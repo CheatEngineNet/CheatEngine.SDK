@@ -196,7 +196,8 @@ internal static unsafe class FakeHost
     ///     Replaces a fake scan's <c>waitTillDone</c> member with a bare C function and observes the protected call that
     ///     reaches it. This pins the managed call's Lua argument and result counts without changing production dispatch.
     /// </summary>
-    public static PCallProbe ReplaceWaitTillDoneWithPCallProbe(LuaState L, CEObject scan)
+    public static PCallProbe ReplaceWaitTillDoneWithPCallProbe(LuaState L, CEObject scan,
+        Action? afterWaitTillDone = null)
     {
         using LuaFrame frame = new(L);
         Assert.Equal(LuaType.Table, L.RawGetPointer(LuaState.RegistryIndex, s_keys + ObjectsKey));
@@ -206,7 +207,7 @@ internal static unsafe class FakeHost
         L.PushUncheckedFunction(
             new LuaNativeFunction((nint)(delegate* unmanaged[Cdecl]<lua_State*, int>)&WaitTillDone));
         Assert.True(L.TryRawSet(-3));
-        return new PCallProbe();
+        return new PCallProbe(afterWaitTillDone);
     }
 
     private static void Install(LuaState L)
@@ -269,6 +270,7 @@ internal static unsafe class FakeHost
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static int WaitTillDone(lua_State* state)
     {
+        s_activePCallProbe?.AfterWaitTillDone();
         return 0;
     }
 
@@ -296,8 +298,9 @@ internal static unsafe class FakeHost
     {
         private readonly FieldInfo _pcallField;
         private readonly object _table;
+        private readonly Action? _afterWaitTillDone;
 
-        internal PCallProbe()
+        internal PCallProbe(Action? afterWaitTillDone)
         {
             if (s_activePCallProbe is not null)
                 throw new InvalidOperationException("Only one fake-host protected-call probe can be active.");
@@ -315,6 +318,7 @@ internal static unsafe class FakeHost
                 (nint)(delegate* unmanaged[Cdecl]<lua_State*, int, int, int, nint, nint, int>)&ObservePCall);
             tableField.SetValue(null, _table);
             s_activePCallProbe = this;
+            _afterWaitTillDone = afterWaitTillDone;
         }
 
         /// <summary>Gets how many protected calls reached the probe's <c>waitTillDone</c> function.</summary>
@@ -343,6 +347,11 @@ internal static unsafe class FakeHost
             WaitCallCount++;
             WaitArgumentCount = argumentCount;
             WaitResultCount = resultCount;
+        }
+
+        internal void AfterWaitTillDone()
+        {
+            _afterWaitTillDone?.Invoke();
         }
     }
 }

@@ -1577,8 +1577,8 @@
       "epic": "SDK-E05",
       "milestone": "SDK-M3",
       "priority": "P2",
-      "evidence": "InheritedAuditBasis + Proposal; revalidate the pinned call path before implementation.",
-      "observation": "MemoryScanSessions.TryCreate is already present at SDK main after PR #19. Client value scanning remains gated pending ownership and live evidence.",
+      "evidence": "Source-indexed contract plus deterministic bundled-Lua fixture evidence; no live CE claim.",
+      "observation": "TryCreateDetailed now qualifies the existing factory with factual outcomes, ordered ownership rollback, runtime/target context checks and caller-bounded result copying. Client value scanning remains live-gated.",
       "objective": "Complete the state-transition and lifecycle evidence for consumers of the existing factory.",
       "requirements": [
         "Test parent/child creation, alias rejection, adoption rollback and child-before-parent release.",
@@ -1591,8 +1591,8 @@
         "Failed transitions leave defined owner states and diagnostics."
       ],
       "tests": [
-        "Creation/transition failure injection and double release.",
-        "Live success/failure/disable/re-enable/target-change scenarios."
+        "Deterministic bundled-Lua creation/transition failure injection, double release, target/runtime refusal and bounded-copy tests.",
+        "Unexecuted live success/failure/disable/re-enable/target-change scenarios."
       ],
       "risks": "A source factory is not a live-supported high-level scan workflow.",
       "blocked_by": [
@@ -1612,17 +1612,17 @@
       ],
       "completion_artifacts": [
         "Focused PR linked to the implementation issue.",
-        "Commands, environment and actual regression results; unexecuted cases remain pending.",
-        "Updated contract/capability documentation and compatibility notes."
+        "Commands, environment and actual deterministic regression results; live cases remain pending.",
+        "Updated contract, capability catalogue and compatibility notes."
       ],
       "mandatory": "Required for the affected capability. Optional profiles may be deferred through an explicit ADR, not marked as implemented.",
       "children": [],
       "blocks": [
         "CLI-016"
       ],
-      "status": "Needs refinement",
+      "status": "In review",
       "repository": "CheatEngineNet/CheatEngine.SDK",
-      "artifact_gate": "Identify the first containing artifact before describing new source as consumable support. No version is invented by this plan.",
+      "artifact_gate": "CheatEngine.SDK is the containing package; package-consumer validation may establish package shape, but this scan capability remains source-only until its live CE gate passes.",
       "labels": [
         "ce:bootstrap",
         "ce:kind:validation",
@@ -1630,7 +1630,7 @@
       ],
       "path": "documentations/engineering/work-items/SDK-015.md",
       "long_term_impact": "One traceable owner, stable acceptance criteria, and explicit compatibility evidence reduce repeated integration fixes and make future API changes reviewable.",
-      "benefits": "Complete the state-transition and lifecycle evidence for consumers of the existing factory.",
+      "benefits": "Give consumers factual factory/materialization outcomes and conservative ownership, target and runtime lifecycle evidence without importing Client workflow policy.",
       "body_template": "<!-- ce-bootstrap:SDK-015 -->\n\n## SDK-015 — Qualify the existing value-scan session factory\n\n**Owner:** `CheatEngineNet/CheatEngine.SDK` · **Kind:** validation · **Priority:** P2 · **Milestone:** SDK-M3\n\n**Initial status:** Needs refinement. **Runtime validation:** Not executed by this bootstrap.\n\n### Context and evidence\n\nMemoryScanSessions.TryCreate is already present at SDK main after PR #19. Client value scanning remains gated pending ownership and live evidence.\n\n**Evidence classification:** InheritedAuditBasis + Proposal; revalidate the pinned call path before implementation.\n\n### Outcome and rationale\n\nComplete the state-transition and lifecycle evidence for consumers of the existing factory.\n\n**Expected benefit:** Complete the state-transition and lifecycle evidence for consumers of the existing factory.\n\n### Architectural responsibility\n\nSDK owns CE mappings, native safety, factual outcomes and low-level owners. Client owns application policy, typed workflows, composition, and developer experience.\n\n### Technical requirements and task checklist\n\n- [ ] Test parent/child creation, alias rejection, adoption rollback and child-before-parent release.\n- [ ] Define valid scan transitions and cancellation milestones without pretending native scans are interruptible.\n- [ ] Record target, activation and runtime invalidation for each session operation.\n\n### Acceptance criteria\n\n- [ ] Factory availability is recorded separately from containing artifact and live qualification.\n- [ ] No Client-created owners are reconstructed from borrowed MemScan/FoundList handles.\n- [ ] Failed transitions leave defined owner states and diagnostics.\n\n### Required validation\n\n- [ ] Creation/transition failure injection and double release.\n- [ ] Live success/failure/disable/re-enable/target-change scenarios.\n\n### Scope exclusions\n\n- No unrelated rewrite, automatic capability activation, package publication, or repository-protection changes.\n- Keep integration mechanisms in SDK and application policy/workflows in Client.\n\n### Parent and children\n\nParent: {{issue:SDK-E05}}\n\nImplementation leaf. Keep small tasks in this checklist; split a new issue only for an independently reviewable outcome.\n\n### Blocked by\n\n- {{issue:SDK-011}}\n- {{issue:SDK-013}}\n\n### Blocks\n\n- {{issue:CLI-016}}\n\n### Package and readiness gate\n\nIdentify the first containing artifact before describing new source as consumable support. No version is invented by this plan.\n\n### Proposed branch and PR\n\nBranch: `test/sdk-015-value-scan-factory-gates`\n\nPR title: **Qualify the existing value-scan session factory**\n\nOpen against `main` only after refinement and prerequisite review. Add `Closes <this issue URL>` for this leaf when the PR actually completes it. Reference upstream SDK work as a dependency, not as an issue to close. The bootstrap does not create this implementation branch.\n\n### Risks and compatibility\n\nA source factory is not a live-supported high-level scan workflow.\n\n**Long-term impact:** One traceable owner, stable acceptance criteria, and explicit compatibility evidence reduce repeated integration fixes and make future API changes reviewable.\n\n### Definition of done\n\n- [ ] Focused PR linked to the implementation issue.\n- [ ] Commands, environment and actual regression results; unexecuted cases remain pending.\n- [ ] Updated contract/capability documentation and compatibility notes.\n\nRequired for the affected capability. Optional profiles may be deferred through an explicit ADR, not marked as implemented.\n\n### Sources\n\n- [S03 — Prior audit: new factory already exists; qualify, do not recreate.](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/aa3fcc3cdf629468e69d0c68817183d44a719894/libs/CheatEngine.SDK.Engine/Scanning/Values/MemoryScanSessions.cs)\n- [H01 — Merged foundations; author-reported tests are not independently executed.](https://github.com/CheatEngineNet/CheatEngine.SDK/pull/19)\n- [C21 — Live gate protocol identified by current README; not independently re-read here.](https://github.com/CheatEngineNet/CheatEngine.Client/blob/923a4ded85898f53ef4cd2ff5872d2fd9001071a/docs/live-capability-gates.md)\n\n### Maintainer notes\n\nKeep execution updates, actual commands/results, decisions, and refinements here. The bootstrap does not overwrite an existing issue body on rerun.\n"
     },
     {

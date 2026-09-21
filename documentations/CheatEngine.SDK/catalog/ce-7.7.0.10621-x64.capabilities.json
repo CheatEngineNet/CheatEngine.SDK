@@ -208,10 +208,10 @@
       "id": "engine.scan.session",
       "layer": "memory-scan", "symbol": "MemoryScanSessions / MemoryScanSession",
       "declaration_refs": [{ "source_id": "sdk-memory-scan", "path": "libs/CheatEngine.SDK.Engine/Scanning/Values/MemoryScanSessions.cs", "line_start": 1, "line_end": 260 }],
-      "interop": { "calling_convention": "Lua globals createMemScan/createFoundList", "parameter_widths": "CE object pointers", "result": "session state machine", "indirection": "owned FoundList then MemScan" },
+      "interop": { "calling_convention": "Lua globals createMemScan/createFoundList", "parameter_widths": "CE object pointers and caller-bounded result span", "result": "detailed creation outcome plus session state machine", "indirection": "owned FoundList then MemScan" },
       "thread_affinity": { "value": "main-CE-thread-required", "evidence": "SDK contract; CE behavior unqualified" },
-      "ownership": { "registration": "SDK session", "callback": "none", "arguments": "dispose child before parent; idempotent no finalizer" },
-      "failure_shape": "bool failure aggregates global/call/object/adoption cause", "availability": "source-only", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+      "ownership": { "registration": "SDK session", "callback": "none", "arguments": "captures runtime identity and qualified target incarnation; ordered destroy is FoundList then MemScan, while stale context requires explicit no-CE abandonment" },
+      "failure_shape": "detailed factory status separates unavailable global, Lua failure, nil, malformed object, alias and unconfirmed rollback; bounded copy separates empty/capacity/cancellation/context/Lua/malformed outcomes", "availability": "source-only", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
     },
     {
       "id": "engine.scan.aob",

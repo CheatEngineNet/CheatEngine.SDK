@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Scanning.Values;
 using CheatEngine.SDK.Engine.Tests.Support;
@@ -47,7 +48,8 @@ public sealed class MemoryScanSessionFactoryTests
         SetGlobalObject(L, "factory_scan"u8, scanner);
         EngineTest.Run(L, "trace = {}; function createMemScan() table.insert(trace, 'factory.scan'); return factory_scan end"u8);
 
-        Assert.False(MemoryScanSessions.TryCreate(out var created));
+        Assert.Equal(MemoryScanCreationStatus.GlobalUnavailable,
+            MemoryScanSessions.TryCreateDetailed(out var created));
         Assert.Null(created);
 
         Assert.True(FakeHost.IsDestroyed(L, scanner));
@@ -76,7 +78,8 @@ public sealed class MemoryScanSessionFactoryTests
                           end
                           """u8);
 
-        Assert.False(MemoryScanSessions.TryCreate(out var created));
+        Assert.Equal(MemoryScanCreationStatus.LuaFailure,
+            MemoryScanSessions.TryCreateDetailed(out var created));
         Assert.Null(created);
 
         Assert.True(FakeHost.IsDestroyed(L, scanner));
@@ -105,7 +108,8 @@ public sealed class MemoryScanSessionFactoryTests
                           end
                           """u8);
 
-        Assert.False(MemoryScanSessions.TryCreate(out var created));
+        Assert.Equal(MemoryScanCreationStatus.InvalidFoundListResult,
+            MemoryScanSessions.TryCreateDetailed(out var created));
         Assert.Null(created);
         Assert.True(FakeHost.IsDestroyed(L, scanner));
         Assert.Equal("factory.scan,factory.list,scan.destroy", ReadTrace(L));
@@ -133,7 +137,8 @@ public sealed class MemoryScanSessionFactoryTests
                           end
                           """u8);
 
-        Assert.False(MemoryScanSessions.TryCreate(out var created));
+        Assert.Equal(MemoryScanCreationStatus.AliasedFoundList,
+            MemoryScanSessions.TryCreateDetailed(out var created));
         Assert.Null(created);
 
         Assert.True(FakeHost.IsDestroyed(L, scanner));
@@ -171,8 +176,97 @@ public sealed class MemoryScanSessionFactoryTests
         var L = scope.State;
         EngineTest.Run(L, "function createMemScan() return 42 end"u8);
 
-        Assert.False(MemoryScanSessions.TryCreate(out var created));
+        Assert.Equal(MemoryScanCreationStatus.InvalidScannerResult,
+            MemoryScanSessions.TryCreateDetailed(out var created));
         Assert.Null(created);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void TryCreateDetailed_when_a_factory_returns_nil_keeps_absence_distinct_from_a_Lua_failure()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, "function createMemScan() return nil end"u8);
+
+        var status = MemoryScanSessions.TryCreateDetailed(out var created);
+
+        Assert.Equal(MemoryScanCreationStatus.NoScannerResult, status);
+        Assert.Null(created);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void TryCreateDetailed_when_the_child_factory_returns_nil_reports_absence_and_releases_the_parent()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        var scanner = CreateScanner(L);
+        SetGlobalObject(L, "factory_scan"u8, scanner);
+        EngineTest.Run(L, Encoding.UTF8.GetBytes($$"""
+                              trace = {}
+                              function createMemScan()
+                                table.insert(trace, 'factory.scan')
+                                return factory_scan
+                              end
+                              function createFoundList(scan)
+                                table.insert(trace, 'factory.list')
+                                return nil
+                              end
+                              function getOpenedProcessID()
+                                return {{Environment.ProcessId}}
+                              end
+                              """));
+
+        var status = MemoryScanSessions.TryCreateDetailed(out var created);
+
+        Assert.Equal(MemoryScanCreationStatus.NoFoundListResult, status);
+        Assert.Null(created);
+        Assert.True(FakeHost.IsDestroyed(L, scanner));
+        Assert.Equal("factory.scan,factory.list,scan.destroy", ReadTrace(L));
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void TryCreateDetailed_when_rollback_destroy_is_not_confirmed_reports_that_fact_without_retrying()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        var scanner = FakeHost.CreateObject(L, "Object", """
+                                                   o.getters.destroy = function(o)
+                                                     return function()
+                                                       table.insert(trace, 'scan.destroy')
+                                                       error('fixture destroy failure')
+                                                     end
+                                                   end
+                                                   """);
+        SetGlobalObject(L, "factory_scan"u8, scanner);
+        EngineTest.Run(L, Encoding.UTF8.GetBytes($$"""
+                              trace = {}
+                              function createMemScan()
+                                table.insert(trace, 'factory.scan')
+                                return factory_scan
+                              end
+                              function createFoundList(scan)
+                                table.insert(trace, 'factory.list')
+                                return nil
+                              end
+                              function getOpenedProcessID()
+                                return {{Environment.ProcessId}}
+                              end
+                              """));
+
+        var status = MemoryScanSessions.TryCreateDetailed(out var created);
+
+        Assert.Equal(MemoryScanCreationStatus.RollbackUnconfirmed, status);
+        Assert.Null(created);
+        Assert.Equal("factory.scan,factory.list,scan.destroy", ReadTrace(L));
         Assert.Equal(0, L.Top);
     }
 
@@ -204,7 +298,7 @@ public sealed class MemoryScanSessionFactoryTests
     {
         SetGlobalObject(state, "factory_scan"u8, scanner);
         SetGlobalObject(state, "factory_found_list"u8, foundList);
-        EngineTest.Run(state, """
+        EngineTest.Run(state, Encoding.UTF8.GetBytes($$"""
                               trace = {}
                               function createMemScan()
                                 table.insert(trace, 'factory.scan')
@@ -214,7 +308,10 @@ public sealed class MemoryScanSessionFactoryTests
                                 table.insert(trace, 'factory.list')
                                 return factory_found_list
                               end
-                              """u8);
+                              function getOpenedProcessID()
+                                return {{Environment.ProcessId}}
+                              end
+                              """));
     }
 
     private static void SetGlobalObject(LuaState state, ReadOnlySpan<byte> name, CEObject value)

@@ -14,8 +14,9 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 ///     <para>
 ///         A failed protected call, including a <c>waitTillDone</c> call that could no longer establish whether CE is
 ///         still scanning or has completed, leaves the state <see cref="Invalidated" /> rather than guessing whether
-///         Cheat Engine accepted a partial operation. Call <see cref="MemoryScanSession.Reset" /> to request a clean
-///         <c>newScan</c> before starting another first scan.
+///         Cheat Engine accepted a partial operation. Call <see cref="MemoryScanSession.Reset()" /> to request a clean
+///         <c>newScan</c> before starting another first scan, provided the session's original Lua runtime and target
+///         context are still current; otherwise explicitly abandon the managed owners.
 ///     </para>
 /// </remarks>
 public enum MemoryScanState
@@ -33,7 +34,7 @@ public enum MemoryScanState
 
     /// <summary>
     ///     A protected operation or result marshalling step failed after the session began a transition. The session
-    ///     refuses reads and new scans until <see cref="MemoryScanSession.Reset" /> succeeds.
+    ///     refuses reads and new scans until <see cref="MemoryScanSession.Reset()" /> succeeds.
     /// </summary>
     Invalidated = 3,
 

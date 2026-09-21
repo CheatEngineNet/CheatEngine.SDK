@@ -49,7 +49,25 @@ public static class MemoryScanSessions
     [RequiresPluginEnabled]
     public static bool TryCreate([NotNullWhen(true)] out MemoryScanSession? session)
     {
-        return TryCreateCore(out session, CreateSession);
+        return TryCreateDetailed(out session) == MemoryScanCreationStatus.Success;
+    }
+
+    /// <summary>Creates a scanner/found-list pair and reports the factual creation category.</summary>
+    /// <param name="session">The new context-bound session only when the returned status is <see cref="MemoryScanCreationStatus.Success" />.</param>
+    /// <returns>
+    ///     The factory result without parsing a CE error message. A documented <see langword="nil" /> result, a
+    ///     protected Lua failure and a malformed non-null result remain distinct. A detached runtime or a worker-thread
+    ///     caller still throws because no safe Lua operation can begin.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    ///     The plugin is not enabled, the caller has no host Lua state, the host cannot push objects, or the caller is
+    ///     not on Cheat Engine's main thread.
+    /// </exception>
+    [MainThreadOnly]
+    [RequiresPluginEnabled]
+    public static MemoryScanCreationStatus TryCreateDetailed([NotNullWhen(true)] out MemoryScanSession? session)
+    {
+        return TryCreateDetailedCore(out session, CreateSession);
     }
 
     // Tests use this seam to prove that an ownership-transfer failure rolls the child back before its parent. The raw
@@ -57,6 +75,12 @@ public static class MemoryScanSessions
     // has one direct rollback authority. This is internal deliberately: callers can select neither the owner
     // construction nor a different adoption policy.
     internal static bool TryCreateCore([NotNullWhen(true)] out MemoryScanSession? session,
+        MemoryScanSessionAdopter adopter)
+    {
+        return TryCreateDetailedCore(out session, adopter) == MemoryScanCreationStatus.Success;
+    }
+
+    private static MemoryScanCreationStatus TryCreateDetailedCore([NotNullWhen(true)] out MemoryScanSession? session,
         MemoryScanSessionAdopter adopter)
     {
         ArgumentNullException.ThrowIfNull(adopter);
@@ -69,69 +93,94 @@ public static class MemoryScanSessions
         Owned<FoundList>? foundList = null;
         CEObject scannerHandle = CEObject.Null;
         CEObject foundListHandle = CEObject.Null;
+        var status = MemoryScanCreationStatus.Success;
+        var context = MemoryScanSessionContext.Capture(state);
+        session = null;
         try
         {
-            if (!LuaGlobalFunctions.TryPush(state, SCreateMemScan, "createMemScan"u8) ||
-                !state.TryCall(0, 1).IsOk ||
-                !CEObject.TryRead(state, -1, out scannerHandle))
+            status = TryCreateScanner(state, out scanner, out scannerHandle);
+            if (status == MemoryScanCreationStatus.Success)
             {
-                session = null;
-                return false;
+                status = TryCreateFoundList(state, scanner!.Value, out foundList, out foundListHandle);
             }
 
-            scanner = new Owned<MemScan>(MemScan.FromHandle(scannerHandle));
-            scannerHandle = CEObject.Null;
-
-            if (!LuaGlobalFunctions.TryPush(state, SCreateFoundList, "createFoundList"u8))
+            if (status == MemoryScanCreationStatus.Success)
             {
-                session = null;
-                return false;
+                session = adopter(scanner!, foundList!);
+                session.Bind(context);
             }
-
-            scanner.Value.Handle.Push(state);
-            // An aliased child would create a second owner for the scanner.
-            if (!state.TryCall(1, 1).IsOk ||
-                !CEObject.TryRead(state, -1, out foundListHandle))
-            {
-                session = null;
-                return false;
-            }
-
-            if (foundListHandle == scanner.Value.Handle)
-            {
-                foundListHandle = CEObject.Null;
-                session = null;
-                return false;
-            }
-
-            foundList = new Owned<FoundList>(FoundList.FromHandle(foundListHandle));
-            foundListHandle = CEObject.Null;
-            session = adopter(scanner, foundList);
-            return true;
         }
         finally
         {
             // Adoption transfers and empties both wrappers. Every other exit after construction must release the child
             // before the parent while the original operation is still admitted. Swallowing a protected destroy failure
             // avoids hiding the factory failure and, like Owned<T>.Dispose, never retries an unknown native state.
-            TryRollback(state, foundList, foundListHandle);
-            TryRollback(state, scanner, scannerHandle);
+            if (!TryRollback(state, foundList, foundListHandle) | !TryRollback(state, scanner, scannerHandle))
+            {
+                if (session is null && status != MemoryScanCreationStatus.Success)
+                    status = MemoryScanCreationStatus.RollbackUnconfirmed;
+            }
         }
+
+        return status;
     }
 
-    private static void TryRollback<T>(LuaState state, Owned<T>? owner, CEObject unpublishedHandle)
+    private static MemoryScanCreationStatus TryCreateScanner(LuaState state, out Owned<MemScan>? scanner,
+        out CEObject scannerHandle)
+    {
+        scanner = null;
+        scannerHandle = CEObject.Null;
+        var global = LuaGlobalFunctions.TryPushWithStatus(state, SCreateMemScan, "createMemScan"u8);
+        if (global == LuaGlobalPushStatus.Unavailable) return MemoryScanCreationStatus.GlobalUnavailable;
+        if (global != LuaGlobalPushStatus.Success || !state.TryCall(0, 1).IsOk)
+            return MemoryScanCreationStatus.LuaFailure;
+        if (state.IsNil(-1)) return MemoryScanCreationStatus.NoScannerResult;
+        if (!CEObject.TryRead(state, -1, out scannerHandle)) return MemoryScanCreationStatus.InvalidScannerResult;
+
+        scanner = new Owned<MemScan>(MemScan.FromHandle(scannerHandle));
+        scannerHandle = CEObject.Null;
+        return MemoryScanCreationStatus.Success;
+    }
+
+    private static MemoryScanCreationStatus TryCreateFoundList(LuaState state, MemScan scanner,
+        out Owned<FoundList>? foundList, out CEObject foundListHandle)
+    {
+        foundList = null;
+        foundListHandle = CEObject.Null;
+        var global = LuaGlobalFunctions.TryPushWithStatus(state, SCreateFoundList, "createFoundList"u8);
+        if (global == LuaGlobalPushStatus.Unavailable) return MemoryScanCreationStatus.GlobalUnavailable;
+        if (global != LuaGlobalPushStatus.Success) return MemoryScanCreationStatus.LuaFailure;
+
+        scanner.Handle.Push(state);
+        if (!state.TryCall(1, 1).IsOk) return MemoryScanCreationStatus.LuaFailure;
+        if (state.IsNil(-1)) return MemoryScanCreationStatus.NoFoundListResult;
+        if (!CEObject.TryRead(state, -1, out foundListHandle)) return MemoryScanCreationStatus.InvalidFoundListResult;
+        if (foundListHandle == scanner.Handle)
+        {
+            foundListHandle = CEObject.Null;
+            return MemoryScanCreationStatus.AliasedFoundList;
+        }
+
+        foundList = new Owned<FoundList>(FoundList.FromHandle(foundListHandle));
+        foundListHandle = CEObject.Null;
+        return MemoryScanCreationStatus.Success;
+    }
+
+    private static bool TryRollback<T>(LuaState state, Owned<T>? owner, CEObject unpublishedHandle)
         where T : struct, ICEObject<T>
     {
         using LuaFrame rollbackFrame = new(state);
         if (owner is not null && !owner.IsDisposed)
-            _ = owner.TryDestroy(state);
-        else if (!unpublishedHandle.IsNull)
-            _ = unpublishedHandle.TryDestroy(state);
+            return owner.TryDestroy(state).IsOk;
+        if (!unpublishedHandle.IsNull)
+            return unpublishedHandle.TryDestroy(state).IsOk;
+
+        return true;
     }
 
     private static MemoryScanSession CreateSession(Owned<MemScan> scanner, Owned<FoundList> foundList)
     {
-        return MemoryScanSession.Adopt(scanner, foundList);
+        return MemoryScanSession.AdoptUnbound(scanner, foundList);
     }
 
     private static void RequireEnabledMainThread()

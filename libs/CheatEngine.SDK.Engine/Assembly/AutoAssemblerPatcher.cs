@@ -142,14 +142,16 @@ public static class AutoAssemblerPatcher
 
     // The owner always routes cleanup through this method. Keeping the LuaRef release in its finally block prevents a
     // failed protected call from pinning CE's disable-info table and makes retrying a possibly partial disable impossible.
-    internal static TargetReleaseOutcome TryDisable(string script, LuaRef disableInfo, TargetProcessIncarnation target)
+    internal static TargetReleaseOutcome TryDisable(string script, LuaRef disableInfo, TargetProcessIncarnation target,
+        out bool disableInvocationStarted)
     {
         ArgumentNullException.ThrowIfNull(disableInfo);
+        disableInvocationStarted = false;
 
         if (!LuaRuntime.IsAttached || !disableInfo.IsCurrent)
         {
             disableInfo.Dispose();
-            return TargetReleaseOutcome.Unconfirmed(failureKind: null);
+            return TargetReleaseOutcome.NotInvoked();
         }
 
         try
@@ -164,8 +166,9 @@ public static class AutoAssemblerPatcher
 
                 PushAutoAssemble(state, DisableOperation);
                 StringMarshaller.Push(state, script);
-                if (!state.TryPushRef(disableInfo)) return TargetReleaseOutcome.Unconfirmed(failureKind: null);
+                if (!state.TryPushRef(disableInfo)) return TargetReleaseOutcome.NotInvoked();
 
+                disableInvocationStarted = true;
                 var status = state.TryCall(2, 1);
                 if (!status.IsOk) ThrowLua(state, status, DisableOperation);
 
@@ -185,8 +188,8 @@ public static class AutoAssemblerPatcher
         }
         catch
         {
-            // Acquisition can fail during host disable/reset before a state is available. Dispose still marks the
-            // reference released, without attempting an unsafe operation against a detached state.
+            // Dispose still marks the reference released, without attempting a second operation against a detached
+            // state. The caller uses disableInvocationStarted to preserve whether the CE call began.
             disableInfo.Dispose();
             throw;
         }
@@ -206,17 +209,22 @@ public static class AutoAssemblerPatcher
     private static TargetReleaseOutcome CompensateFailedPublication(string script, LuaRef disableInfo,
         TargetProcessIncarnation targetIncarnation)
     {
+        var disableInvocationStarted = false;
         try
         {
-            return TryDisable(script, disableInfo, targetIncarnation);
+            return TryDisable(script, disableInfo, targetIncarnation, out disableInvocationStarted);
         }
         catch (EngineException exception)
         {
-            return TargetReleaseOutcome.Unconfirmed(exception.Kind);
+            return disableInvocationStarted
+                ? TargetReleaseOutcome.Unconfirmed(exception.Kind)
+                : TargetReleaseOutcome.NotInvoked(exception.Kind);
         }
         catch (Exception)
         {
-            return TargetReleaseOutcome.Unconfirmed(failureKind: null);
+            return disableInvocationStarted
+                ? TargetReleaseOutcome.Unconfirmed(failureKind: null)
+                : TargetReleaseOutcome.NotInvoked(failureKind: null);
         }
     }
 
@@ -225,6 +233,7 @@ public static class AutoAssemblerPatcher
     private static TargetReleaseOutcome TryDisableFromStack(string script, LuaState state, int disableInfoIndex,
         TargetProcessIncarnation targetIncarnation)
     {
+        var disableInvocationStarted = false;
         try
         {
             var targetCheck = TargetSelection.ValidateCurrent(state, targetIncarnation);
@@ -233,6 +242,7 @@ public static class AutoAssemblerPatcher
             PushAutoAssemble(state, DisableOperation);
             StringMarshaller.Push(state, script);
             state.PushValue(disableInfoIndex);
+            disableInvocationStarted = true;
             var status = state.TryCall(2, 1);
             if (!status.IsOk) return TargetReleaseOutcome.Unconfirmed(EngineFailureKind.ProtectedLuaFailure);
 
@@ -245,11 +255,15 @@ public static class AutoAssemblerPatcher
         }
         catch (EngineException exception)
         {
-            return TargetReleaseOutcome.Unconfirmed(exception.Kind);
+            return disableInvocationStarted
+                ? TargetReleaseOutcome.Unconfirmed(exception.Kind)
+                : TargetReleaseOutcome.NotInvoked(exception.Kind);
         }
         catch (Exception)
         {
-            return TargetReleaseOutcome.Unconfirmed(failureKind: null);
+            return disableInvocationStarted
+                ? TargetReleaseOutcome.Unconfirmed(failureKind: null)
+                : TargetReleaseOutcome.NotInvoked(failureKind: null);
         }
     }
 

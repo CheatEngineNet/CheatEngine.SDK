@@ -38,6 +38,7 @@ internal static unsafe class FakeHost
 
     private static lua_State* s_state;
     private static int s_providerCalls;
+    private static int s_providerSuppressed;
     private static int s_pusherCalls;
     private static long s_nextPointer = 0x7FF0_0000_1000;
     private static nint s_forwardedPCall;
@@ -122,11 +123,22 @@ internal static unsafe class FakeHost
     {
         s_state = state.L;
         s_providerCalls = 0;
+        s_providerSuppressed = 0;
         s_pusherCalls = 0;
         Install(new LuaState(state.Pointer));
         delegate* unmanaged[Stdcall]<void*> provider = &Provide;
         delegate* unmanaged[Stdcall]<void*, void*, void> pusher = withPusher ? &PushObject : null;
         return new LuaHostBinding(provider, pusher, Environment.CurrentManagedThreadId);
+    }
+
+    /// <summary>
+    ///     Makes the attached fixture binding report that this thread has no Lua state until the returned scope is
+    ///     disposed. This exercises host-state-provider loss without detaching the runtime or changing its epoch.
+    /// </summary>
+    public static IDisposable SuppressStateProvider()
+    {
+        Volatile.Write(ref s_providerSuppressed, 1);
+        return new StateProviderSuppression();
     }
 
     /// <summary>A pointer no object has had before. Never dereferenced.</summary>
@@ -218,7 +230,15 @@ internal static unsafe class FakeHost
     private static void* Provide()
     {
         Interlocked.Increment(ref s_providerCalls);
-        return s_state;
+        return Volatile.Read(ref s_providerSuppressed) == 0 ? s_state : null;
+    }
+
+    private sealed class StateProviderSuppression : IDisposable
+    {
+        public void Dispose()
+        {
+            Volatile.Write(ref s_providerSuppressed, 0);
+        }
     }
 
     // What LuaPushClassInstance is assumed to do: a full userdata holding the object pointer, with the class metatable.

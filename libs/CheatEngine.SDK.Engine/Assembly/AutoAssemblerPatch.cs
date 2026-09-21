@@ -95,9 +95,11 @@ public sealed class AutoAssemblerPatch : IDisposable
     public void Release()
     {
         var disableInfo = TakeOwnership();
+        var disableInvocationStarted = false;
         try
         {
-            _lastReleaseOutcome = AutoAssemblerPatcher.TryDisable(_script, disableInfo, _targetIncarnation);
+            _lastReleaseOutcome = AutoAssemblerPatcher.TryDisable(_script, disableInfo, _targetIncarnation,
+                out disableInvocationStarted);
             if (_lastReleaseOutcome.Status == TargetReleaseStatus.Released) return;
 
             Volatile.Write(ref _requiresManualRecovery, 1);
@@ -113,13 +115,17 @@ public sealed class AutoAssemblerPatch : IDisposable
         }
         catch (EngineException exception)
         {
-            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(exception.Kind);
+            _lastReleaseOutcome = disableInvocationStarted
+                ? TargetReleaseOutcome.Unconfirmed(exception.Kind)
+                : TargetReleaseOutcome.NotInvoked(exception.Kind);
             Volatile.Write(ref _requiresManualRecovery, 1);
             throw;
         }
         catch
         {
-            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(failureKind: null);
+            _lastReleaseOutcome = disableInvocationStarted
+                ? TargetReleaseOutcome.Unconfirmed(failureKind: null)
+                : TargetReleaseOutcome.NotInvoked(failureKind: null);
             Volatile.Write(ref _requiresManualRecovery, 1);
             throw;
         }
@@ -134,22 +140,28 @@ public sealed class AutoAssemblerPatch : IDisposable
         var disableInfo = Interlocked.Exchange(ref _disableInfo, null);
         if (disableInfo is null) return;
 
-        try
-        {
-            _lastReleaseOutcome = AutoAssemblerPatcher.TryDisable(_script, disableInfo, _targetIncarnation);
-            if (_lastReleaseOutcome.Status != TargetReleaseStatus.Released)
-                Volatile.Write(ref _requiresManualRecovery, 1);
-        }
-        catch (EngineException exception)
-        {
-            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(exception.Kind);
-            Volatile.Write(ref _requiresManualRecovery, 1);
-        }
-        catch (Exception)
-        {
-            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(failureKind: null);
-            Volatile.Write(ref _requiresManualRecovery, 1);
-        }
+        _ = ReleaseTakenWithTargetOutcome(disableInfo);
+    }
+
+    /// <summary>
+    ///     Disables the patch and returns the factual result of its one permitted target-bound cleanup attempt.
+    /// </summary>
+    /// <returns>
+    ///     <see cref="TargetReleaseStatus.Released" /> when Cheat Engine confirmed disable, a safe refusal when the
+    ///     captured target is no longer current, <see cref="TargetReleaseStatus.NotInvoked" /> when cleanup could not
+    ///     begin, or an unconfirmed outcome when an attempted disable could have had partial effects.
+    /// </returns>
+    /// <exception cref="ObjectDisposedException">The owner was already released or disposed.</exception>
+    /// <remarks>
+    ///     This is the structured counterpart to <see cref="Release" />. It consumes ownership before contacting Lua
+    ///     and distinguishes cleanup that could not begin from an Engine or unexpected failure after invocation. It
+    ///     still throws for an already-consumed owner. It never retries cleanup, never reselects a target, and does
+    ///     not make arbitrary Auto Assembler source safe to run.
+    /// </remarks>
+    [RequiresPluginEnabled]
+    public TargetReleaseOutcome ReleaseWithTargetOutcome()
+    {
+        return ReleaseTakenWithTargetOutcome(TakeOwnership());
     }
 
     private LuaRef TakeOwnership()
@@ -160,5 +172,32 @@ public sealed class AutoAssemblerPatch : IDisposable
                 "The Auto Assembler patch no longer owns CE's disable information.");
 
         return disableInfo;
+    }
+
+    private TargetReleaseOutcome ReleaseTakenWithTargetOutcome(LuaRef disableInfo)
+    {
+        var disableInvocationStarted = false;
+        try
+        {
+            _lastReleaseOutcome = AutoAssemblerPatcher.TryDisable(_script, disableInfo, _targetIncarnation,
+                out disableInvocationStarted);
+        }
+        catch (EngineException exception)
+        {
+            _lastReleaseOutcome = disableInvocationStarted
+                ? TargetReleaseOutcome.Unconfirmed(exception.Kind)
+                : TargetReleaseOutcome.NotInvoked(exception.Kind);
+        }
+        catch (Exception)
+        {
+            _lastReleaseOutcome = disableInvocationStarted
+                ? TargetReleaseOutcome.Unconfirmed(failureKind: null)
+                : TargetReleaseOutcome.NotInvoked(failureKind: null);
+        }
+
+        if (_lastReleaseOutcome.Status != TargetReleaseStatus.Released)
+            Volatile.Write(ref _requiresManualRecovery, 1);
+
+        return _lastReleaseOutcome;
     }
 }

@@ -148,6 +148,169 @@ public sealed class AutoAssemblerPatcherTests
     }
 
     [Fact]
+    public void ReleaseWithTargetOutcome_after_a_successful_disable_reports_released_and_consumes_the_owner()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+        var patch = AutoAssemblerPatcher.Apply("success");
+
+        var outcome = patch.ReleaseWithTargetOutcome();
+
+        Assert.Equal(TargetReleaseStatus.Released, outcome.Status);
+        Assert.False(outcome.RequiresManualRecovery);
+        Assert.False(patch.RequiresManualRecovery);
+        Assert.True(patch.IsDisposed);
+        Assert.Equal(outcome, patch.LastReleaseOutcome);
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void ReleaseWithTargetOutcome_when_the_current_target_differs_refuses_without_disabling()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+        using LuaFrame frame = new(scope.State);
+        scope.State.CreateTable();
+        var disableInfo = scope.State.CreateRef();
+        var originalTargetId = Environment.ProcessId == 1 ? 2 : 1;
+        var patch = new AutoAssemblerPatch("success", disableInfo,
+            new TargetProcessIncarnation(originalTargetId, 1));
+
+        var outcome = patch.ReleaseWithTargetOutcome();
+
+        Assert.Equal(TargetReleaseStatus.RefusedTargetChanged, outcome.Status);
+        Assert.Equal(TargetIdentityCheckKind.TargetChanged, outcome.TargetCheck.GetValueOrDefault().Kind);
+        Assert.False(outcome.FailureKind.HasValue);
+        Assert.True(patch.IsDisposed);
+        Assert.True(patch.RequiresManualRecovery);
+        Assert.False(disableInfo.IsResolved);
+        Assert.Equal(0, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void ReleaseWithTargetOutcome_when_disable_fails_reports_an_unconfirmed_effect_without_retrying()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+        var patch = AutoAssemblerPatcher.Apply("disable-false");
+        var disableInfo = GetDisableInfo(patch);
+
+        var outcome = patch.ReleaseWithTargetOutcome();
+        patch.Dispose();
+
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, outcome.Status);
+        Assert.Equal(EngineFailureKind.ExpectedOperationFailure, outcome.FailureKind);
+        Assert.True(outcome.RequiresManualRecovery);
+        Assert.Equal(outcome, patch.LastReleaseOutcome);
+        Assert.True(patch.IsDisposed);
+        Assert.True(patch.RequiresManualRecovery);
+        Assert.False(disableInfo.IsResolved);
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void ReleaseWithTargetOutcome_when_disable_raises_reports_the_protected_failure_without_throwing()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+        var patch = AutoAssemblerPatcher.Apply("disable-raise");
+        var disableInfo = GetDisableInfo(patch);
+
+        var outcome = patch.ReleaseWithTargetOutcome();
+
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, outcome.Status);
+        Assert.Equal(EngineFailureKind.ProtectedLuaFailure, outcome.FailureKind);
+        Assert.True(outcome.RequiresManualRecovery);
+        Assert.True(patch.IsDisposed);
+        Assert.True(patch.RequiresManualRecovery);
+        Assert.False(disableInfo.IsResolved);
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void ReleaseWithTargetOutcome_when_the_attached_host_cannot_provide_a_state_reports_cleanup_not_invoked()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+        var patch = AutoAssemblerPatcher.Apply("success");
+        var disableInfo = GetDisableInfo(patch);
+
+        TargetReleaseOutcome outcome;
+        using (FakeHost.SuppressStateProvider())
+        {
+            outcome = patch.ReleaseWithTargetOutcome();
+        }
+
+        Assert.Equal(TargetReleaseStatus.NotInvoked, outcome.Status);
+        Assert.Null(outcome.FailureKind);
+        Assert.True(outcome.RequiresManualRecovery);
+        Assert.Equal(outcome, patch.LastReleaseOutcome);
+        Assert.True(patch.IsDisposed);
+        Assert.True(patch.RequiresManualRecovery);
+        Assert.False(disableInfo.IsResolved);
+        Assert.Equal(0, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void Release_when_the_attached_host_cannot_provide_a_state_preserves_the_preinvocation_outcome()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+        var patch = AutoAssemblerPatcher.Apply("success");
+        var disableInfo = GetDisableInfo(patch);
+
+        using (FakeHost.SuppressStateProvider())
+        {
+            _ = Assert.Throws<InvalidOperationException>(patch.Release);
+        }
+
+        Assert.Equal(TargetReleaseStatus.NotInvoked, patch.LastReleaseOutcome.Status);
+        Assert.Null(patch.LastReleaseOutcome.FailureKind);
+        Assert.True(patch.RequiresManualRecovery);
+        Assert.True(patch.IsDisposed);
+        Assert.False(disableInfo.IsResolved);
+        Assert.Equal(0, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void Release_paths_after_Dispose_throw_without_replaying_disable()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+        var patch = AutoAssemblerPatcher.Apply("success");
+
+        patch.Dispose();
+
+        _ = Assert.Throws<ObjectDisposedException>(patch.Release);
+        _ = Assert.Throws<ObjectDisposedException>(() =>
+        {
+            _ = patch.ReleaseWithTargetOutcome();
+        });
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
     public void Release_when_CE_returns_false_marks_manual_recovery_releases_the_LuaRef_and_never_retries()
     {
         EngineTest.RequireNativeLua();
@@ -173,6 +336,73 @@ public sealed class AutoAssemblerPatcherTests
     }
 
     [Fact]
+    public void TryApply_when_patch_publication_and_compensation_fail_reports_the_unconfirmed_cleanup()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+        var cause = new InvalidOperationException("injected patch publication failure");
+
+        var exception = Assert.Throws<EngineResourceHandoffException>(() => AutoAssemblerPatcher.TryApplyCore(
+            "disable-false", out _, CreateDisableInfo,
+            (_, _, _) => throw cause));
+
+        Assert.Same(cause, exception.InnerException);
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, exception.CleanupOutcome.Status);
+        Assert.Equal(EngineFailureKind.ExpectedOperationFailure, exception.CleanupOutcome.FailureKind);
+        Assert.True(exception.CleanupOutcome.RequiresManualRecovery);
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_apply_count"));
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.True(ReadBoolean(scope.State, "auto_assembler_disable_received_info"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void TryApply_when_tracking_and_compensation_fail_reports_the_unconfirmed_cleanup()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+
+        var exception = Assert.Throws<EngineResourceHandoffException>(() => AutoAssemblerPatcher.TryApplyCore(
+            "disable-raise", out _, FailDisableInfoTracking,
+            static (_, _, _) => throw new InvalidOperationException("patch factory must not be called")));
+
+        Assert.IsType<EngineLuaException>(exception.InnerException);
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, exception.CleanupOutcome.Status);
+        Assert.Equal(EngineFailureKind.ProtectedLuaFailure, exception.CleanupOutcome.FailureKind);
+        Assert.True(exception.CleanupOutcome.RequiresManualRecovery);
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_apply_count"));
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.True(ReadBoolean(scope.State, "auto_assembler_disable_received_info"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void TryApply_when_tracking_fails_and_compensation_returns_false_reports_the_unconfirmed_cleanup()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+
+        var exception = Assert.Throws<EngineResourceHandoffException>(() => AutoAssemblerPatcher.TryApplyCore(
+            "disable-false", out _, FailDisableInfoTracking,
+            static (_, _, _) => throw new InvalidOperationException("patch factory must not be called")));
+
+        Assert.IsType<EngineLuaException>(exception.InnerException);
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, exception.CleanupOutcome.Status);
+        Assert.Equal(EngineFailureKind.ExpectedOperationFailure, exception.CleanupOutcome.FailureKind);
+        Assert.True(exception.CleanupOutcome.RequiresManualRecovery);
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_apply_count"));
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.True(ReadBoolean(scope.State, "auto_assembler_disable_received_info"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
     public void Dispose_when_the_disable_call_raises_marks_manual_recovery_releases_the_LuaRef_and_never_retries()
     {
         EngineTest.RequireNativeLua();
@@ -187,6 +417,7 @@ public sealed class AutoAssemblerPatcherTests
 
         Assert.True(patch.IsDisposed);
         Assert.True(patch.RequiresManualRecovery);
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, patch.LastReleaseOutcome.Status);
         Assert.False(disableInfo.IsResolved);
         Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_disable_count"));
         Assert.Equal(0, scope.State.Top);
@@ -237,6 +468,7 @@ public sealed class AutoAssemblerPatcherTests
 
         Assert.True(patch.IsDisposed);
         Assert.True(patch.RequiresManualRecovery);
+        Assert.Equal(TargetReleaseStatus.NotInvoked, patch.LastReleaseOutcome.Status);
         Assert.False(disableInfo.IsResolved);
         Assert.Equal(0, ReadCounter(secondScope.State, "auto_assembler_disable_count"));
         Assert.Equal(0, secondScope.State.Top);

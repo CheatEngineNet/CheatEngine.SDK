@@ -1,0 +1,49 @@
+name: Engineering work item
+description: Define an evidence-backed, owned and reviewable engineering outcome.
+title: "[SDK] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keep CE integration in SDK and application policy/workflows in Client.
+        Do not report fixture, source or AOT publication evidence as live-host qualification.
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome and owner
+      description: State the problem, owning layer, desired behavior and explicit exclusions.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Source and current behavior
+      description: Include pinned file/commit links and distinguish observations from hypotheses.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Requirements and risks
+      description: Include ownership, target/lifecycle, cancellation, partial effects and compatibility.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria and validation
+      description: Specify executable checks, commands, fixtures and live gates; mark unexecuted tests.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Parent, blockers and required artifacts
+      description: Link issues and exact containing SDK artifacts; also set native GitHub relationships.
+    validations:
+      required: true
+  - type: textarea
+    id: delivery
+    attributes:
+      label: Proposed branch, PR scope and documentation
+      description: Use a focused PR; do not auto-close upstream work or create an epic-sized change.

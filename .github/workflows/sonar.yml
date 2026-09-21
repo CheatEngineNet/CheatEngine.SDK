@@ -143,7 +143,9 @@ jobs:
             "/k:$env:SONAR_PROJECT_KEY"
             "/o:$env:SONAR_ORGANIZATION"
             '/d:sonar.exclusions=artifacts/**,tests/CheatEngine.SDK.Benchmarks/**,tests/CheatEngine.SDK.LivePlugin/**'
-            '/d:sonar.coverage.exclusions=tests/**'
+            # CI publishes only .NET coverage. Engineering Python utilities have their own unittest gate, so do not
+            # misrepresent their coverage with a C# report or fail the C# quality gate for a metric it cannot measure.
+            '/d:sonar.coverage.exclusions=tests/**,eng/**'
             "/d:sonar.issue.ignore.multicriteria=$(($ignoredIssues.Key) -join ',')"
             "/d:sonar.cs.vscoveragexml.reportsPaths=$coverage/**/*.xml"
             "/d:sonar.qualitygate.wait=$env:SONAR_WAIT_QUALITY_GATE"

@@ -16,6 +16,7 @@ The catalogue makes that distinction reviewable:
 - `ce-7.7.0.10621-x64.capabilities.json` describes classic callback families, managed hosting, Lua, object ownership, scan, allocation, and patch surfaces. Every entry includes interop shape, affinity evidence, ownership, failure shape, availability, qualification, and profile references.
 - `ce-7.7.0.10621-x64.conflicts.json` makes known historical conflicts declarative. An unresolved conflict blocks public callability and live qualification.
 - `ce-7.7.0.10621-x64.host-profiles.json` keeps host facts and target facts separate. A host x64 observation never infers the target architecture or pointer width.
+- `ce-7.7.0.10621-x64.advanced-families.json` is the SDK-020 deferred ledger for independently gated advanced research. Its families remain unavailable and not-qualified; it records the distinct contract, artifact, host, live, policy, and lifecycle gates required for any later adoption decision.
 
 The `ce-7.7-classic-header-fixture-x64` profile is deliberately narrower than a CE host profile. CI compiles the local
 C++ transcription with MSVC x64 and validates its versioned layout, alignment, export, and synthetic topology facts.
@@ -24,7 +25,7 @@ non-null, or turn a classic ABI projection into a callable public API.
 
 ## How it improves the SDK
 
-`eng/Validate-CeSurfaceCatalog.py` validates the four documents in CI. It rejects a missing or reordered classic slot, incomplete callback coverage, duplicate capability identifiers, invalid source locators, an unsupported availability state, a source-only capability reported as live-qualified, a target-dependent capability that infers target facts, and an opaque unresolved conflict exposed as callable.
+`eng/Validate-CeSurfaceCatalog.py` validates the catalogue documents in CI. It rejects a missing or reordered classic slot, incomplete callback coverage, duplicate capability identifiers, invalid source locators, an unsupported availability state, a source-only capability reported as live-qualified, a target-dependent capability that infers target facts, an opaque unresolved conflict exposed as callable, and an advanced family that loses a support axis, live gate, or its unavailable/not-qualified disposition.
 
 The validator is intentionally offline: review and CI use only committed provenance. Regenerate or update a source index only after deliberately reviewing a new pinned Cheat Engine revision and its checksums. The historical source itself is not copied into this repository.
 

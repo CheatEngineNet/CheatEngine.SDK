@@ -14,6 +14,7 @@ DECLARATIONS_FILE = "ce-7.7.0.10621-x64.declarations.json"
 CAPABILITIES_FILE = "ce-7.7.0.10621-x64.capabilities.json"
 CONFLICTS_FILE = "ce-7.7.0.10621-x64.conflicts.json"
 HOST_PROFILES_FILE = "ce-7.7.0.10621-x64.host-profiles.json"
+ADVANCED_FAMILIES_FILE = "ce-7.7.0.10621-x64.advanced-families.json"
 EXPECTED_CATALOG_ID = "cheat-engine-extension-surface"
 EXPECTED_CLASSIC_SOURCE_SHA256 = "B6500DF1E94D7BB011B38E173B2603197B7A1F304496D751EDE82E57E36E532F"
 EXPECTED_CLASSIC_SLOT_MANIFEST_SHA256 = "AFACA989C7F117FC90D7D18CA30D8C8CB5049972ED91AC80132C209BA085BA5C"
@@ -38,6 +39,20 @@ EXPECTED_CALLBACK_IDS = {
     "classic.callback.disassembler-render-line",
     "classic.callback.auto-assembler",
 }
+EXPECTED_ADVANCED_FAMILY_IDS = {
+    "advanced.auto-assembler",
+    "advanced.dbvm",
+    "advanced.debugger",
+    "advanced.hashing",
+    "advanced.hotkeys",
+    "advanced.il2cpp",
+    "advanced.mono",
+    "advanced.remote-execution-injection",
+    "advanced.speedhack",
+    "advanced.structures",
+    "advanced.timers",
+    "advanced.ui-forms",
+}
 REQUIRED_CAPABILITY_FIELDS = {
     "id",
     "layer",
@@ -54,6 +69,38 @@ REQUIRED_CAPABILITY_FIELDS = {
 }
 REQUIRED_INTEROP_FIELDS = {"calling_convention", "parameter_widths", "result", "indirection"}
 REQUIRED_OWNERSHIP_FIELDS = {"registration", "callback", "arguments"}
+REQUIRED_ADVANCED_FAMILY_FIELDS = {
+    "id",
+    "title",
+    "owner",
+    "scope",
+    "host_prerequisites",
+    "privilege_requirements",
+    "inputs_results_cleanup",
+    "failure_modes",
+    "evidence_gap",
+    "source_status",
+    "source_refs",
+    "dependencies",
+    "support_axes",
+    "qualification_gates",
+    "adoption_decision",
+    "availability",
+    "qualification",
+    "profile_ids",
+}
+REQUIRED_ADVANCED_OWNER_FIELDS = {"sdk", "client"}
+REQUIRED_ADVANCED_SCOPE_FIELDS = {"authorization", "target_scope", "policy"}
+REQUIRED_ADVANCED_INPUT_RESULT_CLEANUP_FIELDS = {"inputs", "result", "cleanup"}
+REQUIRED_ADVANCED_SUPPORT_AXES = {
+    "implementation",
+    "artifact",
+    "host",
+    "live_qualification",
+    "policy",
+    "lifecycle_cleanup",
+}
+REQUIRED_ADVANCED_QUALIFICATION_GATES = {"fixture", "live", "negative", "cleanup"}
 ALLOWED_AVAILABILITY = {
     "catalogued-only",
     "fixture-only",
@@ -76,10 +123,10 @@ ALLOWED_QUALIFICATION = {
 
 
 def load_catalog(root: Path) -> dict[str, object]:
-    """Load the four committed documents, returning an independent mutable graph for tests."""
+    """Load the committed documents, returning an independent mutable graph for tests."""
     directory = root / CATALOG_DIRECTORY
     result: dict[str, object] = {}
-    for file_name in (DECLARATIONS_FILE, CAPABILITIES_FILE, CONFLICTS_FILE, HOST_PROFILES_FILE):
+    for file_name in (DECLARATIONS_FILE, CAPABILITIES_FILE, CONFLICTS_FILE, HOST_PROFILES_FILE, ADVANCED_FAMILIES_FILE):
         path = directory / file_name
         try:
             result[file_name] = json.loads(path.read_text(encoding="utf-8"))
@@ -97,7 +144,8 @@ def validate_catalog(catalog: dict[str, object], repository_root: Path) -> list[
     capabilities_document = _document(catalog, CAPABILITIES_FILE, errors)
     conflicts_document = _document(catalog, CONFLICTS_FILE, errors)
     profiles_document = _document(catalog, HOST_PROFILES_FILE, errors)
-    if not all((declarations, capabilities_document, conflicts_document, profiles_document)):
+    advanced_families_document = _document(catalog, ADVANCED_FAMILIES_FILE, errors)
+    if not all((declarations, capabilities_document, conflicts_document, profiles_document, advanced_families_document)):
         return errors
 
     for name, document in (
@@ -105,6 +153,7 @@ def validate_catalog(catalog: dict[str, object], repository_root: Path) -> list[
         (CAPABILITIES_FILE, capabilities_document),
         (CONFLICTS_FILE, conflicts_document),
         (HOST_PROFILES_FILE, profiles_document),
+        (ADVANCED_FAMILIES_FILE, advanced_families_document),
     ):
         if document.get("schema_version") != 1:
             errors.append(f"{name}: schema_version must be 1.")
@@ -117,6 +166,7 @@ def validate_catalog(catalog: dict[str, object], repository_root: Path) -> list[
     conflicts = _validate_conflicts(conflicts_document, capabilities, errors)
     _validate_conflicted_capabilities(capabilities, conflicts, errors)
     _validate_examples(capabilities_document, capabilities, errors)
+    _validate_advanced_families(advanced_families_document, repository_root, errors)
     return errors
 
 
@@ -363,6 +413,94 @@ def _validate_examples(document: dict[str, object], capabilities: dict[str, dict
     for example in examples:
         if not isinstance(example, dict) or example.get("capability_id") not in capabilities:
             errors.append("capabilities: every example must reference a known capability.")
+
+
+def _validate_advanced_families(document: dict[str, object], repository_root: Path, errors: list[str]) -> None:
+    families = document.get("families")
+    if not isinstance(families, list):
+        errors.append("advanced families: families must be an array.")
+        return
+
+    identifiers: set[str] = set()
+    for family in families:
+        if not isinstance(family, dict):
+            errors.append("advanced families: every family must be an object.")
+            continue
+        identifier = family.get("id")
+        if not isinstance(identifier, str) or not identifier:
+            errors.append("advanced families: every family needs a non-empty id.")
+            continue
+        if identifier in identifiers:
+            errors.append(f"advanced families: duplicate id {identifier!r}.")
+        identifiers.add(identifier)
+        absent = REQUIRED_ADVANCED_FAMILY_FIELDS - family.keys()
+        if absent:
+            errors.append(f"advanced families: {identifier!r} is missing required fields {sorted(absent)!r}.")
+
+        owner = family.get("owner")
+        if not isinstance(owner, dict) or REQUIRED_ADVANCED_OWNER_FIELDS - owner.keys() or any(
+                not isinstance(value, str) or not value for value in owner.values()):
+            errors.append(f"advanced families: {identifier!r} needs non-empty SDK and Client ownership statements.")
+        scope = family.get("scope")
+        if not isinstance(scope, dict) or REQUIRED_ADVANCED_SCOPE_FIELDS - scope.keys():
+            errors.append(f"advanced families: {identifier!r} has incomplete scope metadata.")
+        elif scope.get("authorization") != "local-authorized-process-only" or scope.get("policy") != "explicit-opt-in-required":
+            errors.append(f"advanced families: {identifier!r} must preserve local authorization and explicit policy opt-in.")
+
+        for field in ("host_prerequisites", "privilege_requirements", "failure_modes"):
+            value = family.get(field)
+            if not isinstance(value, list) or not value or any(not isinstance(item, str) or not item for item in value):
+                errors.append(f"advanced families: {identifier!r} needs a non-empty {field} list.")
+        inputs_results_cleanup = family.get("inputs_results_cleanup")
+        if not isinstance(inputs_results_cleanup, dict) or REQUIRED_ADVANCED_INPUT_RESULT_CLEANUP_FIELDS - inputs_results_cleanup.keys() or any(
+                not isinstance(value, str) or not value for value in inputs_results_cleanup.values()):
+            errors.append(f"advanced families: {identifier!r} needs inputs, result, and cleanup boundaries.")
+
+        if not isinstance(family.get("evidence_gap"), str) or not family.get("evidence_gap"):
+            errors.append(f"advanced families: {identifier!r} needs an explicit evidence gap.")
+        source_status = family.get("source_status")
+        references = family.get("source_refs")
+        if source_status not in {"pinned-call-path-located", "pinned-call-path-not-located"}:
+            errors.append(f"advanced families: {identifier!r} has an invalid source status.")
+        if not isinstance(references, list):
+            errors.append(f"advanced families: {identifier!r} source_refs must be an array.")
+        elif source_status == "pinned-call-path-located" and not references:
+            errors.append(f"advanced families: {identifier!r} must retain a pinned source locator.")
+        elif source_status == "pinned-call-path-not-located" and references:
+            errors.append(f"advanced families: {identifier!r} cannot attach a locator it says was not located.")
+        for reference in references if isinstance(references, list) else []:
+            if not isinstance(reference, dict) or not _valid_locator(reference):
+                errors.append(f"advanced families: {identifier!r} has an invalid source locator.")
+                continue
+            path = reference.get("path")
+            if isinstance(path, str) and not path.startswith("Cheat Engine/") and not (repository_root / path).is_file():
+                errors.append(f"advanced families: {identifier!r} references missing SDK source {path!r}.")
+
+        dependencies = family.get("dependencies")
+        if not isinstance(dependencies, list) or any(not isinstance(item, str) or not item for item in dependencies):
+            errors.append(f"advanced families: {identifier!r} dependencies must be a string array.")
+        axes = family.get("support_axes")
+        if not isinstance(axes, dict) or set(axes) != REQUIRED_ADVANCED_SUPPORT_AXES:
+            errors.append(f"advanced families: {identifier!r} must retain all independent support axes.")
+        else:
+            for axis, value in axes.items():
+                if not isinstance(value, dict) or not isinstance(value.get("state"), str) or not isinstance(value.get("requirement"), str) or not value["requirement"]:
+                    errors.append(f"advanced families: {identifier!r} axis {axis!r} needs a state and requirement.")
+                elif value["state"] in {"available", "qualified", "satisfied"}:
+                    errors.append(f"advanced families: {identifier!r} cannot satisfy {axis!r} before independent review.")
+        gates = family.get("qualification_gates")
+        if not isinstance(gates, dict) or set(gates) != REQUIRED_ADVANCED_QUALIFICATION_GATES or any(
+                not isinstance(value, list) or not value or any(not isinstance(item, str) or not item for item in value)
+                for value in gates.values()):
+            errors.append(f"advanced families: {identifier!r} needs non-empty fixture, live, negative, and cleanup gates.")
+        decision = family.get("adoption_decision")
+        if not isinstance(decision, dict) or decision.get("state") != "deferred" or decision.get("implementation_issue") != "not-created" or not isinstance(decision.get("reason"), str) or not decision["reason"]:
+            errors.append(f"advanced families: {identifier!r} needs its own deferred adoption decision.")
+        if family.get("availability") != "unavailable" or family.get("qualification") != "not-qualified" or family.get("profile_ids") != []:
+            errors.append(f"advanced families: {identifier!r} remains unavailable and unqualified without a profile.")
+
+    if identifiers != EXPECTED_ADVANCED_FAMILY_IDS:
+        errors.append("advanced families: the independently gated family set does not match the reviewed SDK-020 partition.")
 
 
 def _valid_locator(locator: dict[str, object]) -> bool:

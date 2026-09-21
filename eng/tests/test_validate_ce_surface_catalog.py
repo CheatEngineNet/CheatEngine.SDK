@@ -66,6 +66,24 @@ class CeSurfaceCatalogValidationTests(unittest.TestCase):
         capabilities[0]["qualification"] = "live-qualified"
         self.assert_invalid(catalog, "cannot claim live qualification")
 
+    def test_advanced_family_cannot_drop_an_independent_support_axis(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        family = catalog[VALIDATOR.ADVANCED_FAMILIES_FILE]["families"][0]
+        del family["support_axes"]["host"]
+        self.assert_invalid(catalog, "all independent support axes")
+
+    def test_advanced_family_cannot_be_promoted_from_its_ledger(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        family = catalog[VALIDATOR.ADVANCED_FAMILIES_FILE]["families"][0]
+        family["availability"] = "mapped"
+        self.assert_invalid(catalog, "remains unavailable and unqualified")
+
+    def test_advanced_family_requires_its_own_live_gate(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        family = catalog[VALIDATOR.ADVANCED_FAMILIES_FILE]["families"][0]
+        family["qualification_gates"]["live"] = []
+        self.assert_invalid(catalog, "needs non-empty fixture, live, negative, and cleanup gates")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -33,6 +33,11 @@ the library lookup is described in
 remaining tests run everywhere,
 so a default run never ends with zero executed tests.
 
+The SDK-012 fixture maps state providers per managed worker. It proves the rejected first acquisition, then uses a
+rooted coroutine whose pointer differs from the main state while the global and private registry remain shared. The
+fixture also proves reset-generation invalidation of a shared reference and callback. It is a deterministic lifecycle
+test and does not qualify concurrent execution in a live Cheat Engine process.
+
 ## Run the tests
 
 ```powershell

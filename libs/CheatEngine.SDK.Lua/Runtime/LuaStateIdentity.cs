@@ -12,6 +12,10 @@ namespace CheatEngine.SDK.Lua.Runtime;
 ///     callbacks and helper tables then belong to the old state. Persistent SDK Lua resources capture this complete
 ///     value and compare it before use or cleanup. Values are supplied by <see cref="LuaRuntime.CurrentStateIdentity" />;
 ///     callers do not manufacture an identity.
+///     This identity deliberately contains no <c>lua_State*</c>: Cheat Engine can return distinct per-thread coroutine
+///     pointers from one underlying Lua VM, whose registry and heap remain shared. A pointer identifies only the stack
+///     borrowed by one synchronous operation; the attachment and generation identify the resource universe that owns
+///     persistent SDK references and callbacks.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct LuaStateIdentity : IEquatable<LuaStateIdentity>

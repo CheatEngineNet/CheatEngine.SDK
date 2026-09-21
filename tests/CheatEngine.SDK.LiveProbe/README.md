@@ -64,6 +64,8 @@ The callback probe intentionally leaves the callback registered in `OnDisable`; 
 - The tail canary is a bounded experimental write, not a new ABI rule. The SDK production path continues to write only the packed 36-byte record.
 - `synchronize` facts become evidence only when raw thread IDs, exception text, return value and re-entrancy outcome are captured from the pinned host. `inMainThread()` capture and disable-while-worker drain remain future controlled probes; this harness does not claim either result.
 - This version observes an external `resetLuaState()` only. It must not be mistaken for the planned SDK-controlled reset/generation contract.
+- The worker-and-registry observation is opt-in only. A distinct worker Lua pointer may be a coroutine sharing the main
+  virtual machine, heap and registry, so it is not evidence of independent heaps or safe concurrent execution.
 - No live test is invoked by `dotnet test`, normal CI, Release validation or packaging. The only automated validation of this project is compilation.
 
 Detailed result templates and evidence rules live in [`documentations/CheatEngine.SDK/live-probes`](../../documentations/CheatEngine.SDK/live-probes/README.md).

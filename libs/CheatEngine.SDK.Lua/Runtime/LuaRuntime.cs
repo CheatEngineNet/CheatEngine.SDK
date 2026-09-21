@@ -49,6 +49,10 @@ namespace CheatEngine.SDK.Lua.Runtime;
 ///         reads and may run on any thread. A reader that observes the binding while Detach runs completes with the
 ///         binding
 ///         it read; the host guarantees that the provider stays callable until the disable callback returns.
+///         Admission protects this SDK copy's attach/reset/detach transition; it is not a process-wide Lua mutex.
+///         Distinct states from two worker threads can be coroutines of one shared Lua heap, so callers still need the
+///         host's proven serialization policy before overlapping arbitrary Lua API work. The SDK neither infers that
+///         policy from pointer inequality nor claims a live concurrency qualification.
 ///     </para>
 ///     <para>
 ///         <b>State replacement.</b> A reset must first call the SDK-controlled preparation path while the old state is

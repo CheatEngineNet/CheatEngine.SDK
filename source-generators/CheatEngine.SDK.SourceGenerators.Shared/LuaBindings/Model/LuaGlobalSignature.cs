@@ -9,10 +9,20 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
 /// <param name="Results">The Try form's results; empty for the throwing form.</param>
 /// <param name="ReturnKind">The throwing form's result kind, or <see langword="null" /> for <see langword="void" />.</param>
 /// <param name="ReturnIsNullable">The throwing form returns <c>string?</c>.</param>
+/// <param name="ReturnMarshaller">An explicit static marshaller for the throwing-form return value, or <see langword="null" />.</param>
 internal readonly record struct LuaGlobalSignature(
     string StateParameterName,
     EquatableArray<LuaArgumentModel> Arguments,
     LuaCallForm Form,
     EquatableArray<LuaResultModel> Results,
     LuaValueKind? ReturnKind,
-    bool ReturnIsNullable);
+    bool ReturnIsNullable,
+    LuaCustomMarshallerModel? ReturnMarshaller = null)
+{
+    /// <summary>Initializes a built-in scalar signature with the pre-custom-marshaller binary shape.</summary>
+    public LuaGlobalSignature(string stateParameterName, EquatableArray<LuaArgumentModel> arguments,
+        LuaCallForm form, EquatableArray<LuaResultModel> results, LuaValueKind? returnKind, bool returnIsNullable)
+        : this(stateParameterName, arguments, form, results, returnKind, returnIsNullable, null)
+    {
+    }
+}

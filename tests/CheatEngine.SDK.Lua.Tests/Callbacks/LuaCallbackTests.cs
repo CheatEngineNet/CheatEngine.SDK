@@ -37,6 +37,27 @@ public sealed class LuaCallbackTests
     }
 
     [Fact]
+    public void Generated_function_closure_retained_across_state_reset_is_rejected()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+        using RuntimeScope scope = new(state);
+
+        Assert.True(LuaRuntime.TryPushGeneratedFunction(L, Thunks.Add).IsOk);
+        Assert.True(L.TrySetGlobal("add"u8).IsOk);
+        LuaTest.Run(L, "savedAdd = add"u8);
+
+        using (LuaRuntime.BeginStateReset())
+        {
+        }
+
+        LuaTest.Run(L, "local ok, err = pcall(savedAdd, 1, 2) return ok, err"u8, 2);
+        Assert.False(L.ToBoolean(1));
+        Assert.Contains("Lua function registration has expired", LuaTest.ReadString(L, 2), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_failure_reported_by_the_thunk_is_a_catchable_lua_error_with_the_message()
     {
         LuaTest.RequireNativeLua();

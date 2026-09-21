@@ -70,6 +70,8 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
         LuaBindingContractSymbols symbols = new(
             luaFunctionAttribute,
             luaGlobalAttribute,
+            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaMarshallerAttribute),
+            SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.ILuaMarshaller),
             SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaClassAttribute),
             SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaMethodAttribute),
             SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaPropertyAttribute),
@@ -127,7 +129,8 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
         LuaBindingContractSymbols symbols)
     {
         var name = ReadName(attribute);
-        var issues = LuaFunctionShape.Inspect(method, symbols.LuaState, out _);
+        var issues = LuaFunctionShape.Inspect(method, symbols.LuaState, symbols.LuaMarshallerAttribute,
+            symbols.LuaMarshallerContract, out _);
         if (!LuaNames.IsValidName(name)) issues |= LuaFunctionShapeIssues.InvalidName;
 
         foreach (var problem in LuaFunctionProblemText.ReportOrder)
@@ -149,7 +152,8 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeLuaGlobal(SymbolAnalysisContext context, IMethodSymbol method, AttributeData attribute,
         Location location, LuaBindingContractSymbols symbols)
     {
-        var issues = LuaGlobalShape.Inspect(method, symbols.LuaState, out _);
+        var issues = LuaGlobalShape.Inspect(method, symbols.LuaState, symbols.LuaMarshallerAttribute,
+            symbols.LuaMarshallerContract, out _);
         if (!LuaNames.IsValidName(ReadName(attribute))) issues |= LuaGlobalShapeIssues.InvalidName;
 
         foreach (var problem in LuaGlobalProblemText.ReportOrder)

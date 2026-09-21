@@ -18,11 +18,10 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The session is intentionally adopted, not created from CE globals. CE 7.7.0.10621 <c>celua.txt</c> says that
-///         <c>createMemScan</c> and <c>createFoundList</c> return objects, but does not establish their destroy owner.
-///         A caller may call <see cref="Adopt" /> only after a separately sourced binding has already established that it
-///         owns both objects. This keeps a borrowed handle distinct from an owned resource instead of inferring ownership
-///         from a Lua return value.
+///         <see cref="MemoryScanSessions.TryCreate" /> is the normal production constructor. It creates the
+///         <c>MemScan</c> parent and <c>FoundList</c> child through CE's factories and establishes their ownership before
+///         exposing this state machine. <see cref="Adopt" /> remains for a separate SDK binding whose ownership proof is
+///         equally explicit; consumers cannot manufacture an <see cref="Owned{T}" /> from a borrowed handle.
 ///     </para>
 ///     <para>
 ///         A session accepts <c>firstScan</c> only from <see cref="MemoryScanState.New" />, <c>nextScan</c> only from
@@ -181,9 +180,10 @@ public sealed class MemoryScanSession : IDisposable
     /// <exception cref="ArgumentNullException">Either ownership wrapper is <see langword="null" />.</exception>
     /// <exception cref="ObjectDisposedException">Either ownership wrapper was already released or disposed.</exception>
     /// <remarks>
-    ///     The method deliberately does not call <c>createMemScan</c> or <c>createFoundList</c>. Until the CE source
-    ///     matrix records ownership for those APIs, a convenience factory would turn an undocumented ownership assumption
-    ///     into a public destruction contract.
+    ///     <see cref="MemoryScanSessions.TryCreate" /> is preferred for ordinary CE 7.7 code because it owns the
+    ///     concrete factory sequence and rolls back a created parent when child creation fails. This method is for an
+    ///     SDK-sourced binding that already carries the same ownership proof; the <see cref="Owned{T}" /> constructor is
+    ///     internal, so normal consumers cannot turn an arbitrary borrowed handle into one of these owners.
     /// </remarks>
     public static MemoryScanSession Adopt(Owned<MemScan> scanner, Owned<FoundList> foundList)
     {

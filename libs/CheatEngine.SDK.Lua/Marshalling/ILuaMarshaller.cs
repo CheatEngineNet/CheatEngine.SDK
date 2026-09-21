@@ -27,7 +27,8 @@ namespace CheatEngine.SDK.Lua.Marshalling;
 ///     <para>
 ///         Generated code calls the concrete marshaller directly (<c>Int32Marshaller.Push(L, x)</c>); the interface exists
 ///         for code that is generic over the marshaller (table readers, argument lists) and for user-defined marshallers
-///         that a future generator option can name. <typeparamref name="T" /> is the type a declaration names
+///         named explicitly by <c>[LuaMarshaller(typeof(TMarshaller))]</c> on a generated binding value.
+///         <typeparamref name="T" /> is the type a declaration names
 ///         (<see langword="string" />, not <see langword="string" />?): a failed read leaves <see langword="default" />,
 ///         which the
 ///         <see cref="MaybeNullWhenAttribute" /> on <see cref="TryRead" /> tells the compiler about.

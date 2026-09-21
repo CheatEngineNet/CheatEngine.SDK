@@ -1,0 +1,158 @@
+using System;
+using System.Diagnostics.CodeAnalysis;
+using CheatEngine.SDK.Annotations.Lifetime;
+using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.References;
+using CheatEngine.SDK.Lua.Runtime;
+using CheatEngine.SDK.Lua.State;
+
+namespace CheatEngine.SDK.Engine.Assembly;
+
+/// <summary>
+///     Applies an Auto Assembler script against the current Cheat Engine target and creates the corresponding owned
+///     disable lease.
+/// </summary>
+/// <remarks>
+///     This is deliberately the low-level SDK escape hatch. It passes only the script to CE's
+///     <c>autoAssemble</c> global and never supplies CE's <c>targetSelf</c> argument. A caller that reaches this API
+///     is responsible for the script's content; higher-level APIs should expose typed, capability-gated patches
+///     rather than arbitrary script execution.
+/// </remarks>
+public static class AutoAssemblerPatcher
+{
+    private const string ApplyOperation = "AutoAssemblerApply";
+    private const string DisableOperation = "AutoAssemblerDisable";
+
+    /// <summary>
+    ///     Applies <paramref name="script" /> and returns the sole owner of the resulting CE disable information.
+    /// </summary>
+    /// <param name="script">The complete Auto Assembler script, including its <c>[ENABLE]</c> and <c>[DISABLE]</c> sections.</param>
+    /// <returns>An active patch which must be released or disposed before the plugin is disabled.</returns>
+    /// <exception cref="ArgumentException"><paramref name="script" /> is empty or white-space only.</exception>
+    /// <exception cref="EngineOperationFailedException">Cheat Engine rejected the Auto Assembler script.</exception>
+    /// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or not a function.</exception>
+    /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
+    /// <exception cref="EngineMarshallingException">CE returned a success result without a disable-info table.</exception>
+    [RequiresPluginEnabled]
+    public static AutoAssemblerPatch Apply(string script)
+    {
+        if (TryApply(script, out var patch)) return patch;
+
+        throw new EngineOperationFailedException(ApplyOperation);
+    }
+
+    /// <summary>
+    ///     Attempts to apply <paramref name="script" /> and transfers CE's disable-info table to
+    ///     <paramref name="patch" /> on success.
+    /// </summary>
+    /// <param name="script">The complete Auto Assembler script, including its <c>[ENABLE]</c> and <c>[DISABLE]</c> sections.</param>
+    /// <param name="patch">The active patch owner on success; otherwise <see langword="null" />.</param>
+    /// <returns><see langword="true" /> when Cheat Engine accepted the script.</returns>
+    /// <exception cref="ArgumentException"><paramref name="script" /> is empty or white-space only.</exception>
+    /// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or not a function.</exception>
+    /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
+    /// <exception cref="EngineMarshallingException">CE returned a success result without a disable-info table.</exception>
+    [RequiresPluginEnabled]
+    public static bool TryApply(string script, [NotNullWhen(true)] out AutoAssemblerPatch? patch)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(script);
+
+        using var operation = LuaRuntime.AcquireOperation();
+        var state = operation.State;
+        using LuaFrame frame = new(state);
+
+        PushAutoAssemble(state, ApplyOperation);
+        StringMarshaller.Push(state, script);
+        var status = state.TryCall(1, 2);
+        if (!status.IsOk) ThrowLua(state, status, ApplyOperation);
+
+        if (state.TypeOf(-2) != LuaType.Boolean)
+            ThrowUnexpectedResult(ApplyOperation, "a boolean success result", state.TypeOf(-2));
+
+        if (!state.ToBoolean(-2))
+        {
+            patch = null;
+            return false;
+        }
+
+        if (!state.IsTable(-1))
+            ThrowUnexpectedResult(ApplyOperation, "a disable-info table on success", state.TypeOf(-1));
+
+        // CreateRef consumes only the table. The enclosing frame drops the accompanying true result.
+        patch = new AutoAssemblerPatch(script, state.CreateRef());
+        return true;
+    }
+
+    // The owner always routes cleanup through this method. Keeping the LuaRef release in its finally block prevents a
+    // failed protected call from pinning CE's disable-info table and makes retrying a possibly partial disable impossible.
+    internal static bool TryDisable(string script, LuaRef disableInfo)
+    {
+        ArgumentNullException.ThrowIfNull(disableInfo);
+
+        if (!LuaRuntime.IsAttached || !disableInfo.IsCurrent)
+        {
+            disableInfo.Dispose();
+            return false;
+        }
+
+        try
+        {
+            using var operation = LuaRuntime.AcquireOperation();
+            var state = operation.State;
+            try
+            {
+                using LuaFrame frame = new(state);
+                PushAutoAssemble(state, DisableOperation);
+                StringMarshaller.Push(state, script);
+                if (!state.TryPushRef(disableInfo)) return false;
+
+                var status = state.TryCall(2, 1);
+                if (!status.IsOk) ThrowLua(state, status, DisableOperation);
+
+                if (state.TypeOf(-1) != LuaType.Boolean)
+                    ThrowUnexpectedResult(DisableOperation, "a boolean disable result", state.TypeOf(-1));
+
+                return state.ToBoolean(-1);
+            }
+            finally
+            {
+                // A disable can be partially applied even when CE returns false or raises. Ownership is therefore
+                // consumed before the invocation and the registry table is unrooted on every result path.
+                disableInfo.Release(state);
+            }
+        }
+        catch
+        {
+            // Acquisition can fail during host disable/reset before a state is available. Dispose still marks the
+            // reference released, without attempting an unsafe operation against a detached state.
+            disableInfo.Dispose();
+            throw;
+        }
+    }
+
+    private static void PushAutoAssemble(LuaState state, string operation)
+    {
+        var status = state.TryGetGlobal("autoAssemble"u8);
+        if (!status.IsOk) ThrowLua(state, status, operation);
+
+        if (!state.IsFunction(-1))
+            throw new EngineGlobalUnavailableException(operation);
+    }
+
+    [DoesNotReturn]
+    private static void ThrowLua(LuaState state, LuaStatus status, string operation)
+    {
+        var error = LuaError.FromStack(state, status);
+        throw new EngineLuaException(operation, status,
+            "The protected Lua call for Engine operation '" + operation + "' failed.", new LuaException(error));
+    }
+
+    [DoesNotReturn]
+    private static void ThrowUnexpectedResult(string operation, string expected, LuaType actual)
+    {
+        throw new EngineMarshallingException(operation, EngineMarshallingDirection.Result, expected,
+            "a Lua " + actual.ToString().ToLowerInvariant() + " value");
+    }
+}

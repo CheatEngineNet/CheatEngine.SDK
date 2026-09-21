@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
+
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
-namespace CheatEngine.SDK.Lua.Tests.FailureBoundaries;
+namespace CheatEngine.SDK.Lua.Tests.Protected;
 
 /// <summary>Crash-boundary checks run out of process so a regression cannot take down the test runner.</summary>
 [Trait("Category", "NativeLua")]

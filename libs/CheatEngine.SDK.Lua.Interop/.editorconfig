@@ -1,0 +1,6 @@
+[*.cs]
+# This assembly mirrors the Lua 5.3 C ABI one-to-one. Preserve canonical C identifiers even when the repository-wide
+# editor contract changes; renaming them would make the interop surface harder to audit against lua.h.
+dotnet_diagnostic.IDE1006.severity = none
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1708.severity = none

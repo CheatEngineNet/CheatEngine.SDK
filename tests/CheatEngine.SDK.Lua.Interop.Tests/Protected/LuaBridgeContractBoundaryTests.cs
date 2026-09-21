@@ -1,11 +1,12 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.Interop.Tests.Support;
 using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
-namespace CheatEngine.SDK.Lua.Interop.Tests.NativeProtection;
+namespace CheatEngine.SDK.Lua.Interop.Tests.Protected;
 
 /// <summary>Verifies that the C11 bridge rejects every contract buffer shape except its exact ABI layout.</summary>
 public sealed unsafe class LuaBridgeContractBoundaryTests

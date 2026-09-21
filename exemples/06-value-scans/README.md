@@ -2,7 +2,7 @@
 
 # 06 · Value scans
 
-**Understand the scan state machine; wait for a sourced ownership factory before creating scan objects.**
+**Understand the scan state machine; use the sourced SDK factory and keep Client availability live-gated.**
 
 **Level** `Intermediate` · **Time** `10 min` · **Needs** `Guide 05`
 
@@ -16,25 +16,26 @@
 |--------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
 | **You learn**            | Why a MemScan and its FoundList form one parent/child state machine, and why an object pointer is not enough to establish ownership    |
 | **Cheat Engine surface** | `createMemScan`, `createFoundList`, `firstScan`, `nextScan`, `newScan`, `waitTillDone`, `initialize`, and `deinitialize`               |
-| **Current SDK boundary** | The typed session owns an explicitly transferred parent/child pair; public creation remains deferred pending CE 7.7 ownership evidence |
+| **Current SDK boundary** | `MemoryScanSessions.TryCreate` owns the created parent/child pair; Client availability remains deferred pending the CE 7.7 x64 live gate |
 
 ## Status
 
-The exact CE 7.7 catalog identifies `createMemScan` and `createFoundList`, but it does not by itself prove who must
-destroy each returned object or the transfer semantics between the scan, result list, and Cheat Engine. That is a
-critical distinction: treating a raw return value as a consumer-owned resource can double-destroy a host object or
-leave a parent with a dangling child.
+The exact CE 7.7 catalog identifies `createMemScan` and `createFoundList`. The SDK's
+`MemoryScanSessions.TryCreate` is the only normal construction path: it creates the pair under one held Lua operation,
+owns the returned parent and child immediately, rolls a created parent back if the child cannot be made, and transfers
+the pair only into `MemoryScanSession`. A raw return value is still not a consumer-owned resource: wrapping it manually
+could double-destroy a host object or leave a parent with a dangling child.
 
-For that reason this guide intentionally does **not** show a raw Lua call followed by a consumer-created `Owned<T>`.
-The current scan-session API encodes the lifecycle only after a separately sourced binding has supplied an explicit
-parent/child ownership pair. Until the public factory has its CE 7.7 ownership proof, consumer code should not create
-or adopt `MemScan`/`FoundList` values directly.
+This guide intentionally does **not** show a raw Lua call followed by a consumer-created `Owned<T>`. The Client remains
+`Unknown`/`Unavailable` until its opt-in CE 7.7 x64 lifecycle scenario validates creation, scan, ordered cleanup,
+disable/re-enable and target-change behavior. The low-level factory is necessary for that evidence; it is not itself a
+claim that the high-level Client capability is ready.
 
 ## The lifecycle the future factory must preserve
 
 ```mermaid
 stateDiagram-v2
-    [*] --> New: explicit owned parent + child enter session
+    [*] --> New: factory-owned parent + child enter session
     New --> Scanning: first scan
     Scanning --> ResultsReady: wait completed, then initialize list
     ResultsReady --> Scanning: deinitialize list, then next scan
@@ -82,18 +83,18 @@ plugin disable. Do not use it to infer that `createMemScan` has the same contrac
 
 ## What is still required
 
-Before this page gains a working scan-creation example, the vertical slice must record and test:
+Before the Client may expose a live value-scan capability, the vertical slice must record and test:
 
-- whether `createMemScan` and `createFoundList` each transfer ownership to the plugin, and their exact destroy order;
-- `nil`, protected-Lua-error, and malformed-result behaviour at every creation and scan transition;
+- `nil`, protected-Lua-error, malformed result and factory rollback behavior;
 - parent/child invalidation when CE or a user resets/reuses a result list;
 - cancellation and disable while CE has a scan in progress;
-- the exact thread/lifecycle boundary for the creation and destruction calls; and
-- fixture tests plus an isolated, opt-in CE 7.7 live probe.
+- the exact thread/lifecycle boundary for creation and destruction; and
+- an isolated, opt-in CE 7.7 x64 live probe that covers success, failure, ordered cleanup, disable/re-enable and target
+  changes.
 
-The [capability matrix](../../documentations/CheatEngine.SDK/capability-matrix.md) tracks that proof. Until then,
-use typed target-memory APIs for scalar reads/writes and `AobScanner` for the ownership-proven AOB result list; reserve
-direct scan construction for a deliberately authorized, source-backed experiment outside the ordinary SDK path.
+The [capability matrix](../../documentations/CheatEngine.SDK/capability-matrix.md) tracks that proof. Until then, use
+typed target-memory APIs for scalar reads/writes and `AobScanner` for the ownership-proven AOB result list from the
+high-level Client; reserve `MemoryScanSessions.TryCreate` for a deliberately authorized, source-backed SDK experiment.
 
 ## Before you move on
 

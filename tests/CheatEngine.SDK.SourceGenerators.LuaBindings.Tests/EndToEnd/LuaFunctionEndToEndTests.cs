@@ -175,6 +175,30 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
     }
 
     [Fact]
+    public void Retained_generated_closure_is_rejected_after_disable_and_reenable()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+        var assembly = LoadSuite(roslyn);
+
+        using (new RuntimeScope(state))
+        {
+            Register(assembly, L);
+            LuaTest.Run(L, "savedAdd = add"u8);
+        }
+
+        using (new RuntimeScope(state))
+        {
+            Register(assembly, L);
+
+            var message = LuaTest.RunForError(L, "return pcall(function() return savedAdd(1, 2) end)"u8);
+            Assert.Contains("Lua function registration has expired", message, StringComparison.Ordinal);
+            Assert.Equal(3, LuaTest.RunForInteger(L, "return add(1, 2)"u8));
+        }
+    }
+
+    [Fact]
     public void Nil_is_rejected_for_a_nullable_string_argument_like_any_other_string_argument()
     {
         // Documented, deliberate behavior, not a gap: CheatEngine.SDK.Lua's string reads are strict (TryReadUtf8 checks

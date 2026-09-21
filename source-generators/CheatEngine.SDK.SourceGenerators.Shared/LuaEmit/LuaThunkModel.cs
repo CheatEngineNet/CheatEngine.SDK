@@ -26,6 +26,10 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     IDs when not empty, the same way the generated entry point protects the construction of an <c>[Obsolete]</c>
 ///     plugin class.
 /// </param>
+/// <param name="ReturnMarshaller">
+///     An explicit static marshaller for the return value, or <see langword="null" /> when
+///     <paramref name="ReturnKind" /> selects a built-in marshaller.
+/// </param>
 internal sealed record LuaThunkModel(
     string LuaName,
     string ThunkMethodName,
@@ -33,8 +37,25 @@ internal sealed record LuaThunkModel(
     bool PassesState,
     EquatableArray<LuaArgumentModel> Arguments,
     LuaValueKind? ReturnKind,
-    string DeclaredDiagnosticIds = "")
+    string DeclaredDiagnosticIds = "",
+    LuaCustomMarshallerModel? ReturnMarshaller = null)
 {
+    /// <summary>Initializes a thunk model with the pre-custom-marshaller binary shape.</summary>
+    public LuaThunkModel(string luaName, string thunkMethodName, string targetMethod, bool passesState,
+        EquatableArray<LuaArgumentModel> arguments, LuaValueKind? returnKind, string declaredDiagnosticIds)
+        : this(luaName, thunkMethodName, targetMethod, passesState, arguments, returnKind, declaredDiagnosticIds, null)
+    {
+    }
+
+    /// <summary>Whether the target returns one Lua value.</summary>
+    public bool HasReturn => ReturnKind is not null || ReturnMarshaller is not null;
+
+    /// <summary>The concrete static marshaller for the return value.</summary>
+    public string ReturnMarshallerTypeName => ReturnMarshaller?.MarshallerTypeName ??
+                                              LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);
+
+    /// <summary>The C# type spelling for the generated result local.</summary>
+    public string ReturnTypeName => ReturnMarshaller?.ValueTypeName ?? LuaValueKinds.TypeName(ReturnKind!.Value, true);
     /// <summary>Prefix of every generated thunk name.</summary>
     public const string ThunkPrefix = "__LuaThunk_";
 

@@ -119,7 +119,7 @@ internal static class LuaGlobalCallEmitter
 
         if (argument.IsScoped) writer.Write("scoped ");
 
-        writer.Write(LuaValueKinds.TypeName(argument.Kind, argument.IsNullable));
+        writer.Write(argument.GeneratedTypeName);
         writer.Write(' ');
         writer.Write(argument.Name);
     }
@@ -141,7 +141,7 @@ internal static class LuaGlobalCallEmitter
         else
         {
             writer.Write("out ");
-            writer.Write(LuaValueKinds.TypeName(result.Kind, result.IsNullable));
+            writer.Write(result.GeneratedTypeName);
             writer.Write(' ');
         }
 
@@ -159,8 +159,8 @@ internal static class LuaGlobalCallEmitter
 
         return model.Form == LuaCallForm.Try
             ? "bool"
-            : model.ReturnKind is LuaValueKind kind
-                ? LuaValueKinds.TypeName(kind, model.ReturnIsNullable)
+            : model.HasReturn
+                ? model.ReturnTypeName
                 : "void";
     }
 
@@ -197,7 +197,7 @@ internal static class LuaGlobalCallEmitter
         // The arguments.
         foreach (var argument in model.Arguments)
         {
-            writer.Write(LuaValueKinds.MarshallerTypeName(argument.Kind));
+        writer.Write(argument.GeneratedMarshallerTypeName);
             writer.Write(".Push(");
             writer.Write(State);
             writer.Write(", ");
@@ -392,19 +392,19 @@ internal static class LuaGlobalCallEmitter
     // Exit 3: the result is nil or of another kind; the helper names the Lua type it found.
     private static void WriteThrowingResult(SourceWriter writer, LuaGlobalCallModel model)
     {
-        if (model.ReturnKind is not LuaValueKind kind)
+        if (!model.HasReturn)
             // A void call keeps no result: the successful call already left the stack at its recorded top.
             return;
 
         writer.WriteLine();
         writer.Write("if (!");
-        writer.Write(LuaValueKinds.MarshallerTypeName(kind));
+        writer.Write(model.ReturnMarshallerTypeName);
         writer.Write(".TryRead(");
         writer.Write(State);
         writer.Write(", -1, out ");
         // A string local is declared nullable: the marshaller's out parameter is [MaybeNullWhen(false)], and the
         // flow analysis knows it is not null once the read succeeded.
-        writer.Write(LuaValueKinds.TypeName(kind, true));
+        writer.Write(model.ReturnMarshaller?.ValueTypeName ?? LuaValueKinds.TypeName(model.ReturnKind!.Value, true));
         writer.Write(' ');
         writer.Write(Result);
         writer.WriteLine("))");
@@ -417,7 +417,7 @@ internal static class LuaGlobalCallEmitter
         writer.Write(", -1, ");
         writer.Write(CSharpLiteral.ToStringLiteral(model.GlobalName));
         writer.Write(", ");
-        writer.Write(CSharpLiteral.ToStringLiteral(LuaValueKinds.ExpectedResult(kind)));
+        writer.Write(CSharpLiteral.ToStringLiteral(model.ExpectedReturnTypeName));
         writer.WriteLine(");");
         writer.CloseBlock();
         writer.WriteLine();
@@ -442,7 +442,7 @@ internal static class LuaGlobalCallEmitter
             return;
         }
 
-        writer.Write(LuaValueKinds.MarshallerTypeName(result.Kind));
+        writer.Write(result.GeneratedMarshallerTypeName);
         writer.Write(".TryRead(");
         writer.Write(State);
         writer.Write(", ");
@@ -462,7 +462,7 @@ internal static class LuaGlobalCallEmitter
 
             var other = model.Results[i];
             writer.Write(other.Name);
-            writer.WriteLine(LuaValueKinds.IsReferenceType(other.Kind) ? " = default!;" : " = default;");
+            writer.WriteLine(other.IsReferenceType ? " = default!;" : " = default;");
         }
 
         writer.Write("return ");
@@ -483,7 +483,7 @@ internal static class LuaGlobalCallEmitter
         foreach (var result in model.Results)
         {
             writer.Write(result.Name);
-            writer.WriteLine(LuaValueKinds.IsReferenceType(result.Kind) ? " = default!;" : " = default;");
+            writer.WriteLine(result.IsReferenceType ? " = default!;" : " = default;");
         }
 
         writer.WriteLine("return false;");

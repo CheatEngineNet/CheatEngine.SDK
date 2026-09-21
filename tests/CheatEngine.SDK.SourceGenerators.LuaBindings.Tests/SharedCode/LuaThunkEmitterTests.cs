@@ -89,7 +89,7 @@ public sealed class LuaThunkEmitterTests
             "public static global::CheatEngine.SDK.Lua.Calls.LuaStatus UnregisterLuaFunctions(global::CheatEngine.SDK.Lua.State.LuaState state)\n",
             text, StringComparison.Ordinal);
         Assert.Contains(
-            "state.TryPushFunction(new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_isint));",
+            "global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.TryPushGeneratedFunction(state, new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_isint));",
             text,
             StringComparison.Ordinal);
         Assert.True(

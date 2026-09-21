@@ -47,6 +47,12 @@ internal static class WellKnownTypeNames
     /// <summary>Binds a partial member to a Lua global (CESDK2xxx).</summary>
     public const string LuaGlobalAttribute = AnnotationsMetadataNames.LuaGlobalAttribute;
 
+    /// <summary>Selects a concrete static marshaller for one generated Lua binding value.</summary>
+    public const string LuaMarshallerAttribute = AnnotationsMetadataNames.LuaMarshallerAttribute;
+
+    /// <summary>The static-abstract Lua marshaller contract used by the generated binding surface.</summary>
+    public const string ILuaMarshaller = "CheatEngine.SDK.Lua.Marshalling.ILuaMarshaller`1";
+
     /// <summary>Marks an API that can only run after PluginHost enables the plugin (CESDK1001).</summary>
     public const string RequiresPluginEnabledAttribute =
         "CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute";

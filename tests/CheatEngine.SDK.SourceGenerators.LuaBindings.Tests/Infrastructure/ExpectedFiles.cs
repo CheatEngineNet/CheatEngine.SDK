@@ -35,7 +35,7 @@ internal static class ExpectedFiles
                                                                        public static unsafe global::CheatEngine.SDK.Lua.Calls.LuaStatus RegisterLuaFunctions(global::CheatEngine.SDK.Lua.State.LuaState state)
                                                                        {
                                                                            global::CheatEngine.SDK.Lua.Calls.LuaStatus __status;
-                                                                           __status = state.TryPushFunction(new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_add));
+                                                                           __status = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.TryPushGeneratedFunction(state, new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_add));
                                                                            if (!__status.IsOk)
                                                                            {
                                                                                return __status;
@@ -47,7 +47,7 @@ internal static class ExpectedFiles
                                                                                return __status;
                                                                            }
 
-                                                                           __status = state.TryPushFunction(new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_greet));
+                                                                           __status = global::CheatEngine.SDK.Lua.Runtime.LuaRuntime.TryPushGeneratedFunction(state, new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_greet));
                                                                            if (!__status.IsOk)
                                                                            {
                                                                                return __status;

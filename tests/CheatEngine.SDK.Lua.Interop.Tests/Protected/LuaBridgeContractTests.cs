@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace CheatEngine.SDK.Lua.Interop.Tests.NativeProtection;
+namespace CheatEngine.SDK.Lua.Interop.Tests.Protected;
 
 /// <summary>Structural tests for the native boundary that protects allocating Lua operations.</summary>
 public sealed unsafe class LuaBridgeContractTests

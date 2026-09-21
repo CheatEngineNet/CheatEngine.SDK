@@ -123,7 +123,7 @@ internal static class LuaThunkEmitter
     {
         var position = (index + 1).ToString(CultureInfo.InvariantCulture);
         writer.Write("if (!");
-        writer.Write(LuaValueKinds.MarshallerTypeName(argument.Kind));
+        writer.Write(argument.GeneratedMarshallerTypeName);
         writer.Write(".TryRead(");
         writer.Write(State);
         writer.Write(", ");
@@ -131,7 +131,7 @@ internal static class LuaThunkEmitter
         writer.Write(", out ");
         // A string local is declared nullable: the marshaller's out parameter is [MaybeNullWhen(false)], and the
         // flow analysis knows it is not null once the read succeeded, so it flows into a 'string' parameter.
-        writer.Write(LuaValueKinds.TypeName(argument.Kind, true));
+        writer.Write(argument.CustomMarshaller?.ValueTypeName ?? LuaValueKinds.TypeName(argument.Kind, true));
         writer.Write(' ');
         writer.Write(ArgumentPrefix);
         writer.Write(index.ToString(CultureInfo.InvariantCulture));
@@ -144,7 +144,7 @@ internal static class LuaThunkEmitter
         writer.Write(", ");
         writer.Write(position);
         writer.Write(", ");
-        writer.Write(CSharpLiteral.ToUtf8Literal(LuaValueKinds.ExpectedArgument(argument.Kind)));
+        writer.Write(CSharpLiteral.ToUtf8Literal(argument.ExpectedArgumentTypeName));
         writer.WriteLine(");");
         writer.CloseBlock();
     }
@@ -152,10 +152,10 @@ internal static class LuaThunkEmitter
     // The call, its result pushed as the single Lua result.
     private static void WriteCallAndResult(SourceWriter writer, LuaThunkModel model)
     {
-        if (model.ReturnKind is LuaValueKind kind)
+        if (model.HasReturn)
         {
             // A string target may return null (pushed as nil), whatever its annotation says.
-            writer.Write(LuaValueKinds.TypeName(kind, true));
+            writer.Write(model.ReturnTypeName);
             writer.Write(' ');
             writer.Write(Result);
             writer.Write(" = ");
@@ -181,9 +181,9 @@ internal static class LuaThunkEmitter
 
         writer.WriteLine(");");
 
-        if (model.ReturnKind is LuaValueKind pushed)
+        if (model.HasReturn)
         {
-            writer.Write(LuaValueKinds.MarshallerTypeName(pushed));
+            writer.Write(model.ReturnMarshallerTypeName);
             writer.Write(".Push(");
             writer.Write(State);
             writer.Write(", ");

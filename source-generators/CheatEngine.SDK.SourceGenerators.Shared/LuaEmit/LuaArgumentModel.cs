@@ -26,13 +26,33 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     host-required flags such as <c>readInteger</c>'s signed-result argument; binding declarations always leave it
 ///     <see langword="null" />.
 /// </param>
+/// <param name="CustomMarshaller">
+///     An explicit marshaller selected with <c>[LuaMarshaller]</c>, or <see langword="null" /> for one of the SDK
+///     scalar marshallers represented by <paramref name="Kind" />.
+/// </param>
 internal sealed record LuaArgumentModel(
     string Name,
     LuaValueKind Kind,
     bool IsNullable,
     bool IsScoped = false,
-    string? FixedValue = null)
+    string? FixedValue = null,
+    LuaCustomMarshallerModel? CustomMarshaller = null)
 {
+    /// <summary>Initializes a built-in scalar argument model with the pre-custom-marshaller binary shape.</summary>
+    public LuaArgumentModel(string name, LuaValueKind kind, bool isNullable, bool isScoped, string? fixedValue)
+        : this(name, kind, isNullable, isScoped, fixedValue, null)
+    {
+    }
+
     /// <summary>Whether this value is pushed directly instead of being supplied by a wrapper parameter.</summary>
     public bool IsFixed => FixedValue is not null;
+
+    /// <summary>The concrete marshaller that emitted code calls directly.</summary>
+    public string GeneratedMarshallerTypeName => CustomMarshaller?.MarshallerTypeName ?? LuaValueKinds.MarshallerTypeName(Kind);
+
+    /// <summary>The C# type spelling used in an emitted parameter or local.</summary>
+    public string GeneratedTypeName => CustomMarshaller?.ValueTypeName ?? LuaValueKinds.TypeName(Kind, IsNullable);
+
+    /// <summary>The Lua-facing expected type in a generated bad-argument message.</summary>
+    public string ExpectedArgumentTypeName => CustomMarshaller?.ExpectedTypeName ?? LuaValueKinds.ExpectedArgument(Kind);
 }

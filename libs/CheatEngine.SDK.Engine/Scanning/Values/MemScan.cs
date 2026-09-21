@@ -11,10 +11,10 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 /// <remarks>
 ///     <para>
 ///         CE 7.7.0.10621 documents <c>MemScan</c> in <c>celua.txt</c> lines 2506-2658. It distinguishes the GUI's
-///         <c>getCurrentMemscan()</c> object from an object returned by <c>createMemScan(progressbar OPTIONAL)</c>, but
-///         that document alone does not state the destroy owner of either object. This handle therefore never infers
-///         ownership. An SDK factory may construct an <see cref="Owned{T}" /> only where a separate ABI/Lua ownership
-///         proof authorizes it.
+///         <c>getCurrentMemscan()</c> object from an object returned by <c>createMemScan(progressbar OPTIONAL)</c>.
+///         This handle therefore never infers ownership: <see cref="MemoryScanSessions.TryCreate" /> is the specific
+///         factory that establishes ownership for its created parent/child pair, whereas a GUI-supplied scan stays
+///         borrowed. The Client capability remains live-gated independently of this low-level contract.
 ///     </para>
 ///     <para>
 ///         The safe, stateful path is <see cref="MemoryScanSession" />. This type remains a copyable borrowed value so

@@ -1,34 +1,145 @@
 root = true
 
+# Repository-wide, editor-agnostic defaults. Language-specific sections below
+# intentionally override these values where a format has stricter constraints.
 [*]
 charset = utf-8
-end_of_line = crlf
 insert_final_newline = true
 indent_style = space
 indent_size = 4
+tab_width = 4
+max_line_length = 120
 trim_trailing_whitespace = true
 
-[*.{csproj,props,targets,slnx,config,json,yml}]
+[*.{csproj,props,targets,slnx,config,json,yml,yaml}]
+# YAML cannot use tabs for indentation. Keep project and configuration files
+# compact and portable even though C# uses tabs below.
+indent_style = space
 indent_size = 2
+tab_width = 2
 
-[*.cs]
-csharp_style_namespace_declarations = file_scoped:warning
-dotnet_style_require_accessibility_modifiers = always:warning
-csharp_using_directive_placement = outside_namespace:warning
+[*.{cs,csx}]
+################################################################################
+# C# team contract
+#
+# Roslyn settings are the portable source of truth: Rider, VS, dotnet format,
+# and CI all understand them. Rider-only settings are marked as such.
+################################################################################
+
+# Tabs describe logical nesting; spaces are retained solely to align continuations.
+indent_style = tab
+indent_size = tab
+tab_width = 4
+csharp_indent_style = tab
+csharp_indent_size = 4
+csharp_tab_width = 4
+csharp_alignment_tab_fill_style = use_spaces
+
+# Make structural boundaries easy to scan.
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_catch = true
+csharp_new_line_before_else = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_between_query_expression_clauses = true
+csharp_indent_braces = false
+csharp_indent_switch_labels = true
+csharp_preserve_single_line_blocks = false
+csharp_preserve_single_line_statements = false
+csharp_space_after_cast = true
+csharp_space_around_binary_operators = before_and_after
+csharp_preferred_modifier_order = public, private, protected, internal, file, static, extern, new, virtual, abstract, sealed, override, readonly, unsafe, required, volatile, async
+
+# Keep imports and namespaces deterministic and minimise needless nesting.
+dotnet_separate_import_directive_groups = true
 dotnet_sort_system_directives_first = true
-# Unused usings fail the build; this needs GenerateDocumentationFile, set in Directory.Build.props.
-dotnet_diagnostic.IDE0005.severity = warning
+csharp_using_directive_placement = outside_namespace
+csharp_style_namespace_declarations = file_scoped
 
-[libs/CheatEngine.SDK.Lua.Interop/**.cs]
-# The project mirrors the Lua 5.3 C API one to one, so C identifiers (lua_gettop, LUA_REGISTRYINDEX) stay.
-dotnet_diagnostic.IDE1006.severity = none
-dotnet_diagnostic.CA1707.severity = none
-dotnet_diagnostic.CA1708.severity = none
+# Prefer syntax that leaves declarations, construction, and contracts visible.
+# `var` is statically typed in C#, but explicit types are the repository's
+# readability convention whenever the language can express them.
+csharp_style_var_for_built_in_types = false
+csharp_style_var_when_type_is_apparent = false
+csharp_style_var_elsewhere = false
+csharp_style_implicit_object_creation_when_type_is_apparent = false
+dotnet_style_require_accessibility_modifiers = always
+dotnet_style_readonly_field = true
+dotnet_style_explicit_tuple_names = true
+dotnet_style_predefined_type_for_locals_parameters_members = true
+dotnet_style_predefined_type_for_member_access = true
+csharp_prefer_braces = true
+csharp_style_prefer_top_level_statements = false
 
-[tests/**.cs]
-# Test code awaits without ConfigureAwait.
-dotnet_diagnostic.MA0004.severity = suggestion
+# Enforced now: redundant suppressions report genuine noise and remain build
+# blockers because Directory.Build.props treats warnings as errors.
+dotnet_diagnostic.IDE0079.severity = error
 
-[tests/*.Tests/**.cs]
-# Test methods are named Subject_condition_expected.
-dotnet_diagnostic.CA1707.severity = none
+# Migration rules: surface the historical backlog in every Roslyn-aware editor
+# and participate in code cleanup without breaking the currently dirty tree.
+# Promote these to warning/error in a dedicated cleanup change once the existing
+# source has been reformatted and explicit types have been introduced.
+dotnet_diagnostic.IDE0007.severity = none
+dotnet_diagnostic.IDE0008.severity = suggestion
+dotnet_diagnostic.IDE0011.severity = suggestion
+dotnet_diagnostic.IDE0033.severity = suggestion
+dotnet_diagnostic.IDE0040.severity = suggestion
+dotnet_diagnostic.IDE0044.severity = suggestion
+# The formatter still follows the tab contract above. Do not flood every open
+# legacy file with a formatting diagnostic before the dedicated reformat pass.
+dotnet_diagnostic.IDE0055.severity = none
+dotnet_diagnostic.IDE0005.severity = suggestion
+dotnet_diagnostic.IDE0065.severity = suggestion
+dotnet_diagnostic.IDE0090.severity = suggestion
+dotnet_diagnostic.IDE0160.severity = none
+dotnet_diagnostic.IDE0161.severity = suggestion
+dotnet_diagnostic.IDE1006.severity = suggestion
+
+# Rider derives its own "var or explicit type" inspections from the shared
+# csharp_style_var_* values. Silence those copies so IDE0008 is the one
+# portable diagnostic developers see, rather than reporting each issue twice.
+resharper_suggest_var_or_type_built_in_types_highlighting = none
+resharper_suggest_var_or_type_simple_types_highlighting = none
+resharper_suggest_var_or_type_elsewhere_highlighting = none
+resharper_suggest_var_or_type_deconstruction_declarations_highlighting = none
+
+# Rider-specific, live diagnostic. It complements compiler nullable analysis;
+# it is deliberately a warning rather than a CI-only, non-portable error.
+resharper_possible_null_reference_exception_highlighting = warning
+
+# Naming rules keep public contracts recognisable before a reader opens a type.
+dotnet_naming_rule.interfaces_must_be_prefixed_i.severity = suggestion
+dotnet_naming_rule.interfaces_must_be_prefixed_i.symbols = interfaces
+dotnet_naming_rule.interfaces_must_be_prefixed_i.style = i_pascal_case
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_style.i_pascal_case.required_prefix = I
+dotnet_naming_style.i_pascal_case.capitalization = pascal_case
+
+dotnet_naming_rule.types_must_be_pascal_case.severity = suggestion
+dotnet_naming_rule.types_must_be_pascal_case.symbols = types
+dotnet_naming_rule.types_must_be_pascal_case.style = pascal_case
+dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum, delegate
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_rule.non_private_members_must_be_pascal_case.severity = suggestion
+dotnet_naming_rule.non_private_members_must_be_pascal_case.symbols = non_private_members
+dotnet_naming_rule.non_private_members_must_be_pascal_case.style = pascal_case
+dotnet_naming_symbols.non_private_members.applicable_kinds = property, method, event
+dotnet_naming_symbols.non_private_members.applicable_accessibilities = public, internal, protected, protected_internal, private_protected
+
+dotnet_naming_rule.private_fields_must_be_underscore_camel_case.severity = suggestion
+dotnet_naming_rule.private_fields_must_be_underscore_camel_case.symbols = private_fields
+dotnet_naming_rule.private_fields_must_be_underscore_camel_case.style = underscore_camel_case
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+
+# IDE0005 requires XML documentation generation to run during a command-line
+# build. Shipping projects already enable it; tests and samples intentionally
+# retain it as an editor suggestion rather than acquiring build-only XML output.
+[libs/**.cs]
+dotnet_diagnostic.IDE0005.severity = error
+
+[src/**.cs]
+dotnet_diagnostic.IDE0005.severity = error

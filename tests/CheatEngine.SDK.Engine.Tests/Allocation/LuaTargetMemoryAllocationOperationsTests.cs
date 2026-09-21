@@ -5,6 +5,7 @@ using CheatEngine.SDK.Engine.Enums;
 using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
@@ -77,6 +78,96 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
         Assert.Equal(0, L.Top);
     }
 
+    [Theory]
+    [InlineData("function allocateMemory() return nil end", TargetMemoryOperationOutcomeKind.ExpectedFailure, 0)]
+    [InlineData("function allocateMemory() error('fixture allocation failure') end",
+        TargetMemoryOperationOutcomeKind.ProtectedLuaFailure, 2)]
+    [InlineData("function allocateMemory() return true end", TargetMemoryOperationOutcomeKind.MarshallingFailure, 0)]
+    public void AllocateWithOutcome_classifies_documented_result_and_execution_categories_without_error_text(
+        string fixture, TargetMemoryOperationOutcomeKind expectedKind, int expectedLuaStatus)
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, Encoding.UTF8.GetBytes(fixture));
+
+        var outcome = LuaTargetMemoryAllocationOperations.Instance.AllocateWithOutcome(
+            new TargetAllocationRequest(new TargetAllocationSize(4096)));
+
+        Assert.Equal(expectedKind, outcome.Operation.Kind);
+        Assert.Equal(new LuaStatus(expectedLuaStatus), outcome.Operation.LuaStatus);
+        Assert.Equal(Address.Zero, outcome.Address);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void AllocateWithOutcome_missing_global_is_distinct_from_a_present_global_that_throws()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+
+        var outcome = LuaTargetMemoryAllocationOperations.Instance.AllocateWithOutcome(
+            new TargetAllocationRequest(new TargetAllocationSize(4096)));
+
+        Assert.Equal(TargetMemoryOperationOutcomeKind.GlobalUnavailable, outcome.Operation.Kind);
+        Assert.Equal(EngineFailureKind.GlobalUnavailable, outcome.Operation.FailureKind);
+        Assert.Equal(LuaStatus.Ok, outcome.Operation.LuaStatus);
+        Assert.Equal(Address.Zero, outcome.Address);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void AllocateWithOutcome_global_resolution_failure_preserves_the_protected_status()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, """
+                          setmetatable(_G, {
+                            __index = function(_, name)
+                              if name == "allocateMemory" then error("fixture global lookup failure") end
+                            end
+                          })
+                          """u8);
+
+        var outcome = LuaTargetMemoryAllocationOperations.Instance.AllocateWithOutcome(
+            new TargetAllocationRequest(new TargetAllocationSize(4096)));
+
+        Assert.Equal(TargetMemoryOperationOutcomeKind.ProtectedLuaFailure, outcome.Operation.Kind);
+        Assert.Equal(EngineFailureKind.ProtectedLuaFailure, outcome.Operation.FailureKind);
+        Assert.Equal(LuaStatus.RuntimeError, outcome.Operation.LuaStatus);
+        Assert.Equal(Address.Zero, outcome.Address);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void AllocateWithOutcome_expected_nil_result_is_allocation_free_after_warmup()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, "function allocateMemory() return nil end"u8);
+        var request = new TargetAllocationRequest(new TargetAllocationSize(4096));
+        var kind = TargetMemoryOperationOutcomeKind.Unspecified;
+        var address = Address.Zero;
+
+        AllocationGate.AssertZero(() =>
+        {
+            var outcome = LuaTargetMemoryAllocationOperations.Instance.AllocateWithOutcome(request);
+            kind = outcome.Operation.Kind;
+            address = outcome.Address;
+        });
+
+        Assert.Equal(TargetMemoryOperationOutcomeKind.ExpectedFailure, kind);
+        Assert.Equal(Address.Zero, address);
+        Assert.Equal(0, L.Top);
+    }
+
     [Fact]
     public void Allocate_when_the_global_is_missing_throws_the_stable_global_unavailable_error()
     {
@@ -135,6 +226,27 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
         var expectedFailure = Assert.Throws<EngineOperationFailedException>(() =>
             allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))).Release());
         Assert.Equal("TargetMemoryDeallocate", expectedFailure.Operation);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void ReleaseWithOutcome_false_result_is_an_expected_failure_without_a_lua_error()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        InstallAllocationGlobals(L);
+        TargetMemoryAllocator allocator = new();
+        EngineTest.Run(L, "function deAlloc() return false end"u8);
+        var region = allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096)));
+
+        var outcome = region.ReleaseWithOutcome();
+
+        Assert.Equal(TargetMemoryOperationOutcomeKind.ExpectedFailure, outcome.Kind);
+        Assert.Equal(EngineFailureKind.ExpectedOperationFailure, outcome.FailureKind);
+        Assert.Equal(LuaStatus.Ok, outcome.LuaStatus);
+        Assert.True(region.IsDisposed);
         Assert.Equal(0, L.Top);
     }
 

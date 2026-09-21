@@ -115,6 +115,37 @@ public sealed class AllocatedRegion : IDisposable
             throw new EngineOperationFailedException("TargetMemoryDeallocate");
     }
 
+    /// <summary>
+    ///     Releases the target allocation and returns a structured factual outcome instead of translating an expected
+    ///     or Engine-boundary result into an exception.
+    /// </summary>
+    /// <returns>The outcome of the one permitted deallocation attempt.</returns>
+    /// <remarks>
+    ///     Ownership is consumed before the CE call just as it is for <see cref="Release" />. This method does not
+    ///     retry an expected failure or a boundary failure. It adapts an implementation that exposes only
+    ///     <see cref="ITargetMemoryAllocationOperations" /> without inspecting exception text.
+    /// </remarks>
+    /// <exception cref="ObjectDisposedException">Ownership was already released or disposed.</exception>
+    [RequiresPluginEnabled]
+    public TargetMemoryOperationOutcome ReleaseWithOutcome()
+    {
+        if (!TryTakeOwnership()) ThrowDisposed();
+
+        if (_operations is ITargetMemoryAllocationOutcomeOperations detailed)
+            return detailed.DeallocateWithOutcome(_address, _size);
+
+        try
+        {
+            return _operations.TryDeallocate(_address, _size)
+                ? TargetMemoryOperationOutcome.Succeeded()
+                : TargetMemoryOperationOutcome.ExpectedFailure();
+        }
+        catch (EngineException exception)
+        {
+            return TargetMemoryAllocator.CreateOutcome(exception);
+        }
+    }
+
     private bool TryTakeOwnership()
     {
         return Interlocked.Exchange(ref _released, 1) == 0;

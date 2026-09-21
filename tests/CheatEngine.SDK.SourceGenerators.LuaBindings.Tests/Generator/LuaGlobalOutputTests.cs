@@ -38,6 +38,23 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
     }
 
     [Fact]
+    public void Generator_outcome_form_preserves_resolution_call_and_result_categories()
+    {
+        var run = roslyn.Run(BindingSources.GlobalSuite);
+
+        var body = Section(run.SingleGeneratedText,
+            "public static partial global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus TryReadInt32Detailed(nuint address, out int value)",
+            "\n        }\n");
+        Assert.Contains("LuaGlobalFunctions.TryPushWithOutcome", body, StringComparison.Ordinal);
+        Assert.Contains("__resolution.ToOperationStatus()", body, StringComparison.Ordinal);
+        Assert.Contains("LuaOperationStatus.LuaFailure(__status)", body, StringComparison.Ordinal);
+        Assert.Contains("LuaOperationStatus.NilResult : global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus.InvalidResult",
+            body, StringComparison.Ordinal);
+        Assert.Contains("return global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus.Success;", body,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Generator_copy_out_result_copies_before_restoring_the_stack()
     {
         var run = roslyn.Run(BindingSources.GlobalSuite);

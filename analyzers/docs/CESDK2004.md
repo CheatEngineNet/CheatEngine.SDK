@@ -29,7 +29,8 @@ The leading `LuaState` is optional. The arguments are by-value parameters of a m
 parameter of a marshalled kind other than `ReadOnlySpan<byte>`, or a copy-out pair
 `Span<byte> destination, out int written`.
 
-The results decide the form. Any `out` result makes it the **Try** form, which must return `bool`. No result makes it
+The results decide the form. Any `out` result makes it a non-throwing form, which returns either `bool` (the legacy
+**Try** projection) or `LuaOperationStatus` (the detailed outcome form). No result makes it
 the **throwing** form, whose return type is `void` or a marshalled kind other than `ReadOnlySpan<byte>`.
 
 When a declaration does not qualify, the generator writes no body for it. A `partial` declaration with an accessibility
@@ -59,7 +60,7 @@ problem, on the method's own location:
 | `UnsupportedResultType`    | Every `out` result is `int`, `long`, `float`, `double`, `bool`, `nuint` or `string`, or a `Span<byte> destination, out int written` copy-out pair.                                                      |
 | `SpanResult`               | No result is `ReadOnlySpan<byte>` (an `out` parameter or the return type): it would point into a Lua string popped before the wrapper returns. Use the copy-out pair or `string`.                       |
 | `UnsupportedReturnType`    | The return type of the throwing form is `void` or one of the same marshalled kinds (`bool` included) other than `ReadOnlySpan<byte>`.                                                                   |
-| `TryFormReturnNotBool`     | A declaration with `out` results returns `bool`: that is the whole shape of the Try form.                                                                                                               |
+| `TryFormReturnNotBool`     | A declaration with `out` results returns `bool` or `LuaOperationStatus`: these are the supported non-throwing forms.                                                                                     |
 
 ## Example
 
@@ -75,8 +76,8 @@ public static partial class Memory
 }
 ```
 
-Compliant: the Try form, a `bool` return with the `out` result. Dropping the `out` parameter gives the throwing form
-instead.
+Compliant: the Try form, a `bool` return with the `out` result. An opt-in detailed form returns `LuaOperationStatus`;
+dropping the `out` parameter gives the throwing form instead.
 
 ```csharp
 using CheatEngine.SDK.Annotations.Lua;
@@ -88,6 +89,16 @@ public static partial class Memory
     [LuaGlobal("readInteger")]
     public static partial bool TryReadInt32(nuint address, bool signed, out int value);
 }
+```
+
+The detailed form preserves factual global-resolution, protected-call and result-shape outcomes without extracting
+Lua error text:
+
+```csharp
+using CheatEngine.SDK.Lua.Calls;
+
+[LuaGlobal("readInteger")]
+public static partial LuaOperationStatus TryReadInt32Detailed(nuint address, bool signed, out int value);
 ```
 
 ## When to suppress

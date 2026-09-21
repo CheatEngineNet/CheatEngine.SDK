@@ -74,8 +74,14 @@ internal sealed record LuaGlobalCallModel(
     /// <summary>Prefix of the cache field a file emitter declares for a global.</summary>
     public const string CacheFieldPrefix = "s_luaGlobal_";
 
-    /// <summary>Number of results the protected call keeps: the result count of the Try form, 0 or 1 for the throwing form.</summary>
-    public int ResultCount => Form == LuaCallForm.Try ? Results.Length : ReturnKind is null && ReturnMarshaller is null ? 0 : 1;
+    /// <summary>Number of results the protected call keeps: the result count of either non-throwing form, 0 or 1 for the throwing form.</summary>
+    public int ResultCount => IsTryLike ? Results.Length : ReturnKind is null && ReturnMarshaller is null ? 0 : 1;
+
+    /// <summary>Gets whether this shape returns its Lua values through <see langword="out" /> parameters.</summary>
+    public bool IsTryLike => Form is LuaCallForm.Try or LuaCallForm.Outcome;
+
+    /// <summary>Gets whether this is the opt-in detailed non-throwing form.</summary>
+    public bool IsOutcome => Form == LuaCallForm.Outcome;
 
     /// <summary>Whether the throwing form returns one Lua value.</summary>
     public bool HasReturn => ReturnKind is not null || ReturnMarshaller is not null;

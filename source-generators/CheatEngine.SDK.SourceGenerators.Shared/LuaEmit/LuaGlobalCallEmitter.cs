@@ -100,7 +100,7 @@ internal static class LuaGlobalCallEmitter
             isExtensionReceiver = false;
         }
 
-        if (model.Form == LuaCallForm.Try)
+        if (model.IsTryLike)
             foreach (var result in model.Results)
             {
                 WriteSeparator(writer, ref first);
@@ -159,6 +159,8 @@ internal static class LuaGlobalCallEmitter
 
         return model.Form == LuaCallForm.Try
             ? "bool"
+            : model.Form == LuaCallForm.Outcome
+                ? LuaApiNames.LuaOperationStatus
             : model.HasReturn
                 ? model.ReturnTypeName
                 : "void";
@@ -185,6 +187,14 @@ internal static class LuaGlobalCallEmitter
         var resultCount = model.ResultCount;
 
         WriteStateAndTop(writer, model);
+        WriteProtectedBody(writer, model, argumentCount, resultCount);
+        WriteExceptionHandler(writer, model);
+        WriteStackRestore(writer);
+    }
+
+    private static void WriteProtectedBody(SourceWriter writer, LuaGlobalCallModel model, int argumentCount,
+        int resultCount)
+    {
         writer.WriteLine("try");
         writer.OpenBlock();
 
@@ -193,8 +203,13 @@ internal static class LuaGlobalCallEmitter
         if (slots > StackCheckThreshold) WriteStackCheck(writer, model, slots);
 
         WriteGlobalPush(writer, model);
+        WriteArguments(writer, model);
+        WriteCallAndResults(writer, model, argumentCount, resultCount);
+        writer.CloseBlock();
+    }
 
-        // The arguments.
+    private static void WriteArguments(SourceWriter writer, LuaGlobalCallModel model)
+    {
         foreach (var argument in model.Arguments)
         {
             writer.Write(argument.GeneratedMarshallerTypeName);
@@ -204,19 +219,28 @@ internal static class LuaGlobalCallEmitter
             writer.Write(argument.FixedValue ?? argument.Name);
             writer.WriteLine(");");
         }
+    }
 
+    private static void WriteCallAndResults(SourceWriter writer, LuaGlobalCallModel model, int argumentCount,
+        int resultCount)
+    {
         if (model.Form == LuaCallForm.Try)
         {
             WriteTryCallAndResults(writer, model, argumentCount, resultCount);
+        }
+        else if (model.Form == LuaCallForm.Outcome)
+        {
+            WriteOutcomeCallAndResults(writer, model, argumentCount, resultCount);
         }
         else
         {
             WriteThrowingCall(writer, argumentCount, resultCount);
             WriteThrowingResult(writer, model);
         }
+    }
 
-        writer.CloseBlock();
-
+    private static void WriteExceptionHandler(SourceWriter writer, LuaGlobalCallModel model)
+    {
         if (model.Form == LuaCallForm.Try)
         {
             writer.Write("catch (");
@@ -226,7 +250,21 @@ internal static class LuaGlobalCallEmitter
             WriteTryExceptionFailure(writer, model);
             writer.CloseBlock();
         }
+        else if (model.Form == LuaCallForm.Outcome)
+        {
+            writer.Write("catch (");
+            writer.Write(LuaApiNames.LuaException);
+            writer.Write(' ');
+            writer.Write("__exception");
+            writer.WriteLine(")");
+            writer.OpenBlock();
+            WriteOutcomeFailure(writer, model, LuaApiNames.LuaOperationStatus + ".LuaFailure(__exception.Status)", 0);
+            writer.CloseBlock();
+        }
+    }
 
+    private static void WriteStackRestore(SourceWriter writer)
+    {
         writer.WriteLine("finally");
         writer.OpenBlock();
         writer.Write(State);
@@ -286,6 +324,25 @@ internal static class LuaGlobalCallEmitter
     // Exit 1: the global could not be resolved.
     private static void WriteGlobalPush(SourceWriter writer, LuaGlobalCallModel model)
     {
+        if (model.Form == LuaCallForm.Outcome)
+        {
+            writer.Write("var __resolution = ");
+            writer.Write(LuaApiNames.LuaGlobalFunctions);
+            writer.Write(".TryPushWithOutcome(");
+            writer.Write(State);
+            writer.Write(", ");
+            writer.Write(model.CacheFieldReference);
+            writer.Write(", ");
+            writer.Write(CSharpLiteral.ToUtf8Literal(model.GlobalName));
+            writer.WriteLine(");");
+            writer.Write("if (!__resolution.IsSuccess)");
+            writer.OpenBlock();
+            WriteOutcomeFailure(writer, model, "__resolution.ToOperationStatus()", 0);
+            writer.CloseBlock();
+            writer.WriteLine();
+            return;
+        }
+
         writer.Write("if (!");
         writer.Write(LuaApiNames.LuaGlobalFunctions);
         writer.Write(".TryPush(");
@@ -359,6 +416,74 @@ internal static class LuaGlobalCallEmitter
         writer.Write("return ");
         writer.Write(resultCount == 1 ? Ok : "true");
         writer.WriteLine(";");
+    }
+
+    private static void WriteOutcomeCallAndResults(SourceWriter writer, LuaGlobalCallModel model, int argumentCount,
+        int resultCount)
+    {
+        WriteOutcomeCall(writer, model, argumentCount, resultCount);
+        WriteOutcomeResults(writer, model, resultCount);
+        writer.Write("return ");
+        writer.Write(LuaApiNames.LuaOperationStatus);
+        writer.WriteLine(".Success;");
+    }
+
+    private static void WriteOutcomeCall(SourceWriter writer, LuaGlobalCallModel model, int argumentCount,
+        int resultCount)
+    {
+        writer.Write(LuaApiNames.LuaStatus);
+        writer.Write(' ');
+        writer.Write(Status);
+        writer.Write(" = ");
+        writer.Write(State);
+        writer.Write(".TryCall(");
+        writer.Write(argumentCount.ToString(CultureInfo.InvariantCulture));
+        writer.Write(", ");
+        writer.Write(resultCount.ToString(CultureInfo.InvariantCulture));
+        writer.WriteLine(");");
+        writer.Write("if (!");
+        writer.Write(Status);
+        writer.WriteLine(".IsOk)");
+        writer.OpenBlock();
+        WriteOutcomeFailure(writer, model, LuaApiNames.LuaOperationStatus + ".LuaFailure(" + Status + ")", 0);
+        writer.CloseBlock();
+        writer.WriteLine();
+    }
+
+    private static void WriteOutcomeResults(SourceWriter writer, LuaGlobalCallModel model, int resultCount)
+    {
+        for (var i = 0; i < resultCount; i++)
+        {
+            WriteOutcomeResult(writer, model, i, i - resultCount);
+        }
+    }
+
+    private static void WriteOutcomeResult(SourceWriter writer, LuaGlobalCallModel model, int resultIndex,
+        int stackIndex)
+    {
+        writer.Write("if (!");
+        WriteResultRead(writer, model.Results[resultIndex], stackIndex);
+        writer.WriteLine(")");
+        writer.OpenBlock();
+        writer.Write("return ");
+        writer.Write(LuaApiNames.LuaCallSupport);
+        writer.Write(".Fail(");
+        writer.Write(State);
+        writer.Write(", ");
+        writer.Write(Top);
+        writer.Write(", ");
+        writer.Write(State);
+        writer.Write(".IsNil(");
+        writer.Write(stackIndex.ToString(CultureInfo.InvariantCulture));
+        writer.Write(") ? ");
+        writer.Write(LuaApiNames.LuaOperationStatus);
+        writer.Write(".NilResult : ");
+        writer.Write(LuaApiNames.LuaOperationStatus);
+        writer.Write(".InvalidResult, out ");
+        writer.Write(model.Results[resultIndex].Name);
+        writer.WriteLine(");");
+        writer.CloseBlock();
+        writer.WriteLine();
     }
 
     // Exit 2: the call raised; the status travels to the throw helper, which reads the error value.
@@ -476,6 +601,30 @@ internal static class LuaGlobalCallEmitter
         writer.WriteLine(");");
     }
 
+    private static void WriteOutcomeFailure(SourceWriter writer, LuaGlobalCallModel model, string status, int failing)
+    {
+        for (var i = 0; i < model.Results.Length; i++)
+        {
+            if (i == failing) continue;
+
+            var other = model.Results[i];
+            writer.Write(other.Name);
+            writer.WriteLine(other.IsReferenceType ? " = default!;" : " = default;");
+        }
+
+        writer.Write("return ");
+        writer.Write(LuaApiNames.LuaCallSupport);
+        writer.Write(".Fail(");
+        writer.Write(State);
+        writer.Write(", ");
+        writer.Write(Top);
+        writer.Write(", ");
+        writer.Write(status);
+        writer.Write(", out ");
+        writer.Write(model.Results[failing].Name);
+        writer.WriteLine(");");
+    }
+
     // Push and conversion operations can throw managed LuaException after native failures. A Try wrapper keeps its
     // ordinary failure contract for that path; the surrounding finally restores its stack snapshot.
     private static void WriteTryExceptionFailure(SourceWriter writer, LuaGlobalCallModel model)
@@ -495,6 +644,12 @@ internal static class LuaGlobalCallEmitter
         if (model.Form == LuaCallForm.Try)
         {
             WriteTryFailure(writer, model, 0);
+            return;
+        }
+
+        if (model.Form == LuaCallForm.Outcome)
+        {
+            WriteOutcomeFailure(writer, model, LuaApiNames.LuaOperationStatus + ".StackUnavailable", 0);
             return;
         }
 

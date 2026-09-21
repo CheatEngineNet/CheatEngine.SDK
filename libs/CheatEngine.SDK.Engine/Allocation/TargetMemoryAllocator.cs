@@ -75,4 +75,55 @@ public sealed class TargetMemoryAllocator
 
         return new AllocatedRegion(_operations, address, request.Size);
     }
+
+    /// <summary>
+    ///     Attempts an allocation while retaining a compact factual category for each expected or Engine-boundary
+    ///     result.
+    /// </summary>
+    /// <param name="request">The allocation size, optional target base preference, and optional initial protection.</param>
+    /// <returns>The structured allocation outcome and a nonzero target address on success.</returns>
+    /// <remarks>
+    ///     This additive API does not change <see cref="Allocate" /> or
+    ///     <see cref="ITargetMemoryAllocationOperations.TryAllocate" />. A legacy implementation is adapted by its
+    ///     documented <see langword="bool" />/exception contract; no exception message is inspected. Lifecycle failures
+    ///     outside the Engine failure hierarchy still throw.
+    /// </remarks>
+    [RequiresPluginEnabled]
+    public TargetMemoryAllocationOutcome AllocateWithOutcome(TargetAllocationRequest request)
+    {
+        if (request.Size.Value <= 0)
+            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                EngineFailureKind.MarshallingFailure));
+
+        if (_operations is ITargetMemoryAllocationOutcomeOperations detailed)
+            return detailed.AllocateWithOutcome(request);
+
+        try
+        {
+            var allocated = _operations.TryAllocate(request, out var address);
+            if (allocated)
+            {
+                return address.IsZero
+                    ? TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                        EngineFailureKind.MarshallingFailure))
+                    : TargetMemoryAllocationOutcome.Succeeded(address);
+            }
+
+            return address.IsZero
+                ? TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.ExpectedFailure())
+                : TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                    EngineFailureKind.MarshallingFailure));
+        }
+        catch (EngineException exception)
+        {
+            return TargetMemoryAllocationOutcome.FromOperation(CreateOutcome(exception));
+        }
+    }
+
+    internal static TargetMemoryOperationOutcome CreateOutcome(EngineException exception)
+    {
+        return exception is EngineLuaException lua
+            ? TargetMemoryOperationOutcome.FromFailureKind(exception.Kind, lua.Status)
+            : TargetMemoryOperationOutcome.FromFailureKind(exception.Kind);
+    }
 }

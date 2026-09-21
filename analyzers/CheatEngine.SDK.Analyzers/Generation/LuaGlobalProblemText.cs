@@ -64,7 +64,7 @@ internal static class LuaGlobalProblemText
                 "must not return a ReadOnlySpan<byte> result: it would point into a Lua string popped before the wrapper returns; use 'Span<byte> destination, out int written' or 'string' instead",
             LuaGlobalShapeIssues.UnsupportedReturnType => "must return void, bool or a type a marshaller reads",
             LuaGlobalShapeIssues.TryFormReturnNotBool =>
-                "must return bool when it declares 'out' results: that is the Try form's shape, the throwing form has no 'out' parameter",
+                "must return bool or LuaOperationStatus when it declares 'out' results: the throwing form has no 'out' parameter",
             _ => "cannot receive a generated body"
         };
     }

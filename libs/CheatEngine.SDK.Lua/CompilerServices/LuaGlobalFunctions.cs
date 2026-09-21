@@ -61,10 +61,20 @@ public static class LuaGlobalFunctions
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static LuaGlobalPushStatus TryPushWithStatus(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
     {
+        return TryPushWithOutcome(state, cache, name).Status;
+    }
+
+    /// <summary>
+    ///     Pushes a global function and preserves the protected Lua status of an unsuccessful resolution. Generated
+    ///     outcome bindings use this value-only result so that they do not need to inspect transient Lua error text.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static LuaGlobalPushOutcome TryPushWithOutcome(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
+    {
         using var operation = LuaRuntime.EnterStateOperation(state);
         if (state.TryPushRef(cache))
         {
-            if (state.IsFunction(-1)) return LuaGlobalPushStatus.Success;
+            if (state.IsFunction(-1)) return LuaGlobalPushOutcome.Success;
             state.Pop(1);
         }
 
@@ -72,7 +82,7 @@ public static class LuaGlobalFunctions
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static LuaGlobalPushStatus Resolve(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
+    private static LuaGlobalPushOutcome Resolve(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
     {
         var top = state.Top;
         // Capture both the attachment epoch and state generation before Lua can run. A globals __index handler can
@@ -84,13 +94,13 @@ public static class LuaGlobalFunctions
         if (!status.IsOk)
         {
             state.SetTop(top);
-            return LuaGlobalPushStatus.LuaFailure;
+            return LuaGlobalPushOutcome.LuaFailure(status);
         }
 
         if (!state.IsFunction(-1))
         {
             state.SetTop(top);
-            return LuaGlobalPushStatus.Unavailable;
+            return LuaGlobalPushOutcome.Unavailable;
         }
 
         lock (SResolveGate)
@@ -98,7 +108,7 @@ public static class LuaGlobalFunctions
             if (identity != LuaRuntime.CurrentStateIdentity)
             {
                 state.SetTop(top);
-                return LuaGlobalPushStatus.Unavailable;
+                return LuaGlobalPushOutcome.Unavailable;
             }
 
             // Another thread may have resolved it while this one waited for the gate.
@@ -107,7 +117,7 @@ public static class LuaGlobalFunctions
                 if (state.IsFunction(-1))
                 {
                     state.Remove(-2);
-                    return LuaGlobalPushStatus.Success;
+                    return LuaGlobalPushOutcome.Success;
                 }
 
                 state.Pop(1);
@@ -118,13 +128,13 @@ public static class LuaGlobalFunctions
             if (!status.IsOk)
             {
                 state.SetTop(top);
-                return LuaGlobalPushStatus.LuaFailure;
+                return LuaGlobalPushOutcome.LuaFailure(status);
             }
 
             // Use the snapshot from before TryGetGlobal. Rebinding an old slot with the current generation would make it
             // appear usable after a reset that ran from __index.
             cache.Rebind(reference, identity);
-            return LuaGlobalPushStatus.Success;
+            return LuaGlobalPushOutcome.Success;
         }
     }
 }

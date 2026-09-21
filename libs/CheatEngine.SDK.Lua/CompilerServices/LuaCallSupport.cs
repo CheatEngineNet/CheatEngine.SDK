@@ -15,10 +15,10 @@ namespace CheatEngine.SDK.Lua.CompilerServices;
 /// <remarks>
 ///     A body has three exits besides success: the bound global could not be resolved, the protected call failed, and
 ///     the call succeeded but a result is not of the expected kind (Cheat Engine's <c>nil</c> for "failed", or a wrong
-///     type). A <c>Try*</c> wrapper uses <see cref="Fail(LuaState, int)" /> / <see cref="Fail{TResult}" /> for all three;
+///     type). A <c>Try*</c> wrapper uses the <c>Fail</c> helpers for all three;
 ///     a throwing wrapper uses <see cref="ThrowUnresolvedGlobal" />, <see cref="Throw" /> and
 ///     <see cref="ThrowUnexpectedResult" />.
-///     The result type of <see cref="Fail{TResult}" /> deliberately does not allow <see langword="ref" />
+///     The result type of the generic <c>Fail</c> helper deliberately does not allow <see langword="ref" />
 ///     <see langword="struct" />s:
 ///     a body restores the stack before it returns, and a <c>ReadOnlySpan&lt;byte&gt;</c> read from a popped Lua string
 ///     would point at memory Lua may already have freed. String results are copied out (
@@ -60,6 +60,39 @@ public static class LuaCallSupport
         state.SetTop(top);
         result = default!;
         return false;
+    }
+
+    /// <summary>
+    ///     Restores the stack to <paramref name="top" /> and returns the factual detailed outcome for an opt-in
+    ///     generated binding.
+    /// </summary>
+    /// <param name="state">The state the body ran on.</param>
+    /// <param name="top">The top recorded at the start of the body.</param>
+    /// <param name="status">The already classified outcome; no error text is read from Lua.</param>
+    /// <returns><paramref name="status" />.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static LuaOperationStatus Fail(LuaState state, int top, LuaOperationStatus status)
+    {
+        state.SetTop(top);
+        return status;
+    }
+
+    /// <summary>
+    ///     Restores the stack to <paramref name="top" />, defaults the <see langword="out" /> result and returns the
+    ///     factual detailed outcome for an opt-in generated binding.
+    /// </summary>
+    /// <typeparam name="TResult">The result type of the generated method.</typeparam>
+    /// <param name="state">The state the body ran on.</param>
+    /// <param name="top">The top recorded at the start of the body.</param>
+    /// <param name="status">The already classified outcome; no error text is read from Lua.</param>
+    /// <param name="result">Set to <see langword="default" />.</param>
+    /// <returns><paramref name="status" />.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static LuaOperationStatus Fail<TResult>(LuaState state, int top, LuaOperationStatus status, out TResult result)
+    {
+        state.SetTop(top);
+        result = default!;
+        return status;
     }
 
     /// <summary>

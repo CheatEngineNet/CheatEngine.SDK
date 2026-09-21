@@ -122,7 +122,8 @@ internal static class LuaGlobalParser
     private static bool HasGeneratedIdentityCollision(IMethodSymbol method, string? luaName)
     {
         foreach (var parameter in method.Parameters)
-            if (parameter.Name is "__L" or "__operation" or "__top" or "__ok" or "__status" or "__result")
+            if (parameter.Name is "__L" or "__operation" or "__top" or "__ok" or "__status" or "__result" or
+                "__resolution" or "__exception")
                 return true;
 
         return LuaNames.IsValidName(luaName)

@@ -173,6 +173,12 @@ child back before its parent on every later failure, and transfers the pair only
 consumer cannot create an `Owned<MemScan>` or `Owned<FoundList>` manually. `AutoAssemblerPatcher` retains the returned
 disable-info table while it is rooted and performs one target-qualified disable if tracking or patch publication fails;
 the same `EngineResourceHandoffException` reports whether that compensation was confirmed, safely refused, or uncertain.
+`AutoAssemblerPatch.ReleaseWithTargetOutcome` is the additive structured view of its one cleanup attempt: it reports
+confirmed disable, a target-qualified refusal, cleanup that could not begin, or an attempted unconfirmed effect without
+deriving a new cleanup action from the script or an address. It still rejects a second release because its sole owner
+has been consumed. The patch never
+reselects a target, and an ambient target transition between an observation and a Lua effect remains an explicit
+host-contract gap rather than a claim that the SDK can lock Cheat Engine's selection.
 The Client must still keep value scanning capability-gated until its opt-in CE 7.7 x64 live scenario validates creation,
 cleanup, disable/re-enable, and target changes. The session guards the `firstScan → waitTillDone → initialize → read →
 deinitialize` order and rejects worker-thread cleanup while attached because its owned children use the existing SDK

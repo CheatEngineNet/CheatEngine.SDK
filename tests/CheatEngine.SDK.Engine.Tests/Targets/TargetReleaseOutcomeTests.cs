@@ -40,4 +40,16 @@ public sealed class TargetReleaseOutcomeTests
         Assert.True(outcome.RequiresManualRecovery);
         Assert.False(TargetReleaseOutcome.Released().RequiresManualRecovery);
     }
+
+    [Fact]
+    public void Cleanup_that_did_not_begin_requires_manual_recovery_without_target_or_failure_detail()
+    {
+        var outcome = TargetReleaseOutcome.NotInvoked();
+
+        Assert.Equal(TargetReleaseStatus.NotInvoked, outcome.Status);
+        Assert.Equal((byte)7, (byte)outcome.Status);
+        Assert.Null(outcome.TargetCheck);
+        Assert.Null(outcome.FailureKind);
+        Assert.True(outcome.RequiresManualRecovery);
+    }
 }

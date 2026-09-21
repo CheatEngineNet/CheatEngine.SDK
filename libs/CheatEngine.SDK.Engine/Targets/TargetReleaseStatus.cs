@@ -23,4 +23,7 @@ public enum TargetReleaseStatus : byte
 
     /// <summary>The owner was consumed after a CE operation began but release could not be confirmed.</summary>
     UnconfirmedAfterInvocation = 6,
+
+    /// <summary>The owner was consumed, but cleanup could not begin a target operation.</summary>
+    NotInvoked = 7,
 }

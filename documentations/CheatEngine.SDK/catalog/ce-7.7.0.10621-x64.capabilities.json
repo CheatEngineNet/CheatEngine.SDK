@@ -252,11 +252,11 @@
     {
       "id": "engine.auto-assembler.patch",
       "layer": "target-memory", "symbol": "AutoAssemblerPatcher / AutoAssemblerPatch",
-      "declaration_refs": [{ "source_id": "sdk-auto-assembler", "path": "libs/CheatEngine.SDK.Engine/Assembly/AutoAssemblerPatcher.cs", "line_start": 1, "line_end": 260 }],
-      "interop": { "calling_convention": "Lua autoAssemble", "parameter_widths": "Lua values", "result": "patch owner", "indirection": "disable info held in LuaRef" },
+      "declaration_refs": [{ "source_id": "sdk-auto-assembler", "path": "libs/CheatEngine.SDK.Engine/Assembly/AutoAssemblerPatcher.cs", "line_start": 1, "line_end": 279 }, { "source_id": "sdk-auto-assembler", "path": "libs/CheatEngine.SDK.Engine/Assembly/AutoAssemblerPatch.cs", "line_start": 1, "line_end": 190 }],
+      "interop": { "calling_convention": "Lua autoAssemble", "parameter_widths": "Lua values", "result": "patch owner with one structured target-release outcome", "indirection": "exact CE disable info held in private SDK LuaRef" },
       "thread_affinity": { "value": "Lua-state-thread-affine", "evidence": "SDK contract" },
       "ownership": { "registration": "SDK patch owner", "callback": "none", "arguments": "captures a qualified incarnation and never reselects a target; manual recovery is required after refusal, stale state, or failed disable" },
-      "failure_shape": "observed target mismatch refuses disable before autoAssemble; false/raise remains unconfirmed, and an external switch between observation and ambient Lua effect remains unqualified", "availability": "implemented-with-known-contract-gap", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
+      "failure_shape": "ReleaseWithTargetOutcome distinguishes confirmed disable, safe target refusal, cleanup that could not begin, and attempted-but-unconfirmed false/raise without retry; an external switch between observation and ambient Lua effect remains unqualified", "availability": "implemented-with-known-contract-gap", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
     },
     {
       "id": "engine.instruction.profile",

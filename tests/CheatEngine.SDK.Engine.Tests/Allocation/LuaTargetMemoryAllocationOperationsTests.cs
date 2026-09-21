@@ -4,6 +4,7 @@ using CheatEngine.SDK.Engine.Allocation;
 using CheatEngine.SDK.Engine.Enums;
 using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Tests.Support;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Runtime;
@@ -281,6 +282,107 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
             allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096))).Release());
         Assert.Equal("TargetMemoryDeallocate", malformed.Operation);
         Assert.Equal(0, L.Top);
+    }
+
+    [Theory]
+    [InlineData(0UL, 4096)]
+    [InlineData(0x7FF610000000UL, 0)]
+    public void DeallocateWithOutcome_with_an_invalid_request_refuses_before_calling_the_Lua_boundary(ulong rawAddress,
+        int rawSize)
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, """
+                          deallocation_call_count = 0
+                          function deAlloc()
+                            deallocation_call_count = deallocation_call_count + 1
+                            return true
+                          end
+                          """u8);
+
+        TargetAllocationSize size = rawSize == 0 ? default : new TargetAllocationSize(rawSize);
+        var outcome = LuaTargetMemoryAllocationOperations.Instance.DeallocateWithOutcome(new Address(rawAddress), size);
+
+        Assert.Equal(TargetMemoryOperationOutcomeKind.MarshallingFailure, outcome.Kind);
+        Assert.Equal(EngineFailureKind.MarshallingFailure, outcome.FailureKind);
+        AssertLuaInteger(L, "deallocation_call_count", 0);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void Bound_allocate_with_no_selected_target_returns_an_identity_refusal_before_allocating()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        EngineTest.Run(L, """
+                          allocation_call_count = 0
+                          function getOpenedProcessID() return 0 end
+                          function allocateMemory()
+                            allocation_call_count = allocation_call_count + 1
+                            return 0x7FF610000000
+                          end
+                          """u8);
+        var operations = (ITargetBoundMemoryAllocationOperations)LuaTargetMemoryAllocationOperations.Instance;
+
+        var outcome = operations.AllocateBoundWithOutcome(new TargetAllocationRequest(new TargetAllocationSize(4096)),
+            out var incarnation, out var observation);
+
+        Assert.Equal(TargetSelectionObservationStatus.NoTargetSelected, observation.Status);
+        Assert.Equal(default(TargetProcessIncarnation), incarnation);
+        Assert.Equal(TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable, outcome.Operation.Kind);
+        Assert.Equal(Address.Zero, outcome.Address);
+        AssertLuaInteger(L, "allocation_call_count", 0);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void Bound_deallocate_with_a_changed_target_returns_an_identity_mismatch_without_deallocating()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        InstallCurrentTarget(L);
+        EngineTest.Run(L, """
+                          deallocation_call_count = 0
+                          function deAlloc()
+                            deallocation_call_count = deallocation_call_count + 1
+                            return true
+                          end
+                          """u8);
+        var operations = (ITargetBoundMemoryAllocationOperations)LuaTargetMemoryAllocationOperations.Instance;
+        TargetProcessIncarnation differentTarget = new(Environment.ProcessId + 1, 1001);
+
+        var outcome = operations.DeallocateBoundWithOutcome(differentTarget, new Address(0x7FF610000000),
+            new TargetAllocationSize(4096), out var targetCheck);
+
+        Assert.Equal(TargetIdentityCheckKind.TargetChanged, targetCheck.Kind);
+        Assert.Equal(TargetMemoryOperationOutcomeKind.TargetIdentityMismatch, outcome.Kind);
+        Assert.Equal(EngineFailureKind.TargetIdentityMismatch, outcome.FailureKind);
+        AssertLuaInteger(L, "deallocation_call_count", 0);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
+    public void Bound_deallocate_with_an_invalid_request_returns_a_marshalling_failure_without_observing_a_target()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var operations = (ITargetBoundMemoryAllocationOperations)LuaTargetMemoryAllocationOperations.Instance;
+        TargetProcessIncarnation expected = new(4101, 1001);
+
+        var outcome = operations.DeallocateBoundWithOutcome(expected, Address.Zero, new TargetAllocationSize(4096),
+            out var targetCheck);
+
+        Assert.Equal(TargetIdentityCheckKind.Unspecified, targetCheck.Kind);
+        Assert.Equal(TargetMemoryOperationOutcomeKind.MarshallingFailure, outcome.Kind);
+        Assert.Equal(EngineFailureKind.MarshallingFailure, outcome.FailureKind);
+        Assert.Equal(0, scope.State.Top);
     }
 
     [Fact]

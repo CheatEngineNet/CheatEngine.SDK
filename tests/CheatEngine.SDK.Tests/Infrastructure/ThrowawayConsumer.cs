@@ -414,6 +414,27 @@ internal sealed class ThrowawayConsumer
                                                    }
                                                    """;
 
+    private const string ValueScanSource = """
+                                           using System;
+                                           using CheatEngine.SDK.Engine.Scanning.Values;
+
+                                           namespace ThrowawayPlugin;
+
+                                           internal static class ValueScanConsumer
+                                           {
+                                               internal static MemoryScanCreationStatus Create(out MemoryScanSession? session)
+                                               {
+                                                   return MemoryScanSessions.TryCreateDetailed(out session);
+                                               }
+
+                                               internal static MemoryScanMaterializationStatus Copy(MemoryScanSession session,
+                                                   Span<MemoryScanResult> destination, out ulong totalCount, out int written)
+                                               {
+                                                   return session.TryCopyResults(destination, out totalCount, out written);
+                                               }
+                                           }
+                                           """;
+
     private ThrowawayConsumer(string directory, string projectPath, string assemblyPath)
     {
         Directory = directory;
@@ -447,16 +468,19 @@ internal sealed class ThrowawayConsumer
     ///     the project also declares one valid <c>[LuaFunction]</c> export. When <paramref name="includeLegacyAobConsumer" />
     ///     is <see langword="true" />, it compiles both historical <c>AobScanner.TryScan</c> overloads against the packed
     ///     SDK. When <paramref name="includeTargetBoundAllocationConsumer" /> is <see langword="true" />, it compiles an
-    ///     independent implementation of the target-bound allocation backend seam against that package.
-    ///     SDK. When <paramref name="includeRecordAndSymbolContract" /> is <see langword="true" />, it compiles the
+    ///     independent implementation of the target-bound allocation backend seam against that package. When
+    ///     <paramref name="includeRecordAndSymbolContract" /> is <see langword="true" />, it compiles the
     ///     SDK-021 typed mutation and coordinated-symbol surfaces without accessing raw CE handles.
+    ///     When <paramref name="includeValueScanConsumer" /> is <see langword="true" />, it compiles the value-scan
+    ///     factory and bounded-copy APIs against the same packed SDK.
     ///     <paramref name="platformTarget" /> defaults to x64, but may be <see langword="null" /> to prove the package
     ///     behavior when the consumer does not declare it.
     /// </summary>
     public static ThrowawayConsumer Create(string parentDirectory, string name, string cheatEngineSdkVersion,
         string localFeedDirectory, string extraProperties = "", string? platformTarget = "x64",
         bool includeLuaFunction = false, bool includeLegacyAobConsumer = false,
-        bool includeTargetBoundAllocationConsumer = false, bool includeRecordAndSymbolContract = false)
+        bool includeTargetBoundAllocationConsumer = false, bool includeRecordAndSymbolContract = false,
+        bool includeValueScanConsumer = false)
     {
         var directory = Path.Combine(parentDirectory, name);
         System.IO.Directory.CreateDirectory(directory);
@@ -487,6 +511,8 @@ internal sealed class ThrowawayConsumer
             File.WriteAllText(Path.Combine(directory, "TargetBoundAllocationBackend.cs"), TargetBoundAllocationSource);
         if (includeRecordAndSymbolContract)
             File.WriteAllText(Path.Combine(directory, "RecordAndSymbolContractConsumer.cs"), RecordAndSymbolContractSource);
+        if (includeValueScanConsumer)
+            File.WriteAllText(Path.Combine(directory, "ValueScanConsumer.cs"), ValueScanSource);
         WriteNuGetConfig(directory, localFeedDirectory, UmbrellaPackage.Id);
 
         var assemblyPath = Path.Combine(directory, "bin", "Release", "net10.0", $"{name}.dll");

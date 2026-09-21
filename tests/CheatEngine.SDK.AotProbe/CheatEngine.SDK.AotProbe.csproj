@@ -19,6 +19,7 @@
     <!-- Together these references build and analyze every shipping SDK library without making an AOT plugin claim. -->
     <ProjectReference Include="../../libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj"/>
     <ProjectReference Include="../../libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

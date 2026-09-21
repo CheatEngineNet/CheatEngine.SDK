@@ -31,6 +31,8 @@ internal sealed class ThrowawayConsumer
 
     private const string LuaFunctionSource = """
                                              using CheatEngine.SDK.Annotations.Lua;
+                                             using CheatEngine.SDK.Lua.Registration;
+                                             using CheatEngine.SDK.Lua.State;
 
                                              namespace ThrowawayPlugin;
 
@@ -38,6 +40,15 @@ internal sealed class ThrowawayConsumer
                                              {
                                                  [LuaFunction("throwaway_ping")]
                                                  public static long Ping() => 1;
+
+                                                 // Compile the generated lease surface from the freshly packed package.
+                                                 // This method is intentionally not a lifecycle recipe and is never invoked here.
+                                                 public static void CompileLeaseConsumer(LuaState state)
+                                                 {
+                                                     LuaRegistrationResult registration = TryRegisterLuaFunctions(state,
+                                                         LuaRegistrationCollisionPolicy.RejectExisting);
+                                                     registration.Lease?.Dispose();
+                                                 }
                                              }
                                              """;
 

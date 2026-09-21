@@ -27,6 +27,7 @@ balanced, and keeps the hot paths free of allocations.
 | `CheatEngine.SDK.Lua.References`       | `LuaRef`                                                                                                                                                                          | Registry reference stamped with attachment epoch and state generation        |
 | `CheatEngine.SDK.Lua.Callbacks`        | `LuaNativeFunction`, `LuaCallback`, `LuaCallback<TState>`, `LuaThunk`                                                                                                             | Managed functions that Lua can call                                          |
 | `CheatEngine.SDK.Lua.CompilerServices` | `LuaGlobalFunctions`, `LuaCallSupport`                                                                                                                                            | Called by generated code, hidden from IntelliSense                           |
+| `CheatEngine.SDK.Lua.Registration`     | `LuaRegistrationSet`, `LuaRegistrationLease`, `LuaRegistrationResult`                                                                                                               | Ownership-aware generated-global publication and cleanup outcomes             |
 
 `LuaState` is a pointer-sized `readonly struct` over a borrowed `lua_State*`. Raw members make one or two C calls and
 never run Lua code. Protected members (`TryCall`, `TryLoad`, `TryExecute`, `TryGetGlobal`, `TryGetField`, `TryLength`,
@@ -68,6 +69,16 @@ neutralizes every live callback. A lifecycle transition cannot start from an adm
 because shutdown would wait for that caller to return: the transition is refused before waiting for another transition's
 lock. A failed `Detach` leaves the lifecycle in `Disabling` for diagnosis instead of reporting false completion. Nothing
 has a finalizer, because a Lua state belongs to one thread.
+
+`LuaRegistrationSet.Register` publishes a fixed, nonempty descriptor list only after it captures the current
+`LuaStateIdentity` and preflights every effective global. The generated `TryRegisterLuaFunctions` method uses that
+transaction and returns a `LuaRegistrationResult`; callers inspect it and own its non-null `Lease`. Its default policy
+rejects collisions without publication;
+`ReplaceExisting` is opt-in and remembers the prior value. Release compares the exact rooted installed closure with
+`RawEquals` before changing a global, so it never clears a later replacement. It attempts independent cleanup entries
+after a protected failure and reports all named outcomes. A lease from an old attachment or reset generation is stale
+and performs no Lua or registry operation. This is intentionally not a promise to reverse arbitrary `__index` or
+`__newindex` metamethod side effects.
 
 The universe identity intentionally omits the state pointer. In the pinned Cheat Engine source, a worker obtains a
 coroutine through lua_newthread and roots it in the main registry. That coroutine has a separate stack pointer, but it

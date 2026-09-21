@@ -69,6 +69,7 @@ public sealed class LuaObjectBindingAnalyzerTests
                 public static void Load() { }
 
                 private static int {|CESDK2007:__LuaThunk_load|}() => 0;
+                private static void {|CESDK2007:TryRegisterLuaFunctions|}() { }
                 private static void {|CESDK2007:RegisterLuaFunctions|}() { }
 
                 [LuaGlobal("read")]

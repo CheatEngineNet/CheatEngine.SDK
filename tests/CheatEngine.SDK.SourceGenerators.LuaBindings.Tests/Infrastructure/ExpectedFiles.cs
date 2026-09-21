@@ -26,6 +26,23 @@ internal static class ExpectedFiles
                                                                    partial class Functions
                                                                    {
                                                                        /// <summary>
+                                                                       /// Registers every <c>[LuaFunction]</c> of this type as an ownership-aware global lease: <c>add</c>, <c>greet</c>.
+                                                                       /// </summary>
+                                                                       /// <param name="state">The calling thread's state of the attached Lua runtime.</param>
+                                                                       /// <param name="collisionPolicy">The explicit policy for effective globals that already exist.</param>
+                                                                       /// <returns>A factual registration result and a lease that releases only values this call still owns.</returns>
+                                                                       {{GeneratedCode}}
+                                                                       public static unsafe global::CheatEngine.SDK.Lua.Registration.LuaRegistrationResult TryRegisterLuaFunctions(global::CheatEngine.SDK.Lua.State.LuaState state, global::CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy collisionPolicy = global::CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy.RejectExisting)
+                                                                       {
+                                                                           return global::CheatEngine.SDK.Lua.Registration.LuaRegistrationSet.Register(state,
+                                                                           [
+                                                                           new global::CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry("add", new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_add)),
+                                                                           new global::CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry("greet", new global::CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction(&__LuaThunk_greet)),
+                                                                           ],
+                                                                           collisionPolicy);
+                                                                       }
+
+                                                                       /// <summary>
                                                                        /// Registers every <c>[LuaFunction]</c> of this type as a global of <paramref name="state"/>: <c>add</c>, <c>greet</c>.
                                                                        /// Stack: +0 on success; +1 (the error value) on failure, as for every protected operation.
                                                                        /// </summary>

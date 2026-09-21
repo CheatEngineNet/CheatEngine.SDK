@@ -49,6 +49,7 @@ Replace the generated class with a plugin class and a Lua-callable method:
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Annotations.Plugin;
 using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Registration;
 using CheatEngine.SDK.Lua.Runtime;
 
 namespace MyPlugin;
@@ -56,9 +57,21 @@ namespace MyPlugin;
 [CheatEnginePlugin("My Plugin")]
 public sealed class HelloPlugin : CheatEnginePlugin
 {
-    protected override void OnEnable() => Commands.RegisterLuaFunctions(LuaRuntime.AcquireState());
+    private LuaRegistrationLease? _commands;
 
-    protected override void OnDisable() => Commands.UnregisterLuaFunctions(LuaRuntime.AcquireState());
+    protected override void OnEnable()
+    {
+        using var operation = LuaRuntime.AcquireOperation();
+        var registration = Commands.TryRegisterLuaFunctions(operation.State);
+        if (!registration.IsSuccess)
+        {
+            _ = registration.Lease?.ReleaseWithOutcome(operation.State);
+            throw new InvalidOperationException(registration.Kind.ToString());
+        }
+        _commands = registration.Lease;
+    }
+
+    protected override void OnDisable() => _commands?.Dispose();
 }
 
 internal static partial class Commands

@@ -4,8 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 
 /// <summary>
-///     Writes the registration pair of a containing type: <c>RegisterLuaFunctions(LuaState)</c>, which assigns every
-///     thunk to its global, and <c>UnregisterLuaFunctions(LuaState)</c>, which assigns <c>nil</c> to each of them.
+///     Writes a containing type's ownership-aware registration method plus its source-compatible
+///     <c>RegisterLuaFunctions(LuaState)</c>/<c>UnregisterLuaFunctions(LuaState)</c> pair.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -13,7 +13,7 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///         closure wrapped by the error-channel closure, at registration time) followed by <c>TrySetGlobal(name)</c>:
 ///         the protected assignment
 ///         honours a <c>__newindex</c> on the globals table and never uses Cheat Engine's <c>LuaRegister</c> export. Both
-///         return a <c>LuaStatus</c> and follow its protocol, so the pair does too: <see cref="StatusProtocol" />.
+///         return a <c>LuaStatus</c> and follow its protocol, so the legacy pair does too: <see cref="StatusProtocol" />.
 ///     </para>
 ///     <para>
 ///         Each thunk is wrapped in a closure that captures the current attachment epoch and state generation. A script
@@ -31,6 +31,9 @@ internal static class LuaRegistrationEmitter
     /// <summary>Name of the generated registration method.</summary>
     public const string RegisterMethodName = "RegisterLuaFunctions";
 
+    /// <summary>Name of the additive ownership-aware registration method.</summary>
+    public const string RegisterLeaseMethodName = "TryRegisterLuaFunctions";
+
     /// <summary>Name of the generated unregistration method.</summary>
     public const string UnregisterMethodName = "UnregisterLuaFunctions";
 
@@ -42,8 +45,8 @@ internal static class LuaRegistrationEmitter
     private const string Status = "__status";
 
     /// <summary>
-    ///     Writes both methods, separated by a blank line, at the writer's current indentation. Thunks are registered in
-    ///     the order given.
+    ///     Writes the ownership-aware method and legacy pair, separated by blank lines, at the writer's current
+    ///     indentation. Thunks are registered in the order given.
     /// </summary>
     /// <param name="writer">The writer.</param>
     /// <param name="thunks">The thunks of the containing type; must not be empty.</param>
@@ -58,6 +61,8 @@ internal static class LuaRegistrationEmitter
         if (thunks.IsEmpty)
             throw new ArgumentException("A registration table needs at least one thunk.", nameof(thunks));
 
+        WriteRegisterLease(writer, thunks, memberAttributes);
+        writer.WriteLine();
         WriteRegister(writer, thunks, memberAttributes);
         writer.WriteLine();
         WriteUnregister(writer, thunks, memberAttributes);
@@ -82,6 +87,66 @@ internal static class LuaRegistrationEmitter
         foreach (var thunk in thunks) WriteRegistration(writer, thunk);
 
         WriteMethodClosing(writer);
+    }
+
+    private static void WriteRegisterLease(SourceWriter writer, EquatableArray<LuaThunkModel> thunks,
+        string memberAttributes)
+    {
+        writer.WriteLine("/// <summary>");
+        writer.Write("/// Registers every <c>[LuaFunction]</c> of this type as an ownership-aware global lease: ");
+        WriteNameList(writer, thunks);
+        writer.WriteLine(".");
+        writer.WriteLine("/// </summary>");
+        writer.WriteLine("/// <param name=\"state\">The calling thread's state of the attached Lua runtime.</param>");
+        writer.WriteLine("/// <param name=\"collisionPolicy\">The explicit policy for effective globals that already exist.</param>");
+        writer.WriteLine("/// <returns>A factual registration result and a lease that releases only values this call still owns.</returns>");
+        WriteAttributes(writer, memberAttributes);
+        WriteRegisterLeaseOpening(writer);
+        writer.OpenBlock();
+        writer.Write("return ");
+        writer.Write(LuaApiNames.LuaRegistrationSet);
+        writer.Write(".Register(");
+        writer.Write(StateParameter);
+        writer.WriteLine(",");
+        writer.WriteLine("[");
+        WriteRegistrationEntries(writer, thunks);
+
+        writer.WriteLine("],");
+        writer.WriteLine("collisionPolicy);");
+        writer.CloseBlock();
+    }
+
+    private static void WriteRegisterLeaseOpening(SourceWriter writer)
+    {
+        writer.Write("public static unsafe ");
+        writer.Write(LuaApiNames.LuaRegistrationResult);
+        writer.Write(' ');
+        writer.Write(RegisterLeaseMethodName);
+        writer.Write('(');
+        writer.Write(LuaApiNames.LuaState);
+        writer.Write(' ');
+        writer.Write(StateParameter);
+        writer.Write(", ");
+        writer.Write(LuaApiNames.LuaRegistrationCollisionPolicy);
+        writer.Write(" collisionPolicy = ");
+        writer.Write(LuaApiNames.LuaRegistrationCollisionPolicy);
+        writer.WriteLine(".RejectExisting)");
+    }
+
+    private static void WriteRegistrationEntries(SourceWriter writer, EquatableArray<LuaThunkModel> thunks)
+    {
+        foreach (var thunk in thunks)
+        {
+            writer.Write("new ");
+            writer.Write(LuaApiNames.LuaRegistrationEntry);
+            writer.Write('(');
+            writer.Write(CSharpLiteral.ToStringLiteral(thunk.LuaName));
+            writer.Write(", new ");
+            writer.Write(LuaApiNames.LuaNativeFunction);
+            writer.Write("(&");
+            writer.Write(thunk.ThunkMethodName);
+            writer.WriteLine(")),");
+        }
     }
 
     private static void WriteUnregister(SourceWriter writer, EquatableArray<LuaThunkModel> thunks,

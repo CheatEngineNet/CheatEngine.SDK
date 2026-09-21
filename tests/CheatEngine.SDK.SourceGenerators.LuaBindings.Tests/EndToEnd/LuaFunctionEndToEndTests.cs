@@ -1,4 +1,5 @@
 using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Registration;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
@@ -154,6 +155,31 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
 
         Register(assembly, L);
         Assert.Equal(3, LuaTest.RunForInteger(L, "return add(1, 2)"u8));
+    }
+
+    [Fact]
+    public void Lease_registration_preserves_a_later_global_replacement_and_is_idempotent()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+        using RuntimeScope scope = new(state);
+        var assembly = LoadSuite(roslyn);
+        var registration = (LuaRegistrationResult)assembly.Method(SuiteType, "TryRegisterLuaFunctions",
+            [typeof(LuaState), typeof(LuaRegistrationCollisionPolicy)]).Invoke(null,
+            [L, LuaRegistrationCollisionPolicy.RejectExisting])!;
+        var lease = Assert.IsType<LuaRegistrationLease>(registration.Lease);
+
+        Assert.True(registration.IsSuccess);
+        Assert.Equal(3, LuaTest.RunForInteger(L, "return add(1, 2)"u8));
+        LuaTest.Run(L, "add = function() return 99 end"u8);
+        var released = lease.ReleaseWithOutcome(L);
+
+        Assert.Equal(LuaRegistrationReleaseKind.Released, released.Kind);
+        Assert.Equal(1, released.ReplacementCount);
+        Assert.Equal(99, LuaTest.RunForInteger(L, "return add()"u8));
+        Assert.Equal(LuaRegistrationReleaseKind.AlreadyReleased, lease.ReleaseWithOutcome(L).Kind);
+        Assert.Equal(0, L.Top);
     }
 
     [Fact]

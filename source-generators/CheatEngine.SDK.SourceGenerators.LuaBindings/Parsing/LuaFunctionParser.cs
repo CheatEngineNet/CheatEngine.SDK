@@ -57,6 +57,7 @@ internal static class LuaFunctionParser
     {
         var type = method.ContainingType;
         if (type.GetMembers(LuaRegistrationEmitter.RegisterMethodName).Length != 0
+            || type.GetMembers(LuaRegistrationEmitter.RegisterLeaseMethodName).Length != 0
             || type.GetMembers(LuaRegistrationEmitter.UnregisterMethodName).Length != 0)
             return true;
 

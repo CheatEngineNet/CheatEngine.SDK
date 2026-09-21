@@ -3,6 +3,7 @@ using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Lua.Callbacks;
 using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Registration;
 
 namespace CheatEngine.SDK.AotProbe;
 
@@ -21,7 +22,10 @@ internal static class Program
 
         LuaStatus status = KeepGenericPath(LuaStatus.Ok);
         _ = typeof(LuaCallback<ProbeState>);
-        return $"{typeof(Address).Assembly.GetName().Name}, {status}";
+        LuaRegistrationCollisionPolicy collisionPolicy = KeepGenericPath(LuaRegistrationCollisionPolicy.RejectExisting);
+        _ = typeof(LuaRegistrationSet);
+        _ = typeof(LuaRegistrationLease);
+        return $"{typeof(Address).Assembly.GetName().Name}, {status}, {collisionPolicy}";
     }
 
     private static T KeepGenericPath<T>(T value) where T : struct => value;

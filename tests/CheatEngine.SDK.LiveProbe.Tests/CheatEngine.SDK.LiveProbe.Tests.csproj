@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
+    <ProjectReference Include="../../libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Compile the exact evidence-only sources without loading the manual plugin or its Lua source generator. -->
+    <Compile Include="../CheatEngine.SDK.LiveProbe/AuthorizationDecision.cs" Link="LiveProbe/AuthorizationDecision.cs"/>
+    <Compile Include="../CheatEngine.SDK.LiveProbe/HostProfileObservation.cs" Link="LiveProbe/HostProfileObservation.cs"/>
+    <Compile Include="../CheatEngine.SDK.LiveProbe/LiveProbeAuthorization.cs" Link="LiveProbe/LiveProbeAuthorization.cs"/>
+    <Compile Include="../CheatEngine.SDK.LiveProbe/LiveProbeState.cs" Link="LiveProbe/LiveProbeState.cs"/>
+  </ItemGroup>
+
+</Project>

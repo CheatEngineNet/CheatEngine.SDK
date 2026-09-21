@@ -43,4 +43,4 @@ Native tests use the bundled Lua DLL. Preserve stack balance, callback lifetimes
 
 ## Commit & Pull Request Guidelines
 
-History uses imperative subjects such as `Fix the SonarCloud quality gate findings`; no conventional-commit prefix is required. Do not add `Co-authored-by` trailers to commits. Keep commits focused. PR descriptions should explain the problem, resulting behavior, relevant issues, validation commands/results, and remaining live-host limitations. Update affected documentation and report build, test, and package results before requesting review.
+History uses imperative subjects such as `Fix CI validation findings`; no conventional-commit prefix is required. Do not add `Co-authored-by` trailers to commits. Keep commits focused. PR descriptions should explain the problem, resulting behavior, relevant issues, validation commands/results, and remaining live-host limitations. Update affected documentation and report build, test, and package results before requesting review.

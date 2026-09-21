@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 // Every structure and every function-pointer signature in this assembly is blittable by construction (pointers,
@@ -14,10 +13,3 @@ using System.Runtime.CompilerServices;
 // tests/CheatEngine.SDK.Abi.Tests (Support/AbiShape.cs, run over every structure by AssemblyConformanceTests), and the
 // exact signature of every typed slot by the host-simulation tests that store '&Method' in it.
 [assembly: DisableRuntimeMarshalling]
-
-// SonarAnalyzer rule S6640 flags every unsafe context. Unsafe is how this assembly reaches Cheat Engine, through
-// function pointers and blittable structures, so the rule has nothing to say here.
-[assembly: SuppressMessage(
-    "Major Vulnerability",
-    "S6640:Unsafe code blocks should not be used",
-    Justification = "Unsafe is the design of this interop assembly.")]

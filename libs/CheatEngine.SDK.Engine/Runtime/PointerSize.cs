@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 
 namespace CheatEngine.SDK.Engine.Runtime;
 
@@ -47,6 +48,85 @@ public readonly struct PointerSize : IEquatable<PointerSize>
             CheatEngineArchitecture.X64 or CheatEngineArchitecture.Arm64 => Bit64,
             _ => Unknown,
         };
+    }
+
+    /// <summary>
+    ///     Reads one little-endian target pointer from the beginning of <paramref name="source" /> without consulting
+    ///     the managed host pointer width.
+    /// </summary>
+    /// <param name="source">The bytes supplied by a target-specific primitive.</param>
+    /// <param name="value">The unsigned pointer bits, or zero when this method returns <see langword="false" />.</param>
+    /// <returns>
+    ///     <see langword="true" /> when this instance is known and <paramref name="source" /> contains its exact
+    ///     number of bytes; otherwise, <see langword="false" />.
+    /// </returns>
+    /// <remarks>
+    ///     This is explicit primitive marshalling, not an unmanaged-struct projection. A 32-bit target still consumes
+    ///     four bytes when this SDK runs in CE's supported 64-bit host process.
+    /// </remarks>
+    public bool TryReadLittleEndian(ReadOnlySpan<byte> source, out ulong value)
+    {
+        if (source.Length != _bytes)
+        {
+            value = default;
+            return false;
+        }
+
+        switch (_bytes)
+        {
+            case 4:
+                if (BinaryPrimitives.TryReadUInt32LittleEndian(source, out var narrow))
+                {
+                    value = narrow;
+                    return true;
+                }
+
+                break;
+
+            case 8:
+                if (BinaryPrimitives.TryReadUInt64LittleEndian(source, out value)) return true;
+
+                break;
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>
+    ///     Writes one little-endian target pointer to <paramref name="destination" /> without consulting the managed
+    ///     host pointer width.
+    /// </summary>
+    /// <param name="value">The unsigned target pointer bits.</param>
+    /// <param name="destination">The exact target-pointer-sized destination.</param>
+    /// <returns>
+    ///     <see langword="true" /> when this instance is known, <paramref name="value" /> fits it, and
+    ///     <paramref name="destination" /> has its exact number of bytes; otherwise, <see langword="false" /> and
+    ///     <paramref name="destination" /> is unchanged.
+    /// </returns>
+    /// <remarks>
+    ///     This is explicit primitive marshalling, not an unmanaged-struct projection. A 32-bit target rejects high
+    ///     bits instead of silently truncating them through the x64 host process.
+    /// </remarks>
+    public bool TryWriteLittleEndian(ulong value, Span<byte> destination)
+    {
+        if (destination.Length != _bytes) return false;
+
+        switch (_bytes)
+        {
+            case 4:
+                if (value > uint.MaxValue) return false;
+
+                BinaryPrimitives.WriteUInt32LittleEndian(destination, (uint)value);
+                return true;
+
+            case 8:
+                BinaryPrimitives.WriteUInt64LittleEndian(destination, value);
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     /// <inheritdoc />

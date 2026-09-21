@@ -30,7 +30,9 @@ internal static class MemoryLua
 
             var status = state.TryCall(hasSignedArgument ? 2 : 1, 1);
             if (!status.IsOk) return Fail(out value, out failure, MemoryAccessFailure.LuaError);
-            if (!state.TryReadInteger(-1, out value))
+            // lua_tointegerx accepts strings as a convenience conversion. Memory globals must not: a CE scalar
+            // contract is a Lua number, while an integral Lua floating-point result remains a valid scalar.
+            if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out value))
                 return Fail(out value, out failure,
                     state.IsNil(-1) ? MemoryAccessFailure.ReadFailed : MemoryAccessFailure.InvalidResult);
 
@@ -64,7 +66,7 @@ internal static class MemoryLua
             state.PushInteger(address);
             var status = state.TryCall(1, 1);
             if (!status.IsOk) return Fail(out value, out failure, MemoryAccessFailure.LuaError);
-            if (!state.TryReadNumber(-1, out value))
+            if (state.TypeOf(-1) != LuaType.Number || !state.TryReadNumber(-1, out value))
                 return Fail(out value, out failure,
                     state.IsNil(-1) ? MemoryAccessFailure.ReadFailed : MemoryAccessFailure.InvalidResult);
 
@@ -84,6 +86,14 @@ internal static class MemoryLua
     internal static bool TryReadUtf8(LuaRef cache, ReadOnlySpan<byte> name, long address, int maximumLength,
         bool wideCharacter, Span<byte> destination, out int written, out MemoryAccessFailure failure)
     {
+        return TryReadUtf8(cache, name, address, maximumLength, wideCharacter, destination, out written, out _,
+            out failure);
+    }
+
+    internal static bool TryReadUtf8(LuaRef cache, ReadOnlySpan<byte> name, long address, int maximumLength,
+        bool wideCharacter, Span<byte> destination, out int written, out int requiredLength,
+        out MemoryAccessFailure failure)
+    {
         ArgumentOutOfRangeException.ThrowIfNegative(maximumLength);
 
         using var operation = LuaRuntime.AcquireOperation();
@@ -94,6 +104,7 @@ internal static class MemoryLua
             if (!TryPushGlobal(state, cache, name, out failure))
             {
                 written = 0;
+                requiredLength = 0;
                 return false;
             }
 
@@ -101,21 +112,42 @@ internal static class MemoryLua
             state.PushInteger(maximumLength);
             state.PushBoolean(wideCharacter);
             var status = state.TryCall(3, 1);
-            if (!status.IsOk) return Fail(out written, out failure, MemoryAccessFailure.LuaError);
-            if (!state.TryReadUtf8(-1, out var utf8))
-                return Fail(out written, out failure,
-                    state.IsNil(-1) ? MemoryAccessFailure.ReadFailed : MemoryAccessFailure.InvalidResult);
-            if (!utf8.TryCopyTo(destination))
-                return Fail(out written, out failure, MemoryAccessFailure.DestinationTooSmall);
+            if (!status.IsOk)
+            {
+                written = 0;
+                requiredLength = 0;
+                failure = MemoryAccessFailure.LuaError;
+                return false;
+            }
 
-            written = utf8.Length;
+            if (!state.TryReadUtf8(-1, out var utf8))
+            {
+                written = 0;
+                requiredLength = 0;
+                failure = state.IsNil(-1) ? MemoryAccessFailure.ReadFailed : MemoryAccessFailure.InvalidResult;
+                return false;
+            }
+
+            requiredLength = utf8.Length;
+            if (utf8.Length > destination.Length)
+            {
+                written = 0;
+                failure = MemoryAccessFailure.DestinationTooSmall;
+                return false;
+            }
+
+            utf8.CopyTo(destination);
+            written = requiredLength;
 
             failure = MemoryAccessFailure.None;
             return true;
         }
         catch (LuaException)
         {
-            return Fail(out written, out failure, MemoryAccessFailure.LuaError);
+            written = 0;
+            requiredLength = 0;
+            failure = MemoryAccessFailure.LuaError;
+            return false;
         }
         finally
         {
@@ -164,6 +196,19 @@ internal static class MemoryLua
     internal static bool TryReadBytes(LuaRef cache, ReadOnlySpan<byte> name, long address, Span<byte> destination,
         out MemoryAccessFailure failure)
     {
+        return TryReadBytesCore(cache, name, address, destination, copyPartial: false, out _, out failure);
+    }
+
+    internal static bool TryReadBytes(LuaRef cache, ReadOnlySpan<byte> name, long address, Span<byte> destination,
+        out int written, out MemoryAccessFailure failure)
+    {
+        return TryReadBytesCore(cache, name, address, destination, copyPartial: true, out written, out failure);
+    }
+
+    private static bool TryReadBytesCore(LuaRef cache, ReadOnlySpan<byte> name, long address, Span<byte> destination,
+        bool copyPartial, out int written, out MemoryAccessFailure failure)
+    {
+        written = 0;
         using var operation = LuaRuntime.AcquireOperation();
         if (destination.IsEmpty)
         {
@@ -175,47 +220,88 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!TryPushGlobal(state, cache, name, out failure)) return false;
+            if (!TryPushGlobal(state, cache, name, out failure))
+            {
+                written = 0;
+                return false;
+            }
 
             state.PushInteger(address);
             state.PushInteger(destination.Length);
             state.PushBoolean(value: true);
             var status = state.TryCall(3, 1);
-            if (!status.IsOk) return Fail(out failure, MemoryAccessFailure.LuaError);
+            if (!status.IsOk) return Fail(out written, out failure, MemoryAccessFailure.LuaError);
             if (!state.IsTable(-1))
-                return Fail(out failure,
+                return Fail(out written, out failure,
                     state.IsNil(-1) ? MemoryAccessFailure.ReadFailed : MemoryAccessFailure.InvalidResult);
 
             var table = state.AbsoluteIndex(-1);
-            for (var index = 0; index < destination.Length; index++)
-            {
-                var type = state.RawGetIndex(table, index + 1L);
-                var valid = state.TryReadInteger(-1, out var value) && (ulong)value <= byte.MaxValue;
-                state.Pop(1);
-                if (!valid)
-                    return Fail(out failure,
-                        type == LuaType.Nil ? MemoryAccessFailure.ReadFailed : MemoryAccessFailure.InvalidResult);
-            }
-
-            for (var index = 0; index < destination.Length; index++)
-            {
-                state.RawGetIndex(table, index + 1L);
-                _ = state.TryReadInteger(-1, out var value);
-                state.Pop(1);
-                destination[index] = (byte)value;
-            }
-
-            failure = MemoryAccessFailure.None;
-            return true;
+            if (copyPartial)
+                return TryCopyPartialBytes(state, table, destination, out written, out failure);
+            return TryCopyCompleteBytes(state, table, destination, out written, out failure);
         }
         catch (LuaException)
         {
-            return Fail(out failure, MemoryAccessFailure.LuaError);
+            return Fail(out written, out failure, MemoryAccessFailure.LuaError);
         }
         finally
         {
             state.SetTop(top);
         }
+    }
+
+    private static bool TryCopyCompleteBytes(LuaState state, int table, Span<byte> destination, out int written,
+        out MemoryAccessFailure failure)
+    {
+        for (var index = 0; index < destination.Length; index++)
+        {
+            var type = state.RawGetIndex(table, index + 1L);
+            var valid = type == LuaType.Number && state.TryReadInteger(-1, out var value)
+                && (ulong)value <= byte.MaxValue;
+            state.Pop(1);
+            if (!valid)
+                return Fail(out written, out failure,
+                    type == LuaType.Nil ? MemoryAccessFailure.ReadFailed : MemoryAccessFailure.InvalidResult);
+        }
+
+        for (var index = 0; index < destination.Length; index++)
+        {
+            state.RawGetIndex(table, index + 1L);
+            _ = state.TryReadInteger(-1, out var value);
+            state.Pop(1);
+            destination[index] = (byte)value;
+        }
+
+        written = destination.Length;
+        failure = MemoryAccessFailure.None;
+        return true;
+    }
+
+    private static bool TryCopyPartialBytes(LuaState state, int table, Span<byte> destination, out int written,
+        out MemoryAccessFailure failure)
+    {
+        written = 0;
+        for (var index = 0; index < destination.Length; index++)
+        {
+            var type = state.RawGetIndex(table, index + 1L);
+            long value = default;
+            var valid = type == LuaType.Number && state.TryReadInteger(-1, out value)
+                && (ulong)value <= byte.MaxValue;
+            state.Pop(1);
+            if (!valid)
+            {
+                failure = type == LuaType.Nil && written != 0
+                    ? MemoryAccessFailure.PartialRead
+                    : type == LuaType.Nil ? MemoryAccessFailure.ReadFailed : MemoryAccessFailure.InvalidResult;
+                return false;
+            }
+
+            destination[index] = (byte)value;
+            written = index + 1;
+        }
+
+        failure = MemoryAccessFailure.None;
+        return true;
     }
 
     internal static bool TryWriteInteger(LuaRef cache, ReadOnlySpan<byte> name, long address, long value,
@@ -343,10 +429,17 @@ internal static class MemoryLua
     internal static bool TryWriteBytes(LuaRef cache, ReadOnlySpan<byte> name, long address, ReadOnlySpan<byte> value,
         out MemoryAccessFailure failure)
     {
+        return TryWriteBytes(cache, name, address, value, out _, out failure);
+    }
+
+    internal static bool TryWriteBytes(LuaRef cache, ReadOnlySpan<byte> name, long address, ReadOnlySpan<byte> value,
+        out int written, out MemoryAccessFailure failure)
+    {
         using var operation = LuaRuntime.AcquireOperation();
 
         if (value.IsEmpty)
         {
+            written = 0;
             failure = MemoryAccessFailure.None;
             return true;
         }
@@ -355,24 +448,34 @@ internal static class MemoryLua
         var top = state.Top;
         try
         {
-            if (!TryPushGlobal(state, cache, name, out failure)) return false;
+            if (!TryPushGlobal(state, cache, name, out failure))
+            {
+                written = 0;
+                return false;
+            }
 
             state.PushInteger(address);
             state.PushByteTable(value);
 
             var status = state.TryCall(2, 1);
-            if (!status.IsOk) return Fail(out failure, MemoryAccessFailure.LuaError);
-            if (!state.TryReadInteger(-1, out var written))
-                return Fail(out failure, MemoryAccessFailure.InvalidResult);
+            if (!status.IsOk) return Fail(out written, out failure, MemoryAccessFailure.LuaError);
+            if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out var reported))
+                return Fail(out written, out failure, MemoryAccessFailure.InvalidResult);
+            if (reported < 0 || reported > value.Length)
+                return Fail(out written, out failure, MemoryAccessFailure.InvalidResult);
+            written = (int)reported;
             if (written != value.Length)
-                return Fail(out failure, MemoryAccessFailure.WriteFailed);
+            {
+                failure = MemoryAccessFailure.WriteFailed;
+                return false;
+            }
 
             failure = MemoryAccessFailure.None;
             return true;
         }
         catch (LuaException)
         {
-            return Fail(out failure, MemoryAccessFailure.LuaError);
+            return Fail(out written, out failure, MemoryAccessFailure.LuaError);
         }
         finally
         {

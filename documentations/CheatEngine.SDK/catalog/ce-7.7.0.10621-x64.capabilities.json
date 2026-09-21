@@ -196,6 +196,15 @@
       "failure_shape": "bool failure aggregates global/call/object/adoption cause", "availability": "source-only", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
     },
     {
+      "id": "engine.target.memory-primitives",
+      "layer": "target-memory", "symbol": "TargetMemory / PointerSize / MemoryAccessFailure",
+      "declaration_refs": [{ "source_id": "sdk-target-memory", "path": "libs/CheatEngine.SDK.Engine/Memory/TargetMemory.cs", "line_start": 1, "line_end": 420 }, { "source_id": "sdk-target-pointer-codec", "path": "libs/CheatEngine.SDK.Engine/Runtime/PointerSize.cs", "line_start": 1, "line_end": 180 }],
+      "interop": { "calling_convention": "protected CE Lua globals", "parameter_widths": "explicit scalar widths; caller-supplied 32/64-bit target pointer width; exact caller buffer capacity", "result": "Try result with byte count, required UTF-8 capacity, or structured failure", "indirection": "ambient CE target selection; no target lock" },
+      "thread_affinity": { "value": "unknown", "evidence": "CE 7.7 source catalogue has no target-memory affinity proof" },
+      "ownership": { "registration": "none", "callback": "none", "arguments": "caller owns every destination; Lua text and tables are copied and never retained" },
+      "failure_shape": "global/unprotected Lua failure/read or write refusal/malformed result; partial read and reported byte count retained; unknown or overwide x86 pointer refused before write", "availability": "implemented-with-known-contract-gap", "qualification": "fixture-qualified", "profile_ids": ["sdk-fixture-lua53-x64"], "conflict_ids": []
+    },
+    {
       "id": "engine.target.identity",
       "layer": "target-memory", "symbol": "TargetSelection / TargetProcessIncarnation",
       "declaration_refs": [{ "source_id": "sdk-target-selection", "path": "libs/CheatEngine.SDK.Engine/Targets/TargetSelection.cs", "line_start": 1, "line_end": 160 }],

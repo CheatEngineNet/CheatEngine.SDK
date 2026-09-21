@@ -42,7 +42,7 @@ public static class HostMemory
     public static bool TryReadUInt8(HostAddress address, out byte value, out MemoryAccessFailure failure)
     {
         Span<byte> bytes = stackalloc byte[1];
-        if (!MemoryLua.TryReadBytes(SReadBytes, "readBytesLocal"u8, address.ToInt64(), bytes, out failure))
+        if (!MemoryLua.TryReadBytes(SReadBytes, "readBytesLocal"u8, address.ToInt64(), bytes, out _, out failure))
         {
             value = default;
             return false;
@@ -191,7 +191,7 @@ public static class HostMemory
     {
         Span<byte> bytes = stackalloc byte[1];
         bytes[0] = value;
-        return MemoryLua.TryWriteBytes(SWriteBytes, "writeBytesLocal"u8, address.ToInt64(), bytes, out failure);
+        return MemoryLua.TryWriteBytes(SWriteBytes, "writeBytesLocal"u8, address.ToInt64(), bytes, out _, out failure);
     }
 
     /// <summary>Writes a signed 8-bit value through CE's ordered local byte-table operation.</summary>
@@ -264,21 +264,62 @@ public static class HostMemory
         return MemoryLua.TryReadBytes(SReadBytes, "readBytesLocal"u8, address.ToInt64(), destination, out failure);
     }
 
+    /// <summary>Reads exactly <paramref name="destination" />.Length local bytes and reports the number copied.</summary>
+    /// <param name="address">The CE-host address to read.</param>
+    /// <param name="destination">The caller-owned storage. This overload can copy a validated contiguous prefix before it observes an incomplete or malformed table.</param>
+    /// <param name="written">The verified number copied, including a confirmed contiguous prefix on <see cref="MemoryAccessFailure.PartialRead" />.</param>
+    /// <param name="failure">The factual CE or buffer-contract failure.</param>
+    /// <returns><see langword="true" /> only after all requested bytes have been copied.</returns>
+    public static bool TryReadBytes(HostAddress address, Span<byte> destination, out int written,
+        out MemoryAccessFailure failure)
+    {
+        return MemoryLua.TryReadBytes(SReadBytes, "readBytesLocal"u8, address.ToInt64(), destination, out written,
+            out failure);
+    }
+
     /// <summary>Writes the caller-owned byte sequence in source order as one local Lua byte table.</summary>
     public static bool TryWriteBytes(HostAddress address, ReadOnlySpan<byte> value, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryWriteBytes(SWriteBytes, "writeBytesLocal"u8, address.ToInt64(), value, out failure);
+        return TryWriteBytes(address, value, out _, out failure);
+    }
+
+    /// <summary>Writes a local byte sequence and reports the exact byte count returned by Cheat Engine.</summary>
+    /// <param name="address">The CE-host address to write.</param>
+    /// <param name="value">The caller-owned bytes in source order.</param>
+    /// <param name="written">The CE-reported count, including a confirmed partial count on <see cref="MemoryAccessFailure.WriteFailed" />.</param>
+    /// <param name="failure">The factual CE or result-contract failure.</param>
+    /// <returns><see langword="true" /> only when CE reports the complete requested count.</returns>
+    public static bool TryWriteBytes(HostAddress address, ReadOnlySpan<byte> value, out int written,
+        out MemoryAccessFailure failure)
+    {
+        return MemoryLua.TryWriteBytes(SWriteBytes, "writeBytesLocal"u8, address.ToInt64(), value, out written,
+            out failure);
     }
 
     /// <summary>Reads a local UTF-8 Lua string into caller-owned storage.</summary>
     public static bool TryReadUtf8(HostAddress address, int maximumLength, Span<byte> destination, bool wideCharacter,
         out int written, out MemoryAccessFailure failure)
     {
-        return MemoryLua.TryReadUtf8(SReadString, "readStringLocal"u8, address.ToInt64(), maximumLength, wideCharacter,
-            destination, out written, out failure);
+        return TryReadUtf8(address, maximumLength, destination, wideCharacter, out written, out _, out failure);
     }
 
-    /// <summary>Reads a local string into a managed string; use <see cref="TryReadUtf8" /> on allocation-sensitive paths.</summary>
+    /// <summary>Reads local UTF-8 text and reports the exact capacity required by the returned value.</summary>
+    /// <param name="address">The CE-host address to read.</param>
+    /// <param name="maximumLength">The maximum character count passed to CE's documented string primitive.</param>
+    /// <param name="destination">The caller-owned UTF-8 storage; it is unchanged when it is too small.</param>
+    /// <param name="wideCharacter">Whether CE should read a wide-character string.</param>
+    /// <param name="written">The copied byte count, which is zero on failure.</param>
+    /// <param name="requiredLength">The returned UTF-8 byte count when CE supplied a string, including a short destination.</param>
+    /// <param name="failure">The factual CE or capacity failure.</param>
+    /// <returns><see langword="true" /> only after the complete UTF-8 value has been copied.</returns>
+    public static bool TryReadUtf8(HostAddress address, int maximumLength, Span<byte> destination, bool wideCharacter,
+        out int written, out int requiredLength, out MemoryAccessFailure failure)
+    {
+        return MemoryLua.TryReadUtf8(SReadString, "readStringLocal"u8, address.ToInt64(), maximumLength, wideCharacter,
+            destination, out written, out requiredLength, out failure);
+    }
+
+    /// <summary>Reads a local string into a managed string; use the byte-span overload on allocation-sensitive paths.</summary>
     public static bool TryReadString(HostAddress address, int maximumLength, bool wideCharacter, out string? value,
         out MemoryAccessFailure failure)
     {

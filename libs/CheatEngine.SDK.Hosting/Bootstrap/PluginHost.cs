@@ -15,16 +15,18 @@ namespace CheatEngine.SDK.Hosting.Bootstrap;
 /// <summary>
 ///     The plugin lifecycle runtime of the managed (hostfxr) load path: fills the init record for the generated
 ///     <c>CESDK.CESDK.CEPluginInitialize</c>, owns the three <c>stdcall</c> lifecycle callbacks Cheat Engine calls
-///     through it, and drives the plugin between them. One plugin per assembly load context, which is what Cheat Engine
-///     gives every plugin, so all state is static.
+///     through it, and drives the plugin between them. Its static state belongs to this loaded
+///     <c>CheatEngine.SDK.Hosting</c> assembly instance. This implementation admits one plugin factory per such
+///     instance; the Cheat Engine loader's assembly/load-context policy is an independently qualified host fact.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         <b>Sequence, as Cheat Engine drives it</b>: <see cref="InitializeManaged{TFactory}" /> twice (name query,
 ///         then load), then through the record's pointers <c>GetVersion</c>, <c>EnablePlugin</c>, and later
-///         <c>DisablePlugin</c> / <c>EnablePlugin</c> for every cycle the user requests in the plugin dialog. The
-///         assembly is never unloaded, so the static state below survives every cycle and the plugin object is
-///         constructed once.
+///         <c>DisablePlugin</c> / <c>EnablePlugin</c> for every cycle the user requests in the plugin dialog. While
+///         the host retains this assembly instance, the static state below survives those cycles and the plugin object
+///         is constructed once. The host's load/unload policy is not inferred by this implementation; see the Hosting
+///         README's coexistence qualification notes before making a multi-plugin claim.
 ///     </para>
 ///     <para>
 ///         <b>Nothing escapes.</b> Every entry native code calls is a catch-all that converts a failure into 0 or
@@ -147,8 +149,8 @@ public static unsafe partial class PluginHost
     /// <remarks>
     ///     Never throws. Fails, with an entry in <see cref="HostLog" />, when <paramref name="initRecord" /> is zero, the
     ///     process is not x64, the factory's name cannot be
-    ///     allocated, or a <i>different</i> factory type was registered by an earlier call in this load context (one
-    ///     plugin per load context; the first factory wins deterministically). The name buffer is allocated on the first
+    ///     allocated, or a <i>different</i> factory type was registered by an earlier call in this loaded Hosting assembly
+    ///     instance (the first factory in that instance wins deterministically). The name buffer is allocated on the first
     ///     successful call and never freed: Cheat Engine keeps reading through the pointer.
     /// </remarks>
     public static int InitializeManaged<TFactory>(nint initRecord, int hostArgument)
@@ -192,7 +194,8 @@ public static unsafe partial class PluginHost
     }
 
     // First call: copies the name out of the factory and pins the factory type. Later calls: the same type gets the
-    // same name pointer; a different type is rejected, deterministically, for the rest of the process.
+    // same name pointer; a different type is rejected, deterministically, for the life of this loaded Hosting assembly
+    // instance.
     private static bool TryRegisterFactory<TFactory>(out byte* name)
         where TFactory : IPluginFactory
     {
@@ -212,8 +215,8 @@ public static unsafe partial class PluginHost
             {
                 HostLog.Error(
                     "InitializeManaged: a plugin factory of type " + registered.FactoryType +
-                    " is already registered in this load context; "
-                    + typeof(TFactory) + " is rejected. One plugin per assembly.");
+                    " is already registered in this Hosting assembly instance; "
+                    + typeof(TFactory) + " is rejected. One plugin per loaded Hosting assembly instance.");
                 name = null;
                 return false;
             }

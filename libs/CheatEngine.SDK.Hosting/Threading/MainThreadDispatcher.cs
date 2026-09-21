@@ -25,9 +25,11 @@ namespace CheatEngine.SDK.Hosting.Threading;
 /// </remarks>
 internal static unsafe class MainThreadDispatcher
 {
-    // A disable nested in work the dispatcher is already executing cannot drain that work: its worker is waiting for
-    // this action to return. PluginHost reads this marker before it starts shutdown and refuses that nested request.
+    // A disable nested in admitted main-thread work cannot drain that work: a worker can be waiting for a dispatched
+    // item, and an inline caller cannot release its admission until the action returns. PluginHost reads this marker
+    // before it starts shutdown and refuses that nested request.
     [ThreadStatic] private static int t_executingWorkDepth;
+    [ThreadStatic] private static int t_inlineWorkDepth;
 
     // The simulated host uses this narrow internal seam to queue the exact work item that Dispatch would otherwise
     // hand to Lua. It is reset before every test and never reaches the public API or a production host path.
@@ -40,6 +42,38 @@ internal static unsafe class MainThreadDispatcher
     }
 
     internal static bool IsExecutingWorkOnCurrentThread => t_executingWorkDepth != 0;
+
+    internal static bool IsExecutingInlineWorkOnCurrentThread => t_inlineWorkDepth != 0;
+
+    internal static void ExecuteInline<TState>(Action<TState> action, TState state)
+    {
+        t_inlineWorkDepth++;
+        t_executingWorkDepth++;
+        try
+        {
+            action(state);
+        }
+        finally
+        {
+            t_executingWorkDepth--;
+            t_inlineWorkDepth--;
+        }
+    }
+
+    internal static TResult ExecuteInline<TState, TResult>(Func<TState, TResult> function, TState state)
+    {
+        t_inlineWorkDepth++;
+        t_executingWorkDepth++;
+        try
+        {
+            return function(state);
+        }
+        finally
+        {
+            t_executingWorkDepth--;
+            t_inlineWorkDepth--;
+        }
+    }
 
     /// <summary>Runs <paramref name="item" /> through the host's <c>synchronize</c> global on the calling thread's Lua state.</summary>
     /// <param name="item">

@@ -16,8 +16,8 @@ namespace CheatEngine.SDK.Hosting.Threading;
 ///     <para>
 ///         <b>Identity.</b> The thread that ran the enable callback is the main thread of that enable (captured in
 ///         <see cref="PluginContext.MainThreadId" />). <see cref="IsMainThread" /> is a volatile read and a comparison,
-///         taken
-///         before any lock on every path here: the dispatcher short-circuits on the main thread without locking.
+///         taken before dispatch. An inline invocation avoids a Lua hop but still acquires the host lifecycle admission
+///         before its action starts.
 ///     </para>
 ///     <para>
 ///         <b>Dispatch.</b> <see cref="Invoke{TState}" /> runs the work inline when called on the main thread and
@@ -40,6 +40,12 @@ namespace CheatEngine.SDK.Hosting.Threading;
 ///         <b>Preconditions.</b> Everything here needs the plugin to be enabled (<see cref="InvalidOperationException" />
 ///         otherwise). <see cref="ProcessMessages" /> and <see cref="CheckSynchronize" /> additionally require the main
 ///         thread and throw when called from another one rather than pumping a foreign thread's queue.
+///     </para>
+///     <para>
+///         <b>Admission.</b> Every <c>Invoke</c> call, including an inline call
+///         already on the main thread, acquires the lifecycle work admission before its action starts. A transition
+///         therefore rejects a new invocation before user work runs; a nested disable requested by that work is refused
+///         because it cannot drain its own admission.
 ///     </para>
 /// </remarks>
 public static unsafe class MainThread
@@ -125,9 +131,10 @@ public static unsafe class MainThread
     {
         ArgumentNullException.ThrowIfNull(action);
         var context = PluginHost.RequireContext();
+        using var admission = PluginHost.AdmitMainThreadWork(context);
         if (context.IsMainThread)
         {
-            action(state);
+            MainThreadDispatcher.ExecuteInline(action, state);
             return;
         }
 
@@ -136,7 +143,6 @@ public static unsafe class MainThread
                 "The host's exports record has no CheckSynchronize function; cross-thread dispatch cannot guarantee shutdown drain.");
 
         ActionWorkItem<TState> item = new(action, state);
-        using var admission = PluginHost.AdmitMainThreadWork(context);
         MainThreadDispatcher.Dispatch(item);
         item.ThrowIfFailed();
     }
@@ -164,14 +170,14 @@ public static unsafe class MainThread
     {
         ArgumentNullException.ThrowIfNull(function);
         var context = PluginHost.RequireContext();
-        if (context.IsMainThread) return function(state);
+        using var admission = PluginHost.AdmitMainThreadWork(context);
+        if (context.IsMainThread) return MainThreadDispatcher.ExecuteInline(function, state);
 
         if (!context.HasCheckSynchronize)
             throw new InvalidOperationException(
                 "The host's exports record has no CheckSynchronize function; cross-thread dispatch cannot guarantee shutdown drain.");
 
         FuncWorkItem<TState, TResult> item = new(function, state);
-        using var admission = PluginHost.AdmitMainThreadWork(context);
         MainThreadDispatcher.Dispatch(item);
         item.ThrowIfFailed();
         return item.Result!;

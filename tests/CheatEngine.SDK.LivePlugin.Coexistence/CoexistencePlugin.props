@@ -1,0 +1,33 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Each fixture is a separate managed plugin assembly. The output paths therefore stay separate when Cheat Engine loads both. -->
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(ArtifactsPath)\obj\$(MSBuildProjectName)\generated\$(Configuration)</CompilerGeneratedFilesOutputPath>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- Match the component set of a managed plugin consumer. The fixture observes the host loader; it does not configure one. -->
+  <ItemGroup>
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj" />
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj" />
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj" />
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj" />
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj" />
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../analyzers/CheatEngine.SDK.Analyzers/CheatEngine.SDK.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../../analyzers/CheatEngine.SDK.Analyzers.CodeFixes/CheatEngine.SDK.Analyzers.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../../source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/CheatEngine.SDK.SourceGenerators.EntryPoint.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/CheatEngine.SDK.SourceGenerators.LuaBindings.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../../source-generators/CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <Compile Include="../CoexistenceDiagnostics.cs" Link="CoexistenceDiagnostics.cs" />
+  </ItemGroup>
+
+</Project>

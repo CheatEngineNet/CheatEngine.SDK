@@ -19,9 +19,10 @@ namespace CheatEngine.SDK.Hosting.Plugin;
 ///         (<c>CheatEngine.SDK.Lua.Runtime.LuaRuntime</c>) is attached: no SDK API is usable from the constructor,
 ///         field initializers or a
 ///         static constructor, and one that is tried there fails with an exception that turns the enable into a failure
-///         reported to Cheat Engine. The same instance is reused for every later enable: the assembly is never unloaded
-///         and
-///         a disable/enable cycle calls <see cref="OnDisable" /> then <see cref="OnEnable" /> again on it.
+///         reported to Cheat Engine. While the host retains the loaded Hosting assembly instance, the same instance is
+///         reused for every later enable and a disable/enable cycle calls <see cref="OnDisable" /> then
+///         <see cref="OnEnable" /> again on it. The host loader's unload or load-context policy is not an SDK promise;
+///         see the Hosting coexistence qualification notes before assuming cross-plugin isolation.
 ///     </para>
 ///     <para>
 ///         <b>Threads.</b> Cheat Engine calls the lifecycle callbacks from its main (GUI) thread; that thread is captured

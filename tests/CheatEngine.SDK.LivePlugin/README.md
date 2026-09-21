@@ -15,6 +15,10 @@ host can show, and the worked example behind the root [README](../../README.md).
 operator records the exact host binary, architecture, runtime policy and transcript; it is not an automated proof of
 the unresolved CE 7.7 contracts.
 
+For the separate two-plugin/loader-identity protocol, use
+[`CheatEngine.SDK.LivePlugin.Coexistence`](../CheatEngine.SDK.LivePlugin.Coexistence/README.md). A successful run of
+this one-plugin fixture says nothing about static-state isolation between separately loaded plugin assemblies.
+
 ## How it works
 
 | File                          | Content                                                                                                                                                                            |

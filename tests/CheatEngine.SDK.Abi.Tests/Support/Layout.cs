@@ -25,4 +25,19 @@ internal static unsafe class Layout
     {
         return checked((int)((byte*)field - (byte*)origin));
     }
+
+    /// <summary>Managed alignment of an unmanaged value, measured as the offset after a leading byte.</summary>
+    public static int AlignmentOf<T>()
+        where T : unmanaged
+    {
+        AlignmentProbe<T> probe = default;
+        return OffsetOf(&probe, &probe.Value);
+    }
+
+    private struct AlignmentProbe<T>
+        where T : unmanaged
+    {
+        public byte Prefix;
+        public T Value;
+    }
 }

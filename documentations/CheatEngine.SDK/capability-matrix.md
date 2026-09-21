@@ -6,6 +6,7 @@ an item is marked live only after the controlled procedure in [live probes](live
 
 | Area | Current contract | Evidence boundary |
 |---|---|---|
+| Classic ABI layouts | The native fixture validates the checked-in x64 C-header transcription, physical table prefix, direct-address/value-cell/null topology, and plugin exports. Conflicting, nil, and hookable slots remain opaque. | MSVC x64 fixture only; no installed header or live CE host is loaded. |
 | Plugin lifecycle and Lua attachment | Hosting attaches Lua for `OnEnable` and `OnDisable`, then neutralizes callbacks during teardown. | Managed lifecycle tests; live dispatch remains separately qualified. |
 | Target and host addresses | `Address` and `HostAddress` are distinct API types. | Managed type and memory API tests. |
 | Engine object ownership | Only factories with a documented caller-owned result create `Owned<T>`. GUI-owned objects stay borrowed. | CE 7.7 source catalogue plus managed ownership tests. |

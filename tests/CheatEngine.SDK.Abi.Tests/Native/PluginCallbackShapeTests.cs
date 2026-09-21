@@ -5,22 +5,22 @@ using CheatEngine.SDK.Abi.Native;
 namespace CheatEngine.SDK.Abi.Tests.Native;
 
 /// <summary>
-///     Plays the host for the callbacks of the classic registration records: real <c>stdcall</c> functions with the
-///     documented shapes are stored in the records - which only compiles when the declared signatures match exactly -
-///     and are invoked through them.
+///     Exercises only the qualified callback projections of classic registration records. Real <c>stdcall</c>
+///     functions are stored and invoked only through those typed slots; conflicting slots are merely round-tripped as
+///     opaque addresses.
 /// </summary>
 public sealed unsafe class PluginCallbackShapeTests
 {
     private static int s_mainMenuCalls;
 
     [Fact]
-    public void AddressList_callback_takes_a_record_pointer_and_returns_Bool32()
+    public void AddressList_callback_slot_stays_opaque_until_a_live_canary_qualifies_the_selection_record()
     {
         AddressListPluginInit init = default;
-        init.Callback = &FakeAddressList;
+        delegate* unmanaged[Stdcall]<void> function = &FakeMainMenu;
+        init.Callback = function;
 
-        Assert.True(init.Callback((void*)0x10).IsTrue);
-        Assert.False(init.Callback(null).IsTrue);
+        Assert.Equal((nint)function, (nint)init.Callback);
     }
 
     [Fact]
@@ -62,16 +62,13 @@ public sealed unsafe class PluginCallbackShapeTests
     }
 
     [Fact]
-    public void DisassemblerContext_click_callback_takes_an_in_out_address_and_returns_Bool32()
+    public void DisassemblerContext_click_slot_stays_opaque_until_a_live_canary_qualifies_its_boolean_width()
     {
         DisassemblerContextPluginInit init = default;
-        init.Callback = &FakeContextClick;
-        nuint address = 0x40_0000;
+        delegate* unmanaged[Stdcall]<void> function = &FakeMainMenu;
+        init.Callback = function;
 
-        var result = init.Callback(&address);
-
-        Assert.True(result.IsTrue);
-        Assert.Equal((nuint)0x40_0004, address);
+        Assert.Equal((nint)function, (nint)init.Callback);
     }
 
     [Fact]
@@ -135,12 +132,6 @@ public sealed unsafe class PluginCallbackShapeTests
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-    private static Bool32 FakeAddressList(void* selectedRecord)
-    {
-        return selectedRecord is not null;
-    }
-
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static Bool32 FakeMemoryView(nuint* disassemblerAddress, nuint* selectedDisassemblerAddress,
         nuint* hexViewAddress)
     {
@@ -159,13 +150,6 @@ public sealed unsafe class PluginCallbackShapeTests
     private static void FakeMainMenu()
     {
         s_mainMenuCalls++;
-    }
-
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-    private static Bool32 FakeContextClick(nuint* selectedAddress)
-    {
-        *selectedAddress += 4;
-        return Bool32.True;
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]

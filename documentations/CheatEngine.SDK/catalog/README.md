@@ -17,6 +17,11 @@ The catalogue makes that distinction reviewable:
 - `ce-7.7.0.10621-x64.conflicts.json` makes known historical conflicts declarative. An unresolved conflict blocks public callability and live qualification.
 - `ce-7.7.0.10621-x64.host-profiles.json` keeps host facts and target facts separate. A host x64 observation never infers the target architecture or pointer width.
 
+The `ce-7.7-classic-header-fixture-x64` profile is deliberately narrower than a CE host profile. CI compiles the local
+C++ transcription with MSVC x64 and validates its versioned layout, alignment, export, and synthetic topology facts.
+It can support only `fixture-only` evidence. It cannot resolve a C/Pascal conflict, prove that a real host slot is
+non-null, or turn a classic ABI projection into a callable public API.
+
 ## How it improves the SDK
 
 `eng/Validate-CeSurfaceCatalog.py` validates the four documents in CI. It rejects a missing or reordered classic slot, incomplete callback coverage, duplicate capability identifiers, invalid source locators, an unsupported availability state, a source-only capability reported as live-qualified, a target-dependent capability that infers target facts, and an opaque unresolved conflict exposed as callable.

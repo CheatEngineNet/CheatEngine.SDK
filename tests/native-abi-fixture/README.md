@@ -1,8 +1,8 @@
 # CE 7.7 native ABI fixture
 
 This directory contains a small **Windows x64 C++ fixture**, not a Cheat Engine plugin and not a replacement SDK. It
-compiles a minimal contract derived from the CE classic-plugin header, builds a DLL with the three classic plugin
-exports, loads that DLL back through `GetProcAddress`, and emits stable `key=value` ABI facts.
+compiles a deliberately local transcription of a minimal CE classic-plugin-header subset, builds a DLL with the three
+classic plugin exports, loads that DLL back through `GetProcAddress`, and emits 104 stable `key=value` ABI facts.
 
 ## Evidence boundary
 
@@ -12,26 +12,33 @@ The source is deliberately pinned to the upstream revision
 `ce77_plugin_abi_contract.h` transcribes only the measured declaration subset, with source line ranges in its header;
 it does not vendor the upstream header or any Cheat Engine binary.
 
-This fixture proves C-header shape, not the behavior of a live CE host. In particular, the popup callback retains the
-header's four-byte `BOOL* show` declaration. The planned CE 7.7 live canary is still required before a Pascal-side
-one-byte representation can replace it in a runtime contract.
+This fixture proves the MSVC x64 shape of the checked-in transcription, not the behavior of a live CE host and not the
+contents of an installed `cepluginsdk.h`. In particular, the popup callback retains the header's four-byte `BOOL* show`
+declaration. The planned CE 7.7 live canary is still required before a Pascal-side one-byte representation can replace
+it in a runtime contract.
 
 ## What it checks
 
 - x64 pointer, `BOOL`, `UINT_PTR` and enum widths;
-- `sizeof` and `offsetof` facts for `PluginVersion`, `PLUGINTYPE0_RECORD`, the nine init records,
-  `REGISTERMODIFICATIONINFO`, and the safe direct-call prefix of `ExportedFunctions`;
+- `sizeof`, `offsetof`, and `alignof` facts for `PluginVersion`, `PLUGINTYPE0_RECORD`, the nine init records,
+  `REGISTERMODIFICATIONINFO`, and the physically contiguous prefix of `ExportedFunctions`;
+- a CI-only comparison of those emitted layout facts with the `sizeof`, address-of offset, and alignment measurements
+  from the compiled managed ABI records;
 - explicit `__stdcall` callback and classic export signatures at compile time;
 - exactly `CEPlugin_GetVersion`, `CEPlugin_InitializePlugin`, and `CEPlugin_DisablePlugin` exported from the fixture
   DLL;
-- guard bytes around the version record and its padding, plus calls to all three exports.
+- guard bytes around the version record and its padding, plus calls to all three exports;
+- a synthetic table topology with a direct address, borrowed process-id and process-handle cells, a null `FixMem`
+  slot, an intentionally uninvoked conflicting `GetAddressFromPointer` address, and an excluded hookable suffix.
 
 It intentionally stops before the pointer-to-pointer hook suffix of `ExportedFunctions` and does not model Delphi
-references, Lua, CE object ownership, or any live-process behavior.
+references, Lua, CE object ownership, buffer capacities, or any live-process behavior. It never invokes a synthetic
+`GetAddressFromPointer` pointer merely to infer its conflicting return width.
 
 ## Run it
 
-Use an x64 Visual Studio Developer PowerShell; no Cheat Engine installation is read or required.
+The script imports an x64 Visual Studio C++ developer environment when necessary. It needs the installed Visual Studio
+x64 C++ build tools, but reads no Cheat Engine installation.
 
 ```powershell
 ./tests/native-abi-fixture/build.ps1 -OutputDirectory ./artifacts/native-abi-fixture
@@ -40,10 +47,12 @@ Use an x64 Visual Studio Developer PowerShell; no Cheat Engine installation is r
 The script writes only the selected output directory and prints lines such as:
 
 ```text
-fixture.schema=1
+fixture.schema=2
 source.upstream_commit=ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37
+source.contract=transcribed-pinned-header-subset
 architecture=win-x64
 sizeof.plugin_version=16
+alignof.plugin_version=8
 offsetof.plugin_type0_record.value_type=40
 sizeof.register_modification_info=264
 sizeof.exported_functions_prefix=144
@@ -52,5 +61,6 @@ export.0=CEPlugin_GetVersion
 sentinel.plugin_version.outer_guard=passed
 ```
 
-Normal managed CI does not invoke this script, so it never depends on a local CE installation or a C++ compiler.
-The ordinary ABI tests remain pure .NET tests in `tests/CheatEngine.SDK.Abi.Tests`.
+The script writes `ce77-native-abi-facts.txt` and validates every emitted key and value with
+`Validate-Facts.ps1`. CI invokes this fixture in the native job; the ordinary ABI tests remain pure .NET tests in
+`tests/CheatEngine.SDK.Abi.Tests` and never require a C++ compiler.

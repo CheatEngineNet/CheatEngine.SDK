@@ -21,7 +21,7 @@
 #error The CE 7.7 fixture is deliberately Windows x64 only.
 #endif
 
-#define CE77_ABI_FIXTURE_SCHEMA_VERSION 1
+#define CE77_ABI_FIXTURE_SCHEMA_VERSION 2
 #define CE77_UPSTREAM_COMMIT "ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37"
 #define CE77_CEPLUGINSDK_PATH "Cheat Engine/plugin/cepluginsdk.h"
 
@@ -209,7 +209,8 @@ typedef CE77_BOOL(CE77_STDCALL* CE77ReloadSettings)(void);
 typedef CE77_UINT_PTR(CE77_STDCALL* CE77GetAddressFromPointer)(CE77_UINT_PTR baseAddress, int32_t offsetCount,
     int32_t* offsets);
 
-// The safe direct-call prefix only.  The upstream table continues at offset
+// The physically contiguous C-header prefix only. Individual slots are not
+// thereby live-qualified or callable. The upstream table continues at offset
 // 144 with pointer-to-pointer hook slots; that dangerous suffix is intentionally
 // outside the fixture's contract.
 typedef struct CE77ExportedFunctionsPrefix
@@ -249,10 +250,12 @@ static_assert(sizeof(CE77PluginType) == 4, "C++ enum width must match the CE hea
 static_assert(sizeof(CE77AutoAssemblerPhase) == 4, "C++ enum width must match the CE header.");
 
 static_assert(sizeof(CE77PluginVersion) == 16);
+static_assert(alignof(CE77PluginVersion) == 8);
 static_assert(offsetof(CE77PluginVersion, Version) == 0);
 static_assert(offsetof(CE77PluginVersion, PluginName) == 8);
 
 static_assert(sizeof(CE77PluginType0Record) == 48);
+static_assert(alignof(CE77PluginType0Record) == 8);
 static_assert(offsetof(CE77PluginType0Record, InterpretedAddress) == 0);
 static_assert(offsetof(CE77PluginType0Record, Address) == 8);
 static_assert(offsetof(CE77PluginType0Record, IsPointer) == 16);
@@ -263,21 +266,49 @@ static_assert(offsetof(CE77PluginType0Record, ValueType) == 40);
 static_assert(offsetof(CE77PluginType0Record, Size) == 41);
 
 static_assert(sizeof(CE77PluginType0Init) == 16);
+static_assert(alignof(CE77PluginType0Init) == 8);
+static_assert(offsetof(CE77PluginType0Init, Name) == 0);
+static_assert(offsetof(CE77PluginType0Init, Callback) == 8);
 static_assert(sizeof(CE77PluginType1Init) == 24);
+static_assert(alignof(CE77PluginType1Init) == 8);
+static_assert(offsetof(CE77PluginType1Init, Name) == 0);
+static_assert(offsetof(CE77PluginType1Init, Callback) == 8);
+static_assert(offsetof(CE77PluginType1Init, Shortcut) == 16);
 static_assert(sizeof(CE77PluginType2Init) == 8);
+static_assert(alignof(CE77PluginType2Init) == 8);
+static_assert(offsetof(CE77PluginType2Init, Callback) == 0);
 static_assert(sizeof(CE77PluginType3Init) == 8);
+static_assert(alignof(CE77PluginType3Init) == 8);
+static_assert(offsetof(CE77PluginType3Init, Callback) == 0);
 static_assert(sizeof(CE77PluginType4Init) == 8);
+static_assert(alignof(CE77PluginType4Init) == 8);
+static_assert(offsetof(CE77PluginType4Init, Callback) == 0);
 static_assert(sizeof(CE77PluginType5Init) == 24);
+static_assert(alignof(CE77PluginType5Init) == 8);
+static_assert(offsetof(CE77PluginType5Init, Name) == 0);
+static_assert(offsetof(CE77PluginType5Init, Callback) == 8);
+static_assert(offsetof(CE77PluginType5Init, Shortcut) == 16);
 static_assert(sizeof(CE77PluginType6Init) == 32);
+static_assert(alignof(CE77PluginType6Init) == 8);
+static_assert(offsetof(CE77PluginType6Init, Name) == 0);
+static_assert(offsetof(CE77PluginType6Init, Callback) == 8);
+static_assert(offsetof(CE77PluginType6Init, CallbackOnPopup) == 16);
+static_assert(offsetof(CE77PluginType6Init, Shortcut) == 24);
 static_assert(sizeof(CE77PluginType7Init) == 8);
+static_assert(alignof(CE77PluginType7Init) == 8);
+static_assert(offsetof(CE77PluginType7Init, Callback) == 0);
 static_assert(sizeof(CE77PluginType8Init) == 8);
+static_assert(alignof(CE77PluginType8Init) == 8);
+static_assert(offsetof(CE77PluginType8Init, Callback) == 0);
 static_assert(sizeof(CE77RegisterModificationInfo) == 264);
+static_assert(alignof(CE77RegisterModificationInfo) == 8);
 static_assert(offsetof(CE77RegisterModificationInfo, NewEax) == 104);
 static_assert(offsetof(CE77RegisterModificationInfo, NewR15) == 232);
 static_assert(offsetof(CE77RegisterModificationInfo, NewCf) == 240);
 static_assert(offsetof(CE77RegisterModificationInfo, NewOf) == 260);
 
 static_assert(sizeof(CE77ExportedFunctionsPrefix) == 144);
+static_assert(alignof(CE77ExportedFunctionsPrefix) == 8);
 static_assert(offsetof(CE77ExportedFunctionsPrefix, SizeOfExportedFunctions) == 0);
 static_assert(offsetof(CE77ExportedFunctionsPrefix, ShowMessage) == 8);
 static_assert(offsetof(CE77ExportedFunctionsPrefix, RegisterFunction) == 16);

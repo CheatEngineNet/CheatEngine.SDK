@@ -13,13 +13,11 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         callback-record divergence explicit.
 ///     </para>
 ///     <para>
-///         <b>Evidence status: ExactInstalledFile for fields; InferredUntilFixture for x64 offsets.</b> The declaration is
-///         <c>PLUGINTYPE0_RECORD</c> in the
-///         <c>cepluginsdk.h</c> distributed with Cheat Engine 7.7.0.10621 x64 (SHA-256
-///         <c>9C0E31BB753D782CE20710D19828F4E97B4371C8733ABD0C5C6F7F485306FB28</c>). The file has natural C layout;
-///         the asserted x64 offsets use the Windows x64 ABI. The corresponding Pascal SDK also has a selected-record
-///         shape, but exposes a one-byte <c>boolean</c> pointer flag and a separately divergent callback record, so it
-///         is corroborating context rather than the authority for this internal C-header mirror.
+///         <b>Evidence status: source-indexed C header plus compiled-transcription fixture for x64 layout.</b> The
+///         declaration is <c>PLUGINTYPE0_RECORD</c> in the pinned historical <c>cepluginsdk.h</c>. The MSVC x64
+///         fixture validates this 48-byte transcription and its offsets, but does not establish which divergent Pascal
+///         callback record a live host supplies. The corresponding Pascal SDK exposes a one-byte <c>boolean</c> pointer
+///         flag, so it remains corroborating context rather than authority for a callable projection.
 ///     </para>
 ///     <para>
 ///         Strings are host-owned, NUL-terminated bytes. <see cref="Offsets" /> is host-owned and contains exactly

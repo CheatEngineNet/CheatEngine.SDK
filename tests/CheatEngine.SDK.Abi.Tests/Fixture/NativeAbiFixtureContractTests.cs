@@ -31,6 +31,26 @@ public sealed class NativeAbiFixtureContractTests
     }
 
     [Fact]
+    public void Header_derived_classic_records_have_the_fixture_x64_alignments()
+    {
+        Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
+
+        Assert.Equal(8, Layout.AlignmentOf<PluginVersion>());
+        Assert.Equal(8, Layout.AlignmentOf<AddressListPluginInit>());
+        Assert.Equal(8, Layout.AlignmentOf<MemoryViewPluginInit>());
+        Assert.Equal(8, Layout.AlignmentOf<DebugEventPluginInit>());
+        Assert.Equal(8, Layout.AlignmentOf<ProcessWatcherPluginInit>());
+        Assert.Equal(8, Layout.AlignmentOf<FunctionPointerChangePluginInit>());
+        Assert.Equal(8, Layout.AlignmentOf<MainMenuPluginInit>());
+        Assert.Equal(8, Layout.AlignmentOf<DisassemblerContextPluginInit>());
+        Assert.Equal(8, Layout.AlignmentOf<DisassemblerRenderLinePluginInit>());
+        Assert.Equal(8, Layout.AlignmentOf<AutoAssemblerPluginInit>());
+        Assert.Equal(8, Layout.AlignmentOf<PluginType0Record>());
+        Assert.Equal(8, Layout.AlignmentOf<RegisterModificationInfo>());
+        Assert.Equal(8, Layout.AlignmentOf<ExportedFunctionsPrefix>());
+    }
+
+    [Fact]
     public void Header_and_pinned_Pascal_popup_contract_conflict_keeps_the_slot_opaque_until_a_live_canary()
     {
         var popup = typeof(DisassemblerContextPluginInit).GetField(

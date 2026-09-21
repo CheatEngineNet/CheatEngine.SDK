@@ -23,7 +23,7 @@ balanced, and keeps the hot paths free of allocations.
 | `CheatEngine.SDK.Lua.State`            | `LuaState`, `LuaFrame`, `LuaType`                                                                                                                                                 | Borrowed view of a Lua state, stack guard, type tags                         |
 | `CheatEngine.SDK.Lua.Runtime`          | `LuaRuntime`, `LuaRuntimeOperation`, `LuaHostBinding`, `LuaStateIdentity`                                                                                                         | The host binding, lifecycle admission, attachment epoch and state generation |
 | `CheatEngine.SDK.Lua.Calls`            | `LuaStatus`, `LuaError`, `LuaException`, `LuaComparison`                                                                                                                          | Results of protected operations, opt-in exceptions                           |
-| `CheatEngine.SDK.Lua.Marshalling`      | `ILuaMarshaller<T>`, `Int32Marshaller`, `Int64Marshaller`, `SingleMarshaller`, `DoubleMarshaller`, `BooleanMarshaller`, `AddressMarshaller`, `Utf8Marshaller`, `StringMarshaller` | Push and read one managed type each                                          |
+| `CheatEngine.SDK.Lua.Marshalling`      | `ILuaMarshaller<T>`, `Int32Marshaller`, `Int64Marshaller`, `SingleMarshaller`, `DoubleMarshaller`, `BooleanMarshaller`, `AddressMarshaller`, `Utf8Marshaller`, `StringMarshaller` | Push and read one managed type each, both by interface and static contract   |
 | `CheatEngine.SDK.Lua.References`       | `LuaRef`                                                                                                                                                                          | Registry reference stamped with attachment epoch and state generation        |
 | `CheatEngine.SDK.Lua.Callbacks`        | `LuaNativeFunction`, `LuaCallback`, `LuaCallback<TState>`, `LuaThunk`                                                                                                             | Managed functions that Lua can call                                          |
 | `CheatEngine.SDK.Lua.CompilerServices` | `LuaGlobalFunctions`, `LuaCallSupport`                                                                                                                                            | Called by generated code, hidden from IntelliSense                           |
@@ -129,6 +129,24 @@ or `ThrowUnexpectedResult`, which restore the stack and throw `LuaException`.
 A generated body pops its results before it returns, so a `ReadOnlySpan<byte>` read from a result would dangle: spans
 are argument-only. A string result is copied into a caller `Span<byte>` with `TryCopyUtf8`, or decoded into a `string`
 with `StringMarshaller`, which allocates.
+
+### Custom marshalling
+
+Generated bindings select a concrete marshaller for every value by type: scalar types use an SDK marshaller directly,
+and an explicit `[LuaMarshaller(typeof(TMarshaller))]` on a parameter or return value overrides that for one binding.
+The attribute names a type implementing `ILuaMarshaller<T>` for the annotated value type; the generator validates that
+the named type implements the interface and directly emits static calls to the marshaller's `Push` and `TryRead`
+members.
+
+Built-in scalar marshallers push and read with no allocation: the pattern of `TMarshaller.Push(L, value)` and
+`TMarshaller.TryRead(L, index, out value)` is as efficient as an SDK marshaller. Custom marshallers for structs,
+wrappers or sum types keep the same binding protocol. No registry, runtime reflection, delegate or instance marshaller
+is used by generated code.
+
+Use `[LuaMarshaller]` for a type specific to one wrapper or for a type that does not justify an SDK-wide default. The
+SDK scalar marshallers remain static members of their named types (`Int32Marshaller`, `AddressMarshaller`) so generic
+table-reading or callback code can use them with `where TMarshaller : ILuaMarshaller<T>`. An explicit selection on a
+binding parameter or result is evaluated only once per method symbol at generation time.
 
 ## Promise
 

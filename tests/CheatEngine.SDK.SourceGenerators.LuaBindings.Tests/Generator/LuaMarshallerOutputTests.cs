@@ -78,6 +78,80 @@ public sealed class LuaMarshallerOutputTests(RoslynFixture roslyn) : IClassFixtu
         Assert.Empty(run.GeneratedSources);
     }
 
+    [Fact]
+    public void Generator_explicit_static_interface_marshaller_members_do_not_generate_a_binding()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+                              using CheatEngine.SDK.Lua.Marshalling;
+                              using CheatEngine.SDK.Lua.State;
+
+                              namespace Demo;
+
+                              public readonly struct Token { }
+
+                              public readonly struct ExplicitMarshaller : ILuaMarshaller<Token>
+                              {
+                                  static void ILuaMarshaller<Token>.Push(LuaState state, Token value) { }
+
+                                  static bool ILuaMarshaller<Token>.TryRead(LuaState state, int index, out Token value)
+                                  {
+                                      value = default;
+                                      return false;
+                                  }
+                              }
+
+                              public static partial class Bindings
+                              {
+                                  [LuaFunction("token")]
+                                  public static int RoundTrip([LuaMarshaller(typeof(ExplicitMarshaller))] Token value) => 0;
+                              }
+                              """;
+
+        roslyn.Run(source).AssertNoOutput();
+    }
+
+    [Fact]
+    public void Generator_marshaller_with_direct_members_of_the_wrong_shape_does_not_generate_a_binding()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+                              using CheatEngine.SDK.Lua.Marshalling;
+                              using CheatEngine.SDK.Lua.State;
+
+                              namespace Demo;
+
+                              public readonly struct Token { }
+
+                              public readonly struct InvalidDirectMarshaller : ILuaMarshaller<Token>
+                              {
+                                  static void ILuaMarshaller<Token>.Push(LuaState state, Token value) { }
+
+                                  static bool ILuaMarshaller<Token>.TryRead(LuaState state, int index, out Token value)
+                                  {
+                                      value = default;
+                                      return false;
+                                  }
+
+                                  public static void Push(LuaState state, int value) { }
+
+                                  public static bool TryRead(LuaState state, int index, out int value)
+                                  {
+                                      value = default;
+                                      return false;
+                                  }
+                              }
+
+                              public static partial class Bindings
+                              {
+                                  [LuaGlobal("token")]
+                                  public static partial bool TryRead([LuaMarshaller(typeof(InvalidDirectMarshaller))] out Token value);
+                              }
+                              """;
+
+        roslyn.Run(source).AssertNoOutput();
+    }
+
     private const string ValidSource = """
                                        using CheatEngine.SDK.Annotations.Lua;
                                        using CheatEngine.SDK.Lua.Marshalling;

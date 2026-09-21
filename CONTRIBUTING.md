@@ -31,7 +31,7 @@ The CI workflow builds Debug and Release, and tests each `tests/**/*.Tests.cspro
 
 ## Style and analyzers
 
-- Follow [`.editorconfig`](.editorconfig): UTF-8 and CRLF, four-space C# indentation, and two-space configuration/project-file indentation.
+- Follow [`.editorconfig`](.editorconfig): UTF-8, tab-based C# indentation (spaces only for continuation alignment), and two-space configuration/project-file indentation. [`.gitattributes`](.gitattributes) owns working-tree line-ending normalization.
 - Use file-scoped namespaces, explicit accessibility, PascalCase public members, and the local naming patterns already present.
 - Public APIs require XML documentation. Builds treat compiler and analyzer diagnostics as errors, except for configured exceptions.
 - Do not use LINQ, including query expressions or `System.Linq` operators. Prefer explicit loops and collection APIs.

@@ -197,7 +197,7 @@ internal static class LuaGlobalCallEmitter
         // The arguments.
         foreach (var argument in model.Arguments)
         {
-        writer.Write(argument.GeneratedMarshallerTypeName);
+            writer.Write(argument.GeneratedMarshallerTypeName);
             writer.Write(".Push(");
             writer.Write(State);
             writer.Write(", ");

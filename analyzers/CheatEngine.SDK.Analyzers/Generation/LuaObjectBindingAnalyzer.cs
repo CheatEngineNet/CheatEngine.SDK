@@ -161,7 +161,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
                 continue;
 
             var name = ReadName(attribute);
-            var issues = LuaFunctionShape.Inspect(method, symbols.LuaState, symbols.LuaMarshallerAttribute,
+            var issues = LuaFunctionShape.Inspect(context.Compilation, method, symbols.LuaState, symbols.LuaMarshallerAttribute,
                 symbols.LuaMarshallerContract, out _);
             if (!LuaNames.IsValidName(name)) issues |= LuaFunctionShapeIssues.InvalidName;
             if (issues != LuaFunctionShapeIssues.None || containingIssues != ContainingTypeIssues.None) continue;
@@ -192,7 +192,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
                 continue;
 
             var name = ReadName(attribute);
-            var issues = LuaGlobalShape.Inspect(method, symbols.LuaState, symbols.LuaMarshallerAttribute,
+            var issues = LuaGlobalShape.Inspect(context.Compilation, method, symbols.LuaState, symbols.LuaMarshallerAttribute,
                 symbols.LuaMarshallerContract, out _);
             if (!LuaNames.IsValidName(name)) issues |= LuaGlobalShapeIssues.InvalidName;
             if (issues != LuaGlobalShapeIssues.None || containingIssues != ContainingTypeIssues.None) continue;

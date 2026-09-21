@@ -82,7 +82,10 @@ public static class MemoryScanSessions
             }
 
             scanner.Value.Handle.Push(state);
-            if (!state.TryCall(1, 1).IsOk || !CEObject.TryRead(state, -1, out var foundListHandle))
+            // An aliased child would create a second owner for the scanner.
+            if (!state.TryCall(1, 1).IsOk ||
+                !CEObject.TryRead(state, -1, out var foundListHandle) ||
+                foundListHandle == scannerHandle)
             {
                 session = null;
                 return false;

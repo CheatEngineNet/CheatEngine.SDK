@@ -14,6 +14,8 @@ internal static unsafe class Program
 {
     private const string CheckStackGrowthMode = "--checkstack-growth";
 
+    private const string GeneratedFunctionAllocationMode = "--generated-function-allocation";
+
     private const int CheckStackGrowthSlots = 4096;
 
     // Exact C11 CHEATENGINE_SDK_NO_ERROR sentinel. The internal production alias is LuaProtectedApi.NoErrorStatus.
@@ -34,10 +36,10 @@ internal static unsafe class Program
     public static int Main(string[] arguments)
     {
         if (arguments.Length is < 1 or > 2 ||
-            (arguments.Length == 2 && !string.Equals(arguments[1], CheckStackGrowthMode, StringComparison.Ordinal)))
-            return Fail("expected the Lua DLL path, optionally followed by --checkstack-growth");
-
-        var checkStackGrowthOnly = arguments.Length == 2;
+            (arguments.Length == 2 &&
+             !string.Equals(arguments[1], CheckStackGrowthMode, StringComparison.Ordinal) &&
+             !string.Equals(arguments[1], GeneratedFunctionAllocationMode, StringComparison.Ordinal)))
+            return Fail("expected the Lua DLL path, optionally followed by --checkstack-growth or --generated-function-allocation");
 
         nint module = 0;
         lua_State* nativeState = null;
@@ -55,7 +57,14 @@ internal static unsafe class Program
             s_originalAllocatorData = allocatorData;
             LuaApi.lua_setallocf(nativeState, &RejectingAllocator, null);
             var state = new LuaState((nint)nativeState);
-            return checkStackGrowthOnly ? RunCheckStackGrowthProbe(state) : RunProbe(state, module);
+            if (arguments.Length == 2)
+            {
+                return string.Equals(arguments[1], CheckStackGrowthMode, StringComparison.Ordinal)
+                    ? RunCheckStackGrowthProbe(state)
+                    : RunGeneratedFunctionAllocationProbe(state);
+            }
+
+            return RunProbe(state, module);
         }
         catch (Exception exception)
         {
@@ -92,6 +101,7 @@ internal static unsafe class Program
         if (ProbeReferenceAllocation(state) != 0) return 1;
         if (ProbePrivateReferenceReleaseAllocation(state) != 0) return 1;
         if (ProbeCallbackAllocation(state) != 0) return 1;
+        if (ProbeGeneratedFunctionAllocation(state) != 0) return 1;
         if (ProbeFailingFinalizer(state, message) != 0) return 1;
         if (ProbeHostObjectPusherLongJump(state, luaModule) != 0) return 1;
 
@@ -103,6 +113,13 @@ internal static unsafe class Program
         state.Pop(1);
 
         Console.WriteLine("PASS native protected allocation, finalizer, and host-object longjmp boundaries");
+        return 0;
+    }
+
+    private static int RunGeneratedFunctionAllocationProbe(LuaState state)
+    {
+        if (ProbeGeneratedFunctionAllocation(state) != 0) return 1;
+        WriteMarker("PASS generated function closure allocation failure returns status and restores stack");
         return 0;
     }
 
@@ -466,6 +483,49 @@ internal static unsafe class Program
         if (status != LuaStatus.MemoryError) return Fail("LuaCallback.TryCreate did not return LUA_ERRMEM");
         if (callback is not null) return Fail("LuaCallback.TryCreate returned a callback after failure");
         return AssertErrorThenRestoreSentinel(state, "LuaCallback.TryCreate");
+    }
+
+    private static int ProbeGeneratedFunctionAllocation(LuaState state)
+    {
+        var function = new LuaNativeFunction(&NoOp);
+
+        // Install the wrapper while allocation is permitted. The guarded closure below is then the only allocating
+        // operation, so a rejected allocation is guaranteed to exercise PushClosure rather than helper installation.
+        var warmup = LuaRuntime.TryPushGeneratedFunction(state, function);
+        if (!warmup.IsOk) return Fail("TryPushGeneratedFunction could not install its wrapper before allocation rejection");
+        state.Pop(1);
+        if (state.Top != 0) return Fail("TryPushGeneratedFunction warm-up left values on the Lua stack");
+
+        if (PushSentinel(state, "TryPushGeneratedFunction") != 0) return 1;
+        LuaStatus status;
+        Volatile.Write(ref s_rejectAllocations, 1);
+        try
+        {
+            try
+            {
+                status = LuaRuntime.TryPushGeneratedFunction(state, function);
+            }
+            catch (LuaException)
+            {
+                return Fail("TryPushGeneratedFunction converted the PushClosure failure into LuaException");
+            }
+        }
+        finally
+        {
+            Volatile.Write(ref s_rejectAllocations, 0);
+        }
+
+        if (status != LuaStatus.MemoryError)
+            return Fail("TryPushGeneratedFunction did not return PushClosure's LUA_ERRMEM status");
+        if (AssertErrorThenRestoreSentinel(state, "TryPushGeneratedFunction") != 0) return 1;
+        WriteMarker("MARK TryPushGeneratedFunction PushClosure status, stack, and ownership recovered");
+
+        var recovery = LuaRuntime.TryPushGeneratedFunction(state, function);
+        if (!recovery.IsOk) return Fail("TryPushGeneratedFunction did not recover after PushClosure allocation failure");
+        state.Pop(1);
+        return state.Top == 0
+            ? 0
+            : Fail("TryPushGeneratedFunction recovery left values on the Lua stack");
     }
 
     private static int ProbeFailingFinalizer(LuaState state, byte[] message)

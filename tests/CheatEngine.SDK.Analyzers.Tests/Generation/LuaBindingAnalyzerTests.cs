@@ -234,6 +234,45 @@ public sealed class LuaBindingAnalyzerTests
     }
 
     [Fact]
+    public async Task Explicit_static_interface_marshaller_members_report_CESDK2003_and_skip_generation()
+    {
+        const string source = """
+                              using CheatEngine.SDK.Annotations.Lua;
+                              using CheatEngine.SDK.Lua.Marshalling;
+                              using CheatEngine.SDK.Lua.State;
+
+                              namespace Demo;
+
+                              public readonly struct Token { }
+
+                              public readonly struct ExplicitMarshaller : ILuaMarshaller<Token>
+                              {
+                                  static void ILuaMarshaller<Token>.Push(LuaState state, Token value) { }
+
+                                  static bool ILuaMarshaller<Token>.TryRead(LuaState state, int index, out Token value)
+                                  {
+                                      value = default;
+                                      return false;
+                                  }
+                              }
+
+                              public static partial class Bindings
+                              {
+                                  [LuaFunction("token")]
+                                  public static int RoundTrip([LuaMarshaller(typeof(ExplicitMarshaller))] Token value) => 0;
+                              }
+                              """;
+        var compilation = CreateCompilation(source, true);
+
+        Assert.False(RunGenerator(compilation));
+
+        var diagnostic = Assert.Single(await GetDiagnosticsAsync(compilation),
+            static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal));
+        Assert.Contains("parameter types a marshaller reads", diagnostic.GetMessage(CultureInfo.InvariantCulture),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Duplicate_lua_function_names_in_the_same_type_report_CESDK2005_on_both_members()
     {
         // LuaFunctionTables.Group/SelectThunks drops both members from the generator's output with no explanation

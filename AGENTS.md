@@ -29,7 +29,7 @@ These restore dependencies, compile the solution, validate both configurations, 
 
 ## Coding Style & Naming Conventions
 
-Follow `.editorconfig`: UTF-8, CRLF, four-space indentation; configuration/project files use two spaces. Use file-scoped namespaces, explicit accessibility, PascalCase public members, and existing local naming patterns. Preserve native Lua identifiers and ABI layouts.
+Follow `.editorconfig`: UTF-8; C# uses tabs for logical nesting and spaces only for continuation alignment; configuration/project files use two spaces. `.gitattributes` owns line-ending normalization for the working tree. Use file-scoped namespaces, explicit accessibility, PascalCase public members, and existing local naming patterns. Preserve native Lua identifiers and ABI layouts.
 
 Builds enforce compiler and analyzer diagnostics as errors, with configured exceptions. Document public APIs and provide a README beside every project.
 

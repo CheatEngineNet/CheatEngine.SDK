@@ -40,12 +40,13 @@ public readonly unsafe partial struct LuaState
     {
         if (thunk.IsNull) throw new ArgumentException("The thunk is the null function.", nameof(thunk));
 
+        var top = Top;
         var status = LuaHelpers.Push(Pointer, LuaHelper.Wrap);
         if (!status.IsOk) return status;
 
         try
         {
-            PushUncheckedGeneratedFunction(thunk, identity, requiresAttachedRuntime);
+            status = PushUncheckedGeneratedFunction(thunk, identity, requiresAttachedRuntime);
         }
         catch (InvalidOperationException)
         {
@@ -55,6 +56,11 @@ public readonly unsafe partial struct LuaState
             lua_pushnil(Pointer);
             return LuaStatus.MemoryError;
         }
+
+        // The protected bridge consumes the four upvalues when it reports a Lua failure, but the wrapper remains below
+        // its error value. Preserve that one error while dropping every registration intermediate; Try* callers must
+        // receive the original Lua status rather than a LuaException from the checked API.
+        if (!status.IsOk) return KeepProtectedError(top, status);
 
         return TryCall(1, 1);
     }
@@ -125,7 +131,7 @@ public readonly unsafe partial struct LuaState
     // The generated-export dispatcher needs four upvalues: the original cdecl thunk, attach epoch, state generation
     // and whether this registration was made under a real host attachment. Use the protected bridge for closure
     // creation because lua_pushcclosure may allocate and must never longjmp across a managed frame.
-    private void PushUncheckedGeneratedFunction(LuaNativeFunction thunk, LuaStateIdentity identity,
+    private LuaStatus PushUncheckedGeneratedFunction(LuaNativeFunction thunk, LuaStateIdentity identity,
         bool requiresAttachedRuntime)
     {
         if (lua_checkstack(Pointer, 4) == 0)
@@ -136,9 +142,8 @@ public readonly unsafe partial struct LuaState
         lua_pushinteger(Pointer, identity.AttachEpoch);
         lua_pushinteger(Pointer, identity.StateGeneration);
         lua_pushinteger(Pointer, requiresAttachedRuntime ? 1 : 0);
-        var status = new LuaStatus(LuaProtectedApi.PushClosure(Pointer,
+        return new LuaStatus(LuaProtectedApi.PushClosure(Pointer,
             (nint)(delegate* unmanaged[Cdecl]<lua_State*, int>)&DispatchGeneratedFunction, 4));
-        if (!status.IsOk) CheckProtectedResult(status);
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]

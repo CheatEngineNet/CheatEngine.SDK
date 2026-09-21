@@ -113,6 +113,35 @@ public sealed class MemoryScanSessionFactoryTests
     }
 
     [Fact]
+    public void TryCreate_when_the_child_factory_aliases_the_parent_rolls_back_without_creating_a_second_owner()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        var scanner = CreateScanner(L);
+        SetGlobalObject(L, "factory_scan"u8, scanner);
+        EngineTest.Run(L, """
+                          trace = {}
+                          function createMemScan()
+                            table.insert(trace, 'factory.scan')
+                            return factory_scan
+                          end
+                          function createFoundList(scan)
+                            table.insert(trace, 'factory.list')
+                            return factory_scan
+                          end
+                          """u8);
+
+        Assert.False(MemoryScanSessions.TryCreate(out var created));
+        Assert.Null(created);
+
+        Assert.True(FakeHost.IsDestroyed(L, scanner));
+        Assert.Equal("factory.scan,factory.list,scan.destroy", ReadTrace(L));
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
     public void TryCreate_when_internal_adoption_fails_rolls_back_the_child_before_the_parent()
     {
         EngineTest.RequireNativeLua();

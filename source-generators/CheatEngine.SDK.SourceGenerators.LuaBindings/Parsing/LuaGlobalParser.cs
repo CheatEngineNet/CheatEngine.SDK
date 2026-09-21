@@ -28,7 +28,7 @@ internal static class LuaGlobalParser
         var luaName = LuaBindingSymbols.ReadSdkAttributeName(context.Attributes, compilation,
             LuaBindingsGenerator.LuaGlobalAttributeMetadataName);
 
-        var issues = LuaGlobalShape.Inspect(method, LuaBindingSymbols.ResolveLuaState(compilation),
+        var issues = LuaGlobalShape.Inspect(compilation, method, LuaBindingSymbols.ResolveLuaState(compilation),
             LuaBindingSymbols.ResolveLuaMarshallerAttribute(compilation),
             LuaBindingSymbols.ResolveLuaMarshallerContract(compilation), out var signature);
         if (!isSdkAttribute || !LuaNames.IsValidName(luaName)) issues |= LuaGlobalShapeIssues.InvalidName;

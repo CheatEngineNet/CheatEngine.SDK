@@ -152,12 +152,20 @@ public sealed class AutoAssemblerPatcherTests
     {
         EngineTest.RequireNativeLua();
         using NativeLuaState state = new();
+        AutoAssemblerPatch patch;
+        LuaRef disableInfo;
         HostScope firstScope = new(state);
-        InstallAutoAssembler(firstScope.State);
-        var patch = AutoAssemblerPatcher.Apply("success");
-        var disableInfo = GetDisableInfo(patch);
+        try
+        {
+            InstallAutoAssembler(firstScope.State);
+            patch = AutoAssemblerPatcher.Apply("success");
+            disableInfo = GetDisableInfo(patch);
+        }
+        finally
+        {
+            firstScope.Dispose();
+        }
 
-        firstScope.Dispose();
         Assert.False(patch.IsEnabled);
         using HostScope secondScope = new(state);
 

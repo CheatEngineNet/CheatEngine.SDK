@@ -6,4 +6,5 @@ an ABI layout or host behavior depends on installed Cheat Engine material. The r
 libraries.
 
 Use this index with the [capability matrix](capability-matrix.md): source text establishes only what it actually says;
-ownership, thread affinity and runtime behavior remain unknown until a controlled live result proves them.
+ownership, thread affinity and runtime behavior remain unknown until a controlled live result proves them. Per-symbol
+locators, pinned revisions, checksums, and qualification are maintained in the [extension-surface catalogue](catalog/README.md).

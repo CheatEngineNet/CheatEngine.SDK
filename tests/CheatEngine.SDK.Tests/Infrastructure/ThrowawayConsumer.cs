@@ -72,6 +72,69 @@ internal sealed class ThrowawayConsumer
                                            }
                                            """;
 
+    private const string TargetBoundAllocationSource = """
+                                                   using CheatEngine.SDK.Engine.Allocation;
+                                                   using CheatEngine.SDK.Engine.Errors;
+                                                   using CheatEngine.SDK.Engine.Targets;
+                                                   using CheatEngine.SDK.Engine.Values;
+                                                   using CheatEngine.SDK.Lua.Calls;
+
+                                                   namespace ThrowawayPlugin;
+
+                                                   internal sealed class TargetBoundAllocationBackend : ITargetBoundMemoryAllocationOperations
+                                                   {
+                                                       public TargetMemoryAllocationOutcome AllocateBoundWithOutcome(
+                                                           TargetAllocationRequest request, out TargetProcessIncarnation incarnation,
+                                                           out TargetSelectionObservation observation)
+                                                       {
+                                                           observation = TargetSelection.ObserveCurrent();
+                                                           incarnation = observation.Incarnation.GetValueOrDefault();
+                                                           return TargetMemoryAllocationOutcome.Failed(observation.IsQualified
+                                                               ? TargetMemoryOperationOutcome.Failed(
+                                                                   EngineFailureKind.ExpectedOperationFailure)
+                                                               : CreateObservationFailure(observation));
+                                                       }
+
+                                                       public bool TryDeallocateBound(TargetProcessIncarnation expected, Address address,
+                                                           TargetAllocationSize size, out TargetIdentityCheck targetCheck)
+                                                       {
+                                                           var outcome = DeallocateBoundWithOutcome(expected, address, size, out targetCheck);
+                                                           return targetCheck.IsCurrent && outcome.IsSuccess;
+                                                       }
+
+                                                       public TargetMemoryOperationOutcome DeallocateBoundWithOutcome(
+                                                           TargetProcessIncarnation expected, Address address, TargetAllocationSize size,
+                                                           out TargetIdentityCheck targetCheck)
+                                                       {
+                                                           targetCheck = TargetSelection.ValidateCurrent(expected);
+                                                           return targetCheck.IsCurrent
+                                                               ? TargetMemoryOperationOutcome.Succeeded()
+                                                               : CreateTargetCheckFailure(targetCheck);
+                                                       }
+
+                                                       private static TargetMemoryOperationOutcome CreateObservationFailure(
+                                                           TargetSelectionObservation observation)
+                                                       {
+                                                           return observation.Status == TargetSelectionObservationStatus.LuaFailure
+                                                               ? TargetMemoryOperationOutcome.Failed(
+                                                                   EngineFailureKind.ProtectedLuaFailure, LuaStatus.RuntimeError)
+                                                               : TargetMemoryOperationOutcome.Failed(
+                                                                   EngineFailureKind.TargetIdentityUnavailable);
+                                                       }
+
+                                                       private static TargetMemoryOperationOutcome CreateTargetCheckFailure(
+                                                           TargetIdentityCheck targetCheck)
+                                                       {
+                                                           return targetCheck.Kind is TargetIdentityCheckKind.TargetChanged
+                                                               or TargetIdentityCheckKind.ProcessReused
+                                                               ? TargetMemoryOperationOutcome.Failed(
+                                                                   EngineFailureKind.TargetIdentityMismatch)
+                                                               : TargetMemoryOperationOutcome.Failed(
+                                                                   EngineFailureKind.TargetIdentityUnavailable);
+                                                       }
+                                                   }
+                                                   """;
+
     private ThrowawayConsumer(string directory, string projectPath, string assemblyPath)
     {
         Directory = directory;
@@ -103,12 +166,15 @@ internal sealed class ThrowawayConsumer
     ///     adds to its single <c>PropertyGroup</c>. When <paramref name="includeLuaFunction" /> is <see langword="true" />,
     ///     the project also declares one valid <c>[LuaFunction]</c> export. When <paramref name="includeLegacyAobConsumer" />
     ///     is <see langword="true" />, it compiles both historical <c>AobScanner.TryScan</c> overloads against the packed
-    ///     SDK. <paramref name="platformTarget" /> defaults to x64, but may be <see langword="null" /> to prove the package
-    ///     behavior when the consumer does not declare it.
+    ///     SDK. When <paramref name="includeTargetBoundAllocationConsumer" /> is <see langword="true" />, it compiles an
+    ///     independent implementation of the target-bound allocation backend seam against that package.
+    ///     <paramref name="platformTarget" /> defaults to x64, but may be <see langword="null" /> to prove the package behavior
+    ///     when the consumer does not declare it.
     /// </summary>
     public static ThrowawayConsumer Create(string parentDirectory, string name, string cheatEngineSdkVersion,
         string localFeedDirectory, string extraProperties = "", string? platformTarget = "x64",
-        bool includeLuaFunction = false, bool includeLegacyAobConsumer = false)
+        bool includeLuaFunction = false, bool includeLegacyAobConsumer = false,
+        bool includeTargetBoundAllocationConsumer = false)
     {
         var directory = Path.Combine(parentDirectory, name);
         System.IO.Directory.CreateDirectory(directory);
@@ -135,6 +201,8 @@ internal sealed class ThrowawayConsumer
             File.WriteAllText(Path.Combine(directory, "Functions.cs"), LuaFunctionSource);
         if (includeLegacyAobConsumer)
             File.WriteAllText(Path.Combine(directory, "LegacyAobConsumer.cs"), LegacyAobSource);
+        if (includeTargetBoundAllocationConsumer)
+            File.WriteAllText(Path.Combine(directory, "TargetBoundAllocationBackend.cs"), TargetBoundAllocationSource);
         // <clear/>: this consumer's restore must depend only on the two sources named here, never on whatever
         // machine- or user-level NuGet.Config the CI/dev box happens to carry (same reasoning as the repo's own
         // root nuget.config).

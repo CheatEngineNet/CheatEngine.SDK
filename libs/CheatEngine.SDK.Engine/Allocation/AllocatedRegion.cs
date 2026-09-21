@@ -75,7 +75,8 @@ public sealed class AllocatedRegion : IDisposable
     }
 
     /// <summary>
-    ///     Gets a value indicating whether ownership has been consumed by <see cref="Release" /> or <see cref="Dispose" />.
+    ///     Gets a value indicating whether ownership has been consumed by <see cref="Release" />,
+    ///     <see cref="ReleaseWithOutcome" />, <see cref="ReleaseWithTargetOutcome" />, or <see cref="Dispose" />.
     /// </summary>
     public bool IsDisposed => Volatile.Read(ref _released) != 0;
 
@@ -104,7 +105,8 @@ public sealed class AllocatedRegion : IDisposable
         }
         catch (Exception)
         {
-            _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(failureKind: null);
+            if (_lastReleaseOutcome.Status == TargetReleaseStatus.Unspecified)
+                _lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(failureKind: null);
             // IDisposable cleanup must not hide another failure or retry a possibly partial CE deallocation.
         }
     }

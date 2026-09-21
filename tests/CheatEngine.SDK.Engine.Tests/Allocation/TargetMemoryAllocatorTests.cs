@@ -246,8 +246,8 @@ public sealed class TargetMemoryAllocatorTests
     {
         AllocationOperationsFake operations = new()
         {
-            BoundAllocationOutcomeOverride = TargetMemoryAllocationOutcome.FromOperation(
-                TargetMemoryOperationOutcome.FromFailureKind(failureKind, LuaStatus.SyntaxError)),
+            BoundAllocationOutcomeOverride = TargetMemoryAllocationOutcome.Failed(
+                TargetMemoryOperationOutcome.Failed(failureKind, LuaStatus.SyntaxError)),
         };
         TargetMemoryAllocator allocator = new(operations);
 

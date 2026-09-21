@@ -134,16 +134,19 @@ public sealed class AllocatedRegionTests
     }
 
     [Fact]
-    public void Dispose_when_the_protected_lua_call_fails_is_no_throw_and_consumes_ownership()
+    public void Dispose_when_an_EngineException_occurs_preserves_the_structured_failure_kind_and_consumes_ownership()
     {
-        AllocationOperationsFake operations =
-            new() { DeallocationException = new EngineLuaException("TargetMemoryDeallocate", LuaStatus.RuntimeError) };
+        EngineException failure = new EngineLuaException("TargetMemoryDeallocate", LuaStatus.RuntimeError);
+        AllocationOperationsFake operations = new() { DeallocationException = failure };
         var region = Allocate(operations, 4096);
 
+        region.Dispose();
         region.Dispose();
 
         Assert.True(region.IsDisposed);
         Assert.Equal(1, operations.DeallocateCalls);
+        Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, region.LastReleaseOutcome.Status);
+        Assert.Equal(EngineFailureKind.ProtectedLuaFailure, region.LastReleaseOutcome.FailureKind);
     }
 
     [Fact]

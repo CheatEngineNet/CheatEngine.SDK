@@ -62,7 +62,7 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
     public TargetMemoryAllocationOutcome AllocateWithOutcome(TargetAllocationRequest request)
     {
         if (request.Size.Value <= 0)
-            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+            return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
                 EngineFailureKind.MarshallingFailure));
 
         using var operation = LuaRuntime.AcquireOperation();
@@ -83,7 +83,7 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
     public TargetMemoryOperationOutcome DeallocateWithOutcome(Address address, TargetAllocationSize size)
     {
         if (address.IsZero || size.Value <= 0)
-            return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.MarshallingFailure);
+            return TargetMemoryOperationOutcome.Failed(EngineFailureKind.MarshallingFailure);
 
         using var operation = LuaRuntime.AcquireOperation();
         var state = operation.State;
@@ -105,7 +105,7 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
         incarnation = default;
         observation = default;
         if (request.Size.Value <= 0)
-            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+            return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
                 EngineFailureKind.MarshallingFailure));
 
         using var operation = LuaRuntime.AcquireOperation();
@@ -115,7 +115,7 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
         {
             observation = TargetSelection.ObserveCurrent(state);
             if (!observation.IsQualified)
-                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
                     EngineFailureKind.TargetIdentityUnavailable));
 
             var outcome = AllocateCore(state, request);
@@ -144,7 +144,7 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
     private static TargetMemoryAllocationOutcome AllocateCore(LuaState state, TargetAllocationRequest request)
     {
         var globalOutcome = TryPushGlobal(state, SAllocateMemory, "allocateMemory"u8);
-        if (!globalOutcome.IsSuccess) return TargetMemoryAllocationOutcome.FromOperation(globalOutcome);
+        if (!globalOutcome.IsSuccess) return TargetMemoryAllocationOutcome.Failed(globalOutcome);
         state.PushInteger(request.Size.Value);
         var argumentCount = 1;
         if (request.PreferredBaseAddress.HasValue)
@@ -167,17 +167,19 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
 
         var status = state.TryCall(argumentCount, 1);
         if (!status.IsOk)
-            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+            return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
                 EngineFailureKind.ProtectedLuaFailure, status));
         if (state.IsNil(-1))
-            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.ExpectedFailure());
+            return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
+                EngineFailureKind.ExpectedOperationFailure));
 
         if (!Address.TryRead(state, -1, out var address))
-            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+            return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
                 EngineFailureKind.MarshallingFailure));
 
         return address.IsZero
-            ? TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.ExpectedFailure())
+            ? TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
+                EngineFailureKind.ExpectedOperationFailure))
             : TargetMemoryAllocationOutcome.Succeeded(address);
     }
 
@@ -189,13 +191,13 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
         state.PushInteger(size.Value);
         var status = state.TryCall(2, 1);
         if (!status.IsOk)
-            return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.ProtectedLuaFailure, status);
+            return TargetMemoryOperationOutcome.Failed(EngineFailureKind.ProtectedLuaFailure, status);
         if (state.TypeOf(-1) != LuaType.Boolean)
-            return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.MarshallingFailure);
+            return TargetMemoryOperationOutcome.Failed(EngineFailureKind.MarshallingFailure);
 
         return state.ToBoolean(-1)
             ? TargetMemoryOperationOutcome.Succeeded()
-            : TargetMemoryOperationOutcome.ExpectedFailure();
+            : TargetMemoryOperationOutcome.Failed(EngineFailureKind.ExpectedOperationFailure);
     }
 
     private static TargetMemoryOperationOutcome DeallocateBoundWithOutcomeCore(TargetProcessIncarnation expected,
@@ -203,7 +205,7 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
     {
         targetCheck = default;
         if (address.IsZero || size.Value <= 0)
-            return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.MarshallingFailure);
+            return TargetMemoryOperationOutcome.Failed(EngineFailureKind.MarshallingFailure);
 
         using var operation = LuaRuntime.AcquireOperation();
         var state = operation.State;
@@ -213,7 +215,7 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
             targetCheck = TargetSelection.ValidateCurrent(state, expected);
             return targetCheck.IsCurrent
                 ? DeallocateCore(state, address, size)
-                : TargetMemoryOperationOutcome.FromFailureKind(GetFailureKind(targetCheck));
+                : TargetMemoryOperationOutcome.Failed(GetFailureKind(targetCheck));
         }
         finally
         {
@@ -276,9 +278,9 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
         return resolution.Status switch
         {
             LuaGlobalPushStatus.Success => TargetMemoryOperationOutcome.Succeeded(),
-            LuaGlobalPushStatus.Unavailable => TargetMemoryOperationOutcome.FromFailureKind(
+            LuaGlobalPushStatus.Unavailable => TargetMemoryOperationOutcome.Failed(
                 EngineFailureKind.GlobalUnavailable),
-            _ => TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.ProtectedLuaFailure,
+            _ => TargetMemoryOperationOutcome.Failed(EngineFailureKind.ProtectedLuaFailure,
                 resolution.LuaStatus),
         };
     }

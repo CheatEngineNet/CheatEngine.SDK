@@ -69,6 +69,14 @@ REQUIRED_CAPABILITY_FIELDS = {
 }
 REQUIRED_INTEROP_FIELDS = {"calling_convention", "parameter_widths", "result", "indirection"}
 REQUIRED_OWNERSHIP_FIELDS = {"registration", "callback", "arguments"}
+REQUIRED_CONFLICT_FIELDS = (
+    "c_declaration",
+    "pascal_declaration",
+    "evidence",
+    "resolution",
+    "required_availability",
+    "blocks_live_qualification",
+)
 REQUIRED_ADVANCED_FAMILY_FIELDS = {
     "id",
     "title",
@@ -120,6 +128,15 @@ ALLOWED_QUALIFICATION = {
     "source-indexed-only",
     "unqualified",
 }
+ALLOWED_UNRESOLVED_CONFLICT_AVAILABILITY = {"opaque", "unavailable"}
+ALLOWED_ADVANCED_AXIS_STATES = {
+    "contract-not-approved",
+    "not-identified",
+    "not-observed",
+    "not-qualified",
+    "explicit-opt-in-required",
+}
+ALLOWED_ADVANCED_FAMILY_AVAILABILITY = {"unavailable"}
 
 
 def load_catalog(root: Path) -> dict[str, object]:
@@ -145,7 +162,7 @@ def validate_catalog(catalog: dict[str, object], repository_root: Path) -> list[
     conflicts_document = _document(catalog, CONFLICTS_FILE, errors)
     profiles_document = _document(catalog, HOST_PROFILES_FILE, errors)
     advanced_families_document = _document(catalog, ADVANCED_FAMILIES_FILE, errors)
-    if not all((declarations, capabilities_document, conflicts_document, profiles_document, advanced_families_document)):
+    if errors:
         return errors
 
     for name, document in (
@@ -163,8 +180,8 @@ def validate_catalog(catalog: dict[str, object], repository_root: Path) -> list[
     _validate_declarations(declarations, errors)
     profiles = _validate_profiles(profiles_document, errors)
     capabilities = _validate_capabilities(capabilities_document, profiles, repository_root, errors)
-    conflicts = _validate_conflicts(conflicts_document, capabilities, errors)
-    _validate_conflicted_capabilities(capabilities, conflicts, errors)
+    conflicts, conflict_states = _validate_conflicts(conflicts_document, capabilities, declarations, errors)
+    _validate_conflicted_capabilities(capabilities, conflicts, conflict_states, errors)
     _validate_examples(capabilities_document, capabilities, errors)
     _validate_advanced_families(advanced_families_document, repository_root, errors)
     return errors
@@ -182,6 +199,9 @@ def _document(catalog: dict[str, object], name: str, errors: list[str]) -> dict[
         return {}
     if isinstance(invalid, str):
         errors.append(f"{name}: invalid JSON ({invalid}).")
+        return {}
+    if not document:
+        errors.append(f"{name}: document must be a non-empty object.")
         return {}
     return document
 
@@ -349,12 +369,14 @@ def _validate_capabilities(document: dict[str, object], profiles: dict[str, dict
     return capabilities
 
 
-def _validate_conflicts(document: dict[str, object], capabilities: dict[str, dict[str, object]], errors: list[str]) -> dict[str, dict[str, object]]:
+def _validate_conflicts(document: dict[str, object], capabilities: dict[str, dict[str, object]],
+                        declarations: dict[str, object], errors: list[str]) -> tuple[dict[str, dict[str, object]], dict[str, str]]:
     raw_conflicts = document.get("conflicts")
     conflicts: dict[str, dict[str, object]] = {}
+    states: dict[str, str] = {}
     if not isinstance(raw_conflicts, list):
         errors.append("conflicts: conflicts must be an array.")
-        return conflicts
+        return conflicts, states
     for conflict in raw_conflicts:
         if not isinstance(conflict, dict) or not isinstance(conflict.get("id"), str):
             errors.append("conflicts: every entry needs an id.")
@@ -364,16 +386,40 @@ def _validate_conflicts(document: dict[str, object], capabilities: dict[str, dic
             errors.append(f"conflicts: duplicate id {identifier!r}.")
             continue
         conflicts[identifier] = conflict
-        for required in ("c_declaration", "pascal_declaration", "evidence", "resolution", "required_availability", "blocks_live_qualification"):
+        for required in REQUIRED_CONFLICT_FIELDS:
             if required not in conflict:
                 errors.append(f"conflicts: {identifier!r} is missing {required!r}.")
+        states[identifier] = _conflict_resolution_state(conflict, identifier, errors)
+
+        evidence = conflict.get("evidence")
+        if not isinstance(evidence, list) or not evidence:
+            errors.append(f"conflicts: {identifier!r} needs at least one source locator.")
+        elif any(not isinstance(locator, dict) or not _valid_locator(locator) for locator in evidence):
+            errors.append(f"conflicts: {identifier!r} has an invalid source locator.")
+
+        required_availability = conflict.get("required_availability")
+        if not isinstance(required_availability, str) or required_availability not in ALLOWED_UNRESOLVED_CONFLICT_AVAILABILITY:
+            errors.append(f"conflicts: {identifier!r} requires an opaque or unavailable availability state.")
+        if states[identifier] == "unresolved" and conflict.get("blocks_live_qualification") is not True:
+            errors.append(f"conflicts: unresolved {identifier!r} must block live qualification.")
+
         affected = conflict.get("affected_capability_ids")
         if not isinstance(affected, list):
             errors.append(f"conflicts: {identifier!r} affected_capability_ids must be an array.")
             continue
         for capability_id in affected:
+            if not isinstance(capability_id, str) or not capability_id:
+                errors.append(f"conflicts: {identifier!r} affected_capability_ids must contain non-empty strings.")
+                continue
             if capability_id not in capabilities:
                 errors.append(f"conflicts: {identifier!r} references unknown capability {capability_id!r}.")
+                continue
+            capability_conflicts = capabilities[capability_id].get("conflict_ids")
+            if not isinstance(capability_conflicts, list) or identifier not in capability_conflicts:
+                errors.append(f"conflicts: {identifier!r} is not reciprocated by capability {capability_id!r}.")
+
+        if identifier == "classic.fixmem-null-host-slot":
+            _validate_fixmem_conflict_locator(conflict, declarations, errors)
     required_conflicts = {
         "classic.type0-address-width",
         "classic.type3-return-and-width",
@@ -385,11 +431,57 @@ def _validate_conflicts(document: dict[str, object], capabilities: dict[str, dic
     absent = required_conflicts - conflicts.keys()
     if absent:
         errors.append(f"conflicts: mandatory historical conflicts are missing: {sorted(absent)!r}.")
-    return conflicts
+    return conflicts, states
+
+
+def _conflict_resolution_state(conflict: dict[str, object], identifier: str, errors: list[str]) -> str:
+    """Return an unresolved-safe state while validating structured conflict resolution metadata."""
+    resolution = conflict.get("resolution")
+    if isinstance(resolution, str):
+        if resolution.strip():
+            return "unresolved"
+        errors.append(f"conflicts: {identifier!r} needs a non-empty resolution summary.")
+        return "unresolved"
+    if not isinstance(resolution, dict) or set(resolution) != {"state", "summary"}:
+        errors.append(f"conflicts: {identifier!r} resolution must be legacy prose or a state/summary object.")
+        return "unresolved"
+    state = resolution.get("state")
+    summary = resolution.get("summary")
+    if not isinstance(state, str) or state != "unresolved" or not isinstance(summary, str) or not summary.strip():
+        errors.append(f"conflicts: {identifier!r} resolution must declare the unresolved state and a non-empty summary.")
+    return "unresolved"
+
+
+def _validate_fixmem_conflict_locator(conflict: dict[str, object], declarations: dict[str, object], errors: list[str]) -> None:
+    """Require the FixMem conflict's C-header evidence to match its canonical slot locator."""
+    expected = _classic_slot_locator(declarations, "FixMem")
+    evidence = conflict.get("evidence")
+    if expected is None or not isinstance(evidence, list) or not any(
+            isinstance(locator, dict) and _same_locator(locator, expected) for locator in evidence):
+        errors.append("conflicts: FixMem C-header evidence must match the FixMem declaration locator.")
+
+
+def _classic_slot_locator(declarations: dict[str, object], symbol: str) -> dict[str, object] | None:
+    """Find the canonical locator for one named classic export slot."""
+    exported = declarations.get("classic_exported_functions")
+    if not isinstance(exported, dict):
+        return None
+    slots = exported.get("slots")
+    if not isinstance(slots, list):
+        return None
+    for slot in slots:
+        if isinstance(slot, dict) and slot.get("symbol") == symbol and isinstance(slot.get("source"), dict):
+            return slot["source"]
+    return None
+
+
+def _same_locator(left: dict[str, object], right: dict[str, object]) -> bool:
+    """Compare the source identity and inclusive range of two source locators."""
+    return all(left.get(field) == right.get(field) for field in ("source_id", "path", "line_start", "line_end"))
 
 
 def _validate_conflicted_capabilities(capabilities: dict[str, dict[str, object]], conflicts: dict[str, dict[str, object]],
-                                      errors: list[str]) -> None:
+                                      conflict_states: dict[str, str], errors: list[str]) -> None:
     for capability_id, capability in capabilities.items():
         conflict_ids = capability.get("conflict_ids")
         if not isinstance(conflict_ids, list):
@@ -399,9 +491,12 @@ def _validate_conflicted_capabilities(capabilities: dict[str, dict[str, object]]
             if conflict is None:
                 errors.append(f"capabilities: {capability_id!r} references unknown conflict {conflict_id!r}.")
                 continue
-            if conflict.get("resolution") == "unresolved" and capability.get("availability") != conflict.get("required_availability"):
+            affected_capability_ids = conflict.get("affected_capability_ids")
+            if isinstance(affected_capability_ids, list) and capability_id not in affected_capability_ids:
+                errors.append(f"capabilities: {capability_id!r} is not listed by conflict {conflict_id!r}.")
+            if conflict_states.get(conflict_id) == "unresolved" and capability.get("availability") != conflict.get("required_availability"):
                 errors.append(f"capabilities: unresolved conflict {conflict_id!r} requires {conflict.get('required_availability')!r} availability for {capability_id!r}.")
-            if conflict.get("blocks_live_qualification") and capability.get("qualification") == "live-qualified":
+            if conflict_states.get(conflict_id) == "unresolved" and capability.get("qualification") == "live-qualified":
                 errors.append(f"capabilities: {capability_id!r} cannot be live-qualified while {conflict_id!r} is unresolved.")
 
 
@@ -486,7 +581,7 @@ def _validate_advanced_families(document: dict[str, object], repository_root: Pa
             for axis, value in axes.items():
                 if not isinstance(value, dict) or not isinstance(value.get("state"), str) or not isinstance(value.get("requirement"), str) or not value["requirement"]:
                     errors.append(f"advanced families: {identifier!r} axis {axis!r} needs a state and requirement.")
-                elif value["state"] in {"available", "qualified", "satisfied"}:
+                elif value["state"] not in ALLOWED_ADVANCED_AXIS_STATES:
                     errors.append(f"advanced families: {identifier!r} cannot satisfy {axis!r} before independent review.")
         gates = family.get("qualification_gates")
         if not isinstance(gates, dict) or set(gates) != REQUIRED_ADVANCED_QUALIFICATION_GATES or any(
@@ -496,7 +591,8 @@ def _validate_advanced_families(document: dict[str, object], repository_root: Pa
         decision = family.get("adoption_decision")
         if not isinstance(decision, dict) or decision.get("state") != "deferred" or decision.get("implementation_issue") != "not-created" or not isinstance(decision.get("reason"), str) or not decision["reason"]:
             errors.append(f"advanced families: {identifier!r} needs its own deferred adoption decision.")
-        if family.get("availability") != "unavailable" or family.get("qualification") != "not-qualified" or family.get("profile_ids") != []:
+        availability = family.get("availability")
+        if not isinstance(availability, str) or availability not in ALLOWED_ADVANCED_FAMILY_AVAILABILITY or family.get("qualification") != "not-qualified" or family.get("profile_ids") != []:
             errors.append(f"advanced families: {identifier!r} remains unavailable and unqualified without a profile.")
 
     if identifiers != EXPECTED_ADVANCED_FAMILY_IDS:
@@ -504,7 +600,11 @@ def _validate_advanced_families(document: dict[str, object], repository_root: Pa
 
 
 def _valid_locator(locator: dict[str, object]) -> bool:
-    return isinstance(locator.get("source_id"), str) and isinstance(locator.get("path"), str) and isinstance(locator.get("line_start"), int) and isinstance(locator.get("line_end"), int) and locator["line_start"] > 0 and locator["line_end"] >= locator["line_start"]
+    source_id = locator.get("source_id")
+    path = locator.get("path")
+    line_start = locator.get("line_start")
+    line_end = locator.get("line_end")
+    return isinstance(source_id, str) and bool(source_id.strip()) and isinstance(path, str) and bool(path.strip()) and type(line_start) is int and type(line_end) is int and line_start > 0 and line_end >= line_start
 
 
 def main() -> int:

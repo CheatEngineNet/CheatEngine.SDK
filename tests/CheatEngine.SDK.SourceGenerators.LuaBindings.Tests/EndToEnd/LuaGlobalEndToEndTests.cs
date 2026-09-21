@@ -109,6 +109,42 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
     }
 
     [Fact]
+    public void Outcome_void_form_preserves_resolution_call_failure_and_success()
+    {
+        LuaTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        var L = LuaTest.View(state);
+        var detailed = LoadSuite(roslyn).Delegate<BeepDetailedDelegate>(BindingsType, "BeepDetailed");
+
+        LuaOperationStatus missing;
+        using (RuntimeScope missingScope = new(state))
+        {
+            missing = detailed();
+        }
+
+        LuaOperationStatus success;
+        using (RuntimeScope successScope = new(state))
+        {
+            LuaTest.Run(L, StandIns);
+            success = detailed();
+            Assert.Equal(1, LuaTest.RunForInteger(L, "return beeps"u8));
+        }
+
+        LuaOperationStatus failure;
+        using (RuntimeScope failureScope = new(state))
+        {
+            LuaTest.Run(L, "function beep() error('beep failed') end"u8);
+            failure = detailed();
+        }
+
+        Assert.Equal(LuaOperationStatusKind.GlobalUnavailable, missing.Kind);
+        Assert.Equal(LuaOperationStatusKind.Success, success.Kind);
+        Assert.Equal(LuaOperationStatusKind.LuaFailure, failure.Kind);
+        Assert.Equal(LuaStatus.RuntimeError, failure.LuaStatus);
+        Assert.Equal(0, L.Top);
+    }
+
+    [Fact]
     public void Throwing_form_returns_the_value_and_throws_once_per_exit_with_the_lua_message()
     {
         LuaTest.RequireNativeLua();
@@ -329,6 +365,8 @@ public sealed class LuaGlobalEndToEndTests(RoslynFixture roslyn) : IClassFixture
     private delegate bool TryReadInt32Delegate(nuint address, out int value);
 
     private delegate LuaOperationStatus TryReadInt32DetailedDelegate(nuint address, out int value);
+
+    private delegate LuaOperationStatus BeepDetailedDelegate();
 
     private delegate int ReadInt32Delegate(nuint address);
 

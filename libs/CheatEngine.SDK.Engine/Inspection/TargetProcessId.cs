@@ -9,7 +9,8 @@ namespace CheatEngine.SDK.Engine.Inspection;
 /// </summary>
 /// <remarks>
 ///     This is intentionally distinct from an address and from a host handle. It is a copied scalar, owns no operating
-///     system resource, and can be used from any thread; the Lua operation that consumes it is main-thread-only.
+///     system resource, and can be used from any thread. The Lua operation that consumes it has its own runtime-admission
+///     and host-thread contract; this scalar neither asserts nor creates a main-thread affinity.
 /// </remarks>
 public readonly struct TargetProcessId : IEquatable<TargetProcessId>
 {

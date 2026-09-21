@@ -620,8 +620,12 @@ internal static class LuaGlobalCallEmitter
         writer.Write(Top);
         writer.Write(", ");
         writer.Write(status);
-        writer.Write(", out ");
-        writer.Write(model.Results[failing].Name);
+        if (!model.Results.IsEmpty)
+        {
+            writer.Write(", out ");
+            writer.Write(model.Results[failing].Name);
+        }
+
         writer.WriteLine(");");
     }
 

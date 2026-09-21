@@ -35,6 +35,12 @@ public readonly struct RuntimeCapabilityId : IEquatable<RuntimeCapabilityId>
     /// <summary>Gets the SDK capability for the target architecture probes.</summary>
     public static RuntimeCapabilityId TargetArchitecture => new("Runtime.TargetArchitecture");
 
+    /// <summary>Gets the SDK capability for observing Cheat Engine's currently selected target process.</summary>
+    public static RuntimeCapabilityId CurrentProcess => new("Process.Current");
+
+    /// <summary>Gets the SDK capability for explicit process selection and immediate verification.</summary>
+    public static RuntimeCapabilityId ProcessSelection => new("Process.Selection");
+
     /// <summary>Gets the SDK capability for the target ABI query.</summary>
     public static RuntimeCapabilityId TargetAbi => new("Runtime.TargetAbi");
 

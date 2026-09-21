@@ -392,6 +392,28 @@ internal sealed class ThrowawayConsumer
                                                    }
                                                    """;
 
+    private const string RecordAndSymbolContractSource = """
+                                                   using CheatEngine.SDK.Engine.AddressList;
+                                                   using CheatEngine.SDK.Engine.Inspection;
+                                                   using CheatEngine.SDK.Engine.Values;
+
+                                                   namespace ThrowawayPlugin;
+
+                                                   internal static class RecordAndSymbolContractConsumer
+                                                   {
+                                                       internal static void CompileOnly()
+                                                       {
+                                                           MemoryRecordId record = new(17);
+                                                           _ = AddressListMutations.Delete(record);
+                                                           _ = AddressListMutations.SetParent(record, parentId: null);
+                                                           SymbolRegistrationAcquireOutcome acquired = SymbolRegistry.TryRegisterOwned(
+                                                               new SymbolName("throwaway_symbol"), new Address(0x140001000));
+                                                           if (acquired.Lease is SymbolRegistrationLease lease)
+                                                               _ = lease.Release();
+                                                       }
+                                                   }
+                                                   """;
+
     private ThrowawayConsumer(string directory, string projectPath, string assemblyPath)
     {
         Directory = directory;
@@ -426,13 +448,15 @@ internal sealed class ThrowawayConsumer
     ///     is <see langword="true" />, it compiles both historical <c>AobScanner.TryScan</c> overloads against the packed
     ///     SDK. When <paramref name="includeTargetBoundAllocationConsumer" /> is <see langword="true" />, it compiles an
     ///     independent implementation of the target-bound allocation backend seam against that package.
-    ///     <paramref name="platformTarget" /> defaults to x64, but may be <see langword="null" /> to prove the package behavior
-    ///     when the consumer does not declare it.
+    ///     SDK. When <paramref name="includeRecordAndSymbolContract" /> is <see langword="true" />, it compiles the
+    ///     SDK-021 typed mutation and coordinated-symbol surfaces without accessing raw CE handles.
+    ///     <paramref name="platformTarget" /> defaults to x64, but may be <see langword="null" /> to prove the package
+    ///     behavior when the consumer does not declare it.
     /// </summary>
     public static ThrowawayConsumer Create(string parentDirectory, string name, string cheatEngineSdkVersion,
         string localFeedDirectory, string extraProperties = "", string? platformTarget = "x64",
         bool includeLuaFunction = false, bool includeLegacyAobConsumer = false,
-        bool includeTargetBoundAllocationConsumer = false)
+        bool includeTargetBoundAllocationConsumer = false, bool includeRecordAndSymbolContract = false)
     {
         var directory = Path.Combine(parentDirectory, name);
         System.IO.Directory.CreateDirectory(directory);
@@ -461,6 +485,8 @@ internal sealed class ThrowawayConsumer
             File.WriteAllText(Path.Combine(directory, "LegacyAobConsumer.cs"), LegacyAobSource);
         if (includeTargetBoundAllocationConsumer)
             File.WriteAllText(Path.Combine(directory, "TargetBoundAllocationBackend.cs"), TargetBoundAllocationSource);
+        if (includeRecordAndSymbolContract)
+            File.WriteAllText(Path.Combine(directory, "RecordAndSymbolContractConsumer.cs"), RecordAndSymbolContractSource);
         WriteNuGetConfig(directory, localFeedDirectory, UmbrellaPackage.Id);
 
         var assemblyPath = Path.Combine(directory, "bin", "Release", "net10.0", $"{name}.dll");

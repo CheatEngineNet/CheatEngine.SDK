@@ -24,7 +24,7 @@ Engine host.
 | `ClientLuaGlobals.cs:28` | `loadTable` | `Tables.CheatTableFiles.TryLoad` | `LuaOperationStatus`; opaque path and explicit merge flag; no path authorization. |
 | `ClientLuaGlobals.cs:31` | `saveTable` | `Tables.CheatTableFiles.TrySave` | `LuaOperationStatus`; opaque path; no path authorization. |
 | `ClientLuaGlobals.cs:34` | `getNameFromAddress` | `Inspection.SymbolRegistry.TryGetName` | `LuaOperationStatus`; copied managed string; no CE object or Lua reference escapes. |
-| `ClientLuaGlobals.cs:37` | `registerSymbol` | `Inspection.SymbolRegistry.Register` | `LuaOperationStatus`; mutates CE's registry but creates no SDK-exclusive owner. |
+| `ClientLuaGlobals.cs:37` | `registerSymbol` | `Inspection.SymbolRegistry.Register` / `TryRegisterOwned` | `LuaOperationStatus`, or an explicit same-SDK cleanup coordinator; CE exposes no opaque token, so this is not exclusive host-wide ownership. |
 | `ClientLuaGlobals.cs:40` | `unregisterSymbol` | `Inspection.SymbolRegistry.Unregister` | `LuaOperationStatus`; explicit cleanup primitive with no name-selection policy. |
 
 ## Boundary rules
@@ -40,3 +40,9 @@ The Client remains responsible for exact-name process policy, local process
 metadata, DI, table-root authorization, trusted-table workflows, and its own
 activation/resource cleanup orchestration. The SDK owns only the CE call shape,
 factual outcome, copied values, and Lua lifetime boundary.
+
+`AddressListMutations` is the matching typed command boundary for record deletion and hierarchy changes. It accepts
+record IDs rather than exposing a raw host object, resolves the ID in the current `getAddressList()` result while one
+Lua operation is admitted, bounds its parent walk, and reports `NotAttempted`, `Completed`, or `Indeterminate`. A
+completed command is not a snapshot; consumers obtain any post-command copy separately. These are fixture-backed call
+contracts, not a claim of live-table qualification or a proven GUI-thread rule.

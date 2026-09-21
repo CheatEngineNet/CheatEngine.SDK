@@ -30,7 +30,7 @@ Cheat Engine. This library encodes each rule once, in a type.
 | `CheatEngine.SDK.Engine.Allocation`   | `TargetMemoryAllocator`, `AllocatedRegion`      | Explicit ownership for target allocation, via a reviewed binding seam                                 |
 | `CheatEngine.SDK.Engine.Assembly`     | `AutoAssemblerPatcher`, `AutoAssemblerPatch`, `InstructionProfiles`, `InstructionAssembler`, `InstructionDisassembler`, `InstructionNavigator` | Auto Assembler owns a single `disableInfo`; separately, bounded profile-qualified Lua instruction operations return copied values and structured outcomes |
 | `CheatEngine.SDK.Engine.Scanning`     | `AobScanner`, `StringList`, `MemoryScanSession` | AOB result ownership and conservative MemScan/FoundList state transitions                             |
-| `CheatEngine.SDK.Engine.AddressLists` | `AddressList`, `MemoryRecord`                   | Borrowed Cheat-Engine GUI handles and strongly typed record identifiers                               |
+| `CheatEngine.SDK.Engine.AddressList`  | `AddressListMutations`, `MemoryRecordId`        | ID-addressed record commands; borrowed GUI views never become managed owners                           |
 | `CheatEngine.SDK.Engine.Errors`       | `EngineException` hierarchy, `EngineResourceHandoffException` | Stable distinction between expected CE, unavailable global, Lua, binding and marshalling failures; post-effect ownership publication reports its one cleanup attempt |
 | `CheatEngine.SDK.Engine.Generated`    | `MemoryScalars`                                 | Existing generated scalar wrappers for the earlier memory contract                                    |
 
@@ -46,7 +46,7 @@ host has the same contract.
 | `Allocation`               | `TargetMemoryAllocator`, `AllocatedRegion`                                    | Models one target allocation as an explicit, single-use owner. It does not infer a GUI-thread requirement from an unspecific CE global, and reports a failed post-effect owner handoff with its one compensation outcome. |
 | `Objects` / `Scanning.Aob` | `StringList`, `StringLists`, `AobScanner`                                     | `StringLists.TryCreate` and a successful `AobScanner.TryScan` out value yield `Owned<StringList>` only after a host object is returned. A list borrowed from CE must never be wrapped or destroyed by plugin code.          |
 | `Scanning.Values`          | `MemScan`, `FoundList`, `MemoryScanSessions`, `MemoryScanSession`, scan requests and states | The factory creates and owns the scanner/child pair, retains rollback authority through publication, and the session serializes documented state transitions and releases the child before the parent. It is explicitly main-thread-only; the generic `Owned<T>` wrapper is not. |
-| `AddressLists`             | `AddressListAccess`, `AddressList`, `MemoryRecord`, `MemoryRecordId`          | The current GUI list and records are borrowed CE-owned handles. The source catalogue does not by itself prove a runtime-enforceable GUI-thread guard, so this API does not declare one yet.                                |
+| `AddressList`              | `AddressListAccess`, `AddressList`, `MemoryRecord`, `MemoryRecordId`, `AddressListMutations` | The current GUI list and records are borrowed CE-owned handles. Mutations resolve IDs inside one protected command and report completed, not-started, or indeterminate effect; they do not promise historic record identity or a runtime-enforceable GUI-thread guard. |
 | `Assembly`                 | `InstructionTargetProfile`, `InstructionAssembler`, `InstructionDisassembler`, `InstructionNavigator`, `InstructionDisassembly`, `InstructionOperationStatus` | `InstructionProfiles` observes PID/probe/PID under one Lua admission. Each instruction call validates target width and rechecks that PID before and after CE's ambient operation; its result is copied and bounded, but that coherence check is not a target lock or a live-host qualification. |
 | `Errors`                   | `EngineException` and stable subclasses                                       | Separates expected operation failure, global absence, Lua failure, binding violation and marshalling violation instead of exposing a raw Lua stack error as the public Engine contract.                                    |
 
@@ -185,6 +185,18 @@ a live probe establishes one.
 as an inference only: they deliberately have no `MainThreadOnly` metadata until the opt-in CE 7.7 dispatcher probe
 establishes an enforceable host contract.
 
+`AddressListMutations` is the typed mutation boundary for those GUI-owned records. Its `Delete` and `SetParent`
+commands take only `MemoryRecordId` values (and an explicit hierarchy traversal bound), resolve against the current
+address list in one admitted Lua operation, and return a structured effect. A protected failure after `destroy()` or
+the `Parent` setter starts is intentionally **indeterminate**, not a retry-safe failure. The command result contains no
+snapshot: a consumer that needs one must read a new view after a completed result.
+
+`SymbolRegistry.TryRegisterOwned` returns `SymbolRegistrationLease`, an explicit cleanup coordinator rather than an
+exclusive CE owner. CE supplies no registration token and unregisters by name only, so the lease prevents an older lease
+from deleting a newer registration made through the same SDK coordinator; it cannot detect a replacement by external
+Lua, another plugin, or another SDK copy. On runtime epoch or state-generation change it sends no unregister to the new
+universe.
+
 ```csharp
 using CheatEngine.SDK.Engine.Generated;
 using CheatEngine.SDK.Engine.Objects;
@@ -251,14 +263,16 @@ The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine
     machine
     destroys its child before its parent (`AllocatedRegionTests`, `AobScannerTests`, `MemoryScanSessionTests`).
 14. Address-list and memory-record wrappers remain borrowed and intentionally do not assert an unproven main-thread
-    contract (`AddressListValueTests`, `AddressListLuaTests`).
-10. Runtime metadata preserves unknown fields; target and host address spaces cannot be mixed; expected memory failures
+    contract; ID-addressed mutations validate hierarchy and preserve indeterminate host effects
+    (`AddressListValueTests`, `AddressListLuaTests`, `AddressListMutationsTests`).
+15. Runtime metadata preserves unknown fields; target and host address spaces cannot be mixed; expected memory failures
     do not become exceptions (`RuntimeContractsTests`, `MemoryApiTests`).
-11. Module, section, symbol and region calls distinguish documented `nil` from Lua/binding/malformed-result failures
+16. Module, section, symbol and region calls distinguish documented `nil` from Lua/binding/malformed-result failures
     and never publish a partial copied destination (`EngineInspectionTests`).
-12. Allocation, AOB, StringList, scan-session and address-list tests exercise ownership transfer, zero-based access,
-    deterministic child-before-parent cleanup, and forbidden scan state transitions (`AllocatedRegionTests`,
-    `AobScannerTests`, `StringListTests`, `MemoryScanSessionTests`, `AddressListLuaTests`). These are fixture contracts,
+17. Allocation, AOB, StringList, scan-session and address-list tests exercise ownership transfer, zero-based access,
+    deterministic child-before-parent cleanup, forbidden scan state transitions, and coordinator-qualified symbol
+    cleanup (`AllocatedRegionTests`, `AobScannerTests`, `StringListTests`, `MemoryScanSessionTests`,
+    `AddressListLuaTests`, `AddressListMutationsTests`, `SymbolRegistryTests`). These are fixture contracts,
     not a substitute for a controlled CE 7.7 live run.
 
 ## Run the tests

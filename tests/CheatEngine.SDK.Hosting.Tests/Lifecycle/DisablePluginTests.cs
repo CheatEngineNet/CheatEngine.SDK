@@ -269,6 +269,41 @@ public sealed unsafe class DisablePluginTests
         }
     }
 
+    [Fact]
+    [Trait("Category", "NativeLua")]
+    public void Disable_closes_host_subscription_callback_admission_before_OnDisable_then_unregisters_once()
+    {
+        HostingTest.RequireNativeLua();
+        HostingTest.Reset();
+        using NativeLuaState state = new();
+        using HostSimulator host = new();
+        HostingTest.Enable(host, state);
+        var L = LuaRuntime.AcquireState();
+        Action? hostCallback = null;
+        var callbackCalls = 0;
+        var unregisterCalls = 0;
+
+        Assert.True(LuaHostSubscription.TryRegister(L, () => callbackCalls++,
+            (registrationState, callback) =>
+            {
+                hostCallback = callback;
+                return releaseState => unregisterCalls++;
+            }, out var subscription));
+        Assert.NotNull(subscription);
+        RecordingPlugin.NestedCallInOnDisable = () =>
+        {
+            hostCallback!();
+            return Bool32.True;
+        };
+
+        Assert.True(host.CallDisable().IsTrue);
+
+        Assert.Equal(0, callbackCalls);
+        Assert.Equal(1, unregisterCalls);
+        Assert.True(subscription.IsDisposed);
+        Assert.Equal(0, LuaHostSubscriptionRegistry.Count);
+    }
+
     // The test-infrastructure counterpart of the previous test: a test that ends with the plugin still enabled and a
     // callback still alive must not turn into a use-after-free in whichever test runs next. The simulator's disposal
     // is the teardown, and it runs before the state (declared first) is closed.

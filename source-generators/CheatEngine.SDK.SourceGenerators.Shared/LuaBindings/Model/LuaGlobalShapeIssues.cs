@@ -92,9 +92,8 @@ internal enum LuaGlobalShapeIssues
     UnsupportedReturnType = 1 << 15,
 
     /// <summary>
-    ///     The method has <see langword="out" /> results but does not return <see langword="bool" />: the Try form is
-    ///     <see langword="bool" /> + <see langword="out" /> results, the throwing form has no <see langword="out" />
-    ///     parameter.
+    ///     The method has <see langword="out" /> results but returns neither <see langword="bool" /> nor the SDK's
+    ///     <c>LuaOperationStatus</c>: the throwing form has no <see langword="out" /> parameter.
     /// </summary>
     TryFormReturnNotBool = 1 << 16
 }

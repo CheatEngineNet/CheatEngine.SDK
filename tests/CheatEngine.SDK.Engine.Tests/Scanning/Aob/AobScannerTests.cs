@@ -107,6 +107,75 @@ public sealed class AobScannerTests
     }
 
     [Fact]
+    public void TryScanDetailed_distinguishes_nil_lua_failure_and_invalid_non_nil_results()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+        var top = L.Top;
+
+        var status = AobScanner.TryScanDetailed("nil-result", out var nilResults);
+
+        Assert.Equal(AobScanStatus.NoResult, status);
+        Assert.Null(nilResults);
+        Assert.Equal(top, L.Top);
+
+        status = AobScanner.TryScanDetailed("raise", out var raisedResults);
+
+        Assert.Equal(AobScanStatus.LuaFailure, status);
+        Assert.Null(raisedResults);
+        Assert.Equal(top, L.Top);
+
+        status = AobScanner.TryScanDetailed("invalid-result", out var invalidResults);
+
+        Assert.Equal(AobScanStatus.InvalidResult, status);
+        Assert.Null(invalidResults);
+        Assert.Equal(top, L.Top);
+    }
+
+    [Fact]
+    public void TryScanDetailed_empty_string_list_is_a_successful_caller_owned_result()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        var handle = AobStringListTestHost.CreateEmptyList(L);
+        AobStringListTestHost.InstallAobScan(L, handle);
+        var top = L.Top;
+
+        var status = AobScanner.TryScanDetailed("48 8B", out var results);
+
+        Assert.Equal(AobScanStatus.Success, status);
+        var owned = Assert.IsType<Owned<StringList>>(results);
+        Assert.True(owned.Value.TryGetCount(out var count));
+        Assert.Equal(0, count);
+        Assert.Equal(top, L.Top);
+
+        owned.Dispose();
+        Assert.True(FakeHost.IsDestroyed(L, handle));
+        Assert.Equal(top, L.Top);
+    }
+
+    [Fact]
+    public void TryScanDetailed_unavailable_global_does_not_enter_lua()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        var L = scope.State;
+        var top = L.Top;
+
+        var status = AobScanner.TryScanDetailed("48 8B", out var results);
+
+        Assert.Equal(AobScanStatus.GlobalUnavailable, status);
+        Assert.Null(results);
+        Assert.Equal(top, L.Top);
+    }
+
+    [Fact]
     public void TryScan_while_detached_throws_without_attempting_lua_access()
     {
         LuaRuntime.Detach();

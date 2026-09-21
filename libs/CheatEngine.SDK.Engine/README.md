@@ -117,12 +117,18 @@ dispatch nor carry a main-thread assertion.
 `TargetMemoryAllocator` uses `LuaTargetMemoryAllocationOperations` by default and retains
 `ITargetMemoryAllocationOperations` as the narrow testable binding seam. The production binding preserves CE's optional
 target address and page-protection positions, returns an `AllocatedRegion` only after a nonzero target address, and
-uses the original size for `deAlloc`. `Release` reports a failure and `Dispose` is best-effort, no-throw cleanup. Both
-consume ownership first, so a potentially partial deallocation is never retried. CE 7.7 has no documented separate
-post-allocation protection call in this surface.
+uses the original size for `deAlloc`. `AllocateWithOutcome` and `ReleaseWithOutcome` are additive structured views:
+they distinguish success, documented negative results, unavailable globals, protected Lua failures and malformed
+results without exposing a Lua state or parsing an error message. The existing bool seam and throwing `Allocate`/
+`Release` APIs retain their behavior. `Dispose` is best-effort, no-throw cleanup. Both release paths consume ownership
+first, so a potentially partial deallocation is never retried. CE 7.7 has no documented separate post-allocation
+protection call in this surface.
 
-`AobScanner.TryScan` returns `Owned<StringList>` because CE documents an AOB result list as caller-freed. `StringList`
-itself remains a borrowed handle. `MemScan` and `FoundList` are borrowed handle values, while
+`AobScanner.TryScanDetailed` retains global-unavailable, protected-Lua-failure, raw `nil`, malformed-result and
+successful-list outcomes; `TryScan` keeps its compatible `bool` projection. A valid empty list is still a successful
+caller-owned result, not a match classification. `AobScanner.TryScan` returns `Owned<StringList>` because CE documents
+an AOB result list as caller-freed. `StringList` itself remains a borrowed handle. `MemScan` and `FoundList` are
+borrowed handle values, while
 `MemoryScanSessions.TryCreate` is the SDK's source-backed CE 7.7 creation path: it immediately owns the returned parent
 and child, holds one Lua operation across both calls, rolls the parent back on any child failure, and transfers the pair
 only to `MemoryScanSession`; an ordinary consumer cannot create an `Owned<MemScan>` or `Owned<FoundList>` manually.

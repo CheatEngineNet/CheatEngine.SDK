@@ -102,6 +102,53 @@ public sealed class TargetMemoryAllocatorTests
     }
 
     [Fact]
+    public void AllocateWithOutcome_adapts_the_legacy_bool_seam_without_parsing_exception_text()
+    {
+        EngineLuaException failure = new("TargetMemoryAllocate", LuaStatus.SyntaxError,
+            "A deliberately irrelevant localized message.");
+        AllocationOperationsFake operations = new() { AllocationException = failure };
+        TargetMemoryAllocator allocator = new(operations);
+
+        var outcome = allocator.AllocateWithOutcome(new TargetAllocationRequest(new TargetAllocationSize(4096)));
+
+        Assert.Equal(TargetMemoryOperationOutcomeKind.ProtectedLuaFailure, outcome.Operation.Kind);
+        Assert.Equal(EngineFailureKind.ProtectedLuaFailure, outcome.Operation.FailureKind);
+        Assert.Equal(LuaStatus.SyntaxError, outcome.Operation.LuaStatus);
+        Assert.Equal(Address.Zero, outcome.Address);
+        Assert.Equal(1, operations.AllocateCalls);
+    }
+
+    [Fact]
+    public void AllocateWithOutcome_adapts_legacy_expected_failure_without_creating_an_owner()
+    {
+        AllocationOperationsFake operations = new() { AllocationResult = false, AllocatedAddress = Address.Zero };
+        TargetMemoryAllocator allocator = new(operations);
+
+        var outcome = allocator.AllocateWithOutcome(new TargetAllocationRequest(new TargetAllocationSize(4096)));
+
+        Assert.Equal(TargetMemoryOperationOutcomeKind.ExpectedFailure, outcome.Operation.Kind);
+        Assert.Equal(EngineFailureKind.ExpectedOperationFailure, outcome.Operation.FailureKind);
+        Assert.Equal(Address.Zero, outcome.Address);
+        Assert.False(outcome.IsSuccess);
+        Assert.Equal(1, operations.AllocateCalls);
+    }
+
+    [Fact]
+    public void ReleaseWithOutcome_adapts_the_legacy_bool_seam_and_consumes_ownership()
+    {
+        AllocationOperationsFake operations = new() { DeallocationResult = false };
+        TargetMemoryAllocator allocator = new(operations);
+        var region = allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096)));
+
+        var outcome = region.ReleaseWithOutcome();
+
+        Assert.Equal(TargetMemoryOperationOutcomeKind.ExpectedFailure, outcome.Kind);
+        Assert.Equal(EngineFailureKind.ExpectedOperationFailure, outcome.FailureKind);
+        Assert.True(region.IsDisposed);
+        Assert.Equal(1, operations.DeallocateCalls);
+    }
+
+    [Fact]
     public void Public_target_memory_operations_carry_enabled_lifecycle_metadata_without_an_unproven_thread_claim()
     {
         var allocate = typeof(TargetMemoryAllocator)
@@ -112,12 +159,22 @@ public sealed class TargetMemoryAllocatorTests
             .GetMethod(nameof(ITargetMemoryAllocationOperations.TryAllocate))!;
         var tryDeallocate = typeof(ITargetMemoryAllocationOperations).GetMethod(
             nameof(ITargetMemoryAllocationOperations.TryDeallocate))!;
+        var allocateWithOutcome = typeof(ITargetMemoryAllocationOutcomeOperations).GetMethod(
+            nameof(ITargetMemoryAllocationOutcomeOperations.AllocateWithOutcome))!;
+        var deallocateWithOutcome = typeof(ITargetMemoryAllocationOutcomeOperations).GetMethod(
+            nameof(ITargetMemoryAllocationOutcomeOperations.DeallocateWithOutcome))!;
+        var facadeOutcome = typeof(TargetMemoryAllocator).GetMethod(nameof(TargetMemoryAllocator.AllocateWithOutcome))!;
+        var releaseWithOutcome = typeof(AllocatedRegion).GetMethod(nameof(AllocatedRegion.ReleaseWithOutcome))!;
 
         AssertHasLifecycleMetadata(allocate);
         AssertHasLifecycleMetadata(release);
         AssertHasLifecycleMetadata(dispose);
         AssertHasLifecycleMetadata(tryAllocate);
         AssertHasLifecycleMetadata(tryDeallocate);
+        AssertHasLifecycleMetadata(allocateWithOutcome);
+        AssertHasLifecycleMetadata(deallocateWithOutcome);
+        AssertHasLifecycleMetadata(facadeOutcome);
+        AssertHasLifecycleMetadata(releaseWithOutcome);
     }
 
     private static void AssertHasLifecycleMetadata(MethodInfo method)

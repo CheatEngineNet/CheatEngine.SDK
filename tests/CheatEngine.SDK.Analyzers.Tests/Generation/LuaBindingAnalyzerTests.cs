@@ -234,6 +234,28 @@ public sealed class LuaBindingAnalyzerTests
     }
 
     [Fact]
+    public async Task Lua_global_outcome_form_returning_lua_operation_status_is_accepted()
+    {
+        var diagnostics = await AnalyzeAsync(
+            """
+            using CheatEngine.SDK.Annotations.Lua;
+            using CheatEngine.SDK.Lua.Calls;
+
+            namespace Demo;
+
+            public static partial class Bindings
+            {
+                [LuaGlobal("readInteger")]
+                public static partial LuaOperationStatus TryReadInt32Detailed(nuint address, out int value);
+            }
+            """,
+            true);
+
+        Assert.DoesNotContain(diagnostics,
+            static diagnostic => string.Equals(diagnostic.Id, DiagnosticIds.InvalidLuaGlobal, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Explicit_static_interface_marshaller_members_report_CESDK2003_and_skip_generation()
     {
         const string source = """

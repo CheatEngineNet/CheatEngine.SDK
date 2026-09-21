@@ -90,6 +90,7 @@ internal static class BindingSources
                                       using System;
                                       using System.Diagnostics.CodeAnalysis;
                                       using CheatEngine.SDK.Annotations.Lua;
+                                      using CheatEngine.SDK.Lua.Calls;
                                       using CheatEngine.SDK.Lua.State;
 
                                       namespace Demo;
@@ -98,6 +99,9 @@ internal static class BindingSources
                                       {
                                           [LuaGlobal("readInteger")]
                                           public static partial bool TryReadInt32(nuint address, out int value);
+
+                                          [LuaGlobal("readInteger")]
+                                          public static partial LuaOperationStatus TryReadInt32Detailed(nuint address, out int value);
 
                                           [LuaGlobal("readInteger")]
                                           public static partial int ReadInt32(nuint address);

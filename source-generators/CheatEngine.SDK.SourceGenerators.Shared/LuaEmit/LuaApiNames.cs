@@ -18,6 +18,9 @@ internal static class LuaApiNames
     /// <summary>The protected-call status.</summary>
     public const string LuaStatus = "global::CheatEngine.SDK.Lua.Calls.LuaStatus";
 
+    /// <summary>The compact outcome returned by an opt-in detailed generated global binding.</summary>
+    public const string LuaOperationStatus = "global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus";
+
     /// <summary>The cached registry reference a wrapper class holds per bound global.</summary>
     public const string LuaRef = "global::CheatEngine.SDK.Lua.References.LuaRef";
 

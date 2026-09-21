@@ -58,6 +58,12 @@ internal static class AobStringListTestHost
                                                      """);
     }
 
+    /// <summary>Creates the CE-shaped empty StringList result used to prove that an empty scan remains successful.</summary>
+    public static CEObject CreateEmptyList(LuaState state)
+    {
+        return FakeHost.CreateObject(state, "Probe", "o.props.Count = 0");
+    }
+
     /// <summary>Publishes a fake host object as a Lua global through the protected setter.</summary>
     public static void SetGlobalObject(LuaState state, ReadOnlySpan<byte> name, CEObject value)
     {
@@ -79,6 +85,7 @@ internal static class AobStringListTestHost
                                 aob_alignment_parameter = select(4, ...)
                                 if aob_pattern == 'nil-result' then return nil end
                                 if aob_pattern == 'raise' then error('AOBScan stand-in raised') end
+                                if aob_pattern == 'invalid-result' then return 42 end
                                 return aob_results
                               end
                               """u8);

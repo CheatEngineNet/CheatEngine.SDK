@@ -2,7 +2,6 @@ using System;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Values;
-using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.CompilerServices;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
@@ -21,7 +20,8 @@ namespace CheatEngine.SDK.Engine.Allocation;
 ///     deallocation result are expected operation failures; a result of another shape remains a stable marshalling
 ///     failure. The class is stateless and may be shared by multiple <see cref="TargetMemoryAllocator" /> instances.
 /// </remarks>
-public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocationOperations
+public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocationOperations,
+    ITargetMemoryAllocationOutcomeOperations
 {
     private const string AllocateOperation = "TargetMemoryAllocate";
     private const string DeallocateOperation = "TargetMemoryDeallocate";
@@ -39,16 +39,38 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
     [RequiresPluginEnabled]
     public bool TryAllocate(TargetAllocationRequest request, out Address address)
     {
+        if (request.Size.Value <= 0) ThrowInvalidAllocationSize();
+
+        var outcome = AllocateWithOutcome(request);
+        address = outcome.Address;
+        return GetAllocationResultOrThrow(outcome);
+    }
+
+    /// <inheritdoc />
+    [RequiresPluginEnabled]
+    public bool TryDeallocate(Address address, TargetAllocationSize size)
+    {
+        if (address.IsZero) ThrowInvalidDeallocationAddress();
+        if (size.Value <= 0) ThrowInvalidAllocationSize(DeallocateOperation);
+
+        return GetDeallocationResultOrThrow(DeallocateWithOutcome(address, size));
+    }
+
+    /// <inheritdoc />
+    [RequiresPluginEnabled]
+    public TargetMemoryAllocationOutcome AllocateWithOutcome(TargetAllocationRequest request)
+    {
         if (request.Size.Value <= 0)
-            throw new EngineMarshallingException(AllocateOperation, EngineMarshallingDirection.Argument,
-                "a positive allocation size", "a zero or negative allocation size");
+            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                EngineFailureKind.MarshallingFailure));
 
         using var operation = LuaRuntime.AcquireOperation();
         var state = operation.State;
         var top = state.Top;
         try
         {
-            PushGlobal(state, SAllocateMemory, "allocateMemory"u8, AllocateOperation);
+            var globalOutcome = TryPushGlobal(state, SAllocateMemory, "allocateMemory"u8);
+            if (!globalOutcome.IsSuccess) return TargetMemoryAllocationOutcome.FromOperation(globalOutcome);
             state.PushInteger(request.Size.Value);
             var argumentCount = 1;
             if (request.PreferredBaseAddress.HasValue)
@@ -70,19 +92,19 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
             }
 
             var status = state.TryCall(argumentCount, 1);
-            if (!status.IsOk) throw new EngineLuaException(AllocateOperation, status);
+            if (!status.IsOk)
+                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                    EngineFailureKind.ProtectedLuaFailure, status));
             if (state.IsNil(-1))
-            {
-                address = Address.Zero;
-                return false;
-            }
+                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.ExpectedFailure());
 
-            if (!Address.TryRead(state, -1, out address))
-                throw new EngineMarshallingException(AllocateOperation, EngineMarshallingDirection.Result,
-                    "a target address or nil", "a result that is neither an address nor nil");
+            if (!Address.TryRead(state, -1, out var address))
+                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                    EngineFailureKind.MarshallingFailure));
 
-            if (address.IsZero) return false;
-            return true;
+            return address.IsZero
+                ? TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.ExpectedFailure())
+                : TargetMemoryAllocationOutcome.Succeeded(address);
         }
         finally
         {
@@ -92,30 +114,29 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
 
     /// <inheritdoc />
     [RequiresPluginEnabled]
-    public bool TryDeallocate(Address address, TargetAllocationSize size)
+    public TargetMemoryOperationOutcome DeallocateWithOutcome(Address address, TargetAllocationSize size)
     {
-        if (address.IsZero)
-            throw new EngineMarshallingException(DeallocateOperation, EngineMarshallingDirection.Argument,
-                "a nonzero target address", "the null target address");
-        if (size.Value <= 0)
-            throw new EngineMarshallingException(DeallocateOperation, EngineMarshallingDirection.Argument,
-                "a positive allocation size", "a zero or negative allocation size");
+        if (address.IsZero || size.Value <= 0)
+            return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.MarshallingFailure);
 
         using var operation = LuaRuntime.AcquireOperation();
         var state = operation.State;
         var top = state.Top;
         try
         {
-            PushGlobal(state, SDeallocate, "deAlloc"u8, DeallocateOperation);
+            var globalOutcome = TryPushGlobal(state, SDeallocate, "deAlloc"u8);
+            if (!globalOutcome.IsSuccess) return globalOutcome;
             Address.Push(state, address);
             state.PushInteger(size.Value);
             var status = state.TryCall(2, 1);
-            if (!status.IsOk) throw new EngineLuaException(DeallocateOperation, status);
+            if (!status.IsOk)
+                return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.ProtectedLuaFailure, status);
             if (state.TypeOf(-1) != LuaType.Boolean)
-                throw new EngineMarshallingException(DeallocateOperation, EngineMarshallingDirection.Result,
-                    "a Boolean deallocation result", "a non-Boolean result");
+                return TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.MarshallingFailure);
 
-            return state.ToBoolean(-1);
+            return state.ToBoolean(-1)
+                ? TargetMemoryOperationOutcome.Succeeded()
+                : TargetMemoryOperationOutcome.ExpectedFailure();
         }
         finally
         {
@@ -123,16 +144,75 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
         }
     }
 
-    private static void PushGlobal(LuaState state, LuaRef cache, ReadOnlySpan<byte> name, string operation)
+    private static bool GetAllocationResultOrThrow(TargetMemoryAllocationOutcome outcome)
     {
-        switch (LuaGlobalFunctions.TryPushWithStatus(state, cache, name))
+        if (outcome.Operation.IsSuccess) return true;
+
+        ThrowForOutcome(outcome.Operation, AllocateOperation, isAllocation: true);
+        return false;
+    }
+
+    private static bool GetDeallocationResultOrThrow(TargetMemoryOperationOutcome outcome)
+    {
+        if (outcome.IsSuccess) return true;
+
+        ThrowForOutcome(outcome, DeallocateOperation, isAllocation: false);
+        return false;
+    }
+
+    private static void ThrowForOutcome(TargetMemoryOperationOutcome outcome, string operation, bool isAllocation)
+    {
+        switch (outcome.Kind)
         {
-            case LuaGlobalPushStatus.Success:
+            case TargetMemoryOperationOutcomeKind.ExpectedFailure:
                 return;
-            case LuaGlobalPushStatus.Unavailable:
+            case TargetMemoryOperationOutcomeKind.GlobalUnavailable:
                 throw new EngineGlobalUnavailableException(operation);
+            case TargetMemoryOperationOutcomeKind.CapabilityUnavailable:
+                throw new EngineCapabilityUnavailableException("TargetMemoryAllocation");
+            case TargetMemoryOperationOutcomeKind.ProtectedLuaFailure:
+                throw new EngineLuaException(operation, outcome.LuaStatus);
+            case TargetMemoryOperationOutcomeKind.BindingFailure:
+                throw new EngineBindingException(operation);
+            case TargetMemoryOperationOutcomeKind.MarshallingFailure:
+                if (isAllocation)
+                    throw new EngineMarshallingException(operation, EngineMarshallingDirection.Result,
+                        "a target address or nil", "a result that is neither an address nor nil");
+
+                throw new EngineMarshallingException(operation, EngineMarshallingDirection.Result,
+                    "a Boolean deallocation result", "a non-Boolean result");
             default:
-                throw new EngineLuaException(operation, LuaStatus.RuntimeError);
+                throw new EngineBindingException(operation);
         }
+    }
+
+    private static TargetMemoryOperationOutcome TryPushGlobal(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
+    {
+        var resolution = LuaGlobalFunctions.TryPushWithOutcome(state, cache, name);
+        return resolution.Status switch
+        {
+            LuaGlobalPushStatus.Success => TargetMemoryOperationOutcome.Succeeded(),
+            LuaGlobalPushStatus.Unavailable => TargetMemoryOperationOutcome.FromFailureKind(
+                EngineFailureKind.GlobalUnavailable),
+            _ => TargetMemoryOperationOutcome.FromFailureKind(EngineFailureKind.ProtectedLuaFailure,
+                resolution.LuaStatus),
+        };
+    }
+
+    private static void ThrowInvalidAllocationSize()
+    {
+        ThrowInvalidAllocationSize(AllocateOperation);
+    }
+
+    private static void ThrowInvalidAllocationSize(string operation)
+    {
+        throw new EngineMarshallingException(operation, EngineMarshallingDirection.Argument,
+            "a positive allocation size", "a zero or negative allocation size");
+    }
+
+    private static void ThrowInvalidDeallocationAddress()
+    {
+        throw new EngineMarshallingException(DeallocateOperation, EngineMarshallingDirection.Argument,
+            "a nonzero target address", "the null target address");
     }
 }

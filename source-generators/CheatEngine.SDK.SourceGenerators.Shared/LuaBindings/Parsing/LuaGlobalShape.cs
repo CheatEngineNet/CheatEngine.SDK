@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
@@ -8,7 +9,7 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 
 /// <summary>
 ///     Decides whether a <c>[LuaGlobal]</c> method can receive a generated body and classifies its signature into one
-///     of the two call forms. Symbols in, flags and a value-only signature out: the CESDK2xxx analyzer links this file
+///     of the call forms. Symbols in, flags and a value-only signature out: the CESDK2xxx analyzer links this file
 ///     (with <see cref="LuaValueKindMapper" />, <see cref="ContainingTypeShape" /> and <c>LuaEmit/LuaNames.cs</c>) so
 ///     that a method the generator skips is exactly a method the analyzer reports.
 /// </summary>
@@ -22,8 +23,8 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 ///         <c>ReadOnlySpan&lt;byte&gt;</c>, or a copy-out pair <c>Span&lt;byte&gt; destination, out int written</c>.
 ///     </para>
 ///     <para>
-///         The form follows from the results: any <see langword="out" /> result makes the method the Try form, which must
-///         return <see langword="bool" />; no result makes it the throwing form, whose return type is
+///         The form follows from the results: any <see langword="out" /> result makes the method a non-throwing form,
+///         which returns either <see langword="bool" /> or <c>LuaOperationStatus</c>; no result makes it the throwing form, whose return type is
 ///         <see langword="void" />
 ///         or a value of that conversion contract other than <c>ReadOnlySpan&lt;byte&gt;</c> (a <see langword="bool" /> return without
 ///         results is therefore a throwing wrapper that reads a Lua boolean). A Try form without a result cannot be
@@ -66,7 +67,11 @@ internal static class LuaGlobalShape
             luaMarshallerContract);
 
         EquatableArray<LuaResultModel> results = new(walk.Results.ToImmutable());
-        var form = results.IsEmpty ? LuaCallForm.Throwing : LuaCallForm.Try;
+        var form = results.IsEmpty
+            ? LuaCallForm.Throwing
+            : IsLuaOperationStatus(method.ReturnType)
+                ? LuaCallForm.Outcome
+                : LuaCallForm.Try;
         issues |= InspectReturn(compilation, method, form, luaMarshallerAttribute, luaMarshallerContract,
             out var returnKind, out var returnIsNullable, out var returnMarshaller);
 
@@ -124,6 +129,9 @@ internal static class LuaGlobalShape
                 ? LuaGlobalShapeIssues.None
                 : LuaGlobalShapeIssues.TryFormReturnNotBool;
 
+        if (form == LuaCallForm.Outcome)
+            return !byRef ? LuaGlobalShapeIssues.None : LuaGlobalShapeIssues.TryFormReturnNotBool;
+
         if (method.ReturnsVoid) return LuaGlobalShapeIssues.None;
 
         if (byRef) return LuaGlobalShapeIssues.UnsupportedReturnType;
@@ -142,6 +150,14 @@ internal static class LuaGlobalShape
             !LuaValueKinds.CanBeResult(kind)) return LuaGlobalShapeIssues.UnsupportedReturnType;
         returnKind = kind;
         return LuaGlobalShapeIssues.None;
+    }
+
+    private static bool IsLuaOperationStatus(ITypeSymbol type)
+    {
+        return string.Equals(
+            type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            "global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus",
+            StringComparison.Ordinal);
     }
 
     // The parameter list, left to right: the leading state, the arguments, then the results.

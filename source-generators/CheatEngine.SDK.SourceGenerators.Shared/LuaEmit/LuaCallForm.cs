@@ -1,6 +1,6 @@
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 
-/// <summary>The two bodies a bound global can get.</summary>
+/// <summary>The bodies a bound global can get.</summary>
 internal enum LuaCallForm
 {
     /// <summary>
@@ -10,6 +10,13 @@ internal enum LuaCallForm
     ///     <c>LuaCallSupport.Fail</c>. Never throws for a Lua-side reason.
     /// </summary>
     Try,
+
+    /// <summary>
+    ///     <c>LuaOperationStatus</c> return, with results as <see langword="out" /> parameters. It preserves the
+    ///     factual resolution, protected-call and result-shape cause without allocating error text. This is opt-in;
+    ///     existing <see cref="Try" /> declarations retain their exact <see langword="bool" /> contract.
+    /// </summary>
+    Outcome,
 
     /// <summary>
     ///     The result is the return value (or the method is <see langword="void" />): every failure is a <c>LuaException</c>

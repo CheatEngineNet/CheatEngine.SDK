@@ -41,6 +41,26 @@ internal sealed class ThrowawayConsumer
                                              }
                                              """;
 
+    private const string LegacyAobSource = """
+                                           using CheatEngine.SDK.Engine.Objects;
+                                           using CheatEngine.SDK.Engine.Scanning.Aob;
+
+                                           namespace ThrowawayPlugin;
+
+                                           internal static class LegacyAobConsumer
+                                           {
+                                               internal static void CompileOnly()
+                                               {
+                                                   if (AobScanner.TryScan("90", out Owned<StringList>? defaultResults))
+                                                       defaultResults.Dispose();
+
+                                                   if (AobScanner.TryScan("90", AobScanOptions.Default,
+                                                           out Owned<StringList>? configuredResults))
+                                                       configuredResults.Dispose();
+                                               }
+                                           }
+                                           """;
+
     private ThrowawayConsumer(string directory, string projectPath, string assemblyPath)
     {
         Directory = directory;
@@ -70,12 +90,14 @@ internal sealed class ThrowawayConsumer
     ///     <paramref name="localFeedDirectory" /> (and nuget.org, for the .NET SDK's own implicit packages, from the
     ///     machine's warm cache), one minimal but valid plugin class, and whatever <paramref name="extraProperties" />
     ///     adds to its single <c>PropertyGroup</c>. When <paramref name="includeLuaFunction" /> is <see langword="true" />,
-    ///     the project also declares one valid <c>[LuaFunction]</c> export. <paramref name="platformTarget" /> defaults to
-    ///     x64, but may be <see langword="null" /> to prove the package behavior when the consumer does not declare it.
+    ///     the project also declares one valid <c>[LuaFunction]</c> export. When <paramref name="includeLegacyAobConsumer" />
+    ///     is <see langword="true" />, it compiles both historical <c>AobScanner.TryScan</c> overloads against the packed
+    ///     SDK. <paramref name="platformTarget" /> defaults to x64, but may be <see langword="null" /> to prove the package
+    ///     behavior when the consumer does not declare it.
     /// </summary>
     public static ThrowawayConsumer Create(string parentDirectory, string name, string cheatEngineSdkVersion,
         string localFeedDirectory, string extraProperties = "", string? platformTarget = "x64",
-        bool includeLuaFunction = false)
+        bool includeLuaFunction = false, bool includeLegacyAobConsumer = false)
     {
         var directory = Path.Combine(parentDirectory, name);
         System.IO.Directory.CreateDirectory(directory);
@@ -100,6 +122,8 @@ internal sealed class ThrowawayConsumer
         File.WriteAllText(Path.Combine(directory, "Plugin.cs"), PluginSource);
         if (includeLuaFunction)
             File.WriteAllText(Path.Combine(directory, "Functions.cs"), LuaFunctionSource);
+        if (includeLegacyAobConsumer)
+            File.WriteAllText(Path.Combine(directory, "LegacyAobConsumer.cs"), LegacyAobSource);
         // <clear/>: this consumer's restore must depend only on the two sources named here, never on whatever
         // machine- or user-level NuGet.Config the CI/dev box happens to carry (same reasoning as the repo's own
         // root nuget.config).

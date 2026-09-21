@@ -90,9 +90,11 @@ internal static partial class SignatureCalls
 
 ### 3. Scan for every match
 
-`AOBScan` returns a `StringList` that CE documents as caller-owned. `AobScanner.TryScan` is the sourced Engine factory
-for that contract. It returns an `Owned<StringList>` only after a successful protected call; plugin code must not turn a
-raw `CEObject` into an owner itself.
+`AOBScan` returns a `StringList` that CE documents as caller-owned. `AobScanner.TryScanOutcome` is the sourced Engine
+factory for that contract. It calls a scan synchronously, returns an `Owned<StringList>` only after a successful
+protected call, and reports `NoMatches` only when it can read a valid list count of zero. It deliberately keeps raw
+Lua `nil`, a missing global, a protected Lua failure, malformed userdata, and an unreadable list count separate;
+plugin code must not turn a raw `CEObject` into an owner itself.
 
 ```csharp
 using CheatEngine.SDK.Engine.Scanning.Aob;
@@ -105,14 +107,16 @@ internal static class Signatures
     public static List<Address> Scan(string pattern, AobScanOptions options = default)
     {
         List<Address> matches = [];
-        if (!AobScanner.TryScan(pattern, options, out var owner) || owner is null) return matches;
+        var outcome = AobScanner.TryScanOutcome(pattern, options, out var owner);
+        if (outcome.Kind == AobScanOutcomeKind.NoMatches) return matches;
+        if (outcome.Kind != AobScanOutcomeKind.Matches || owner is null)
+            throw new InvalidOperationException($"AOBScan did not produce a list: {outcome.Kind} ({outcome.LuaStatus}).");
 
         using (owner)
         {
             var list = owner.Value;
-            if (!list.TryGetCount(out var count)) return matches;
 
-            for (var i = 0; i < count; i++)
+            for (var i = 0; i < outcome.ResultCount; i++)
             {
                 if (list.TryGetItem(i, out var addressText) && Address.TryParse(addressText, out var address))
                     matches.Add(address);
@@ -126,8 +130,8 @@ internal static class Signatures
 
 ```mermaid
 flowchart LR
-    A["AobScanner.TryScan(pattern, options)"] --> B["Owned StringList<br/>factory transfers ownership"]
-    B --> C["Read Count"]
+    A["AobScanner.TryScanOutcome(pattern, options)"] --> B["Outcome plus owned StringList<br/>only after a valid list"]
+    B --> C["Verified Count<br/>NoMatches only at zero"]
     C --> D["Read items 0 to Count minus 1<br/>hex text to Address"]
     D --> E["Dispose the factory-issued owner<br/>documented destroy path"]
     E --> F["List of Address<br/>plain managed data"]
@@ -135,9 +139,9 @@ flowchart LR
 
 | Step                       | Why                                                                                        |
 |----------------------------|--------------------------------------------------------------------------------------------|
-| `AobScanner.TryScan`       | Performs the protected CE call and provides an owner only when CE returned a valid list    |
+| `AobScanner.TryScanOutcome` | Performs the protected CE call, distinguishes no-match from failure, and provides an owner only for a valid list |
 | `Owned<StringList>`        | Is the factory-issued ownership proof; `Dispose` executes the documented destroy path once |
-| `StringList.TryGetCount`   | Reads the list's count through a protected object call                                     |
+| `AobScanOutcome.ResultCount` | Is the valid list count observed immediately after CE returns; it is not an execution bound |
 | `StringList.TryGetItem(i)` | Uses Cheat Engine's zero-based index and copies one address string                         |
 | `Address.TryParse`         | Decodes CE's hexadecimal address text into the target-address type                         |
 | `using (owner)`            | Releases the list before it can escape as a stale native handle                            |
@@ -238,7 +242,7 @@ A signature that survives updates follows a few habits:
 |-------------------------------------------------------------------------|------------------------------------------------------------------|
 | Keep the opcode bytes and wildcard displacements and absolute addresses | Offsets and addresses move between builds, and opcodes rarely do |
 | Use twelve or more bytes with several fixed anchors                     | A short pattern matches unrelated code                           |
-| Scan one module with `AOBScanModuleUnique`                              | Fewer bytes to search, and no matches in other modules           |
+| Use `AOBScanModuleUnique` only when its separate raw CE binding is appropriate | It narrows that raw CE primitive but does not prove uniqueness or extend `AobScanner` |
 | Add `+X` when the target is code                                        | Data that happens to hold the same bytes is skipped              |
 | Check the count after every game update                                 | A count other than one means the signature drifted               |
 
@@ -252,16 +256,19 @@ A signature that survives updates follows a few habits:
   contract. The AOB catalog itself does not prove a CE GUI-thread rule; use the guarded `MainThread.Invoke` boundary
   when the surrounding feature requires the captured enable thread
   (see [09 · The main thread](../09-main-thread/README.md)).
-- **A scan takes time.** A full memory scan blocks the thread that runs it. Narrow it with a module, `+X` or an
-  alignment before you scan a large process.
-- **Nothing found.** Cheat Engine may return no list at all, or an empty one. `Signatures.Scan` returns an empty list in
-  both cases.
+- **A scan takes time.** `AobScanner` performs a synchronous CE call. Its documented options are protection and
+  alignment only; it does not expose a verified range/module restriction, early stop, result limit, or cancellation
+  control. A Client can cancel before admission or cap its own copied entries after the call, but neither action stops
+  CE scan work. No CE timing or performance claim is made here without a controlled live probe.
+- **Nothing found is a fact, not a fallback.** A valid empty `StringList` becomes `NoMatches`. Raw `nil`, missing
+  `AOBScan`, a protected Lua error, malformed userdata, and an unreadable count are not no-match and should follow
+  the caller's explicit diagnostic or retry policy.
 - **The object never escapes.** The list lives only inside `Scan`. Do not return the `CEObject` or keep it across calls.
 
 ## Promise
 
 - The list object is destroyed exactly once, on every path that received one.
-- A failed Lua call becomes a `LuaException` and never leaves an error value on the Lua stack.
+- A failed protected Lua call becomes a structured `ProtectedLuaFailure` and never leaves an error value on the Lua stack.
 - The Lua stack returns to its previous height after every scan.
 - The result is plain `Address` data, so it stays valid after the list is gone.
 

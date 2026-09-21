@@ -143,11 +143,16 @@ confirmed release, a safe refusal against a replacement target, and an effect re
 retries an uncertain native effect.
 
 `AobScanner.TryScanDetailed` retains global-unavailable, protected-Lua-failure, raw `nil`, malformed-result and
-successful-list outcomes; `TryScan` keeps its compatible `bool` projection. A valid empty list is still a successful
-caller-owned result, not a match classification. `AobScanner.TryScan` returns `bool` and supplies a caller-owned
-`Owned<StringList>` through its `out` parameter because CE documents an AOB result list as caller-freed. `StringList`
-itself remains a borrowed handle. `MemScan` and `FoundList` are
-borrowed handle values, while
+successful-list outcomes; `TryScan` keeps its compatible `bool` projection and supplies a caller-owned
+`Owned<StringList>` through its `out` parameter. A valid empty list is still a successful caller-owned result, not a
+match classification. `AobScanner.TryScanOutcome` adds the factual distinction that a valid `StringList` with a
+verified zero count is `NoMatches`; raw `nil` remains a distinct result, never a no-match inference. It retains the
+caller-owned list for both `Matches` and `NoMatches`, reports an unreadable or negative count as a separate outcome
+after disposing that otherwise unreturnable owner, and preserves the protected Lua status without copying transient
+error text. The CE call is synchronous: this SDK exposes no range, module, result-limit, early-stop or
+`CancellationToken` control because none is established for this `AOBScan` path. Client code may cap its own copied
+data after the full host list returns, but that does not bound or interrupt CE work. CE documents an AOB result list as
+caller-freed; `StringList` itself remains a borrowed handle. `MemScan` and `FoundList` are borrowed handle values, while
 `MemoryScanSessions.TryCreate` is the SDK's source-backed CE 7.7 creation path: it immediately owns the returned parent
 and child, holds one Lua operation across both calls, retains raw handles until their owner is published, rolls the
 child back before its parent on every later failure, and transfers the pair only to `MemoryScanSession`; an ordinary

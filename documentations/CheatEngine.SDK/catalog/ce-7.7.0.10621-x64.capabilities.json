@@ -214,6 +214,15 @@
       "failure_shape": "bool failure aggregates global/call/object/adoption cause", "availability": "source-only", "qualification": "source-indexed-only", "profile_ids": ["managed-plugin-x64-framework-dependent"], "conflict_ids": []
     },
     {
+      "id": "engine.scan.aob",
+      "layer": "lua-object", "symbol": "AobScanner.TryScanOutcome / AOBScan",
+      "declaration_refs": [{ "source_id": "sdk-aob-scan", "path": "libs/CheatEngine.SDK.Engine/Scanning/Aob/AobScanner.cs", "line_start": 112, "line_end": 184 }, { "source_id": "sdk-aob-outcome", "path": "libs/CheatEngine.SDK.Engine/Scanning/Aob/AobScanOutcome.cs", "line_start": 1, "line_end": 133 }],
+      "interop": { "calling_convention": "protected Lua global AOBScan", "parameter_widths": "UTF-8 pattern; optional CE protection/alignment arguments; host StringList pointer", "result": "structured result plus caller-owned StringList only after a valid non-negative count", "indirection": "ambient CE target selection; no range/module/early-stop or cancellation control" },
+      "thread_affinity": { "value": "unknown", "evidence": "CE source catalogue and fixture do not establish AOBScan affinity" },
+      "ownership": { "registration": "none", "callback": "none", "arguments": "one SDK-created owner is returned for a valid list; caller copies while alive then disposes once; unreadable count is released internally" },
+      "failure_shape": "missing/non-callable global, protected Lua status, raw nil, invalid userdata, and unreadable or negative count remain distinct; no-match means only a valid zero-count list", "availability": "implemented-with-known-contract-gap", "qualification": "fixture-qualified", "profile_ids": ["sdk-fixture-lua53-x64"], "conflict_ids": []
+    },
+    {
       "id": "engine.target.memory-primitives",
       "layer": "target-memory", "symbol": "TargetMemory / PointerSize / MemoryAccessFailure",
       "declaration_refs": [{ "source_id": "sdk-target-memory", "path": "libs/CheatEngine.SDK.Engine/Memory/TargetMemory.cs", "line_start": 1, "line_end": 420 }, { "source_id": "sdk-target-pointer-codec", "path": "libs/CheatEngine.SDK.Engine/Runtime/PointerSize.cs", "line_start": 1, "line_end": 180 }],
@@ -253,6 +262,7 @@
   "examples": [
     { "id": "example.generated-lua-global", "capability_id": "lua.generated.bindings", "source": "tests/CheatEngine.SDK.LivePlugin/MemoryBindings.cs", "purpose": "Generated typed getOpenedProcessID binding." },
     { "id": "example.live-probe-dispatch", "capability_id": "hosting.lifecycle.v1-exports", "source": "tests/CheatEngine.SDK.LiveProbe/LiveProbeState.cs", "purpose": "Opt-in worker-to-main-thread observation." },
-    { "id": "example.scan-lifecycle", "capability_id": "engine.scan.session", "source": "libs/CheatEngine.SDK.Engine/Scanning/Values/MemoryScanSession.cs", "purpose": "Created, scanning, results-ready and disposal lifecycle." }
+    { "id": "example.scan-lifecycle", "capability_id": "engine.scan.session", "source": "libs/CheatEngine.SDK.Engine/Scanning/Values/MemoryScanSession.cs", "purpose": "Created, scanning, results-ready and disposal lifecycle." },
+    { "id": "example.aob-outcome", "capability_id": "engine.scan.aob", "source": "exemples/05-aob-scans/README.md", "purpose": "Copies a structured AOB result while its sole owner remains alive." }
   ]
 }

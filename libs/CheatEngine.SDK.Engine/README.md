@@ -144,8 +144,9 @@ retries an uncertain native effect.
 
 `AobScanner.TryScanDetailed` retains global-unavailable, protected-Lua-failure, raw `nil`, malformed-result and
 successful-list outcomes; `TryScan` keeps its compatible `bool` projection. A valid empty list is still a successful
-caller-owned result, not a match classification. `AobScanner.TryScan` returns `Owned<StringList>` because CE documents
-an AOB result list as caller-freed. `StringList` itself remains a borrowed handle. `MemScan` and `FoundList` are
+caller-owned result, not a match classification. `AobScanner.TryScan` returns `bool` and supplies a caller-owned
+`Owned<StringList>` through its `out` parameter because CE documents an AOB result list as caller-freed. `StringList`
+itself remains a borrowed handle. `MemScan` and `FoundList` are
 borrowed handle values, while
 `MemoryScanSessions.TryCreate` is the SDK's source-backed CE 7.7 creation path: it immediately owns the returned parent
 and child, holds one Lua operation across both calls, retains raw handles until their owner is published, rolls the

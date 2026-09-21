@@ -95,10 +95,16 @@ The detailed form preserves factual global-resolution, protected-call and result
 Lua error text:
 
 ```csharp
+using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Lua.Calls;
 
-[LuaGlobal("readInteger")]
-public static partial LuaOperationStatus TryReadInt32Detailed(nuint address, bool signed, out int value);
+namespace MyPlugin;
+
+public static partial class Memory
+{
+    [LuaGlobal("readInteger")]
+    public static partial LuaOperationStatus TryReadInt32Detailed(nuint address, bool signed, out int value);
+}
 ```
 
 ## When to suppress

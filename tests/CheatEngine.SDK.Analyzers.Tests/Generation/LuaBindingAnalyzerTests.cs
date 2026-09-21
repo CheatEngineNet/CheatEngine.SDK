@@ -89,6 +89,22 @@ public sealed class LuaBindingAnalyzerTests
             ShapeUsings +
             "public static partial class Bindings { [LuaGlobal(\"readInteger\")] public static partial int TryReadInt32(nuint address, out int value); }",
             false
+        },
+        {
+            "documented detailed global form",
+            """
+            using CheatEngine.SDK.Annotations.Lua;
+            using CheatEngine.SDK.Lua.Calls;
+
+            namespace MyPlugin;
+
+            public static partial class Memory
+            {
+                [LuaGlobal("readInteger")]
+                public static partial LuaOperationStatus TryReadInt32Detailed(nuint address, bool signed, out int value);
+            }
+            """,
+            true
         }
     };
 

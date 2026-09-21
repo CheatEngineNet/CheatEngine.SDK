@@ -13,6 +13,7 @@ namespace LiveProbe;
 internal static class HostProfileObservation
 {
     private const string BridgeFileName = "cheatengine-sdk-lua-bridge.dll";
+    private const string ObservedOutcome = "observed";
 
     internal static string Capture(AuthorizationDecision authorization)
     {
@@ -61,22 +62,16 @@ internal static class HostProfileObservation
         }
 
         writer.WriteString("path", path);
-        if (!File.Exists(path))
+        string outcome = InspectFileForIdentity(path, static filePath => File.OpenRead(filePath));
+        writer.WriteString("outcome", outcome);
+        if (!string.Equals(outcome, ObservedOutcome, StringComparison.Ordinal))
         {
-            writer.WriteString("outcome", "file-not-found");
             return;
         }
 
-        writer.WriteString("outcome", "observed");
         writer.WriteString("sha256", knownHash ?? HashFile(path));
-        try
-        {
-            writer.WriteString("fileVersion", FileVersionInfo.GetVersionInfo(path).FileVersion ?? "not-present");
-        }
-        catch (Exception exception) when (exception is ArgumentException or System.ComponentModel.Win32Exception)
-        {
-            writer.WriteString("fileVersion", "unavailable: " + exception.GetType().Name);
-        }
+        writer.WriteString("fileVersion", ObserveFileVersion(path,
+            static filePath => FileVersionInfo.GetVersionInfo(filePath).FileVersion));
 
         try
         {
@@ -87,6 +82,50 @@ internal static class HostProfileObservation
         catch (Exception exception) when (exception is BadImageFormatException or IOException or UnauthorizedAccessException)
         {
             writer.WriteString("machine", "unavailable: " + exception.GetType().Name);
+        }
+    }
+
+    // The opener is an internal test seam only. Production passes File.OpenRead, which already underpins the later hash
+    // and PE reads; this preliminary open avoids turning an access or sharing failure into a missing-file claim.
+    internal static string InspectFileForIdentity(string? path, Func<string, Stream> openRead)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return "not-observed";
+
+        try
+        {
+            using Stream file = openRead(path);
+            return ObservedOutcome;
+        }
+        catch (FileNotFoundException)
+        {
+            return "file-not-found";
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return "file-not-found";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return "unavailable: UnauthorizedAccessException";
+        }
+        catch (IOException exception)
+        {
+            return "unavailable: " + exception.GetType().Name;
+        }
+    }
+
+    // File metadata is read after the preliminary open, so it needs its own failure classification when the file is
+    // deleted, locked, or access is revoked in between. The reader is an internal test seam only.
+    internal static string ObserveFileVersion(string path, Func<string, string?> getFileVersion)
+    {
+        try
+        {
+            return getFileVersion(path) ?? "not-present";
+        }
+        catch (Exception exception) when (exception is ArgumentException or System.ComponentModel.Win32Exception
+            or IOException or UnauthorizedAccessException)
+        {
+            return "unavailable: " + exception.GetType().Name;
         }
     }
 

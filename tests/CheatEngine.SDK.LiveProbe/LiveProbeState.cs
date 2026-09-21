@@ -88,7 +88,21 @@ internal static unsafe class LiveProbeState
 
     internal static void ValidateAfterEnable()
     {
-        var authorization = LiveProbeAuthorization.Evaluate();
+        ValidateAfterEnable(LiveProbeAuthorization.Evaluate, ProbeHostGlobals.GetOpenedProcessId);
+    }
+
+    // The delegates keep the refresh decision deterministic in unit tests. They are internal to this manually loaded
+    // harness; the only operator-facing path always supplies the authorization evaluator and CE PID reader above.
+    internal static void ValidateAfterEnable(Func<AuthorizationDecision> evaluateAuthorization,
+        Func<long> getOpenedProcessId)
+    {
+        RecordRuntimeAuthorization(EvaluateRuntimeAuthorization(evaluateAuthorization, getOpenedProcessId));
+    }
+
+    private static RuntimeAuthorization EvaluateRuntimeAuthorization(Func<AuthorizationDecision> evaluateAuthorization,
+        Func<long> getOpenedProcessId)
+    {
+        AuthorizationDecision authorization = evaluateAuthorization();
         var targetMatchesCe = false;
         var targetFailure = authorization.IsAllowed
             ? "CE target attachment is not yet checked."
@@ -98,7 +112,7 @@ internal static unsafe class LiveProbeState
         {
             try
             {
-                var openedProcess = ProbeHostGlobals.GetOpenedProcessId();
+                long openedProcess = getOpenedProcessId();
                 targetMatchesCe = openedProcess == authorization.TargetProcessId;
                 targetFailure = targetMatchesCe
                     ? "CE's opened process matches the disposable-target manifest."
@@ -111,11 +125,16 @@ internal static unsafe class LiveProbeState
             }
         }
 
+        return new RuntimeAuthorization(authorization, targetMatchesCe, targetFailure);
+    }
+
+    private static void RecordRuntimeAuthorization(RuntimeAuthorization runtimeAuthorization)
+    {
         lock (Gate)
         {
-            s_enableAuthorization = authorization;
-            s_targetMatchesCe = targetMatchesCe;
-            s_targetMatchFailure = targetFailure;
+            s_enableAuthorization = runtimeAuthorization.Authorization;
+            s_targetMatchesCe = runtimeAuthorization.TargetMatchesCe;
+            s_targetMatchFailure = runtimeAuthorization.TargetMatchFailure;
         }
     }
 
@@ -172,15 +191,20 @@ internal static unsafe class LiveProbeState
 
     internal static string CaptureHostProfile()
     {
-        if (!TryRequireRuntimeAuthorization(out var denied)) return denied;
+        return CaptureHostProfile(LiveProbeAuthorization.Evaluate, ProbeHostGlobals.GetOpenedProcessId,
+            HostProfileObservation.Capture);
+    }
 
-        AuthorizationDecision authorization;
-        lock (Gate)
-        {
-            authorization = s_enableAuthorization;
-        }
+    // A profile is evidence only for the instant it is captured. Revalidate the manifest, target image and CE's opened
+    // PID immediately beforehand rather than accepting the enable-time diagnostic snapshot. This fresh decision stays
+    // local to capture; every other protected command performs its own fresh check as well.
+    internal static string CaptureHostProfile(Func<AuthorizationDecision> evaluateAuthorization,
+        Func<long> getOpenedProcessId, Func<AuthorizationDecision, string> capture)
+    {
+        RuntimeAuthorization runtimeAuthorization = EvaluateRuntimeAuthorization(evaluateAuthorization, getOpenedProcessId);
+        if (!runtimeAuthorization.IsAllowed) return "Live probe denied: " + runtimeAuthorization.Denial;
 
-        return HostProfileObservation.Capture(authorization);
+        return capture(runtimeAuthorization.Authorization);
     }
 
     internal static string BeginSynchronizeProbe()
@@ -455,17 +479,24 @@ internal static unsafe class LiveProbeState
 
     private static bool TryRequireRuntimeAuthorization(out string denied)
     {
-        lock (Gate)
-        {
-            if (IsRuntimeProbeAllowedUnsafe())
-            {
-                denied = string.Empty;
-                return true;
-            }
+        return TryRequireRuntimeAuthorization(LiveProbeAuthorization.Evaluate, ProbeHostGlobals.GetOpenedProcessId,
+            out denied);
+    }
 
-            denied = "Live probe denied: " + (s_enableAuthorization.IsAllowed ? s_targetMatchFailure : s_enableAuthorization.Reason);
-            return false;
+    // Each command performs a fresh, local check. The recorded enable-time result remains a diagnostic and cannot be
+    // refreshed by a capture or command into authority for a later command.
+    internal static bool TryRequireRuntimeAuthorization(Func<AuthorizationDecision> evaluateAuthorization,
+        Func<long> getOpenedProcessId, out string denied)
+    {
+        RuntimeAuthorization runtimeAuthorization = EvaluateRuntimeAuthorization(evaluateAuthorization, getOpenedProcessId);
+        if (runtimeAuthorization.IsAllowed)
+        {
+            denied = string.Empty;
+            return true;
         }
+
+        denied = "Live probe denied: " + runtimeAuthorization.Denial;
+        return false;
     }
 
     private static bool IsRuntimeProbeAllowedUnsafe()
@@ -507,6 +538,14 @@ internal static unsafe class LiveProbeState
     }
 
     private readonly record struct SynchronizeInvocation(int WorkThreadId, int NestedThreadId, string ReturnValue);
+
+    private readonly record struct RuntimeAuthorization(AuthorizationDecision Authorization, bool TargetMatchesCe,
+        string TargetMatchFailure)
+    {
+        internal bool IsAllowed => Authorization.IsAllowed && TargetMatchesCe;
+
+        internal string Denial => Authorization.IsAllowed ? TargetMatchFailure : Authorization.Reason;
+    }
 
     private readonly record struct BootstrapObservation(int Calls, nint InitRecord, int OpaqueArgument, bool Captured,
         bool TailCanaryWritten, int TailWriteCount, uint TailReadBeforeWrite, string? TailFailure)

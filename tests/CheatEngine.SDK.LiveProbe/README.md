@@ -60,6 +60,10 @@ The callback probe intentionally leaves the callback registered in `OnDisable`; 
 
 ## Scope and limitations
 
+- `ce77_live_probe_host_profile()` and every protected command re-evaluate the authorization manifest, target image,
+  and CE opened-process PID immediately before acting. This is a current-state check, not proof that CE did not select
+  another target between observations; PID reuse by an identical executable is not distinguishable without an
+  operator-supplied incarnation value, which the `ce77-live-probe-v1` manifest does not contain.
 - The plugin does not implement the classic native plugin Type-6 popup callback. That callback belongs to the classic ABI and needs a separately compiled, header-pinned native probe after the CE 7.7 header/Pascal divergence has been resolved.
 - The tail canary is a bounded experimental write, not a new ABI rule. The SDK production path continues to write only the packed 36-byte record.
 - `synchronize` facts become evidence only when raw thread IDs, exception text, return value and re-entrancy outcome are captured from the pinned host. `inMainThread()` capture and disable-while-worker drain remain future controlled probes; this harness does not claim either result.

@@ -12,7 +12,7 @@ an item is marked live only after the controlled procedure in [live probes](live
 | Target and host addresses | `Address` and `HostAddress` are distinct API types. | Managed type and memory API tests. |
 | Engine object ownership | Only factories with a documented caller-owned result create `Owned<T>`. GUI-owned objects stay borrowed. | CE 7.7 source catalogue plus managed ownership tests. |
 | Memory, inspection and scans | Results preserve unavailable, Lua-error and malformed-result distinctions where documented by the API. | Pinned Lua fixture and managed tests; CE timing and affinity are not inferred. |
-| Advanced domains | Debugger, DBVM, structures and process interactions retain their stated per-recipe limitations. | See [advanced-domain boundaries](advanced-domains/README.md). |
+| Advanced domains | Debugger, DBVM, structures and process interactions retain their stated per-recipe limitations. No family is available from source presence, a global name, an interface, or an opt-in. | See [advanced-domain boundaries](advanced-domains/README.md) and the [independent family partition](advanced-domains/capability-partitions.md). |
 
 The source records supporting these entries are indexed in [SOURCES.md](SOURCES.md). Update this file together with an
 API contract when new CE source or live evidence changes the boundary. The source-indexed, machine-validated

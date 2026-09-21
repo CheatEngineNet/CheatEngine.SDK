@@ -85,6 +85,12 @@
     <Project Path="tests/CheatEngine.SDK.LivePlugin/CheatEngine.SDK.LivePlugin.csproj">
       <Platform Project="x64"/>
     </Project>
+    <Project Path="tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj">
+      <Platform Project="x64"/>
+    </Project>
+    <Project Path="tests/CheatEngine.SDK.NativeAotLoaderHarness/CheatEngine.SDK.NativeAotLoaderHarness.csproj">
+      <Platform Project="x64"/>
+    </Project>
     <Project Path="tests/CheatEngine.SDK.LivePlugin.Coexistence/PluginA/CheatEngine.SDK.LivePlugin.Coexistence.PluginA.csproj">
       <Platform Project="x64"/>
     </Project>

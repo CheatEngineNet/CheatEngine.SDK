@@ -63,16 +63,21 @@ internal sealed class AllocationOperationsFake : ITargetMemoryAllocationOperatio
         observation = TargetObservation;
         incarnation = observation.Incarnation.GetValueOrDefault();
         if (!observation.IsQualified)
-            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+            return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
                 EngineFailureKind.TargetIdentityUnavailable));
 
         if (BoundAllocationOutcomeOverride.HasValue)
             return BoundAllocationOutcomeOverride.GetValueOrDefault();
 
         var allocated = TryAllocate(request, out var address);
+
+        // Preserve caller-provided shapes so boundary tests can deliberately exercise
+        // malformed native results which public factories rightly reject.
         return allocated
-            ? TargetMemoryAllocationOutcome.Succeeded(address)
-            : new TargetMemoryAllocationOutcome(TargetMemoryOperationOutcome.ExpectedFailure(), address);
+            ? new TargetMemoryAllocationOutcome(TargetMemoryOperationOutcome.Succeeded(), address)
+            : new TargetMemoryAllocationOutcome(
+                TargetMemoryOperationOutcome.Failed(EngineFailureKind.ExpectedOperationFailure),
+                address);
     }
 
     public bool TryDeallocateBound(TargetProcessIncarnation expected, Address address, TargetAllocationSize size,
@@ -87,14 +92,14 @@ internal sealed class AllocationOperationsFake : ITargetMemoryAllocationOperatio
     {
         targetCheck = GetTargetCheck(expected, TargetObservation);
         if (!targetCheck.IsCurrent)
-            return TargetMemoryOperationOutcome.FromFailureKind(targetCheck.Kind is TargetIdentityCheckKind.TargetChanged
+            return TargetMemoryOperationOutcome.Failed(targetCheck.Kind is TargetIdentityCheckKind.TargetChanged
                 or TargetIdentityCheckKind.ProcessReused
                 ? EngineFailureKind.TargetIdentityMismatch
                 : EngineFailureKind.TargetIdentityUnavailable);
 
         return TryDeallocate(address, size)
             ? TargetMemoryOperationOutcome.Succeeded()
-            : TargetMemoryOperationOutcome.ExpectedFailure();
+            : TargetMemoryOperationOutcome.Failed(EngineFailureKind.ExpectedOperationFailure);
     }
 
     private static TargetIdentityCheck GetTargetCheck(TargetProcessIncarnation expected,

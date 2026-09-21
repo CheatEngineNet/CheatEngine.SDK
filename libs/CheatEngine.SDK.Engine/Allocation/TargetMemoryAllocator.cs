@@ -127,32 +127,32 @@ public sealed class TargetMemoryAllocator
     public TargetMemoryAllocationOutcome AllocateWithOutcome(TargetAllocationRequest request)
     {
         if (request.Size.Value <= 0)
-            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+            return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
                 EngineFailureKind.MarshallingFailure));
 
         if (_operations is not ITargetBoundMemoryAllocationOperations targetBound)
-            return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+            return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
                 EngineFailureKind.TargetIdentityUnavailable));
 
         try
         {
             var outcome = targetBound.AllocateBoundWithOutcome(request, out _, out var observation);
             if (!observation.IsQualified)
-                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
                     EngineFailureKind.TargetIdentityUnavailable));
             return outcome;
         }
         catch (EngineException exception)
         {
-            return TargetMemoryAllocationOutcome.FromOperation(CreateOutcome(exception));
+            return TargetMemoryAllocationOutcome.Failed(CreateOutcome(exception));
         }
     }
 
     internal static TargetMemoryOperationOutcome CreateOutcome(EngineException exception)
     {
         return exception is EngineLuaException lua
-            ? TargetMemoryOperationOutcome.FromFailureKind(exception.Kind, lua.Status)
-            : TargetMemoryOperationOutcome.FromFailureKind(exception.Kind);
+            ? TargetMemoryOperationOutcome.Failed(exception.Kind, lua.Status)
+            : TargetMemoryOperationOutcome.Failed(exception.Kind);
     }
 
     private static AllocatedRegion CreateRegion(ITargetBoundMemoryAllocationOperations operations, Address address,

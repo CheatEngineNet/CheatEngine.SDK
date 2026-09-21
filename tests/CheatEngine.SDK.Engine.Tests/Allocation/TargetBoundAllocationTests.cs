@@ -198,7 +198,7 @@ public sealed class TargetBoundAllocationTests
             observation = ObserveCurrent();
             incarnation = observation.Incarnation.GetValueOrDefault();
             if (!observation.IsQualified)
-                return TargetMemoryAllocationOutcome.FromOperation(TargetMemoryOperationOutcome.FromFailureKind(
+                return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
                     EngineFailureKind.TargetIdentityUnavailable));
 
             Current!.AllocationCalls++;
@@ -219,14 +219,14 @@ public sealed class TargetBoundAllocationTests
             var observation = ObserveCurrent();
             targetCheck = Check(expected, observation);
             if (!targetCheck.IsCurrent)
-                return TargetMemoryOperationOutcome.FromFailureKind(targetCheck.Kind is TargetIdentityCheckKind.TargetChanged
+                return TargetMemoryOperationOutcome.Failed(targetCheck.Kind is TargetIdentityCheckKind.TargetChanged
                     or TargetIdentityCheckKind.ProcessReused
                     ? EngineFailureKind.TargetIdentityMismatch
                     : EngineFailureKind.TargetIdentityUnavailable);
 
             return TryDeallocate(address, size)
                 ? TargetMemoryOperationOutcome.Succeeded()
-                : TargetMemoryOperationOutcome.ExpectedFailure();
+                : TargetMemoryOperationOutcome.Failed(EngineFailureKind.ExpectedOperationFailure);
         }
 
         private TargetSelectionObservation ObserveCurrent()

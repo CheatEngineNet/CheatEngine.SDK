@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Lua.Calls;
@@ -54,25 +55,38 @@ public readonly record struct TargetMemoryOperationOutcome
         _ => null,
     };
 
-    internal static TargetMemoryOperationOutcome Succeeded()
+    /// <summary>Creates a successful allocation operation outcome.</summary>
+    public static TargetMemoryOperationOutcome Succeeded()
     {
         return new TargetMemoryOperationOutcome(TargetMemoryOperationOutcomeKind.Succeeded, LuaStatus.Ok);
     }
 
-    internal static TargetMemoryOperationOutcome ExpectedFailure()
+    /// <summary>Creates a specified allocation operation failure outcome.</summary>
+    /// <param name="failureKind">The stable Engine failure category to report.</param>
+    /// <param name="luaStatus">
+    ///     The non-success protected-call status when <paramref name="failureKind" /> is
+    ///     <see cref="EngineFailureKind.ProtectedLuaFailure" />; ignored for every other failure category.
+    /// </param>
+    /// <returns>A specified non-success outcome with a valid Lua status.</returns>
+    /// <exception cref="ArgumentException">
+    ///     <paramref name="failureKind" /> is <see cref="EngineFailureKind.ProtectedLuaFailure" /> and
+    ///     <paramref name="luaStatus" /> is successful.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     <paramref name="failureKind" /> is not an Engine failure category supported by memory allocation.
+    /// </exception>
+    public static TargetMemoryOperationOutcome Failed(EngineFailureKind failureKind, LuaStatus luaStatus = default)
     {
-        return new TargetMemoryOperationOutcome(TargetMemoryOperationOutcomeKind.ExpectedFailure, LuaStatus.Ok);
-    }
-
-    internal static TargetMemoryOperationOutcome FromFailureKind(EngineFailureKind kind, LuaStatus luaStatus = default)
-    {
-        return kind switch
+        return failureKind switch
         {
-            EngineFailureKind.ExpectedOperationFailure => ExpectedFailure(),
+            EngineFailureKind.ExpectedOperationFailure => new TargetMemoryOperationOutcome(
+                TargetMemoryOperationOutcomeKind.ExpectedFailure, LuaStatus.Ok),
             EngineFailureKind.GlobalUnavailable => new TargetMemoryOperationOutcome(
                 TargetMemoryOperationOutcomeKind.GlobalUnavailable, LuaStatus.Ok),
             EngineFailureKind.CapabilityUnavailable => new TargetMemoryOperationOutcome(
                 TargetMemoryOperationOutcomeKind.CapabilityUnavailable, LuaStatus.Ok),
+            EngineFailureKind.ProtectedLuaFailure when luaStatus.IsOk => throw new ArgumentException(
+                "A protected Lua failure requires a non-success Lua status.", nameof(luaStatus)),
             EngineFailureKind.ProtectedLuaFailure => new TargetMemoryOperationOutcome(
                 TargetMemoryOperationOutcomeKind.ProtectedLuaFailure, luaStatus),
             EngineFailureKind.BindingFailure => new TargetMemoryOperationOutcome(
@@ -83,7 +97,8 @@ public readonly record struct TargetMemoryOperationOutcome
                 TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable, LuaStatus.Ok),
             EngineFailureKind.TargetIdentityMismatch => new TargetMemoryOperationOutcome(
                 TargetMemoryOperationOutcomeKind.TargetIdentityMismatch, LuaStatus.Ok),
-            _ => new TargetMemoryOperationOutcome(TargetMemoryOperationOutcomeKind.Unspecified, LuaStatus.Ok),
+            _ => throw new ArgumentOutOfRangeException(nameof(failureKind), failureKind,
+                "The failure category is not supported by memory allocation."),
         };
     }
 }

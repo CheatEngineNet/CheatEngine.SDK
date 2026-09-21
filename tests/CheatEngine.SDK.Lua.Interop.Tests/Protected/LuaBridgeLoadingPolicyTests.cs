@@ -1,8 +1,9 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Lua.Interop.Protected;
 
-namespace CheatEngine.SDK.Lua.Interop.Tests.NativeProtection;
+namespace CheatEngine.SDK.Lua.Interop.Tests.Protected;
 
 /// <summary>Contract tests for deterministic loading of the packaged native Lua bridge.</summary>
 public sealed class LuaBridgeLoadingPolicyTests

@@ -26,8 +26,9 @@ internal static class LuaFunctionParser
         var luaName = LuaBindingSymbols.ReadSdkAttributeName(context.Attributes, compilation,
             LuaBindingsGenerator.LuaFunctionAttributeMetadataName);
 
-        var issues =
-            LuaFunctionShape.Inspect(method, LuaBindingSymbols.ResolveLuaState(compilation), out var signature);
+        var issues = LuaFunctionShape.Inspect(compilation, method, LuaBindingSymbols.ResolveLuaState(compilation),
+            LuaBindingSymbols.ResolveLuaMarshallerAttribute(compilation),
+            LuaBindingSymbols.ResolveLuaMarshallerContract(compilation), out var signature);
         if (!isSdkAttribute || !LuaNames.IsValidName(luaName)) issues |= LuaFunctionShapeIssues.InvalidName;
 
         var typeIssues = ContainingTypeShape.Inspect(method.ContainingType, cancellationToken);
@@ -42,7 +43,8 @@ internal static class LuaFunctionParser
                 signature.PassesState,
                 signature.Arguments,
                 signature.ReturnKind,
-                LuaBindingsDeclaredDiagnosticIds.Collect(method));
+                LuaBindingsDeclaredDiagnosticIds.Collect(method),
+                signature.ReturnMarshaller);
 
         return new LuaFunctionModel(containingType, typeIssues, luaName ?? string.Empty, issues, thunk,
             HasGeneratedIdentityCollision(method, luaName));

@@ -1,0 +1,10 @@
+[*.cs]
+# Test code awaits without ConfigureAwait by design.
+dotnet_diagnostic.MA0004.severity = suggestion
+
+# Historical test namespaces mirror the production concept named "Protected".
+dotnet_diagnostic.CA1716.severity = none
+
+[*.Tests/**.cs]
+# Behavior-focused test names use Subject_condition_expected.
+dotnet_diagnostic.CA1707.severity = none

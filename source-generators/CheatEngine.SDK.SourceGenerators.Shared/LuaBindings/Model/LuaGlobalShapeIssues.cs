@@ -47,7 +47,8 @@ internal enum LuaGlobalShapeIssues
     ///     An argument has a type no marshaller pushes: only <see langword="int" />, <see langword="long" />,
     ///     <see langword="float" />, <see langword="double" />,
     ///     <see langword="bool" />, <see langword="nuint" />, <c>ReadOnlySpan&lt;byte&gt;</c> and <see langword="string" />
-    ///     are accepted.
+    ///     are accepted unless an explicit annotation names a type that implements the matching
+    ///     <c>ILuaMarshaller&lt;T&gt;</c> contract.
     /// </summary>
     UnsupportedParameterType = 1 << 7,
 
@@ -67,7 +68,8 @@ internal enum LuaGlobalShapeIssues
     StateParameterNotFirst = 1 << 11,
 
     /// <summary>
-    ///     An <see langword="out" /> parameter has a type no marshaller reads, or a <c>Span&lt;byte&gt;</c> destination
+    ///     An <see langword="out" /> parameter has a type no marshaller reads (including a named type without a valid
+    ///     <c>ILuaMarshaller&lt;T&gt;</c> annotation), or a <c>Span&lt;byte&gt;</c> destination
     ///     is not followed by <see langword="out" /> <see langword="int" />.
     /// </summary>
     UnsupportedResultType = 1 << 12,
@@ -83,7 +85,10 @@ internal enum LuaGlobalShapeIssues
     /// <summary>An argument follows a result: results (<see langword="out" /> parameters and copy-out pairs) must come last.</summary>
     ResultBeforeArgument = 1 << 14,
 
-    /// <summary>The return type is neither <see langword="void" />, <see langword="bool" /> nor a type a marshaller reads.</summary>
+    /// <summary>
+    ///     The return type is neither <see langword="void" />, <see langword="bool" />, a built-in marshalled type nor
+    ///     a type with a valid explicit <c>ILuaMarshaller&lt;T&gt;</c> annotation.
+    /// </summary>
     UnsupportedReturnType = 1 << 15,
 
     /// <summary>

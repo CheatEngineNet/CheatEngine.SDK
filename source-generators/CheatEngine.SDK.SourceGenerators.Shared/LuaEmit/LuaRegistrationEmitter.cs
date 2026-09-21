@@ -9,16 +9,16 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Registration is <c>LuaState.TryPushFunction(new LuaNativeFunction(&amp;Thunk))</c> (the C closure wrapped by
-///         the
-///         error-channel closure, at registration time) followed by <c>TrySetGlobal(name)</c>: the protected assignment
+///         Registration is <c>LuaRuntime.TryPushGeneratedFunction(state, new LuaNativeFunction(&amp;Thunk))</c> (the C
+///         closure wrapped by the error-channel closure, at registration time) followed by <c>TrySetGlobal(name)</c>:
+///         the protected assignment
 ///         honours a <c>__newindex</c> on the globals table and never uses Cheat Engine's <c>LuaRegister</c> export. Both
 ///         return a <c>LuaStatus</c> and follow its protocol, so the pair does too: <see cref="StatusProtocol" />.
 ///     </para>
 ///     <para>
-///         The thunks are stateless (they wrap static methods), so unregistering only removes the names: a script that
-///         kept
-///         a function value can still call it, which is safe because the method exists for the life of the assembly.
+///         Each thunk is wrapped in a closure that captures the current attachment epoch and state generation. A script
+///         that kept a function value after disable, reset or re-enable receives an ordinary Lua error
+///         instead of entering a stale managed registration.
 ///     </para>
 /// </remarks>
 [SuppressMessage(
@@ -142,8 +142,10 @@ internal static class LuaRegistrationEmitter
     {
         writer.Write(Status);
         writer.Write(" = ");
+        writer.Write(LuaApiNames.LuaRuntime);
+        writer.Write(".TryPushGeneratedFunction(");
         writer.Write(StateParameter);
-        writer.Write(".TryPushFunction(new ");
+        writer.Write(", new ");
         writer.Write(LuaApiNames.LuaNativeFunction);
         writer.Write("(&");
         writer.Write(thunk.ThunkMethodName);

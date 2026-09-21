@@ -51,6 +51,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
             SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaPropertyAttribute),
             SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaFunctionAttribute),
             SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaGlobalAttribute),
+            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaMarshallerAttribute),
+            SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.ILuaMarshaller),
             SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaState),
             context.Compilation.GetTypeByMetadataName("System.ReadOnlySpan`1"),
             context.Compilation.GetTypeByMetadataName("CheatEngine.SDK.Engine.Objects.CEObject"));
@@ -159,7 +161,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
                 continue;
 
             var name = ReadName(attribute);
-            var issues = LuaFunctionShape.Inspect(method, symbols.LuaState, out _);
+            var issues = LuaFunctionShape.Inspect(context.Compilation, method, symbols.LuaState, symbols.LuaMarshallerAttribute,
+                symbols.LuaMarshallerContract, out _);
             if (!LuaNames.IsValidName(name)) issues |= LuaFunctionShapeIssues.InvalidName;
             if (issues != LuaFunctionShapeIssues.None || containingIssues != ContainingTypeIssues.None) continue;
 
@@ -189,7 +192,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
                 continue;
 
             var name = ReadName(attribute);
-            var issues = LuaGlobalShape.Inspect(method, symbols.LuaState, out _);
+            var issues = LuaGlobalShape.Inspect(context.Compilation, method, symbols.LuaState, symbols.LuaMarshallerAttribute,
+                symbols.LuaMarshallerContract, out _);
             if (!LuaNames.IsValidName(name)) issues |= LuaGlobalShapeIssues.InvalidName;
             if (issues != LuaGlobalShapeIssues.None || containingIssues != ContainingTypeIssues.None) continue;
 
@@ -442,6 +446,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol? luaPropertyAttribute,
         INamedTypeSymbol? luaFunctionAttribute,
         INamedTypeSymbol? luaGlobalAttribute,
+        INamedTypeSymbol? luaMarshallerAttribute,
+        INamedTypeSymbol? luaMarshallerContract,
         INamedTypeSymbol? luaState,
         INamedTypeSymbol? readOnlySpan,
         INamedTypeSymbol? ceObject)
@@ -455,6 +461,10 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
         public INamedTypeSymbol? LuaFunctionAttribute { get; } = luaFunctionAttribute;
 
         public INamedTypeSymbol? LuaGlobalAttribute { get; } = luaGlobalAttribute;
+
+        public INamedTypeSymbol? LuaMarshallerAttribute { get; } = luaMarshallerAttribute;
+
+        public INamedTypeSymbol? LuaMarshallerContract { get; } = luaMarshallerContract;
 
         public INamedTypeSymbol? LuaState { get; } = luaState;
 

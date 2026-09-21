@@ -1,13 +1,15 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Lua.Interop.Protected;
 using CheatEngine.SDK.Lua.Interop.Tests.Support;
 using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
+
 using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
 
-namespace CheatEngine.SDK.Lua.Interop.Tests.NativeProtection;
+namespace CheatEngine.SDK.Lua.Interop.Tests.Protected;
 
 /// <summary>Managed preconditions that prevent an invalid call from reaching bridge setup before <c>lua_pcallk</c>.</summary>
 public sealed unsafe class LuaProtectedApiTests

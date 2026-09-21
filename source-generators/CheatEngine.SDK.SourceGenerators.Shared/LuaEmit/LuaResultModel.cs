@@ -23,18 +23,37 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     parameter of any type accepts <see langword="scoped" /> without it changing whether the two declarations match), so
 ///     <see cref="Value" /> does not take it.
 /// </param>
+/// <param name="CustomMarshaller">
+///     An explicit marshaller selected with <c>[LuaMarshaller]</c>, or <see langword="null" /> for the SDK scalar
+///     marshaller represented by <paramref name="Kind" />.
+/// </param>
 internal sealed record LuaResultModel(
     LuaResultShape Shape,
     LuaValueKind Kind,
     string Name,
     bool IsNullable,
     string DestinationName,
-    bool DestinationIsScoped = false)
+    bool DestinationIsScoped = false,
+    LuaCustomMarshallerModel? CustomMarshaller = null)
 {
+    /// <summary>Initializes a built-in scalar result model with the pre-custom-marshaller binary shape.</summary>
+    public LuaResultModel(LuaResultShape shape, LuaValueKind kind, string name, bool isNullable,
+        string destinationName, bool destinationIsScoped)
+        : this(shape, kind, name, isNullable, destinationName, destinationIsScoped, null)
+    {
+    }
+
     /// <summary>A value result: <c>out &lt;type&gt; name</c>.</summary>
     public static LuaResultModel Value(LuaValueKind kind, string name, bool isNullable = false)
     {
         return new LuaResultModel(LuaResultShape.Value, kind, name, isNullable, string.Empty);
+    }
+
+    /// <summary>A value result read through an explicitly selected static marshaller.</summary>
+    public static LuaResultModel Custom(LuaCustomMarshallerModel marshaller, string name)
+    {
+        return new LuaResultModel(LuaResultShape.Value, LuaValueKind.Int32, name, IsNullable: false,
+            string.Empty, CustomMarshaller: marshaller);
     }
 
     /// <summary>A copy-out string result: <c>Span&lt;byte&gt; destination, out int written</c>.</summary>
@@ -48,4 +67,16 @@ internal sealed record LuaResultModel(
             destinationName,
             destinationIsScoped);
     }
+
+    /// <summary>The concrete marshaller that emitted code calls directly.</summary>
+    public string GeneratedMarshallerTypeName => CustomMarshaller?.MarshallerTypeName ?? LuaValueKinds.MarshallerTypeName(Kind);
+
+    /// <summary>The C# type spelling used in an emitted <see langword="out" /> parameter or local.</summary>
+    public string GeneratedTypeName => CustomMarshaller?.ValueTypeName ?? LuaValueKinds.TypeName(Kind, IsNullable);
+
+    /// <summary>The Lua-facing expected type in a generated failure message.</summary>
+    public string ExpectedResultTypeName => CustomMarshaller?.ExpectedTypeName ?? LuaValueKinds.ExpectedResult(Kind);
+
+    /// <summary>Whether the generated default assignment needs the null-forgiving operator.</summary>
+    public bool IsReferenceType => CustomMarshaller?.IsReferenceType ?? LuaValueKinds.IsReferenceType(Kind);
 }

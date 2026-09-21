@@ -11,7 +11,8 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 
 /// <summary>
 ///     A borrowed handle to Cheat Engine's <c>FoundList</c> Lua class: an object that opens a memscan result file for
-///     reading. It owns nothing; use <see cref="Owned{T}" /> only after an ownership proof for the individual object.
+///     reading. It owns nothing; <see cref="MemoryScanSessions.TryCreate" /> is the specific SDK factory that owns a
+///     created list as the child of its created scanner.
 /// </summary>
 /// <remarks>
 ///     <para>

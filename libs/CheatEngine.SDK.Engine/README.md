@@ -28,6 +28,7 @@ Cheat Engine. This library encodes each rule once, in a type.
 | `CheatEngine.SDK.Engine.Memory`       | `TargetMemory`, `HostMemory`, `HostAddress`     | Separate target/CE-host scalar, span, pointer, string and byte-table access                           |
 | `CheatEngine.SDK.Engine.Inspection`   | `EngineInspection`                              | Copied modules, sections, symbols, address resolution and memory-region snapshots                     |
 | `CheatEngine.SDK.Engine.Allocation`   | `TargetMemoryAllocator`, `AllocatedRegion`      | Explicit ownership for target allocation, via a reviewed binding seam                                 |
+| `CheatEngine.SDK.Engine.Assembly`     | `AutoAssemblerPatcher`, `AutoAssemblerPatch`    | Low-level, single-disable ownership for Auto Assembler `disableInfo`; Client availability remains live-gated |
 | `CheatEngine.SDK.Engine.Scanning`     | `AobScanner`, `StringList`, `MemoryScanSession` | AOB result ownership and conservative MemScan/FoundList state transitions                             |
 | `CheatEngine.SDK.Engine.AddressLists` | `AddressList`, `MemoryRecord`                   | Borrowed Cheat-Engine GUI handles and strongly typed record identifiers                               |
 | `CheatEngine.SDK.Engine.Errors`       | `EngineException` hierarchy                     | Stable distinction between expected CE, unavailable global, Lua, binding and marshalling failures     |
@@ -44,7 +45,7 @@ host has the same contract.
 | `Inspection`               | `EngineInspection` and module, section, symbol and region value types         | Returns copied managed snapshots. `NotFound` is used only where the CE 7.7 Lua contract documents `nil`; malformed data and Lua failures remain distinct status values.                                                    |
 | `Allocation`               | `TargetMemoryAllocator`, `AllocatedRegion`                                    | Models one target allocation as an explicit, single-use owner. It does not infer a GUI-thread requirement from an unspecific CE global.                                                                                    |
 | `Objects` / `Scanning.Aob` | `StringList`, `StringLists`, `AobScanner`                                     | `StringLists.TryCreate` and `AobScanner.TryScan` return `Owned<StringList>` only after a host object is returned. A list borrowed from CE must never be wrapped or destroyed by plugin code.                               |
-| `Scanning.Values`          | `MemScan`, `FoundList`, `MemoryScanSession`, scan requests and states         | The session accepts explicit owned scanner/child handles, serializes its documented state transitions, and releases the child before the parent. It is explicitly main-thread-only; the generic `Owned<T>` wrapper is not. |
+| `Scanning.Values`          | `MemScan`, `FoundList`, `MemoryScanSessions`, `MemoryScanSession`, scan requests and states | The factory creates and owns the scanner/child pair, rolls a parent back when child creation fails, and the session serializes documented state transitions and releases the child before the parent. It is explicitly main-thread-only; the generic `Owned<T>` wrapper is not. |
 | `AddressLists`             | `AddressListAccess`, `AddressList`, `MemoryRecord`, `MemoryRecordId`          | The current GUI list and records are borrowed CE-owned handles. The source catalogue does not by itself prove a runtime-enforceable GUI-thread guard, so this API does not declare one yet.                                |
 | `Errors`                   | `EngineException` and stable subclasses                                       | Separates expected operation failure, global absence, Lua failure, binding violation and marshalling violation instead of exposing a raw Lua stack error as the public Engine contract.                                    |
 
@@ -113,20 +114,24 @@ not publish a partial collection when the destination is too small or a later Lu
 invalid result separate. The CE 7.7 catalog does not establish affinity for these globals, so these APIs neither
 dispatch nor carry a main-thread assertion.
 
-`TargetMemoryAllocator` requires an `ITargetMemoryAllocationOperations` binding seam. This intentionally avoids
-pretending that the current scalar EngineApi grammar can faithfully generate optional target addresses, page protection
-or transfer ownership. A successful allocation becomes an `AllocatedRegion`; `Release` reports a failure and `Dispose`
-is best-effort, no-throw cleanup. Both consume the ownership first, so a potentially partial deallocation is never
-retried. CE 7.7 has no documented separate post-allocation protection call in this surface.
+`TargetMemoryAllocator` uses `LuaTargetMemoryAllocationOperations` by default and retains
+`ITargetMemoryAllocationOperations` as the narrow testable binding seam. The production binding preserves CE's optional
+target address and page-protection positions, returns an `AllocatedRegion` only after a nonzero target address, and
+uses the original size for `deAlloc`. `Release` reports a failure and `Dispose` is best-effort, no-throw cleanup. Both
+consume ownership first, so a potentially partial deallocation is never retried. CE 7.7 has no documented separate
+post-allocation protection call in this surface.
 
 `AobScanner.TryScan` returns `Owned<StringList>` because CE documents an AOB result list as caller-freed. `StringList`
-itself remains a borrowed handle. `MemScan` and `FoundList` are also borrowed handles; their creation/destruction
-ownership is intentionally not inferred from `celua.txt`. `MemoryScanSession.Adopt` is the opt-in state-machine owner
-only for wrappers whose creator has separately proved ownership. It guards the `firstScan → waitTillDone → initialize →
-read → deinitialize` order and rejects worker-thread cleanup while attached because its owned children use the existing
-SDK owner destruction contract. That conservative SDK guard is not evidence that CE's catalog itself declares every
-scan operation main-thread-only. The raw `MemScan` and `FoundList` handles likewise carry no `MainThreadOnly` metadata
-before a live probe establishes one.
+itself remains a borrowed handle. `MemScan` and `FoundList` are borrowed handle values, while
+`MemoryScanSessions.TryCreate` is the SDK's source-backed CE 7.7 creation path: it immediately owns the returned parent
+and child, holds one Lua operation across both calls, rolls the parent back on any child failure, and transfers the pair
+only to `MemoryScanSession`; an ordinary consumer cannot create an `Owned<MemScan>` or `Owned<FoundList>` manually.
+The Client must still keep value scanning capability-gated until its opt-in CE 7.7 x64 live scenario validates creation,
+cleanup, disable/re-enable, and target changes. The session guards the `firstScan → waitTillDone → initialize → read →
+deinitialize` order and rejects worker-thread cleanup while attached because its owned children use the existing SDK
+owner destruction contract. That conservative SDK guard is not evidence that CE's catalog itself declares every scan
+operation main-thread-only. The raw `MemScan` and `FoundList` handles likewise carry no `MainThreadOnly` metadata before
+a live probe establishes one.
 
 `AddressList` and `MemoryRecord` are always borrowed GUI handles, including a record created by
 `AddressList.TryCreateMemoryRecord`, because CE adds it to the address list. Their possible GUI affinity is documented

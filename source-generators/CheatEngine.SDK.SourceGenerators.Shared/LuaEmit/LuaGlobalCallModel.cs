@@ -42,6 +42,10 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     The cache-field access expression used by the generated body, or <see langword="null" /> to use
 ///     <paramref name="CacheFieldName" /> directly.
 /// </param>
+/// <param name="ReturnMarshaller">
+///     An explicit static marshaller for the throwing-form return value, or <see langword="null" /> when
+///     <paramref name="ReturnKind" /> selects a built-in marshaller.
+/// </param>
 internal sealed record LuaGlobalCallModel(
     string GlobalName,
     string CacheFieldName,
@@ -54,13 +58,39 @@ internal sealed record LuaGlobalCallModel(
     LuaValueKind? ReturnKind,
     bool ReturnIsNullable,
     bool IsExtensionMethod = false,
-    string? CacheFieldAccess = null)
+    string? CacheFieldAccess = null,
+    LuaCustomMarshallerModel? ReturnMarshaller = null)
 {
+    /// <summary>Initializes a call model with the pre-custom-marshaller binary shape.</summary>
+    public LuaGlobalCallModel(string globalName, string cacheFieldName, string modifiers, string methodName,
+        string stateParameterName, EquatableArray<LuaArgumentModel> arguments, LuaCallForm form,
+        EquatableArray<LuaResultModel> results, LuaValueKind? returnKind, bool returnIsNullable,
+        bool isExtensionMethod, string? cacheFieldAccess)
+        : this(globalName, cacheFieldName, modifiers, methodName, stateParameterName, arguments, form, results,
+            returnKind, returnIsNullable, isExtensionMethod, cacheFieldAccess, null)
+    {
+    }
+
     /// <summary>Prefix of the cache field a file emitter declares for a global.</summary>
     public const string CacheFieldPrefix = "s_luaGlobal_";
 
     /// <summary>Number of results the protected call keeps: the result count of the Try form, 0 or 1 for the throwing form.</summary>
-    public int ResultCount => Form == LuaCallForm.Try ? Results.Length : ReturnKind is null ? 0 : 1;
+    public int ResultCount => Form == LuaCallForm.Try ? Results.Length : ReturnKind is null && ReturnMarshaller is null ? 0 : 1;
+
+    /// <summary>Whether the throwing form returns one Lua value.</summary>
+    public bool HasReturn => ReturnKind is not null || ReturnMarshaller is not null;
+
+    /// <summary>The concrete static marshaller for the throwing-form return value.</summary>
+    public string ReturnMarshallerTypeName => ReturnMarshaller?.MarshallerTypeName ??
+                                              LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);
+
+    /// <summary>The C# type spelling for the generated return and result local.</summary>
+    public string ReturnTypeName => ReturnMarshaller?.ValueTypeName ??
+                                    LuaValueKinds.TypeName(ReturnKind!.Value, ReturnIsNullable);
+
+    /// <summary>The Lua-facing expected type for a throwing-form result failure.</summary>
+    public string ExpectedReturnTypeName => ReturnMarshaller?.ExpectedTypeName ??
+                                             LuaValueKinds.ExpectedResult(ReturnKind!.Value);
 
     /// <summary>Whether the body reads the state from <see cref="StateParameterName" /> rather than from the runtime.</summary>
     public bool TakesState => StateParameterName.Length > 0;

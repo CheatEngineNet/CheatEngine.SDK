@@ -51,6 +51,12 @@ internal static class AnnotationsMetadataNames
     public const string LuaGlobalAttribute = "CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute";
 
     /// <summary>
+    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaMarshallerAttribute</c>, which selects a concrete
+    ///     static marshaller for one generated binding value.
+    /// </summary>
+    public const string LuaMarshallerAttribute = "CheatEngine.SDK.Annotations.Lua.LuaMarshallerAttribute";
+
+    /// <summary>
     ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaClassAttribute</c>, which identifies a borrowed
     ///     Cheat Engine object-handle wrapper.
     /// </summary>

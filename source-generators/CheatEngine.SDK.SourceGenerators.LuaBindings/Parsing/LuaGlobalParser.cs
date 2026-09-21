@@ -28,7 +28,9 @@ internal static class LuaGlobalParser
         var luaName = LuaBindingSymbols.ReadSdkAttributeName(context.Attributes, compilation,
             LuaBindingsGenerator.LuaGlobalAttributeMetadataName);
 
-        var issues = LuaGlobalShape.Inspect(method, LuaBindingSymbols.ResolveLuaState(compilation), out var signature);
+        var issues = LuaGlobalShape.Inspect(compilation, method, LuaBindingSymbols.ResolveLuaState(compilation),
+            LuaBindingSymbols.ResolveLuaMarshallerAttribute(compilation),
+            LuaBindingSymbols.ResolveLuaMarshallerContract(compilation), out var signature);
         if (!isSdkAttribute || !LuaNames.IsValidName(luaName)) issues |= LuaGlobalShapeIssues.InvalidName;
 
         var typeIssues = ContainingTypeShape.Inspect(method.ContainingType, cancellationToken);
@@ -49,7 +51,8 @@ internal static class LuaGlobalParser
                 signature.ReturnKind,
                 signature.ReturnIsNullable,
                 method.IsExtensionMethod,
-                containingType.FullyQualifiedName + "." + LuaGlobalCallModel.CacheFieldFor(luaName!));
+                containingType.FullyQualifiedName + "." + LuaGlobalCallModel.CacheFieldFor(luaName!),
+                signature.ReturnMarshaller);
 
         return new LuaGlobalModel(containingType, typeIssues, issues, call, SortKey(method),
             hasGeneratedIdentityCollision);

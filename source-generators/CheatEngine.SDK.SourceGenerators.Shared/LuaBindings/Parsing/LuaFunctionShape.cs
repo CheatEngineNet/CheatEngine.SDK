@@ -16,9 +16,10 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 ///     The rules, in the order the flags are set: an ordinary, static, non-generic, non-<see langword="async" /> method
 ///     (an <c>async void</c> method returns <see langword="void" /> like any other and would otherwise pass every other
 ///     check, but the thunk calls it synchronously and cannot catch what its continuation throws); parameters by value,
-///     none optional or <see langword="params" />, each of a marshalled kind, except a leading <c>LuaState</c> that
-///     receives the callback's state; a return type that is <see langword="void" /> or of a marshalled kind. The name and
-///     the containing type are checked by the caller (<c>LuaNames.IsValidName</c>, <see cref="ContainingTypeShape" />);
+///     none optional or <see langword="params" />, each of a built-in marshalled kind or carrying an explicit valid
+///     <c>[LuaMarshaller]</c>, except a leading <c>LuaState</c> that receives the callback's state; a return type that
+///     is <see langword="void" /> or has the same conversion contract. The name and the containing type are checked by
+///     the caller (<c>LuaNames.IsValidName</c>, <see cref="ContainingTypeShape" />);
 ///     duplicate names are a group rule (<c>LuaFunctionTables</c>).
 /// </remarks>
 [SuppressMessage(
@@ -28,15 +29,37 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
         "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class LuaFunctionShape
 {
-    /// <summary>Inspects <paramref name="method" /> against the resolved SDK <paramref name="luaState" /> symbol.</summary>
+    /// <summary>Inspects <paramref name="method" /> against resolved SDK Lua binding contracts.</summary>
+    /// <param name="compilation">The consumer compilation that must be able to call a custom marshaller directly.</param>
     /// <param name="method">The attributed method.</param>
     /// <param name="luaState">The real Lua runtime state symbol, or <see langword="null" /> when it is unavailable.</param>
+    /// <param name="luaMarshallerAttribute">The real SDK marshaller annotation, or <see langword="null" />.</param>
+    /// <param name="luaMarshallerContract">The real SDK static marshaller contract, or <see langword="null" />.</param>
     /// <param name="signature">
     ///     What could be classified; complete only when the result is
     ///     <see cref="LuaFunctionShapeIssues.None" />.
     /// </param>
+    public static LuaFunctionShapeIssues Inspect(Compilation compilation, IMethodSymbol method, INamedTypeSymbol? luaState,
+        INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract,
+        out LuaFunctionSignature signature)
+    {
+        return InspectCore(compilation, method, luaState, luaMarshallerAttribute, luaMarshallerContract,
+            out signature);
+    }
+
+    /// <summary>
+    ///     Compatibility overload for consumers that only validate the built-in scalar contract. The LuaBindings
+    ///     generator and its analyzer call the overload that resolves <c>[LuaMarshaller]</c> explicitly.
+    /// </summary>
     public static LuaFunctionShapeIssues Inspect(IMethodSymbol method, INamedTypeSymbol? luaState,
         out LuaFunctionSignature signature)
+    {
+        return InspectCore(null, method, luaState, null, null, out signature);
+    }
+
+    private static LuaFunctionShapeIssues InspectCore(Compilation? compilation, IMethodSymbol method,
+        INamedTypeSymbol? luaState, INamedTypeSymbol? luaMarshallerAttribute,
+        INamedTypeSymbol? luaMarshallerContract, out LuaFunctionSignature signature)
     {
         var issues = LuaFunctionShapeIssues.None;
 
@@ -48,14 +71,18 @@ internal static class LuaFunctionShape
 
         if (method.IsAsync) issues |= LuaFunctionShapeIssues.Async;
 
-        issues |= InspectParameters(method, luaState, out var passesState, out var arguments);
-        issues |= InspectReturn(method, out var returnKind);
+        issues |= InspectParameters(compilation, method, luaState, luaMarshallerAttribute, luaMarshallerContract,
+            out var passesState, out var arguments);
+        issues |= InspectReturn(compilation, method, luaMarshallerAttribute, luaMarshallerContract, out var returnKind,
+            out var returnMarshaller);
 
-        signature = new LuaFunctionSignature(passesState, arguments, returnKind);
+        signature = new LuaFunctionSignature(passesState, arguments, returnKind, returnMarshaller);
         return issues;
     }
 
-    private static LuaFunctionShapeIssues InspectParameters(IMethodSymbol method, INamedTypeSymbol? luaState,
+    private static LuaFunctionShapeIssues InspectParameters(Compilation? compilation, IMethodSymbol method,
+        INamedTypeSymbol? luaState,
+        INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract,
         out bool passesState,
         out EquatableArray<LuaArgumentModel> arguments)
     {
@@ -79,6 +106,17 @@ internal static class LuaFunctionShape
                 else
                     issues |= LuaFunctionShapeIssues.StateParameterNotFirst;
             }
+            else if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, parameter.Type,
+                         parameter.GetAttributes(), luaMarshallerAttribute, luaMarshallerContract,
+                         out var customMarshaller, out _))
+            {
+                issues |= LuaFunctionShapeIssues.UnsupportedParameterType;
+            }
+            else if (customMarshaller is not null)
+            {
+                builder.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), LuaValueKind.Int32,
+                    IsNullable: false, CustomMarshaller: customMarshaller));
+            }
             else if (LuaValueKindMapper.TryMap(parameter.Type, out var kind, out var isNullable))
             {
                 builder.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), kind, isNullable));
@@ -93,13 +131,27 @@ internal static class LuaFunctionShape
         return issues;
     }
 
-    private static LuaFunctionShapeIssues InspectReturn(IMethodSymbol method, out LuaValueKind? returnKind)
+    private static LuaFunctionShapeIssues InspectReturn(Compilation? compilation, IMethodSymbol method,
+        INamedTypeSymbol? luaMarshallerAttribute,
+        INamedTypeSymbol? luaMarshallerContract, out LuaValueKind? returnKind,
+        out LuaCustomMarshallerModel? returnMarshaller)
     {
         returnKind = null;
+        returnMarshaller = null;
         if (method.ReturnsVoid) return LuaFunctionShapeIssues.None;
 
-        if (method is not { ReturnsByRef: false, ReturnsByRefReadonly: false }
-            || !LuaValueKindMapper.TryMap(method.ReturnType, out var kind, out _))
+        if (method is not { ReturnsByRef: false, ReturnsByRefReadonly: false })
+            return LuaFunctionShapeIssues.UnsupportedReturnType;
+
+        if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, method.ReturnType,
+                method.GetReturnTypeAttributes(), luaMarshallerAttribute, luaMarshallerContract,
+                out returnMarshaller, out _)
+            || (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
+            return LuaFunctionShapeIssues.UnsupportedReturnType;
+
+        if (returnMarshaller is not null) return LuaFunctionShapeIssues.None;
+
+        if (!LuaValueKindMapper.TryMap(method.ReturnType, out var kind, out _))
             return LuaFunctionShapeIssues.UnsupportedReturnType;
         returnKind = kind;
         return LuaFunctionShapeIssues.None;

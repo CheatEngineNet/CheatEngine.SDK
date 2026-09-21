@@ -1,4 +1,4 @@
-# Working trees are CRLF on every OS to match .editorconfig; the repository itself stores LF.
+# Working trees use CRLF on every OS; this file owns line-ending normalization while .editorconfig governs formatting.
 * text=auto eol=crlf
 *.dll binary
 

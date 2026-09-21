@@ -45,7 +45,8 @@ internal enum LuaFunctionShapeIssues
     ///     A parameter has a type no marshaller reads: only <see langword="int" />, <see langword="long" />,
     ///     <see langword="float" />, <see langword="double" />,
     ///     <see langword="bool" />, <see langword="nuint" />, <c>ReadOnlySpan&lt;byte&gt;</c> and <see langword="string" />
-    ///     are accepted.
+    ///     are accepted unless an explicit annotation names a type that implements the matching
+    ///     <c>ILuaMarshaller&lt;T&gt;</c> contract.
     /// </summary>
     UnsupportedParameterType = 1 << 4,
 
@@ -64,7 +65,10 @@ internal enum LuaFunctionShapeIssues
     /// <summary>A <c>LuaState</c> parameter is not the first parameter: the state is passed first or not at all.</summary>
     StateParameterNotFirst = 1 << 8,
 
-    /// <summary>The return type is neither <see langword="void" /> nor a type a marshaller pushes.</summary>
+    /// <summary>
+    ///     The return type is neither <see langword="void" />, a built-in marshalled type nor a type with a valid
+    ///     explicit <c>ILuaMarshaller&lt;T&gt;</c> annotation.
+    /// </summary>
     UnsupportedReturnType = 1 << 9,
 
     /// <summary>

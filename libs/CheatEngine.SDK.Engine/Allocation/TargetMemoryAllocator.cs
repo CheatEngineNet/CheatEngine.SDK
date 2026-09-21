@@ -19,6 +19,18 @@ public sealed class TargetMemoryAllocator
     private readonly ITargetMemoryAllocationOperations _operations;
 
     /// <summary>
+    ///     Initializes an allocator backed by the production CE 7.7 <c>allocateMemory</c>/<c>deAlloc</c> binding.
+    /// </summary>
+    /// <remarks>
+    ///     The binding resolves its globals only while an enabled plugin has a Lua state. Constructing this facade does
+    ///     not contact Cheat Engine and is safe before plugin enable; <see cref="Allocate" /> remains lifecycle-gated.
+    /// </remarks>
+    public TargetMemoryAllocator()
+        : this(LuaTargetMemoryAllocationOperations.Instance)
+    {
+    }
+
+    /// <summary>
     ///     Initializes the target-memory allocation facade.
     /// </summary>
     /// <param name="operations">The CE 7.7 generated-binding-facing operations.</param>

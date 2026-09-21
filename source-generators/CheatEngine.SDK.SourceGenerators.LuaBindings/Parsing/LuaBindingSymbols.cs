@@ -14,6 +14,8 @@ internal static class LuaBindingSymbols
     private const string AnnotationsAssemblyName = "CheatEngine.SDK.Annotations";
     private const string LuaAssemblyName = "CheatEngine.SDK.Lua";
     private const string LuaStateMetadataName = "CheatEngine.SDK.Lua.State.LuaState";
+    private const string LuaMarshallerMetadataName = "CheatEngine.SDK.Annotations.Lua.LuaMarshallerAttribute";
+    private const string LuaMarshallerContractMetadataName = "CheatEngine.SDK.Lua.Marshalling.ILuaMarshaller`1";
 
     /// <summary>
     ///     Returns whether one attribute in <paramref name="attributes" /> is exactly the SDK annotation named by
@@ -36,6 +38,18 @@ internal static class LuaBindingSymbols
     public static INamedTypeSymbol? ResolveLuaState(Compilation compilation)
     {
         return ResolveSdkType(compilation, LuaStateMetadataName, LuaAssemblyName);
+    }
+
+    /// <summary>Gets the actual SDK custom-marshaller annotation, or <see langword="null" /> when it is unavailable.</summary>
+    public static INamedTypeSymbol? ResolveLuaMarshallerAttribute(Compilation compilation)
+    {
+        return ResolveSdkType(compilation, LuaMarshallerMetadataName, AnnotationsAssemblyName);
+    }
+
+    /// <summary>Gets the actual static marshaller contract, or <see langword="null" /> when it is unavailable.</summary>
+    public static INamedTypeSymbol? ResolveLuaMarshallerContract(Compilation compilation)
+    {
+        return ResolveSdkType(compilation, LuaMarshallerContractMetadataName, LuaAssemblyName);
     }
 
     /// <summary>

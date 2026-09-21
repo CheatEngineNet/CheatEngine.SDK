@@ -238,6 +238,29 @@ public static unsafe class LuaRuntime
     }
 
     /// <summary>
+    ///     Pushes one generated <c>[LuaFunction]</c> closure and captures the current attachment identity in that
+    ///     closure. Stack: +1 (the function) on success; +1 (the error value) on failure.
+    /// </summary>
+    /// <param name="state">The calling thread's Lua state.</param>
+    /// <param name="thunk">The generated unmanaged thunk to wrap.</param>
+    /// <returns>The status of installing the Lua error wrapper and guarded closure.</returns>
+    /// <remarks>
+    ///     The LuaBindings generator is the normal caller. Each invocation stores the current attachment epoch and
+    ///     state generation as closure upvalues. Consequently, a Lua script retaining a function value after disable,
+    ///     state reset or re-enable receives an ordinary Lua error instead of reaching the old generated scope. A
+    ///     detached native-fixture registration remains supported for existing direct-runtime tests; it is explicitly
+    ///     marked as not requiring an attachment and must not be used as a host lifecycle integration path.
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    public static LuaStatus TryPushGeneratedFunction(LuaState state, LuaNativeFunction thunk)
+    {
+        using var operation = EnterStateOperation(state);
+        var identity = CurrentStateIdentity;
+        var requiresAttachedRuntime = Volatile.Read(ref s_services) is not null;
+        return state.TryPushGeneratedFunction(thunk, identity, requiresAttachedRuntime);
+    }
+
+    /// <summary>
     ///     Publishes a host binding and advances <see cref="Epoch" />. Called by the host's enable callback; when a binding
     ///     is already attached it is replaced (its live callbacks are neutralized first, as in <see cref="Detach" />).
     /// </summary>
@@ -486,6 +509,16 @@ public static unsafe class LuaRuntime
 
         operation = default;
         return false;
+    }
+
+    // A generated [LuaFunction] closure stores this pair in Lua upvalues. Keeping the test and the following
+    // admission attempt distinct is intentional: once admission closes, a closure that raced with disable is rejected
+    // before user code; one admitted before the boundary retains its lease until its unmanaged thunk returns.
+    internal static bool IsGeneratedFunctionRegistrationCurrent(int attachEpoch, int stateGeneration)
+    {
+        return Volatile.Read(ref s_services) is not null
+               && Volatile.Read(ref s_identity) == PackIdentity(attachEpoch, stateGeneration)
+               && IsOperationAdmissionOpen();
     }
 
     /// <summary>

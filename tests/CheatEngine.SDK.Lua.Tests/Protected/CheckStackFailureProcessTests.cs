@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
+
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
-namespace CheatEngine.SDK.Lua.Tests.FailureBoundaries;
+namespace CheatEngine.SDK.Lua.Tests.Protected;
 
 /// <summary>
 ///     Runs the direct managed <c>lua_checkstack</c> growth path in a child process. A failure of Lua's internal

@@ -10,8 +10,9 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings;
 /// <summary>
 ///     Emits, into the consumer's assembly, the Lua side of its bindings: a <c>lua_CFunction</c> thunk and a
 ///     registration pair per type for every <c>[LuaFunction]</c> static method, and the body of every
-///     <c>[LuaGlobal]</c> static partial method with a scalar signature. The emitted code is written against the public
-///     API of <c>CheatEngine.SDK.Lua</c> and generated borrowed object handles for <c>[LuaClass]</c>,
+///     <c>[LuaGlobal]</c> static partial method with a supported scalar signature or an explicitly selected
+///     <c>[LuaMarshaller]</c>. The emitted code is written against the public API of <c>CheatEngine.SDK.Lua</c> and
+///     generated borrowed object handles for <c>[LuaClass]</c>,
 ///     <c>[LuaMethod]</c> and <c>[LuaProperty]</c>.
 /// </summary>
 /// <remarks>

@@ -17,6 +17,8 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 ///     The resolved <c>CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute</c>, or
 ///     <see langword="null" />.
 /// </param>
+/// <param name="luaMarshallerAttribute">The resolved custom-marshaller annotation, or <see langword="null" />.</param>
+/// <param name="luaMarshallerContract">The resolved <c>ILuaMarshaller&lt;T&gt;</c> contract, or <see langword="null" />.</param>
 /// <param name="luaClassAttribute">The resolved LuaClass marker, or <see langword="null" />.</param>
 /// <param name="luaMethodAttribute">The resolved LuaMethod marker, or <see langword="null" />.</param>
 /// <param name="luaPropertyAttribute">The resolved LuaProperty marker, or <see langword="null" />.</param>
@@ -24,6 +26,8 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 internal sealed class LuaBindingContractSymbols(
     INamedTypeSymbol? luaFunctionAttribute,
     INamedTypeSymbol? luaGlobalAttribute,
+    INamedTypeSymbol? luaMarshallerAttribute,
+    INamedTypeSymbol? luaMarshallerContract,
     INamedTypeSymbol? luaClassAttribute,
     INamedTypeSymbol? luaMethodAttribute,
     INamedTypeSymbol? luaPropertyAttribute,
@@ -34,6 +38,12 @@ internal sealed class LuaBindingContractSymbols(
 
     /// <summary>The marker attribute of a bound Lua global.</summary>
     public INamedTypeSymbol? LuaGlobalAttribute { get; } = luaGlobalAttribute;
+
+    /// <summary>The marker attribute that names a concrete static marshaller.</summary>
+    public INamedTypeSymbol? LuaMarshallerAttribute { get; } = luaMarshallerAttribute;
+
+    /// <summary>The static-abstract marshaller contract.</summary>
+    public INamedTypeSymbol? LuaMarshallerContract { get; } = luaMarshallerContract;
 
     /// <summary>The marker attribute of a generated borrowed Lua object-handle struct.</summary>
     public INamedTypeSymbol? LuaClassAttribute { get; } = luaClassAttribute;

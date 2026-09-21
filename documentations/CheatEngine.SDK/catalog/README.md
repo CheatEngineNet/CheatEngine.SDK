@@ -13,8 +13,8 @@ Classic Cheat Engine headers, Pascal declarations, host implementation details, 
 The catalogue makes that distinction reviewable:
 
 - `ce-7.7.0.10621-x64.declarations.json` contains the exact 159-slot historical `ExportedFunctions` table, with a canonical slot-manifest hash and a source locator for every entry.
-- `ce-7.7.0.10621-x64.capabilities.json` describes classic callback families, managed hosting, Lua, object ownership, target/host memory, scan, allocation, and patch surfaces. Every entry includes interop shape, affinity evidence, ownership, failure shape, availability, qualification, and profile references.
-- `ce-7.7.0.10621-x64.conflicts.json` makes known historical conflicts declarative. An unresolved conflict blocks public callability and live qualification.
+- `ce-7.7.0.10621-x64.capabilities.json` describes classic callback families, managed hosting, Lua, object ownership, scan, allocation, and patch surfaces. Every entry includes interop shape, affinity evidence, ownership, failure shape, availability, qualification, and profile references.
+- `ce-7.7.0.10621-x64.conflicts.json` makes known historical conflicts declarative. A structured unresolved state, or legacy prose conservatively normalized as unresolved, blocks public callability and live qualification.
 - `ce-7.7.0.10621-x64.host-profiles.json` keeps host facts and target facts separate. A host x64 observation never infers the target architecture or pointer width.
 - `ce-7.7.0.10621-x64.advanced-families.json` is the SDK-020 deferred ledger for independently gated advanced research. Its families remain unavailable and not-qualified; it records the distinct contract, artifact, host, live, policy, and lifecycle gates required for any later adoption decision.
 

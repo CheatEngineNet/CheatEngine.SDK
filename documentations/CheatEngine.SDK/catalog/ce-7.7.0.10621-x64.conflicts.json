@@ -51,7 +51,7 @@
       "id": "classic.fixmem-null-host-slot",
       "affected_capability_ids": [],
       "c_declaration": "CEP_FIXMEM direct prefix field", "pascal_declaration": "host assigns nil in the pinned historical implementation",
-      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 289, "line_end": 289 }, { "source_id": "ce-plugin-host", "path": "Cheat Engine/plugin.pas", "line_start": 1869, "line_end": 1874 }],
+      "evidence": [{ "source_id": "ce-classic-c-header", "path": "Cheat Engine/plugin/cepluginsdk.h", "line_start": 292, "line_end": 292 }, { "source_id": "ce-plugin-host", "path": "Cheat Engine/plugin.pas", "line_start": 1869, "line_end": 1874 }],
       "resolution": "unavailable until an exact host profile demonstrates otherwise", "required_availability": "unavailable", "blocks_live_qualification": true
     },
     {

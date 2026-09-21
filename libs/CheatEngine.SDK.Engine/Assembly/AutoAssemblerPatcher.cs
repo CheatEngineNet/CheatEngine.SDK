@@ -40,6 +40,10 @@ public static class AutoAssemblerPatcher
     /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
     /// <exception cref="EngineMarshallingException">CE returned a success result without a disable-info table.</exception>
     /// <exception cref="EngineTargetIdentityException">The selected target cannot be qualified as an incarnation.</exception>
+    /// <exception cref="EngineResourceHandoffException">
+    ///     CE accepted the script but disable-info tracking or patch publication failed; the exception reports its one
+    ///     target-qualified disable attempt.
+    /// </exception>
     [RequiresPluginEnabled]
     public static AutoAssemblerPatch Apply(string script)
     {
@@ -60,11 +64,24 @@ public static class AutoAssemblerPatcher
     /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
     /// <exception cref="EngineMarshallingException">CE returned a success result without a disable-info table.</exception>
     /// <exception cref="EngineTargetIdentityException">The selected target cannot be qualified as an incarnation.</exception>
+    /// <exception cref="EngineResourceHandoffException">
+    ///     CE accepted the script but disable-info tracking or patch publication failed; the exception reports its one
+    ///     target-qualified disable attempt.
+    /// </exception>
     [RequiresPluginEnabled]
     public static bool TryApply(string script, [NotNullWhen(true)] out AutoAssemblerPatch? patch)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(script);
+        return TryApplyCore(script, out patch, CreateDisableInfo, CreatePatch);
+    }
 
+    // The seams are internal test infrastructure. A caller cannot select tracking or ownership behavior; they let the
+    // SDK prove that every exception between a successful apply and publication retains one compensation authority.
+    internal static bool TryApplyCore(string script, [NotNullWhen(true)] out AutoAssemblerPatch? patch,
+        AutoAssemblerDisableInfoTracker disableInfoTracker, AutoAssemblerPatchFactory patchFactory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(script);
+        ArgumentNullException.ThrowIfNull(disableInfoTracker);
+        ArgumentNullException.ThrowIfNull(patchFactory);
         using var operation = LuaRuntime.AcquireOperation();
         var state = operation.State;
         using LuaFrame frame = new(state);
@@ -91,9 +108,36 @@ public static class AutoAssemblerPatcher
         if (!state.IsTable(-1))
             ThrowUnexpectedResult(ApplyOperation, "a disable-info table on success", state.TypeOf(-1));
 
-        // CreateRef consumes only the table. The enclosing frame drops the accompanying true result.
-        patch = new AutoAssemblerPatch(script, state.CreateRef(), targetObservation.Incarnation.GetValueOrDefault());
-        return true;
+        // Retain the original table on the stack while the copy is rooted. A protected ref failure consumes only the
+        // copy and leaves the original table as the one remaining authority for a direct, target-checked disable.
+        var disableInfoIndex = state.AbsoluteIndex(-1);
+        state.PushValue(disableInfoIndex);
+        LuaRef disableInfo;
+        try
+        {
+            disableInfo = disableInfoTracker(state);
+            if (disableInfo is null)
+                throw new InvalidOperationException("The disable-info tracker returned no reference.");
+        }
+        catch (Exception exception)
+        {
+            state.SetTop(disableInfoIndex);
+            var cleanupOutcome = TryDisableFromStack(script, state, disableInfoIndex,
+                targetObservation.Incarnation.GetValueOrDefault());
+            throw new EngineResourceHandoffException(ApplyOperation, cleanupOutcome, exception);
+        }
+
+        try
+        {
+            patch = patchFactory(script, disableInfo, targetObservation.Incarnation.GetValueOrDefault());
+            return true;
+        }
+        catch (Exception exception)
+        {
+            var cleanupOutcome = CompensateFailedPublication(script, disableInfo,
+                targetObservation.Incarnation.GetValueOrDefault());
+            throw new EngineResourceHandoffException(ApplyOperation, cleanupOutcome, exception);
+        }
     }
 
     // The owner always routes cleanup through this method. Keeping the LuaRef release in its finally block prevents a
@@ -145,6 +189,67 @@ public static class AutoAssemblerPatcher
             // reference released, without attempting an unsafe operation against a detached state.
             disableInfo.Dispose();
             throw;
+        }
+    }
+
+    private static LuaRef CreateDisableInfo(LuaState state)
+    {
+        return state.CreateRef();
+    }
+
+    private static AutoAssemblerPatch CreatePatch(string script, LuaRef disableInfo,
+        TargetProcessIncarnation targetIncarnation)
+    {
+        return new AutoAssemblerPatch(script, disableInfo, targetIncarnation);
+    }
+
+    private static TargetReleaseOutcome CompensateFailedPublication(string script, LuaRef disableInfo,
+        TargetProcessIncarnation targetIncarnation)
+    {
+        try
+        {
+            return TryDisable(script, disableInfo, targetIncarnation);
+        }
+        catch (EngineException exception)
+        {
+            return TargetReleaseOutcome.Unconfirmed(exception.Kind);
+        }
+        catch (Exception)
+        {
+            return TargetReleaseOutcome.Unconfirmed(failureKind: null);
+        }
+    }
+
+    // The original disable-info table remains at disableInfoIndex and this helper deliberately does not root it. The
+    // surrounding LuaFrame restores the stack after the one compensation attempt, including a failed protected call.
+    private static TargetReleaseOutcome TryDisableFromStack(string script, LuaState state, int disableInfoIndex,
+        TargetProcessIncarnation targetIncarnation)
+    {
+        try
+        {
+            var targetCheck = TargetSelection.ValidateCurrent(state, targetIncarnation);
+            if (!targetCheck.IsCurrent) return TargetReleaseOutcome.Refused(targetCheck);
+
+            PushAutoAssemble(state, DisableOperation);
+            StringMarshaller.Push(state, script);
+            state.PushValue(disableInfoIndex);
+            var status = state.TryCall(2, 1);
+            if (!status.IsOk) return TargetReleaseOutcome.Unconfirmed(EngineFailureKind.ProtectedLuaFailure);
+
+            if (state.TypeOf(-1) != LuaType.Boolean)
+                return TargetReleaseOutcome.Unconfirmed(EngineFailureKind.MarshallingFailure);
+
+            return state.ToBoolean(-1)
+                ? TargetReleaseOutcome.Released()
+                : TargetReleaseOutcome.Unconfirmed(EngineFailureKind.ExpectedOperationFailure);
+        }
+        catch (EngineException exception)
+        {
+            return TargetReleaseOutcome.Unconfirmed(exception.Kind);
+        }
+        catch (Exception)
+        {
+            return TargetReleaseOutcome.Unconfirmed(failureKind: null);
         }
     }
 

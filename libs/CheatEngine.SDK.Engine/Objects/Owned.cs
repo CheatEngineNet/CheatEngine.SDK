@@ -136,9 +136,26 @@ public sealed class Owned<T> : IDisposable
     /// <exception cref="ObjectDisposedException">The wrapper was disposed, transferred or abandoned.</exception>
     public Owned<T> Transfer()
     {
+        var destination = PrepareTransfer();
+        CompleteTransfer(destination);
+        return destination;
+    }
+
+    // A multi-owner handoff prepares every destination before any source is made empty. These members are internal so
+    // that a consumer cannot ever observe the brief, private preparation state as a second ownership capability.
+    internal Owned<T> PrepareTransfer()
+    {
         var value = Value;
-        _value = default;
         return new Owned<T>(value);
+    }
+
+    internal void CompleteTransfer(Owned<T> destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        if (destination.Value.Handle != Value.Handle)
+            throw new ArgumentException("The destination does not represent this owned object.", nameof(destination));
+
+        _value = default;
     }
 
     /// <summary>

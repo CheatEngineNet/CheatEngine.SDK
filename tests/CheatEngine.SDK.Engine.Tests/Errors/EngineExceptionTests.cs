@@ -129,6 +129,20 @@ public sealed class EngineExceptionTests
         Assert.Equal(7, (int)EngineFailureKind.TargetIdentityMismatch);
     }
 
+    [Fact]
+    public void Resource_handoff_failure_preserves_the_primary_cause_and_the_single_cleanup_diagnostic()
+    {
+        var cause = new InvalidOperationException("injected owner publication failure");
+        var cleanup = TargetReleaseOutcome.Unconfirmed(EngineFailureKind.ProtectedLuaFailure);
+        var exception = new EngineResourceHandoffException("AutoAssemblerApply", cleanup, cause);
+
+        Assert.Equal(EngineFailureKind.BindingFailure, exception.Kind);
+        Assert.Equal("AutoAssemblerApply", exception.Operation);
+        Assert.Equal(cleanup, exception.CleanupOutcome);
+        Assert.True(exception.CleanupOutcome.RequiresManualRecovery);
+        Assert.Same(cause, exception.InnerException);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(null)]

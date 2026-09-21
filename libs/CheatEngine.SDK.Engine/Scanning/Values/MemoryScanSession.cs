@@ -187,14 +187,33 @@ public sealed class MemoryScanSession : IDisposable
     /// </remarks>
     public static MemoryScanSession Adopt(Owned<MemScan> scanner, Owned<FoundList> foundList)
     {
+        return AdoptCore(scanner, foundList, CreateAdoptedSession);
+    }
+
+    // Preparing both destinations first means an allocation failure during session construction leaves both source
+    // wrappers intact for the factory's child-before-parent rollback.
+    internal static MemoryScanSession AdoptCore(Owned<MemScan> scanner, Owned<FoundList> foundList,
+        MemoryScanSessionAdopter adopter)
+    {
         ArgumentNullException.ThrowIfNull(scanner);
         ArgumentNullException.ThrowIfNull(foundList);
+        ArgumentNullException.ThrowIfNull(adopter);
 
-        // Value validates each source wrapper before either Transfer changes it. The wrappers are deliberately
-        // single-owner and unsynchronized, exactly like Owned<T>; callers must not concurrently dispose them.
+        // Value validates each source wrapper before preparation. The wrappers are deliberately single-owner and
+        // unsynchronized, exactly like Owned<T>; callers must not concurrently dispose them.
         _ = scanner.Value;
         _ = foundList.Value;
-        return new MemoryScanSession(scanner.Transfer(), foundList.Transfer());
+        var adoptedScanner = scanner.PrepareTransfer();
+        var adoptedFoundList = foundList.PrepareTransfer();
+        var session = adopter(adoptedScanner, adoptedFoundList);
+        scanner.CompleteTransfer(adoptedScanner);
+        foundList.CompleteTransfer(adoptedFoundList);
+        return session;
+    }
+
+    private static MemoryScanSession CreateAdoptedSession(Owned<MemScan> scanner, Owned<FoundList> foundList)
+    {
+        return new MemoryScanSession(scanner, foundList);
     }
 
     /// <summary>Begins a CE first scan with all fourteen documented positional arguments.</summary>

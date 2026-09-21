@@ -4,7 +4,9 @@ using CheatEngine.SDK.Engine.Assembly;
 using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Engine.Targets;
+using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.References;
+using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
 namespace CheatEngine.SDK.Engine.Tests.Assembly;
@@ -83,6 +85,47 @@ public sealed class AutoAssemblerPatcherTests
         var exception = Assert.Throws<EngineLuaException>(() => AutoAssemblerPatcher.Apply("apply-raise"));
 
         Assert.Equal("AutoAssemblerApply", exception.Operation);
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void TryApply_when_patch_publication_fails_compensates_once_with_the_rooted_disable_info()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+        var cause = new InvalidOperationException("injected patch publication failure");
+
+        var exception = Assert.Throws<EngineResourceHandoffException>(() => AutoAssemblerPatcher.TryApplyCore(
+            "success", out _, CreateDisableInfo,
+            (_, _, _) => throw cause));
+
+        Assert.Same(cause, exception.InnerException);
+        Assert.Equal(TargetReleaseStatus.Released, exception.CleanupOutcome.Status);
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_apply_count"));
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.True(ReadBoolean(scope.State, "auto_assembler_disable_received_info"));
+        Assert.Equal(0, scope.State.Top);
+    }
+
+    [Fact]
+    public void TryApply_when_disable_info_tracking_fails_compensates_once_with_the_stack_retained_table()
+    {
+        EngineTest.RequireNativeLua();
+        using NativeLuaState state = new();
+        using HostScope scope = new(state);
+        InstallAutoAssembler(scope.State);
+
+        var exception = Assert.Throws<EngineResourceHandoffException>(() => AutoAssemblerPatcher.TryApplyCore(
+            "success", out _, FailDisableInfoTracking,
+            static (_, _, _) => throw new InvalidOperationException("patch factory must not be called")));
+
+        Assert.Equal(TargetReleaseStatus.Released, exception.CleanupOutcome.Status);
+        Assert.IsType<EngineLuaException>(exception.InnerException);
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_apply_count"));
+        Assert.Equal(1, ReadCounter(scope.State, "auto_assembler_disable_count"));
+        Assert.True(ReadBoolean(scope.State, "auto_assembler_disable_received_info"));
         Assert.Equal(0, scope.State.Top);
     }
 
@@ -205,6 +248,16 @@ public sealed class AutoAssemblerPatcherTests
             BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(field);
         return Assert.IsType<LuaRef>(field.GetValue(patch));
+    }
+
+    private static LuaRef CreateDisableInfo(LuaState state)
+    {
+        return state.CreateRef();
+    }
+
+    private static LuaRef FailDisableInfoTracking(LuaState _)
+    {
+        throw new EngineLuaException("AutoAssemblerApply", LuaStatus.MemoryError);
     }
 
     private static void InstallAutoAssembler(CheatEngine.SDK.Lua.State.LuaState state)

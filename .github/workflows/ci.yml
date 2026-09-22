@@ -3,6 +3,10 @@ name: CI
 on:
   workflow_call:
     inputs:
+      collect-coverage:
+        description: Emit Visual Studio XML coverage from Debug test jobs and upload it as coverage-<project>.
+        type: boolean
+        default: false
       upload-package:
         description: Upload the packed package as the nuget-package artifact.
         type: boolean
@@ -15,6 +19,10 @@ on:
         description: Run dependency-review-action for non-draft pull requests. Enable only after GitHub Dependency graph is enabled for the repository.
         type: boolean
         default: false
+    secrets:
+      SONAR_TOKEN:
+        description: SonarQube Cloud token for protected same-repository analysis.
+        required: false
 
 permissions:
   contents: read
@@ -284,9 +292,11 @@ jobs:
           PROJECT: ${{ matrix.project }}
           CONFIGURATION: ${{ matrix.configuration }}
           RESULTS: artifacts/test-results/${{ matrix.artifact }}
+          COLLECT_COVERAGE: ${{ inputs.collect-coverage }}
         run: |
           $options = '--project', $env:PROJECT, '-c', $env:CONFIGURATION, '--report-trx', '--results-directory', $env:RESULTS
           if ($env:CONFIGURATION -eq 'Debug') { $options += '--fail-skips', 'on' }
+          if ($env:CONFIGURATION -eq 'Debug' -and $env:COLLECT_COVERAGE -eq 'true') { $options += '--coverage', '--coverage-output-format', 'xml', '--coverage-output', 'coverage.xml' }
           dotnet test @options
           if ($LASTEXITCODE -ne 0) {
             throw "Test project '$env:PROJECT' failed with exit code $LASTEXITCODE."
@@ -327,6 +337,15 @@ jobs:
           path: artifacts/test-results/${{ matrix.artifact }}/*.trx
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Upload coverage
+        if: ${{ inputs.collect-coverage && matrix.configuration == 'Debug' && !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-${{ matrix.name }}
+          path: artifacts/test-results/${{ matrix.artifact }}/coverage.xml
+          if-no-files-found: error
+          retention-days: 7
 
   pack:
     name: Pack
@@ -452,6 +471,16 @@ jobs:
           & $harness --load --acknowledge-process-resident-load
           if ($LASTEXITCODE -ne 0) { throw "Native AOT loader harness load exited with code $LASTEXITCODE." }
 
+  sonar:
+    name: Sonar
+    needs: [ native, test ]
+    if: ${{ inputs.collect-coverage }}
+    uses: ./.github/workflows/sonar.yml
+    with:
+      wait-quality-gate: true
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
   dependency-review:
     name: Dependency review
     if: ${{ inputs.dependency-review && github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
@@ -499,7 +528,7 @@ jobs:
   gate:
     name: Gate
     if: ${{ always() }}
-    needs: [ discover, native, build, test, pack, aot, dependency-review, lint-workflows ]
+    needs: [ discover, native, build, test, pack, aot, sonar, dependency-review, lint-workflows ]
     runs-on: windows-latest
     timeout-minutes: 5
     permissions: { }
@@ -512,6 +541,8 @@ jobs:
           TEST_RESULT: ${{ needs.test.result }}
           PACK_RESULT: ${{ needs.pack.result }}
           AOT_RESULT: ${{ needs.aot.result }}
+          SONAR_RESULT: ${{ needs.sonar.result }}
+          SONAR_REQUIRED: ${{ inputs.collect-coverage }}
           DEPENDENCY_RESULT: ${{ needs.dependency-review.result }}
           DEPENDENCY_REQUIRED: ${{ inputs.dependency-review && github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
           LINT_RESULT: ${{ needs.lint-workflows.result }}
@@ -523,6 +554,7 @@ jobs:
             test = $env:TEST_RESULT
             pack = $env:PACK_RESULT
             aot = $env:AOT_RESULT
+            sonar = $env:SONAR_RESULT
             'dependency-review' = $env:DEPENDENCY_RESULT
             'lint-workflows' = $env:LINT_RESULT
           }
@@ -530,6 +562,7 @@ jobs:
           '| Job | Result |', '| --- | --- |', $rows | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           $failed = @($results.GetEnumerator() | Where-Object {
             $_.Key -in 'discover', 'native', 'build', 'test', 'pack', 'aot' -and $_.Value -ne 'success' -or
+            $_.Key -eq 'sonar' -and $env:SONAR_REQUIRED -eq 'true' -and $_.Value -ne 'success' -or
             $_.Key -eq 'dependency-review' -and $env:DEPENDENCY_REQUIRED -eq 'true' -and $_.Value -ne 'success' -or
             $_.Key -eq 'lint-workflows' -and $_.Value -ne 'success'
           } | ForEach-Object Key)

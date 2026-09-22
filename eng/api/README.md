@@ -210,8 +210,8 @@ What it lists:
 - every file of the package except the manifest itself, with its SHA-256 and SHA-1: the seven `lib/net10.0` assemblies
   and their XML documentation, the five Roslyn components, the native bridge, the build assets, the README and the
   package metadata files;
-- no component. The build-component scan is limited to `src/CheatEngine.SDK`, which holds no package manifest, and the
-  package has no NuGet dependency, so the tool reports "There were no packages detected" (printed as a `##[warning]`
+- no component. The build-component scan is limited to `src/CheatEngine.SDK`, which holds no package manifest (its
+  `packages.lock.json` is not a component source), and the package has no NuGet dependency, so the tool reports "There were no packages detected" (printed as a `##[warning]`
   line, not an MSBuild warning). Build-only tools (MinVer, Meziantou.Analyzer, BannedApiAnalyzers,
   PublicApiAnalyzers, Microsoft.Sbom.Targets) are not shipped and are not listed. PolySharp generates polyfill source
   that is compiled into the Roslyn components; it is source, not a package dependency, and is not listed either.

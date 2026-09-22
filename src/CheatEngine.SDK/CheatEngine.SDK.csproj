@@ -44,8 +44,6 @@
     <SbomGenerationNamespaceBaseUri>https://github.com/CheatEngineNet/CheatEngine.SDK</SbomGenerationNamespaceBaseUri>
     <SbomGenerationBuildComponentPath>$(MSBuildProjectDirectory)</SbomGenerationBuildComponentPath>
     <SbomGenerationFetchLicenseInformation>false</SbomGenerationFetchLicenseInformation>
-    <!-- Keeps warnings (one is expected: the package has no NuGet dependency, so no component is detected) without the telemetry dump. -->
-    <SbomGenerationVerbosity>Warning</SbomGenerationVerbosity>
   </PropertyGroup>
   <ItemGroup Label="SBOM">
     <PackageReference Include="Microsoft.Sbom.Targets" PrivateAssets="all"/>

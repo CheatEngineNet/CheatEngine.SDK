@@ -270,6 +270,34 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 	} = "";
 
 	/// <summary>
+	///     The AOT-relevant diagnostics configured as errors by the package-only consumer before it is published.
+	/// </summary>
+	public string PackedAotConsumerWarningsAsErrors
+	{
+		get;
+		private set;
+	} = "";
+
+	/// <summary>
+	///     Whether the package-only AOT consumer explicitly enabled the unsafe generated Lua thunks require.
+	/// </summary>
+	public string PackedAotConsumerAllowUnsafeBlocks
+	{
+		get;
+		private set;
+	} = "";
+
+	/// <summary>
+	///     The evaluated Native AOT publication settings and diagnostic suppressions for the package-only consumer.
+	/// </summary>
+	public IReadOnlyDictionary<string, string> PackedAotConsumerProperties
+	{
+		get;
+		private set;
+	} =
+		new Dictionary<string, string>(StringComparer.Ordinal);
+
+	/// <summary>
 	///     Whether the published package-only trim and Native AOT executable completed successfully.
 	/// </summary>
 	/// <remarks>
@@ -379,9 +407,12 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 			catch (IOException)
 			{
 				// Best effort: a file a virus scanner or editor still has open must not fail the test run.
+				_tempRoot = null;
 			}
 			catch (UnauthorizedAccessException)
 			{
+				// Best effort: an external process may temporarily deny the recursive cleanup operation.
+				_tempRoot = null;
 			}
 		}
 
@@ -437,8 +468,13 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 	{
 		ThrowawayConsumer consumer = ThrowawayConsumer.Create(tempRoot, "DefaultConsumer", PackageVersion,
 			feedDirectory,
-			includeLegacyAobConsumer: true, includeTargetBoundAllocationConsumer: true,
-			includeRecordAndSymbolContract: true, includeValueScanConsumer: true);
+			new ThrowawayConsumer.CreateOptions
+			{
+				IncludeLegacyAobConsumer = true,
+				IncludeTargetBoundAllocationConsumer = true,
+				IncludeRecordAndSymbolContract = true,
+				IncludeValueScanConsumer = true
+			});
 		await RestoreAndBuildAsync(consumer, packagesDirectory).ConfigureAwait(false);
 		LegacyAobConsumerBuildSucceeded = File.Exists(Path.Combine(consumer.Directory, "LegacyAobConsumer.cs"));
 		DefaultProperties = await consumer.GetPropertiesAsync(BuildTimeout, "AllowUnsafeBlocks", "EnableDynamicLoading",
@@ -462,7 +498,10 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 	{
 		ThrowawayConsumer consumer = ThrowawayConsumer.Create(tempRoot, "ExplicitUnsafeFalseConsumer", PackageVersion,
 			feedDirectory,
-			"    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>\n");
+			new ThrowawayConsumer.CreateOptions
+			{
+				ExtraProperties = "    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>\n"
+			});
 		await RestoreAndBuildAsync(consumer, packagesDirectory).ConfigureAwait(false);
 		ExplicitUnsafeFalseProperties = await consumer.GetPropertiesAsync(BuildTimeout, "AllowUnsafeBlocks")
 			.ConfigureAwait(false);
@@ -473,7 +512,10 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 	{
 		ThrowawayConsumer consumer = ThrowawayConsumer.Create(tempRoot, "EntryPointOffConsumer", PackageVersion,
 			feedDirectory,
-			"    <CheatEngineSdkGenerateEntryPoint>false</CheatEngineSdkGenerateEntryPoint>\n");
+			new ThrowawayConsumer.CreateOptions
+			{
+				ExtraProperties = "    <CheatEngineSdkGenerateEntryPoint>false</CheatEngineSdkGenerateEntryPoint>\n"
+			});
 		// CESDK0003 deliberately makes the handoff explicit: disabling generation transfers ownership of the exact
 		// host lookup identity to the plugin author. If the generator ignored the false switch, this source would also
 		// make the consumer fail with the duplicate CESDK.CESDK type - so a successful build proves both contracts.
@@ -494,7 +536,10 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 	{
 		ThrowawayConsumer optInConsumer = ThrowawayConsumer.Create(tempRoot, "LuaFunctionOptInConsumer", PackageVersion,
 			feedDirectory,
-			"    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n", includeLuaFunction: true);
+			new ThrowawayConsumer.CreateOptions
+			{
+				ExtraProperties = "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n", IncludeLuaFunction = true
+			});
 		ProcessResult optInRestore =
 			await optInConsumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
 		EnsureSucceeded(optInRestore, "dotnet restore", optInConsumer.ProjectPath);
@@ -504,7 +549,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 
 		ThrowawayConsumer withoutUnsafeConsumer = ThrowawayConsumer.Create(tempRoot, "LuaFunctionWithoutUnsafeConsumer",
 			PackageVersion,
-			feedDirectory, includeLuaFunction: true);
+			feedDirectory,
+			new ThrowawayConsumer.CreateOptions { IncludeLuaFunction = true });
 		ProcessResult restore = await withoutUnsafeConsumer.RestoreAsync(RestoreTimeout, packagesDirectory)
 			.ConfigureAwait(false);
 		EnsureSucceeded(restore, "dotnet restore", withoutUnsafeConsumer.ProjectPath);
@@ -557,15 +603,23 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 		ThrowawayConsumer consumer = ThrowawayConsumer.CreateAotExecutable(tempRoot, consumerName, PackageVersion,
 			feedDirectory,
 			"""
+			    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 			    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 			    <SelfContained>true</SelfContained>
 			    <PublishTrimmed>true</PublishTrimmed>
 			    <PublishAot>true</PublishAot>
 			    <VerifyReferenceAotCompatibility>true</VerifyReferenceAotCompatibility>
-			    <WarningsAsErrors>IL3058</WarningsAsErrors>
+			    <WarningsAsErrors>IL2026;IL3050;IL3058</WarningsAsErrors>
 			""");
 		ProcessResult restore = await consumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
 		EnsureSucceeded(restore, "dotnet restore", consumer.ProjectPath);
+		IReadOnlyDictionary<string, string> aotProperties = await consumer
+			.GetPropertiesAsync(BuildTimeout, "AllowUnsafeBlocks", "PublishAot", "PublishTrimmed", "SelfContained",
+				"RuntimeIdentifier", "VerifyReferenceAotCompatibility", "WarningsAsErrors", "NoWarn")
+			.ConfigureAwait(false);
+		PackedAotConsumerProperties = aotProperties;
+		PackedAotConsumerAllowUnsafeBlocks = aotProperties["AllowUnsafeBlocks"];
+		PackedAotConsumerWarningsAsErrors = aotProperties["WarningsAsErrors"];
 		ProcessResult build = await consumer.BuildAsync(BuildTimeout).ConfigureAwait(false);
 		EnsureSucceeded(build, "dotnet build", consumer.ProjectPath);
 
@@ -578,7 +632,15 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 			return;
 		}
 
-		ProcessResult run = await consumer.RunPublishedAsync(publishDirectory, RuntimeRunTimeout).ConfigureAwait(false);
+		string bundledLuaPath = RepositoryLayout.PathOf("native/cheat-engine/lua53-64.dll");
+		if (!File.Exists(bundledLuaPath))
+		{
+			throw new InvalidOperationException(
+				$"The package-only AOT consumer requires the bundled test-only Lua fixture at '{bundledLuaPath}'.");
+		}
+
+		ProcessResult run = await consumer.RunPublishedAsync(publishDirectory, bundledLuaPath, RuntimeRunTimeout)
+			.ConfigureAwait(false);
 		PackedAotConsumerRunSucceeded = run.ExitCode == 0;
 		PackedAotConsumerRunOutput = run.CombinedOutput;
 	}
@@ -613,7 +675,7 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 		foreach ((string key, string consumerName, string? platformTarget) in PlatformTargetConsumers)
 		{
 			ThrowawayConsumer consumer = ThrowawayConsumer.Create(tempRoot, consumerName, PackageVersion, feedDirectory,
-				platformTarget: platformTarget);
+				new ThrowawayConsumer.CreateOptions { PlatformTarget = platformTarget });
 			ProcessResult restore =
 				await consumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
 			EnsureSucceeded(restore, "dotnet restore", consumer.ProjectPath);

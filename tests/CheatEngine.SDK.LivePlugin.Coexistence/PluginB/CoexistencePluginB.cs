@@ -1,6 +1,7 @@
 using CheatEngine.SDK.Annotations.Plugin;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Runtime;
 
 namespace LivePlugin.Coexistence.PluginB;
@@ -16,7 +17,7 @@ public sealed class CoexistencePluginB : CheatEnginePlugin
 	{
 		CoexistenceDiagnostics.LogEnabled("B", typeof(CoexistencePluginB).Assembly, Context);
 
-		var result = CoexistencePluginBFunctions.RegisterLuaFunctions(LuaRuntime.AcquireState());
+		LuaStatus result = CoexistencePluginBFunctions.RegisterLuaFunctions(LuaRuntime.AcquireState());
 		HostLog.Write(result.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
 			"CheatEngine.SDK coexistence B: RegisterLuaFunctions -> " + result + ".");
 		if (!result.IsOk)
@@ -28,7 +29,7 @@ public sealed class CoexistencePluginB : CheatEnginePlugin
 	/// <inheritdoc />
 	protected override void OnDisable()
 	{
-		var result = CoexistencePluginBFunctions.UnregisterLuaFunctions(LuaRuntime.AcquireState());
+		LuaStatus result = CoexistencePluginBFunctions.UnregisterLuaFunctions(LuaRuntime.AcquireState());
 		HostLog.Write(result.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
 			"CheatEngine.SDK coexistence B: UnregisterLuaFunctions -> " + result + ".");
 	}

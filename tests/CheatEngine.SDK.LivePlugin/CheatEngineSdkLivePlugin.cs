@@ -6,6 +6,7 @@ using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Context;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 
@@ -33,7 +34,7 @@ public sealed class CheatEngineSdkLivePlugin : CheatEnginePlugin
 		LogEnableDiagnostics(enableCount);
 
 		LuaState state = LuaRuntime.AcquireState();
-		var registered = LiveFunctions.RegisterLuaFunctions(state);
+		LuaStatus registered = LiveFunctions.RegisterLuaFunctions(state);
 		HostLog.Write(
 			registered.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
 			string.Create(CultureInfo.InvariantCulture,
@@ -46,7 +47,7 @@ public sealed class CheatEngineSdkLivePlugin : CheatEnginePlugin
 	protected override void OnDisable()
 	{
 		LuaState state = LuaRuntime.AcquireState();
-		var unregistered = LiveFunctions.UnregisterLuaFunctions(state);
+		LuaStatus unregistered = LiveFunctions.UnregisterLuaFunctions(state);
 		HostLog.Write(
 			unregistered.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
 			string.Create(CultureInfo.InvariantCulture,
@@ -70,10 +71,9 @@ public sealed class CheatEngineSdkLivePlugin : CheatEnginePlugin
 
 	private static void ReadMemoryAdjacentPrimitive()
 	{
-		// A placeholder address: point it at a readable location in an attached target (for example a module base
-		// from getAddress()) to log a real value. Address supplies the number-or-hex-text convention and the
-		// culture-invariant formatting. The read goes through this plugin's own readInteger binding (MemoryBindings);
-		// CheatEngine.SDK.Engine.Generated.MemoryScalars.TryReadInt32 offers the same call as a ready-made wrapper.
+		// A placeholder address: point it at a readable location in an attached target to log a real value. Address
+		// supplies the number-or-hex-text convention and culture-invariant formatting. The read uses this plugin's
+		// generated integer binding; the SDK also exposes the same operation through its ready-made scalar wrapper.
 		Address probe = Address.FromUInt64(0x00400000UL);
 		bool ok = MemoryBindings.TryReadInt32((nuint) probe.Value, out int value);
 		HostLog.Write(

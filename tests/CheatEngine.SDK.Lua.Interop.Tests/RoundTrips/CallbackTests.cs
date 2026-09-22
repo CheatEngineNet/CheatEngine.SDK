@@ -228,8 +228,8 @@ public sealed unsafe class CallbackTests
 		// Argument validation by inspection: a managed callback must not use luaL_check*, which raises.
 		int firstIsNumber;
 		int secondIsNumber;
-		Double first = lua_tonumberx(L, 1, &firstIsNumber);
-		Double second = lua_tonumberx(L, 2, &secondIsNumber);
+		double first = lua_tonumberx(L, 1, &firstIsNumber);
+		double second = lua_tonumberx(L, 2, &secondIsNumber);
 		if (firstIsNumber == 0 || secondIsNumber == 0)
 		{
 			lua_pushnil(L);

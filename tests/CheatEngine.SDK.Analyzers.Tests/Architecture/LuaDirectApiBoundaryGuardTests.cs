@@ -186,6 +186,60 @@ public sealed class LuaDirectApiBoundaryGuardTests
 	}
 
 	[Fact]
+	public void Guard_allows_the_audited_fast_path_when_the_throw_guard_uses_a_block()
+	{
+		LuaDirectApiPolicy policy = LoadPolicy();
+		List<GuardViolation> violations = InspectSource(policy, """
+		                                                        using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
+
+		                                                        unsafe struct C
+		                                                        {
+		                                                            private lua_State* Pointer;
+
+		                                                            void PushUncheckedFunction(lua_CFunction thunk)
+		                                                            {
+		                                                                if (lua_checkstack(Pointer, 1) == 0)
+		                                                                {
+		                                                                    throw new InvalidOperationException();
+		                                                                }
+
+		                                                                lua_pushcclosure(Pointer, thunk, 0);
+		                                                            }
+		                                                        }
+		                                                        """, LightCFunctionFastPathSourcePath);
+
+		Assert.Empty(violations);
+	}
+
+	[Fact]
+	public void Guard_rejects_the_audited_fast_path_when_a_braced_throw_guard_contains_a_Lua_call()
+	{
+		LuaDirectApiPolicy policy = LoadPolicy();
+		List<GuardViolation> violations = InspectSource(policy, """
+		                                                        using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
+
+		                                                        unsafe struct C
+		                                                        {
+		                                                            private lua_State* Pointer;
+
+		                                                            void PushUncheckedFunction(lua_CFunction thunk)
+		                                                            {
+		                                                                if (lua_checkstack(Pointer, 1) == 0)
+		                                                                {
+		                                                                    lua_pushinteger(Pointer, 42);
+		                                                                    throw new InvalidOperationException();
+		                                                                }
+
+		                                                                lua_pushcclosure(Pointer, thunk, 0);
+		                                                            }
+		                                                        }
+		                                                        """, LightCFunctionFastPathSourcePath);
+
+		GuardViolation violation = Assert.Single(violations);
+		Assert.Equal("lua_pushcclosure", violation.MemberName);
+	}
+
+	[Fact]
 	public void Guard_reports_the_audited_path_when_a_Lua_call_interrupts_the_reservation_and_push()
 	{
 		LuaDirectApiPolicy policy = LoadPolicy();

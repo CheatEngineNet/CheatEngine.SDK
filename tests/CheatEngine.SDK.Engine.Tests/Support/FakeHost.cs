@@ -30,7 +30,7 @@ namespace CheatEngine.SDK.Engine.Tests.Support;
 ///     state lives in a Lua table stored as the userdata's user value (<c>lua_setuservalue</c>), keyed by pointer in a
 ///     registry table so that every push of the same pointer finds the same state.
 /// </remarks>
-internal static unsafe class FakeHost
+internal static unsafe class FakeHost // NOSONAR: the fixture implements Cheat Engine's unmanaged callback ABI.
 {
 	// Registry keys: light userdata whose values are the addresses of these bytes (stable for the process).
 	private const int MetatableKey = 0;
@@ -212,6 +212,21 @@ internal static unsafe class FakeHost
 		return new PCallProbe(afterWaitTillDone);
 	}
 
+	/// <summary>Replaces a fake found-list's <c>getAddress</c> member with a callback that returns a valid address.</summary>
+	public static PCallProbe ReplaceFoundListGetAddressWithPCallProbe(LuaState L, CEObject foundList,
+		Action? afterGetAddress = null)
+	{
+		using LuaFrame frame = new(L);
+		Assert.Equal(LuaType.Table, L.RawGetPointer(LuaState.RegistryIndex, s_keys + ObjectsKey));
+		Assert.Equal(LuaType.Table, L.RawGetPointer(-1, foundList.Value));
+		Assert.True(L.TryGetField(-1, "props"u8).IsOk);
+		L.PushString("getAddress"u8);
+		L.PushUncheckedFunction(
+			new LuaNativeFunction((nint) (delegate* unmanaged[Cdecl]<lua_State*, int>) &GetAddress));
+		Assert.True(L.TryRawSet(-3));
+		return new PCallProbe(null, afterGetAddress);
+	}
+
 	private static void Install(LuaState L)
 	{
 		using LuaFrame frame = new(L);
@@ -276,24 +291,16 @@ internal static unsafe class FakeHost
 	}
 
 	[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-	private static int ObservePCall(lua_State* state, int argumentCount, int resultCount, int errorFunction,
-		nint context, nint continuation)
+	private static int GetAddress(lua_State* state)
 	{
-		PCallProbe? probe = s_activePCallProbe;
-		if (probe is not null &&
-		    (nint) lua_tocfunction(state, -argumentCount - 1) ==
-		    (nint) (delegate* unmanaged[Cdecl]<lua_State*, int>) &WaitTillDone)
+		s_activePCallProbe?.AfterGetAddress();
+		ReadOnlySpan<byte> address = "00001234"u8;
+		fixed (byte* addressPointer = address)
 		{
-			probe.Observe(argumentCount, resultCount);
+			_ = lua_pushlstring(state, addressPointer, (nuint) address.Length);
 		}
 
-		return ((delegate* unmanaged[Cdecl]<lua_State*, int, int, int, nint, nint, int>) s_forwardedPCall)(
-			state,
-			argumentCount,
-			resultCount,
-			errorFunction,
-			context,
-			continuation);
+		return 1;
 	}
 
 	private sealed class StateProviderSuppression : IDisposable
@@ -307,11 +314,12 @@ internal static unsafe class FakeHost
 	/// <summary>Captures protected calls specifically to the fake no-result <c>waitTillDone</c> function.</summary>
 	internal sealed class PCallProbe : IDisposable
 	{
+		private readonly Action? _afterGetAddress;
 		private readonly Action? _afterWaitTillDone;
 		private readonly FieldInfo _pcallField;
 		private readonly object _table;
 
-		internal PCallProbe(Action? afterWaitTillDone)
+		internal PCallProbe(Action? afterWaitTillDone, Action? afterGetAddress = null)
 		{
 			if (s_activePCallProbe is not null)
 			{
@@ -332,7 +340,15 @@ internal static unsafe class FakeHost
 				(nint) (delegate* unmanaged[Cdecl]<lua_State*, int, int, int, nint, nint, int>) &ObservePCall);
 			tableField.SetValue(null, _table);
 			s_activePCallProbe = this;
+			_afterGetAddress = afterGetAddress;
 			_afterWaitTillDone = afterWaitTillDone;
+		}
+
+		/// <summary>Gets how many calls reached the probe's replacement <c>getAddress</c> function.</summary>
+		public int GetAddressCallCount
+		{
+			get;
+			private set;
 		}
 
 		/// <summary>Gets how many protected calls reached the probe's <c>waitTillDone</c> function.</summary>
@@ -381,6 +397,33 @@ internal static unsafe class FakeHost
 		internal void AfterWaitTillDone()
 		{
 			_afterWaitTillDone?.Invoke();
+		}
+
+		internal void AfterGetAddress()
+		{
+			GetAddressCallCount++;
+			_afterGetAddress?.Invoke();
+		}
+
+		[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+		private static int ObservePCall(lua_State* state, int argumentCount, int resultCount, int errorFunction,
+			nint context, nint continuation)
+		{
+			PCallProbe? probe = s_activePCallProbe;
+			if (probe is not null &&
+			    (nint) lua_tocfunction(state, -argumentCount - 1) ==
+			    (nint) (delegate* unmanaged[Cdecl]<lua_State*, int>) &WaitTillDone)
+			{
+				probe.Observe(argumentCount, resultCount);
+			}
+
+			return ((delegate* unmanaged[Cdecl]<lua_State*, int, int, int, nint, nint, int>) s_forwardedPCall)(
+				state,
+				argumentCount,
+				resultCount,
+				errorFunction,
+				context,
+				continuation);
 		}
 	}
 }

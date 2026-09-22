@@ -261,8 +261,13 @@ internal sealed class ThrowawayConsumer
 
 	private const string AotProgramSource = """
 	                                        using System;
+	                                        using System.Runtime.CompilerServices;
+	                                        using System.Runtime.InteropServices;
 	                                        using CheatEngine.SDK.Annotations.Lua;
 	                                        using CheatEngine.SDK.Lua.Calls;
+	                                        using CheatEngine.SDK.Lua.Interop.Api;
+	                                        using CheatEngine.SDK.Lua.Interop.Types;
+	                                        using CheatEngine.SDK.Lua.Runtime;
 	                                        using CheatEngine.SDK.Lua.State;
 
 	                                        namespace ThrowawayAot;
@@ -273,18 +278,87 @@ internal sealed class ThrowawayConsumer
 	                                            public static partial LuaOperationStatus TryProbe(LuaState state);
 	                                        }
 
-	                                        internal static class Program
+	                                        // This is a standalone native-Lua probe. It uses the test fixture's Lua 5.3 DLL,
+	                                        // not a Cheat Engine host, and executes the generated binding before reporting success.
+	                                        internal static unsafe class Program
 	                                        {
+	                                            private static nint s_state;
+
 	                                            public static int Main(string[] args)
 	                                            {
-	                                                // Native AOT keeps this generated body because the non-default command-line
-	                                                // path references it, while the normal no-host test run never invokes it.
-	                                                if (args.Length != 0)
-	                                                    _ = GeneratedAotBinding.TryProbe(default);
+	                                                if (args.Length != 1)
+	                                                {
+	                                                    Console.Error.WriteLine("Expected exactly one Lua 5.3 DLL path.");
+	                                                    return 64;
+	                                                }
 
-	                                                Console.WriteLine("SDK-022-AOT-STANDALONE");
-	                                                Console.WriteLine("SDK-022-AOT-NO-CE-HOST");
-	                                                return 0;
+	                                                try
+	                                                {
+	                                                    Run(args[0]);
+	                                                    Console.WriteLine("SDK-022-AOT-GENERATED-BINDING");
+	                                                    Console.WriteLine("SDK-022-AOT-STANDALONE");
+	                                                    Console.WriteLine("SDK-022-AOT-NO-CE-HOST");
+	                                                    return 0;
+	                                                }
+	                                                catch (Exception exception)
+	                                                {
+	                                                    Console.Error.WriteLine(exception);
+	                                                    return 1;
+	                                                }
+	                                            }
+
+	                                            private static void Run(string luaLibraryPath)
+	                                            {
+	                                                ArgumentException.ThrowIfNullOrWhiteSpace(luaLibraryPath);
+	                                                LuaApi.Initialize(NativeLibrary.Load(luaLibraryPath));
+	                                                lua_State* statePointer = LuaApi.luaL_newstate();
+	                                                if (statePointer is null)
+	                                                    throw new InvalidOperationException("The Lua fixture could not create a state.");
+
+	                                                try
+	                                                {
+	                                                    LuaApi.luaL_openlibs(statePointer);
+	                                                    LuaState state = new((nint)statePointer);
+	                                                    s_state = state.Handle;
+	                                                    delegate* unmanaged[Stdcall]<void*> stateProvider = &ProvideState;
+	                                                    LuaHostBinding binding = new((nint)stateProvider, 0,
+	                                                        Environment.CurrentManagedThreadId);
+	                                                    LuaRuntime.Attach(in binding);
+	                                                    try
+	                                                    {
+	                                                        using LuaFrame frame = new(state);
+	                                                        LuaStatus setup = state.TryExecute(
+	                                                            "sdk022_aot_probe_invocations = 0; function sdk022_aot_probe() sdk022_aot_probe_invocations = sdk022_aot_probe_invocations + 1 end"u8,
+	                                                            0, "=sdk022-aot"u8);
+	                                                        if (!setup.IsOk)
+	                                                            throw new InvalidOperationException("The Lua fixture setup failed with " + setup + ".");
+
+	                                                        LuaOperationStatus probe = GeneratedAotBinding.TryProbe(state);
+	                                                        if (!probe.IsSuccess)
+	                                                            throw new InvalidOperationException("The generated AOT binding failed with " + probe.Kind + ".");
+
+	                                                        LuaStatus invocationCount = state.TryExecute(
+	                                                            "assert(sdk022_aot_probe_invocations == 1, 'GeneratedAotBinding.TryProbe did not invoke the Lua probe exactly once.')"u8,
+	                                                            0, "=sdk022-aot-assertion"u8);
+	                                                        if (!invocationCount.IsOk)
+	                                                            throw new InvalidOperationException("The generated AOT binding invocation assertion failed with " + invocationCount + ".");
+	                                                    }
+	                                                    finally
+	                                                    {
+	                                                        LuaRuntime.Detach();
+	                                                        s_state = 0;
+	                                                    }
+	                                                }
+	                                                finally
+	                                                {
+	                                                    LuaApi.lua_close(statePointer);
+	                                                }
+	                                            }
+
+	                                            [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+	                                            private static void* ProvideState()
+	                                            {
+	                                                return (void*)s_state;
 	                                            }
 	                                        }
 	                                        """;
@@ -471,40 +545,38 @@ internal sealed class ThrowawayConsumer
 	///     Scaffolds a project named <paramref name="name" /> under <paramref name="parentDirectory" />: an
 	///     net10.0 class library with one <c>PackageReference</c> to <c>CheatEngine.SDK</c>. Its generated
 	///     <c>NuGet.Config</c> maps that exact package identity to <paramref name="localFeedDirectory" /> while retaining
-	///     nuget.org for other package identities. The project has one minimal but valid plugin class and whatever
-	///     <paramref name="extraProperties" /> adds to its single <c>PropertyGroup</c>. When
-	///     <paramref name="includeLuaFunction" /> is <see langword="true" />,
-	///     the project also declares one valid <c>[LuaFunction]</c> export. When <paramref name="includeLegacyAobConsumer" />
-	///     is <see langword="true" />, it compiles both historical <c>AobScanner.TryScan</c> overloads against the packed
-	///     SDK. When <paramref name="includeTargetBoundAllocationConsumer" /> is <see langword="true" />, it compiles an
+	///     nuget.org for other package identities. The project has one minimal but valid plugin class and the optional
+	///     <see cref="CreateOptions.ExtraProperties" /> additions to its single <c>PropertyGroup</c>. When
+	///     <see cref="CreateOptions.IncludeLuaFunction" /> is <see langword="true" />, the project also declares one
+	///     valid <c>[LuaFunction]</c> export. When <see cref="CreateOptions.IncludeLegacyAobConsumer" /> is
+	///     <see langword="true" />, it compiles both historical <c>AobScanner.TryScan</c> overloads against the packed
+	///     SDK. When <see cref="CreateOptions.IncludeTargetBoundAllocationConsumer" /> is <see langword="true" />, it compiles
+	///     an
 	///     independent implementation of the target-bound allocation backend seam against that package. When
-	///     <paramref name="includeRecordAndSymbolContract" /> is <see langword="true" />, it compiles the
+	///     <see cref="CreateOptions.IncludeRecordAndSymbolContract" /> is <see langword="true" />, it compiles the
 	///     SDK-021 typed mutation and coordinated-symbol surfaces without accessing raw CE handles.
-	///     When <paramref name="includeValueScanConsumer" /> is <see langword="true" />, it compiles the value-scan
-	///     factory and bounded-copy APIs against the same packed SDK.
-	///     <paramref name="platformTarget" /> defaults to x64, but may be <see langword="null" /> to prove the package
-	///     behavior when the consumer does not declare it.
+	///     When <see cref="CreateOptions.IncludeValueScanConsumer" /> is <see langword="true" />, it compiles the
+	///     value-scan factory and bounded-copy APIs against the same packed SDK. The
+	///     <see cref="CreateOptions.PlatformTarget" /> property defaults to x64 and may be <see langword="null" />.
 	/// </summary>
 	public static ThrowawayConsumer Create(string parentDirectory, string name, string cheatEngineSdkVersion,
-		string localFeedDirectory, string extraProperties = "", string? platformTarget = "x64",
-		bool includeLuaFunction = false, bool includeLegacyAobConsumer = false,
-		bool includeTargetBoundAllocationConsumer = false, bool includeRecordAndSymbolContract = false,
-		bool includeValueScanConsumer = false)
+		string localFeedDirectory, CreateOptions? options = null)
 	{
+		options ??= new CreateOptions();
 		string directory = Path.Combine(parentDirectory, name);
 		System.IO.Directory.CreateDirectory(directory);
 
 		string projectPath = Path.Combine(directory, $"{name}.csproj");
-		string platformTargetProperty = platformTarget is null
+		string platformTargetProperty = options.PlatformTarget is null
 			? ""
-			: $"    <PlatformTarget>{platformTarget}</PlatformTarget>\n";
+			: $"    <PlatformTarget>{options.PlatformTarget}</PlatformTarget>\n";
 		File.WriteAllText(projectPath, $"""
 		                                <Project Sdk="Microsoft.NET.Sdk">
 		                                  <PropertyGroup>
 		                                    <TargetFramework>net10.0</TargetFramework>
 		                                    <!-- The packaged target accepts an unset PlatformTarget, AnyCPU or x64; this ordinary scaffold defaults to x64. -->
 		                                {platformTargetProperty}    <Nullable>enable</Nullable>
-		                                {extraProperties}  </PropertyGroup>
+		                                {options.ExtraProperties}  </PropertyGroup>
 		                                  <ItemGroup>
 		                                    <PackageReference Include="{UmbrellaPackage.Id}" Version="{cheatEngineSdkVersion}" />
 		                                  </ItemGroup>
@@ -512,28 +584,28 @@ internal sealed class ThrowawayConsumer
 		                                """);
 
 		File.WriteAllText(Path.Combine(directory, "Plugin.cs"), PluginSource);
-		if (includeLuaFunction)
+		if (options.IncludeLuaFunction)
 		{
 			File.WriteAllText(Path.Combine(directory, "Functions.cs"), LuaFunctionSource);
 		}
 
-		if (includeLegacyAobConsumer)
+		if (options.IncludeLegacyAobConsumer)
 		{
 			File.WriteAllText(Path.Combine(directory, "LegacyAobConsumer.cs"), LegacyAobSource);
 		}
 
-		if (includeTargetBoundAllocationConsumer)
+		if (options.IncludeTargetBoundAllocationConsumer)
 		{
 			File.WriteAllText(Path.Combine(directory, "TargetBoundAllocationBackend.cs"), TargetBoundAllocationSource);
 		}
 
-		if (includeRecordAndSymbolContract)
+		if (options.IncludeRecordAndSymbolContract)
 		{
 			File.WriteAllText(Path.Combine(directory, "RecordAndSymbolContractConsumer.cs"),
 				RecordAndSymbolContractSource);
 		}
 
-		if (includeValueScanConsumer)
+		if (options.IncludeValueScanConsumer)
 		{
 			File.WriteAllText(Path.Combine(directory, "ValueScanConsumer.cs"), ValueScanSource);
 		}
@@ -569,8 +641,8 @@ internal sealed class ThrowawayConsumer
 	}
 
 	/// <summary>
-	///     Scaffolds a package-only executable whose source includes a generated Lua binding but whose program neither
-	///     loads a native Lua module nor activates a Cheat Engine host. The fixture supplies trim/AOT/RID properties.
+	///     Scaffolds a package-only executable whose source executes a generated Lua binding against the fixture-supplied
+	///     native Lua module. It never activates a Cheat Engine host; the fixture supplies trim/AOT/RID properties.
 	/// </summary>
 	public static ThrowawayConsumer CreateAotExecutable(string parentDirectory, string name,
 		string cheatEngineSdkVersion,
@@ -718,13 +790,17 @@ internal sealed class ThrowawayConsumer
 			timeout);
 	}
 
-	/// <summary>Runs the native executable emitted by a publish into <paramref name="outputDirectory" />.</summary>
-	public Task<ProcessResult> RunPublishedAsync(string outputDirectory, TimeSpan timeout)
+	/// <summary>
+	///     Runs the native executable emitted by a publish into <paramref name="outputDirectory" /> with the Lua 5.3
+	///     fixture path the AOT probe requires to execute its generated binding.
+	/// </summary>
+	public Task<ProcessResult> RunPublishedAsync(string outputDirectory, string luaLibraryPath, TimeSpan timeout)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+		ArgumentException.ThrowIfNullOrWhiteSpace(luaLibraryPath);
 		string executableName = Path.GetFileNameWithoutExtension(ProjectPath) + ".exe";
 		string executablePath = Path.Combine(outputDirectory, executableName);
-		return ProcessRunner.RunAsync(executablePath, "", outputDirectory, timeout);
+		return ProcessRunner.RunAsync(executablePath, $"\"{luaLibraryPath}\"", outputDirectory, timeout);
 	}
 
 	/// <summary>
@@ -747,8 +823,7 @@ internal sealed class ThrowawayConsumer
 
 		Dictionary<string, string> values = new(StringComparer.Ordinal);
 
-		// MSBuild's own documented split: "-getProperty to request a single property" emits a bare string;
-		// several properties (this project always requests at least one, so >= 2 here) emit one JSON object.
+		// MSBuild emits a bare value for one requested property and a properties object when several are requested.
 		if (propertyNames.Length == 1)
 		{
 			values[propertyNames[0]] = result.StandardOutput.Trim();
@@ -772,5 +847,51 @@ internal sealed class ThrowawayConsumer
 		}
 
 		return values;
+	}
+
+	/// <summary>Optional source and project switches used when scaffolding a packaged consumer.</summary>
+	internal sealed class CreateOptions
+	{
+		public string ExtraProperties
+		{
+			get;
+			init;
+		} = "";
+
+		public string? PlatformTarget
+		{
+			get;
+			init;
+		} = "x64";
+
+		public bool IncludeLuaFunction
+		{
+			get;
+			init;
+		}
+
+		public bool IncludeLegacyAobConsumer
+		{
+			get;
+			init;
+		}
+
+		public bool IncludeTargetBoundAllocationConsumer
+		{
+			get;
+			init;
+		}
+
+		public bool IncludeRecordAndSymbolContract
+		{
+			get;
+			init;
+		}
+
+		public bool IncludeValueScanConsumer
+		{
+			get;
+			init;
+		}
 	}
 }

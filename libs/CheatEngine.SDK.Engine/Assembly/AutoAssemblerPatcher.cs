@@ -99,6 +99,30 @@ public static class AutoAssemblerPatcher
 				TargetSelection.CreateUnavailableCheck(targetObservation));
 		}
 
+		if (!TryApplyScript(script, state, out int disableInfoIndex))
+		{
+			patch = null;
+			return false;
+		}
+
+		// Retain the original table on the stack while the copy is rooted. A protected ref failure consumes only the
+		// copy and leaves the original table as the one remaining authority for a direct, target-checked disable.
+		LuaRef disableInfo = TrackDisableInfo(script, state, disableInfoIndex, disableInfoTracker, targetObservation);
+		try
+		{
+			patch = patchFactory(script, disableInfo, targetObservation.Incarnation.GetValueOrDefault());
+			return true;
+		}
+		catch (Exception exception)
+		{
+			TargetReleaseOutcome cleanupOutcome = CompensateFailedPublication(script, disableInfo,
+				targetObservation.Incarnation.GetValueOrDefault());
+			throw new EngineResourceHandoffException(ApplyOperation, cleanupOutcome, exception);
+		}
+	}
+
+	private static bool TryApplyScript(string script, LuaState state, out int disableInfoIndex)
+	{
 		PushAutoAssemble(state, ApplyOperation);
 		StringMarshaller.Push(state, script);
 		LuaStatus status = state.TryCall(1, 2);
@@ -114,7 +138,7 @@ public static class AutoAssemblerPatcher
 
 		if (!state.ToBoolean(-2))
 		{
-			patch = null;
+			disableInfoIndex = 0;
 			return false;
 		}
 
@@ -123,35 +147,28 @@ public static class AutoAssemblerPatcher
 			ThrowUnexpectedResult(ApplyOperation, "a disable-info table on success", state.TypeOf(-1));
 		}
 
-		// Retain the original table on the stack while the copy is rooted. A protected ref failure consumes only the
-		// copy and leaves the original table as the one remaining authority for a direct, target-checked disable.
-		int disableInfoIndex = state.AbsoluteIndex(-1);
+		disableInfoIndex = state.AbsoluteIndex(-1);
+		return true;
+	}
+
+	private static LuaRef TrackDisableInfo(string script, LuaState state, int disableInfoIndex,
+		AutoAssemblerDisableInfoTracker disableInfoTracker, TargetSelectionObservation targetObservation)
+	{
 		state.PushValue(disableInfoIndex);
-		LuaRef disableInfo;
 		try
 		{
-			disableInfo = disableInfoTracker(state);
+			LuaRef disableInfo = disableInfoTracker(state);
 			if (disableInfo is null)
 			{
 				throw new InvalidOperationException("The disable-info tracker returned no reference.");
 			}
+
+			return disableInfo;
 		}
 		catch (Exception exception)
 		{
 			state.SetTop(disableInfoIndex);
 			TargetReleaseOutcome cleanupOutcome = TryDisableFromStack(script, state, disableInfoIndex,
-				targetObservation.Incarnation.GetValueOrDefault());
-			throw new EngineResourceHandoffException(ApplyOperation, cleanupOutcome, exception);
-		}
-
-		try
-		{
-			patch = patchFactory(script, disableInfo, targetObservation.Incarnation.GetValueOrDefault());
-			return true;
-		}
-		catch (Exception exception)
-		{
-			TargetReleaseOutcome cleanupOutcome = CompensateFailedPublication(script, disableInfo,
 				targetObservation.Incarnation.GetValueOrDefault());
 			throw new EngineResourceHandoffException(ApplyOperation, cleanupOutcome, exception);
 		}

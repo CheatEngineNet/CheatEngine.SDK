@@ -16,7 +16,8 @@ using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
 namespace CheatEngine.SDK.Lua.State;
 
 // Pushing managed functions: with the error channel (the normal form) or without it.
-public readonly unsafe partial struct LuaState
+public readonly unsafe partial struct
+	LuaState // NOSONAR: this partial contains the required Lua C-ABI function pointers.
 {
 	/// <summary>
 	///     Pushes a generated <c>[LuaFunction]</c> closure whose invocation is bound to one host attachment and Lua

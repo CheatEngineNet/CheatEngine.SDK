@@ -120,32 +120,11 @@ public static class AddressListMutations
 		bool mutationStarted = false;
 		try
 		{
-			MemoryRecordMutationOutcome preflight = TryGetCurrentList(state, out AddressList list);
+			MemoryRecordMutationOutcome preflight = TryPrepareParentAssignment(state, recordId, parentId,
+				traversalLimit, out MemoryRecord child, out MemoryRecord parent);
 			if (preflight.Problem != MemoryRecordMutationProblem.None)
 			{
 				return preflight;
-			}
-
-			preflight = TryResolveRecord(state, list, recordId, false, out MemoryRecord child);
-			if (preflight.Problem != MemoryRecordMutationProblem.None)
-			{
-				return preflight;
-			}
-
-			MemoryRecord parent = default;
-			if (parentId.HasValue)
-			{
-				preflight = TryResolveRecord(state, list, parentId.Value, true, out parent);
-				if (preflight.Problem != MemoryRecordMutationProblem.None)
-				{
-					return preflight;
-				}
-
-				preflight = ValidateParentChain(state, recordId, parent, traversalLimit);
-				if (preflight.Problem != MemoryRecordMutationProblem.None)
-				{
-					return preflight;
-				}
 			}
 
 			if (LuaRuntime.CurrentStateIdentity != identity)
@@ -177,6 +156,38 @@ public static class AddressListMutations
 		{
 			state.SetTop(top);
 		}
+	}
+
+	private static MemoryRecordMutationOutcome TryPrepareParentAssignment(LuaState state, MemoryRecordId recordId,
+		MemoryRecordId? parentId, MemoryRecordParentTraversalLimit traversalLimit, out MemoryRecord child,
+		out MemoryRecord parent)
+	{
+		child = default;
+		parent = default;
+		MemoryRecordMutationOutcome preflight = TryGetCurrentList(state, out AddressList list);
+		if (preflight.Problem != MemoryRecordMutationProblem.None)
+		{
+			return preflight;
+		}
+
+		preflight = TryResolveRecord(state, list, recordId, false, out child);
+		if (preflight.Problem != MemoryRecordMutationProblem.None)
+		{
+			return preflight;
+		}
+
+		if (!parentId.HasValue)
+		{
+			return Completed();
+		}
+
+		preflight = TryResolveRecord(state, list, parentId.Value, true, out parent);
+		if (preflight.Problem != MemoryRecordMutationProblem.None)
+		{
+			return preflight;
+		}
+
+		return ValidateParentChain(state, recordId, parent, traversalLimit);
 	}
 
 	private static MemoryRecordMutationOutcome TryResolveRecord(LuaState state, AddressList list, MemoryRecordId id,

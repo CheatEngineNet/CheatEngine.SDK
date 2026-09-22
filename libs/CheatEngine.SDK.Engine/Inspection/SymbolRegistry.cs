@@ -97,15 +97,33 @@ public static partial class SymbolRegistry
 	/// <returns>The protected registration status and a lease only on successful registration.</returns>
 	/// <exception cref="ArgumentException"><paramref name="name" /> is default or otherwise invalid.</exception>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
+	/// <exception cref="SymbolRegistrationHandoffException">
+	///     CE registered the name but managed lease construction or publication failed; the exception records the one
+	///     coordinator-qualified compensation attempt.
+	/// </exception>
 	/// <remarks>
 	///     The lease prevents older leases from unregistering a newer registration made through this coordinator. CE has
-	///     no registration token, so this method makes no claim about replacements made outside that coordinator.
+	///     no registration token, so this method makes no claim about replacements made outside that coordinator. A
+	///     successful CE registration is compensated once if its managed lease cannot be published; callers must inspect
+	///     <see cref="SymbolRegistrationHandoffException.CleanupOutcome" /> rather than retrying by name.
 	/// </remarks>
 	[RequiresPluginEnabled]
 	public static SymbolRegistrationAcquireOutcome TryRegisterOwned(SymbolName name, Address address,
 		SymbolRegistrationOptions options = default)
 	{
+		return TryRegisterOwnedCore(name, address, options, CreateLease, PublishLease);
+	}
+
+	// The seams are internal test infrastructure. They make the otherwise exceptional interval between a successful CE
+	// registration and managed lease publication deterministic, without allowing consumers to choose a different
+	// ownership or cleanup policy.
+	internal static SymbolRegistrationAcquireOutcome TryRegisterOwnedCore(SymbolName name, Address address,
+		SymbolRegistrationOptions options, SymbolRegistrationLeaseFactory leaseFactory,
+		SymbolRegistrationLeasePublisher leasePublisher)
+	{
 		ValidateName(name);
+		ArgumentNullException.ThrowIfNull(leaseFactory);
+		ArgumentNullException.ThrowIfNull(leasePublisher);
 		lock (SOwnedRegistrationGate)
 		{
 			LuaStateIdentity identity = LuaRuntime.CurrentStateIdentity;
@@ -127,9 +145,22 @@ public static partial class SymbolRegistry
 			}
 
 			SupersedeCurrentLease(name);
-			SymbolRegistrationLease lease = new(name, options, identity);
-			SOwnedRegistrations.Add(name, lease);
-			return new SymbolRegistrationAcquireOutcome(status, lease);
+			try
+			{
+				SymbolRegistrationLease lease = leaseFactory(name, options, identity);
+				if (lease is null)
+				{
+					throw new InvalidOperationException("The symbol-registration lease factory returned no lease.");
+				}
+
+				leasePublisher(name, lease);
+				return new SymbolRegistrationAcquireOutcome(status, lease);
+			}
+			catch (Exception exception)
+			{
+				SymbolRegistrationReleaseOutcome cleanupOutcome = CompensateFailedPublication(name, identity);
+				throw new SymbolRegistrationHandoffException(cleanupOutcome, exception);
+			}
 		}
 	}
 
@@ -153,10 +184,7 @@ public static partial class SymbolRegistry
 
 			if (!LuaRuntime.IsAttached || lease.Identity != LuaRuntime.CurrentStateIdentity)
 			{
-				RemoveCurrentLease(lease);
-				lease.MarkTerminalAndObserve(SymbolRegistrationReleaseKind.StaleRuntime);
-				return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.StaleRuntime,
-					LuaOperationStatus.Success);
+				return MarkStaleRuntime(lease);
 			}
 
 			if (!SOwnedRegistrations.TryGetValue(lease.Name, out SymbolRegistrationLease? current) ||
@@ -167,47 +195,63 @@ public static partial class SymbolRegistry
 					LuaOperationStatus.Success);
 			}
 
-			LuaOperationStatus status;
-			try
-			{
-				status = UnregisterCore(lease.Name);
-			}
-			catch (InvalidOperationException) when (!LuaRuntime.IsAttached ||
-			                                        lease.Identity != LuaRuntime.CurrentStateIdentity)
-			{
-				RemoveCurrentLease(lease);
-				lease.MarkTerminalAndObserve(SymbolRegistrationReleaseKind.StaleRuntime);
-				return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.StaleRuntime,
-					LuaOperationStatus.Success);
-			}
-			catch (InvalidOperationException)
-			{
-				return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupUnavailable,
-					LuaOperationStatus.GlobalUnavailable);
-			}
+			return ReleaseCurrentLease(lease);
+		}
+	}
 
-			if (status.IsSuccess)
-			{
-				RemoveCurrentLease(lease);
-				if (lease.Identity != LuaRuntime.CurrentStateIdentity)
-				{
-					lease.MarkTerminalAndObserve(SymbolRegistrationReleaseKind.StaleRuntime);
-					return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.StaleRuntime, status);
-				}
-
-				lease.MarkTerminalAndObserve(SymbolRegistrationReleaseKind.Released);
-				return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.Released, status);
-			}
-
-			if (status.Kind is LuaOperationStatusKind.GlobalUnavailable or LuaOperationStatusKind.StackUnavailable)
-			{
-				return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupUnavailable, status);
-			}
-
+	private static SymbolRegistrationReleaseOutcome ReleaseCurrentLease(SymbolRegistrationLease lease)
+	{
+		LuaOperationStatus status;
+		try
+		{
+			status = UnregisterCore(lease.Name);
+		}
+		catch (InvalidOperationException) when (!LuaRuntime.IsAttached ||
+		                                        lease.Identity != LuaRuntime.CurrentStateIdentity)
+		{
+			return MarkStaleRuntime(lease);
+		}
+		catch (InvalidOperationException)
+		{
+			return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupUnavailable,
+				LuaOperationStatus.GlobalUnavailable);
+		}
+		catch (Exception)
+		{
 			RemoveCurrentLease(lease);
 			lease.MarkTerminalAndObserve(SymbolRegistrationReleaseKind.CleanupIndeterminate);
-			return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupIndeterminate, status);
+			return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupIndeterminate,
+				LuaOperationStatus.InvalidResult);
 		}
+
+		if (status.IsSuccess)
+		{
+			RemoveCurrentLease(lease);
+			if (lease.Identity != LuaRuntime.CurrentStateIdentity)
+			{
+				return MarkStaleRuntime(lease, status);
+			}
+
+			lease.MarkTerminalAndObserve(SymbolRegistrationReleaseKind.Released);
+			return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.Released, status);
+		}
+
+		if (status.Kind is LuaOperationStatusKind.GlobalUnavailable or LuaOperationStatusKind.StackUnavailable)
+		{
+			return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupUnavailable, status);
+		}
+
+		RemoveCurrentLease(lease);
+		lease.MarkTerminalAndObserve(SymbolRegistrationReleaseKind.CleanupIndeterminate);
+		return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupIndeterminate, status);
+	}
+
+	private static SymbolRegistrationReleaseOutcome MarkStaleRuntime(SymbolRegistrationLease lease,
+		LuaOperationStatus status = default)
+	{
+		RemoveCurrentLease(lease);
+		lease.MarkTerminalAndObserve(SymbolRegistrationReleaseKind.StaleRuntime);
+		return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.StaleRuntime, status);
 	}
 
 	private static void ValidateName(SymbolName name)
@@ -216,6 +260,63 @@ public static partial class SymbolRegistry
 		{
 			throw new ArgumentException("A symbol name must not be default, empty or white space.", nameof(name));
 		}
+	}
+
+	private static SymbolRegistrationLease CreateLease(SymbolName name, SymbolRegistrationOptions options,
+		LuaStateIdentity identity)
+	{
+		return new SymbolRegistrationLease(name, options, identity);
+	}
+
+	private static void PublishLease(SymbolName name, SymbolRegistrationLease lease)
+	{
+		SOwnedRegistrations.Add(name, lease);
+	}
+
+	// Publication runs while the coordinator gate is held, so an SDK-coordinated replacement cannot interleave between
+	// the successful register and this one compensation attempt. The identity check prevents an old registration from
+	// being unregistered through a replacement Lua runtime.
+	private static SymbolRegistrationReleaseOutcome CompensateFailedPublication(SymbolName name,
+		LuaStateIdentity identity)
+	{
+		if (!LuaRuntime.IsAttached || identity != LuaRuntime.CurrentStateIdentity)
+		{
+			return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.StaleRuntime,
+				LuaOperationStatus.Success);
+		}
+
+		LuaOperationStatus status;
+		try
+		{
+			status = UnregisterCore(name);
+		}
+		catch (InvalidOperationException) when (!LuaRuntime.IsAttached ||
+		                                        identity != LuaRuntime.CurrentStateIdentity)
+		{
+			return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.StaleRuntime,
+				LuaOperationStatus.Success);
+		}
+		catch (InvalidOperationException)
+		{
+			return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupUnavailable,
+				LuaOperationStatus.GlobalUnavailable);
+		}
+		catch (Exception)
+		{
+			return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupIndeterminate,
+				LuaOperationStatus.InvalidResult);
+		}
+
+		if (status.IsSuccess)
+		{
+			return identity == LuaRuntime.CurrentStateIdentity
+				? new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.Released, status)
+				: new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.StaleRuntime, status);
+		}
+
+		return status.Kind is LuaOperationStatusKind.GlobalUnavailable or LuaOperationStatusKind.StackUnavailable
+			? new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupUnavailable, status)
+			: new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupIndeterminate, status);
 	}
 
 	private static void SupersedeCurrentLease(SymbolName name)

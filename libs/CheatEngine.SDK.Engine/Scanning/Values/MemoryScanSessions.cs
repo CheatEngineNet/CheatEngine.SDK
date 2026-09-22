@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Annotations.Threading;
 using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Lua.CompilerServices;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
@@ -71,7 +72,33 @@ public static class MemoryScanSessions
 	[RequiresPluginEnabled]
 	public static MemoryScanCreationStatus TryCreateDetailed([NotNullWhen(true)] out MemoryScanSession? session)
 	{
-		return TryCreateDetailedCore(out session, CreateSession);
+		return TryCreateWithOutcome(out session).Status;
+	}
+
+	/// <summary>
+	///     Creates a scanner/found-list pair and returns the pre-acquisition target observation with the factual factory
+	///     result.
+	/// </summary>
+	/// <param name="session">
+	///     The new context-bound session only when <see cref="MemoryScanCreationOutcome.Status" /> is
+	///     <see cref="MemoryScanCreationStatus.Success" />.
+	/// </param>
+	/// <returns>
+	///     The factory result and the exact target observation made before <c>createMemScan()</c>. An unqualified
+	///     observation returns <see cref="MemoryScanCreationStatus.TargetIdentityUnavailable" /> and invokes neither CE
+	///     factory.
+	/// </returns>
+	/// <exception cref="InvalidOperationException">
+	///     The plugin is not enabled, the caller has no host Lua state, the host cannot push objects, or the caller is
+	///     not on Cheat Engine's main thread.
+	/// </exception>
+	[MainThreadOnly]
+	[RequiresPluginEnabled]
+	public static MemoryScanCreationOutcome TryCreateWithOutcome([NotNullWhen(true)] out MemoryScanSession? session)
+	{
+		MemoryScanCreationStatus status = TryCreateDetailedCore(out session, CreateSession,
+			out TargetSelectionObservation targetObservation);
+		return new MemoryScanCreationOutcome(status, targetObservation);
 	}
 
 	// Tests use this seam to prove that an ownership-transfer failure rolls the child back before its parent. The raw
@@ -81,11 +108,11 @@ public static class MemoryScanSessions
 	internal static bool TryCreateCore([NotNullWhen(true)] out MemoryScanSession? session,
 		MemoryScanSessionAdopter adopter)
 	{
-		return TryCreateDetailedCore(out session, adopter) == MemoryScanCreationStatus.Success;
+		return TryCreateDetailedCore(out session, adopter, out _) == MemoryScanCreationStatus.Success;
 	}
 
 	private static MemoryScanCreationStatus TryCreateDetailedCore([NotNullWhen(true)] out MemoryScanSession? session,
-		MemoryScanSessionAdopter adopter)
+		MemoryScanSessionAdopter adopter, out TargetSelectionObservation targetObservation)
 	{
 		ArgumentNullException.ThrowIfNull(adopter);
 		RequireEnabledMainThread();
@@ -99,9 +126,17 @@ public static class MemoryScanSessions
 		CEObject foundListHandle = CEObject.Null;
 		MemoryScanCreationStatus status = MemoryScanCreationStatus.Success;
 		MemoryScanSessionContext context = MemoryScanSessionContext.Capture(state);
+		targetObservation = context.TargetObservation;
 		session = null;
 		try
 		{
+			// A MemScan/FoundList pair acts against CE's ambient target. Do not acquire either caller-owned resource
+			// until the observation can identify a process incarnation for every later session operation and cleanup.
+			if (!context.TargetObservation.IsQualified)
+			{
+				return MemoryScanCreationStatus.TargetIdentityUnavailable;
+			}
+
 			status = TryCreateScanner(state, out scanner, out scannerHandle);
 			if (status == MemoryScanCreationStatus.Success)
 			{
@@ -119,12 +154,13 @@ public static class MemoryScanSessions
 			// Adoption transfers and empties both wrappers. Every other exit after construction must release the child
 			// before the parent while the original operation is still admitted. Swallowing a protected destroy failure
 			// avoids hiding the factory failure and, like Owned<T>.Dispose, never retries an unknown native state.
-			if (!TryRollback(state, foundList, foundListHandle) | !TryRollback(state, scanner, scannerHandle))
+			bool foundListRollbackFailed = !TryRollback(state, foundList, foundListHandle);
+			bool scannerRollbackFailed = !TryRollback(state, scanner, scannerHandle);
+			if ((foundListRollbackFailed || scannerRollbackFailed)
+			    && session is null
+			    && status != MemoryScanCreationStatus.Success)
 			{
-				if (session is null && status != MemoryScanCreationStatus.Success)
-				{
-					status = MemoryScanCreationStatus.RollbackUnconfirmed;
-				}
+				status = MemoryScanCreationStatus.RollbackUnconfirmed;
 			}
 		}
 

@@ -28,5 +28,8 @@ public enum MemoryScanMaterializationStatus : byte
 	LuaFailure = 7,
 
 	/// <summary>CE returned a count, address, or value that does not satisfy the declared scan contract.</summary>
-	InvalidResult = 8
+	InvalidResult = 8,
+
+	/// <summary>The requested page starts at or beyond a non-empty found-list count.</summary>
+	PageStartOutOfRange = 9
 }

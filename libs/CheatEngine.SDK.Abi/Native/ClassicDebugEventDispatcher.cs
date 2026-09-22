@@ -21,7 +21,8 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         <c>ContinueDebugEvent</c> cell is not yet a qualified SDK ABI surface.
 ///     </para>
 /// </remarks>
-internal sealed unsafe class ClassicDebugEventDispatcher : IDisposable
+internal sealed unsafe class
+	ClassicDebugEventDispatcher : IDisposable // NOSONAR: this type is the native debug-event ABI boundary.
 {
 	private static readonly Lock SRegistrationGate = new();
 	private static ClassicDebugEventDispatcher? s_active;
@@ -152,64 +153,29 @@ internal sealed unsafe class ClassicDebugEventDispatcher : IDisposable
 	/// </summary>
 	internal ClassicDebugEventReleaseStatus TryRelease()
 	{
-		if (ReferenceEquals(t_dispatcher, this))
+		if (!TryBeginRelease(out ClassicDebugEventReleaseStatus releaseStatus))
 		{
-			return ClassicDebugEventReleaseStatus.CallbackIsExecuting;
+			return releaseStatus;
 		}
 
-		lock (_gate)
-		{
-			if (_released)
-			{
-				return ClassicDebugEventReleaseStatus.Released;
-			}
-
-			if (_releaseInProgress)
-			{
-				return ClassicDebugEventReleaseStatus.ReleaseInProgress;
-			}
-
-			_acceptingCallbacks = false;
-			_releaseInProgress = true;
-		}
-
-		if (!TryUnregister())
-		{
-			return ClassicDebugEventReleaseStatus.UnregisterUnconfirmed;
-		}
-
-		CompleteRelease();
-		return ClassicDebugEventReleaseStatus.Released;
-	}
-
-	private bool TryUnregister()
-	{
 		try
 		{
-			if (_unregisterFunction(_pluginId, _functionId).IsTrue)
+			if (!_unregisterFunction(_pluginId, _functionId).IsTrue)
 			{
-				return true;
+				EndUnconfirmedReleaseAttempt();
+				return ClassicDebugEventReleaseStatus.UnregisterUnconfirmed;
 			}
 		}
 		catch (Exception)
 		{
-			// The host can fail without throwing or can throw from the unmanaged call.
+			EndUnconfirmedReleaseAttempt();
+			return ClassicDebugEventReleaseStatus.UnregisterUnconfirmed;
 		}
 
-		EndUnconfirmedReleaseAttempt();
-		return false;
-	}
-
-	private void CompleteRelease()
-	{
-		_callbacksDrained.Wait();
-		lock (SRegistrationGate)
-		{
-			if (ReferenceEquals(s_active, this))
-			{
-				s_active = null;
-			}
-		}
+		// Unregistration has already closed admission. The drain is therefore deliberately uninterruptible: allowing
+		// cancellation here would release the managed callback root while a native callback could still be in flight.
+		_callbacksDrained.Wait(CancellationToken.None);
+		ClearActiveRegistration(this);
 
 		DebugEventPluginInit* initialization;
 		lock (_gate)
@@ -228,6 +194,7 @@ internal sealed unsafe class ClassicDebugEventDispatcher : IDisposable
 		}
 
 		_callbacksDrained.Dispose();
+		return ClassicDebugEventReleaseStatus.Released;
 	}
 
 	private static int Dispatch(void* nativeEvent)
@@ -239,13 +206,9 @@ internal sealed unsafe class ClassicDebugEventDispatcher : IDisposable
 			return 0;
 		}
 
-		ClassicDebugEventDispatcher? dispatcher;
-		lock (SRegistrationGate)
-		{
-			dispatcher = s_active;
-		}
-
-		if (dispatcher is null || !dispatcher.TryEnterCallback(out DebugEventDecisionHandler handler,
+		if (!TryEnterActiveCallback(
+			    out ClassicDebugEventDispatcher? dispatcher,
+			    out DebugEventDecisionHandler handler,
 			    out BoundedDebugEventObservationBuffer? observations))
 		{
 			return 0;
@@ -255,7 +218,33 @@ internal sealed unsafe class ClassicDebugEventDispatcher : IDisposable
 		t_dispatcher = dispatcher;
 		try
 		{
-			return InvokeHandler(dispatcher, handler, observations, nativeEvent);
+			DebugEventHeader header = Unsafe.ReadUnaligned<DebugEventHeader>(nativeEvent);
+			DebugEventObservation observation = new(
+				Interlocked.Increment(ref s_nextSequenceNumber),
+				header.EventCode,
+				header.ProcessId,
+				header.ThreadId);
+
+			// This is a bounded copy, never a continuation path. It cannot call a consumer or await work.
+			observations?.TryPublish(in observation);
+
+			DebugEventDecision decision;
+			try
+			{
+				decision = handler(in observation);
+			}
+			catch (Exception)
+			{
+				Interlocked.Increment(ref dispatcher._callbackFailureCount);
+				return 0;
+			}
+
+			if (decision is not DebugEventDecision.ContinueWithCheatEngine)
+			{
+				Interlocked.Increment(ref dispatcher._unsupportedContinuationRequestCount);
+			}
+
+			return 0;
 		}
 		catch (Exception)
 		{
@@ -270,39 +259,57 @@ internal sealed unsafe class ClassicDebugEventDispatcher : IDisposable
 		}
 	}
 
-	private static int InvokeHandler(
-		ClassicDebugEventDispatcher dispatcher,
-		DebugEventDecisionHandler handler,
-		BoundedDebugEventObservationBuffer? observations,
-		void* nativeEvent)
+	private bool TryBeginRelease(out ClassicDebugEventReleaseStatus releaseStatus)
 	{
-		DebugEventHeader header = Unsafe.ReadUnaligned<DebugEventHeader>(nativeEvent);
-		DebugEventObservation observation = new(
-			Interlocked.Increment(ref s_nextSequenceNumber),
-			header.EventCode,
-			header.ProcessId,
-			header.ThreadId);
-
-		// This is a bounded copy, never a continuation path. It cannot call a consumer or await work.
-		observations?.TryPublish(in observation);
-
-		DebugEventDecision decision;
-		try
+		if (ReferenceEquals(t_dispatcher, this))
 		{
-			decision = handler(in observation);
-		}
-		catch (Exception)
-		{
-			Interlocked.Increment(ref dispatcher._callbackFailureCount);
-			return 0;
+			releaseStatus = ClassicDebugEventReleaseStatus.CallbackIsExecuting;
+			return false;
 		}
 
-		if (decision is not DebugEventDecision.ContinueWithCheatEngine)
+		lock (_gate)
 		{
-			Interlocked.Increment(ref dispatcher._unsupportedContinuationRequestCount);
+			if (_released)
+			{
+				releaseStatus = ClassicDebugEventReleaseStatus.Released;
+				return false;
+			}
+
+			if (_releaseInProgress)
+			{
+				releaseStatus = ClassicDebugEventReleaseStatus.ReleaseInProgress;
+				return false;
+			}
+
+			_acceptingCallbacks = false;
+			_releaseInProgress = true;
 		}
 
-		return 0;
+		releaseStatus = default;
+		return true;
+	}
+
+	private static bool TryEnterActiveCallback(
+		out ClassicDebugEventDispatcher dispatcher,
+		out DebugEventDecisionHandler handler,
+		out BoundedDebugEventObservationBuffer? observations)
+	{
+		ClassicDebugEventDispatcher? active;
+		lock (SRegistrationGate)
+		{
+			active = s_active;
+		}
+
+		if (active is null)
+		{
+			dispatcher = null!;
+			handler = null!;
+			observations = null;
+			return false;
+		}
+
+		dispatcher = active;
+		return dispatcher.TryEnterCallback(out handler, out observations);
 	}
 
 	private bool TryEnterCallback(
@@ -366,13 +373,7 @@ internal sealed unsafe class ClassicDebugEventDispatcher : IDisposable
 			_releaseInProgress = false;
 		}
 
-		lock (SRegistrationGate)
-		{
-			if (ReferenceEquals(s_active, this))
-			{
-				s_active = null;
-			}
-		}
+		ClearActiveRegistration(this);
 
 		if (initialization is not null)
 		{
@@ -380,6 +381,17 @@ internal sealed unsafe class ClassicDebugEventDispatcher : IDisposable
 		}
 
 		_callbacksDrained.Dispose();
+	}
+
+	private static void ClearActiveRegistration(ClassicDebugEventDispatcher dispatcher)
+	{
+		lock (SRegistrationGate)
+		{
+			if (ReferenceEquals(s_active, dispatcher))
+			{
+				s_active = null;
+			}
+		}
 	}
 
 	private void EndUnconfirmedReleaseAttempt()

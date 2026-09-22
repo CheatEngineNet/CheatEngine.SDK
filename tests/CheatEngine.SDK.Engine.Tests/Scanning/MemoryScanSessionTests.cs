@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 
 using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Scanning.Values;
 using CheatEngine.SDK.Engine.Targets;
@@ -119,7 +120,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
-	public void Dispose_releases_and_destroys_the_child_before_the_parent()
+	public void ReleaseWithOutcome_confirms_and_consumes_the_child_before_the_parent_without_a_retry()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -130,16 +131,20 @@ public sealed class MemoryScanSessionTests
 		session.WaitForCompletion();
 		EngineTest.Run(scope.State, "trace = {}"u8);
 
-		session.Dispose();
-		session.Dispose();
+		MemoryScanReleaseOutcome outcome = session.ReleaseWithOutcome();
+		MemoryScanReleaseOutcome repeated = session.ReleaseWithOutcome();
 
 		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.True(outcome.OwnershipConsumed);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.FoundList.Status);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.MemScan.Status);
+		Assert.Equal(outcome, repeated);
 		Assert.Equal("list.deinitialize,list.destroy,scan.destroy", ReadTrace(scope.State));
 		Assert.Throws<ObjectDisposedException>(() => _ = session.Scanner);
 	}
 
 	[Fact]
-	public void Dispose_attempts_the_parent_cleanup_after_an_unconfirmed_child_destroy()
+	public void ReleaseWithOutcome_reports_unknown_child_cleanup_and_still_attempts_the_parent_once()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -150,15 +155,19 @@ public sealed class MemoryScanSessionTests
 		CEObject scanner = session.Scanner.Handle;
 		EngineTest.Run(scope.State, "trace = {}"u8);
 
-		session.Dispose();
+		MemoryScanReleaseOutcome outcome = session.ReleaseWithOutcome();
 
 		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.True(outcome.OwnershipConsumed);
+		Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, outcome.FoundList.Status);
+		Assert.Equal(EngineFailureKind.ProtectedLuaFailure, outcome.FoundList.FailureKind);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.MemScan.Status);
 		Assert.True(FakeHost.IsDestroyed(scope.State, scanner));
 		Assert.Equal("list.deinitialize,list.destroy,scan.destroy", ReadTrace(scope.State));
 	}
 
 	[Fact]
-	public void Dispose_after_a_detach_and_reattach_refuses_to_use_the_prior_runtime_and_can_be_abandoned()
+	public void Dispose_after_a_detach_consumes_ownership_without_throwing_or_using_the_prior_runtime()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -170,11 +179,16 @@ public sealed class MemoryScanSessionTests
 		CEObject scanner = session.Scanner.Handle;
 		CEObject foundList = session.Results.Handle;
 
+		MemoryScanReleaseOutcome outcome;
 		LuaRuntime.Detach();
 		try
 		{
-			Assert.Throws<InvalidOperationException>(session.Dispose);
-			Assert.Equal(MemoryScanState.ResultsReady, session.State);
+			session.Dispose();
+			outcome = session.LastReleaseOutcome;
+			Assert.Equal(MemoryScanState.Disposed, session.State);
+			Assert.True(outcome.OwnershipConsumed);
+			Assert.Equal(TargetReleaseStatus.NotInvoked, outcome.FoundList.Status);
+			Assert.Equal(TargetReleaseStatus.NotInvoked, outcome.MemScan.Status);
 			Assert.False(FakeHost.IsDestroyed(scope.State, scanner));
 			Assert.False(FakeHost.IsDestroyed(scope.State, foundList));
 		}
@@ -183,11 +197,6 @@ public sealed class MemoryScanSessionTests
 			LuaRuntime.Attach(scope.Binding);
 		}
 
-		MemoryScanException invalidated = Assert.Throws<MemoryScanException>(session.Dispose);
-
-		Assert.Equal(MemoryScanFailureKind.RuntimeInvalidated, invalidated.FailureKind);
-		Assert.Equal(MemoryScanState.Invalidated, session.State);
-		session.Abandon();
 		Assert.Equal(MemoryScanState.Disposed, session.State);
 		Assert.False(FakeHost.IsDestroyed(scope.State, foundList));
 		Assert.False(FakeHost.IsDestroyed(scope.State, scanner));
@@ -315,7 +324,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
-	public void Disposal_on_a_worker_is_rejected_before_child_or_parent_cleanup()
+	public void Disposal_on_a_worker_never_throws_or_retries_unsafe_child_or_parent_cleanup()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -328,12 +337,12 @@ public sealed class MemoryScanSessionTests
 
 		Exception? failure = EngineTest.RunOnWorker(session.Dispose);
 
-		InvalidOperationException exception = Assert.IsType<InvalidOperationException>(failure);
-		Assert.Contains("main thread", exception.Message, StringComparison.Ordinal);
-		Assert.Equal(MemoryScanState.ResultsReady, session.State);
+		Assert.Null(failure);
+		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.True(session.LastReleaseOutcome.OwnershipConsumed);
+		Assert.Equal(TargetReleaseStatus.NotInvoked, session.LastReleaseOutcome.FoundList.Status);
+		Assert.Equal(TargetReleaseStatus.NotInvoked, session.LastReleaseOutcome.MemScan.Status);
 		Assert.Equal(string.Empty, ReadTrace(scope.State));
-
-		session.Dispose();
 	}
 
 	[Fact]
@@ -522,6 +531,197 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	public void TryCopyResults_cancels_after_get_address_without_reading_a_value_or_publishing_a_snapshot()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		using MemoryScanSession session = CreateSession(scope.State);
+		session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100"));
+		session.WaitForCompletion();
+		EngineTest.Run(scope.State, "trace = {}"u8);
+		MemoryScanResult retained = new(new Address(0xA11CE), "retained");
+		MemoryScanResult[] destination = [retained, retained];
+		using CancellationTokenSource cancellation = new();
+		using FakeHost.PCallProbe probe = FakeHost.ReplaceFoundListGetAddressWithPCallProbe(scope.State,
+			session.Results.Handle,
+			cancellation.Cancel);
+
+		MemoryScanMaterializationStatus status = CopyWithCancellation(session, destination, cancellation.Token,
+			out ulong totalCount, out int written);
+
+		Assert.Equal(MemoryScanMaterializationStatus.Cancelled, status);
+		Assert.Equal(2UL, totalCount);
+		Assert.Equal(0, written);
+		Assert.Equal(retained, destination[0]);
+		Assert.Equal(retained, destination[1]);
+		Assert.Equal(1, probe.GetAddressCallCount);
+		Assert.Equal(MemoryScanCancellationMilestone.ObservedAfterNativeCall, session.LastCancellationMilestone);
+		Assert.Equal("results.getCount", ReadTrace(scope.State));
+	}
+
+	[Fact]
+	public void TryCopyResultsPage_copies_only_the_requested_bounded_page_without_materializing_the_full_result_set()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		using MemoryScanSession session = CreateSession(scope.State, resultCountLiteral: "3");
+		session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100"));
+		session.WaitForCompletion();
+		EngineTest.Run(scope.State, "trace = {}"u8);
+		MemoryScanResult[] destination = new MemoryScanResult[1];
+
+		MemoryScanMaterializationStatus status = session.TryCopyResultsPage(1, destination, out ulong totalCount,
+			out int written);
+
+		Assert.Equal(MemoryScanMaterializationStatus.Success, status);
+		Assert.Equal(3UL, totalCount);
+		Assert.Equal(1, written);
+		Assert.Equal(new MemoryScanResult(new Address(0xFFFF_FFFF_FFFF_FFFF), "100"), destination[0]);
+		Assert.Equal("results.getCount,results.getAddress:1,results.getValue:1", ReadTrace(scope.State));
+	}
+
+	[Fact]
+	public void TryCopyResultsPage_does_not_publish_a_prefix_when_a_page_row_is_invalid()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		using MemoryScanSession session = CreateSession(scope.State, invalidAddress: true);
+		session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100"));
+		session.WaitForCompletion();
+		EngineTest.Run(scope.State, "trace = {}"u8);
+		MemoryScanResult retained = new(new Address(0xA11CE), "retained");
+		MemoryScanResult[] destination = [retained];
+
+		MemoryScanMaterializationStatus status = session.TryCopyResultsPage(0, destination, out ulong totalCount,
+			out int written);
+
+		Assert.Equal(MemoryScanMaterializationStatus.InvalidResult, status);
+		Assert.Equal(2UL, totalCount);
+		Assert.Equal(0, written);
+		Assert.Equal(retained, destination[0]);
+		Assert.Equal("results.getCount,results.getAddress:0", ReadTrace(scope.State));
+	}
+
+	[Fact]
+	public void TryCopyResultsPage_reports_no_results_without_touching_the_destination()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		using MemoryScanSession session = CreateSession(scope.State, resultCountLiteral: "0");
+		session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100"));
+		session.WaitForCompletion();
+		EngineTest.Run(scope.State, "trace = {}"u8);
+		MemoryScanResult retained = new(new Address(0xA11CE), "retained");
+		MemoryScanResult[] destination = [retained];
+
+		MemoryScanMaterializationStatus status = session.TryCopyResultsPage(0, destination, out ulong totalCount,
+			out int written);
+
+		Assert.Equal(MemoryScanMaterializationStatus.NoResults, status);
+		Assert.Equal(0UL, totalCount);
+		Assert.Equal(0, written);
+		Assert.Equal(retained, destination[0]);
+		Assert.Equal("results.getCount", ReadTrace(scope.State));
+	}
+
+	[Fact]
+	public void TryCopyResultsPage_rejects_an_exact_end_start_without_reading_a_row()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		using MemoryScanSession session = CreateSession(scope.State);
+		session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100"));
+		session.WaitForCompletion();
+		EngineTest.Run(scope.State, "trace = {}"u8);
+		MemoryScanResult retained = new(new Address(0xA11CE), "retained");
+		MemoryScanResult[] destination = [retained];
+
+		MemoryScanMaterializationStatus status = session.TryCopyResultsPage(2, destination, out ulong totalCount,
+			out int written);
+
+		Assert.Equal(MemoryScanMaterializationStatus.PageStartOutOfRange, status);
+		Assert.Equal(2UL, totalCount);
+		Assert.Equal(0, written);
+		Assert.Equal(retained, destination[0]);
+		Assert.Equal("results.getCount", ReadTrace(scope.State));
+	}
+
+	[Fact]
+	public void TryCopyResultsPage_rejects_zero_capacity_without_reading_a_row()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		using MemoryScanSession session = CreateSession(scope.State);
+		session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100"));
+		session.WaitForCompletion();
+		EngineTest.Run(scope.State, "trace = {}"u8);
+
+		MemoryScanMaterializationStatus status = session.TryCopyResultsPage(0, [], out ulong totalCount,
+			out int written);
+
+		Assert.Equal(MemoryScanMaterializationStatus.DestinationTooSmall, status);
+		Assert.Equal(2UL, totalCount);
+		Assert.Equal(0, written);
+		Assert.Equal("results.getCount", ReadTrace(scope.State));
+	}
+
+	[Fact]
+	public void TryCopyResultsPage_rejects_a_negative_start_before_reading_the_count()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		using MemoryScanSession session = CreateSession(scope.State);
+		session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100"));
+		session.WaitForCompletion();
+		EngineTest.Run(scope.State, "trace = {}"u8);
+		MemoryScanResult retained = new(new Address(0xA11CE), "retained");
+		MemoryScanResult[] destination = [retained];
+
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+		{
+			session.TryCopyResultsPage(-1, destination, out _, out _);
+		});
+
+		Assert.Equal(retained, destination[0]);
+		Assert.Equal(string.Empty, ReadTrace(scope.State));
+	}
+
+	[Fact]
+	[SuppressMessage("xUnit.Analyzers", "xUnit1051",
+		Justification = "The fixture starts with a deliberately cancelled token to prove no paged-row call begins.")]
+	public void TryCopyResultsPage_does_not_publish_a_prefix_when_cancellation_precedes_the_page()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		using MemoryScanSession session = CreateSession(scope.State);
+		session.StartFirstScan(FirstScanRequest.ExactValue(VariableType.Dword, "100"));
+		session.WaitForCompletion();
+		EngineTest.Run(scope.State, "trace = {}"u8);
+		MemoryScanResult retained = new(new Address(0xA11CE), "retained");
+		MemoryScanResult[] destination = [retained];
+		using CancellationTokenSource cancellation = new();
+		cancellation.Cancel();
+
+		MemoryScanMaterializationStatus status = session.TryCopyResultsPageCancellable(0, destination,
+			out ulong totalCount, out int written, cancellation.Token);
+
+		Assert.Equal(MemoryScanMaterializationStatus.Cancelled, status);
+		Assert.Equal(0UL, totalCount);
+		Assert.Equal(0, written);
+		Assert.Equal(retained, destination[0]);
+		Assert.Equal(MemoryScanCancellationMilestone.CancelledBeforeNativeCall, session.LastCancellationMilestone);
+		Assert.Equal(string.Empty, ReadTrace(scope.State));
+	}
+
+	[Fact]
 	[SuppressMessage("xUnit.Analyzers", "xUnit1051",
 		Justification = "The fixture must start with a deliberately cancelled token to prove no CE scan call begins.")]
 	public void A_cancellable_first_scan_honors_preexisting_cancellation_without_claiming_to_interrupt_CE()
@@ -580,6 +780,25 @@ public sealed class MemoryScanSessionTests
 		Assert.Equal(MemoryScanInvalidationReason.None, session.InvalidationReason);
 		Assert.Equal(string.Empty, ReadTrace(scope.State));
 		session.Abandon();
+	}
+
+	[Fact]
+	public void ReleaseWithOutcome_refuses_cleanup_on_a_replaced_target_and_consumes_both_owners()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		MemoryScanSession session = CreateSession(scope.State);
+		EngineTest.Run(scope.State, "opened_process_id = 0; trace = {}"u8);
+
+		MemoryScanReleaseOutcome outcome = session.ReleaseWithOutcome();
+
+		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.True(outcome.OwnershipConsumed);
+		Assert.Equal(TargetReleaseStatus.RefusedNoTarget, outcome.FoundList.Status);
+		Assert.Equal(TargetReleaseStatus.RefusedNoTarget, outcome.MemScan.Status);
+		Assert.Equal(TargetIdentityCheckKind.NoTargetSelected, outcome.FoundList.TargetCheck!.Value.Kind);
+		Assert.Equal(string.Empty, ReadTrace(scope.State));
 	}
 
 	private static MemoryScanMaterializationStatus CopyWithCancellation(MemoryScanSession session,

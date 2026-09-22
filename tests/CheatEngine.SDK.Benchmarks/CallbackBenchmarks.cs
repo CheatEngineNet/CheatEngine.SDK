@@ -16,7 +16,7 @@ namespace CheatEngine.SDK.Benchmarks;
 /// </summary>
 [MemoryDiagnoser(false)]
 [BenchmarkCategory("Callbacks")]
-public class CallbackBenchmarks : IDisposable
+public sealed class CallbackBenchmarks : IDisposable
 {
 	/// <summary>Lua-side calls per invocation of <see cref="RoundTrip" />.</summary>
 	private const int LoopCount = 1000;
@@ -28,10 +28,20 @@ public class CallbackBenchmarks : IDisposable
 	/// <inheritdoc />
 	public void Dispose()
 	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	private void Dispose(bool disposing)
+	{
+		if (!disposing)
+		{
+			return;
+		}
+
 		_ = BenchFunctions.UnregisterLuaFunctions(_l);
 		LuaRuntime.Detach();
 		_state?.Dispose();
-		GC.SuppressFinalize(this);
 	}
 
 	/// <summary>Opens a state, registers the thunk and defines the Lua-side loop that calls it <see cref="LoopCount" /> times.</summary>
@@ -42,7 +52,7 @@ public class CallbackBenchmarks : IDisposable
 		_state = new NativeLuaState();
 		_l = FakeHostRuntime.Attach(_state, false);
 
-		var registered = BenchFunctions.RegisterLuaFunctions(_l);
+		LuaStatus registered = BenchFunctions.RegisterLuaFunctions(_l);
 		if (!registered.IsOk)
 		{
 			throw new InvalidOperationException("RegisterLuaFunctions failed: " + LuaError.FromStack(_l, registered));
@@ -60,7 +70,7 @@ public class CallbackBenchmarks : IDisposable
 
 	/// <summary>
 	///     Unregisters the thunk, detaches the ambient runtime and closes the state. BenchmarkDotNet does not call
-	///     <see cref="Dispose" /> itself; this is what <c>[GlobalCleanup]</c> is for.
+	///     <see cref="Dispose()" /> itself; this is what <c>[GlobalCleanup]</c> is for.
 	/// </summary>
 	[GlobalCleanup]
 	public void Cleanup()

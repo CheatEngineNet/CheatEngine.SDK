@@ -13,6 +13,9 @@
     <!-- The exact production input is embedded, so this test never needs a workspace path at runtime. -->
     <EmbeddedResource Include="../../eng/lua-bridge/protected-operations.json"
                       LogicalName="CheatEngine.SDK.LuaBridgeContract.Tests.ProductionCatalog.json"/>
+    <!-- The C11 source is embedded to verify the checked-in native enum and switch without requiring a compiler. -->
+    <EmbeddedResource Include="../../native/cheatengine-sdk-lua-bridge/cheatengine_sdk_lua_bridge.c"
+                      LogicalName="CheatEngine.SDK.LuaBridgeContract.Tests.ProductionNativeBridge.c"/>
   </ItemGroup>
 
 </Project>

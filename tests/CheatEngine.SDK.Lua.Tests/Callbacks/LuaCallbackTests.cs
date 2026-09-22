@@ -353,14 +353,14 @@ public sealed class LuaCallbackTests
 		using ManualResetEventSlim admissionClosed = new(false);
 		Counter counter = new();
 
-		LuaCallback.BeforeRegistryAddForTesting = () =>
+		LuaCallback.SetBeforeRegistryAddForTesting(() =>
 		{
 			creationPaused.Set();
 			if (!allowPublication.Wait(TimeSpan.FromSeconds(5), cancellationToken))
 			{
 				throw new TimeoutException("The callback-publication barrier timed out.");
 			}
-		};
+		});
 		LuaRuntime.OperationAdmissionClosedForTesting = admissionClosed.Set;
 
 		try
@@ -394,7 +394,7 @@ public sealed class LuaCallbackTests
 		}
 		finally
 		{
-			LuaCallback.BeforeRegistryAddForTesting = null;
+			LuaCallback.SetBeforeRegistryAddForTesting(null);
 			LuaRuntime.OperationAdmissionClosedForTesting = null;
 			allowPublication.Set();
 		}
@@ -781,7 +781,7 @@ public sealed class LuaCallbackTests
 		{
 			_cancellationToken = cancellationToken;
 			LuaRuntime.OperationAdmissionClosedForTesting = OnAdmissionClosed;
-			LuaCallback.DisposeAdmissionRefusedForTesting = OnDisposeAdmissionRefused;
+			LuaCallback.SetDisposeAdmissionRefusedForTesting(OnDisposeAdmissionRefused);
 			LuaCallbackRegistry.AfterReleaseForTesting = ThrowCleanupFailure;
 		}
 
@@ -819,7 +819,7 @@ public sealed class LuaCallbackTests
 		public static void DisableFailureSeams()
 		{
 			LuaRuntime.OperationAdmissionClosedForTesting = null;
-			LuaCallback.DisposeAdmissionRefusedForTesting = null;
+			LuaCallback.SetDisposeAdmissionRefusedForTesting(null);
 			LuaCallbackRegistry.AfterReleaseForTesting = null;
 		}
 

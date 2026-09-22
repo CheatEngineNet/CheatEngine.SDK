@@ -200,7 +200,7 @@ public static unsafe class LuaRuntime
 	}
 
 	/// <summary>
-	///     Acquires an operation for <see cref="LuaCallback.Dispose" /> and reports whether an attached lifecycle
+	///     Acquires an operation for <see cref="LuaCallback.Dispose()" /> and reports whether an attached lifecycle
 	///     transition, rather than an unavailable state, rejected it.
 	/// </summary>
 	/// <remarks>

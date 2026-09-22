@@ -9,6 +9,8 @@ namespace CheatEngine.SDK.Tests.Packaging;
 [Collection(PackagedUmbrellaSuite.Name)]
 public sealed class PackedConsumerBindingTests(PackagedUmbrellaFixture fixture)
 {
+	private static readonly string[] RequiredAotWarningIds = ["IL2026", "IL3050", "IL3058"];
+
 	private static readonly string[] ExpectedLibNet10Assets =
 	[
 		"lib/net10.0/CheatEngine.SDK.dll",
@@ -69,8 +71,28 @@ public sealed class PackedConsumerBindingTests(PackagedUmbrellaFixture fixture)
 		Assert.True(fixture.PackedAotConsumerRunSucceeded,
 			$"The published package-only AOT consumer did not exit successfully:{Environment.NewLine}" +
 			fixture.PackedAotConsumerRunOutput);
+		Assert.Contains("SDK-022-AOT-GENERATED-BINDING", fixture.PackedAotConsumerRunOutput,
+			StringComparison.Ordinal);
 		Assert.Contains("SDK-022-AOT-STANDALONE", fixture.PackedAotConsumerRunOutput, StringComparison.Ordinal);
 		Assert.Contains("SDK-022-AOT-NO-CE-HOST", fixture.PackedAotConsumerRunOutput, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Packaged_AOT_consumer_evaluates_its_publication_contract_and_does_not_suppress_trim_or_AOT_warnings()
+	{
+		Assert.Equal("true", fixture.PackedAotConsumerAllowUnsafeBlocks, true);
+		Assert.Equal("true", fixture.PackedAotConsumerProperties["PublishAot"], true);
+		Assert.Equal("true", fixture.PackedAotConsumerProperties["PublishTrimmed"], true);
+		Assert.Equal("true", fixture.PackedAotConsumerProperties["SelfContained"], true);
+		Assert.Equal("win-x64", fixture.PackedAotConsumerProperties["RuntimeIdentifier"], true);
+		Assert.Equal("true", fixture.PackedAotConsumerProperties["VerifyReferenceAotCompatibility"], true);
+
+		foreach (string warningId in RequiredAotWarningIds)
+		{
+			Assert.Contains(warningId, fixture.PackedAotConsumerWarningsAsErrors, StringComparison.Ordinal);
+			Assert.DoesNotContain(warningId, fixture.PackedAotConsumerProperties["NoWarn"],
+				StringComparison.OrdinalIgnoreCase);
+		}
 	}
 
 	[Fact]

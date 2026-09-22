@@ -81,7 +81,7 @@ public class MemoryScalarBenchmarks : IDisposable
 		if (!defined.IsOk)
 		{
 			throw new InvalidOperationException("Defining scalar-memory fixture globals failed: " +
-			                                    LuaError.FromStack(state, defined));
+												LuaError.FromStack(state, defined));
 		}
 
 		if (!TargetMemory.TryWriteInt32(Address32, -42, out _))
@@ -95,15 +95,15 @@ public class MemoryScalarBenchmarks : IDisposable
 		}
 
 		if (!HostMemory.TryWriteInt32(HostAddress32, -42, out _) ||
-		    !HostMemory.TryWriteInt64(HostAddress64, 0x1_0000_0000L, out _))
+			!HostMemory.TryWriteInt64(HostAddress64, 0x1_0000_0000L, out _))
 		{
 			throw new InvalidOperationException("Warming local scalar writes failed.");
 		}
 
 		if (!TargetMemory.TryReadInt32(Address32, out _, out _) ||
-		    !TargetMemory.TryReadInt64(Address64, out _, out _) ||
-		    !HostMemory.TryReadInt32(HostAddress32, out _, out _) ||
-		    !HostMemory.TryReadInt64(HostAddress64, out _, out _))
+			!TargetMemory.TryReadInt64(Address64, out _, out _) ||
+			!HostMemory.TryReadInt32(HostAddress32, out _, out _) ||
+			!HostMemory.TryReadInt64(HostAddress64, out _, out _))
 		{
 			throw new InvalidOperationException("Warming scalar reads failed.");
 		}

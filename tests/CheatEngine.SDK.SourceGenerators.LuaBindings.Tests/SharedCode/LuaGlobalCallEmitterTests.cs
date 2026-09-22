@@ -187,7 +187,10 @@ public sealed class LuaGlobalCallEmitterTests
 		LuaGlobalCallModel throwingVoid = new("g", "s", "static", "G", string.Empty,
 			EquatableArray<LuaArgumentModel>.Empty, LuaCallForm.Throwing, EquatableArray<LuaResultModel>.Empty,
 			null, false);
-		LuaGlobalCallModel throwingValue = throwingVoid with { ReturnKind = LuaValueKind.Double };
+		LuaGlobalCallModel throwingValue = throwingVoid with
+		{
+			ReturnKind = LuaValueKind.Double
+		};
 
 		Assert.Equal(0, throwingVoid.ResultCount);
 		Assert.Equal(1, throwingValue.ResultCount);

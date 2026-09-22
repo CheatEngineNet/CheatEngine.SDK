@@ -73,13 +73,13 @@ public sealed class ZeroAllocationTests
 		// Exact on purpose: the round trip through the Lua stack must not change a single bit,
 		// so the bit patterns are compared.
 		if (!DoubleMarshaller.TryRead(state, top + 3, out double d) ||
-		    BitConverter.DoubleToInt64Bits(d) != BitConverter.DoubleToInt64Bits(2.5))
+			BitConverter.DoubleToInt64Bits(d) != BitConverter.DoubleToInt64Bits(2.5))
 		{
 			Fail();
 		}
 
 		if (!SingleMarshaller.TryRead(state, top + 4, out float f) ||
-		    BitConverter.SingleToInt32Bits(f) != BitConverter.SingleToInt32Bits(1.5f))
+			BitConverter.SingleToInt32Bits(f) != BitConverter.SingleToInt32Bits(1.5f))
 		{
 			Fail();
 		}
@@ -90,7 +90,7 @@ public sealed class ZeroAllocationTests
 		}
 
 		if (!AddressMarshaller.TryRead(state, top + 6, out UIntPtr a) ||
-		    a != unchecked((nuint) 0xFFFF_FFFF_FFFF_FFF0UL))
+			a != unchecked((nuint) 0xFFFF_FFFF_FFFF_FFF0UL))
 		{
 			Fail();
 		}

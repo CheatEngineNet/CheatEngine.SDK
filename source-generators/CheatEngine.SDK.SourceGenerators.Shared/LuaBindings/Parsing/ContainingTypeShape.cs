@@ -61,7 +61,7 @@ internal static class ContainingTypeShape
 		foreach (SyntaxReference reference in type.DeclaringSyntaxReferences)
 		{
 			if (reference.GetSyntax(cancellationToken) is TypeDeclarationSyntax declaration
-			    && declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
+				&& declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
 			{
 				return true;
 			}

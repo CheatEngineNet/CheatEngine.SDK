@@ -49,10 +49,10 @@ public sealed class LuaFunctionOutputTests(RoslynFixture roslyn) : IClassFixture
 		run.AssertCompilesClean();
 		string text = run.SingleGeneratedText;
 		foreach (string name in new[]
-		         {
-			         "add", "greet", "ping", "isint", "boom", "echo", "half", "negate", "step", "small", "scale",
-			         "maybe"
-		         })
+				 {
+					 "add", "greet", "ping", "isint", "boom", "echo", "half", "negate", "step", "small", "scale",
+					 "maybe"
+				 })
 		{
 			Assert.Contains("private static int __LuaThunk_" + name + "(nint __handle)", text,
 				StringComparison.Ordinal);

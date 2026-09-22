@@ -293,7 +293,7 @@ public sealed class RuntimeProcessOperationsTests
 	private static void InstallCurrentProcessGlobals(LuaState state, int processId, bool is64Bit)
 	{
 		string source = "function getOpenedProcessID() return " + processId + " end\n" +
-		                "function targetIs64Bit() return " + LuaBoolean(is64Bit) + " end";
+						"function targetIs64Bit() return " + LuaBoolean(is64Bit) + " end";
 		EngineTest.Run(state, Encoding.UTF8.GetBytes(source));
 	}
 

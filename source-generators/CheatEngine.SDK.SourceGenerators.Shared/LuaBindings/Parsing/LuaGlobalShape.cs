@@ -174,9 +174,9 @@ internal static class LuaGlobalShape
 		}
 
 		if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, method.ReturnType,
-			    method.GetReturnTypeAttributes(), luaMarshallerAttribute, luaMarshallerContract,
-			    out returnMarshaller, out _)
-		    || (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
+				method.GetReturnTypeAttributes(), luaMarshallerAttribute, luaMarshallerContract,
+				out returnMarshaller, out _)
+			|| (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
 		{
 			return LuaGlobalShapeIssues.UnsupportedReturnType;
 		}
@@ -187,7 +187,7 @@ internal static class LuaGlobalShape
 		}
 
 		if (!LuaValueKindMapper.TryMap(method.ReturnType, out LuaValueKind kind, out returnIsNullable) ||
-		    !LuaValueKinds.CanBeResult(kind))
+			!LuaValueKinds.CanBeResult(kind))
 		{
 			return LuaGlobalShapeIssues.UnsupportedReturnType;
 		}
@@ -278,9 +278,9 @@ internal static class LuaGlobalShape
 			}
 
 			if (!LuaMarshallerResolver.TryResolve(compilation, bindingType, parameter.Type, parameter.GetAttributes(),
-				    luaMarshallerAttribute, luaMarshallerContract, out LuaCustomMarshallerModel? customMarshaller,
-				    out _)
-			    || (customMarshaller is not null && parameter.Type.IsRefLikeType))
+					luaMarshallerAttribute, luaMarshallerContract, out LuaCustomMarshallerModel? customMarshaller,
+					out _)
+				|| (customMarshaller is not null && parameter.Type.IsRefLikeType))
 			{
 				return LuaGlobalShapeIssues.UnsupportedResultType;
 			}
@@ -292,7 +292,7 @@ internal static class LuaGlobalShape
 			}
 
 			if (!LuaValueKindMapper.TryMap(parameter.Type, out LuaValueKind kind, out bool isNullable) ||
-			    !LuaValueKinds.CanBeResult(kind))
+				!LuaValueKinds.CanBeResult(kind))
 			{
 				return LuaGlobalShapeIssues.UnsupportedResultType;
 			}
@@ -306,8 +306,8 @@ internal static class LuaGlobalShape
 		{
 			_inResults = true;
 			if (index + 1 >= parameters.Length
-			    || parameters[index + 1] is
-				    not { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Int32 } written)
+				|| parameters[index + 1] is
+					not { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Int32 } written)
 			{
 				return LuaGlobalShapeIssues.UnsupportedResultType;
 			}
@@ -338,8 +338,8 @@ internal static class LuaGlobalShape
 			}
 
 			if (!LuaMarshallerResolver.TryResolve(compilation, bindingType, parameter.Type, parameter.GetAttributes(),
-				    luaMarshallerAttribute, luaMarshallerContract, out LuaCustomMarshallerModel? customMarshaller,
-				    out _))
+					luaMarshallerAttribute, luaMarshallerContract, out LuaCustomMarshallerModel? customMarshaller,
+					out _))
 			{
 				return issues | LuaGlobalShapeIssues.UnsupportedParameterType;
 			}

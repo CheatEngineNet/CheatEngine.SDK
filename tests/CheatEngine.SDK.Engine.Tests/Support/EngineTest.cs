@@ -14,7 +14,7 @@ internal static class EngineTest
 	///     <c>Debug.Assert</c> guards exist. Tests of a Debug-only guard skip in Release.
 	/// </summary>
 #if DEBUG
-    public const bool IsDebugBuild = true;
+	public const bool IsDebugBuild = true;
 #else
 	public const bool IsDebugBuild = false;
 #endif

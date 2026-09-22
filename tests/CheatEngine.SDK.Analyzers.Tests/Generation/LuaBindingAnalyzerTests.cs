@@ -58,32 +58,32 @@ public sealed class LuaBindingAnalyzerTests
 	{
 		{
 			"valid function", ShapeUsings +
-			                  "public static partial class Functions { [LuaFunction(\"add\")] public static long Add(long a, long b) => a + b; }",
+							  "public static partial class Functions { [LuaFunction(\"add\")] public static long Add(long a, long b) => a + b; }",
 			true
 		},
 		{
 			"instance method", ShapeUsings +
-			                   "public partial class Functions { [LuaFunction(\"add\")] public long Add(long a, long b) => a + b; }",
+							   "public partial class Functions { [LuaFunction(\"add\")] public long Add(long a, long b) => a + b; }",
 			false
 		},
 		{
 			"not partial container", ShapeUsings +
-			                         "public static class Functions { [LuaFunction(\"add\")] public static long Add(long a, long b) => a + b; }",
+									 "public static class Functions { [LuaFunction(\"add\")] public static long Add(long a, long b) => a + b; }",
 			false
 		},
 		{
 			"invalid lua name", ShapeUsings +
-			                    "public static partial class Functions { [LuaFunction(\"end\")] public static long Add(long a, long b) => a + b; }",
+								"public static partial class Functions { [LuaFunction(\"end\")] public static long Add(long a, long b) => a + b; }",
 			false
 		},
 		{
 			"valid global try form", ShapeUsings +
-			                         "public static partial class Bindings { [LuaGlobal(\"readInteger\")] public static partial bool TryReadInt32(nuint address, out int value); }",
+									 "public static partial class Bindings { [LuaGlobal(\"readInteger\")] public static partial bool TryReadInt32(nuint address, out int value); }",
 			true
 		},
 		{
 			"global try form returning int instead of bool", ShapeUsings +
-			                                                 "public static partial class Bindings { [LuaGlobal(\"readInteger\")] public static partial int TryReadInt32(nuint address, out int value); }",
+															 "public static partial class Bindings { [LuaGlobal(\"readInteger\")] public static partial int TryReadInt32(nuint address, out int value); }",
 			false
 		},
 		{
@@ -421,10 +421,10 @@ public sealed class LuaBindingAnalyzerTests
 			static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaBindingContainingType, StringComparison.Ordinal));
 		Assert.Contains(diagnostics,
 			static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal) &&
-			            d.GetMessage(CultureInfo.InvariantCulture).Contains("reserved word", StringComparison.Ordinal));
+						d.GetMessage(CultureInfo.InvariantCulture).Contains("reserved word", StringComparison.Ordinal));
 		Assert.Contains(diagnostics,
 			static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal) &&
-			            d.GetMessage(CultureInfo.InvariantCulture).Contains("default value", StringComparison.Ordinal));
+						d.GetMessage(CultureInfo.InvariantCulture).Contains("default value", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -462,11 +462,11 @@ public sealed class LuaBindingAnalyzerTests
 		ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(compilation);
 		Assert.Contains(diagnostics,
 			static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal) &&
-			            d.GetMessage(CultureInfo.InvariantCulture)
-				            .Contains("parameter type", StringComparison.Ordinal));
+						d.GetMessage(CultureInfo.InvariantCulture)
+							.Contains("parameter type", StringComparison.Ordinal));
 		Assert.Contains(diagnostics,
 			static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaGlobal, StringComparison.Ordinal) &&
-			            d.GetMessage(CultureInfo.InvariantCulture).Contains("argument type", StringComparison.Ordinal));
+						d.GetMessage(CultureInfo.InvariantCulture).Contains("argument type", StringComparison.Ordinal));
 	}
 
 	[Theory]

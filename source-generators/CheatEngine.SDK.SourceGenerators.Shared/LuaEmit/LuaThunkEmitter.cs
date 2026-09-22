@@ -101,7 +101,7 @@ internal static class LuaThunkEmitter
 	public static string WrongArgumentCountMessage(string luaName, int expected)
 	{
 		return "wrong number of arguments to '" + luaName + "' (" + expected.ToString(CultureInfo.InvariantCulture) +
-		       " expected)";
+			   " expected)";
 	}
 
 	// The count check first, so that a missing argument and a surplus one get the same, complete message.

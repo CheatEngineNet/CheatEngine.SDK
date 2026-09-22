@@ -843,7 +843,7 @@ public sealed class MemoryScanSession : IDisposable
 	private TargetReleaseOutcome CreateRefusedReleaseOutcome(MemoryScanMaterializationStatus context)
 	{
 		if (context is MemoryScanMaterializationStatus.TargetIdentityUnavailable or
-			    MemoryScanMaterializationStatus.TargetIdentityMismatch && LastTargetCheck.HasValue)
+				MemoryScanMaterializationStatus.TargetIdentityMismatch && LastTargetCheck.HasValue)
 		{
 			return TargetReleaseOutcome.Refused(LastTargetCheck.GetValueOrDefault());
 		}

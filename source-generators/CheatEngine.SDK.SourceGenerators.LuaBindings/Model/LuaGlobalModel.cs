@@ -33,5 +33,5 @@ internal sealed record LuaGlobalModel(
 {
 	/// <summary><see langword="true" /> when a body can be emitted for this method.</summary>
 	public bool IsValid => Issues == LuaGlobalShapeIssues.None && ContainingTypeIssues == ContainingTypeIssues.None &&
-	                       Call is not null && !HasGeneratedIdentityCollision;
+						   Call is not null && !HasGeneratedIdentityCollision;
 }

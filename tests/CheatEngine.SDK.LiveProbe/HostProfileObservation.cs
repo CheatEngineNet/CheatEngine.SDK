@@ -83,7 +83,7 @@ internal static class HostProfileObservation
 			writer.WriteString("machine", reader.PEHeaders.CoffHeader.Machine.ToString());
 		}
 		catch (Exception exception) when (exception is BadImageFormatException or IOException
-			                                  or UnauthorizedAccessException)
+											  or UnauthorizedAccessException)
 		{
 			writer.WriteString("machine", "unavailable: " + exception.GetType().Name);
 		}
@@ -130,7 +130,7 @@ internal static class HostProfileObservation
 			return getFileVersion(path) ?? "not-present";
 		}
 		catch (Exception exception) when (exception is ArgumentException or Win32Exception
-			                                  or IOException or UnauthorizedAccessException)
+											  or IOException or UnauthorizedAccessException)
 		{
 			return "unavailable: " + exception.GetType().Name;
 		}
@@ -150,7 +150,7 @@ internal static class HostProfileObservation
 			}
 		}
 		catch (Exception exception) when (exception is InvalidOperationException or NotSupportedException
-			                                  or Win32Exception)
+											  or Win32Exception)
 		{
 			HostLog.Write(HostLogLevel.Warning,
 				"CE 7.7 host-profile probe could not enumerate loaded modules.", exception);

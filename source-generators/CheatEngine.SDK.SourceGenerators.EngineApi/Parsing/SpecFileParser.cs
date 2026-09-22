@@ -199,13 +199,13 @@ internal static class SpecFileParser
 		}
 
 		if (!ReadHeaderFields(
-			    header,
-			    issues,
-			    out string? namespaceValue,
-			    out string? typeValue,
-			    out typeLine,
-			    out typeColumn,
-			    out contract))
+				header,
+				issues,
+				out string? namespaceValue,
+				out string? typeValue,
+				out typeLine,
+				out typeColumn,
+				out contract))
 		{
 			return false;
 		}
@@ -356,10 +356,10 @@ internal static class SpecFileParser
 	{
 		contract = null;
 		if (!TryRequireContractField(fields.Provenance, "provenance", header, issues, out SpecField provenance)
-		    || !TryRequireContractField(fields.MinimumCe, "minimum-ce", header, issues, out SpecField minimumCe)
-		    || !TryRequireContractField(fields.Architecture, "architecture", header, issues, out SpecField architecture)
-		    || !TryRequireContractField(fields.Thread, "thread", header, issues, out SpecField thread)
-		    || !TryRequireContractField(fields.Ownership, "ownership", header, issues, out SpecField ownership))
+			|| !TryRequireContractField(fields.MinimumCe, "minimum-ce", header, issues, out SpecField minimumCe)
+			|| !TryRequireContractField(fields.Architecture, "architecture", header, issues, out SpecField architecture)
+			|| !TryRequireContractField(fields.Thread, "thread", header, issues, out SpecField thread)
+			|| !TryRequireContractField(fields.Ownership, "ownership", header, issues, out SpecField ownership))
 		{
 			return false;
 		}
@@ -493,11 +493,11 @@ internal static class SpecFileParser
 
 		string status = value[..colon];
 		return string.Equals(status, "ExactBinary", StringComparison.Ordinal)
-		       || string.Equals(status, "ExactInstalledFile", StringComparison.Ordinal)
-		       || string.Equals(status, "PinnedUpstream", StringComparison.Ordinal)
-		       || string.Equals(status, "ObservedLive", StringComparison.Ordinal)
-		       || string.Equals(status, "Inferred", StringComparison.Ordinal)
-		       || string.Equals(status, "Unknown", StringComparison.Ordinal);
+			   || string.Equals(status, "ExactInstalledFile", StringComparison.Ordinal)
+			   || string.Equals(status, "PinnedUpstream", StringComparison.Ordinal)
+			   || string.Equals(status, "ObservedLive", StringComparison.Ordinal)
+			   || string.Equals(status, "Inferred", StringComparison.Ordinal)
+			   || string.Equals(status, "Unknown", StringComparison.Ordinal);
 	}
 
 	private static bool IsFourPartVersion(string value)
@@ -532,23 +532,23 @@ internal static class SpecFileParser
 	private static bool IsThreadAffinity(string value)
 	{
 		return string.Equals(value, "any", StringComparison.Ordinal)
-		       || string.Equals(value, "main", StringComparison.Ordinal)
-		       || string.Equals(value, "unknown", StringComparison.Ordinal);
+			   || string.Equals(value, "main", StringComparison.Ordinal)
+			   || string.Equals(value, "unknown", StringComparison.Ordinal);
 	}
 
 	private static bool IsOwnership(string value)
 	{
 		return string.Equals(value, "none", StringComparison.Ordinal)
-		       || string.Equals(value, "borrowed", StringComparison.Ordinal)
-		       || string.Equals(value, "owned", StringComparison.Ordinal);
+			   || string.Equals(value, "borrowed", StringComparison.Ordinal)
+			   || string.Equals(value, "owned", StringComparison.Ordinal);
 	}
 
 	private static bool IsNilSemantics(string value)
 	{
 		return string.Equals(value, "none", StringComparison.Ordinal)
-		       || string.Equals(value, "absence", StringComparison.Ordinal)
-		       || string.Equals(value, "expected-failure", StringComparison.Ordinal)
-		       || string.Equals(value, "lua-error", StringComparison.Ordinal);
+			   || string.Equals(value, "absence", StringComparison.Ordinal)
+			   || string.Equals(value, "expected-failure", StringComparison.Ordinal)
+			   || string.Equals(value, "lua-error", StringComparison.Ordinal);
 	}
 
 	private static SpecCallModel? ParseEntry(Block block, List<SpecIssue> issues, SpecFileContract? fileContract)
@@ -566,7 +566,7 @@ internal static class SpecFileParser
 		}
 
 		if (!ValidateRequiredText(fields, block.StartLine, fileContract is not null, issues, out bool isTry,
-			    out bool isThrowing))
+				out bool isThrowing))
 		{
 			return null;
 		}
@@ -597,7 +597,7 @@ internal static class SpecFileParser
 		}
 
 		if (!TryParseReturnKind(fields, isThrowing, block.StartLine, issues, out LuaValueKind? returnKind,
-			    out bool returnIsNullable))
+				out bool returnIsNullable))
 		{
 			return null;
 		}
@@ -668,12 +668,18 @@ internal static class SpecFileParser
 	{
 		switch (field.Key)
 		{
-			case "global": return TrySetGlobal(fields, singular, field, issues);
-			case "method": return TrySetMethod(fields, singular, field, issues);
-			case "form": return TrySetForm(fields, singular, field, issues);
-			case "doc": return TrySetDoc(fields, singular, field, issues);
-			case "nil": return TrySetNil(fields, singular, field, issues);
-			case "return": return TrySetReturn(fields, singular, field, issues);
+			case "global":
+				return TrySetGlobal(fields, singular, field, issues);
+			case "method":
+				return TrySetMethod(fields, singular, field, issues);
+			case "form":
+				return TrySetForm(fields, singular, field, issues);
+			case "doc":
+				return TrySetDoc(fields, singular, field, issues);
+			case "nil":
+				return TrySetNil(fields, singular, field, issues);
+			case "return":
+				return TrySetReturn(fields, singular, field, issues);
 			case "arg":
 				fields.ArgTokens.Add((field.Line, field.ValueColumn, field.Value));
 				return true;
@@ -747,7 +753,7 @@ internal static class SpecFileParser
 		isThrowing = false;
 
 		if (!ValidateRequiredPresence(fields, startLine, issues)
-		    || !ValidateNilContract(fields, startLine, requiresCe77Contract, issues))
+			|| !ValidateNilContract(fields, startLine, requiresCe77Contract, issues))
 		{
 			return false;
 		}
@@ -845,8 +851,8 @@ internal static class SpecFileParser
 		foreach ((int line, int column, string value) in tokens)
 		{
 			if (!TryParseNamedValue(value, out string name, out string kindToken)
-			    || !SpecIdentifiers.IsValidIdentifier(name)
-			    || !SpecValueKinds.TryParse(kindToken, out LuaValueKind kind, out bool nullable))
+				|| !SpecIdentifiers.IsValidIdentifier(name)
+				|| !SpecValueKinds.TryParse(kindToken, out LuaValueKind kind, out bool nullable))
 			{
 				issues.Add(new SpecIssue(line, "'" + value + "' is not a valid 'name:kind' argument.", column));
 				return null;
@@ -868,9 +874,9 @@ internal static class SpecFileParser
 		foreach ((int line, int column, string value) in tokens)
 		{
 			if (!TryParseNamedValue(value, out string kindToken, out string literal)
-			    || !string.Equals(kindToken, "boolean", StringComparison.Ordinal)
-			    || !(string.Equals(literal, "true", StringComparison.Ordinal)
-			         || string.Equals(literal, "false", StringComparison.Ordinal)))
+				|| !string.Equals(kindToken, "boolean", StringComparison.Ordinal)
+				|| !(string.Equals(literal, "true", StringComparison.Ordinal)
+					 || string.Equals(literal, "false", StringComparison.Ordinal)))
 			{
 				issues.Add(new SpecIssue(line,
 					"'" + value + "' is not a valid fixed argument: expected 'boolean:true' or 'boolean:false'.",
@@ -891,8 +897,8 @@ internal static class SpecFileParser
 		foreach ((int line, int column, string value) in tokens)
 		{
 			if (!TryParseNamedValue(value, out string name, out string kindToken)
-			    || !SpecIdentifiers.IsValidIdentifier(name)
-			    || !SpecValueKinds.TryParse(kindToken, out LuaValueKind kind, out bool nullable))
+				|| !SpecIdentifiers.IsValidIdentifier(name)
+				|| !SpecValueKinds.TryParse(kindToken, out LuaValueKind kind, out bool nullable))
 			{
 				issues.Add(new SpecIssue(line, "'" + value + "' is not a valid 'name:kind' result.", column));
 				return null;
@@ -1096,11 +1102,11 @@ internal static class SpecFileParser
 	private static bool IsReservedBodyLocal(string name, LuaGlobalCallModel call)
 	{
 		if (string.Equals(name, "__L", StringComparison.Ordinal)
-		    || string.Equals(name, "__operation", StringComparison.Ordinal)
-		    || string.Equals(name, "__top", StringComparison.Ordinal)
-		    || string.Equals(name, "__ok", StringComparison.Ordinal)
-		    || string.Equals(name, "__status", StringComparison.Ordinal)
-		    || string.Equals(name, "__result", StringComparison.Ordinal))
+			|| string.Equals(name, "__operation", StringComparison.Ordinal)
+			|| string.Equals(name, "__top", StringComparison.Ordinal)
+			|| string.Equals(name, "__ok", StringComparison.Ordinal)
+			|| string.Equals(name, "__status", StringComparison.Ordinal)
+			|| string.Equals(name, "__result", StringComparison.Ordinal))
 		{
 			return true;
 		}
@@ -1111,7 +1117,7 @@ internal static class SpecFileParser
 		}
 
 		if (string.Equals(name, "__engineApiSucceeded", StringComparison.Ordinal)
-		    || string.Equals(name, "__engineApiRawResult", StringComparison.Ordinal))
+			|| string.Equals(name, "__engineApiRawResult", StringComparison.Ordinal))
 		{
 			return true;
 		}
@@ -1124,7 +1130,7 @@ internal static class SpecFileParser
 		for (int i = 0; i < call.Results.Length; i++)
 		{
 			if (call.Results[i].Kind == LuaValueKind.Address
-			    && string.Equals(name, RawResultName(i), StringComparison.Ordinal))
+				&& string.Equals(name, RawResultName(i), StringComparison.Ordinal))
 			{
 				return true;
 			}
@@ -1192,8 +1198,8 @@ internal static class SpecFileParser
 		foreach (SpecCallModel entry in entries)
 		{
 			bool conflicts = cacheFields.Contains(entry.Call.MethodName)
-			                 || (UsesAddressFacade(entry.Call) &&
-			                     cacheFields.Contains(CoreMethodName(entry.Call.MethodName)));
+							 || (UsesAddressFacade(entry.Call) &&
+								 cacheFields.Contains(CoreMethodName(entry.Call.MethodName)));
 			if (!conflicts)
 			{
 				valid.Add(entry);
@@ -1219,9 +1225,9 @@ internal static class SpecFileParser
 		foreach (SpecCallModel entry in entries)
 		{
 			bool conflicts = string.Equals(entry.Call.MethodName, typeName, StringComparison.Ordinal)
-			                 || (UsesAddressFacade(entry.Call)
-			                     && string.Equals(CoreMethodName(entry.Call.MethodName), typeName,
-				                     StringComparison.Ordinal));
+							 || (UsesAddressFacade(entry.Call)
+								 && string.Equals(CoreMethodName(entry.Call.MethodName), typeName,
+									 StringComparison.Ordinal));
 			if (!conflicts)
 			{
 				valid.Add(entry);

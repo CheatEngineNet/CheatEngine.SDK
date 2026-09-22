@@ -604,8 +604,8 @@ public static unsafe class LuaRuntime
 	internal static bool IsGeneratedFunctionRegistrationCurrent(int attachEpoch, int stateGeneration)
 	{
 		return Read(ref s_services) is not null
-		       && Read(ref s_identity) == PackIdentity(attachEpoch, stateGeneration)
-		       && IsOperationAdmissionOpen();
+			   && Read(ref s_identity) == PackIdentity(attachEpoch, stateGeneration)
+			   && IsOperationAdmissionOpen();
 	}
 
 	/// <summary>

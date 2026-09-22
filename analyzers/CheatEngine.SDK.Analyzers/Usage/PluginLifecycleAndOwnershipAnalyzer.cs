@@ -77,8 +77,8 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
 	{
 		IInvocationOperation invocation = (IInvocationOperation) context.Operation;
 		if (symbols.RequiresPluginEnabled is not null && IsTooEarly(context.ContainingSymbol, symbols.PluginAttribute)
-		                                              && RequiresEnabled(invocation.TargetMethod,
-			                                              symbols.RequiresPluginEnabled))
+													  && RequiresEnabled(invocation.TargetMethod,
+														  symbols.RequiresPluginEnabled))
 		{
 			context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.RequiresPluginEnabledTooEarly,
 				invocation.Syntax.GetLocation(), DisplayName(invocation.TargetMethod)));
@@ -102,7 +102,7 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
 		PluginLifecycleContractSymbols symbols)
 	{
 		if (symbols.RequiresPluginEnabled is null ||
-		    !IsTooEarly(context.ContainingSymbol, symbols.PluginAttribute))
+			!IsTooEarly(context.ContainingSymbol, symbols.PluginAttribute))
 		{
 			return;
 		}
@@ -120,14 +120,14 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
 	private static void AnalyzeObjectCreation(OperationAnalysisContext context, PluginLifecycleContractSymbols symbols)
 	{
 		if (symbols.RequiresPluginEnabled is null ||
-		    !IsTooEarly(context.ContainingSymbol, symbols.PluginAttribute))
+			!IsTooEarly(context.ContainingSymbol, symbols.PluginAttribute))
 		{
 			return;
 		}
 
 		IObjectCreationOperation creation = (IObjectCreationOperation) context.Operation;
 		if (creation.Constructor is null ||
-		    !RequiresEnabled(creation.Constructor, symbols.RequiresPluginEnabled))
+			!RequiresEnabled(creation.Constructor, symbols.RequiresPluginEnabled))
 		{
 			return;
 		}
@@ -140,7 +140,7 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
 	{
 		IMethodSymbol method = (IMethodSymbol) context.Symbol;
 		if (!method.IsAsync || !method.ReturnsVoid ||
-		    !IsPluginClass(method.ContainingType, symbols.PluginAttribute))
+			!IsPluginClass(method.ContainingType, symbols.PluginAttribute))
 		{
 			return;
 		}
@@ -183,8 +183,8 @@ public sealed class PluginLifecycleAndOwnershipAnalyzer : DiagnosticAnalyzer
 		}
 
 		for (IMethodSymbol? overridden = method.OverriddenMethod;
-		     overridden is not null;
-		     overridden = overridden.OverriddenMethod)
+			 overridden is not null;
+			 overridden = overridden.OverriddenMethod)
 		{
 			if (SymbolEqualityComparer.Default.Equals(overridden.ContainingType, pluginBase))
 			{

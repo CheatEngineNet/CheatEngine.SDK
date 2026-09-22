@@ -43,7 +43,7 @@ internal sealed class GeneratedAssembly
 		image.Position = 0;
 
 		string assemblyName = "CheatEngine.SDK.EngineApi.Tests." +
-		                      Interlocked.Increment(ref s_counter).ToString(CultureInfo.InvariantCulture);
+							  Interlocked.Increment(ref s_counter).ToString(CultureInfo.InvariantCulture);
 		AssemblyLoadContext context = new(assemblyName);
 		return new GeneratedAssembly(context.LoadFromStream(image));
 	}
@@ -56,7 +56,7 @@ internal sealed class GeneratedAssembly
 		Type[] parameterTypes = [.. parameters.Select(static parameter => parameter.ParameterType)];
 		Type type = Assembly.GetType(typeName, true)!;
 		MethodInfo method = type.GetMethod(methodName, StaticMembers, parameterTypes) ??
-		                    throw new MissingMethodException(typeName, methodName);
+							throw new MissingMethodException(typeName, methodName);
 		return method.CreateDelegate<TDelegate>();
 	}
 }

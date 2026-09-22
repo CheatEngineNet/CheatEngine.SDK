@@ -96,7 +96,7 @@ public sealed unsafe class LuaBridgeContractTests
 
 		int delayImportDirectoryOffset = optionalOffset + 112 + 13 * 8;
 		return ReadUInt32(image, delayImportDirectoryOffset) != 0 ||
-		       ReadUInt32(image, delayImportDirectoryOffset + sizeof(uint)) != 0;
+			   ReadUInt32(image, delayImportDirectoryOffset + sizeof(uint)) != 0;
 	}
 
 	private static List<string> ReadExportedNames(string path)

@@ -94,8 +94,8 @@ public readonly struct AobScanOptions : IEquatable<AobScanOptions>
 	public bool Equals(AobScanOptions other)
 	{
 		return string.Equals(ProtectionFlags, other.ProtectionFlags, StringComparison.Ordinal) &&
-		       AlignmentMethod == other.AlignmentMethod &&
-		       string.Equals(AlignmentParameter, other.AlignmentParameter, StringComparison.Ordinal);
+			   AlignmentMethod == other.AlignmentMethod &&
+			   string.Equals(AlignmentParameter, other.AlignmentParameter, StringComparison.Ordinal);
 	}
 
 	/// <inheritdoc />

@@ -260,10 +260,14 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 
 		int visited = 0;
 		foreach (string stepName in EntryPointTrackingNames.All)
-		foreach (IncrementalGeneratorRunStep step in run.Result.TrackedSteps[stepName])
-		foreach ((object value, IncrementalStepRunReason _) in step.Outputs)
 		{
-			visited += ModelGraph.AssertFreeOfRoslynObjects(value, stepName);
+			foreach (IncrementalGeneratorRunStep step in run.Result.TrackedSteps[stepName])
+			{
+				foreach ((object value, IncrementalStepRunReason _) in step.Outputs)
+				{
+					visited += ModelGraph.AssertFreeOfRoslynObjects(value, stepName);
+				}
+			}
 		}
 
 		Assert.True(visited > 0, "No model object was visited: the assertion would be vacuous.");

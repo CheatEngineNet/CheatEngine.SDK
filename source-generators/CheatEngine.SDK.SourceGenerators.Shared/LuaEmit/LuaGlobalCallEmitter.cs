@@ -556,7 +556,7 @@ internal static class LuaGlobalCallEmitter
 	private static void WriteThrowingResult(SourceWriter writer, LuaGlobalCallModel model)
 	{
 		if (!model.HasReturn)
-			// A void call keeps no result: the successful call already left the stack at its recorded top.
+		// A void call keeps no result: the successful call already left the stack at its recorded top.
 		{
 			return;
 		}

@@ -47,8 +47,8 @@ internal static class LuaHostSubscriptionRegistry
 		lock (Gate)
 		{
 			if (!s_acceptRegistrations
-			    || !LuaRuntime.IsAttached
-			    || LuaRuntime.CurrentStateIdentity != subscription.Identity)
+				|| !LuaRuntime.IsAttached
+				|| LuaRuntime.CurrentStateIdentity != subscription.Identity)
 			{
 				return false;
 			}

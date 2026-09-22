@@ -65,7 +65,7 @@ internal sealed class LuaFunctionDuplicateState
 	private string LuaNameFor(ConcurrentQueue<(string MethodName, Location Location)> members)
 	{
 		foreach (KeyValuePair<(string ContainingType, string LuaName),
-			         ConcurrentQueue<(string MethodName, Location Location)>> pair in _candidates)
+					 ConcurrentQueue<(string MethodName, Location Location)>> pair in _candidates)
 		{
 			if (ReferenceEquals(pair.Value, members))
 			{

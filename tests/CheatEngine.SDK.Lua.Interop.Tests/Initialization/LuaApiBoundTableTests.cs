@@ -41,7 +41,7 @@ public sealed class LuaApiBoundTableTests
 		object table =
 			typeof(LuaApi).GetField("s_table", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
 		FieldInfo[] slots = typeof(LuaApi.Table).GetFields(BindingFlags.Instance | BindingFlags.Public |
-		                                                   BindingFlags.NonPublic);
+														   BindingFlags.NonPublic);
 
 		Assert.NotEmpty(slots);
 		foreach (FieldInfo slot in slots)

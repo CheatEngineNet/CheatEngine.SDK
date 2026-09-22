@@ -261,7 +261,7 @@ public static class AddressListMutations
 	{
 		HashSet<MemoryRecordId> seen = new();
 		MemoryRecord current = proposedParent;
-		for (int hops = 0;; hops++)
+		for (int hops = 0; ; hops++)
 		{
 			LuaStatus status = current.Handle.TryGetProperty(state, "ID"u8);
 			if (!status.IsOk)

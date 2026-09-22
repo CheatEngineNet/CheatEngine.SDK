@@ -149,7 +149,7 @@ internal static class ProtectedOperationCatalogParser
 		ref ulong bitmap)
 	{
 		if (!TryReadOperationFields(value, reader, diagnostics, out JsonString idValue, out JsonNumber opcodeValue,
-			    out JsonString? managedConstant))
+				out JsonString? managedConstant))
 		{
 			return;
 		}
@@ -162,7 +162,7 @@ internal static class ProtectedOperationCatalogParser
 		}
 
 		if (managedConstant is not null &&
-		    !string.Equals(managedConstant.Text, idValue.Text + "Operation", StringComparison.Ordinal))
+			!string.Equals(managedConstant.Text, idValue.Text + "Operation", StringComparison.Ordinal))
 		{
 			diagnostics.Add(reader.CreateDiagnostic(managedConstant.Span,
 				"Property 'managed.constant' must be '" + idValue.Text + "Operation' for operation '" + idValue.Text +
@@ -170,8 +170,8 @@ internal static class ProtectedOperationCatalogParser
 		}
 
 		if (!int.TryParse(opcodeValue.Text, NumberStyles.None, CultureInfo.InvariantCulture, out int opcode)
-		    || opcode < 0
-		    || opcode > 63)
+			|| opcode < 0
+			|| opcode > 63)
 		{
 			diagnostics.Add(reader.CreateDiagnostic(opcodeValue.Span,
 				"Operation 'opcode' must be an integer between 0 and 63."));

@@ -221,7 +221,7 @@ public sealed class AllocatedRegion : IDisposable
 	private void ThrowForReleaseOutcome(TargetMemoryOperationOutcome outcome)
 	{
 		if (outcome.Kind is TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable or
-		    TargetMemoryOperationOutcomeKind.TargetIdentityMismatch)
+			TargetMemoryOperationOutcomeKind.TargetIdentityMismatch)
 		{
 			throw new EngineTargetIdentityException("TargetMemoryDeallocate",
 				LastReleaseOutcome.TargetCheck.GetValueOrDefault());

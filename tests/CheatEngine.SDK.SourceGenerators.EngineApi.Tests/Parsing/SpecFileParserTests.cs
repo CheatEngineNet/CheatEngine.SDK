@@ -98,7 +98,7 @@ public sealed class SpecFileParserTests
 		string text = SpecSources.SingleTry.Replace("\r\n", "\n", StringComparison.Ordinal)
 			.Replace("\n", "\r\n", StringComparison.Ordinal);
 		text = "  namespace: Demo.One\r\n  type: One\r\n\r\n" +
-		       text[text.IndexOf("global:", StringComparison.Ordinal)..];
+			   text[text.IndexOf("global:", StringComparison.Ordinal)..];
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -313,7 +313,7 @@ public sealed class SpecFileParserTests
 	public void An_invalid_lua_global_name_drops_the_entry(string badName)
 	{
 		string text = "namespace: Demo\ntype: T\n\nglobal: " + badName +
-		              "\nmethod: M\nform: try\narg: address:address\nresult: value:int32\ndoc: d.\n";
+					  "\nmethod: M\nform: try\narg: address:address\nresult: value:int32\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -481,7 +481,7 @@ public sealed class SpecFileParserTests
 	public void A_malformed_or_unknown_kind_argument_drops_the_entry(string argLine)
 	{
 		string text = "namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: M\nform: try\n" + argLine +
-		              "\nresult: value:int32\ndoc: d.\n";
+					  "\nresult: value:int32\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -496,7 +496,7 @@ public sealed class SpecFileParserTests
 	public void A_fixed_argument_accepts_only_boolean_literals(string fixedLine)
 	{
 		string text = "namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: M\nform: try\narg: address:address\n" +
-		              fixedLine + "\nresult: value:int32\ndoc: d.\n";
+					  fixedLine + "\nresult: value:int32\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 

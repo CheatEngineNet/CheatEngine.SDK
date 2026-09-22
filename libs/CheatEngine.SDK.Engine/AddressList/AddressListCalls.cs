@@ -32,7 +32,7 @@ internal static class AddressListCalls
 		try
 		{
 			if (!LuaGlobalFunctions.TryPush(state, cache, global) || !state.TryCall(0, 1).IsOk ||
-			    !TMarshaller.TryRead(state, -1, out result))
+				!TMarshaller.TryRead(state, -1, out result))
 			{
 				return LuaCallSupport.Fail(state, top, out result);
 			}

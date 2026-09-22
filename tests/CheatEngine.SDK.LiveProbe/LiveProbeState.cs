@@ -88,7 +88,10 @@ internal static unsafe class LiveProbeState
 		{
 			lock (Gate)
 			{
-				s_bootstrap = s_bootstrap with { TailFailure = Describe(exception) };
+				s_bootstrap = s_bootstrap with
+				{
+					TailFailure = Describe(exception)
+				};
 			}
 
 			HostLog.Write(HostLogLevel.Error, "CE 7.7 live-probe tail canary failed.", exception);
@@ -252,7 +255,8 @@ internal static unsafe class LiveProbeState
 
 		Thread thread = new(RunSynchronizeProbe)
 		{
-			IsBackground = true, Name = "CheatEngine.SDK CE77 synchronize probe"
+			IsBackground = true,
+			Name = "CheatEngine.SDK CE77 synchronize probe"
 		};
 		thread.Start();
 		return "Synchronize probe started. Do not block the CE GUI thread; poll ce77_live_probe_synchronize_status().";
@@ -298,7 +302,11 @@ internal static unsafe class LiveProbeState
 
 		// The delayed worker starts only after this Lua callback has returned its string to CE. It is still a live,
 		// opt-in observation against CE's per-thread state contract, never a general concurrency guarantee for Lua.
-		Thread thread = new(RunLuaThreadProbe) { IsBackground = true, Name = "CheatEngine.SDK CE77 Lua thread probe" };
+		Thread thread = new(RunLuaThreadProbe)
+		{
+			IsBackground = true,
+			Name = "CheatEngine.SDK CE77 Lua thread probe"
+		};
 		thread.Start();
 		return
 			"Lua thread/registry probe started. Do not run other Lua code for one second; poll ce77_live_probe_lua_threads_status().";
@@ -466,21 +474,34 @@ internal static unsafe class LiveProbeState
 			{
 				MainThread.Invoke(
 					static _ => throw new InvalidOperationException("CE77-live-probe expected dispatch failure."), 0);
-				observation = observation with { ExceptionResult = "unexpectedly returned" };
+				observation = observation with
+				{
+					ExceptionResult = "unexpectedly returned"
+				};
 			}
 			catch (InvalidOperationException exception)
 			{
-				observation = observation with { ExceptionResult = "re-thrown: " + exception.Message };
+				observation = observation with
+				{
+					ExceptionResult = "re-thrown: " + exception.Message
+				};
 			}
 		}
 		catch (Exception exception)
 		{
-			observation = observation with { Completion = "failed", Failure = Describe(exception) };
+			observation = observation with
+			{
+				Completion = "failed",
+				Failure = Describe(exception)
+			};
 		}
 
 		lock (Gate)
 		{
-			s_synchronize = observation with { IsRunning = false };
+			s_synchronize = observation with
+			{
+				IsRunning = false
+			};
 		}
 	}
 
@@ -517,12 +538,19 @@ internal static unsafe class LiveProbeState
 		}
 		catch (Exception exception)
 		{
-			observation = observation with { Completion = "failed", Failure = Describe(exception) };
+			observation = observation with
+			{
+				Completion = "failed",
+				Failure = Describe(exception)
+			};
 		}
 
 		lock (Gate)
 		{
-			s_luaThread = observation with { IsRunning = false };
+			s_luaThread = observation with
+			{
+				IsRunning = false
+			};
 		}
 	}
 

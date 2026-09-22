@@ -127,7 +127,7 @@ public static class InstructionProfiles
 		}
 
 		if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out long value) ||
-		    value is < 0 or > int.MaxValue)
+			value is < 0 or > int.MaxValue)
 		{
 			return InstructionOperationStatus.InvalidResult;
 		}

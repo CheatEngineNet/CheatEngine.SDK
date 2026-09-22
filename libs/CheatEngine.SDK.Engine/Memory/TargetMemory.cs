@@ -55,8 +55,8 @@ public static class TargetMemory
 	public static bool TryReadUInt8(Address address, out byte value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadByte, "readByte"u8, address.ToInt64(), false,
-			    false, out long raw,
-			    out failure))
+				false, out long raw,
+				out failure))
 		{
 			value = default;
 			return false;
@@ -82,9 +82,9 @@ public static class TargetMemory
 	public static bool TryReadUInt16(Address address, out ushort value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallInteger"u8, address.ToInt64(), false,
-			    true,
-			    out long raw,
-			    out failure))
+				true,
+				out long raw,
+				out failure))
 		{
 			value = default;
 			return false;
@@ -97,9 +97,9 @@ public static class TargetMemory
 	public static bool TryReadInt16(Address address, out short value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallInteger"u8, address.ToInt64(), true,
-			    true,
-			    out long raw,
-			    out failure))
+				true,
+				out long raw,
+				out failure))
 		{
 			value = default;
 			return false;
@@ -112,8 +112,8 @@ public static class TargetMemory
 	public static bool TryReadUInt32(Address address, out uint value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadInteger, "readInteger"u8, address.ToInt64(), false,
-			    true, out long raw,
-			    out failure))
+				true, out long raw,
+				out failure))
 		{
 			value = default;
 			return false;
@@ -126,8 +126,8 @@ public static class TargetMemory
 	public static bool TryReadInt32(Address address, out int value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadInteger, "readInteger"u8, address.ToInt64(), true,
-			    true, out long raw,
-			    out failure))
+				true, out long raw,
+				out failure))
 		{
 			value = default;
 			return false;
@@ -140,8 +140,8 @@ public static class TargetMemory
 	public static bool TryReadUInt64(Address address, out ulong value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadQword, "readQword"u8, address.ToInt64(), false,
-			    false, out long raw,
-			    out failure))
+				false, out long raw,
+				out failure))
 		{
 			value = default;
 			return false;
@@ -162,8 +162,8 @@ public static class TargetMemory
 	public static bool TryReadPointer(Address address, out Address value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadPointer, "readPointer"u8, address.ToInt64(), false,
-			    false, out long raw,
-			    out failure))
+				false, out long raw,
+				out failure))
 		{
 			value = default;
 			return false;

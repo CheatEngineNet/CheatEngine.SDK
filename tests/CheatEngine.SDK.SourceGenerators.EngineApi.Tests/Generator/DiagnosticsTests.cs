@@ -100,12 +100,12 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 		run.AssertNoGeneratedSource();
 		Assert.Contains(run.GeneratorDiagnostics,
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK3002", StringComparison.Ordinal)
-			                     && diagnostic.GetMessage(CultureInfo.InvariantCulture)
-				                     .Contains("member", StringComparison.Ordinal));
+								 && diagnostic.GetMessage(CultureInfo.InvariantCulture)
+									 .Contains("member", StringComparison.Ordinal));
 		Assert.Contains(run.GeneratorDiagnostics,
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK3002", StringComparison.Ordinal)
-			                     && diagnostic.GetMessage(CultureInfo.InvariantCulture)
-				                     .Contains("cache field", StringComparison.Ordinal));
+								 && diagnostic.GetMessage(CultureInfo.InvariantCulture)
+									 .Contains("cache field", StringComparison.Ordinal));
 		AssertConflictLocation(run, "Generated member", "Specs/first.cheatengine-sdk-api.txt", 4, 10);
 		AssertConflictLocation(run, "Generated member", "Specs/second.cheatengine-sdk-api.txt", 4, 10);
 		AssertConflictLocation(run, "Generated cache field", "Specs/first.cheatengine-sdk-api.txt", 3, 10);
@@ -140,7 +140,7 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 		foreach (Diagnostic diagnostic in run.GeneratorDiagnostics)
 		{
 			if (!diagnostic.GetMessage(CultureInfo.InvariantCulture)
-				    .Contains(messageFragment, StringComparison.Ordinal))
+					.Contains(messageFragment, StringComparison.Ordinal))
 			{
 				continue;
 			}

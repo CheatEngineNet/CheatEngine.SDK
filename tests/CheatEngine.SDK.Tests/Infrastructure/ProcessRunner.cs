@@ -24,7 +24,10 @@ internal static class ProcessRunner
 			CreateNoWindow = true
 		};
 
-		using Process process = new() { StartInfo = startInfo };
+		using Process process = new()
+		{
+			StartInfo = startInfo
+		};
 		StringBuilder standardOutput = new();
 		StringBuilder standardError = new();
 		process.OutputDataReceived += (_, e) =>

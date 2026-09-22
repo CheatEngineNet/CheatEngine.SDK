@@ -80,7 +80,7 @@ public sealed class ProjectDependencyDirectionTests
 
 			discoveredLibraryProjects.Add(projectRelativePath);
 			if (!ExpectedLibraryRuntimeDependencies.TryGetValue(projectRelativePath,
-				    out string[]? expectedDependencies))
+					out string[]? expectedDependencies))
 			{
 				violations.Add($"{projectRelativePath}: is not declared in the shipping library graph.");
 				continue;
@@ -236,18 +236,20 @@ public sealed class ProjectDependencyDirectionTests
 		}
 
 		foreach (string projectPath in EnumerateRepositoryFiles("*.csproj"))
-		foreach (ProjectReferenceInfo reference in ReadProjectReferences(projectPath))
 		{
-			if (reference.Include.Contains("$(", StringComparison.Ordinal))
+			foreach (ProjectReferenceInfo reference in ReadProjectReferences(projectPath))
 			{
-				violations.Add(
-					$"{GetRepositoryRelativePath(projectPath)}: ProjectReference '{reference.Include}' is dynamic and cannot be checked for a higher-layer dependency.");
-			}
+				if (reference.Include.Contains("$(", StringComparison.Ordinal))
+				{
+					violations.Add(
+						$"{GetRepositoryRelativePath(projectPath)}: ProjectReference '{reference.Include}' is dynamic and cannot be checked for a higher-layer dependency.");
+				}
 
-			if (reference.TargetRelativePath.StartsWith("../", StringComparison.Ordinal))
-			{
-				violations.Add(
-					$"{GetRepositoryRelativePath(projectPath)}: ProjectReference '{reference.Include}' escapes the SDK repository.");
+				if (reference.TargetRelativePath.StartsWith("../", StringComparison.Ordinal))
+				{
+					violations.Add(
+						$"{GetRepositoryRelativePath(projectPath)}: ProjectReference '{reference.Include}' escapes the SDK repository.");
+				}
 			}
 		}
 
@@ -264,7 +266,7 @@ public sealed class ProjectDependencyDirectionTests
 		}
 
 		if (value.Contains("CheatEngine.Client", StringComparison.OrdinalIgnoreCase) ||
-		    value.Contains("CheatEngine.Mcp", StringComparison.OrdinalIgnoreCase))
+			value.Contains("CheatEngine.Mcp", StringComparison.OrdinalIgnoreCase))
 		{
 			violations.Add(
 				$"{GetRepositoryRelativePath(metadataPath)}: {node.LocalName} {attributeName}='{value}' references a higher layer.");
@@ -327,7 +329,7 @@ public sealed class ProjectDependencyDirectionTests
 	private static IEnumerable<string> EnumerateRepositoryFiles(string searchPattern)
 	{
 		foreach (string path in
-		         Directory.EnumerateFiles(RepositoryLayout.Root, searchPattern, SearchOption.AllDirectories))
+				 Directory.EnumerateFiles(RepositoryLayout.Root, searchPattern, SearchOption.AllDirectories))
 		{
 			string relativePath = GetRepositoryRelativePath(path);
 			if (!IsGeneratedPath(relativePath))
@@ -351,20 +353,20 @@ public sealed class ProjectDependencyDirectionTests
 	private static bool IsGeneratedPath(string relativePath)
 	{
 		return relativePath.StartsWith("artifacts/", StringComparison.Ordinal) ||
-		       relativePath.Contains("/bin/", StringComparison.Ordinal) ||
-		       relativePath.Contains("/obj/", StringComparison.Ordinal);
+			   relativePath.Contains("/bin/", StringComparison.Ordinal) ||
+			   relativePath.Contains("/obj/", StringComparison.Ordinal);
 	}
 
 	private static bool IsRoslynComponent(string projectRelativePath)
 	{
 		return projectRelativePath.StartsWith("analyzers/", StringComparison.Ordinal) ||
-		       projectRelativePath.StartsWith("source-generators/", StringComparison.Ordinal);
+			   projectRelativePath.StartsWith("source-generators/", StringComparison.Ordinal);
 	}
 
 	private static bool IsShippingProject(string projectRelativePath)
 	{
 		return projectRelativePath.StartsWith("libs/", StringComparison.Ordinal) ||
-		       string.Equals(projectRelativePath, UmbrellaProject, StringComparison.Ordinal);
+			   string.Equals(projectRelativePath, UmbrellaProject, StringComparison.Ordinal);
 	}
 
 	private static XmlDocument LoadProjectDocument(string projectPath)

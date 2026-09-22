@@ -189,7 +189,13 @@ public sealed unsafe class CallTests
 		fixed (byte* second = "* 7"u8)
 		fixed (byte* name = "=pieces"u8)
 		{
-			ReaderState pieces = new() { First = first, FirstSize = 9, Second = second, SecondSize = 3 };
+			ReaderState pieces = new()
+			{
+				First = first,
+				FirstSize = 9,
+				Second = second,
+				SecondSize = 3
+			};
 
 			Assert.Equal(LUA_OK, lua_load(L, &ReadPieces, &pieces, name, null));
 			Assert.Equal(3, pieces.Calls);

@@ -75,16 +75,16 @@ public sealed class CatalogDiagnosticsTests
 		Assert.Equal(3, run.GeneratorDiagnostics.Length);
 		Assert.Contains(run.GeneratorDiagnostics,
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK4001", StringComparison.Ordinal)
-			                     && string.Equals(diagnostic.Location.GetLineSpan().Path, InvalidPath,
-				                     StringComparison.Ordinal));
+								 && string.Equals(diagnostic.Location.GetLineSpan().Path, InvalidPath,
+									 StringComparison.Ordinal));
 		Assert.Contains(run.GeneratorDiagnostics,
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK4002", StringComparison.Ordinal)
-			                     && string.Equals(diagnostic.Location.GetLineSpan().Path, ValidPath,
-				                     StringComparison.Ordinal));
+								 && string.Equals(diagnostic.Location.GetLineSpan().Path, ValidPath,
+									 StringComparison.Ordinal));
 		Assert.Contains(run.GeneratorDiagnostics,
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK4002", StringComparison.Ordinal)
-			                     && string.Equals(diagnostic.Location.GetLineSpan().Path, InvalidPath,
-				                     StringComparison.Ordinal));
+								 && string.Equals(diagnostic.Location.GetLineSpan().Path, InvalidPath,
+									 StringComparison.Ordinal));
 	}
 
 	[Fact]

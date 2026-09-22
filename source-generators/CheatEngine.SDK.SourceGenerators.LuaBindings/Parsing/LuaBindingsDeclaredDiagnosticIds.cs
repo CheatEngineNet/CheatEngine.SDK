@@ -81,24 +81,24 @@ internal static class LuaBindingsDeclaredDiagnosticIds
 		}
 
 		if (string.Equals(attributeClass.Name, "ExperimentalAttribute", StringComparison.Ordinal))
-			// [Experimental(string diagnosticId)]
+		// [Experimental(string diagnosticId)]
 		{
 			return IsNamespace(attributeClass.ContainingNamespace, "System", "Diagnostics", "CodeAnalysis")
-			       && attribute.ConstructorArguments.Length == 1
-			       && attribute.ConstructorArguments[0] is
-				       { Kind: TypedConstantKind.Primitive, Value: string experimentalId }
+				   && attribute.ConstructorArguments.Length == 1
+				   && attribute.ConstructorArguments[0] is
+				   { Kind: TypedConstantKind.Primitive, Value: string experimentalId }
 				? experimentalId
 				: null;
 		}
 
 		if (string.Equals(attributeClass.Name, "ObsoleteAttribute", StringComparison.Ordinal)
-		    && IsNamespace(attributeClass.ContainingNamespace, "System"))
-			// [Obsolete(..., DiagnosticId = "ID")]
+			&& IsNamespace(attributeClass.ContainingNamespace, "System"))
+		// [Obsolete(..., DiagnosticId = "ID")]
 		{
 			foreach (KeyValuePair<string, TypedConstant> argument in attribute.NamedArguments)
 			{
 				if (string.Equals(argument.Key, "DiagnosticId", StringComparison.Ordinal)
-				    && argument.Value is { Kind: TypedConstantKind.Primitive, Value: string obsoleteId })
+					&& argument.Value is { Kind: TypedConstantKind.Primitive, Value: string obsoleteId })
 				{
 					return obsoleteId;
 				}
@@ -130,7 +130,7 @@ internal static class LuaBindingsDeclaredDiagnosticIds
 	private static bool IsUsableInPragma(string id)
 	{
 		return SyntaxFacts.IsValidIdentifier(id)
-		       && SyntaxFacts.GetKeywordKind(id) == SyntaxKind.None
-		       && SyntaxFacts.GetPreprocessorKeywordKind(id) == SyntaxKind.None;
+			   && SyntaxFacts.GetKeywordKind(id) == SyntaxKind.None
+			   && SyntaxFacts.GetPreprocessorKeywordKind(id) == SyntaxKind.None;
 	}
 }

@@ -35,5 +35,5 @@ internal sealed record LuaFunctionModel(
 	///     group).
 	/// </summary>
 	public bool IsValid => Issues == LuaFunctionShapeIssues.None && ContainingTypeIssues == ContainingTypeIssues.None &&
-	                       Thunk is not null && !HasGeneratedIdentityCollision;
+						   Thunk is not null && !HasGeneratedIdentityCollision;
 }

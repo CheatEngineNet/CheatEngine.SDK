@@ -90,8 +90,8 @@ internal static class LuaValueKindMapper
 	private static bool IsSystemSpanOfByte(ITypeSymbol type, string name)
 	{
 		return type is INamedTypeSymbol { Arity: 1, ContainingType: null } named
-		       && string.Equals(named.Name, name, StringComparison.Ordinal)
-		       && named.TypeArguments[0].SpecialType == SpecialType.System_Byte
-		       && named.ContainingNamespace is { Name: "System", ContainingNamespace.IsGlobalNamespace: true };
+			   && string.Equals(named.Name, name, StringComparison.Ordinal)
+			   && named.TypeArguments[0].SpecialType == SpecialType.System_Byte
+			   && named.ContainingNamespace is { Name: "System", ContainingNamespace.IsGlobalNamespace: true };
 	}
 }

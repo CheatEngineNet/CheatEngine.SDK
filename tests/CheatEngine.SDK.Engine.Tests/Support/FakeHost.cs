@@ -327,15 +327,15 @@ internal static unsafe class FakeHost // NOSONAR: the fixture implements Cheat E
 			}
 
 			FieldInfo tableField = typeof(LuaApi).GetField("s_table", BindingFlags.Static | BindingFlags.NonPublic)
-			                       ?? throw new InvalidOperationException(
-				                       "The Lua API table was not available for probing.");
+								   ?? throw new InvalidOperationException(
+									   "The Lua API table was not available for probing.");
 			_table = tableField.GetValue(null)
-			         ?? throw new InvalidOperationException("The Lua API table was not initialized for probing.");
+					 ?? throw new InvalidOperationException("The Lua API table was not initialized for probing.");
 			_pcallField = _table.GetType().GetField("lua_pcallk", BindingFlags.Instance | BindingFlags.NonPublic)
-			              ?? throw new InvalidOperationException(
-				              "The Lua protected-call slot was not available for probing.");
+						  ?? throw new InvalidOperationException(
+							  "The Lua protected-call slot was not available for probing.");
 			s_forwardedPCall = (nint) (_pcallField.GetValue(_table)
-			                           ?? throw new InvalidOperationException("The Lua protected-call slot was null."));
+									   ?? throw new InvalidOperationException("The Lua protected-call slot was null."));
 			_pcallField.SetValue(_table,
 				(nint) (delegate* unmanaged[Cdecl]<lua_State*, int, int, int, nint, nint, int>) &ObservePCall);
 			tableField.SetValue(null, _table);
@@ -411,8 +411,8 @@ internal static unsafe class FakeHost // NOSONAR: the fixture implements Cheat E
 		{
 			PCallProbe? probe = s_activePCallProbe;
 			if (probe is not null &&
-			    (nint) lua_tocfunction(state, -argumentCount - 1) ==
-			    (nint) (delegate* unmanaged[Cdecl]<lua_State*, int>) &WaitTillDone)
+				(nint) lua_tocfunction(state, -argumentCount - 1) ==
+				(nint) (delegate* unmanaged[Cdecl]<lua_State*, int>) &WaitTillDone)
 			{
 				probe.Observe(argumentCount, resultCount);
 			}

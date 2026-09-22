@@ -213,7 +213,10 @@ public sealed class LuaCallbackTests
 		using NativeLuaState state = new();
 		LuaState L = LuaTest.View(state);
 		Counter a = new();
-		Counter b = new() { Value = 100 };
+		Counter b = new()
+		{
+			Value = 100
+		};
 		Assert.True(LuaCallback.TryCreate(L, Thunks.Count, a, out LuaCallback<Counter>? callbackA).IsOk);
 		Assert.True(LuaCallback.TryCreate(L, Thunks.Count, b, out LuaCallback<Counter>? callbackB).IsOk);
 		Assert.True(callbackA!.TryRegister(L, "countA"u8).IsOk);

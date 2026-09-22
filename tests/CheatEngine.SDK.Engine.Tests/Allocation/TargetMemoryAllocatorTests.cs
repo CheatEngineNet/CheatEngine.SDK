@@ -38,7 +38,10 @@ public sealed class TargetMemoryAllocatorTests
 	[Fact]
 	public void Allocate_when_owner_publication_and_compensation_fail_reports_an_unconfirmed_effect_without_retrying()
 	{
-		AllocationOperationsFake operations = new() { DeallocationResult = false };
+		AllocationOperationsFake operations = new()
+		{
+			DeallocationResult = false
+		};
 		TargetMemoryAllocator allocator = new(operations);
 
 		EngineResourceHandoffException exception = Assert.Throws<EngineResourceHandoffException>(() =>
@@ -57,7 +60,10 @@ public sealed class TargetMemoryAllocatorTests
 		Allocate_when_owner_publication_and_compensation_raise_keeps_the_primary_cause_and_marks_the_effect_unknown()
 	{
 		EngineLuaException cleanupFailure = new("TargetMemoryDeallocate", LuaStatus.RuntimeError);
-		AllocationOperationsFake operations = new() { DeallocationException = cleanupFailure };
+		AllocationOperationsFake operations = new()
+		{
+			DeallocationException = cleanupFailure
+		};
 		TargetMemoryAllocator allocator = new(operations);
 		InvalidOperationException cause = new("injected region publication failure");
 
@@ -95,7 +101,10 @@ public sealed class TargetMemoryAllocatorTests
 	[Fact]
 	public void Allocate_on_success_returns_an_owned_region_and_forwards_the_full_request()
 	{
-		AllocationOperationsFake operations = new() { AllocatedAddress = new Address(0x7FF6_1234_0000) };
+		AllocationOperationsFake operations = new()
+		{
+			AllocatedAddress = new Address(0x7FF6_1234_0000)
+		};
 		TargetMemoryAllocator allocator = new(operations);
 		TargetAllocationRequest request = new(new TargetAllocationSize(8192), new Address(0x7FF6_1200_0000),
 			MemoryProtection.ExecuteReadWrite);
@@ -111,7 +120,11 @@ public sealed class TargetMemoryAllocatorTests
 	[Fact]
 	public void Allocate_when_CE_reports_expected_failure_throws_the_stable_expected_failure()
 	{
-		AllocationOperationsFake operations = new() { AllocationResult = false, AllocatedAddress = Address.Zero };
+		AllocationOperationsFake operations = new()
+		{
+			AllocationResult = false,
+			AllocatedAddress = Address.Zero
+		};
 		TargetMemoryAllocator allocator = new(operations);
 
 		EngineOperationFailedException exception = Assert.Throws<EngineOperationFailedException>(() =>
@@ -125,7 +138,10 @@ public sealed class TargetMemoryAllocatorTests
 	[Fact]
 	public void Allocate_when_CE_reports_success_without_an_address_preserves_the_unknown_effect_diagnostic()
 	{
-		AllocationOperationsFake operations = new() { AllocatedAddress = Address.Zero };
+		AllocationOperationsFake operations = new()
+		{
+			AllocatedAddress = Address.Zero
+		};
 		TargetMemoryAllocator allocator = new(operations);
 
 		EngineResourceHandoffException exception = Assert.Throws<EngineResourceHandoffException>(() =>
@@ -142,7 +158,11 @@ public sealed class TargetMemoryAllocatorTests
 	public void Allocate_when_CE_reports_failure_with_an_address_throws_marshalling()
 	{
 		AllocationOperationsFake operations =
-			new() { AllocationResult = false, AllocatedAddress = new Address(0x1234) };
+			new()
+			{
+				AllocationResult = false,
+				AllocatedAddress = new Address(0x1234)
+			};
 		TargetMemoryAllocator allocator = new(operations);
 
 		EngineMarshallingException exception = Assert.Throws<EngineMarshallingException>(() =>
@@ -157,7 +177,10 @@ public sealed class TargetMemoryAllocatorTests
 	{
 		EngineBindingException failure = new("TargetMemoryAllocate",
 			"the generated binding returned an incompatible result");
-		AllocationOperationsFake operations = new() { AllocationException = failure };
+		AllocationOperationsFake operations = new()
+		{
+			AllocationException = failure
+		};
 		TargetMemoryAllocator allocator = new(operations);
 
 		EngineBindingException thrown = Assert.Throws<EngineBindingException>(() =>
@@ -170,7 +193,10 @@ public sealed class TargetMemoryAllocatorTests
 	public void Allocate_when_the_required_global_is_unavailable_preserves_that_distinct_failure()
 	{
 		EngineGlobalUnavailableException failure = new("TargetMemoryAllocate");
-		AllocationOperationsFake operations = new() { AllocationException = failure };
+		AllocationOperationsFake operations = new()
+		{
+			AllocationException = failure
+		};
 		TargetMemoryAllocator allocator = new(operations);
 
 		EngineGlobalUnavailableException thrown = Assert.Throws<EngineGlobalUnavailableException>(() =>
@@ -184,7 +210,10 @@ public sealed class TargetMemoryAllocatorTests
 	public void Allocate_when_the_protected_lua_call_fails_preserves_the_EngineLuaException()
 	{
 		EngineLuaException failure = new("TargetMemoryAllocate", LuaStatus.RuntimeError);
-		AllocationOperationsFake operations = new() { AllocationException = failure };
+		AllocationOperationsFake operations = new()
+		{
+			AllocationException = failure
+		};
 		TargetMemoryAllocator allocator = new(operations);
 
 		EngineLuaException thrown = Assert.Throws<EngineLuaException>(() =>
@@ -198,7 +227,10 @@ public sealed class TargetMemoryAllocatorTests
 	{
 		EngineLuaException failure = new("TargetMemoryAllocate", LuaStatus.SyntaxError,
 			"A deliberately irrelevant localized message.");
-		AllocationOperationsFake operations = new() { AllocationException = failure };
+		AllocationOperationsFake operations = new()
+		{
+			AllocationException = failure
+		};
 		TargetMemoryAllocator allocator = new(operations);
 
 		TargetMemoryAllocationOutcome outcome =
@@ -214,7 +246,11 @@ public sealed class TargetMemoryAllocatorTests
 	[Fact]
 	public void AllocateWithOutcome_adapts_legacy_expected_failure_without_creating_an_owner()
 	{
-		AllocationOperationsFake operations = new() { AllocationResult = false, AllocatedAddress = Address.Zero };
+		AllocationOperationsFake operations = new()
+		{
+			AllocationResult = false,
+			AllocatedAddress = Address.Zero
+		};
 		TargetMemoryAllocator allocator = new(operations);
 
 		TargetMemoryAllocationOutcome outcome =
@@ -287,7 +323,10 @@ public sealed class TargetMemoryAllocatorTests
 	[Fact]
 	public void ReleaseWithOutcome_adapts_the_legacy_bool_seam_and_consumes_ownership()
 	{
-		AllocationOperationsFake operations = new() { DeallocationResult = false };
+		AllocationOperationsFake operations = new()
+		{
+			DeallocationResult = false
+		};
 		TargetMemoryAllocator allocator = new(operations);
 		AllocatedRegion region = allocator.Allocate(new TargetAllocationRequest(new TargetAllocationSize(4096)));
 

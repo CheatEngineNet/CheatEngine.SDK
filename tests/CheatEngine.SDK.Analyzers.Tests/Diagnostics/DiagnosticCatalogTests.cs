@@ -117,21 +117,23 @@ public sealed class DiagnosticCatalogTests
 		];
 
 		foreach (string trackingFile in trackingFiles)
-		foreach (string line in File.ReadLines(trackingFile))
 		{
-			string[] cells = line.Split('|');
-			if (cells.Length < 3)
+			foreach (string line in File.ReadLines(trackingFile))
 			{
-				continue;
-			}
+				string[] cells = line.Split('|');
+				if (cells.Length < 3)
+				{
+					continue;
+				}
 
-			string id = cells[0].Trim();
-			if (!id.StartsWith("CESDK", StringComparison.Ordinal))
-			{
-				continue;
-			}
+				string id = cells[0].Trim();
+				if (!id.StartsWith("CESDK", StringComparison.Ordinal))
+				{
+					continue;
+				}
 
-			Assert.True(ids.Add(id), $"Release tracking contains duplicate diagnostic id '{id}'.");
+				Assert.True(ids.Add(id), $"Release tracking contains duplicate diagnostic id '{id}'.");
+			}
 		}
 
 		Assert.Equal(SortedIds(AllDescriptors()), ids.Order(StringComparer.Ordinal), StringComparer.Ordinal);
@@ -145,9 +147,9 @@ public sealed class DiagnosticCatalogTests
 		{
 			string[] cells = line.Split('|');
 			if (cells.Length >= 3
-			    && string.Equals(cells[0].Trim(), descriptor.Id, StringComparison.Ordinal)
-			    && string.Equals(cells[1].Trim(), descriptor.Category, StringComparison.Ordinal)
-			    && string.Equals(cells[2].Trim(), descriptor.DefaultSeverity.ToString(), StringComparison.Ordinal))
+				&& string.Equals(cells[0].Trim(), descriptor.Id, StringComparison.Ordinal)
+				&& string.Equals(cells[1].Trim(), descriptor.Category, StringComparison.Ordinal)
+				&& string.Equals(cells[2].Trim(), descriptor.DefaultSeverity.ToString(), StringComparison.Ordinal))
 			{
 				return true;
 			}

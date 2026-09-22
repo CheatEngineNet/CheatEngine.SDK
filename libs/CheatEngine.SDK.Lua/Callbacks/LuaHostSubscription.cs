@@ -226,9 +226,9 @@ internal sealed class LuaHostSubscription : IDisposable
 		{
 			callback = null!;
 			if (!_acceptCallbacks
-			    || !LuaRuntime.IsAttached
-			    || LuaRuntime.CurrentStateIdentity != Identity
-			    || _callback is null)
+				|| !LuaRuntime.IsAttached
+				|| LuaRuntime.CurrentStateIdentity != Identity
+				|| _callback is null)
 			{
 				return false;
 			}

@@ -250,15 +250,15 @@ internal sealed unsafe class RecordingPlugin : CheatEnginePlugin
 		if (CreateCallbacksInOnEnable)
 		{
 			if (!LuaCallback.TryCreate(L, new LuaNativeFunction(&NoOpThunk), new object(),
-				    out LuaCallback<object>? first).IsOk
-			    || first is null)
+					out LuaCallback<object>? first).IsOk
+				|| first is null)
 			{
 				throw new InvalidOperationException("first callback creation failed");
 			}
 
 			if (!LuaCallback.TryCreate(L, new LuaNativeFunction(&NoOpThunk), new object(),
-				    out LuaCallback<object>? second).IsOk
-			    || second is null)
+					out LuaCallback<object>? second).IsOk
+				|| second is null)
 			{
 				throw new InvalidOperationException("second callback creation failed");
 			}

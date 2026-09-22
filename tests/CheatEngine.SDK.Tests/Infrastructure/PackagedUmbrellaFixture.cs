@@ -458,10 +458,10 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 	private static bool LooksLikeFileLockContention(string output)
 	{
 		return output.Contains("being used by another process", StringComparison.OrdinalIgnoreCase)
-		       || output.Contains("cannot access the file", StringComparison.OrdinalIgnoreCase)
-		       || output.Contains("MSB3021", StringComparison.Ordinal)
-		       || output.Contains("MSB3027", StringComparison.Ordinal)
-		       || output.Contains("MSB3061", StringComparison.Ordinal);
+			   || output.Contains("cannot access the file", StringComparison.OrdinalIgnoreCase)
+			   || output.Contains("MSB3021", StringComparison.Ordinal)
+			   || output.Contains("MSB3027", StringComparison.Ordinal)
+			   || output.Contains("MSB3061", StringComparison.Ordinal);
 	}
 
 	private async Task InitializeDefaultConsumerAsync(string tempRoot, string feedDirectory, string packagesDirectory)
@@ -538,7 +538,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 			feedDirectory,
 			new ThrowawayConsumer.CreateOptions
 			{
-				ExtraProperties = "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n", IncludeLuaFunction = true
+				ExtraProperties = "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n",
+				IncludeLuaFunction = true
 			});
 		ProcessResult optInRestore =
 			await optInConsumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);

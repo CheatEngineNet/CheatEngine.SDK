@@ -102,7 +102,7 @@ internal static unsafe class MainThreadDispatcher
 		if (!status.IsOk)
 		{
 			throw new InvalidOperationException("The host's 'synchronize' global could not be read: " +
-			                                    LuaError.FromStack(l, status).Message);
+												LuaError.FromStack(l, status).Message);
 		}
 
 		if (!l.IsFunction(-1))
@@ -116,7 +116,7 @@ internal static unsafe class MainThreadDispatcher
 		if (!status.IsOk)
 		{
 			throw new InvalidOperationException("The dispatch callback could not be created: " +
-			                                    LuaError.FromStack(l, status).Message);
+												LuaError.FromStack(l, status).Message);
 		}
 
 		using (callback)
@@ -132,7 +132,7 @@ internal static unsafe class MainThreadDispatcher
 		if (!status.IsOk)
 		{
 			throw new InvalidOperationException("The host's 'synchronize' call failed: " +
-			                                    LuaError.FromStack(l, status).Message);
+												LuaError.FromStack(l, status).Message);
 		}
 	}
 

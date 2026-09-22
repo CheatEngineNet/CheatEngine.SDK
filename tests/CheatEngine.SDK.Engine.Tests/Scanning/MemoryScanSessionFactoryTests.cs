@@ -362,8 +362,8 @@ public sealed class MemoryScanSessionFactoryTests
 	private static void InstallCurrentTarget(LuaState state)
 	{
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("function getOpenedProcessID() return " +
-		                                             Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
-		                                             " end"));
+													 Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
+													 " end"));
 	}
 
 	private static void SetGlobalObject(LuaState state, ReadOnlySpan<byte> name, CEObject value)

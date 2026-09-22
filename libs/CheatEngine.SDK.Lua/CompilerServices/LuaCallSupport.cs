@@ -148,6 +148,6 @@ public static class LuaCallSupport
 		string typeName = Encoding.UTF8.GetString(state.TypeName(index));
 		state.SetTop(top);
 		throw new LuaException("The Lua global '" + globalName + "' returned a " + typeName + " value, not " +
-		                       expected + ".");
+							   expected + ".");
 	}
 }

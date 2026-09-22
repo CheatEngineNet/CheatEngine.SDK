@@ -55,7 +55,7 @@ internal sealed record LuaThunkModel(
 
 	/// <summary>The concrete static marshaller for the return value.</summary>
 	public string ReturnMarshallerTypeName => ReturnMarshaller?.MarshallerTypeName ??
-	                                          LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);
+											  LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);
 
 	/// <summary>The C# type spelling for the generated result local.</summary>
 	public string ReturnTypeName => ReturnMarshaller?.ValueTypeName ?? LuaValueKinds.TypeName(ReturnKind!.Value, true);

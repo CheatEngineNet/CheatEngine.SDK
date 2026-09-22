@@ -126,15 +126,17 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 		foreach (string stepName in EngineApiTrackingNames.All)
 		{
 			if (string.Equals(stepName, EngineApiTrackingNames.SpecTextFile, StringComparison.Ordinal))
-				// Legitimately holds the raw AdditionalText: that is the point of this filter step.
+			// Legitimately holds the raw AdditionalText: that is the point of this filter step.
 			{
 				continue;
 			}
 
 			foreach (IncrementalGeneratorRunStep step in run.Result.TrackedSteps[stepName])
-			foreach ((object value, IncrementalStepRunReason _) in step.Outputs)
 			{
-				visited += ModelGraph.AssertFreeOfRoslynObjects(value, stepName);
+				foreach ((object value, IncrementalStepRunReason _) in step.Outputs)
+				{
+					visited += ModelGraph.AssertFreeOfRoslynObjects(value, stepName);
+				}
 			}
 		}
 

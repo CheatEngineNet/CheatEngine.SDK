@@ -7,8 +7,8 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Model;
 /// <param name="ThreadAffinity">The declared thread-affinity token.</param>
 /// <param name="Ownership">The declared ownership token.</param>
 internal sealed record SpecFileContract(
-    string Provenance,
-    string MinimumCheatEngineVersion,
-    string Architecture,
-    string ThreadAffinity,
-    string Ownership);
+	string Provenance,
+	string MinimumCheatEngineVersion,
+	string Architecture,
+	string ThreadAffinity,
+	string Ownership);

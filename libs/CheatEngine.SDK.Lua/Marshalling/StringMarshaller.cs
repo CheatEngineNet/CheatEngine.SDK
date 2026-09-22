@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Lua.Text;
@@ -22,24 +23,24 @@ namespace CheatEngine.SDK.Lua.Marshalling;
 /// </remarks>
 public readonly struct StringMarshaller : ILuaMarshaller<string>
 {
-    /// <summary>Pushes <paramref name="value" />; <see langword="null" /> is pushed as <c>nil</c>.</summary>
-    /// <inheritdoc />
-    [LuaStackEffect(1)]
-    public static void Push(LuaState state, string? value)
-    {
-        if (value is null)
-        {
-            state.PushNil();
-            return;
-        }
+	/// <summary>Pushes <paramref name="value" />; <see langword="null" /> is pushed as <c>nil</c>.</summary>
+	/// <inheritdoc />
+	[LuaStackEffect(1)]
+	public static void Push(LuaState state, string? value)
+	{
+		if (value is null)
+		{
+			state.PushNil();
+			return;
+		}
 
-        state.PushString(value.AsSpan());
-    }
+		state.PushString(value.AsSpan());
+	}
 
-    /// <inheritdoc />
-    [LuaStackEffect(0)]
-    public static bool TryRead(LuaState state, int index, [MaybeNullWhen(false)] out string value)
-    {
-        return state.TryReadString(index, out value);
-    }
+	/// <inheritdoc />
+	[LuaStackEffect(0)]
+	public static bool TryRead(LuaState state, int index, [MaybeNullWhen(false)] out string value)
+	{
+		return state.TryReadString(index, out value);
+	}
 }

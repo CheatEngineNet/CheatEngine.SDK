@@ -1,5 +1,6 @@
 using CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Catalog;
 using CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Emit;
+
 using Microsoft.CodeAnalysis;
 
 namespace CheatEngine.SDK.SourceGenerators.LuaBridgeContract;
@@ -21,25 +22,31 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBridgeContract;
 [Generator(LanguageNames.CSharp)]
 public sealed class LuaBridgeContractGenerator : IIncrementalGenerator
 {
-    /// <inheritdoc />
-    public void Initialize(IncrementalGeneratorInitializationContext context)
-    {
-        var inputs = context.AdditionalTextsProvider
-            .Where(static text => ProtectedOperationCatalogParser.IsCatalogFile(text.Path))
-            .Select(static (text, cancellationToken) =>
-                new CatalogInput(text.Path, text.GetText(cancellationToken)?.ToString() ?? string.Empty));
+	/// <inheritdoc />
+	public void Initialize(IncrementalGeneratorInitializationContext context)
+	{
+		IncrementalValuesProvider<CatalogInput> inputs = context.AdditionalTextsProvider
+			.Where(static text => ProtectedOperationCatalogParser.IsCatalogFile(text.Path))
+			.Select(static (text, cancellationToken) =>
+				new CatalogInput(text.Path, text.GetText(cancellationToken)?.ToString() ?? string.Empty));
 
-        var parsed = inputs.Select(static (input, _) => ProtectedOperationCatalogParser.Parse(input));
-        var plans = parsed.Collect().Select(static (catalogs, _) => LuaBridgeContractGenerationPlan.Create(catalogs));
+		IncrementalValuesProvider<CatalogParseResult> parsed = inputs.Select(static (input, _) =>
+			ProtectedOperationCatalogParser.Parse(input));
+		IncrementalValueProvider<LuaBridgeContractGenerationPlan> plans = parsed.Collect()
+			.Select(static (catalogs, _) => LuaBridgeContractGenerationPlan.Create(catalogs));
 
-        context.RegisterSourceOutput(plans, static (productionContext, plan) =>
-        {
-            for (var i = 0; i < plan.Diagnostics.Length; i++)
-                productionContext.ReportDiagnostic(LuaBridgeContractDiagnostics.Create(plan.Diagnostics[i]));
+		context.RegisterSourceOutput(plans, static (productionContext, plan) =>
+		{
+			for (int i = 0; i < plan.Diagnostics.Length; i++)
+			{
+				productionContext.ReportDiagnostic(LuaBridgeContractDiagnostics.Create(plan.Diagnostics[i]));
+			}
 
-            if (plan.Catalog is not null)
-                productionContext.AddSource(LuaProtectedOperationEmitter.HintName,
-                    LuaProtectedOperationEmitter.Emit(plan.Catalog));
-        });
-    }
+			if (plan.Catalog is not null)
+			{
+				productionContext.AddSource(LuaProtectedOperationEmitter.HintName,
+					LuaProtectedOperationEmitter.Emit(plan.Catalog));
+			}
+		});
+	}
 }

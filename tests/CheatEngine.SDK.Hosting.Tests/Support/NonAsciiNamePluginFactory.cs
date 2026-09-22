@@ -8,12 +8,12 @@ namespace CheatEngine.SDK.Hosting.Tests.Support;
 /// </summary>
 internal sealed class NonAsciiNamePluginFactory : IPluginFactory
 {
-    public const string Name = "Plugin \u00E9";
+	public const string Name = "Plugin \u00E9";
 
-    public static ReadOnlySpan<byte> Utf8Name => "Plugin \u00E9"u8;
+	public static ReadOnlySpan<byte> Utf8Name => "Plugin \u00E9"u8;
 
-    public static CheatEnginePlugin Create()
-    {
-        return new RecordingPlugin();
-    }
+	public static CheatEnginePlugin Create()
+	{
+		return new RecordingPlugin();
+	}
 }

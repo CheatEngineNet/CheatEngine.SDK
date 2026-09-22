@@ -1,4 +1,5 @@
 using System;
+
 using Microsoft.CodeAnalysis;
 
 namespace CheatEngine.SDK.Analyzers.WellKnown;
@@ -10,38 +11,41 @@ namespace CheatEngine.SDK.Analyzers.WellKnown;
 /// </summary>
 internal static class SdkSymbolResolver
 {
-    private const string AnnotationsAssemblyName = "CheatEngine.SDK.Annotations";
-    private const string HostingAssemblyName = "CheatEngine.SDK.Hosting";
-    private const string LuaAssemblyName = "CheatEngine.SDK.Lua";
+	private const string AnnotationsAssemblyName = "CheatEngine.SDK.Annotations";
+	private const string HostingAssemblyName = "CheatEngine.SDK.Hosting";
+	private const string LuaAssemblyName = "CheatEngine.SDK.Lua";
 
-    /// <summary>Resolves an annotation that must be defined by <c>CheatEngine.SDK.Annotations</c>.</summary>
-    public static INamedTypeSymbol? Annotation(Compilation compilation, string metadataName)
-    {
-        return Resolve(compilation, metadataName, AnnotationsAssemblyName);
-    }
+	/// <summary>Resolves an annotation that must be defined by <c>CheatEngine.SDK.Annotations</c>.</summary>
+	public static INamedTypeSymbol? Annotation(Compilation compilation, string metadataName)
+	{
+		return Resolve(compilation, metadataName, AnnotationsAssemblyName);
+	}
 
-    /// <summary>Resolves a plugin-host contract that must be defined by <c>CheatEngine.SDK.Hosting</c>.</summary>
-    public static INamedTypeSymbol? Hosting(Compilation compilation, string metadataName)
-    {
-        return Resolve(compilation, metadataName, HostingAssemblyName);
-    }
+	/// <summary>Resolves a plugin-host contract that must be defined by <c>CheatEngine.SDK.Hosting</c>.</summary>
+	public static INamedTypeSymbol? Hosting(Compilation compilation, string metadataName)
+	{
+		return Resolve(compilation, metadataName, HostingAssemblyName);
+	}
 
-    /// <summary>Resolves a Lua runtime contract that must be defined by <c>CheatEngine.SDK.Lua</c>.</summary>
-    public static INamedTypeSymbol? Lua(Compilation compilation, string metadataName)
-    {
-        return Resolve(compilation, metadataName, LuaAssemblyName);
-    }
+	/// <summary>Resolves a Lua runtime contract that must be defined by <c>CheatEngine.SDK.Lua</c>.</summary>
+	public static INamedTypeSymbol? Lua(Compilation compilation, string metadataName)
+	{
+		return Resolve(compilation, metadataName, LuaAssemblyName);
+	}
 
-    private static INamedTypeSymbol? Resolve(Compilation compilation, string metadataName, string assemblyName)
-    {
-        foreach (var reference in compilation.References)
-        {
-            if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol assembly
-                || !string.Equals(assembly.Identity.Name, assemblyName, StringComparison.Ordinal)) continue;
+	private static INamedTypeSymbol? Resolve(Compilation compilation, string metadataName, string assemblyName)
+	{
+		foreach (MetadataReference reference in compilation.References)
+		{
+			if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol assembly
+			    || !string.Equals(assembly.Identity.Name, assemblyName, StringComparison.Ordinal))
+			{
+				continue;
+			}
 
-            return assembly.GetTypeByMetadataName(metadataName);
-        }
+			return assembly.GetTypeByMetadataName(metadataName);
+		}
 
-        return null;
-    }
+		return null;
+	}
 }

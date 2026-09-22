@@ -10,7 +10,7 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 /// <param name="ExpectedTypeName">A compact Lua-facing type name for a generated failure message.</param>
 /// <param name="IsReferenceType">Whether defaulting the value requires the null-forgiving operator.</param>
 internal sealed record LuaCustomMarshallerModel(
-    string ValueTypeName,
-    string MarshallerTypeName,
-    string ExpectedTypeName,
-    bool IsReferenceType);
+	string ValueTypeName,
+	string MarshallerTypeName,
+	string ExpectedTypeName,
+	bool IsReferenceType);

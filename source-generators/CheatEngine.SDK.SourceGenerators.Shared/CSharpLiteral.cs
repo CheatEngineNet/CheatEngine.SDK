@@ -26,119 +26,131 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 /// </remarks>
 internal static class CSharpLiteral
 {
-    private const string HexDigits = "0123456789ABCDEF";
-    private const char ReplacementCharacter = '\uFFFD';
+	private const string HexDigits = "0123456789ABCDEF";
+	private const char ReplacementCharacter = '\uFFFD';
 
-    /// <summary>Returns <paramref name="value" /> as a regular C# string literal, quotes included.</summary>
-    public static string ToStringLiteral(string value)
-    {
-        StringBuilder builder = new(GuessCapacity(value));
-        AppendStringLiteral(builder, value);
-        return builder.ToString();
-    }
+	/// <summary>Returns <paramref name="value" /> as a regular C# string literal, quotes included.</summary>
+	public static string ToStringLiteral(string value)
+	{
+		StringBuilder builder = new(GuessCapacity(value));
+		AppendStringLiteral(builder, value);
+		return builder.ToString();
+	}
 
-    /// <summary>Returns <paramref name="value" /> as a C# UTF-8 string literal (<c>"..."u8</c>).</summary>
-    public static string ToUtf8Literal(string value)
-    {
-        StringBuilder builder = new(GuessCapacity(value) + 2);
-        AppendUtf8Literal(builder, value);
-        return builder.ToString();
-    }
+	/// <summary>Returns <paramref name="value" /> as a C# UTF-8 string literal (<c>"..."u8</c>).</summary>
+	public static string ToUtf8Literal(string value)
+	{
+		StringBuilder builder = new(GuessCapacity(value) + 2);
+		AppendUtf8Literal(builder, value);
+		return builder.ToString();
+	}
 
-    /// <summary>Appends <paramref name="value" /> as a regular C# string literal, quotes included.</summary>
-    public static void AppendStringLiteral(StringBuilder builder, string value)
-    {
-        AppendQuoted(builder, value, false);
-    }
+	/// <summary>Appends <paramref name="value" /> as a regular C# string literal, quotes included.</summary>
+	public static void AppendStringLiteral(StringBuilder builder, string value)
+	{
+		AppendQuoted(builder, value, false);
+	}
 
-    /// <summary>Appends <paramref name="value" /> as a C# UTF-8 string literal (<c>"..."u8</c>).</summary>
-    public static void AppendUtf8Literal(StringBuilder builder, string value)
-    {
-        AppendQuoted(builder, value, true);
-        builder.Append("u8");
-    }
+	/// <summary>Appends <paramref name="value" /> as a C# UTF-8 string literal (<c>"..."u8</c>).</summary>
+	public static void AppendUtf8Literal(StringBuilder builder, string value)
+	{
+		AppendQuoted(builder, value, true);
+		builder.Append("u8");
+	}
 
-    private static int GuessCapacity(string value)
-    {
-        return value is null ? 2 : value.Length + 8;
-    }
+	private static int GuessCapacity(string value)
+	{
+		return value is null ? 2 : value.Length + 8;
+	}
 
-    private static void AppendQuoted(StringBuilder builder, string value, bool replaceUnpairedSurrogates)
-    {
-        if (builder is null) throw new ArgumentNullException(nameof(builder));
+	private static void AppendQuoted(StringBuilder builder, string value, bool replaceUnpairedSurrogates)
+	{
+		if (builder is null)
+		{
+			throw new ArgumentNullException(nameof(builder));
+		}
 
-        if (value is null) throw new ArgumentNullException(nameof(value));
+		if (value is null)
+		{
+			throw new ArgumentNullException(nameof(value));
+		}
 
-        builder.Append('"');
-        for (var i = 0; i < value.Length; i++)
-        {
-            var c = value[i];
-            if (char.IsHighSurrogate(c) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1]))
-            {
-                AppendHexEscape(builder, 'U', char.ConvertToUtf32(c, value[i + 1]), 8);
-                i++;
-            }
-            else if (char.IsSurrogate(c))
-            {
-                AppendHexEscape(builder, 'u', replaceUnpairedSurrogates ? ReplacementCharacter : c, 4);
-            }
-            else
-            {
-                AppendCharacter(builder, c);
-            }
-        }
+		builder.Append('"');
+		for (int i = 0; i < value.Length; i++)
+		{
+			char c = value[i];
+			if (char.IsHighSurrogate(c) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1]))
+			{
+				AppendHexEscape(builder, 'U', char.ConvertToUtf32(c, value[i + 1]), 8);
+				i++;
+			}
+			else if (char.IsSurrogate(c))
+			{
+				AppendHexEscape(builder, 'u', replaceUnpairedSurrogates ? ReplacementCharacter : c, 4);
+			}
+			else
+			{
+				AppendCharacter(builder, c);
+			}
+		}
 
-        builder.Append('"');
-    }
+		builder.Append('"');
+	}
 
-    private static void AppendCharacter(StringBuilder builder, char c)
-    {
-        switch (c)
-        {
-            case '"':
-                builder.Append("\\\"");
-                break;
-            case '\\':
-                builder.Append("\\\\");
-                break;
-            case '\0':
-                builder.Append("\\0");
-                break;
-            case '\a':
-                builder.Append("\\a");
-                break;
-            case '\b':
-                builder.Append("\\b");
-                break;
-            case '\f':
-                builder.Append("\\f");
-                break;
-            case '\n':
-                builder.Append("\\n");
-                break;
-            case '\r':
-                builder.Append("\\r");
-                break;
-            case '\t':
-                builder.Append("\\t");
-                break;
-            case '\v':
-                builder.Append("\\v");
-                break;
-            default:
-                if (c is >= ' ' and <= '~')
-                    builder.Append(c);
-                else
-                    AppendHexEscape(builder, 'u', c, 4);
+	private static void AppendCharacter(StringBuilder builder, char c)
+	{
+		switch (c)
+		{
+			case '"':
+				builder.Append("\\\"");
+				break;
+			case '\\':
+				builder.Append("\\\\");
+				break;
+			case '\0':
+				builder.Append("\\0");
+				break;
+			case '\a':
+				builder.Append("\\a");
+				break;
+			case '\b':
+				builder.Append("\\b");
+				break;
+			case '\f':
+				builder.Append("\\f");
+				break;
+			case '\n':
+				builder.Append("\\n");
+				break;
+			case '\r':
+				builder.Append("\\r");
+				break;
+			case '\t':
+				builder.Append("\\t");
+				break;
+			case '\v':
+				builder.Append("\\v");
+				break;
+			default:
+				if (c is >= ' ' and <= '~')
+				{
+					builder.Append(c);
+				}
+				else
+				{
+					AppendHexEscape(builder, 'u', c, 4);
+				}
 
-                break;
-        }
-    }
+				break;
+		}
+	}
 
-    private static void AppendHexEscape(StringBuilder builder, char kind, int codePoint, int digits)
-    {
-        builder.Append('\\').Append(kind);
-        for (var shift = (digits - 1) * 4; shift >= 0; shift -= 4)
-            builder.Append(HexDigits[(codePoint >> shift) & 0xF]);
-    }
+	private static void AppendHexEscape(StringBuilder builder, char kind, int codePoint, int digits)
+	{
+		builder.Append('\\').Append(kind);
+		for (int shift = (digits - 1) * 4; shift >= 0; shift -= 4)
+		{
+			builder.Append(HexDigits[(codePoint >> shift) & 0xF]);
+		}
+	}
 }

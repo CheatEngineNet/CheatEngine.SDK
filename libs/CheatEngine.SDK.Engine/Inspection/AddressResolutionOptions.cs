@@ -13,38 +13,39 @@ namespace CheatEngine.SDK.Engine.Inspection;
 /// </remarks>
 public readonly record struct AddressResolutionOptions
 {
-    private readonly bool _useHostSymbolTable;
-    private readonly bool _shallow;
+	/// <summary>Creates options while retaining the released two-Boolean constructor shape.</summary>
+	public AddressResolutionOptions(bool UseHostSymbolTable = false, bool Shallow = false)
+	{
+	#pragma warning disable CS0618
+		this.UseHostSymbolTable = UseHostSymbolTable;
+	#pragma warning restore CS0618
+		this.Shallow = Shallow;
+	}
 
-    /// <summary>Creates options while retaining the released two-Boolean constructor shape.</summary>
-    public AddressResolutionOptions(bool UseHostSymbolTable = false, bool Shallow = false)
-    {
-        _useHostSymbolTable = UseHostSymbolTable;
-        _shallow = Shallow;
-    }
+	/// <summary>Value for CE's optional <c>shallow</c> argument.</summary>
+	public bool Shallow
+	{
+		get;
+		init;
+	}
 
-    /// <summary>Value for CE's optional <c>shallow</c> argument.</summary>
-    public bool Shallow
-    {
-        get => _shallow;
-        init => _shallow = value;
-    }
+	/// <summary>Gets the removed CE <c>local</c> flag retained for source and binary compatibility.</summary>
+	[Obsolete("Use EngineInspection.ResolveHostAddress for host-symbol resolution; ResolveAddress rejects this flag.",
+		false)]
+	public bool UseHostSymbolTable
+	{
+		get;
+		init;
+	}
 
-    /// <summary>Gets the removed CE <c>local</c> flag retained for source and binary compatibility.</summary>
-    [Obsolete("Use EngineInspection.ResolveHostAddress for host-symbol resolution; ResolveAddress rejects this flag.",
-        error: false)]
-    public bool UseHostSymbolTable
-    {
-        get => _useHostSymbolTable;
-        init => _useHostSymbolTable = value;
-    }
+	#pragma warning disable CS0618
+	internal bool HostSymbolTableRequested => UseHostSymbolTable;
+	#pragma warning restore CS0618
 
-    internal bool HostSymbolTableRequested => _useHostSymbolTable;
-
-    /// <summary>Deconstructs the compatibility shape used by the released 1.0.0 API.</summary>
-    public void Deconstruct(out bool UseHostSymbolTable, out bool Shallow)
-    {
-        UseHostSymbolTable = _useHostSymbolTable;
-        Shallow = _shallow;
-    }
+	/// <summary>Deconstructs the compatibility shape used by the released 1.0.0 API.</summary>
+	public void Deconstruct(out bool UseHostSymbolTable, out bool Shallow)
+	{
+		UseHostSymbolTable = HostSymbolTableRequested;
+		Shallow = this.Shallow;
+	}
 }

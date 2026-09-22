@@ -1,4 +1,5 @@
 using System;
+
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Annotations.Threading;
 
@@ -41,28 +42,31 @@ namespace CheatEngine.SDK.Annotations.Lua;
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 public sealed class LuaGlobalAttribute : Attribute
 {
-    /// <summary>
-    ///     Initializes the attribute with the name of the Lua global to bind.
-    /// </summary>
-    /// <param name="name">
-    ///     The global name, spelled exactly as Cheat Engine registers it (Lua names are case-sensitive; the external
-    ///     spelling is contract, for example <c>readInteger</c>). Must not be <see langword="null" /> or empty.
-    /// </param>
-    /// <exception cref="ArgumentNullException"><paramref name="name" /> is <see langword="null" />.</exception>
-    /// <exception cref="ArgumentException"><paramref name="name" /> is empty.</exception>
-    /// <remarks>
-    ///     The constructor only runs when something materialises the attribute through reflection. The compiler stores
-    ///     the argument without executing this check, so <c>[LuaGlobal(null!)]</c> and <c>[LuaGlobal("")]</c> compile; a
-    ///     generator reads a <see langword="null" /> constant or an empty string and has to validate the name itself.
-    /// </remarks>
-    public LuaGlobalAttribute(string name)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        Name = name;
-    }
+	/// <summary>
+	///     Initializes the attribute with the name of the Lua global to bind.
+	/// </summary>
+	/// <param name="name">
+	///     The global name, spelled exactly as Cheat Engine registers it (Lua names are case-sensitive; the external
+	///     spelling is contract, for example <c>readInteger</c>). Must not be <see langword="null" /> or empty.
+	/// </param>
+	/// <exception cref="ArgumentNullException"><paramref name="name" /> is <see langword="null" />.</exception>
+	/// <exception cref="ArgumentException"><paramref name="name" /> is empty.</exception>
+	/// <remarks>
+	///     The constructor only runs when something materialises the attribute through reflection. The compiler stores
+	///     the argument without executing this check, so <c>[LuaGlobal(null!)]</c> and <c>[LuaGlobal("")]</c> compile; a
+	///     generator reads a <see langword="null" /> constant or an empty string and has to validate the name itself.
+	/// </remarks>
+	public LuaGlobalAttribute(string name)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(name);
+		Name = name;
+	}
 
-    /// <summary>
-    ///     Gets the name of the bound Lua global. Never <see langword="null" /> or empty.
-    /// </summary>
-    public string Name { get; }
+	/// <summary>
+	///     Gets the name of the bound Lua global. Never <see langword="null" /> or empty.
+	/// </summary>
+	public string Name
+	{
+		get;
+	}
 }

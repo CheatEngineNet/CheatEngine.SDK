@@ -1,4 +1,5 @@
 using System;
+
 using CheatEngine.SDK.Hosting.Bootstrap;
 
 namespace CheatEngine.SDK.Hosting.Plugin;
@@ -19,14 +20,17 @@ namespace CheatEngine.SDK.Hosting.Plugin;
 /// </remarks>
 public interface IPluginFactory
 {
-    /// <summary>Gets the plugin's display name in UTF-8, without a terminating NUL. Read once, never on a hot path.</summary>
-    public static abstract ReadOnlySpan<byte> Utf8Name { get; }
+	/// <summary>Gets the plugin's display name in UTF-8, without a terminating NUL. Read once, never on a hot path.</summary>
+	public static abstract ReadOnlySpan<byte> Utf8Name
+	{
+		get;
+	}
 
-    /// <summary>
-    ///     Constructs the plugin instance, after the Lua API is bound and before the runtime binding is attached. Called
-    ///     until it returns an instance: once when it succeeds on the first enable; again on the next enable when it
-    ///     threw or returned <see langword="null" /> (that enable fails and is reported to Cheat Engine).
-    /// </summary>
-    /// <returns>A new plugin; must not be <see langword="null" />.</returns>
-    public static abstract CheatEnginePlugin Create();
+	/// <summary>
+	///     Constructs the plugin instance, after the Lua API is bound and before the runtime binding is attached. Called
+	///     until it returns an instance: once when it succeeds on the first enable; again on the next enable when it
+	///     threw or returned <see langword="null" /> (that enable fails and is reported to Cheat Engine).
+	/// </summary>
+	/// <returns>A new plugin; must not be <see langword="null" />.</returns>
+	public static abstract CheatEnginePlugin Create();
 }

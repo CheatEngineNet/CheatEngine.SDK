@@ -1,4 +1,5 @@
 using System;
+
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Runtime;
 using CheatEngine.SDK.Lua.Calls;
@@ -33,7 +34,7 @@ public static class RuntimeHostOperations
 	[RequiresPluginEnabled]
 	public static LuaOperationStatus TryGetCheatEngineVersion(out double version)
 	{
-		using var operation = LuaRuntime.AcquireOperation();
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
 		return TryGetCheatEngineVersion(operation.State, out version);
 	}
 
@@ -44,12 +45,13 @@ public static class RuntimeHostOperations
 	[RequiresPluginEnabled]
 	public static LuaOperationStatus TryGetSystemArchitecture(out CheatEngineArchitecture architecture)
 	{
-		using var operation = LuaRuntime.AcquireOperation();
-		var state = operation.State;
-		var top = state.Top;
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		int top = state.Top;
 		try
 		{
-			var status = TryCallInteger(state, SGetSystemArchitecture, "getSystemArchitecture"u8, out var code);
+			LuaOperationStatus status =
+				TryCallInteger(state, SGetSystemArchitecture, "getSystemArchitecture"u8, out int code);
 			if (!status.IsSuccess)
 			{
 				architecture = CheatEngineArchitecture.Unknown;
@@ -73,12 +75,12 @@ public static class RuntimeHostOperations
 	[RequiresPluginEnabled]
 	public static LuaOperationStatus TryGetTargetAbi(out TargetAbi abi)
 	{
-		using var operation = LuaRuntime.AcquireOperation();
-		var state = operation.State;
-		var top = state.Top;
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		int top = state.Top;
 		try
 		{
-			var status = TryCallInteger(state, SGetTargetAbi, "getABI"u8, out var code);
+			LuaOperationStatus status = TryCallInteger(state, SGetTargetAbi, "getABI"u8, out int code);
 			if (!status.IsSuccess)
 			{
 				abi = TargetAbi.Unknown;
@@ -98,44 +100,45 @@ public static class RuntimeHostOperations
 	internal static LuaOperationStatus TryCallInteger(LuaState state, LuaRef cache, ReadOnlySpan<byte> globalName,
 		out int value)
 	{
-		var resolution = LuaGlobalFunctions.TryPushWithOutcome(state, cache, globalName);
+		LuaGlobalPushOutcome resolution = LuaGlobalFunctions.TryPushWithOutcome(state, cache, globalName);
 		if (!resolution.IsSuccess)
 		{
 			value = default;
 			return resolution.ToOperationStatus();
 		}
 
-		var status = state.TryCall(0, 1);
+		LuaStatus status = state.TryCall(0, 1);
 		if (!status.IsOk)
 		{
 			value = default;
 			return LuaOperationStatus.LuaFailure(status);
 		}
 
-		if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out var raw) ||
+		if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out long raw) ||
 		    raw is < int.MinValue or > int.MaxValue)
 		{
 			value = default;
 			return state.IsNil(-1) ? LuaOperationStatus.NilResult : LuaOperationStatus.InvalidResult;
 		}
 
-		value = (int)raw;
+		value = (int) raw;
 		return LuaOperationStatus.Success;
 	}
 
 	private static LuaOperationStatus TryGetCheatEngineVersion(LuaState state, out double version)
 	{
-		var top = state.Top;
+		int top = state.Top;
 		try
 		{
-			var resolution = LuaGlobalFunctions.TryPushWithOutcome(state, SGetCheatEngineVersion, "getCEVersion"u8);
+			LuaGlobalPushOutcome resolution =
+				LuaGlobalFunctions.TryPushWithOutcome(state, SGetCheatEngineVersion, "getCEVersion"u8);
 			if (!resolution.IsSuccess)
 			{
 				version = default;
 				return resolution.ToOperationStatus();
 			}
 
-			var status = state.TryCall(0, 1);
+			LuaStatus status = state.TryCall(0, 1);
 			if (!status.IsOk)
 			{
 				version = default;

@@ -23,27 +23,27 @@ namespace CheatEngine.SDK.Engine.Enums;
 [Flags]
 public enum MemoryProtection : uint
 {
-    /// <summary>No protection value reported (a free or reserved region). Not a CE define.</summary>
-    None = 0,
+	/// <summary>No protection value reported (a free or reserved region). Not a CE define.</summary>
+	None = 0,
 
-    /// <summary>Read-only. CE: <c>PAGE_READONLY</c>.</summary>
-    ReadOnly = 2,
+	/// <summary>Read-only. CE: <c>PAGE_READONLY</c>.</summary>
+	ReadOnly = 2,
 
-    /// <summary>Read and write. CE: <c>PAGE_READWRITE</c>.</summary>
-    ReadWrite = 4,
+	/// <summary>Read and write. CE: <c>PAGE_READWRITE</c>.</summary>
+	ReadWrite = 4,
 
-    /// <summary>Copy-on-write. CE: <c>PAGE_WRITECOPY</c>.</summary>
-    WriteCopy = 8,
+	/// <summary>Copy-on-write. CE: <c>PAGE_WRITECOPY</c>.</summary>
+	WriteCopy = 8,
 
-    /// <summary>Execute only. CE: <c>PAGE_EXECUTE</c>.</summary>
-    Execute = 16,
+	/// <summary>Execute only. CE: <c>PAGE_EXECUTE</c>.</summary>
+	Execute = 16,
 
-    /// <summary>Execute and read. CE: <c>PAGE_EXECUTE_READ</c>.</summary>
-    ExecuteRead = 32,
+	/// <summary>Execute and read. CE: <c>PAGE_EXECUTE_READ</c>.</summary>
+	ExecuteRead = 32,
 
-    /// <summary>Execute, read and write. CE: <c>PAGE_EXECUTE_READWRITE</c>.</summary>
-    ExecuteReadWrite = 64,
+	/// <summary>Execute, read and write. CE: <c>PAGE_EXECUTE_READWRITE</c>.</summary>
+	ExecuteReadWrite = 64,
 
-    /// <summary>Execute and copy-on-write. CE: <c>PAGE_EXECUTE_WRITECOPY</c>.</summary>
-    ExecuteWriteCopy = 128
+	/// <summary>Execute and copy-on-write. CE: <c>PAGE_EXECUTE_WRITECOPY</c>.</summary>
+	ExecuteWriteCopy = 128
 }

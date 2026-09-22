@@ -1,7 +1,10 @@
 # CheatEngine.SDK Lua bridge
 
 This deliberately tiny **C11**, Windows x64 micro-kernel puts host Lua operations that can allocate, invoke a finalizer,
-or call `lua_error` beneath a native `lua_pcallk` boundary. Lua 5.3 uses `setjmp`/`longjmp` for those failures; [Microsoft documents that .NET does not support that interop and a `longjmp` must not cross or skip a managed frame](https://learn.microsoft.com/dotnet/standard/native-interop/exceptions-interoperability#setjmplongjmp-behaviors). The public SDK remains C# 14/.NET 10 and AOT-friendly; this source exists only for the native control-flow boundary.
+or call `lua_error` beneath a native `lua_pcallk` boundary. Lua 5.3 uses `setjmp`/`longjmp` for those
+failures; [Microsoft documents that .NET does not support that interop and a
+`longjmp` must not cross or skip a managed frame](https://learn.microsoft.com/dotnet/standard/native-interop/exceptions-interoperability#setjmplongjmp-behaviors).
+The public SDK remains C# 14/.NET 10 and AOT-friendly; this source exists only for the native control-flow boundary.
 
 The bridge receives function pointers from Cheat Engine's already-loaded Lua module. It includes neither `lua.h` nor a
 Lua import library and has no `LoadLibrary`/`GetProcAddress` path, so it cannot create or load a second Lua runtime.
@@ -35,7 +38,8 @@ library, no `lua.h` include and no runtime-loading code: it receives the already
 
 Before pushing its zero-upvalue light C closure, the bridge validates all 20 host export pointers, validates the input
 depth, and calls `lua_checkstack(L, 1)`. The pinned upstream CE Lua 5.3.0
-[`lapi.c`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/lua53/lua53/src/lapi.c#L99-L116)
+[
+`lapi.c`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/lua53/lua53/src/lapi.c#L99-L116)
 shows that `lua_checkstack` uses `luaD_rawrunprotected` and reports an allocation/overflow failure as `0`; it does not
 unwind to the bridge caller. After that reservation `lua_pushcclosure(operation, 0)` is a non-allocating light C
 function, while every bridge-owned operation that can raise starts only after `lua_pcallk`. This is `PinnedUpstream`

@@ -17,29 +17,29 @@ namespace CheatEngine.SDK.Tests.Packaging;
 [Collection(PackagedUmbrellaSuite.Name)]
 public sealed class RestoreIsolationTests(PackagedUmbrellaFixture fixture)
 {
-    [Fact]
-    public void Fixture_exposes_a_packages_directory_under_its_own_temp_root()
-    {
-        Assert.True(
-            Directory.Exists(fixture.PackagesDirectory),
-            $"Expected an isolated packages directory at '{fixture.PackagesDirectory}'.");
-        Assert.Contains("cheatengine-sdk-umbrella-tests-", fixture.PackagesDirectory, StringComparison.Ordinal);
-    }
+	[Fact]
+	public void Fixture_exposes_a_packages_directory_under_its_own_temp_root()
+	{
+		Assert.True(
+			Directory.Exists(fixture.PackagesDirectory),
+			$"Expected an isolated packages directory at '{fixture.PackagesDirectory}'.");
+		Assert.Contains("cheatengine-sdk-umbrella-tests-", fixture.PackagesDirectory, StringComparison.Ordinal);
+	}
 
-    [Fact]
-    public void Consumer_restore_extracts_the_packed_version_into_the_isolated_packages_directory()
-    {
-        // Proves the restore actually used --packages (not merely that the directory exists): NuGet only creates
-        // '<packagesDirectory>/cheatengine.sdk/<version>' (the package id, lower-cased) as a side effect of
-        // extracting the package there. If a future change dropped '--packages "<packagesDirectory>"' from
-        // ThrowawayConsumer.RestoreAsync, this directory would stay empty while restore quietly fell back to the
-        // machine-wide global-packages folder instead.
-        var extractedPackageDirectory =
-            Path.Combine(fixture.PackagesDirectory, UmbrellaPackage.ExtractionFolderName, fixture.PackageVersion);
-        Assert.True(
-            Directory.Exists(extractedPackageDirectory),
-            $"Expected the consumer restore to extract '{UmbrellaPackage.ExtractionFolderName}/{fixture.PackageVersion}' " +
-            $"into the fixture's isolated packages directory ('{extractedPackageDirectory}'), not the machine-wide " +
-            "global-packages folder.");
-    }
+	[Fact]
+	public void Consumer_restore_extracts_the_packed_version_into_the_isolated_packages_directory()
+	{
+		// Proves the restore actually used --packages (not merely that the directory exists): NuGet only creates
+		// '<packagesDirectory>/cheatengine.sdk/<version>' (the package id, lower-cased) as a side effect of
+		// extracting the package there. If a future change dropped '--packages "<packagesDirectory>"' from
+		// ThrowawayConsumer.RestoreAsync, this directory would stay empty while restore quietly fell back to the
+		// machine-wide global-packages folder instead.
+		string extractedPackageDirectory =
+			Path.Combine(fixture.PackagesDirectory, UmbrellaPackage.ExtractionFolderName, fixture.PackageVersion);
+		Assert.True(
+			Directory.Exists(extractedPackageDirectory),
+			$"Expected the consumer restore to extract '{UmbrellaPackage.ExtractionFolderName}/{fixture.PackageVersion}' " +
+			$"into the fixture's isolated packages directory ('{extractedPackageDirectory}'), not the machine-wide " +
+			"global-packages folder.");
+	}
 }

@@ -23,21 +23,21 @@ namespace CheatEngine.SDK.Abi.Managed;
 /// </remarks>
 public static class ManagedEntryPoint
 {
-    /// <summary>The namespace of the bootstrap type.</summary>
-    public const string Namespace = "CESDK";
+	/// <summary>The namespace of the bootstrap type.</summary>
+	public const string Namespace = "CESDK";
 
-    /// <summary>The simple name of the bootstrap type.</summary>
-    public const string TypeName = "CESDK";
+	/// <summary>The simple name of the bootstrap type.</summary>
+	public const string TypeName = "CESDK";
 
-    /// <summary>The full name of the bootstrap type, as the host requests it.</summary>
-    public const string FullTypeName = Namespace + "." + TypeName;
+	/// <summary>The full name of the bootstrap type, as the host requests it.</summary>
+	public const string FullTypeName = Namespace + "." + TypeName;
 
-    /// <summary>The name of the public static bootstrap method.</summary>
-    public const string MethodName = "CEPluginInitialize";
+	/// <summary>The name of the public static bootstrap method.</summary>
+	public const string MethodName = "CEPluginInitialize";
 
-    /// <summary>Bootstrap result: the init record was filled in.</summary>
-    public const int Success = 1;
+	/// <summary>Bootstrap result: the init record was filled in.</summary>
+	public const int Success = 1;
 
-    /// <summary>Bootstrap result: the plugin could not initialise; the init record content is unspecified.</summary>
-    public const int Failure = 0;
+	/// <summary>Bootstrap result: the plugin could not initialise; the init record content is unspecified.</summary>
+	public const int Failure = 0;
 }

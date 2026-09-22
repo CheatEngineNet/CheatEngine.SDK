@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Lua.Interop.Types;
 
 namespace CheatEngine.SDK.Lua.Runtime;
@@ -40,81 +41,90 @@ namespace CheatEngine.SDK.Lua.Runtime;
 [StructLayout(LayoutKind.Auto)]
 public readonly unsafe struct LuaHostBinding : IEquatable<LuaHostBinding>
 {
-    /// <summary>Creates a binding from typed function pointers, in the shape of the host's exported-functions record.</summary>
-    /// <param name="stateProvider">The per-thread state provider; must not be null.</param>
-    /// <param name="hostObjectPusher">The host-object pusher; null when the host has none.</param>
-    /// <param name="mainThreadId">The managed thread id of the host's main thread.</param>
-    public LuaHostBinding(
-        delegate* unmanaged[Stdcall]<void*> stateProvider,
-        delegate* unmanaged[Stdcall]<void*, void*, void> hostObjectPusher,
-        int mainThreadId)
-    {
-        StateProvider = (nint)stateProvider;
-        HostObjectPusher = (nint)hostObjectPusher;
-        MainThreadId = mainThreadId;
-    }
+	/// <summary>Creates a binding from typed function pointers, in the shape of the host's exported-functions record.</summary>
+	/// <param name="stateProvider">The per-thread state provider; must not be null.</param>
+	/// <param name="hostObjectPusher">The host-object pusher; null when the host has none.</param>
+	/// <param name="mainThreadId">The managed thread id of the host's main thread.</param>
+	public LuaHostBinding(
+		delegate* unmanaged[Stdcall]<void*> stateProvider,
+		delegate* unmanaged[Stdcall]<void*, void*, void> hostObjectPusher,
+		int mainThreadId)
+	{
+		StateProvider = (nint) stateProvider;
+		HostObjectPusher = (nint) hostObjectPusher;
+		MainThreadId = mainThreadId;
+	}
 
-    /// <summary>Creates a binding from raw function addresses, for code that received them as integers.</summary>
-    /// <param name="stateProvider">Address of a <c>stdcall</c> function <c>lua_State* ()</c>; must not be zero.</param>
-    /// <param name="hostObjectPusher">Address of a <c>stdcall</c> function <c>void (lua_State*, void*)</c>, or zero.</param>
-    /// <param name="mainThreadId">The managed thread id of the host's main thread.</param>
-    public LuaHostBinding(nint stateProvider, nint hostObjectPusher, int mainThreadId)
-    {
-        StateProvider = stateProvider;
-        HostObjectPusher = hostObjectPusher;
-        MainThreadId = mainThreadId;
-    }
+	/// <summary>Creates a binding from raw function addresses, for code that received them as integers.</summary>
+	/// <param name="stateProvider">Address of a <c>stdcall</c> function <c>lua_State* ()</c>; must not be zero.</param>
+	/// <param name="hostObjectPusher">Address of a <c>stdcall</c> function <c>void (lua_State*, void*)</c>, or zero.</param>
+	/// <param name="mainThreadId">The managed thread id of the host's main thread.</param>
+	public LuaHostBinding(nint stateProvider, nint hostObjectPusher, int mainThreadId)
+	{
+		StateProvider = stateProvider;
+		HostObjectPusher = hostObjectPusher;
+		MainThreadId = mainThreadId;
+	}
 
-    /// <summary>Gets the address of the per-thread state provider.</summary>
-    public nint StateProvider { get; }
+	/// <summary>Gets the address of the per-thread state provider.</summary>
+	public nint StateProvider
+	{
+		get;
+	}
 
-    /// <summary>Gets the address of the host-object pusher, or zero.</summary>
-    public nint HostObjectPusher { get; }
+	/// <summary>Gets the address of the host-object pusher, or zero.</summary>
+	public nint HostObjectPusher
+	{
+		get;
+	}
 
-    /// <summary>Gets the managed thread id of the host's main thread.</summary>
-    public int MainThreadId { get; }
+	/// <summary>Gets the managed thread id of the host's main thread.</summary>
+	public int MainThreadId
+	{
+		get;
+	}
 
-    /// <summary>Gets a value indicating whether the binding can be attached: it has a state provider.</summary>
-    public bool IsValid => StateProvider != 0;
+	/// <summary>Gets a value indicating whether the binding can be attached: it has a state provider.</summary>
+	public bool IsValid => StateProvider != 0;
 
-    internal delegate* unmanaged[Stdcall]<lua_State*> Provider =>
-        (delegate* unmanaged[Stdcall]<lua_State*>)StateProvider;
+	internal delegate* unmanaged[Stdcall]<lua_State*> Provider =>
+		(delegate* unmanaged[Stdcall]<lua_State*>) StateProvider;
 
-    internal delegate* unmanaged[Stdcall]<lua_State*, void*, void> Pusher =>
-        (delegate* unmanaged[Stdcall]<lua_State*, void*, void>)HostObjectPusher;
+	internal delegate* unmanaged[Stdcall]<lua_State*, void*, void> Pusher =>
+		(delegate* unmanaged[Stdcall]<lua_State*, void*, void>) HostObjectPusher;
 
-    /// <summary>Compares all three fields.</summary>
-    /// <param name="left">First binding.</param>
-    /// <param name="right">Second binding.</param>
-    public static bool operator ==(LuaHostBinding left, LuaHostBinding right)
-    {
-        return left.Equals(right);
-    }
+	/// <summary>Compares all three fields.</summary>
+	/// <param name="left">First binding.</param>
+	/// <param name="right">Second binding.</param>
+	public static bool operator ==(LuaHostBinding left, LuaHostBinding right)
+	{
+		return left.Equals(right);
+	}
 
-    /// <summary>Compares all three fields.</summary>
-    /// <param name="left">First binding.</param>
-    /// <param name="right">Second binding.</param>
-    public static bool operator !=(LuaHostBinding left, LuaHostBinding right)
-    {
-        return !left.Equals(right);
-    }
+	/// <summary>Compares all three fields.</summary>
+	/// <param name="left">First binding.</param>
+	/// <param name="right">Second binding.</param>
+	public static bool operator !=(LuaHostBinding left, LuaHostBinding right)
+	{
+		return !left.Equals(right);
+	}
 
-    /// <inheritdoc />
-    public bool Equals(LuaHostBinding other)
-    {
-        return StateProvider == other.StateProvider && HostObjectPusher == other.HostObjectPusher &&
-               MainThreadId == other.MainThreadId;
-    }
+	/// <inheritdoc />
+	public bool Equals(LuaHostBinding other)
+	{
+		return StateProvider == other.StateProvider && HostObjectPusher == other.HostObjectPusher &&
+		       MainThreadId == other.MainThreadId;
+	}
 
-    /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return obj is LuaHostBinding other && Equals(other);
-    }
+	/// <inheritdoc />
+	public override bool Equals(object? obj)
+	{
+		return obj is LuaHostBinding other && Equals(other);
+	}
 
-    /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(StateProvider, HostObjectPusher, MainThreadId);
-    }
+	/// <inheritdoc />
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(StateProvider, HostObjectPusher, MainThreadId);
+	}
 }

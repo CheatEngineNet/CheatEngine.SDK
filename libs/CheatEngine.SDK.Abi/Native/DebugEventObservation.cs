@@ -13,30 +13,30 @@ namespace CheatEngine.SDK.Abi.Native;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct DebugEventObservation
 {
-    /// <summary>
-    ///     Initializes a new copied debug-event observation.
-    /// </summary>
-    /// <param name="sequenceNumber">The SDK-local callback sequence number.</param>
-    /// <param name="eventCode">The Windows debug-event code.</param>
-    /// <param name="processId">The debuggee process identifier from the event header.</param>
-    /// <param name="threadId">The debuggee thread identifier from the event header.</param>
-    public DebugEventObservation(long sequenceNumber, uint eventCode, uint processId, uint threadId)
-    {
-        SequenceNumber = sequenceNumber;
-        EventCode = eventCode;
-        ProcessId = processId;
-        ThreadId = threadId;
-    }
+	/// <summary>
+	///     Initializes a new copied debug-event observation.
+	/// </summary>
+	/// <param name="sequenceNumber">The SDK-local callback sequence number.</param>
+	/// <param name="eventCode">The Windows debug-event code.</param>
+	/// <param name="processId">The debuggee process identifier from the event header.</param>
+	/// <param name="threadId">The debuggee thread identifier from the event header.</param>
+	public DebugEventObservation(long sequenceNumber, uint eventCode, uint processId, uint threadId)
+	{
+		SequenceNumber = sequenceNumber;
+		EventCode = eventCode;
+		ProcessId = processId;
+		ThreadId = threadId;
+	}
 
-    /// <summary>The SDK-local sequence number assigned while the callback was admitted.</summary>
-    public readonly long SequenceNumber;
+	/// <summary>The SDK-local sequence number assigned while the callback was admitted.</summary>
+	public readonly long SequenceNumber;
 
-    /// <summary>The Windows debug-event code copied from the native header.</summary>
-    public readonly uint EventCode;
+	/// <summary>The Windows debug-event code copied from the native header.</summary>
+	public readonly uint EventCode;
 
-    /// <summary>The debuggee process identifier copied from the native header.</summary>
-    public readonly uint ProcessId;
+	/// <summary>The debuggee process identifier copied from the native header.</summary>
+	public readonly uint ProcessId;
 
-    /// <summary>The debuggee thread identifier copied from the native header.</summary>
-    public readonly uint ThreadId;
+	/// <summary>The debuggee thread identifier copied from the native header.</summary>
+	public readonly uint ThreadId;
 }

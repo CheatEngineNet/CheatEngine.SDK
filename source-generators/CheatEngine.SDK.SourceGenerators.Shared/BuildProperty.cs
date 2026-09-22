@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared;
@@ -15,31 +16,34 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///     itself is not value-equatable.
 /// </remarks>
 [SuppressMessage(
-    "Meziantou.Analyzer",
-    "MA0182",
-    Justification =
-        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
+	"Meziantou.Analyzer",
+	"MA0182",
+	Justification =
+		"This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class BuildProperty
 {
-    /// <summary>Prefix of every MSBuild property key; concatenate with the property name into a constant.</summary>
-    public const string KeyPrefix = "build_property.";
+	/// <summary>Prefix of every MSBuild property key; concatenate with the property name into a constant.</summary>
+	public const string KeyPrefix = "build_property.";
 
-    /// <summary>
-    ///     Reads a boolean property. Returns <paramref name="defaultValue" /> when the key is absent (the property is not
-    ///     compiler-visible, for example in a project that references the generator without the package's props), empty,
-    ///     or not a boolean. Parsing follows MSBuild usage: case-insensitive <see langword="true" />/<see langword="false" />,
-    ///     surrounding white
-    ///     space ignored.
-    /// </summary>
-    /// <param name="globalOptions"><c>AnalyzerConfigOptionsProvider.GlobalOptions</c>.</param>
-    /// <param name="key">Full key, <see cref="KeyPrefix" /> included.</param>
-    /// <param name="defaultValue">Value used when the property carries no usable boolean.</param>
-    public static bool ReadBoolean(AnalyzerConfigOptions globalOptions, string key, bool defaultValue)
-    {
-        if (globalOptions is null) throw new ArgumentNullException(nameof(globalOptions));
+	/// <summary>
+	///     Reads a boolean property. Returns <paramref name="defaultValue" /> when the key is absent (the property is not
+	///     compiler-visible, for example in a project that references the generator without the package's props), empty,
+	///     or not a boolean. Parsing follows MSBuild usage: case-insensitive <see langword="true" />/<see langword="false" />,
+	///     surrounding white
+	///     space ignored.
+	/// </summary>
+	/// <param name="globalOptions"><c>AnalyzerConfigOptionsProvider.GlobalOptions</c>.</param>
+	/// <param name="key">Full key, <see cref="KeyPrefix" /> included.</param>
+	/// <param name="defaultValue">Value used when the property carries no usable boolean.</param>
+	public static bool ReadBoolean(AnalyzerConfigOptions globalOptions, string key, bool defaultValue)
+	{
+		if (globalOptions is null)
+		{
+			throw new ArgumentNullException(nameof(globalOptions));
+		}
 
-        return globalOptions.TryGetValue(key, out var raw) && bool.TryParse(raw, out var value)
-            ? value
-            : defaultValue;
-    }
+		return globalOptions.TryGetValue(key, out string? raw) && bool.TryParse(raw, out bool value)
+			? value
+			: defaultValue;
+	}
 }

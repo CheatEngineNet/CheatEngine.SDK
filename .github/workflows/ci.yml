@@ -3,6 +3,10 @@ name: CI
 on:
   workflow_call:
     inputs:
+      collect-coverage:
+        description: Emit Visual Studio XML coverage from Debug test jobs and upload it as coverage-<project>.
+        type: boolean
+        default: false
       upload-package:
         description: Upload the packed package as the nuget-package artifact.
         type: boolean
@@ -11,6 +15,10 @@ on:
         description: Also run every test project against the Release build, which is what ships.
         type: boolean
         default: false
+    secrets:
+      SONAR_TOKEN:
+        description: SonarQube Cloud token for protected same-repository analysis.
+        required: false
 
 permissions:
   contents: read
@@ -74,13 +82,9 @@ jobs:
         with:
           xmake-version: '3.0.9'
 
-      # This is source-only and must precede both native builds: it makes the operation catalogue, C enum/switch,
-      # managed operation enum/wrappers and contract bitmap one reproducible gate.
-      - name: Validate protected Lua operation catalogue
-        run: pwsh -NoProfile -File eng/lua-bridge/Test-ProtectedOperationCatalog.ps1
-
       - name: Build bridge
         run: |
+          $ErrorActionPreference = 'Stop'
           # xmake 3.0.9 mis-parses an absolute Windows -o path when the target
           # uses $(builddir); keep both xmake paths relative and resolve them
           # only for PowerShell validation and cleanup.
@@ -105,14 +109,26 @@ jobs:
           }
 
           xmake f -P native/cheatengine-sdk-lua-bridge -o $primaryOutput -p windows -a x64 -m release -y
+          if ($LASTEXITCODE -ne 0) {
+            throw "xmake configuration for the primary bridge output failed with exit code $LASTEXITCODE."
+          }
           xmake -P native/cheatengine-sdk-lua-bridge -y
+          if ($LASTEXITCODE -ne 0) {
+            throw "xmake build for the primary bridge output failed with exit code $LASTEXITCODE."
+          }
           $primaryBridge = Join-Path $primaryOutputPath 'cheatengine-sdk-lua-bridge.dll'
           if (-not (Test-Path -LiteralPath $primaryBridge -PathType Leaf)) {
             throw "xmake did not produce '$primaryBridge'."
           }
 
           xmake f -P native/cheatengine-sdk-lua-bridge -o $reproducibilityOutput -p windows -a x64 -m release -y
+          if ($LASTEXITCODE -ne 0) {
+            throw "xmake configuration for the reproducibility bridge output failed with exit code $LASTEXITCODE."
+          }
           xmake -P native/cheatengine-sdk-lua-bridge -y
+          if ($LASTEXITCODE -ne 0) {
+            throw "xmake build for the reproducibility bridge output failed with exit code $LASTEXITCODE."
+          }
           $reproducibilityBridge = Join-Path $reproducibilityOutputPath 'cheatengine-sdk-lua-bridge.dll'
           if (-not (Test-Path -LiteralPath $reproducibilityBridge -PathType Leaf)) {
             throw "xmake did not produce '$reproducibilityBridge'."
@@ -154,7 +170,12 @@ jobs:
       # This compiles the C++ transcription under MSVC x64 and validates its emitted facts. It proves the checked-in
       # header fixture and managed layout numbers agree; it does not contact or qualify a live Cheat Engine host.
       - name: Build and validate classic ABI fixture
-        run: ./tests/native-abi-fixture/build.ps1 -OutputDirectory artifacts/native-abi-fixture
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./tests/native-abi-fixture/build.ps1 -OutputDirectory artifacts/native-abi-fixture
+          if ($LASTEXITCODE -ne 0) {
+            throw "Classic ABI fixture build failed with exit code $LASTEXITCODE."
+          }
 
       # The fixture's fixed facts are first schema-validated in its build script. Build the managed ABI test app and
       # pass that same file to its direct comparer so C++ x64 measurements are checked against managed sizeof, offset,
@@ -170,8 +191,15 @@ jobs:
           CE77_NATIVE_ABI_FACTS_PATH: ${{ github.workspace }}/artifacts/native-abi-fixture/ce77-native-abi-facts.txt
           CE77_NATIVE_ABI_REQUIRED: 'true'
         run: |
+          $ErrorActionPreference = 'Stop'
           dotnet build tests/CheatEngine.SDK.Abi.Tests/CheatEngine.SDK.Abi.Tests.csproj -c Debug --no-restore --disable-build-servers
+          if ($LASTEXITCODE -ne 0) {
+            throw "Managed ABI fact comparer build failed with exit code $LASTEXITCODE."
+          }
           & ./artifacts/bin/CheatEngine.SDK.Abi.Tests/debug/CheatEngine.SDK.Abi.Tests.exe --fail-skips on
+          if ($LASTEXITCODE -ne 0) {
+            throw "Managed ABI fact comparer exited with code $LASTEXITCODE."
+          }
 
       - name: Upload classic ABI fixture facts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -206,16 +234,28 @@ jobs:
 
       # Tests run against Debug, where some guards exist only. Release is what ships.
       - name: Build Debug
-        run: dotnet build CheatEngine.SDK.slnx --no-restore -c Debug
+        run: |
+          dotnet build CheatEngine.SDK.slnx --no-restore -c Debug
+          if ($LASTEXITCODE -ne 0) {
+            throw "Debug solution build failed with exit code $LASTEXITCODE."
+          }
 
       # Do not rely only on the per-project matrix below: native MTP must also discover every test executable when
       # invoked through the solution. The preceding build is deliberately part of this job, so --no-build cannot
       # silently exercise stale or incomplete test-host output.
       - name: Test Debug solution discovery
-        run: dotnet test --solution CheatEngine.SDK.slnx --no-build --no-restore -c Debug --fail-skips on
+        run: |
+          dotnet test --solution CheatEngine.SDK.slnx --no-build --no-restore -c Debug --fail-skips on
+          if ($LASTEXITCODE -ne 0) {
+            throw "Debug solution test discovery failed with exit code $LASTEXITCODE."
+          }
 
       - name: Build Release
-        run: dotnet build CheatEngine.SDK.slnx --no-restore -c Release
+        run: |
+          dotnet build CheatEngine.SDK.slnx --no-restore -c Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release solution build failed with exit code $LASTEXITCODE."
+          }
 
   test:
     name: Test ${{ matrix.label }}
@@ -248,10 +288,15 @@ jobs:
           PROJECT: ${{ matrix.project }}
           CONFIGURATION: ${{ matrix.configuration }}
           RESULTS: artifacts/test-results/${{ matrix.artifact }}
+          COLLECT_COVERAGE: ${{ inputs.collect-coverage }}
         run: |
           $options = '--project', $env:PROJECT, '-c', $env:CONFIGURATION, '--report-trx', '--results-directory', $env:RESULTS
           if ($env:CONFIGURATION -eq 'Debug') { $options += '--fail-skips', 'on' }
+          if ($env:CONFIGURATION -eq 'Debug' -and $env:COLLECT_COVERAGE -eq 'true') { $options += '--coverage', '--coverage-output-format', 'xml', '--coverage-output', 'coverage.xml' }
           dotnet test @options
+          if ($LASTEXITCODE -ne 0) {
+            throw "Test project '$env:PROJECT' failed with exit code $LASTEXITCODE."
+          }
 
       - name: Summarize results
         if: ${{ !cancelled() }}
@@ -289,6 +334,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Upload coverage
+        if: ${{ inputs.collect-coverage && matrix.configuration == 'Debug' && !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-${{ matrix.name }}
+          path: artifacts/test-results/${{ matrix.artifact }}/coverage.xml
+          if-no-files-found: error
+          retention-days: 7
+
   pack:
     name: Pack
     needs: native
@@ -311,7 +365,11 @@ jobs:
           path: native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native
 
       - name: Pack
-        run: dotnet pack src/CheatEngine.SDK -c Release -o artifacts/nuget
+        run: |
+          dotnet pack src/CheatEngine.SDK -c Release -o artifacts/nuget
+          if ($LASTEXITCODE -ne 0) {
+            throw "SDK package creation failed with exit code $LASTEXITCODE."
+          }
 
       - name: Verify package
         run: |
@@ -347,8 +405,15 @@ jobs:
 
       - name: Restore Native AOT library loader harness
         run: |
+          $ErrorActionPreference = 'Stop'
           dotnet restore tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj
+          if ($LASTEXITCODE -ne 0) {
+            throw "Native AOT library probe restore failed with exit code $LASTEXITCODE."
+          }
           dotnet restore tests/CheatEngine.SDK.NativeAotLoaderHarness/CheatEngine.SDK.NativeAotLoaderHarness.csproj
+          if ($LASTEXITCODE -ne 0) {
+            throw "Native AOT loader harness restore failed with exit code $LASTEXITCODE."
+          }
 
       - name: Use CI-built native bridge
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -359,8 +424,12 @@ jobs:
       # This executable is an AOT/trim graph probe only. It is not a plugin candidate for Cheat Engine's hostfxr path.
       - name: Publish and run Native AOT probe
         run: |
+          $ErrorActionPreference = 'Stop'
           $output = Join-Path $PWD 'artifacts/aot-probe'
           dotnet publish tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj -c Release --no-restore -o $output
+          if ($LASTEXITCODE -ne 0) {
+            throw "Native AOT probe publish failed with exit code $LASTEXITCODE."
+          }
           $probe = Join-Path $output 'CheatEngine.SDK.AotProbe.exe'
           if (-not (Test-Path -LiteralPath $probe -PathType Leaf)) {
             throw "Native AOT publish did not produce '$probe'."
@@ -373,11 +442,18 @@ jobs:
       # This remains a test-library observation. It never starts Cheat Engine, invokes an export, or unloads a NativeAOT DLL.
       - name: Publish and inspect Native AOT library probe
         run: |
+          $ErrorActionPreference = 'Stop'
           $profileOutput = Join-Path $PWD 'artifacts/nativeaot-loader-profile'
           $libraryProject = 'tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj'
           $harnessProject = 'tests/CheatEngine.SDK.NativeAotLoaderHarness/CheatEngine.SDK.NativeAotLoaderHarness.csproj'
           dotnet publish $libraryProject -c Release --no-restore -o $profileOutput
+          if ($LASTEXITCODE -ne 0) {
+            throw "Native AOT shared-library publish failed with exit code $LASTEXITCODE."
+          }
           dotnet publish $harnessProject -c Release --no-restore -o $profileOutput
+          if ($LASTEXITCODE -ne 0) {
+            throw "Native AOT loader harness publish failed with exit code $LASTEXITCODE."
+          }
           $library = Join-Path $profileOutput 'CheatEngine.SDK.NativeAotLibraryProbe.dll'
           $harness = Join-Path $profileOutput 'CheatEngine.SDK.NativeAotLoaderHarness.exe'
           if (-not (Test-Path -LiteralPath $library -PathType Leaf)) {
@@ -391,23 +467,85 @@ jobs:
           & $harness --load --acknowledge-process-resident-load
           if ($LASTEXITCODE -ne 0) { throw "Native AOT loader harness load exited with code $LASTEXITCODE." }
 
-  # The one check to require in branch protection.
+  sonar:
+    name: Sonar
+    needs: [ native, test ]
+    if: ${{ inputs.collect-coverage }}
+    uses: ./.github/workflows/sonar.yml
+    with:
+      wait-quality-gate: true
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  lint-workflows:
+    name: Lint workflows
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
+    runs-on: windows-latest
+    timeout-minutes: 5
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      ACTIONLINT_SHA256: 6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9
+    steps:
+      - name: Checkout workflow definitions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github
+          persist-credentials: false
+
+      - name: Run actionlint
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'actionlint.zip'
+          $url = "https://github.com/rhysd/actionlint/releases/download/v$env:ACTIONLINT_VERSION/actionlint_$($env:ACTIONLINT_VERSION)_windows_amd64.zip"
+          Invoke-WebRequest -Uri $url -OutFile $archive -MaximumRetryCount 3 -RetryIntervalSec 5
+          $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:ACTIONLINT_SHA256) {
+            throw "actionlint $env:ACTIONLINT_VERSION has SHA-256 $actual, expected $env:ACTIONLINT_SHA256."
+          }
+          $destination = Join-Path $env:RUNNER_TEMP 'actionlint'
+          Expand-Archive -LiteralPath $archive -DestinationPath $destination
+          & (Join-Path $destination 'actionlint.exe') -color
+          if ($LASTEXITCODE -ne 0) {
+            throw "actionlint failed with exit code $LASTEXITCODE."
+          }
+
   gate:
     name: Gate
     if: ${{ always() }}
-    needs: [ discover, native, build, test, pack, aot ]
+    needs: [ discover, native, build, test, pack, aot, sonar, lint-workflows ]
     runs-on: windows-latest
     timeout-minutes: 5
     permissions: { }
     steps:
       - name: Check results
         env:
-          NEEDS: ${{ toJSON(needs) }}
+          DISCOVER_RESULT: ${{ needs.discover.result }}
+          NATIVE_RESULT: ${{ needs.native.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          PACK_RESULT: ${{ needs.pack.result }}
+          AOT_RESULT: ${{ needs.aot.result }}
+          SONAR_RESULT: ${{ needs.sonar.result }}
+          SONAR_REQUIRED: ${{ inputs.collect-coverage }}
+          LINT_RESULT: ${{ needs.lint-workflows.result }}
         run: |
-          $jobs = $env:NEEDS | ConvertFrom-Json -AsHashtable
-          $rows = $jobs.GetEnumerator() | Sort-Object Key | ForEach-Object { "| $($_.Key) | $($_.Value.result) |" }
+          $results = [ordered]@{
+            discover = $env:DISCOVER_RESULT
+            native = $env:NATIVE_RESULT
+            build = $env:BUILD_RESULT
+            test = $env:TEST_RESULT
+            pack = $env:PACK_RESULT
+            aot = $env:AOT_RESULT
+            sonar = $env:SONAR_RESULT
+            'lint-workflows' = $env:LINT_RESULT
+          }
+          $rows = $results.GetEnumerator() | ForEach-Object { "| $($_.Key) | $($_.Value) |" }
           '| Job | Result |', '| --- | --- |', $rows | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          $failed = @($jobs.GetEnumerator() | Where-Object { $_.Value.result -ne 'success' } | ForEach-Object Key)
+          $failed = @($results.GetEnumerator() | Where-Object {
+            $_.Key -in 'discover', 'native', 'build', 'test', 'pack', 'aot' -and $_.Value -ne 'success' -or
+            $_.Key -eq 'sonar' -and $env:SONAR_REQUIRED -eq 'true' -and $_.Value -ne 'success' -or
+            $_.Key -eq 'lint-workflows' -and $_.Value -ne 'success'
+          } | ForEach-Object Key)
           if ($failed.Count -gt 0) {
             Write-Host "::error::Not successful: $($failed -join ', ')."
             exit 1

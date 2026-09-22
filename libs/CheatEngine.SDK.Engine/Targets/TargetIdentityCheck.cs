@@ -6,18 +6,24 @@ namespace CheatEngine.SDK.Engine.Targets;
 [StructLayout(LayoutKind.Auto)]
 public readonly record struct TargetIdentityCheck
 {
-    internal TargetIdentityCheck(TargetIdentityCheckKind kind, TargetSelectionObservation observed)
-    {
-        Kind = kind;
-        Observed = observed;
-    }
+	internal TargetIdentityCheck(TargetIdentityCheckKind kind, TargetSelectionObservation observed)
+	{
+		Kind = kind;
+		Observed = observed;
+	}
 
-    /// <summary>Gets the stable validation category.</summary>
-    public TargetIdentityCheckKind Kind { get; }
+	/// <summary>Gets the stable validation category.</summary>
+	public TargetIdentityCheckKind Kind
+	{
+		get;
+	}
 
-    /// <summary>Gets the current target observation used for validation.</summary>
-    public TargetSelectionObservation Observed { get; }
+	/// <summary>Gets the current target observation used for validation.</summary>
+	public TargetSelectionObservation Observed
+	{
+		get;
+	}
 
-    /// <summary>Gets whether the current qualified target matches the owner-bound incarnation.</summary>
-    public bool IsCurrent => Kind == TargetIdentityCheckKind.Current;
+	/// <summary>Gets whether the current qualified target matches the owner-bound incarnation.</summary>
+	public bool IsCurrent => Kind == TargetIdentityCheckKind.Current;
 }

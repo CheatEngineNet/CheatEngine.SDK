@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Engine.Values;
 
 namespace CheatEngine.SDK.Engine.Scanning.Values;

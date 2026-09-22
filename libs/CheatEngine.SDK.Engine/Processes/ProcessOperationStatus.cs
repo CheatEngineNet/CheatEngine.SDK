@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Lua.Calls;
 
 namespace CheatEngine.SDK.Engine.Processes;
@@ -19,16 +20,23 @@ public readonly struct ProcessOperationStatus : IEquatable<ProcessOperationStatu
 	}
 
 	/// <summary>Gets the factual result category.</summary>
-	public ProcessOperationStatusKind Kind { get; }
+	public ProcessOperationStatusKind Kind
+	{
+		get;
+	}
 
 	/// <summary>Gets the protected Lua status for a Lua failure; otherwise <see cref="LuaStatus.Ok" />.</summary>
-	public LuaStatus LuaStatus { get; }
+	public LuaStatus LuaStatus
+	{
+		get;
+	}
 
 	/// <summary>Gets a successful status.</summary>
 	public static ProcessOperationStatus Success => default;
 
 	/// <summary>Gets a status for a target that is not currently selected.</summary>
-	public static ProcessOperationStatus TargetNotAttached => new(ProcessOperationStatusKind.TargetNotAttached, LuaStatus.Ok);
+	public static ProcessOperationStatus TargetNotAttached =>
+		new(ProcessOperationStatusKind.TargetNotAttached, LuaStatus.Ok);
 
 	/// <summary>Gets a status for an explicit selection that could not be confirmed.</summary>
 	public static ProcessOperationStatus SelectionNotConfirmed =>
@@ -73,7 +81,7 @@ public readonly struct ProcessOperationStatus : IEquatable<ProcessOperationStatu
 	/// <inheritdoc />
 	public override int GetHashCode()
 	{
-		return HashCode.Combine((int)Kind, LuaStatus);
+		return HashCode.Combine((int) Kind, LuaStatus);
 	}
 
 	/// <summary>Tests two process operation statuses for equality.</summary>

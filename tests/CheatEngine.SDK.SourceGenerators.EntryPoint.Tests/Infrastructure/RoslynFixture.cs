@@ -1,4 +1,5 @@
 using System.Globalization;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -11,86 +12,91 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.Infrastructure;
 /// </summary>
 public sealed class RoslynFixture
 {
-    /// <summary>Assembly name of the plugin compilations created here.</summary>
-    internal const string PluginAssemblyName = "TestPlugin";
+	/// <summary>Assembly name of the plugin compilations created here.</summary>
+	internal const string PluginAssemblyName = "TestPlugin";
 
-    /// <summary>
-    ///     Takes the process-wide environment. Nothing to await and nothing to restore: the references come from the
-    ///     local .NET installation. A failure to find them fails the tests of the class with the resolver's message.
-    /// </summary>
-    public RoslynFixture()
-    {
-        Environment = RoslynEnvironment.Shared;
-    }
+	/// <summary>
+	///     Takes the process-wide environment. Nothing to await and nothing to restore: the references come from the
+	///     local .NET installation. A failure to find them fails the tests of the class with the resolver's message.
+	/// </summary>
+	public RoslynFixture()
+	{
+		Environment = RoslynEnvironment.Shared;
+	}
 
-    internal RoslynEnvironment Environment { get; }
+	internal RoslynEnvironment Environment
+	{
+		get;
+	}
 
-    /// <summary>A plugin compilation with one syntax tree per source, named <c>Source0.cs</c>, <c>Source1.cs</c>...</summary>
-    internal CSharpCompilation CreateCompilation(params string[] sources)
-    {
-        return CreateCompilation(Environment, RoslynEnvironment.ParseOptions, sources);
-    }
+	/// <summary>A plugin compilation with one syntax tree per source, named <c>Source0.cs</c>, <c>Source1.cs</c>...</summary>
+	internal CSharpCompilation CreateCompilation(params string[] sources)
+	{
+		return CreateCompilation(Environment, RoslynEnvironment.ParseOptions, sources);
+	}
 
-    /// <summary>Same, against another environment (framework references) or another language version.</summary>
-    internal static CSharpCompilation CreateCompilation(RoslynEnvironment environment, CSharpParseOptions parseOptions,
-        params string[] sources)
-    {
-        var trees = new SyntaxTree[sources.Length];
-        for (var i = 0; i < sources.Length; i++)
-            trees[i] = CSharpSyntaxTree.ParseText(
-                sources[i],
-                parseOptions,
-                $"Source{i.ToString(CultureInfo.InvariantCulture)}.cs",
-                cancellationToken: TestContext.Current.CancellationToken);
+	/// <summary>Same, against another environment (framework references) or another language version.</summary>
+	internal static CSharpCompilation CreateCompilation(RoslynEnvironment environment, CSharpParseOptions parseOptions,
+		params string[] sources)
+	{
+		SyntaxTree[] trees = new SyntaxTree[sources.Length];
+		for (int i = 0; i < sources.Length; i++)
+		{
+			trees[i] = CSharpSyntaxTree.ParseText(
+				sources[i],
+				parseOptions,
+				$"Source{i.ToString(CultureInfo.InvariantCulture)}.cs",
+				cancellationToken: TestContext.Current.CancellationToken);
+		}
 
-        return CSharpCompilation.Create(
-            PluginAssemblyName,
-            trees,
-            environment.PluginReferences,
-            RoslynEnvironment.CompilationOptions);
-    }
+		return CSharpCompilation.Create(
+			PluginAssemblyName,
+			trees,
+			environment.PluginReferences,
+			RoslynEnvironment.CompilationOptions);
+	}
 
-    /// <summary>
-    ///     Creates a driver for the generator; <paramref name="options" /> defaults to the explicit direct-package
-    ///     setting that enables bootstrap generation. Pass <see cref="TestAnalyzerConfigOptionsProvider.Empty" /> to
-    ///     model a transitive reference without the package's direct-only build asset. <paramref name="parseOptions" />
-    ///     defaults to the strict C# 14 options.
-    /// </summary>
-    internal static GeneratorDriver CreateDriver(
-        TestAnalyzerConfigOptionsProvider? options = null,
-        CSharpParseOptions? parseOptions = null)
-    {
-        return CSharpGeneratorDriver.Create(
-            [new EntryPointGenerator().AsSourceGenerator()],
-            [],
-            parseOptions ?? RoslynEnvironment.ParseOptions,
-            options ?? TestAnalyzerConfigOptionsProvider.WithBuildProperty("CheatEngineSdkGenerateEntryPoint", "true"),
-            new GeneratorDriverOptions(
-                IncrementalGeneratorOutputKind.None,
-                true));
-    }
+	/// <summary>
+	///     Creates a driver for the generator; <paramref name="options" /> defaults to the explicit direct-package
+	///     setting that enables bootstrap generation. Pass <see cref="TestAnalyzerConfigOptionsProvider.Empty" /> to
+	///     model a transitive reference without the package's direct-only build asset. <paramref name="parseOptions" />
+	///     defaults to the strict C# 14 options.
+	/// </summary>
+	internal static GeneratorDriver CreateDriver(
+		TestAnalyzerConfigOptionsProvider? options = null,
+		CSharpParseOptions? parseOptions = null)
+	{
+		return CSharpGeneratorDriver.Create(
+			[new EntryPointGenerator().AsSourceGenerator()],
+			[],
+			parseOptions ?? RoslynEnvironment.ParseOptions,
+			options ?? TestAnalyzerConfigOptionsProvider.WithBuildProperty("CheatEngineSdkGenerateEntryPoint", "true"),
+			new GeneratorDriverOptions(
+				IncrementalGeneratorOutputKind.None,
+				true));
+	}
 
-    /// <summary>Runs the generator once over <paramref name="sources" />.</summary>
-    internal GeneratorRun Run(params string[] sources)
-    {
-        return Run(CreateCompilation(sources));
-    }
+	/// <summary>Runs the generator once over <paramref name="sources" />.</summary>
+	internal GeneratorRun Run(params string[] sources)
+	{
+		return Run(CreateCompilation(sources));
+	}
 
-    /// <summary>Runs the generator once over <paramref name="compilation" />.</summary>
-    internal static GeneratorRun Run(
-        Compilation compilation,
-        TestAnalyzerConfigOptionsProvider? options = null,
-        CSharpParseOptions? parseOptions = null)
-    {
-        return GeneratorRun.Execute(CreateDriver(options, parseOptions), compilation);
-    }
+	/// <summary>Runs the generator once over <paramref name="compilation" />.</summary>
+	internal static GeneratorRun Run(
+		Compilation compilation,
+		TestAnalyzerConfigOptionsProvider? options = null,
+		CSharpParseOptions? parseOptions = null)
+	{
+		return GeneratorRun.Execute(CreateDriver(options, parseOptions), compilation);
+	}
 
-    internal static SyntaxTree Parse(string source, string path)
-    {
-        return CSharpSyntaxTree.ParseText(
-            source,
-            RoslynEnvironment.ParseOptions,
-            path,
-            cancellationToken: TestContext.Current.CancellationToken);
-    }
+	internal static SyntaxTree Parse(string source, string path)
+	{
+		return CSharpSyntaxTree.ParseText(
+			source,
+			RoslynEnvironment.ParseOptions,
+			path,
+			cancellationToken: TestContext.Current.CancellationToken);
+	}
 }

@@ -2,7 +2,8 @@
 
 # Recipe · Assembly
 
-**Apply one reversible Auto Assembler patch, then inspect or assemble individual instructions through an explicit target profile.**
+**Apply one reversible Auto Assembler patch, then inspect or assemble individual instructions through an explicit target
+profile.**
 
 **Level** `Advanced` · **Time** `30 min` · **Needs** `Guide 03`
 
@@ -12,10 +13,10 @@
 
 ---
 
-|                            |                                                                                                                                                  |
-|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| **You build**              | A reversible Auto Assembler patch, a bounded disassembly listing, and a bounded one-line assembler                                               |
-| **You learn**              | The difference between a script lifecycle and profile-qualified instruction operations                                                           |
+|                            |                                                                                                                                                 |
+|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| **You build**              | A reversible Auto Assembler patch, a bounded disassembly listing, and a bounded one-line assembler                                              |
+| **You learn**              | The difference between a script lifecycle and profile-qualified instruction operations                                                          |
 | **You need**               | [03 · Calling Cheat Engine](../../03-calling-cheat-engine/README.md) and the toolkit tour of [08 · Running Lua](../../08-running-lua/README.md) |
 | **Cheat Engine functions** | `autoAssemble`, `assemble`, `disassemble`, `splitDisassembledString`, `getInstructionSize`, and `getPreviousOpcode`                             |
 
@@ -148,23 +149,30 @@ evidence has unresolved conflicts, so the SDK does not project them.
 
 ## Good to know
 
-- Keep an `AutoAssemblerPatch` alive for the whole enabled period and dispose it while the Lua runtime is still attached.
-- Treat a profile as an observed validation input, not a request to configure CE. Re-observe after a meaningful target transition.
+- Keep an `AutoAssemblerPatch` alive for the whole enabled period and dispose it while the Lua runtime is still
+  attached.
+- Treat a profile as an observed validation input, not a request to configure CE. Re-observe after a meaningful target
+  transition.
 - Select a raw UTF-8 disassembly bound suitable for your UI. A longer CE line, or collectively longer split fields,
   is rejected before the SDK decodes it.
-- Retry assembly with a larger caller-owned buffer only after handling `DestinationTooSmall`; the initial call publishes no partial bytes.
+- Retry assembly with a larger caller-owned buffer only after handling `DestinationTooSmall`; the initial call publishes
+  no partial bytes.
 - `getPreviousOpcode` is an estimate. Use it for display navigation, not patch planning.
 
 ## Promise
 
-- Auto Assembler cleanup consumes the disable-info owner before its one disable attempt and does not replay uncertain work.
-- A failed instruction operation leaves no borrowed Lua string, Lua table, native disassembler object, or partial assembly prefix in managed output.
+- Auto Assembler cleanup consumes the disable-info owner before its one disable attempt and does not replay uncertain
+  work.
+- A failed instruction operation leaves no borrowed Lua string, Lua table, native disassembler object, or partial
+  assembly prefix in managed output.
 - Every instruction address is checked against the target profile's explicit width, never `IntPtr.Size`.
-- Fixture tests exercise the managed Lua shapes and negative paths; they are not evidence of a live Cheat Engine qualification.
+- Fixture tests exercise the managed Lua shapes and negative paths; they are not evidence of a live Cheat Engine
+  qualification.
 
 ## Before you move on
 
-- [ ] Verify the patch's `[DISABLE]` branch against an authorized disposable target before shipping an application workflow.
+- [ ] Verify the patch's `[DISABLE]` branch against an authorized disposable target before shipping an application
+  workflow.
 - [ ] Choose a maximum UTF-8 display-line length and a caller-owned assembly buffer for your UI.
 - [ ] Record a controlled live capture before claiming support for a particular CE host and target ISA.
 

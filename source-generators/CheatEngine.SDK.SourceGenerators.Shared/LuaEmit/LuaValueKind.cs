@@ -12,36 +12,36 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 /// </remarks>
 internal enum LuaValueKind
 {
-    /// <summary><see langword="int" /> through <c>Int32Marshaller</c>: a Lua integer that fits 32 bits.</summary>
-    Int32,
+	/// <summary><see langword="int" /> through <c>Int32Marshaller</c>: a Lua integer that fits 32 bits.</summary>
+	Int32,
 
-    /// <summary><see langword="long" /> through <c>Int64Marshaller</c>: a Lua integer.</summary>
-    Int64,
+	/// <summary><see langword="long" /> through <c>Int64Marshaller</c>: a Lua integer.</summary>
+	Int64,
 
-    /// <summary><see langword="float" /> through <c>SingleMarshaller</c>: a Lua number.</summary>
-    Single,
+	/// <summary><see langword="float" /> through <c>SingleMarshaller</c>: a Lua number.</summary>
+	Single,
 
-    /// <summary><see langword="double" /> through <c>DoubleMarshaller</c>: a Lua number.</summary>
-    Double,
+	/// <summary><see langword="double" /> through <c>DoubleMarshaller</c>: a Lua number.</summary>
+	Double,
 
-    /// <summary>
-    ///     <see langword="bool" /> through <c>BooleanMarshaller</c>: a Lua boolean (strict; <c>nil</c> is not
-    ///     <see langword="false" />).
-    /// </summary>
-    Boolean,
+	/// <summary>
+	///     <see langword="bool" /> through <c>BooleanMarshaller</c>: a Lua boolean (strict; <c>nil</c> is not
+	///     <see langword="false" />).
+	/// </summary>
+	Boolean,
 
-    /// <summary>
-    ///     <see langword="nuint" /> through <c>AddressMarshaller</c>: a target-process address as a Lua integer, bits
-    ///     reinterpreted.
-    /// </summary>
-    Address,
+	/// <summary>
+	///     <see langword="nuint" /> through <c>AddressMarshaller</c>: a target-process address as a Lua integer, bits
+	///     reinterpreted.
+	/// </summary>
+	Address,
 
-    /// <summary>
-    ///     <c>ReadOnlySpan&lt;byte&gt;</c> (UTF-8) through <c>Utf8Marshaller</c>. Arguments only: a span read from a
-    ///     result would point into a Lua string the wrapper pops before returning.
-    /// </summary>
-    Utf8,
+	/// <summary>
+	///     <c>ReadOnlySpan&lt;byte&gt;</c> (UTF-8) through <c>Utf8Marshaller</c>. Arguments only: a span read from a
+	///     result would point into a Lua string the wrapper pops before returning.
+	/// </summary>
+	Utf8,
 
-    /// <summary><see langword="string" /> through <c>StringMarshaller</c>: the allocating convenience.</summary>
-    String
+	/// <summary><see langword="string" /> through <c>StringMarshaller</c>: the allocating convenience.</summary>
+	String
 }

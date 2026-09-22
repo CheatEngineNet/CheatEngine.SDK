@@ -36,12 +36,12 @@ namespace CheatEngine.SDK.Abi.Native;
 /// </remarks>
 public static class NativeExportNames
 {
-    /// <summary>Export that fills in a <see cref="PluginVersion" />.</summary>
-    public const string GetVersion = "CEPlugin_GetVersion";
+	/// <summary>Export that fills in a <see cref="PluginVersion" />.</summary>
+	public const string GetVersion = "CEPlugin_GetVersion";
 
-    /// <summary>Export that receives the classic exported-functions table and the plugin id, and enables the plugin.</summary>
-    public const string InitializePlugin = "CEPlugin_InitializePlugin";
+	/// <summary>Export that receives the classic exported-functions table and the plugin id, and enables the plugin.</summary>
+	public const string InitializePlugin = "CEPlugin_InitializePlugin";
 
-    /// <summary>Export that disables the plugin.</summary>
-    public const string DisablePlugin = "CEPlugin_DisablePlugin";
+	/// <summary>Export that disables the plugin.</summary>
+	public const string DisablePlugin = "CEPlugin_DisablePlugin";
 }

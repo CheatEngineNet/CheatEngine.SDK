@@ -20,7 +20,7 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 ///     escapes).
 /// </param>
 internal sealed record ContainingTypeModel(
-    string Namespace,
-    EquatableArray<TypeDeclarationModel> Declarations,
-    string FullyQualifiedName,
-    string HintBaseName);
+	string Namespace,
+	EquatableArray<TypeDeclarationModel> Declarations,
+	string FullyQualifiedName,
+	string HintBaseName);

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
+
 using Microsoft.CodeAnalysis;
 
 namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
@@ -27,247 +29,337 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 ///         has <see langword="out" /> results. Otherwise, any <see langword="out" /> result makes the method a
 ///         non-throwing Try form, which returns <see langword="bool" />. No result makes it the throwing form, whose
 ///         return type is <see langword="void" />
-///         or a value of that conversion contract other than <c>ReadOnlySpan&lt;byte&gt;</c> (a <see langword="bool" /> return without
+///         or a value of that conversion contract other than <c>ReadOnlySpan&lt;byte&gt;</c> (a <see langword="bool" />
+///         return without
 ///         results is therefore a throwing wrapper that reads a Lua boolean). A Try form without a result cannot be
 ///         written.
 ///     </para>
 /// </remarks>
 [SuppressMessage(
-    "Meziantou.Analyzer",
-    "MA0182",
-    Justification =
-        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
+	"Meziantou.Analyzer",
+	"MA0182",
+	Justification =
+		"This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class LuaGlobalShape
 {
-    /// <summary>Inspects <paramref name="method" /> against resolved SDK Lua binding contracts.</summary>
-    /// <param name="compilation">The consumer compilation that must be able to call a custom marshaller directly.</param>
-    /// <param name="method">The attributed method.</param>
-    /// <param name="luaState">The real Lua runtime state symbol, or <see langword="null" /> when it is unavailable.</param>
-    /// <param name="luaMarshallerAttribute">The real SDK marshaller annotation, or <see langword="null" />.</param>
-    /// <param name="luaMarshallerContract">The real SDK static marshaller contract, or <see langword="null" />.</param>
-    /// <param name="signature">
-    ///     What could be classified; complete only when the result is
-    ///     <see cref="LuaGlobalShapeIssues.None" />.
-    /// </param>
-    public static LuaGlobalShapeIssues Inspect(Compilation compilation, IMethodSymbol method, INamedTypeSymbol? luaState,
-        INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract,
-        out LuaGlobalSignature signature)
-    {
-        return InspectCore(compilation, method, luaState, luaMarshallerAttribute, luaMarshallerContract,
-            out signature);
-    }
+	/// <summary>Inspects <paramref name="method" /> against resolved SDK Lua binding contracts.</summary>
+	/// <param name="compilation">The consumer compilation that must be able to call a custom marshaller directly.</param>
+	/// <param name="method">The attributed method.</param>
+	/// <param name="luaState">The real Lua runtime state symbol, or <see langword="null" /> when it is unavailable.</param>
+	/// <param name="luaMarshallerAttribute">The real SDK marshaller annotation, or <see langword="null" />.</param>
+	/// <param name="luaMarshallerContract">The real SDK static marshaller contract, or <see langword="null" />.</param>
+	/// <param name="signature">
+	///     What could be classified; complete only when the result is
+	///     <see cref="LuaGlobalShapeIssues.None" />.
+	/// </param>
+	public static LuaGlobalShapeIssues Inspect(Compilation compilation, IMethodSymbol method,
+		INamedTypeSymbol? luaState,
+		INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract,
+		out LuaGlobalSignature signature)
+	{
+		return InspectCore(compilation, method, luaState, luaMarshallerAttribute, luaMarshallerContract,
+			out signature);
+	}
 
-    private static LuaGlobalShapeIssues InspectCore(Compilation? compilation, IMethodSymbol method,
-        INamedTypeSymbol? luaState, INamedTypeSymbol? luaMarshallerAttribute,
-        INamedTypeSymbol? luaMarshallerContract, out LuaGlobalSignature signature)
-    {
-        var issues = InspectMethod(method);
+	private static LuaGlobalShapeIssues InspectCore(Compilation? compilation, IMethodSymbol method,
+		INamedTypeSymbol? luaState, INamedTypeSymbol? luaMarshallerAttribute,
+		INamedTypeSymbol? luaMarshallerContract, out LuaGlobalSignature signature)
+	{
+		LuaGlobalShapeIssues issues = InspectMethod(method);
 
-        ParameterWalk walk = new();
-        issues |= walk.Run(compilation, method.ContainingType, method.Parameters, luaState, luaMarshallerAttribute,
-            luaMarshallerContract);
+		ParameterWalk walk = new();
+		issues |= walk.Run(compilation, method.ContainingType, method.Parameters, luaState, luaMarshallerAttribute,
+			luaMarshallerContract);
 
-        EquatableArray<LuaResultModel> results = new(walk.Results.ToImmutable());
-        var form = IsLuaOperationStatus(method.ReturnType)
-            ? LuaCallForm.Outcome
-            : results.IsEmpty
-                ? LuaCallForm.Throwing
-                : LuaCallForm.Try;
-        issues |= InspectReturn(compilation, method, form, luaMarshallerAttribute, luaMarshallerContract,
-            out var returnKind, out var returnIsNullable, out var returnMarshaller);
+		EquatableArray<LuaResultModel> results = new(walk.Results.ToImmutable());
+		LuaCallForm form = IsLuaOperationStatus(method.ReturnType)
+			? LuaCallForm.Outcome
+			: results.IsEmpty
+				? LuaCallForm.Throwing
+				: LuaCallForm.Try;
+		issues |= InspectReturn(compilation, method, form, luaMarshallerAttribute, luaMarshallerContract,
+			out LuaValueKind? returnKind, out bool returnIsNullable, out LuaCustomMarshallerModel? returnMarshaller);
 
-        signature = new LuaGlobalSignature(
-            walk.StateParameterName,
-            new EquatableArray<LuaArgumentModel>(walk.Arguments.ToImmutable()),
-            form,
-            results,
-            returnKind,
-            returnIsNullable,
-            returnMarshaller);
-        return issues;
-    }
+		signature = new LuaGlobalSignature(
+			walk.StateParameterName,
+			new EquatableArray<LuaArgumentModel>(walk.Arguments.ToImmutable()),
+			form,
+			results,
+			returnKind,
+			returnIsNullable,
+			returnMarshaller);
+		return issues;
+	}
 
-    /// <summary>
-    ///     Compatibility overload for validation that accepts only built-in scalar marshallers. The LuaBindings
-    ///     generator and its analyzer pass the resolved custom-marshaller contracts.
-    /// </summary>
-    public static LuaGlobalShapeIssues Inspect(IMethodSymbol method, INamedTypeSymbol? luaState,
-        out LuaGlobalSignature signature)
-    {
-        return InspectCore(null, method, luaState, null, null, out signature);
-    }
+	/// <summary>
+	///     Compatibility overload for validation that accepts only built-in scalar marshallers. The LuaBindings
+	///     generator and its analyzer pass the resolved custom-marshaller contracts.
+	/// </summary>
+	public static LuaGlobalShapeIssues Inspect(IMethodSymbol method, INamedTypeSymbol? luaState,
+		out LuaGlobalSignature signature)
+	{
+		return InspectCore(null, method, luaState, null, null, out signature);
+	}
 
-    private static LuaGlobalShapeIssues InspectMethod(IMethodSymbol method)
-    {
-        var issues = LuaGlobalShapeIssues.None;
-        if (method.MethodKind != MethodKind.Ordinary) issues |= LuaGlobalShapeIssues.NotOrdinaryMethod;
+	private static LuaGlobalShapeIssues InspectMethod(IMethodSymbol method)
+	{
+		LuaGlobalShapeIssues issues = LuaGlobalShapeIssues.None;
+		if (method.MethodKind != MethodKind.Ordinary)
+		{
+			issues |= LuaGlobalShapeIssues.NotOrdinaryMethod;
+		}
 
-        if (!method.IsStatic) issues |= LuaGlobalShapeIssues.NotStatic;
+		if (!method.IsStatic)
+		{
+			issues |= LuaGlobalShapeIssues.NotStatic;
+		}
 
-        if (!method.IsPartialDefinition)
-            issues |= LuaGlobalShapeIssues.NotPartialDefinition;
-        else if (method.PartialImplementationPart is not null) issues |= LuaGlobalShapeIssues.AlreadyImplemented;
+		if (!method.IsPartialDefinition)
+		{
+			issues |= LuaGlobalShapeIssues.NotPartialDefinition;
+		}
+		else if (method.PartialImplementationPart is not null)
+		{
+			issues |= LuaGlobalShapeIssues.AlreadyImplemented;
+		}
 
-        if (method.IsGenericMethod) issues |= LuaGlobalShapeIssues.Generic;
+		if (method.IsGenericMethod)
+		{
+			issues |= LuaGlobalShapeIssues.Generic;
+		}
 
-        if (method.IsAsync) issues |= LuaGlobalShapeIssues.Async;
+		if (method.IsAsync)
+		{
+			issues |= LuaGlobalShapeIssues.Async;
+		}
 
-        return issues;
-    }
+		return issues;
+	}
 
-    private static LuaGlobalShapeIssues InspectReturn(Compilation? compilation, IMethodSymbol method,
-        LuaCallForm form,
-        INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract,
-        out LuaValueKind? returnKind, out bool returnIsNullable, out LuaCustomMarshallerModel? returnMarshaller)
-    {
-        returnKind = null;
-        returnIsNullable = false;
-        returnMarshaller = null;
-        var byRef = method.ReturnsByRef || method.ReturnsByRefReadonly;
+	private static LuaGlobalShapeIssues InspectReturn(Compilation? compilation, IMethodSymbol method,
+		LuaCallForm form,
+		INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract,
+		out LuaValueKind? returnKind, out bool returnIsNullable, out LuaCustomMarshallerModel? returnMarshaller)
+	{
+		returnKind = null;
+		returnIsNullable = false;
+		returnMarshaller = null;
+		bool byRef = method.ReturnsByRef || method.ReturnsByRefReadonly;
 
-        if (form == LuaCallForm.Try)
-            return method.ReturnType.SpecialType == SpecialType.System_Boolean && !byRef
-                ? LuaGlobalShapeIssues.None
-                : LuaGlobalShapeIssues.TryFormReturnNotBool;
+		if (form == LuaCallForm.Try)
+		{
+			return method.ReturnType.SpecialType == SpecialType.System_Boolean && !byRef
+				? LuaGlobalShapeIssues.None
+				: LuaGlobalShapeIssues.TryFormReturnNotBool;
+		}
 
-        if (form == LuaCallForm.Outcome)
-            return !byRef ? LuaGlobalShapeIssues.None : LuaGlobalShapeIssues.TryFormReturnNotBool;
+		if (form == LuaCallForm.Outcome)
+		{
+			return !byRef ? LuaGlobalShapeIssues.None : LuaGlobalShapeIssues.TryFormReturnNotBool;
+		}
 
-        if (method.ReturnsVoid) return LuaGlobalShapeIssues.None;
+		if (method.ReturnsVoid)
+		{
+			return LuaGlobalShapeIssues.None;
+		}
 
-        if (byRef) return LuaGlobalShapeIssues.UnsupportedReturnType;
+		if (byRef)
+		{
+			return LuaGlobalShapeIssues.UnsupportedReturnType;
+		}
 
-        if (LuaValueKindMapper.IsReadOnlySpanOfByte(method.ReturnType)) return LuaGlobalShapeIssues.SpanResult;
+		if (LuaValueKindMapper.IsReadOnlySpanOfByte(method.ReturnType))
+		{
+			return LuaGlobalShapeIssues.SpanResult;
+		}
 
-        if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, method.ReturnType,
-                method.GetReturnTypeAttributes(), luaMarshallerAttribute, luaMarshallerContract,
-                out returnMarshaller, out _)
-            || (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
-            return LuaGlobalShapeIssues.UnsupportedReturnType;
+		if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, method.ReturnType,
+			    method.GetReturnTypeAttributes(), luaMarshallerAttribute, luaMarshallerContract,
+			    out returnMarshaller, out _)
+		    || (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
+		{
+			return LuaGlobalShapeIssues.UnsupportedReturnType;
+		}
 
-        if (returnMarshaller is not null) return LuaGlobalShapeIssues.None;
+		if (returnMarshaller is not null)
+		{
+			return LuaGlobalShapeIssues.None;
+		}
 
-        if (!LuaValueKindMapper.TryMap(method.ReturnType, out var kind, out returnIsNullable) ||
-            !LuaValueKinds.CanBeResult(kind)) return LuaGlobalShapeIssues.UnsupportedReturnType;
-        returnKind = kind;
-        return LuaGlobalShapeIssues.None;
-    }
+		if (!LuaValueKindMapper.TryMap(method.ReturnType, out LuaValueKind kind, out returnIsNullable) ||
+		    !LuaValueKinds.CanBeResult(kind))
+		{
+			return LuaGlobalShapeIssues.UnsupportedReturnType;
+		}
 
-    private static bool IsLuaOperationStatus(ITypeSymbol type)
-    {
-        return string.Equals(
-            type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            "global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus",
-            StringComparison.Ordinal);
-    }
+		returnKind = kind;
+		return LuaGlobalShapeIssues.None;
+	}
 
-    // The parameter list, left to right: the leading state, the arguments, then the results.
-    private sealed class ParameterWalk
-    {
-        private bool _inResults;
+	private static bool IsLuaOperationStatus(ITypeSymbol type)
+	{
+		return string.Equals(
+			type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+			"global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus",
+			StringComparison.Ordinal);
+	}
 
-        public string StateParameterName { get; private set; } = string.Empty;
+	// The parameter list, left to right: the leading state, the arguments, then the results.
+	private sealed class ParameterWalk
+	{
+		private bool _inResults;
 
-        public ImmutableArray<LuaArgumentModel>.Builder Arguments { get; } =
-            ImmutableArray.CreateBuilder<LuaArgumentModel>();
+		public string StateParameterName
+		{
+			get;
+			private set;
+		} = string.Empty;
 
-        public ImmutableArray<LuaResultModel>.Builder Results { get; } = ImmutableArray.CreateBuilder<LuaResultModel>();
+		public ImmutableArray<LuaArgumentModel>.Builder Arguments
+		{
+			get;
+		} =
+			ImmutableArray.CreateBuilder<LuaArgumentModel>();
 
-        public LuaGlobalShapeIssues Run(Compilation? compilation, INamedTypeSymbol bindingType,
-            ImmutableArray<IParameterSymbol> parameters, INamedTypeSymbol? luaState,
-            INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract)
-        {
-            var issues = LuaGlobalShapeIssues.None;
-            for (var i = 0; i < parameters.Length; i++)
-            {
-                var parameter = parameters[i];
-                if (parameter.IsParams) issues |= LuaGlobalShapeIssues.ParamsParameter;
+		public ImmutableArray<LuaResultModel>.Builder Results
+		{
+			get;
+		} = ImmutableArray.CreateBuilder<LuaResultModel>();
 
-                if (parameter.IsOptional || parameter.HasExplicitDefaultValue)
-                    issues |= LuaGlobalShapeIssues.OptionalParameter;
+		public LuaGlobalShapeIssues Run(Compilation? compilation, INamedTypeSymbol bindingType,
+			ImmutableArray<IParameterSymbol> parameters, INamedTypeSymbol? luaState,
+			INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract)
+		{
+			LuaGlobalShapeIssues issues = LuaGlobalShapeIssues.None;
+			for (int i = 0; i < parameters.Length; i++)
+			{
+				IParameterSymbol parameter = parameters[i];
+				if (parameter.IsParams)
+				{
+					issues |= LuaGlobalShapeIssues.ParamsParameter;
+				}
 
-                if (parameter.RefKind == RefKind.Out)
-                    issues |= AddOutResult(compilation, bindingType, parameter, luaMarshallerAttribute,
-                        luaMarshallerContract);
-                else if (parameter.RefKind != RefKind.None)
-                    issues |= LuaGlobalShapeIssues.ByRefParameter;
-                else if (LuaValueKindMapper.IsSpanOfByte(parameter.Type))
-                    issues |= AddCopyOutResult(parameters, ref i);
-                else
-                    issues |= AddArgument(compilation, bindingType, parameter, i, luaState, luaMarshallerAttribute,
-                        luaMarshallerContract);
-            }
+				if (parameter.IsOptional || parameter.HasExplicitDefaultValue)
+				{
+					issues |= LuaGlobalShapeIssues.OptionalParameter;
+				}
 
-            return issues;
-        }
+				if (parameter.RefKind == RefKind.Out)
+				{
+					issues |= AddOutResult(compilation, bindingType, parameter, luaMarshallerAttribute,
+						luaMarshallerContract);
+				}
+				else if (parameter.RefKind != RefKind.None)
+				{
+					issues |= LuaGlobalShapeIssues.ByRefParameter;
+				}
+				else if (LuaValueKindMapper.IsSpanOfByte(parameter.Type))
+				{
+					issues |= AddCopyOutResult(parameters, ref i);
+				}
+				else
+				{
+					issues |= AddArgument(compilation, bindingType, parameter, i, luaState, luaMarshallerAttribute,
+						luaMarshallerContract);
+				}
+			}
 
-        private LuaGlobalShapeIssues AddOutResult(Compilation? compilation, INamedTypeSymbol bindingType,
-            IParameterSymbol parameter,
-            INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract)
-        {
-            _inResults = true;
-            if (LuaValueKindMapper.IsReadOnlySpanOfByte(parameter.Type)) return LuaGlobalShapeIssues.SpanResult;
+			return issues;
+		}
 
-            if (!LuaMarshallerResolver.TryResolve(compilation, bindingType, parameter.Type, parameter.GetAttributes(),
-                    luaMarshallerAttribute, luaMarshallerContract, out var customMarshaller, out _)
-                || (customMarshaller is not null && parameter.Type.IsRefLikeType))
-                return LuaGlobalShapeIssues.UnsupportedResultType;
-            if (customMarshaller is not null)
-            {
-                Results.Add(LuaResultModel.Custom(customMarshaller, Identifiers.Escape(parameter.Name)));
-                return LuaGlobalShapeIssues.None;
-            }
+		private LuaGlobalShapeIssues AddOutResult(Compilation? compilation, INamedTypeSymbol bindingType,
+			IParameterSymbol parameter,
+			INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract)
+		{
+			_inResults = true;
+			if (LuaValueKindMapper.IsReadOnlySpanOfByte(parameter.Type))
+			{
+				return LuaGlobalShapeIssues.SpanResult;
+			}
 
-            if (!LuaValueKindMapper.TryMap(parameter.Type, out var kind, out var isNullable) ||
-                !LuaValueKinds.CanBeResult(kind)) return LuaGlobalShapeIssues.UnsupportedResultType;
-            Results.Add(LuaResultModel.Value(kind, Identifiers.Escape(parameter.Name), isNullable));
-            return LuaGlobalShapeIssues.None;
-        }
+			if (!LuaMarshallerResolver.TryResolve(compilation, bindingType, parameter.Type, parameter.GetAttributes(),
+				    luaMarshallerAttribute, luaMarshallerContract, out LuaCustomMarshallerModel? customMarshaller,
+				    out _)
+			    || (customMarshaller is not null && parameter.Type.IsRefLikeType))
+			{
+				return LuaGlobalShapeIssues.UnsupportedResultType;
+			}
 
-        // A copy-out result is the destination and the count together: 'Span<byte> destination, out int written'.
-        private LuaGlobalShapeIssues AddCopyOutResult(ImmutableArray<IParameterSymbol> parameters, ref int index)
-        {
-            _inResults = true;
-            if (index + 1 >= parameters.Length
-                || parameters[index + 1] is
-                    not { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Int32 } written)
-                return LuaGlobalShapeIssues.UnsupportedResultType;
-            var destinationIsScoped = parameters[index].ScopedKind != ScopedKind.None;
-            Results.Add(LuaResultModel.CopyOut(Identifiers.Escape(parameters[index].Name),
-                Identifiers.Escape(written.Name), destinationIsScoped));
-            index++;
-            return LuaGlobalShapeIssues.None;
-        }
+			if (customMarshaller is not null)
+			{
+				Results.Add(LuaResultModel.Custom(customMarshaller, Identifiers.Escape(parameter.Name)));
+				return LuaGlobalShapeIssues.None;
+			}
 
-        // A by-value parameter: an argument, or the leading state.
-        private LuaGlobalShapeIssues AddArgument(Compilation? compilation, INamedTypeSymbol bindingType,
-            IParameterSymbol parameter, int index, INamedTypeSymbol? luaState,
-            INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract)
-        {
-            var issues = _inResults ? LuaGlobalShapeIssues.ResultBeforeArgument : LuaGlobalShapeIssues.None;
-            if (LuaValueKindMapper.IsLuaState(parameter.Type, luaState))
-            {
-                if (index != 0) return issues | LuaGlobalShapeIssues.StateParameterNotFirst;
-                StateParameterName = Identifiers.Escape(parameter.Name);
-                return issues;
-            }
+			if (!LuaValueKindMapper.TryMap(parameter.Type, out LuaValueKind kind, out bool isNullable) ||
+			    !LuaValueKinds.CanBeResult(kind))
+			{
+				return LuaGlobalShapeIssues.UnsupportedResultType;
+			}
 
-            if (!LuaMarshallerResolver.TryResolve(compilation, bindingType, parameter.Type, parameter.GetAttributes(),
-                    luaMarshallerAttribute, luaMarshallerContract, out var customMarshaller, out _))
-                return issues | LuaGlobalShapeIssues.UnsupportedParameterType;
-            if (customMarshaller is not null)
-            {
-                var customIsScoped = parameter.ScopedKind != ScopedKind.None;
-                Arguments.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), LuaValueKind.Int32,
-                    IsNullable: false, customIsScoped, CustomMarshaller: customMarshaller));
-                return issues;
-            }
+			Results.Add(LuaResultModel.Value(kind, Identifiers.Escape(parameter.Name), isNullable));
+			return LuaGlobalShapeIssues.None;
+		}
 
-            if (!LuaValueKindMapper.TryMap(parameter.Type, out var kind, out var isNullable))
-                return issues | LuaGlobalShapeIssues.UnsupportedParameterType;
-            var isScoped = parameter.ScopedKind != ScopedKind.None;
-            Arguments.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), kind, isNullable, isScoped));
-            return issues;
-        }
-    }
+		// A copy-out result is the destination and the count together: 'Span<byte> destination, out int written'.
+		private LuaGlobalShapeIssues AddCopyOutResult(ImmutableArray<IParameterSymbol> parameters, ref int index)
+		{
+			_inResults = true;
+			if (index + 1 >= parameters.Length
+			    || parameters[index + 1] is
+				    not { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Int32 } written)
+			{
+				return LuaGlobalShapeIssues.UnsupportedResultType;
+			}
+
+			bool destinationIsScoped = parameters[index].ScopedKind != ScopedKind.None;
+			Results.Add(LuaResultModel.CopyOut(Identifiers.Escape(parameters[index].Name),
+				Identifiers.Escape(written.Name), destinationIsScoped));
+			index++;
+			return LuaGlobalShapeIssues.None;
+		}
+
+		// A by-value parameter: an argument, or the leading state.
+		private LuaGlobalShapeIssues AddArgument(Compilation? compilation, INamedTypeSymbol bindingType,
+			IParameterSymbol parameter, int index, INamedTypeSymbol? luaState,
+			INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract)
+		{
+			LuaGlobalShapeIssues issues =
+				_inResults ? LuaGlobalShapeIssues.ResultBeforeArgument : LuaGlobalShapeIssues.None;
+			if (LuaValueKindMapper.IsLuaState(parameter.Type, luaState))
+			{
+				if (index != 0)
+				{
+					return issues | LuaGlobalShapeIssues.StateParameterNotFirst;
+				}
+
+				StateParameterName = Identifiers.Escape(parameter.Name);
+				return issues;
+			}
+
+			if (!LuaMarshallerResolver.TryResolve(compilation, bindingType, parameter.Type, parameter.GetAttributes(),
+				    luaMarshallerAttribute, luaMarshallerContract, out LuaCustomMarshallerModel? customMarshaller,
+				    out _))
+			{
+				return issues | LuaGlobalShapeIssues.UnsupportedParameterType;
+			}
+
+			if (customMarshaller is not null)
+			{
+				bool customIsScoped = parameter.ScopedKind != ScopedKind.None;
+				Arguments.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), LuaValueKind.Int32,
+					false, customIsScoped, CustomMarshaller: customMarshaller));
+				return issues;
+			}
+
+			if (!LuaValueKindMapper.TryMap(parameter.Type, out LuaValueKind kind, out bool isNullable))
+			{
+				return issues | LuaGlobalShapeIssues.UnsupportedParameterType;
+			}
+
+			bool isScoped = parameter.ScopedKind != ScopedKind.None;
+			Arguments.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), kind, isNullable, isScoped));
+			return issues;
+		}
+	}
 }

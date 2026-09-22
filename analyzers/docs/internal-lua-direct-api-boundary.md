@@ -16,8 +16,10 @@ The only structured conditional exception is `lua_pushcclosure(state, function, 
 fast path for zero upvalues. The repository gate recognizes it only in the audited
 `LuaState.PushUncheckedFunction` implementation, only when the first argument is that instance's `Pointer`, and only
 when the immediately preceding statement is `if (lua_checkstack(Pointer, 1) == 0) throw ...`. Any other source file,
-method, state expression, intervening Lua call, nonzero count or nonconstant count remains a violation. This deliberately
-narrow structural proof avoids a false claim that a general control-flow analysis has established stack capacity. A future
+method, state expression, intervening Lua call, nonzero count or nonconstant count remains a violation. This
+deliberately
+narrow structural proof avoids a false claim that a general control-flow analysis has established stack capacity. A
+future
 public rule needs a sound semantic stack-capacity proof before exposing any conditional exception to consumers.
 
 The native bridge remains mandatory for every other catalogue entry marked `requiresBridge: true`, including string,

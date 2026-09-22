@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="../CoexistencePlugin.props" />
+  <Import Project="../CoexistencePlugin.props"/>
 
   <PropertyGroup>
     <!-- Never use CESDK.*: the entry-point generator reserves CESDK.CESDK in the plugin assembly. -->

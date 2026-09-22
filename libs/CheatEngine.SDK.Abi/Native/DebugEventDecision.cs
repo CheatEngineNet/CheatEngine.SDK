@@ -12,16 +12,16 @@ namespace CheatEngine.SDK.Abi.Native;
 /// </remarks>
 public enum DebugEventDecision
 {
-    /// <summary>
-    ///     Lets Cheat Engine handle and continue the event. The native callback returns zero and no SDK continuation is
-    ///     invoked.
-    /// </summary>
-    ContinueWithCheatEngine = 0,
+	/// <summary>
+	///     Lets Cheat Engine handle and continue the event. The native callback returns zero and no SDK continuation is
+	///     invoked.
+	/// </summary>
+	ContinueWithCheatEngine = 0,
 
-    /// <summary>
-    ///     Requests plugin-owned continuation. Unsupported by the current profile, so the dispatcher records the
-    ///     request and safely returns <see cref="ContinueWithCheatEngine" /> instead of claiming ownership it cannot
-    ///     discharge.
-    /// </summary>
-    PluginOwnsContinuation = 1,
+	/// <summary>
+	///     Requests plugin-owned continuation. Unsupported by the current profile, so the dispatcher records the
+	///     request and safely returns <see cref="ContinueWithCheatEngine" /> instead of claiming ownership it cannot
+	///     discharge.
+	/// </summary>
+	PluginOwnsContinuation = 1
 }

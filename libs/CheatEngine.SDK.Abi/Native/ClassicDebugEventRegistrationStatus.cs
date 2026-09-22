@@ -6,10 +6,10 @@ namespace CheatEngine.SDK.Abi.Native;
 /// </summary>
 internal enum ClassicDebugEventRegistrationStatus
 {
-    Registered,
-    UnsupportedArchitecture,
-    MissingHostFunction,
-    AnotherRegistrationIsActive,
-    HostRejectedRegistration,
-    RegistrationFault,
+	Registered,
+	UnsupportedArchitecture,
+	MissingHostFunction,
+	AnotherRegistrationIsActive,
+	HostRejectedRegistration,
+	RegistrationFault
 }

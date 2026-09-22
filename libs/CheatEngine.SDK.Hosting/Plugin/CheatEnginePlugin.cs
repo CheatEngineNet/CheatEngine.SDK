@@ -1,4 +1,5 @@
 using System;
+
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Annotations.Threading;
 using CheatEngine.SDK.Hosting.Bootstrap;
@@ -41,40 +42,40 @@ namespace CheatEngine.SDK.Hosting.Plugin;
 /// </remarks>
 public abstract class CheatEnginePlugin
 {
-    /// <summary>Initializes the plugin. Runs before the plugin is enabled: do not use SDK APIs here.</summary>
-    protected CheatEnginePlugin()
-    {
-    }
+	/// <summary>Initializes the plugin. Runs before the plugin is enabled: do not use SDK APIs here.</summary>
+	protected CheatEnginePlugin()
+	{
+	}
 
-    /// <summary>
-    ///     Gets the context of the current enable: plugin id, epoch, main thread. Available from <see cref="OnEnable" />
-    ///     until the end of <see cref="OnDisable" />.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     The plugin is not enabled (called from the constructor, or after a
-    ///     disable).
-    /// </exception>
-    [RequiresPluginEnabled]
-    protected static PluginContext Context => PluginHost.RequireContext();
+	/// <summary>
+	///     Gets the context of the current enable: plugin id, epoch, main thread. Available from <see cref="OnEnable" />
+	///     until the end of <see cref="OnDisable" />.
+	/// </summary>
+	/// <exception cref="InvalidOperationException">
+	///     The plugin is not enabled (called from the constructor, or after a
+	///     disable).
+	/// </exception>
+	[RequiresPluginEnabled]
+	protected static PluginContext Context => PluginHost.RequireContext();
 
-    /// <summary>
-    ///     Called by the host each time Cheat Engine enables the plugin, on the main thread, with the Lua API bound and
-    ///     the runtime binding attached. Register Lua functions, menus and callbacks here.
-    /// </summary>
-    /// <remarks>Throwing makes the enable fail; the exception is logged and does not reach Cheat Engine.</remarks>
-    [RunsOnMainThread]
-    protected internal abstract void OnEnable();
+	/// <summary>
+	///     Called by the host each time Cheat Engine enables the plugin, on the main thread, with the Lua API bound and
+	///     the runtime binding attached. Register Lua functions, menus and callbacks here.
+	/// </summary>
+	/// <remarks>Throwing makes the enable fail; the exception is logged and does not reach Cheat Engine.</remarks>
+	[RunsOnMainThread]
+	protected internal abstract void OnEnable();
 
-    /// <summary>
-    ///     Called by the host each time Cheat Engine disables the plugin, on the main thread, while the Lua API and the
-    ///     runtime binding are still usable. Release what <see cref="OnEnable" /> created; the runtime binding is
-    ///     withdrawn right after this method returns and every remaining Lua callback is neutralized then.
-    /// </summary>
-    /// <remarks>
-    ///     Throwing is logged and cleanup continues. Cheat Engine is told the plugin is disabled only when cleanup,
-    ///     including Lua detachment, completes successfully; a detach failure returns <c>FALSE</c> and leaves the host
-    ///     lifecycle in <c>Disabling</c>.
-    /// </remarks>
-    [RunsOnMainThread]
-    protected internal abstract void OnDisable();
+	/// <summary>
+	///     Called by the host each time Cheat Engine disables the plugin, on the main thread, while the Lua API and the
+	///     runtime binding are still usable. Release what <see cref="OnEnable" /> created; the runtime binding is
+	///     withdrawn right after this method returns and every remaining Lua callback is neutralized then.
+	/// </summary>
+	/// <remarks>
+	///     Throwing is logged and cleanup continues. Cheat Engine is told the plugin is disabled only when cleanup,
+	///     including Lua detachment, completes successfully; a detach failure returns <c>FALSE</c> and leaves the host
+	///     lifecycle in <c>Disabling</c>.
+	/// </remarks>
+	[RunsOnMainThread]
+	protected internal abstract void OnDisable();
 }

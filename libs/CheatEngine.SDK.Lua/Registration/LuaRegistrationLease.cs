@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 
@@ -14,78 +15,96 @@ namespace CheatEngine.SDK.Lua.Registration;
 /// </remarks>
 public sealed class LuaRegistrationLease : IDisposable
 {
-    private LuaRegistrationSet.LeaseEntry[]? _entries;
-    private LuaRegistrationReleaseOutcome _lastReleaseOutcome;
+	private LuaRegistrationSet.LeaseEntry[]? _entries;
 
-    internal LuaRegistrationLease(LuaStateIdentity identity, LuaRegistrationSet.LeaseEntry[] entries)
-    {
-        Identity = identity;
-        _entries = entries;
-        _lastReleaseOutcome = LuaRegistrationReleaseOutcome.NotAttempted();
-    }
+	internal LuaRegistrationLease(LuaStateIdentity identity, LuaRegistrationSet.LeaseEntry[] entries)
+	{
+		Identity = identity;
+		_entries = entries;
+		LastReleaseOutcome = LuaRegistrationReleaseOutcome.NotAttempted();
+	}
 
-    /// <summary>Gets the attachment epoch and reset generation captured at publication.</summary>
-    public LuaStateIdentity Identity { get; }
+	/// <summary>Gets the attachment epoch and reset generation captured at publication.</summary>
+	public LuaStateIdentity Identity
+	{
+		get;
+	}
 
-    /// <summary>Gets whether ownership has already been consumed by <see cref="ReleaseWithOutcome()" /> or <see cref="Dispose" />.</summary>
-    public bool IsDisposed => Volatile.Read(ref _entries) is null;
+	/// <summary>
+	///     Gets whether ownership has already been consumed by <see cref="ReleaseWithOutcome()" /> or
+	///     <see cref="Dispose" />.
+	/// </summary>
+	public bool IsDisposed => Volatile.Read(ref _entries) is null;
 
-    /// <summary>Gets the factual outcome of the one completed release attempt.</summary>
-    public LuaRegistrationReleaseOutcome LastReleaseOutcome => _lastReleaseOutcome;
+	/// <summary>Gets the factual outcome of the one completed release attempt.</summary>
+	public LuaRegistrationReleaseOutcome LastReleaseOutcome
+	{
+		get;
+		private set;
+	}
 
-    /// <summary>Releases this set through a newly acquired operation and returns every factual cleanup result.</summary>
-    /// <remarks>
-    ///     Ownership is consumed before the release begins. Repeated calls are idempotent and return
-    ///     <see cref="LuaRegistrationReleaseKind.AlreadyReleased" />; a protected cleanup failure is not retried
-    ///     implicitly because a metamethod may have performed an uncertain side effect.
-    /// </remarks>
-    public LuaRegistrationReleaseOutcome ReleaseWithOutcome()
-    {
-        var entries = Interlocked.Exchange(ref _entries, value: null);
-        if (entries is null) return LuaRegistrationReleaseOutcome.AlreadyReleased();
+	/// <summary>Best-effort, no-throw ownership release. Calling this more than once performs no further Lua mutation.</summary>
+	public void Dispose()
+	{
+		try
+		{
+			_ = ReleaseWithOutcome();
+		}
+		catch (Exception)
+		{
+			// IDisposable cleanup must never hide a caller failure. Ownership was atomically consumed before Lua work.
+		}
+	}
 
-        if (!LuaRuntime.TryAcquireOperation(out var operation))
-        {
-            LuaRegistrationSet.Forget(entries);
-            return Store(LuaRegistrationReleaseOutcome.Stale(entries.Length));
-        }
+	/// <summary>Releases this set through a newly acquired operation and returns every factual cleanup result.</summary>
+	/// <remarks>
+	///     Ownership is consumed before the release begins. Repeated calls are idempotent and return
+	///     <see cref="LuaRegistrationReleaseKind.AlreadyReleased" />; a protected cleanup failure is not retried
+	///     implicitly because a metamethod may have performed an uncertain side effect.
+	/// </remarks>
+	public LuaRegistrationReleaseOutcome ReleaseWithOutcome()
+	{
+		LuaRegistrationSet.LeaseEntry[]? entries = Interlocked.Exchange(ref _entries, null);
+		if (entries is null)
+		{
+			return LuaRegistrationReleaseOutcome.AlreadyReleased();
+		}
 
-        using (operation)
-        {
-            return Store(LuaRegistrationSet.Release(operation.State, Identity, entries, retainFailures: false,
-                out _));
-        }
-    }
+		if (!LuaRuntime.TryAcquireOperation(out LuaRuntimeOperation operation))
+		{
+			LuaRegistrationSet.Forget(entries);
+			return Store(LuaRegistrationReleaseOutcome.Stale(entries.Length));
+		}
 
-    /// <summary>Releases this set through a caller-owned, admitted Lua state.</summary>
-    /// <param name="state">The calling thread's state for the currently attached Lua universe.</param>
-    /// <returns>Every factual cleanup result; a stale lease performs no Lua operation.</returns>
-    public LuaRegistrationReleaseOutcome ReleaseWithOutcome(LuaState state)
-    {
-        if (state.IsNull) throw new ArgumentException("A registration lease needs a non-null Lua state.", nameof(state));
+		using (operation)
+		{
+			return Store(LuaRegistrationSet.Release(operation.State, Identity, entries, false,
+				out _));
+		}
+	}
 
-        var entries = Interlocked.Exchange(ref _entries, value: null);
-        if (entries is null) return LuaRegistrationReleaseOutcome.AlreadyReleased();
+	/// <summary>Releases this set through a caller-owned, admitted Lua state.</summary>
+	/// <param name="state">The calling thread's state for the currently attached Lua universe.</param>
+	/// <returns>Every factual cleanup result; a stale lease performs no Lua operation.</returns>
+	public LuaRegistrationReleaseOutcome ReleaseWithOutcome(LuaState state)
+	{
+		if (state.IsNull)
+		{
+			throw new ArgumentException("A registration lease needs a non-null Lua state.", nameof(state));
+		}
 
-        return Store(LuaRegistrationSet.Release(state, Identity, entries, retainFailures: false, out _));
-    }
+		LuaRegistrationSet.LeaseEntry[]? entries = Interlocked.Exchange(ref _entries, null);
+		if (entries is null)
+		{
+			return LuaRegistrationReleaseOutcome.AlreadyReleased();
+		}
 
-    /// <summary>Best-effort, no-throw ownership release. Calling this more than once performs no further Lua mutation.</summary>
-    public void Dispose()
-    {
-        try
-        {
-            _ = ReleaseWithOutcome();
-        }
-        catch (Exception)
-        {
-            // IDisposable cleanup must never hide a caller failure. Ownership was atomically consumed before Lua work.
-        }
-    }
+		return Store(LuaRegistrationSet.Release(state, Identity, entries, false, out _));
+	}
 
-    private LuaRegistrationReleaseOutcome Store(LuaRegistrationReleaseOutcome outcome)
-    {
-        _lastReleaseOutcome = outcome;
-        return outcome;
-    }
+	private LuaRegistrationReleaseOutcome Store(LuaRegistrationReleaseOutcome outcome)
+	{
+		LastReleaseOutcome = outcome;
+		return outcome;
+	}
 }

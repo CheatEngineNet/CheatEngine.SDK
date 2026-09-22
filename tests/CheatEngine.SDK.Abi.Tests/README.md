@@ -21,11 +21,11 @@ Three independent techniques check the layout, so one mistake cannot hide behind
 mirror the `CheatEngine.SDK.Abi` namespaces. `Support/` holds `Layout`, the `AbiShape` gate and its tests. Expected
 numbers are literals next to the assertion, never derived from the code under test.
 
-| Technique             | What it does                                                                                                                                                                           |
-|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Address-of arithmetic | `Layout.SizeOf<T>()` and `Layout.OffsetOf` measure the size and every field offset.                                                                                                    |
-| Raw bytes             | The packed 36-byte init record is written into a guard-filled buffer at an aligned and an odd address. The 48-byte exports record is built as raw bytes, then read through the struct. |
-| Host simulation       | `&Method` of a real `[UnmanagedCallersOnly]` `Stdcall` function is stored in every typed function-pointer slot, then called through the field.                                         |
+| Technique              | What it does                                                                                                                                                                                                               |
+|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Address-of arithmetic  | `Layout.SizeOf<T>()` and `Layout.OffsetOf` measure the size and every field offset.                                                                                                                                        |
+| Raw bytes              | The packed 36-byte init record is written into a guard-filled buffer at an aligned and an odd address. The 48-byte exports record is built as raw bytes, then read through the struct.                                     |
+| Host simulation        | `&Method` of a real `[UnmanagedCallersOnly]` `Stdcall` function is stored in every typed function-pointer slot, then called through the field.                                                                             |
 | Native-fact comparison | The native CI job provides the checked `ce77-native-abi-facts.txt` and sets its required gate; a compiled managed test measures every fixture-covered layout and compares its size, alignment, and offsets to that output. |
 
 The test assembly applies `[assembly: DisableRuntimeMarshalling]`, so calls take the path a plugin takes.

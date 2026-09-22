@@ -5,9 +5,9 @@ namespace CheatEngine.SDK.Abi.Native;
 /// </summary>
 public enum DebugEventObservationOverflowPolicy
 {
-    /// <summary>Drops the incoming observation when the buffer is full.</summary>
-    DropNewest = 0,
+	/// <summary>Drops the incoming observation when the buffer is full.</summary>
+	DropNewest = 0,
 
-    /// <summary>Drops the oldest retained observation before storing the incoming observation when the buffer is full.</summary>
-    DropOldest = 1,
+	/// <summary>Drops the oldest retained observation before storing the incoming observation when the buffer is full.</summary>
+	DropOldest = 1
 }

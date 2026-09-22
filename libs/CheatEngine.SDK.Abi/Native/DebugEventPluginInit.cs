@@ -20,15 +20,15 @@ namespace CheatEngine.SDK.Abi.Native;
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct DebugEventPluginInit
 {
-    /// <summary>
-    ///     Invoked for each debug event (offset 0). Argument: pointer to the operating system's <c>DEBUG_EVENT</c>
-    ///     structure (an OS type, deliberately not mapped here). Result: 0 lets Cheat Engine handle the event; 1
-    ///     means the plugin handled it and is then responsible for continuing the debug event itself (stated by the
-    ///     official C sample plugin).
-    /// </summary>
-    /// <remarks>
-    ///     Runs on a thread other than the main thread (stated by the official C sample plugin): no GUI work. Must
-    ///     stay valid until the function is unregistered. Must not let an exception escape.
-    /// </remarks>
-    public delegate* unmanaged[Stdcall]<void*, int> Callback;
+	/// <summary>
+	///     Invoked for each debug event (offset 0). Argument: pointer to the operating system's <c>DEBUG_EVENT</c>
+	///     structure (an OS type, deliberately not mapped here). Result: 0 lets Cheat Engine handle the event; 1
+	///     means the plugin handled it and is then responsible for continuing the debug event itself (stated by the
+	///     official C sample plugin).
+	/// </summary>
+	/// <remarks>
+	///     Runs on a thread other than the main thread (stated by the official C sample plugin): no GUI work. Must
+	///     stay valid until the function is unregistered. Must not let an exception escape.
+	/// </remarks>
+	public delegate* unmanaged[Stdcall]<void*, int> Callback;
 }

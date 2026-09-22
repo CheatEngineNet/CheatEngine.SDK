@@ -8,12 +8,12 @@ namespace CheatEngine.SDK.Benchmarks;
 /// </summary>
 internal static partial class BenchFunctions
 {
-    /// <summary>Lua: <c>cheatengine_sdk_bench_touch(x)</c>. Returns <paramref name="x" /> plus one.</summary>
-    /// <param name="x">The running value.</param>
-    /// <returns><paramref name="x" /> + 1.</returns>
-    [LuaFunction("cheatengine_sdk_bench_touch")]
-    public static long Touch(long x)
-    {
-        return x + 1;
-    }
+	/// <summary>Lua: <c>cheatengine_sdk_bench_touch(x)</c>. Returns <paramref name="x" /> plus one.</summary>
+	/// <param name="x">The running value.</param>
+	/// <returns><paramref name="x" /> + 1.</returns>
+	[LuaFunction("cheatengine_sdk_bench_touch")]
+	public static long Touch(long x)
+	{
+		return x + 1;
+	}
 }

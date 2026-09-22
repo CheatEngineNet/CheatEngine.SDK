@@ -6,12 +6,12 @@ namespace CheatEngine.SDK.Lua.CompilerServices;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public enum LuaGlobalPushStatus
 {
-    /// <summary>The function was pushed.</summary>
-    Success,
+	/// <summary>The function was pushed.</summary>
+	Success,
 
-    /// <summary>The global was absent or was not a function.</summary>
-    Unavailable,
+	/// <summary>The global was absent or was not a function.</summary>
+	Unavailable,
 
-    /// <summary>A protected global lookup or reference creation failed.</summary>
-    LuaFailure,
+	/// <summary>A protected global lookup or reference creation failed.</summary>
+	LuaFailure
 }

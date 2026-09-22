@@ -8,19 +8,31 @@ namespace CheatEngine.SDK.Lua.Runtime;
 /// </summary>
 internal sealed unsafe class LuaHostServices
 {
-    internal LuaHostServices(in LuaHostBinding binding)
-    {
-        Binding = binding;
-        Provider = binding.Provider;
-        Pusher = binding.Pusher;
-        MainThreadId = binding.MainThreadId;
-    }
+	internal LuaHostServices(in LuaHostBinding binding)
+	{
+		Binding = binding;
+		Provider = binding.Provider;
+		Pusher = binding.Pusher;
+		MainThreadId = binding.MainThreadId;
+	}
 
-    internal LuaHostBinding Binding { get; }
+	internal LuaHostBinding Binding
+	{
+		get;
+	}
 
-    internal delegate* unmanaged[Stdcall]<lua_State*> Provider { get; }
+	internal delegate* unmanaged[Stdcall]<lua_State*> Provider
+	{
+		get;
+	}
 
-    internal delegate* unmanaged[Stdcall]<lua_State*, void*, void> Pusher { get; }
+	internal delegate* unmanaged[Stdcall]<lua_State*, void*, void> Pusher
+	{
+		get;
+	}
 
-    internal int MainThreadId { get; }
+	internal int MainThreadId
+	{
+		get;
+	}
 }

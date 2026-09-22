@@ -8,10 +8,10 @@ namespace CheatEngine.SDK.Hosting.Tests.Support;
 /// </summary>
 internal sealed class AlternatePluginFactory : IPluginFactory
 {
-    public static ReadOnlySpan<byte> Utf8Name => "Alternate Plugin"u8;
+	public static ReadOnlySpan<byte> Utf8Name => "Alternate Plugin"u8;
 
-    public static CheatEnginePlugin Create()
-    {
-        return new RecordingPlugin();
-    }
+	public static CheatEnginePlugin Create()
+	{
+		return new RecordingPlugin();
+	}
 }

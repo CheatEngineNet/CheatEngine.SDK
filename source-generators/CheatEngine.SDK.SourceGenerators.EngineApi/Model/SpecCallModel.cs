@@ -20,11 +20,11 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Model;
 ///     only for legacy in-repository fixtures while they are migrated.
 /// </param>
 internal sealed record SpecCallModel(
-    int Line,
-    int MethodLine,
-    int MethodColumn,
-    int GlobalLine,
-    int GlobalColumn,
-    string Summary,
-    LuaGlobalCallModel Call,
-    SpecContract? Contract);
+	int Line,
+	int MethodLine,
+	int MethodColumn,
+	int GlobalLine,
+	int GlobalColumn,
+	string Summary,
+	LuaGlobalCallModel Call,
+	SpecContract? Contract);

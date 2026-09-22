@@ -26,32 +26,32 @@ namespace CheatEngine.SDK.Abi.Native;
 ///     </para>
 /// </remarks>
 [SuppressMessage("Meziantou.Analyzer", "MA0182",
-    Justification =
-        "This intentionally internal C-header mirror is retained as the type-0 callback ABI contract, exercised by friend-assembly layout tests, and verified against the native-fixture contract. It remains opaque until a safe hosting facade can own the borrowed record lifetime.")]
+	Justification =
+		"This intentionally internal C-header mirror is retained as the type-0 callback ABI contract, exercised by friend-assembly layout tests, and verified against the native-fixture contract. It remains opaque until a safe hosting facade can own the borrowed record lifetime.")]
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe struct PluginType0Record
 {
-    /// <summary>Host-owned NUL-terminated interpreted address text (offset 0).</summary>
-    public byte* InterpretedAddress;
+	/// <summary>Host-owned NUL-terminated interpreted address text (offset 0).</summary>
+	public byte* InterpretedAddress;
 
-    /// <summary>Read-only pointer-sized target address (offset 8 on x64).</summary>
-    public nuint Address;
+	/// <summary>Read-only pointer-sized target address (offset 8 on x64).</summary>
+	public nuint Address;
 
-    /// <summary>Read-only Win32 <c>BOOL</c> pointer flag (offset 16 on x64).</summary>
-    public Bool32 IsPointer;
+	/// <summary>Read-only Win32 <c>BOOL</c> pointer flag (offset 16 on x64).</summary>
+	public Bool32 IsPointer;
 
-    /// <summary>Read-only count of <see cref="Offsets" /> entries (offset 20 on x64).</summary>
-    public int CountOffsets;
+	/// <summary>Read-only count of <see cref="Offsets" /> entries (offset 20 on x64).</summary>
+	public int CountOffsets;
 
-    /// <summary>Host-owned read-only array of 32-bit offsets (offset 24 on x64).</summary>
-    public uint* Offsets;
+	/// <summary>Host-owned read-only array of 32-bit offsets (offset 24 on x64).</summary>
+	public uint* Offsets;
 
-    /// <summary>Host-owned NUL-terminated description text (offset 32 on x64).</summary>
-    public byte* Description;
+	/// <summary>Host-owned NUL-terminated description text (offset 32 on x64).</summary>
+	public byte* Description;
 
-    /// <summary>Host value-type discriminator (offset 40 on x64); its numeric semantics remain outside this ABI type.</summary>
-    public byte ValueType;
+	/// <summary>Host value-type discriminator (offset 40 on x64); its numeric semantics remain outside this ABI type.</summary>
+	public byte ValueType;
 
-    /// <summary>Host string- or bit-length byte (offset 41 on x64).</summary>
-    public byte Size;
+	/// <summary>Host string- or bit-length byte (offset 41 on x64).</summary>
+	public byte Size;
 }

@@ -8,12 +8,12 @@ namespace CheatEngine.SDK.Lua.Calls;
 /// </summary>
 public enum LuaComparison
 {
-    /// <summary><c>a == b</c>, honouring <c>__eq</c>.</summary>
-    Equal = 0,
+	/// <summary><c>a == b</c>, honouring <c>__eq</c>.</summary>
+	Equal = 0,
 
-    /// <summary><c>a &lt; b</c>, honouring <c>__lt</c>.</summary>
-    Less = 1,
+	/// <summary><c>a &lt; b</c>, honouring <c>__lt</c>.</summary>
+	Less = 1,
 
-    /// <summary><c>a &lt;= b</c>, honouring <c>__le</c>.</summary>
-    LessOrEqual = 2
+	/// <summary><c>a &lt;= b</c>, honouring <c>__le</c>.</summary>
+	LessOrEqual = 2
 }

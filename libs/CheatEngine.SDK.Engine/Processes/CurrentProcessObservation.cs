@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Engine.Inspection;
 using CheatEngine.SDK.Engine.Runtime;
 

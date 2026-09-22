@@ -1,4 +1,5 @@
 using System;
+
 using CheatEngine.SDK.Lua.Runtime;
 
 namespace CheatEngine.SDK.Engine.Inspection;
@@ -20,64 +21,78 @@ namespace CheatEngine.SDK.Engine.Inspection;
 /// </remarks>
 public sealed class SymbolRegistrationLease : IDisposable
 {
-    private readonly SymbolName _name;
-    private readonly SymbolRegistrationOptions _options;
-    private SymbolRegistrationReleaseKind? _terminalKind;
-    private bool _terminalOutcomeObserved;
+	private SymbolRegistrationReleaseKind? _terminalKind;
+	private bool _terminalOutcomeObserved;
 
-    internal SymbolRegistrationLease(SymbolName name, SymbolRegistrationOptions options, LuaStateIdentity identity)
-    {
-        _name = name;
-        _options = options;
-        Identity = identity;
-    }
+	internal SymbolRegistrationLease(SymbolName name, SymbolRegistrationOptions options, LuaStateIdentity identity)
+	{
+		Name = name;
+		Options = options;
+		Identity = identity;
+	}
 
-    /// <summary>Gets the registered name.</summary>
-    public SymbolName Name => _name;
+	/// <summary>Gets the registered name.</summary>
+	public SymbolName Name
+	{
+		get;
+	}
 
-    /// <summary>Gets the persistence option used when registering the name.</summary>
-    public SymbolRegistrationOptions Options => _options;
+	/// <summary>Gets the persistence option used when registering the name.</summary>
+	public SymbolRegistrationOptions Options
+	{
+		get;
+	}
 
-    /// <summary>Gets whether this lease has reached a terminal outcome.</summary>
-    public bool IsTerminal => _terminalKind.HasValue;
+	/// <summary>Gets whether this lease has reached a terminal outcome.</summary>
+	public bool IsTerminal => _terminalKind.HasValue;
 
-    /// <summary>Attempts the coordinator-qualified unregister for this lease.</summary>
-    /// <returns>A result that distinguishes no call, a protected failure after the call began, and a local supersession.</returns>
-    public SymbolRegistrationReleaseOutcome Release()
-    {
-        return SymbolRegistry.ReleaseOwned(this);
-    }
+	internal LuaStateIdentity Identity
+	{
+		get;
+	}
 
-    /// <summary>Calls <see cref="Release" /> and intentionally discards its structured outcome.</summary>
-    /// <remarks>
-    ///     A <see cref="SymbolRegistrationReleaseKind.CleanupUnavailable" /> outcome retains this lease so a caller
-    ///     may invoke <see cref="Release" /> later. A protected failure after CE cleanup starts is terminal and is not
-    ///     automatically retried.
-    /// </remarks>
-    public void Dispose()
-    {
-        _ = Release();
-    }
+	/// <summary>Calls <see cref="Release" /> and intentionally discards its structured outcome.</summary>
+	/// <remarks>
+	///     A <see cref="SymbolRegistrationReleaseKind.CleanupUnavailable" /> outcome retains this lease so a caller
+	///     may invoke <see cref="Release" /> later. A protected failure after CE cleanup starts is terminal and is not
+	///     automatically retried.
+	/// </remarks>
+	public void Dispose()
+	{
+		_ = Release();
+	}
 
-    internal LuaStateIdentity Identity { get; }
+	/// <summary>Attempts the coordinator-qualified unregister for this lease.</summary>
+	/// <returns>A result that distinguishes no call, a protected failure after the call began, and a local supersession.</returns>
+	public SymbolRegistrationReleaseOutcome Release()
+	{
+		return SymbolRegistry.ReleaseOwned(this);
+	}
 
-    internal void MarkTerminal(SymbolRegistrationReleaseKind kind)
-    {
-        _terminalKind ??= kind;
-    }
+	internal void MarkTerminal(SymbolRegistrationReleaseKind kind)
+	{
+		_terminalKind ??= kind;
+	}
 
-    internal void MarkTerminalAndObserve(SymbolRegistrationReleaseKind kind)
-    {
-        MarkTerminal(kind);
-        _terminalOutcomeObserved = true;
-    }
+	internal void MarkTerminalAndObserve(SymbolRegistrationReleaseKind kind)
+	{
+		MarkTerminal(kind);
+		_terminalOutcomeObserved = true;
+	}
 
-    internal SymbolRegistrationReleaseKind? ObserveTerminalKind()
-    {
-        if (!_terminalKind.HasValue) return null;
-        if (_terminalOutcomeObserved) return SymbolRegistrationReleaseKind.AlreadyReleased;
+	internal SymbolRegistrationReleaseKind? ObserveTerminalKind()
+	{
+		if (!_terminalKind.HasValue)
+		{
+			return null;
+		}
 
-        _terminalOutcomeObserved = true;
-        return _terminalKind.Value;
-    }
+		if (_terminalOutcomeObserved)
+		{
+			return SymbolRegistrationReleaseKind.AlreadyReleased;
+		}
+
+		_terminalOutcomeObserved = true;
+		return _terminalKind.Value;
+	}
 }

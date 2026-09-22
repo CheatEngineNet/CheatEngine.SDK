@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Lua.Calls;
 
 namespace CheatEngine.SDK.Lua.Registration;

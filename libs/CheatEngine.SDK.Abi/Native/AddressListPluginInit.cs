@@ -27,19 +27,19 @@ namespace CheatEngine.SDK.Abi.Native;
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct AddressListPluginInit
 {
-    /// <summary>NUL-terminated ANSI caption of the menu entry (offset 0).</summary>
-    /// <remarks>
-    ///     The 7.5 host copies the text during registration (<i>inferred</i> for 7.7); keeping the buffer alive longer is
-    ///     harmless.
-    /// </remarks>
-    public byte* Name;
+	/// <summary>NUL-terminated ANSI caption of the menu entry (offset 0).</summary>
+	/// <remarks>
+	///     The 7.5 host copies the text during registration (<i>inferred</i> for 7.7); keeping the buffer alive longer is
+	///     harmless.
+	/// </remarks>
+	public byte* Name;
 
-    /// <summary>Opaque address of the address-list callback (offset 8).</summary>
-    /// <remarks>
-    ///     The C declaration suggests a <c>stdcall</c> callback taking a selected-record pointer and returning a
-    ///     four-byte <c>BOOL</c>. The historical Pascal declaration disagrees about the selected-record address width.
-    ///     Keeping this slot untyped preserves the record layout while preventing an unsupported callback invocation.
-    ///     Do not assign or invoke it until a CE 7.7 host canary qualifies the record and callback together.
-    /// </remarks>
-    public void* Callback;
+	/// <summary>Opaque address of the address-list callback (offset 8).</summary>
+	/// <remarks>
+	///     The C declaration suggests a <c>stdcall</c> callback taking a selected-record pointer and returning a
+	///     four-byte <c>BOOL</c>. The historical Pascal declaration disagrees about the selected-record address width.
+	///     Keeping this slot untyped preserves the record layout while preventing an unsupported callback invocation.
+	///     Do not assign or invoke it until a CE 7.7 host canary qualifies the record and callback together.
+	/// </remarks>
+	public void* Callback;
 }

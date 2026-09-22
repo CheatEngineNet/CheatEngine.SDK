@@ -4,8 +4,10 @@ using System.Collections.Immutable;
 using System.Composition;
 using System.Threading;
 using System.Threading.Tasks;
+
 using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.SourceGenerators.Shared.Shapes;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -43,181 +45,226 @@ namespace CheatEngine.SDK.Analyzers.CodeFixes.Plugin;
 [Shared]
 public sealed class PluginClassShapeCodeFixProvider : CodeFixProvider
 {
-    internal const string MakeSealedEquivalenceKey = DiagnosticIds.InvalidPluginClass + ".MakeSealed";
+	internal const string MakeSealedEquivalenceKey = DiagnosticIds.InvalidPluginClass + ".MakeSealed";
 
-    internal const string AddConstructorEquivalenceKey =
-        DiagnosticIds.InvalidPluginClass + ".AddParameterlessConstructor";
+	internal const string AddConstructorEquivalenceKey =
+		DiagnosticIds.InvalidPluginClass + ".AddParameterlessConstructor";
 
-    internal const string MakeConstructorPublicEquivalenceKey =
-        DiagnosticIds.InvalidPluginClass + ".MakeConstructorPublic";
+	internal const string MakeConstructorPublicEquivalenceKey =
+		DiagnosticIds.InvalidPluginClass + ".MakeConstructorPublic";
 
-    /// <inheritdoc />
-    public override ImmutableArray<string> FixableDiagnosticIds { get; } = [DiagnosticIds.InvalidPluginClass];
+	/// <inheritdoc />
+	public override ImmutableArray<string> FixableDiagnosticIds
+	{
+		get;
+	} = [DiagnosticIds.InvalidPluginClass];
 
-    /// <inheritdoc />
-    public override FixAllProvider GetFixAllProvider()
-    {
-        return WellKnownFixAllProviders.BatchFixer;
-    }
+	/// <inheritdoc />
+	public override FixAllProvider GetFixAllProvider()
+	{
+		return WellKnownFixAllProviders.BatchFixer;
+	}
 
-    /// <inheritdoc />
-    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
-    {
-        var cancellationToken = context.CancellationToken;
-        var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semanticModel = await context.Document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-        if (root is null || semanticModel is null) return;
+	/// <inheritdoc />
+	public override async Task RegisterCodeFixesAsync(CodeFixContext context)
+	{
+		CancellationToken cancellationToken = context.CancellationToken;
+		SyntaxNode? root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+		SemanticModel? semanticModel =
+			await context.Document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+		if (root is null || semanticModel is null)
+		{
+			return;
+		}
 
-        foreach (var diagnostic in context.Diagnostics)
-        {
-            if (!diagnostic.Properties.TryGetValue(DiagnosticProperties.PluginClassProblem, out var problemName)
-                || !Enum.TryParse(problemName, out PluginShapeIssues problem)
-                || root.FindToken(diagnostic.Location.SourceSpan.Start).Parent
-                    ?.FirstAncestorOrSelf<TypeDeclarationSyntax>() is not { } declaration
-                || semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is not { } type)
-                continue;
+		foreach (Diagnostic diagnostic in context.Diagnostics)
+		{
+			if (!diagnostic.Properties.TryGetValue(DiagnosticProperties.PluginClassProblem, out string? problemName)
+			    || !Enum.TryParse(problemName, out PluginShapeIssues problem)
+			    || root.FindToken(diagnostic.Location.SourceSpan.Start).Parent
+				    ?.FirstAncestorOrSelf<TypeDeclarationSyntax>() is not { } declaration
+			    || semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is not { } type)
+			{
+				continue;
+			}
 
-            var solution = context.Document.Project.Solution;
-            var action = problem switch
-            {
-                PluginShapeIssues.Abstract => CreateMakeSealed(solution, type, SyntaxKind.AbstractKeyword, "abstract",
-                    cancellationToken),
-                PluginShapeIssues.Static => CreateMakeSealed(solution, type, SyntaxKind.StaticKeyword, "static",
-                    cancellationToken),
-                PluginShapeIssues.MissingParameterlessConstructor => CreateAddConstructor(context.Document, root,
-                    declaration, type, semanticModel.Compilation, cancellationToken),
-                PluginShapeIssues.InaccessibleParameterlessConstructor => CreateMakeConstructorPublic(solution, type,
-                    cancellationToken),
-                _ => null
-            };
+			Solution solution = context.Document.Project.Solution;
+			CodeAction? action = problem switch
+			{
+				PluginShapeIssues.Abstract => CreateMakeSealed(solution, type, SyntaxKind.AbstractKeyword, "abstract",
+					cancellationToken),
+				PluginShapeIssues.Static => CreateMakeSealed(solution, type, SyntaxKind.StaticKeyword, "static",
+					cancellationToken),
+				PluginShapeIssues.MissingParameterlessConstructor => CreateAddConstructor(context.Document, root,
+					declaration, type, semanticModel.Compilation, cancellationToken),
+				PluginShapeIssues.InaccessibleParameterlessConstructor => CreateMakeConstructorPublic(solution, type,
+					cancellationToken),
+				_ => null
+			};
 
-            if (action is not null) context.RegisterCodeFix(action, diagnostic);
-        }
-    }
+			if (action is not null)
+			{
+				context.RegisterCodeFix(action, diagnostic);
+			}
+		}
+	}
 
-    private static CodeAction? CreateMakeSealed(Solution solution, INamedTypeSymbol type, SyntaxKind modifierKind,
-        string modifierText, CancellationToken cancellationToken)
-    {
-        // Every part of a partial class may repeat the modifier; parts in generated code have no document.
-        Dictionary<DocumentId, List<SyntaxToken>> modifiersByDocument = [];
-        foreach (var reference in type.DeclaringSyntaxReferences)
-        {
-            if (reference.GetSyntax(cancellationToken) is not TypeDeclarationSyntax part
-                || solution.GetDocument(reference.SyntaxTree) is not { } document)
-                continue;
+	private static CodeAction? CreateMakeSealed(Solution solution, INamedTypeSymbol type, SyntaxKind modifierKind,
+		string modifierText, CancellationToken cancellationToken)
+	{
+		// Every part of a partial class may repeat the modifier; parts in generated code have no document.
+		Dictionary<DocumentId, List<SyntaxToken>> modifiersByDocument = [];
+		foreach (SyntaxReference reference in type.DeclaringSyntaxReferences)
+		{
+			if (reference.GetSyntax(cancellationToken) is not TypeDeclarationSyntax part
+			    || solution.GetDocument(reference.SyntaxTree) is not { } document)
+			{
+				continue;
+			}
 
-            foreach (var modifier in part.Modifiers)
-            {
-                if (!modifier.IsKind(modifierKind)) continue;
+			foreach (SyntaxToken modifier in part.Modifiers)
+			{
+				if (!modifier.IsKind(modifierKind))
+				{
+					continue;
+				}
 
-                if (!modifiersByDocument.TryGetValue(document.Id, out var modifiers))
-                {
-                    modifiers = [];
-                    modifiersByDocument.Add(document.Id, modifiers);
-                }
+				if (!modifiersByDocument.TryGetValue(document.Id, out List<SyntaxToken>? modifiers))
+				{
+					modifiers = [];
+					modifiersByDocument.Add(document.Id, modifiers);
+				}
 
-                modifiers.Add(modifier);
-            }
-        }
+				modifiers.Add(modifier);
+			}
+		}
 
-        if (modifiersByDocument.Count == 0) return null;
+		if (modifiersByDocument.Count == 0)
+		{
+			return null;
+		}
 
-        return CodeAction.Create(
-            $"Replace '{modifierText}' with 'sealed'",
-            async actionCancellationToken =>
-            {
-                var changed = solution;
-                foreach (var entry in modifiersByDocument)
-                {
-                    var document = changed.GetDocument(entry.Key);
-                    var root = document is null
-                        ? null
-                        : await document.GetSyntaxRootAsync(actionCancellationToken).ConfigureAwait(false);
-                    if (root is not null)
-                        changed = changed.WithDocumentSyntaxRoot(entry.Key,
-                            root.ReplaceTokens(entry.Value,
-                                static (original, _) => PluginClassRewriter.ToSealed(original)));
-                }
+		return CodeAction.Create(
+			$"Replace '{modifierText}' with 'sealed'",
+			async actionCancellationToken =>
+			{
+				Solution changed = solution;
+				foreach (KeyValuePair<DocumentId, List<SyntaxToken>> entry in modifiersByDocument)
+				{
+					Document? document = changed.GetDocument(entry.Key);
+					SyntaxNode? root = document is null
+						? null
+						: await document.GetSyntaxRootAsync(actionCancellationToken).ConfigureAwait(false);
+					if (root is not null)
+					{
+						changed = changed.WithDocumentSyntaxRoot(entry.Key,
+							root.ReplaceTokens(entry.Value,
+								static (original, _) => PluginClassRewriter.ToSealed(original)));
+					}
+				}
 
-                return changed;
-            },
-            MakeSealedEquivalenceKey);
-    }
+				return changed;
+			},
+			MakeSealedEquivalenceKey);
+	}
 
-    private static CodeAction? CreateAddConstructor(
-        Document document,
-        SyntaxNode root,
-        TypeDeclarationSyntax declaration,
-        INamedTypeSymbol type,
-        Compilation compilation,
-        CancellationToken cancellationToken)
-    {
-        // 'class Plugin;' has no member list to add to.
-        if (declaration.OpenBraceToken.IsKind(SyntaxKind.None) || declaration.OpenBraceToken.IsMissing) return null;
+	private static CodeAction? CreateAddConstructor(
+		Document document,
+		SyntaxNode root,
+		TypeDeclarationSyntax declaration,
+		INamedTypeSymbol type,
+		Compilation compilation,
+		CancellationToken cancellationToken)
+	{
+		// 'class Plugin;' has no member list to add to.
+		if (declaration.OpenBraceToken.IsKind(SyntaxKind.None) || declaration.OpenBraceToken.IsMissing)
+		{
+			return null;
+		}
 
-        // A primary constructor forces every other constructor to chain to it: not mechanical.
-        foreach (var reference in type.DeclaringSyntaxReferences)
-            if (reference.GetSyntax(cancellationToken) is TypeDeclarationSyntax { ParameterList: not null })
-                return null;
+		// A primary constructor forces every other constructor to chain to it: not mechanical.
+		foreach (SyntaxReference reference in type.DeclaringSyntaxReferences)
+		{
+			if (reference.GetSyntax(cancellationToken) is TypeDeclarationSyntax { ParameterList: not null })
+			{
+				return null;
+			}
+		}
 
-        // 'public Name() { }' chains to 'base()' implicitly: same reason when the base class has nothing to bind it to.
-        if (!HasImplicitlyCallableBaseConstructor(type, compilation)) return null;
+		// 'public Name() { }' chains to 'base()' implicitly: same reason when the base class has nothing to bind it to.
+		if (!HasImplicitlyCallableBaseConstructor(type, compilation))
+		{
+			return null;
+		}
 
-        return CodeAction.Create(
-            "Add public parameterless constructor",
-            _ => Task.FromResult(document.WithSyntaxRoot(root.ReplaceNode(declaration,
-                PluginClassRewriter.AddParameterlessConstructor(declaration)))),
-            AddConstructorEquivalenceKey);
-    }
+		return CodeAction.Create(
+			"Add public parameterless constructor",
+			_ => Task.FromResult(document.WithSyntaxRoot(root.ReplaceNode(declaration,
+				PluginClassRewriter.AddParameterlessConstructor(declaration)))),
+			AddConstructorEquivalenceKey);
+	}
 
-    // Overload resolution of the implicit 'base()': a constructor whose parameters can all be omitted (none,
-    // optional, params), accessible from the derived class. An unresolved base class has no constructors: no fix.
-    private static bool HasImplicitlyCallableBaseConstructor(INamedTypeSymbol type, Compilation compilation)
-    {
-        if (type.BaseType is not { } baseType) return false;
+	// Overload resolution of the implicit 'base()': a constructor whose parameters can all be omitted (none,
+	// optional, params), accessible from the derived class. An unresolved base class has no constructors: no fix.
+	private static bool HasImplicitlyCallableBaseConstructor(INamedTypeSymbol type, Compilation compilation)
+	{
+		if (type.BaseType is not { } baseType)
+		{
+			return false;
+		}
 
-        foreach (var constructor in baseType.InstanceConstructors)
-            if (CanOmitEveryArgument(constructor) && compilation.IsSymbolAccessibleWithin(constructor, type))
-                return true;
+		foreach (IMethodSymbol constructor in baseType.InstanceConstructors)
+		{
+			if (CanOmitEveryArgument(constructor) && compilation.IsSymbolAccessibleWithin(constructor, type))
+			{
+				return true;
+			}
+		}
 
-        return false;
-    }
+		return false;
+	}
 
-    private static bool CanOmitEveryArgument(IMethodSymbol constructor)
-    {
-        foreach (var parameter in constructor.Parameters)
-            if (!parameter.IsOptional && !parameter.IsParams)
-                return false;
+	private static bool CanOmitEveryArgument(IMethodSymbol constructor)
+	{
+		foreach (IParameterSymbol parameter in constructor.Parameters)
+		{
+			if (!parameter.IsOptional && !parameter.IsParams)
+			{
+				return false;
+			}
+		}
 
-        return true;
-    }
+		return true;
+	}
 
-    private static CodeAction? CreateMakeConstructorPublic(Solution solution, INamedTypeSymbol type,
-        CancellationToken cancellationToken)
-    {
-        foreach (var constructor in type.InstanceConstructors)
-        {
-            if (!constructor.Parameters.IsEmpty
-                || constructor.IsImplicitlyDeclared
-                || constructor.DeclaringSyntaxReferences.IsEmpty
-                || constructor.DeclaringSyntaxReferences[0] is not { } reference
-                || reference.GetSyntax(cancellationToken) is not ConstructorDeclarationSyntax syntax
-                || solution.GetDocument(reference.SyntaxTree) is not { } document)
-                continue;
+	private static CodeAction? CreateMakeConstructorPublic(Solution solution, INamedTypeSymbol type,
+		CancellationToken cancellationToken)
+	{
+		foreach (IMethodSymbol constructor in type.InstanceConstructors)
+		{
+			if (!constructor.Parameters.IsEmpty
+			    || constructor.IsImplicitlyDeclared
+			    || constructor.DeclaringSyntaxReferences.IsEmpty
+			    || constructor.DeclaringSyntaxReferences[0] is not { } reference
+			    || reference.GetSyntax(cancellationToken) is not ConstructorDeclarationSyntax syntax
+			    || solution.GetDocument(reference.SyntaxTree) is not { } document)
+			{
+				continue;
+			}
 
-            return CodeAction.Create(
-                "Make parameterless constructor public",
-                async actionCancellationToken =>
-                {
-                    var root = await document.GetSyntaxRootAsync(actionCancellationToken).ConfigureAwait(false);
-                    return root is null
-                        ? solution
-                        : solution.WithDocumentSyntaxRoot(document.Id,
-                            root.ReplaceNode(syntax, PluginClassRewriter.MakePublic(syntax)));
-                },
-                MakeConstructorPublicEquivalenceKey);
-        }
+			return CodeAction.Create(
+				"Make parameterless constructor public",
+				async actionCancellationToken =>
+				{
+					SyntaxNode? root = await document.GetSyntaxRootAsync(actionCancellationToken).ConfigureAwait(false);
+					return root is null
+						? solution
+						: solution.WithDocumentSyntaxRoot(document.Id,
+							root.ReplaceNode(syntax, PluginClassRewriter.MakePublic(syntax)));
+				},
+				MakeConstructorPublicEquivalenceKey);
+		}
 
-        return null;
-    }
+		return null;
+	}
 }

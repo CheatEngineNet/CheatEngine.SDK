@@ -16,51 +16,54 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Tests.Infrastructure;
 /// </remarks>
 public sealed class RoslynFixture
 {
-    /// <summary>Assembly name of the test compilations.</summary>
-    internal const string PluginAssemblyName = "TestEngineApi";
+	/// <summary>Assembly name of the test compilations.</summary>
+	internal const string PluginAssemblyName = "TestEngineApi";
 
-    /// <summary>
-    ///     Takes the process-wide environment; a failure to find the framework references fails the class with the
-    ///     resolver's message.
-    /// </summary>
-    public RoslynFixture()
-    {
-        Environment = RoslynEnvironment.Shared;
-    }
+	/// <summary>
+	///     Takes the process-wide environment; a failure to find the framework references fails the class with the
+	///     resolver's message.
+	/// </summary>
+	public RoslynFixture()
+	{
+		Environment = RoslynEnvironment.Shared;
+	}
 
-    internal RoslynEnvironment Environment { get; }
+	internal RoslynEnvironment Environment
+	{
+		get;
+	}
 
-    /// <summary>An otherwise-empty compilation (no attributed source is needed by this generator).</summary>
-    internal CSharpCompilation CreateCompilation()
-    {
-        return CSharpCompilation.Create(PluginAssemblyName, [], Environment.PluginReferences,
-            RoslynEnvironment.CompilationOptions);
-    }
+	/// <summary>An otherwise-empty compilation (no attributed source is needed by this generator).</summary>
+	internal CSharpCompilation CreateCompilation()
+	{
+		return CSharpCompilation.Create(PluginAssemblyName, [], Environment.PluginReferences,
+			RoslynEnvironment.CompilationOptions);
+	}
 
-    /// <summary>Creates a driver for the generator, with step tracking on, over <paramref name="additionalTexts" />.</summary>
-    internal static GeneratorDriver CreateDriver(params AdditionalText[] additionalTexts)
-    {
-        return CSharpGeneratorDriver.Create(
-            [new EngineApiGenerator().AsSourceGenerator()],
-            additionalTexts,
-            RoslynEnvironment.ParseOptions,
-            null,
-            new GeneratorDriverOptions(
-                IncrementalGeneratorOutputKind.None,
-                true));
-    }
+	/// <summary>Creates a driver for the generator, with step tracking on, over <paramref name="additionalTexts" />.</summary>
+	internal static GeneratorDriver CreateDriver(params AdditionalText[] additionalTexts)
+	{
+		return CSharpGeneratorDriver.Create(
+			[new EngineApiGenerator().AsSourceGenerator()],
+			additionalTexts,
+			RoslynEnvironment.ParseOptions,
+			null,
+			new GeneratorDriverOptions(
+				IncrementalGeneratorOutputKind.None,
+				true));
+	}
 
-    /// <summary>Runs the generator once over one spec file at <paramref name="path" /> with content <paramref name="text" />.</summary>
-    internal GeneratorRun Run(string path, string text)
-    {
-        return Run((path, text));
-    }
+	/// <summary>Runs the generator once over one spec file at <paramref name="path" /> with content <paramref name="text" />.</summary>
+	internal GeneratorRun Run(string path, string text)
+	{
+		return Run((path, text));
+	}
 
-    /// <summary>Runs the generator once over several spec files.</summary>
-    internal GeneratorRun Run(params (string Path, string Text)[] specs)
-    {
-        AdditionalText[] texts =
-            [.. specs.Select(static spec => (AdditionalText)new InMemoryAdditionalText(spec.Path, spec.Text))];
-        return GeneratorRun.Execute(CreateDriver(texts), CreateCompilation());
-    }
+	/// <summary>Runs the generator once over several spec files.</summary>
+	internal GeneratorRun Run(params (string Path, string Text)[] specs)
+	{
+		AdditionalText[] texts =
+			[.. specs.Select(static spec => (AdditionalText) new InMemoryAdditionalText(spec.Path, spec.Text))];
+		return GeneratorRun.Execute(CreateDriver(texts), CreateCompilation());
+	}
 }

@@ -18,18 +18,18 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///     <c>tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests</c>).
 /// </remarks>
 [SuppressMessage(
-    "Meziantou.Analyzer",
-    "MA0182",
-    Justification =
-        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
+	"Meziantou.Analyzer",
+	"MA0182",
+	Justification =
+		"This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class ManagedEntryPointNames
 {
-    /// <summary>Namespace of the bootstrap type, as written into the emitted <c>namespace</c> declaration.</summary>
-    public const string Namespace = "CESDK";
+	/// <summary>Namespace of the bootstrap type, as written into the emitted <c>namespace</c> declaration.</summary>
+	public const string Namespace = "CESDK";
 
-    /// <summary>Simple name of the bootstrap type, as written into the emitted <c>class</c> declaration.</summary>
-    public const string TypeName = "CESDK";
+	/// <summary>Simple name of the bootstrap type, as written into the emitted <c>class</c> declaration.</summary>
+	public const string TypeName = "CESDK";
 
-    /// <summary>Name of the public static bootstrap method the host calls.</summary>
-    public const string MethodName = "CEPluginInitialize";
+	/// <summary>Name of the public static bootstrap method the host calls.</summary>
+	public const string MethodName = "CEPluginInitialize";
 }

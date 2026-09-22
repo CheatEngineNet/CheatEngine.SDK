@@ -37,27 +37,30 @@ namespace CheatEngine.SDK.Engine.Values;
 /// </remarks>
 public readonly struct Address
 {
-    /// <summary>Wraps a raw address, mirroring the real type's constructor.</summary>
-    /// <param name="value">The address.</param>
-    public Address(ulong value)
-    {
-        Value = value;
-    }
+	/// <summary>Wraps a raw address, mirroring the real type's constructor.</summary>
+	/// <param name="value">The address.</param>
+	public Address(ulong value)
+	{
+		Value = value;
+	}
 
-    /// <summary>Gets the raw address.</summary>
-    public ulong Value { get; }
+	/// <summary>Gets the raw address.</summary>
+	public ulong Value
+	{
+		get;
+	}
 
-    /// <summary>Converts a raw value, mirroring the real type's implicit conversion.</summary>
-    /// <param name="value">The address.</param>
-    public static implicit operator Address(ulong value)
-    {
-        return new Address(value);
-    }
+	/// <summary>Converts a raw value, mirroring the real type's implicit conversion.</summary>
+	/// <param name="value">The address.</param>
+	public static implicit operator Address(ulong value)
+	{
+		return new Address(value);
+	}
 
-    /// <summary>Unwraps the raw value, mirroring the real type's named accessor.</summary>
-    /// <returns>The raw address.</returns>
-    public ulong ToUInt64()
-    {
-        return Value;
-    }
+	/// <summary>Unwraps the raw value, mirroring the real type's named accessor.</summary>
+	/// <returns>The raw address.</returns>
+	public ulong ToUInt64()
+	{
+		return Value;
+	}
 }

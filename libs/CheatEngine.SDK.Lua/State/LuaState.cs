@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.Interop.Types;
@@ -48,94 +49,97 @@ namespace CheatEngine.SDK.Lua.State;
 /// </remarks>
 public readonly unsafe partial struct LuaState : IEquatable<LuaState>
 {
-    /// <summary>Value for the result count of <see cref="TryCall(int, int)" />: keep every result (<c>LUA_MULTRET</c>).</summary>
-    public const int MultipleResults = LuaApi.LUA_MULTRET;
+	/// <summary>Value for the result count of <see cref="TryCall(int, int)" />: keep every result (<c>LUA_MULTRET</c>).</summary>
+	public const int MultipleResults = LuaApi.LUA_MULTRET;
 
-    /// <summary>
-    ///     Slots that are free when Lua enters a C function (<c>LUA_MINSTACK</c>). Beyond that, call
-    ///     <see cref="TryEnsureStack" />.
-    /// </summary>
-    public const int MinimumFreeSlots = LuaApi.LUA_MINSTACK;
+	/// <summary>
+	///     Slots that are free when Lua enters a C function (<c>LUA_MINSTACK</c>). Beyond that, call
+	///     <see cref="TryEnsureStack" />.
+	/// </summary>
+	public const int MinimumFreeSlots = LuaApi.LUA_MINSTACK;
 
-    /// <summary>Pseudo-index of the registry (<c>LUA_REGISTRYINDEX</c>), usable with the <c>Raw*</c> table members.</summary>
-    public const int RegistryIndex = LuaApi.LUA_REGISTRYINDEX;
+	/// <summary>Pseudo-index of the registry (<c>LUA_REGISTRYINDEX</c>), usable with the <c>Raw*</c> table members.</summary>
+	public const int RegistryIndex = LuaApi.LUA_REGISTRYINDEX;
 
-    /// <summary>Wraps a native <c>lua_State*</c> given as an integer handle.</summary>
-    /// <param name="handle">
-    ///     The address of a live Lua state: the argument of a <c>lua_CFunction</c> thunk, or a state owned by a test.
-    ///     It is not validated; zero gives the <see cref="IsNull" /> view, on which no member may be called.
-    /// </param>
-    /// <remarks>
-    ///     Constructing a view is a pure value operation; it is the members that need
-    ///     <c>CheatEngine.SDK.Lua.Interop.Api.LuaApi</c> to be bound.
-    /// </remarks>
-    public LuaState(nint handle)
-    {
-        Pointer = (lua_State*)handle;
-    }
+	/// <summary>Wraps a native <c>lua_State*</c> given as an integer handle.</summary>
+	/// <param name="handle">
+	///     The address of a live Lua state: the argument of a <c>lua_CFunction</c> thunk, or a state owned by a test.
+	///     It is not validated; zero gives the <see cref="IsNull" /> view, on which no member may be called.
+	/// </param>
+	/// <remarks>
+	///     Constructing a view is a pure value operation; it is the members that need
+	///     <c>CheatEngine.SDK.Lua.Interop.Api.LuaApi</c> to be bound.
+	/// </remarks>
+	public LuaState(nint handle)
+	{
+		Pointer = (lua_State*) handle;
+	}
 
-    internal LuaState(lua_State* pointer)
-    {
-        Pointer = pointer;
-    }
+	internal LuaState(lua_State* pointer)
+	{
+		Pointer = pointer;
+	}
 
-    /// <summary>
-    ///     Gets the address of the native state, for code that talks to <c>CheatEngine.SDK.Lua.Interop</c> directly.
-    /// </summary>
-    public nint Handle => (nint)Pointer;
+	/// <summary>
+	///     Gets the address of the native state, for code that talks to <c>CheatEngine.SDK.Lua.Interop</c> directly.
+	/// </summary>
+	public nint Handle => (nint) Pointer;
 
-    /// <summary>Gets a value indicating whether this is the default view over no state.</summary>
-    public bool IsNull => Pointer is null;
+	/// <summary>Gets a value indicating whether this is the default view over no state.</summary>
+	public bool IsNull => Pointer is null;
 
-    internal lua_State* Pointer { get; }
+	internal lua_State* Pointer
+	{
+		get;
+	}
 
-    /// <summary>Compares two views for identity of the native state.</summary>
-    /// <param name="left">First view.</param>
-    /// <param name="right">Second view.</param>
-    /// <returns><see langword="true" /> when both refer to the same <c>lua_State*</c>.</returns>
-    public static bool operator ==(LuaState left, LuaState right)
-    {
-        return left.Pointer == right.Pointer;
-    }
+	/// <summary>Compares two views for identity of the native state.</summary>
+	/// <param name="left">First view.</param>
+	/// <param name="right">Second view.</param>
+	/// <returns><see langword="true" /> when both refer to the same <c>lua_State*</c>.</returns>
+	public static bool operator ==(LuaState left, LuaState right)
+	{
+		return left.Pointer == right.Pointer;
+	}
 
-    /// <summary>Compares two views for identity of the native state.</summary>
-    /// <param name="left">First view.</param>
-    /// <param name="right">Second view.</param>
-    /// <returns><see langword="true" /> when they refer to different states.</returns>
-    public static bool operator !=(LuaState left, LuaState right)
-    {
-        return left.Pointer != right.Pointer;
-    }
+	/// <summary>Compares two views for identity of the native state.</summary>
+	/// <param name="left">First view.</param>
+	/// <param name="right">Second view.</param>
+	/// <returns><see langword="true" /> when they refer to different states.</returns>
+	public static bool operator !=(LuaState left, LuaState right)
+	{
+		return left.Pointer != right.Pointer;
+	}
 
-    /// <inheritdoc />
-    public bool Equals(LuaState other)
-    {
-        return Pointer == other.Pointer;
-    }
+	/// <inheritdoc />
+	public bool Equals(LuaState other)
+	{
+		return Pointer == other.Pointer;
+	}
 
-    /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return obj is LuaState other && Equals(other);
-    }
+	/// <inheritdoc />
+	public override bool Equals(object? obj)
+	{
+		return obj is LuaState other && Equals(other);
+	}
 
-    /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return ((nint)Pointer).GetHashCode();
-    }
+	/// <inheritdoc />
+	public override int GetHashCode()
+	{
+		return ((nint) Pointer).GetHashCode();
+	}
 
-    /// <summary>Formats the address of the native state, for diagnostics.</summary>
-    /// <returns><c>lua_State@0x...</c>.</returns>
-    public override string ToString()
-    {
-        return "lua_State@0x" + ((nint)Pointer).ToString("X", CultureInfo.InvariantCulture);
-    }
+	/// <summary>Formats the address of the native state, for diagnostics.</summary>
+	/// <returns><c>lua_State@0x...</c>.</returns>
+	public override string ToString()
+	{
+		return "lua_State@0x" + ((nint) Pointer).ToString("X", CultureInfo.InvariantCulture);
+	}
 
-    // A relative index keeps designating the same slot after 'pushed' more values were pushed above it.
-    // Absolute indices and pseudo-indices (registry, upvalues) do not move.
-    internal static int Shift(int index, int pushed)
-    {
-        return index is < 0 and > LuaApi.LUA_REGISTRYINDEX ? index - pushed : index;
-    }
+	// A relative index keeps designating the same slot after 'pushed' more values were pushed above it.
+	// Absolute indices and pseudo-indices (registry, upvalues) do not move.
+	internal static int Shift(int index, int pushed)
+	{
+		return index is < 0 and > LuaApi.LUA_REGISTRYINDEX ? index - pushed : index;
+	}
 }

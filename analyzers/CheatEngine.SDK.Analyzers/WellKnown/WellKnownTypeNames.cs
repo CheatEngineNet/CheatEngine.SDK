@@ -8,67 +8,67 @@ namespace CheatEngine.SDK.Analyzers.WellKnown;
 /// </summary>
 internal static class WellKnownTypeNames
 {
-    /// <summary>The marker attribute of a plugin class.</summary>
-    public const string CheatEnginePluginAttribute = AnnotationsMetadataNames.CheatEnginePluginAttribute;
+	/// <summary>The marker attribute of a plugin class.</summary>
+	public const string CheatEnginePluginAttribute = AnnotationsMetadataNames.CheatEnginePluginAttribute;
 
-    /// <summary>The base class of every plugin.</summary>
-    public const string CheatEnginePluginBase = AnnotationsMetadataNames.CheatEnginePluginBase;
+	/// <summary>The base class of every plugin.</summary>
+	public const string CheatEnginePluginBase = AnnotationsMetadataNames.CheatEnginePluginBase;
 
-    /// <summary>The attribute that turns a static method into a native-callable entry.</summary>
-    public const string UnmanagedCallersOnlyAttribute = "System.Runtime.InteropServices.UnmanagedCallersOnlyAttribute";
+	/// <summary>The attribute that turns a static method into a native-callable entry.</summary>
+	public const string UnmanagedCallersOnlyAttribute = "System.Runtime.InteropServices.UnmanagedCallersOnlyAttribute";
 
-    /// <summary>The root of the exception hierarchy: the type a catch-all clause names.</summary>
-    public const string Exception = "System.Exception";
+	/// <summary>The root of the exception hierarchy: the type a catch-all clause names.</summary>
+	public const string Exception = "System.Exception";
 
-    /// <summary>
-    ///     Marks a method that never returns normally; in a catch or finally block CESDK1004 reads a call of it as a
-    ///     throw.
-    /// </summary>
-    public const string DoesNotReturnAttribute = "System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute";
+	/// <summary>
+	///     Marks a method that never returns normally; in a catch or finally block CESDK1004 reads a call of it as a
+	///     throw.
+	/// </summary>
+	public const string DoesNotReturnAttribute = "System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute";
 
-    /// <summary>
-    ///     Declares <c>FailFast</c> and <c>Exit</c>: marked <c>[DoesNotReturn]</c>, but they end the process instead of
-    ///     throwing, so CESDK1004 does not read them as a throw.
-    /// </summary>
-    public const string Environment = "System.Environment";
+	/// <summary>
+	///     Declares <c>FailFast</c> and <c>Exit</c>: marked <c>[DoesNotReturn]</c>, but they end the process instead of
+	///     throwing, so CESDK1004 does not read them as a throw.
+	/// </summary>
+	public const string Environment = "System.Environment";
 
-    /// <summary>
-    ///     On a constructor: it sets every <see langword="required" /> member, so <c>new T()</c> needs no object
-    ///     initializer (CESDK0001).
-    /// </summary>
-    public const string SetsRequiredMembersAttribute = "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
+	/// <summary>
+	///     On a constructor: it sets every <see langword="required" /> member, so <c>new T()</c> needs no object
+	///     initializer (CESDK0001).
+	/// </summary>
+	public const string SetsRequiredMembersAttribute = "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
 
-    /// <summary>With <c>error: true</c>, naming the marked symbol is a compiler error that no pragma silences (CESDK0001).</summary>
-    public const string ObsoleteAttribute = "System.ObsoleteAttribute";
+	/// <summary>With <c>error: true</c>, naming the marked symbol is a compiler error that no pragma silences (CESDK0001).</summary>
+	public const string ObsoleteAttribute = "System.ObsoleteAttribute";
 
-    /// <summary>Exports a managed static method to Lua as a global C function (CESDK2xxx).</summary>
-    public const string LuaFunctionAttribute = AnnotationsMetadataNames.LuaFunctionAttribute;
+	/// <summary>Exports a managed static method to Lua as a global C function (CESDK2xxx).</summary>
+	public const string LuaFunctionAttribute = AnnotationsMetadataNames.LuaFunctionAttribute;
 
-    /// <summary>Binds a partial member to a Lua global (CESDK2xxx).</summary>
-    public const string LuaGlobalAttribute = AnnotationsMetadataNames.LuaGlobalAttribute;
+	/// <summary>Binds a partial member to a Lua global (CESDK2xxx).</summary>
+	public const string LuaGlobalAttribute = AnnotationsMetadataNames.LuaGlobalAttribute;
 
-    /// <summary>Selects a concrete static marshaller for one generated Lua binding value.</summary>
-    public const string LuaMarshallerAttribute = AnnotationsMetadataNames.LuaMarshallerAttribute;
+	/// <summary>Selects a concrete static marshaller for one generated Lua binding value.</summary>
+	public const string LuaMarshallerAttribute = AnnotationsMetadataNames.LuaMarshallerAttribute;
 
-    /// <summary>The static-abstract Lua marshaller contract used by the generated binding surface.</summary>
-    public const string ILuaMarshaller = "CheatEngine.SDK.Lua.Marshalling.ILuaMarshaller`1";
+	/// <summary>The static-abstract Lua marshaller contract used by the generated binding surface.</summary>
+	public const string ILuaMarshaller = "CheatEngine.SDK.Lua.Marshalling.ILuaMarshaller`1";
 
-    /// <summary>Marks an API that can only run after PluginHost enables the plugin (CESDK1001).</summary>
-    public const string RequiresPluginEnabledAttribute =
-        "CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute";
+	/// <summary>Marks an API that can only run after PluginHost enables the plugin (CESDK1001).</summary>
+	public const string RequiresPluginEnabledAttribute =
+		"CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute";
 
-    /// <summary>Marks a value that Cheat Engine owns and callers must only borrow (CESDK1003).</summary>
-    public const string CEOwnedAttribute = "CheatEngine.SDK.Annotations.Lifetime.CEOwnedAttribute";
+	/// <summary>Marks a value that Cheat Engine owns and callers must only borrow (CESDK1003).</summary>
+	public const string CEOwnedAttribute = "CheatEngine.SDK.Annotations.Lifetime.CEOwnedAttribute";
 
-    /// <summary>Marks a Lua object handle whose implementation is emitted by LuaBindings (CESDK2006/2007).</summary>
-    public const string LuaClassAttribute = "CheatEngine.SDK.Annotations.Lua.LuaClassAttribute";
+	/// <summary>Marks a Lua object handle whose implementation is emitted by LuaBindings (CESDK2006/2007).</summary>
+	public const string LuaClassAttribute = "CheatEngine.SDK.Annotations.Lua.LuaClassAttribute";
 
-    /// <summary>Marks a partial Lua object method whose body is emitted by LuaBindings (CESDK2006).</summary>
-    public const string LuaMethodAttribute = "CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute";
+	/// <summary>Marks a partial Lua object method whose body is emitted by LuaBindings (CESDK2006).</summary>
+	public const string LuaMethodAttribute = "CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute";
 
-    /// <summary>Marks a partial Lua object property whose accessors are emitted by LuaBindings (CESDK2006).</summary>
-    public const string LuaPropertyAttribute = "CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute";
+	/// <summary>Marks a partial Lua object property whose accessors are emitted by LuaBindings (CESDK2006).</summary>
+	public const string LuaPropertyAttribute = "CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute";
 
-    /// <summary>The real Lua state symbol that LuaMethod does not accept as an argument.</summary>
-    public const string LuaState = "CheatEngine.SDK.Lua.State.LuaState";
+	/// <summary>The real Lua state symbol that LuaMethod does not accept as an argument.</summary>
+	public const string LuaState = "CheatEngine.SDK.Lua.State.LuaState";
 }

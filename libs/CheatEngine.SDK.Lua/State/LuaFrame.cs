@@ -25,45 +25,48 @@ namespace CheatEngine.SDK.Lua.State;
 [StructLayout(LayoutKind.Auto)]
 public readonly ref struct LuaFrame : IDisposable
 {
-    private readonly LuaState _state;
+	private readonly LuaState _state;
 
-    /// <summary>Records the current top of <paramref name="state" />.</summary>
-    /// <param name="state">The state to guard; must not be <see cref="LuaState.IsNull" />.</param>
-    public LuaFrame(LuaState state)
-    {
-        _state = state;
-        Top = state.Top;
-    }
+	/// <summary>Records the current top of <paramref name="state" />.</summary>
+	/// <param name="state">The state to guard; must not be <see cref="LuaState.IsNull" />.</param>
+	public LuaFrame(LuaState state)
+	{
+		_state = state;
+		Top = state.Top;
+	}
 
-    /// <summary>Gets the guarded state.</summary>
-    public LuaState State => _state;
+	/// <summary>Gets the guarded state.</summary>
+	public LuaState State => _state;
 
-    /// <summary>
-    ///     Gets the stack top recorded at creation: the height <see cref="Dispose" /> restores, and the index below the
-    ///     frame's first own value.
-    /// </summary>
-    public int Top { get; }
+	/// <summary>
+	///     Gets the stack top recorded at creation: the height <see cref="Dispose" /> restores, and the index below the
+	///     frame's first own value.
+	/// </summary>
+	public int Top
+	{
+		get;
+	}
 
-    /// <summary>Gets the number of values the frame currently owns: those pushed since it was created.</summary>
-    public int Count => _state.Top - Top;
+	/// <summary>Gets the number of values the frame currently owns: those pushed since it was created.</summary>
+	public int Count => _state.Top - Top;
 
-    /// <summary>
-    ///     Asserts, in Debug builds only, that the stack is exactly at the recorded height: for code that claims to be
-    ///     balanced by construction before the frame restores anything.
-    /// </summary>
-    [Conditional("DEBUG")]
-    public void AssertBalanced()
-    {
-        Debug.Assert(_state.Top == Top, "The Lua stack is not at the height recorded by the frame.");
-    }
+	/// <summary>
+	///     Asserts, in Debug builds only, that the stack is exactly at the recorded height: for code that claims to be
+	///     balanced by construction before the frame restores anything.
+	/// </summary>
+	[Conditional("DEBUG")]
+	public void AssertBalanced()
+	{
+		Debug.Assert(_state.Top == Top, "The Lua stack is not at the height recorded by the frame.");
+	}
 
-    /// <summary>Restores the recorded top, dropping every value pushed inside the frame. Never raises; idempotent.</summary>
-    public void Dispose()
-    {
-        // A frame that ends below its own start has consumed values it did not own: restoring would paper over it
-        // with nils. Only a Debug build can tell; Release restores regardless, which is the safer of two wrongs.
-        Debug.Assert(_state.Top >= Top,
-            "The Lua stack is below the height recorded by the frame: values that were not pushed inside it have been popped.");
-        _state.SetTop(Top);
-    }
+	/// <summary>Restores the recorded top, dropping every value pushed inside the frame. Never raises; idempotent.</summary>
+	public void Dispose()
+	{
+		// A frame that ends below its own start has consumed values it did not own: restoring would paper over it
+		// with nils. Only a Debug build can tell; Release restores regardless, which is the safer of two wrongs.
+		Debug.Assert(_state.Top >= Top,
+			"The Lua stack is below the height recorded by the frame: values that were not pushed inside it have been popped.");
+		_state.SetTop(Top);
+	}
 }

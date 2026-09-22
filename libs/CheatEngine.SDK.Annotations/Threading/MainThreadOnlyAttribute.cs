@@ -41,10 +41,10 @@ namespace CheatEngine.SDK.Annotations.Threading;
 ///     </para>
 /// </remarks>
 [AttributeUsage(
-    AttributeTargets.Method
-    | AttributeTargets.Property
-    | AttributeTargets.Constructor
-    | AttributeTargets.Class
-    | AttributeTargets.Struct
-    | AttributeTargets.Interface)]
+	AttributeTargets.Method
+	| AttributeTargets.Property
+	| AttributeTargets.Constructor
+	| AttributeTargets.Class
+	| AttributeTargets.Struct
+	| AttributeTargets.Interface)]
 public sealed class MainThreadOnlyAttribute : Attribute;

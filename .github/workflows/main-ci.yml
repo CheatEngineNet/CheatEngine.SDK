@@ -18,3 +18,7 @@ jobs:
   ci:
     name: CI
     uses: ./.github/workflows/ci.yml
+    with:
+      collect-coverage: ${{ vars.SONAR_CI_ENABLED == 'true' && github.ref == 'refs/heads/main' }}
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

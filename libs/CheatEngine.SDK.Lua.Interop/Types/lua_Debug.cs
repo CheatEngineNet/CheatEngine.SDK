@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Lua.Interop.Api;
 
 namespace CheatEngine.SDK.Lua.Interop.Types;
@@ -20,48 +21,48 @@ namespace CheatEngine.SDK.Lua.Interop.Types;
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct lua_Debug
 {
-    /// <summary>Hook event code (<c>LUA_HOOK*</c>); only meaningful inside a hook.</summary>
-    public int @event;
+	/// <summary>Hook event code (<c>LUA_HOOK*</c>); only meaningful inside a hook.</summary>
+	public int @event;
 
-    /// <summary>("n") A plausible name for the function, or null when none can be found.</summary>
-    public byte* name;
+	/// <summary>("n") A plausible name for the function, or null when none can be found.</summary>
+	public byte* name;
 
-    /// <summary>("n") How <see cref="name" /> was found: "global", "local", "method", "field", "upvalue" or "".</summary>
-    public byte* namewhat;
+	/// <summary>("n") How <see cref="name" /> was found: "global", "local", "method", "field", "upvalue" or "".</summary>
+	public byte* namewhat;
 
-    /// <summary>("S") "Lua", "C" or "main".</summary>
-    public byte* what;
+	/// <summary>("S") "Lua", "C" or "main".</summary>
+	public byte* what;
 
-    /// <summary>("S") Chunk name: "@file", "=custom" or the source text itself.</summary>
-    public byte* source;
+	/// <summary>("S") Chunk name: "@file", "=custom" or the source text itself.</summary>
+	public byte* source;
 
-    /// <summary>("l") Line being executed, or -1 when unavailable.</summary>
-    public int currentline;
+	/// <summary>("l") Line being executed, or -1 when unavailable.</summary>
+	public int currentline;
 
-    /// <summary>("S") First line of the function definition.</summary>
-    public int linedefined;
+	/// <summary>("S") First line of the function definition.</summary>
+	public int linedefined;
 
-    /// <summary>("S") Last line of the function definition.</summary>
-    public int lastlinedefined;
+	/// <summary>("S") Last line of the function definition.</summary>
+	public int lastlinedefined;
 
-    /// <summary>("u") Number of upvalues.</summary>
-    public byte nups;
+	/// <summary>("u") Number of upvalues.</summary>
+	public byte nups;
 
-    /// <summary>("u") Number of fixed parameters (0 for C functions).</summary>
-    public byte nparams;
+	/// <summary>("u") Number of fixed parameters (0 for C functions).</summary>
+	public byte nparams;
 
-    /// <summary>("u") Non-zero when the function is vararg (always for C functions).</summary>
-    public sbyte isvararg;
+	/// <summary>("u") Non-zero when the function is vararg (always for C functions).</summary>
+	public sbyte isvararg;
 
-    /// <summary>("t") Non-zero when the function was entered through a tail call.</summary>
-    public sbyte istailcall;
+	/// <summary>("t") Non-zero when the function was entered through a tail call.</summary>
+	public sbyte istailcall;
 
-    /// <summary>("S") Printable, NUL-terminated form of <see cref="source" /> for messages.</summary>
-    [SuppressMessage("Meziantou.Analyzer", "MA0189",
-        Justification =
-            "This fixed buffer is the public Lua 5.3 ABI field; replacing it with an InlineArray would change the C-shaped source contract.")]
-    public fixed byte short_src[LuaApi.LUA_IDSIZE];
+	/// <summary>("S") Printable, NUL-terminated form of <see cref="source" /> for messages.</summary>
+	[SuppressMessage("Meziantou.Analyzer", "MA0189",
+		Justification =
+			"This fixed buffer is the public Lua 5.3 ABI field; replacing it with an InlineArray would change the C-shaped source contract.")]
+	public fixed byte short_src[LuaApi.LUA_IDSIZE];
 
-    /// <summary>Private to Lua (the active <c>CallInfo</c>). Written by <see cref="LuaApi.lua_getstack" />; never touch it.</summary>
-    public void* i_ci;
+	/// <summary>Private to Lua (the active <c>CallInfo</c>). Written by <see cref="LuaApi.lua_getstack" />; never touch it.</summary>
+	public void* i_ci;
 }

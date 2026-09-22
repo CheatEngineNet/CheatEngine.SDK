@@ -45,8 +45,11 @@ namespace CheatEngine.SDK.Annotations.Lua;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class LuaStackEffectAttribute(int delta) : Attribute
 {
-    /// <summary>
-    ///     Gets the net change in stack height: slots after the call minus slots before it.
-    /// </summary>
-    public int Delta { get; } = delta;
+	/// <summary>
+	///     Gets the net change in stack height: slots after the call minus slots before it.
+	/// </summary>
+	public int Delta
+	{
+		get;
+	} = delta;
 }

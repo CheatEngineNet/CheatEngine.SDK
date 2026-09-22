@@ -15,14 +15,14 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 ///     alone cannot tell apart) still get distinct names.
 /// </param>
 internal sealed record LuaFunctionTableModel(
-    ContainingTypeModel ContainingType,
-    EquatableArray<LuaThunkModel> Thunks,
-    string HintName)
+	ContainingTypeModel ContainingType,
+	EquatableArray<LuaThunkModel> Thunks,
+	string HintName)
 {
-    /// <summary>
-    ///     Suffix of the hint name: <c>Demo.Math.LuaFunctions.g.cs</c>. Owned here because
-    ///     <see cref="LuaFunctionTables.Group" /> needs it to resolve <see cref="HintName" />;
-    ///     <c>Emit/LuaFunctionFileEmitter.cs</c> reuses this constant.
-    /// </summary>
-    public const string HintSuffix = ".LuaFunctions.g.cs";
+	/// <summary>
+	///     Suffix of the hint name: <c>Demo.Math.LuaFunctions.g.cs</c>. Owned here because
+	///     <see cref="LuaFunctionTables.Group" /> needs it to resolve <see cref="HintName" />;
+	///     <c>Emit/LuaFunctionFileEmitter.cs</c> reuses this constant.
+	/// </summary>
+	public const string HintSuffix = ".LuaFunctions.g.cs";
 }

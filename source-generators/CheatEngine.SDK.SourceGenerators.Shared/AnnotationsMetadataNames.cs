@@ -24,60 +24,60 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///     this dotted constant; that is a different, valid representation of the same fact, not a duplicate of this one.
 /// </seealso>
 [SuppressMessage(
-    "Meziantou.Analyzer",
-    "MA0182",
-    Justification =
-        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
+	"Meziantou.Analyzer",
+	"MA0182",
+	Justification =
+		"This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class AnnotationsMetadataNames
 {
-    /// <summary>
-    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute</c>, the marker attribute of a
-    ///     plugin
-    ///     class.
-    /// </summary>
-    public const string CheatEnginePluginAttribute = "CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute";
+	/// <summary>
+	///     Metadata name of <c>CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute</c>, the marker attribute of a
+	///     plugin
+	///     class.
+	/// </summary>
+	public const string CheatEnginePluginAttribute = "CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute";
 
-    /// <summary>
-    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute</c>, which exports a static method to Lua
-    ///     as
-    ///     a global C function.
-    /// </summary>
-    public const string LuaFunctionAttribute = "CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute";
+	/// <summary>
+	///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute</c>, which exports a static method to Lua
+	///     as
+	///     a global C function.
+	/// </summary>
+	public const string LuaFunctionAttribute = "CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute";
 
-    /// <summary>
-    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute</c>, which binds a partial member to a Lua
-    ///     global.
-    /// </summary>
-    public const string LuaGlobalAttribute = "CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute";
+	/// <summary>
+	///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute</c>, which binds a partial member to a Lua
+	///     global.
+	/// </summary>
+	public const string LuaGlobalAttribute = "CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute";
 
-    /// <summary>
-    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaMarshallerAttribute</c>, which selects a concrete
-    ///     static marshaller for one generated binding value.
-    /// </summary>
-    public const string LuaMarshallerAttribute = "CheatEngine.SDK.Annotations.Lua.LuaMarshallerAttribute";
+	/// <summary>
+	///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaMarshallerAttribute</c>, which selects a concrete
+	///     static marshaller for one generated binding value.
+	/// </summary>
+	public const string LuaMarshallerAttribute = "CheatEngine.SDK.Annotations.Lua.LuaMarshallerAttribute";
 
-    /// <summary>
-    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaClassAttribute</c>, which identifies a borrowed
-    ///     Cheat Engine object-handle wrapper.
-    /// </summary>
-    public const string LuaClassAttribute = "CheatEngine.SDK.Annotations.Lua.LuaClassAttribute";
+	/// <summary>
+	///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaClassAttribute</c>, which identifies a borrowed
+	///     Cheat Engine object-handle wrapper.
+	/// </summary>
+	public const string LuaClassAttribute = "CheatEngine.SDK.Annotations.Lua.LuaClassAttribute";
 
-    /// <summary>
-    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute</c>, which binds an instance partial
-    ///     method on a generated object-handle wrapper.
-    /// </summary>
-    public const string LuaMethodAttribute = "CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute";
+	/// <summary>
+	///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute</c>, which binds an instance partial
+	///     method on a generated object-handle wrapper.
+	/// </summary>
+	public const string LuaMethodAttribute = "CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute";
 
-    /// <summary>
-    ///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute</c>, which binds a partial property
-    ///     on a generated object-handle wrapper.
-    /// </summary>
-    public const string LuaPropertyAttribute = "CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute";
+	/// <summary>
+	///     Metadata name of <c>CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute</c>, which binds a partial property
+	///     on a generated object-handle wrapper.
+	/// </summary>
+	public const string LuaPropertyAttribute = "CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute";
 
-    /// <summary>
-    ///     Dotted metadata name of <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c>, the base class of every plugin,
-    ///     for
-    ///     use with <c>GetTypeByMetadataName</c>.
-    /// </summary>
-    public const string CheatEnginePluginBase = "CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin";
+	/// <summary>
+	///     Dotted metadata name of <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c>, the base class of every plugin,
+	///     for
+	///     use with <c>GetTypeByMetadataName</c>.
+	/// </summary>
+	public const string CheatEnginePluginBase = "CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin";
 }

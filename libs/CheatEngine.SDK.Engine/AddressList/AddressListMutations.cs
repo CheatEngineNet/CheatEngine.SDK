@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
+
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Lua.Calls;
@@ -26,229 +28,293 @@ namespace CheatEngine.SDK.Engine.AddressList;
 /// </remarks>
 public static class AddressListMutations
 {
-    private static readonly LuaRef SGetAddressList = new();
+	private static readonly LuaRef SGetAddressList = new();
 
-    /// <summary>Deletes the current address-list record with <paramref name="recordId" />.</summary>
-    /// <param name="recordId">The CE <c>MemoryRecord.ID</c> to resolve in the current list.</param>
-    /// <returns>A command result that distinguishes preflight rejection from an invoked but indeterminate destroy.</returns>
-    /// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
-    [RequiresPluginEnabled]
-    public static MemoryRecordMutationOutcome Delete(MemoryRecordId recordId)
-    {
-        using var operation = LuaRuntime.AcquireOperation();
-        var state = operation.State;
-        var identity = LuaRuntime.CurrentStateIdentity;
-        var top = state.Top;
-        var mutationStarted = false;
-        try
-        {
-            var preflight = TryGetCurrentList(state, out var list);
-            if (preflight.Problem != MemoryRecordMutationProblem.None) return preflight;
+	/// <summary>Deletes the current address-list record with <paramref name="recordId" />.</summary>
+	/// <param name="recordId">The CE <c>MemoryRecord.ID</c> to resolve in the current list.</param>
+	/// <returns>A command result that distinguishes preflight rejection from an invoked but indeterminate destroy.</returns>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
+	[RequiresPluginEnabled]
+	public static MemoryRecordMutationOutcome Delete(MemoryRecordId recordId)
+	{
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		LuaStateIdentity identity = LuaRuntime.CurrentStateIdentity;
+		int top = state.Top;
+		bool mutationStarted = false;
+		try
+		{
+			MemoryRecordMutationOutcome preflight = TryGetCurrentList(state, out AddressList list);
+			if (preflight.Problem != MemoryRecordMutationProblem.None)
+			{
+				return preflight;
+			}
 
-            preflight = TryResolveRecord(state, list, recordId, isParent: false, out var record);
-            if (preflight.Problem != MemoryRecordMutationProblem.None) return preflight;
+			preflight = TryResolveRecord(state, list, recordId, false, out MemoryRecord record);
+			if (preflight.Problem != MemoryRecordMutationProblem.None)
+			{
+				return preflight;
+			}
 
-            if (LuaRuntime.CurrentStateIdentity != identity)
-                return NotAttempted(MemoryRecordMutationProblem.GlobalUnavailable);
+			if (LuaRuntime.CurrentStateIdentity != identity)
+			{
+				return NotAttempted(MemoryRecordMutationProblem.GlobalUnavailable);
+			}
 
-            var status = record.Handle.TryPushMethodLeavingObject(state, "destroy"u8);
-            if (!status.IsOk) return FromPreflightStatus(status);
+			LuaStatus status = record.Handle.TryPushMethodLeavingObject(state, "destroy"u8);
+			if (!status.IsOk)
+			{
+				return FromPreflightStatus(status);
+			}
 
-            mutationStarted = true;
-            status = state.TryCall(0, 0);
-            return status.IsOk ? Completed() : Indeterminate(status);
-        }
-        catch (LuaException exception)
-        {
-            return mutationStarted ? Indeterminate(exception.Status) : NotAttempted(MemoryRecordMutationProblem.LuaFailure,
-                exception.Status);
-        }
-        finally
-        {
-            state.SetTop(top);
-        }
-    }
+			mutationStarted = true;
+			status = state.TryCall(0, 0);
+			return status.IsOk ? Completed() : Indeterminate(status);
+		}
+		catch (LuaException exception)
+		{
+			return mutationStarted
+				? Indeterminate(exception.Status)
+				: NotAttempted(MemoryRecordMutationProblem.LuaFailure,
+					exception.Status);
+		}
+		finally
+		{
+			state.SetTop(top);
+		}
+	}
 
-    /// <summary>Assigns a record's parent after validating the requested hierarchy with the default traversal bound.</summary>
-    /// <param name="recordId">The child record's CE ID in the current list.</param>
-    /// <param name="parentId">The new parent's CE ID, or <see langword="null" /> to make the child a root record.</param>
-    /// <returns>A command result that preserves whether assignment was started.</returns>
-    /// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
-    [RequiresPluginEnabled]
-    public static MemoryRecordMutationOutcome SetParent(MemoryRecordId recordId, MemoryRecordId? parentId)
-    {
-        return SetParent(recordId, parentId, MemoryRecordParentTraversalLimit.Default);
-    }
+	/// <summary>Assigns a record's parent after validating the requested hierarchy with the default traversal bound.</summary>
+	/// <param name="recordId">The child record's CE ID in the current list.</param>
+	/// <param name="parentId">The new parent's CE ID, or <see langword="null" /> to make the child a root record.</param>
+	/// <returns>A command result that preserves whether assignment was started.</returns>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
+	[RequiresPluginEnabled]
+	public static MemoryRecordMutationOutcome SetParent(MemoryRecordId recordId, MemoryRecordId? parentId)
+	{
+		return SetParent(recordId, parentId, MemoryRecordParentTraversalLimit.Default);
+	}
 
-    /// <summary>Assigns a record's parent after validating the requested hierarchy with <paramref name="traversalLimit" />.</summary>
-    /// <param name="recordId">The child record's CE ID in the current list.</param>
-    /// <param name="parentId">The new parent's CE ID, or <see langword="null" /> to make the child a root record.</param>
-    /// <param name="traversalLimit">A positive bound for the proposed parent's existing parent chain.</param>
-    /// <returns>A command result that preserves whether assignment was started.</returns>
-    /// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
-    [RequiresPluginEnabled]
-    public static MemoryRecordMutationOutcome SetParent(MemoryRecordId recordId, MemoryRecordId? parentId,
-        MemoryRecordParentTraversalLimit traversalLimit)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(traversalLimit.MaximumHops, nameof(traversalLimit));
-        if (parentId.HasValue && parentId.Value == recordId) return NotAttempted(MemoryRecordMutationProblem.SelfParent);
+	/// <summary>Assigns a record's parent after validating the requested hierarchy with <paramref name="traversalLimit" />.</summary>
+	/// <param name="recordId">The child record's CE ID in the current list.</param>
+	/// <param name="parentId">The new parent's CE ID, or <see langword="null" /> to make the child a root record.</param>
+	/// <param name="traversalLimit">A positive bound for the proposed parent's existing parent chain.</param>
+	/// <returns>A command result that preserves whether assignment was started.</returns>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
+	[RequiresPluginEnabled]
+	[SuppressMessage("Meziantou.Analyzer", "MA0051:Method is too long",
+		Justification = "The parent-assignment transaction is intentionally kept atomic around the Lua operation.")]
+	public static MemoryRecordMutationOutcome SetParent(MemoryRecordId recordId, MemoryRecordId? parentId,
+		MemoryRecordParentTraversalLimit traversalLimit)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(traversalLimit.MaximumHops, nameof(traversalLimit));
+		if (parentId.HasValue && parentId.Value == recordId)
+		{
+			return NotAttempted(MemoryRecordMutationProblem.SelfParent);
+		}
 
-        using var operation = LuaRuntime.AcquireOperation();
-        var state = operation.State;
-        var identity = LuaRuntime.CurrentStateIdentity;
-        var top = state.Top;
-        var mutationStarted = false;
-        try
-        {
-            var preflight = TryGetCurrentList(state, out var list);
-            if (preflight.Problem != MemoryRecordMutationProblem.None) return preflight;
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		LuaStateIdentity identity = LuaRuntime.CurrentStateIdentity;
+		int top = state.Top;
+		bool mutationStarted = false;
+		try
+		{
+			MemoryRecordMutationOutcome preflight = TryGetCurrentList(state, out AddressList list);
+			if (preflight.Problem != MemoryRecordMutationProblem.None)
+			{
+				return preflight;
+			}
 
-            preflight = TryResolveRecord(state, list, recordId, isParent: false, out var child);
-            if (preflight.Problem != MemoryRecordMutationProblem.None) return preflight;
+			preflight = TryResolveRecord(state, list, recordId, false, out MemoryRecord child);
+			if (preflight.Problem != MemoryRecordMutationProblem.None)
+			{
+				return preflight;
+			}
 
-            MemoryRecord parent = default;
-            if (parentId.HasValue)
-            {
-                preflight = TryResolveRecord(state, list, parentId.Value, isParent: true, out parent);
-                if (preflight.Problem != MemoryRecordMutationProblem.None) return preflight;
+			MemoryRecord parent = default;
+			if (parentId.HasValue)
+			{
+				preflight = TryResolveRecord(state, list, parentId.Value, true, out parent);
+				if (preflight.Problem != MemoryRecordMutationProblem.None)
+				{
+					return preflight;
+				}
 
-                preflight = ValidateParentChain(state, recordId, parent, traversalLimit);
-                if (preflight.Problem != MemoryRecordMutationProblem.None) return preflight;
-            }
+				preflight = ValidateParentChain(state, recordId, parent, traversalLimit);
+				if (preflight.Problem != MemoryRecordMutationProblem.None)
+				{
+					return preflight;
+				}
+			}
 
-            if (LuaRuntime.CurrentStateIdentity != identity)
-                return NotAttempted(MemoryRecordMutationProblem.GlobalUnavailable);
+			if (LuaRuntime.CurrentStateIdentity != identity)
+			{
+				return NotAttempted(MemoryRecordMutationProblem.GlobalUnavailable);
+			}
 
-            if (parentId.HasValue)
-                parent.Handle.Push(state);
-            else
-                state.PushNil();
+			if (parentId.HasValue)
+			{
+				parent.Handle.Push(state);
+			}
+			else
+			{
+				state.PushNil();
+			}
 
-            mutationStarted = true;
-            var status = child.Handle.TrySetProperty(state, "Parent"u8);
-            return status.IsOk ? Completed() : Indeterminate(status);
-        }
-        catch (LuaException exception)
-        {
-            return mutationStarted ? Indeterminate(exception.Status) : NotAttempted(MemoryRecordMutationProblem.LuaFailure,
-                exception.Status);
-        }
-        finally
-        {
-            state.SetTop(top);
-        }
-    }
+			mutationStarted = true;
+			LuaStatus status = child.Handle.TrySetProperty(state, "Parent"u8);
+			return status.IsOk ? Completed() : Indeterminate(status);
+		}
+		catch (LuaException exception)
+		{
+			return mutationStarted
+				? Indeterminate(exception.Status)
+				: NotAttempted(MemoryRecordMutationProblem.LuaFailure,
+					exception.Status);
+		}
+		finally
+		{
+			state.SetTop(top);
+		}
+	}
 
-    private static MemoryRecordMutationOutcome TryResolveRecord(LuaState state, AddressList list, MemoryRecordId id,
-        bool isParent, out MemoryRecord record)
-    {
-        var status = list.Handle.TryPushMethodLeavingObject(state, "getMemoryRecordByID"u8);
-        if (!status.IsOk)
-        {
-            record = default;
-            return FromPreflightStatus(status);
-        }
+	private static MemoryRecordMutationOutcome TryResolveRecord(LuaState state, AddressList list, MemoryRecordId id,
+		bool isParent, out MemoryRecord record)
+	{
+		LuaStatus status = list.Handle.TryPushMethodLeavingObject(state, "getMemoryRecordByID"u8);
+		if (!status.IsOk)
+		{
+			record = default;
+			return FromPreflightStatus(status);
+		}
 
-        MemoryRecordId.Push(state, id);
-        status = state.TryCall(1, 1);
-        if (!status.IsOk)
-        {
-            record = default;
-            return NotAttempted(MemoryRecordMutationProblem.LuaFailure, status);
-        }
+		MemoryRecordId.Push(state, id);
+		status = state.TryCall(1, 1);
+		if (!status.IsOk)
+		{
+			record = default;
+			return NotAttempted(MemoryRecordMutationProblem.LuaFailure, status);
+		}
 
-        if (state.IsNil(-1))
-        {
-            record = default;
-            return NotAttempted(isParent ? MemoryRecordMutationProblem.ParentNotFound : MemoryRecordMutationProblem.RecordNotFound);
-        }
+		if (state.IsNil(-1))
+		{
+			record = default;
+			return NotAttempted(isParent
+				? MemoryRecordMutationProblem.ParentNotFound
+				: MemoryRecordMutationProblem.RecordNotFound);
+		}
 
-        if (!MemoryRecord.TryRead(state, -1, out record))
-            return NotAttempted(MemoryRecordMutationProblem.InvalidResult);
+		if (!MemoryRecord.TryRead(state, -1, out record))
+		{
+			return NotAttempted(MemoryRecordMutationProblem.InvalidResult);
+		}
 
-        return Completed();
-    }
+		return Completed();
+	}
 
-    private static MemoryRecordMutationOutcome TryGetCurrentList(LuaState state, out AddressList list)
-    {
-        var global = LuaGlobalFunctions.TryPushWithOutcome(state, SGetAddressList, "getAddressList"u8);
-        if (!global.IsSuccess)
-        {
-            list = default;
-            return global.Status == LuaGlobalPushStatus.LuaFailure
-                ? NotAttempted(MemoryRecordMutationProblem.LuaFailure, global.LuaStatus)
-                : NotAttempted(MemoryRecordMutationProblem.GlobalUnavailable);
-        }
+	private static MemoryRecordMutationOutcome TryGetCurrentList(LuaState state, out AddressList list)
+	{
+		LuaGlobalPushOutcome global = LuaGlobalFunctions.TryPushWithOutcome(state, SGetAddressList, "getAddressList"u8);
+		if (!global.IsSuccess)
+		{
+			list = default;
+			return global.Status == LuaGlobalPushStatus.LuaFailure
+				? NotAttempted(MemoryRecordMutationProblem.LuaFailure, global.LuaStatus)
+				: NotAttempted(MemoryRecordMutationProblem.GlobalUnavailable);
+		}
 
-        var status = state.TryCall(0, 1);
-        if (!status.IsOk)
-        {
-            list = default;
-            return NotAttempted(MemoryRecordMutationProblem.LuaFailure, status);
-        }
+		LuaStatus status = state.TryCall(0, 1);
+		if (!status.IsOk)
+		{
+			list = default;
+			return NotAttempted(MemoryRecordMutationProblem.LuaFailure, status);
+		}
 
-        if (state.IsNil(-1))
-        {
-            list = default;
-            return NotAttempted(MemoryRecordMutationProblem.AddressListUnavailable);
-        }
+		if (state.IsNil(-1))
+		{
+			list = default;
+			return NotAttempted(MemoryRecordMutationProblem.AddressListUnavailable);
+		}
 
-        if (!AddressList.TryRead(state, -1, out list))
-            return NotAttempted(MemoryRecordMutationProblem.InvalidResult);
+		if (!AddressList.TryRead(state, -1, out list))
+		{
+			return NotAttempted(MemoryRecordMutationProblem.InvalidResult);
+		}
 
-        return Completed();
-    }
+		return Completed();
+	}
 
-    private static MemoryRecordMutationOutcome ValidateParentChain(LuaState state, MemoryRecordId childId,
-        MemoryRecord proposedParent, MemoryRecordParentTraversalLimit traversalLimit)
-    {
-        var seen = new HashSet<MemoryRecordId>();
-        var current = proposedParent;
-        for (var hops = 0;; hops++)
-        {
-            var status = current.Handle.TryGetProperty(state, "ID"u8);
-            if (!status.IsOk) return FromPreflightStatus(status);
-            if (!MemoryRecordId.TryRead(state, -1, out var currentId))
-                return NotAttempted(MemoryRecordMutationProblem.InvalidResult);
+	private static MemoryRecordMutationOutcome ValidateParentChain(LuaState state, MemoryRecordId childId,
+		MemoryRecord proposedParent, MemoryRecordParentTraversalLimit traversalLimit)
+	{
+		HashSet<MemoryRecordId> seen = new();
+		MemoryRecord current = proposedParent;
+		for (int hops = 0;; hops++)
+		{
+			LuaStatus status = current.Handle.TryGetProperty(state, "ID"u8);
+			if (!status.IsOk)
+			{
+				return FromPreflightStatus(status);
+			}
 
-            if (currentId == childId || !seen.Add(currentId))
-                return NotAttempted(MemoryRecordMutationProblem.CycleDetected);
+			if (!MemoryRecordId.TryRead(state, -1, out MemoryRecordId currentId))
+			{
+				return NotAttempted(MemoryRecordMutationProblem.InvalidResult);
+			}
 
-            status = current.Handle.TryGetProperty(state, "Parent"u8);
-            if (!status.IsOk) return FromPreflightStatus(status);
-            if (state.IsNil(-1)) return Completed();
-            if (!MemoryRecord.TryRead(state, -1, out current))
-                return NotAttempted(MemoryRecordMutationProblem.InvalidResult);
+			if (currentId == childId || !seen.Add(currentId))
+			{
+				return NotAttempted(MemoryRecordMutationProblem.CycleDetected);
+			}
 
-            if (hops + 1 >= traversalLimit.MaximumHops)
-                return NotAttempted(MemoryRecordMutationProblem.TraversalLimitReached);
-        }
-    }
+			status = current.Handle.TryGetProperty(state, "Parent"u8);
+			if (!status.IsOk)
+			{
+				return FromPreflightStatus(status);
+			}
 
-    private static MemoryRecordMutationOutcome FromPreflightStatus(LuaStatus status)
-    {
-        return NotAttempted(MemoryRecordMutationProblem.LuaFailure, status);
-    }
+			if (state.IsNil(-1))
+			{
+				return Completed();
+			}
 
-    private static MemoryRecordMutationOutcome Completed()
-    {
-        return new MemoryRecordMutationOutcome(MemoryRecordMutationEffect.Completed, MemoryRecordMutationProblem.None,
-            LuaStatus.Ok);
-    }
+			if (!MemoryRecord.TryRead(state, -1, out current))
+			{
+				return NotAttempted(MemoryRecordMutationProblem.InvalidResult);
+			}
 
-    private static MemoryRecordMutationOutcome NotAttempted(MemoryRecordMutationProblem problem)
-    {
-        return new MemoryRecordMutationOutcome(MemoryRecordMutationEffect.NotAttempted, problem, LuaStatus.Ok);
-    }
+			if (hops + 1 >= traversalLimit.MaximumHops)
+			{
+				return NotAttempted(MemoryRecordMutationProblem.TraversalLimitReached);
+			}
+		}
+	}
 
-    private static MemoryRecordMutationOutcome NotAttempted(MemoryRecordMutationProblem problem, LuaStatus status)
-    {
-        return new MemoryRecordMutationOutcome(MemoryRecordMutationEffect.NotAttempted, problem, status);
-    }
+	private static MemoryRecordMutationOutcome FromPreflightStatus(LuaStatus status)
+	{
+		return NotAttempted(MemoryRecordMutationProblem.LuaFailure, status);
+	}
 
-    private static MemoryRecordMutationOutcome Indeterminate(LuaStatus status)
-    {
-        return new MemoryRecordMutationOutcome(MemoryRecordMutationEffect.Indeterminate,
-            MemoryRecordMutationProblem.LuaFailure, status);
-    }
+	private static MemoryRecordMutationOutcome Completed()
+	{
+		return new MemoryRecordMutationOutcome(MemoryRecordMutationEffect.Completed, MemoryRecordMutationProblem.None,
+			LuaStatus.Ok);
+	}
+
+	private static MemoryRecordMutationOutcome NotAttempted(MemoryRecordMutationProblem problem)
+	{
+		return new MemoryRecordMutationOutcome(MemoryRecordMutationEffect.NotAttempted, problem, LuaStatus.Ok);
+	}
+
+	private static MemoryRecordMutationOutcome NotAttempted(MemoryRecordMutationProblem problem, LuaStatus status)
+	{
+		return new MemoryRecordMutationOutcome(MemoryRecordMutationEffect.NotAttempted, problem, status);
+	}
+
+	private static MemoryRecordMutationOutcome Indeterminate(LuaStatus status)
+	{
+		return new MemoryRecordMutationOutcome(MemoryRecordMutationEffect.Indeterminate,
+			MemoryRecordMutationProblem.LuaFailure, status);
+	}
 }

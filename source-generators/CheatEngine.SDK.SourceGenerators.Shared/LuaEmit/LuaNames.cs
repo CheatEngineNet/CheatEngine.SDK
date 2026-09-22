@@ -20,45 +20,52 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     already length-agnostic concern of the <c>CheatEngine.SDK.Lua</c> layer).
 /// </remarks>
 [SuppressMessage(
-    "Meziantou.Analyzer",
-    "MA0182",
-    Justification =
-        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
+	"Meziantou.Analyzer",
+	"MA0182",
+	Justification =
+		"This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class LuaNames
 {
-    /// <summary>The 22 reserved words of Lua 5.3 (manual, section 3.1), which cannot name a global a script can reference.</summary>
-    private static readonly string[] ReservedWords =
-    [
-        "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
-        "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"
-    ];
+	/// <summary>The 22 reserved words of Lua 5.3 (manual, section 3.1), which cannot name a global a script can reference.</summary>
+	private static readonly string[] ReservedWords =
+	[
+		"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
+		"local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"
+	];
 
-    /// <summary>Whether <paramref name="name" /> is a Lua identifier that is not a reserved word.</summary>
-    /// <param name="name">The candidate; <see langword="null" /> and empty are invalid.</param>
-    public static bool IsValidName(string? name)
-    {
-        if (string.IsNullOrEmpty(name) || !IsIdentifierStart(name![0])) return false;
+	/// <summary>Whether <paramref name="name" /> is a Lua identifier that is not a reserved word.</summary>
+	/// <param name="name">The candidate; <see langword="null" /> and empty are invalid.</param>
+	public static bool IsValidName(string? name)
+	{
+		if (string.IsNullOrEmpty(name) || !IsIdentifierStart(name![0]))
+		{
+			return false;
+		}
 
-        for (var i = 1; i < name.Length; i++)
-            if (!IsIdentifierPart(name[i]))
-                return false;
+		for (int i = 1; i < name.Length; i++)
+		{
+			if (!IsIdentifierPart(name[i]))
+			{
+				return false;
+			}
+		}
 
-        return Array.IndexOf(ReservedWords, name) < 0;
-    }
+		return Array.IndexOf(ReservedWords, name) < 0;
+	}
 
-    /// <summary>Whether <paramref name="name" /> is one of Lua's reserved words.</summary>
-    public static bool IsReservedWord(string name)
-    {
-        return name is not null && Array.IndexOf(ReservedWords, name) >= 0;
-    }
+	/// <summary>Whether <paramref name="name" /> is one of Lua's reserved words.</summary>
+	public static bool IsReservedWord(string name)
+	{
+		return name is not null && Array.IndexOf(ReservedWords, name) >= 0;
+	}
 
-    private static bool IsIdentifierStart(char c)
-    {
-        return c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or '_';
-    }
+	private static bool IsIdentifierStart(char c)
+	{
+		return c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or '_';
+	}
 
-    private static bool IsIdentifierPart(char c)
-    {
-        return IsIdentifierStart(c) || c is >= '0' and <= '9';
-    }
+	private static bool IsIdentifierPart(char c)
+	{
+		return IsIdentifierStart(c) || c is >= '0' and <= '9';
+	}
 }

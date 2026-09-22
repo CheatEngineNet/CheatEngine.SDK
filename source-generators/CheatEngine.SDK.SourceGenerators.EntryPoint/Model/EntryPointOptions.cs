@@ -1,4 +1,5 @@
 using CheatEngine.SDK.SourceGenerators.Shared;
+
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Model;
@@ -12,12 +13,12 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Model;
 /// </param>
 internal readonly record struct EntryPointOptions(bool GenerateEntryPoint)
 {
-    /// <summary>Global analyzer-config key of the switch.</summary>
-    public const string GenerateEntryPointKey = BuildProperty.KeyPrefix + "CheatEngineSdkGenerateEntryPoint";
+	/// <summary>Global analyzer-config key of the switch.</summary>
+	public const string GenerateEntryPointKey = BuildProperty.KeyPrefix + "CheatEngineSdkGenerateEntryPoint";
 
-    /// <summary>Reads the switches from <c>AnalyzerConfigOptionsProvider.GlobalOptions</c>.</summary>
-    public static EntryPointOptions From(AnalyzerConfigOptions globalOptions)
-    {
-        return new EntryPointOptions(BuildProperty.ReadBoolean(globalOptions, GenerateEntryPointKey, defaultValue: false));
-    }
+	/// <summary>Reads the switches from <c>AnalyzerConfigOptionsProvider.GlobalOptions</c>.</summary>
+	public static EntryPointOptions From(AnalyzerConfigOptions globalOptions)
+	{
+		return new EntryPointOptions(BuildProperty.ReadBoolean(globalOptions, GenerateEntryPointKey, false));
+	}
 }

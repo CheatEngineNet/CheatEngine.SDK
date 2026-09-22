@@ -26,18 +26,18 @@ namespace CheatEngine.SDK.SourceGenerators.Shared;
 ///     </para>
 /// </remarks>
 [SuppressMessage(
-    "Meziantou.Analyzer",
-    "MA0182",
-    Justification =
-        "This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
+	"Meziantou.Analyzer",
+	"MA0182",
+	Justification =
+		"This shared internal helper is consumed by the designated friend generator and analyzer assemblies.")]
 internal static class TrackingNames
 {
-    /// <summary>Prefix of every CheatEngine.SDK step name.</summary>
-    public const string Prefix = "CheatEngine.SDK.";
+	/// <summary>Prefix of every CheatEngine.SDK step name.</summary>
+	public const string Prefix = "CheatEngine.SDK.";
 
-    /// <summary><see langword="true" /> when <paramref name="stepName" /> follows the CheatEngine.SDK convention.</summary>
-    public static bool IsCheatEngineSdkStep(string? stepName)
-    {
-        return stepName is not null && stepName.StartsWith(Prefix, StringComparison.Ordinal);
-    }
+	/// <summary><see langword="true" /> when <paramref name="stepName" /> follows the CheatEngine.SDK convention.</summary>
+	public static bool IsCheatEngineSdkStep(string? stepName)
+	{
+		return stepName is not null && stepName.StartsWith(Prefix, StringComparison.Ordinal);
+	}
 }

@@ -9,7 +9,7 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Model;
 /// <param name="Column">1-based column number inside the spec file that the issue is about.</param>
 /// <param name="Kind">Whether this is malformed input or a conflict introduced while combining spec files.</param>
 internal sealed record SpecIssue(
-    int Line,
-    string Message,
-    int Column = 1,
-    SpecIssueKind Kind = SpecIssueKind.Grammar);
+	int Line,
+	string Message,
+	int Column = 1,
+	SpecIssueKind Kind = SpecIssueKind.Grammar);

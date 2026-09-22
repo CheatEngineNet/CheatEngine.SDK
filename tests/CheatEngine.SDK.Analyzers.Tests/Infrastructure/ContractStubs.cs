@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
+
 using CheatEngine.SDK.Annotations.Plugin;
 using CheatEngine.SDK.Hosting.Plugin;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 
@@ -18,16 +20,19 @@ namespace CheatEngine.SDK.Analyzers.Tests.Infrastructure;
 /// </remarks>
 internal static class ContractStubs
 {
-    /// <summary>The real assembly references that a consumer receives from direct SDK package references.</summary>
-    public static ImmutableArray<MetadataReference> References { get; } =
-    [
-        MetadataReference.CreateFromFile(typeof(CheatEnginePluginAttribute).Assembly.Location),
-        MetadataReference.CreateFromFile(typeof(CheatEnginePlugin).Assembly.Location),
-    ];
+	/// <summary>The real assembly references that a consumer receives from direct SDK package references.</summary>
+	public static ImmutableArray<MetadataReference> References
+	{
+		get;
+	} =
+	[
+		MetadataReference.CreateFromFile(typeof(CheatEnginePluginAttribute).Assembly.Location),
+		MetadataReference.CreateFromFile(typeof(CheatEnginePlugin).Assembly.Location)
+	];
 
-    /// <summary>Adds the real SDK contract metadata to <paramref name="state" />.</summary>
-    public static void AddTo(SolutionState state)
-    {
-        state.AdditionalReferences.AddRange(References);
-    }
+	/// <summary>Adds the real SDK contract metadata to <paramref name="state" />.</summary>
+	public static void AddTo(SolutionState state)
+	{
+		state.AdditionalReferences.AddRange(References);
+	}
 }

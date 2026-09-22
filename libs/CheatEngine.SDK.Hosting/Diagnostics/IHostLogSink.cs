@@ -13,9 +13,9 @@ namespace CheatEngine.SDK.Hosting.Diagnostics;
 /// </remarks>
 public interface IHostLogSink
 {
-    /// <summary>Records one entry.</summary>
-    /// <param name="level">The severity; entries below <see cref="HostLog.MinimumLevel" /> are not delivered.</param>
-    /// <param name="message">The text; never <see langword="null" />.</param>
-    /// <param name="exception">The exception that caused the entry, if any.</param>
-    public void Write(HostLogLevel level, string message, Exception? exception);
+	/// <summary>Records one entry.</summary>
+	/// <param name="level">The severity; entries below <see cref="HostLog.MinimumLevel" /> are not delivered.</param>
+	/// <param name="message">The text; never <see langword="null" />.</param>
+	/// <param name="exception">The exception that caused the entry, if any.</param>
+	public void Write(HostLogLevel level, string message, Exception? exception);
 }

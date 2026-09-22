@@ -9,18 +9,21 @@ namespace CheatEngine.SDK.Lua.Runtime;
 /// </remarks>
 internal ref struct LuaStateResetTransition
 {
-    private bool _active;
+	private bool _active;
 
-    internal LuaStateResetTransition(bool active)
-    {
-        _active = active;
-    }
+	internal LuaStateResetTransition(bool active)
+	{
+		_active = active;
+	}
 
-    public void Dispose()
-    {
-        if (!_active) return;
+	public void Dispose()
+	{
+		if (!_active)
+		{
+			return;
+		}
 
-        _active = false;
-        LuaRuntime.CompleteStateReset();
-    }
+		_active = false;
+		LuaRuntime.CompleteStateReset();
+	}
 }

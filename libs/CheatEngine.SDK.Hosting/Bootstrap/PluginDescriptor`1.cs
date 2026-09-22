@@ -1,4 +1,5 @@
 using System;
+
 using CheatEngine.SDK.Hosting.Plugin;
 
 namespace CheatEngine.SDK.Hosting.Bootstrap;
@@ -9,12 +10,12 @@ namespace CheatEngine.SDK.Hosting.Bootstrap;
 /// </summary>
 /// <typeparam name="TFactory">The generated (or hand-written) factory.</typeparam>
 internal sealed class PluginDescriptor<TFactory> : PluginDescriptor
-    where TFactory : IPluginFactory
+	where TFactory : IPluginFactory
 {
-    internal override Type FactoryType => typeof(TFactory);
+	internal override Type FactoryType => typeof(TFactory);
 
-    internal override CheatEnginePlugin CreatePlugin()
-    {
-        return TFactory.Create();
-    }
+	internal override CheatEnginePlugin CreatePlugin()
+	{
+		return TFactory.Create();
+	}
 }

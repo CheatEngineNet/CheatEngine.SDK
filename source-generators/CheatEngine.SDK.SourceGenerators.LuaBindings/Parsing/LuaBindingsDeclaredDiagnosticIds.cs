@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -29,83 +30,107 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Parsing;
 /// </remarks>
 internal static class LuaBindingsDeclaredDiagnosticIds
 {
-    private const string Separator = ", ";
+	private const string Separator = ", ";
 
-    /// <summary>
-    ///     The IDs of <paramref name="method" /> and the types it is nested in, outermost first, without duplicates,
-    ///     joined with <c>", "</c>: the operand of a <c>#pragma warning disable</c>. Empty when none are declared.
-    ///     Never throws on malformed attributes.
-    /// </summary>
-    public static string Collect(IMethodSymbol method)
-    {
-        var ids = CollectFrom(method.GetAttributes(), null);
-        if (method.ContainingType is { } containing) ids = CollectFromTypeAndContainers(containing, ids);
+	/// <summary>
+	///     The IDs of <paramref name="method" /> and the types it is nested in, outermost first, without duplicates,
+	///     joined with <c>", "</c>: the operand of a <c>#pragma warning disable</c>. Empty when none are declared.
+	///     Never throws on malformed attributes.
+	/// </summary>
+	public static string Collect(IMethodSymbol method)
+	{
+		List<string>? ids = CollectFrom(method.GetAttributes(), null);
+		if (method.ContainingType is { } containing)
+		{
+			ids = CollectFromTypeAndContainers(containing, ids);
+		}
 
-        return ids is null ? string.Empty : string.Join(Separator, ids);
-    }
+		return ids is null ? string.Empty : string.Join(Separator, ids);
+	}
 
-    // The list is created on the first ID and threaded through the return value, so a member that declares none
-    // allocates nothing.
-    private static List<string>? CollectFromTypeAndContainers(INamedTypeSymbol type, List<string>? ids)
-    {
-        if (type.ContainingType is { } containing) ids = CollectFromTypeAndContainers(containing, ids);
+	// The list is created on the first ID and threaded through the return value, so a member that declares none
+	// allocates nothing.
+	private static List<string>? CollectFromTypeAndContainers(INamedTypeSymbol type, List<string>? ids)
+	{
+		if (type.ContainingType is { } containing)
+		{
+			ids = CollectFromTypeAndContainers(containing, ids);
+		}
 
-        return CollectFrom(type.GetAttributes(), ids);
-    }
+		return CollectFrom(type.GetAttributes(), ids);
+	}
 
-    private static List<string>? CollectFrom(ImmutableArray<AttributeData> attributes, List<string>? ids)
-    {
-        foreach (var attribute in attributes)
-            if (ReadDeclaredId(attribute) is { } id && IsUsableInPragma(id) && (ids is null || !ids.Contains(id)))
-                (ids ??= []).Add(id);
+	private static List<string>? CollectFrom(ImmutableArray<AttributeData> attributes, List<string>? ids)
+	{
+		foreach (AttributeData attribute in attributes)
+		{
+			if (ReadDeclaredId(attribute) is { } id && IsUsableInPragma(id) && (ids is null || !ids.Contains(id)))
+			{
+				(ids ??= []).Add(id);
+			}
+		}
 
-        return ids;
-    }
+		return ids;
+	}
 
-    private static string? ReadDeclaredId(AttributeData attribute)
-    {
-        if (attribute.AttributeClass is not { Arity: 0, ContainingType: null } attributeClass) return null;
+	private static string? ReadDeclaredId(AttributeData attribute)
+	{
+		if (attribute.AttributeClass is not { Arity: 0, ContainingType: null } attributeClass)
+		{
+			return null;
+		}
 
-        if (string.Equals(attributeClass.Name, "ExperimentalAttribute", StringComparison.Ordinal))
-            // [Experimental(string diagnosticId)]
-            return IsNamespace(attributeClass.ContainingNamespace, "System", "Diagnostics", "CodeAnalysis")
-                   && attribute.ConstructorArguments.Length == 1
-                   && attribute.ConstructorArguments[0] is
-                       { Kind: TypedConstantKind.Primitive, Value: string experimentalId }
-                ? experimentalId
-                : null;
+		if (string.Equals(attributeClass.Name, "ExperimentalAttribute", StringComparison.Ordinal))
+			// [Experimental(string diagnosticId)]
+		{
+			return IsNamespace(attributeClass.ContainingNamespace, "System", "Diagnostics", "CodeAnalysis")
+			       && attribute.ConstructorArguments.Length == 1
+			       && attribute.ConstructorArguments[0] is
+				       { Kind: TypedConstantKind.Primitive, Value: string experimentalId }
+				? experimentalId
+				: null;
+		}
 
-        if (string.Equals(attributeClass.Name, "ObsoleteAttribute", StringComparison.Ordinal)
-            && IsNamespace(attributeClass.ContainingNamespace, "System"))
-            // [Obsolete(..., DiagnosticId = "ID")]
-            foreach (var argument in attribute.NamedArguments)
-                if (string.Equals(argument.Key, "DiagnosticId", StringComparison.Ordinal)
-                    && argument.Value is { Kind: TypedConstantKind.Primitive, Value: string obsoleteId })
-                    return obsoleteId;
+		if (string.Equals(attributeClass.Name, "ObsoleteAttribute", StringComparison.Ordinal)
+		    && IsNamespace(attributeClass.ContainingNamespace, "System"))
+			// [Obsolete(..., DiagnosticId = "ID")]
+		{
+			foreach (KeyValuePair<string, TypedConstant> argument in attribute.NamedArguments)
+			{
+				if (string.Equals(argument.Key, "DiagnosticId", StringComparison.Ordinal)
+				    && argument.Value is { Kind: TypedConstantKind.Primitive, Value: string obsoleteId })
+				{
+					return obsoleteId;
+				}
+			}
+		}
 
-        return null;
-    }
+		return null;
+	}
 
-    // Innermost name last: IsNamespace(ns, "System", "Diagnostics") matches 'System.Diagnostics'.
-    private static bool IsNamespace(INamespaceSymbol? @namespace, params string[] names)
-    {
-        for (var i = names.Length - 1; i >= 0; i--)
-        {
-            if (@namespace is null || !string.Equals(@namespace.Name, names[i], StringComparison.Ordinal)) return false;
+	// Innermost name last: IsNamespace(ns, "System", "Diagnostics") matches 'System.Diagnostics'.
+	private static bool IsNamespace(INamespaceSymbol? @namespace, params string[] names)
+	{
+		for (int i = names.Length - 1; i >= 0; i--)
+		{
+			if (@namespace is null || !string.Equals(@namespace.Name, names[i], StringComparison.Ordinal))
+			{
+				return false;
+			}
 
-            @namespace = @namespace.ContainingNamespace;
-        }
+			@namespace = @namespace.ContainingNamespace;
+		}
 
-        return @namespace is { IsGlobalNamespace: true };
-    }
+		return @namespace is { IsGlobalNamespace: true };
+	}
 
-    // The ID goes into a '#pragma warning disable' line as it is, so it must be one identifier token there: no
-    // white space, line break or comment marker (text injection), no C# or preprocessor keyword. The compiler already
-    // rejects an [Experimental] ID that is not an identifier (CS9211); whatever is dropped here stays a loud error.
-    private static bool IsUsableInPragma(string id)
-    {
-        return SyntaxFacts.IsValidIdentifier(id)
-               && SyntaxFacts.GetKeywordKind(id) == SyntaxKind.None
-               && SyntaxFacts.GetPreprocessorKeywordKind(id) == SyntaxKind.None;
-    }
+	// The ID goes into a '#pragma warning disable' line as it is, so it must be one identifier token there: no
+	// white space, line break or comment marker (text injection), no C# or preprocessor keyword. The compiler already
+	// rejects an [Experimental] ID that is not an identifier (CS9211); whatever is dropped here stays a loud error.
+	private static bool IsUsableInPragma(string id)
+	{
+		return SyntaxFacts.IsValidIdentifier(id)
+		       && SyntaxFacts.GetKeywordKind(id) == SyntaxKind.None
+		       && SyntaxFacts.GetPreprocessorKeywordKind(id) == SyntaxKind.None;
+	}
 }

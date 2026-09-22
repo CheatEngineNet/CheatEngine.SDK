@@ -14,18 +14,18 @@ namespace CheatEngine.SDK.Engine.Allocation;
 /// </remarks>
 public interface ITargetMemoryAllocationOutcomeOperations
 {
-    /// <summary>Runs the allocation operation and returns its structured outcome.</summary>
-    /// <param name="request">The target allocation request.</param>
-    /// <returns>The result category and nonzero address on success.</returns>
-    /// <exception cref="System.InvalidOperationException">The plugin is not enabled or its Lua operation scope is unavailable.</exception>
-    [RequiresPluginEnabled]
-    public TargetMemoryAllocationOutcome AllocateWithOutcome(TargetAllocationRequest request);
+	/// <summary>Runs the allocation operation and returns its structured outcome.</summary>
+	/// <param name="request">The target allocation request.</param>
+	/// <returns>The result category and nonzero address on success.</returns>
+	/// <exception cref="System.InvalidOperationException">The plugin is not enabled or its Lua operation scope is unavailable.</exception>
+	[RequiresPluginEnabled]
+	public TargetMemoryAllocationOutcome AllocateWithOutcome(TargetAllocationRequest request);
 
-    /// <summary>Runs the deallocation operation and returns its structured outcome.</summary>
-    /// <param name="address">The owned nonzero address in the target process.</param>
-    /// <param name="size">The original allocation request size.</param>
-    /// <returns>The result category for the deallocation operation.</returns>
-    /// <exception cref="System.InvalidOperationException">The plugin is not enabled or its Lua operation scope is unavailable.</exception>
-    [RequiresPluginEnabled]
-    public TargetMemoryOperationOutcome DeallocateWithOutcome(Address address, TargetAllocationSize size);
+	/// <summary>Runs the deallocation operation and returns its structured outcome.</summary>
+	/// <param name="address">The owned nonzero address in the target process.</param>
+	/// <param name="size">The original allocation request size.</param>
+	/// <returns>The result category for the deallocation operation.</returns>
+	/// <exception cref="System.InvalidOperationException">The plugin is not enabled or its Lua operation scope is unavailable.</exception>
+	[RequiresPluginEnabled]
+	public TargetMemoryOperationOutcome DeallocateWithOutcome(Address address, TargetAllocationSize size);
 }

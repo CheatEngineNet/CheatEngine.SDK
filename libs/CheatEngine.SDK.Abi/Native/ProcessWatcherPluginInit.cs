@@ -24,10 +24,10 @@ namespace CheatEngine.SDK.Abi.Native;
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct ProcessWatcherPluginInit
 {
-    /// <summary>Address of the <c>stdcall</c> callback (offset 0). Untyped, see the type remarks.</summary>
-    /// <remarks>
-    ///     Runs on a thread other than the main thread (stated by the official C sample plugin): no GUI work. Must
-    ///     stay valid until the function is unregistered. Must not let an exception escape.
-    /// </remarks>
-    public void* Callback;
+	/// <summary>Address of the <c>stdcall</c> callback (offset 0). Untyped, see the type remarks.</summary>
+	/// <remarks>
+	///     Runs on a thread other than the main thread (stated by the official C sample plugin): no GUI work. Must
+	///     stay valid until the function is unregistered. Must not let an exception escape.
+	/// </remarks>
+	public void* Callback;
 }

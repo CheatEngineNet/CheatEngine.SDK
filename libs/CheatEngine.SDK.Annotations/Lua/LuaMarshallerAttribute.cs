@@ -23,15 +23,18 @@ namespace CheatEngine.SDK.Annotations.Lua;
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.ReturnValue, Inherited = false)]
 public sealed class LuaMarshallerAttribute : Attribute
 {
-    /// <summary>Initializes the attribute with the concrete static marshaller type.</summary>
-    /// <param name="marshallerType">A type implementing <c>ILuaMarshaller&lt;T&gt;</c> for the annotated value.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="marshallerType" /> is <see langword="null" />.</exception>
-    public LuaMarshallerAttribute(Type marshallerType)
-    {
-        ArgumentNullException.ThrowIfNull(marshallerType);
-        MarshallerType = marshallerType;
-    }
+	/// <summary>Initializes the attribute with the concrete static marshaller type.</summary>
+	/// <param name="marshallerType">A type implementing <c>ILuaMarshaller&lt;T&gt;</c> for the annotated value.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="marshallerType" /> is <see langword="null" />.</exception>
+	public LuaMarshallerAttribute(Type marshallerType)
+	{
+		ArgumentNullException.ThrowIfNull(marshallerType);
+		MarshallerType = marshallerType;
+	}
 
-    /// <summary>Gets the concrete marshaller type named by this declaration.</summary>
-    public Type MarshallerType { get; }
+	/// <summary>Gets the concrete marshaller type named by this declaration.</summary>
+	public Type MarshallerType
+	{
+		get;
+	}
 }

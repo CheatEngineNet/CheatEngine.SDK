@@ -27,35 +27,38 @@ namespace CheatEngine.SDK.Hosting.Bootstrap;
 /// </remarks>
 internal static unsafe class AnsiNameBuffer
 {
-    /// <summary>Allocates the buffer. Never freed by design; the pointer is valid for the rest of the process.</summary>
-    /// <param name="utf8Name">The UTF-8 name without a terminating NUL.</param>
-    /// <returns>The address of the first byte; never null.</returns>
-    /// <exception cref="OutOfMemoryException">The native allocation failed.</exception>
-    internal static byte* Allocate(ReadOnlySpan<byte> utf8Name)
-    {
-        var nulIndex = utf8Name.IndexOf((byte)0);
-        if (nulIndex >= 0) utf8Name = utf8Name[..nulIndex];
+	/// <summary>Allocates the buffer. Never freed by design; the pointer is valid for the rest of the process.</summary>
+	/// <param name="utf8Name">The UTF-8 name without a terminating NUL.</param>
+	/// <returns>The address of the first byte; never null.</returns>
+	/// <exception cref="OutOfMemoryException">The native allocation failed.</exception>
+	internal static byte* Allocate(ReadOnlySpan<byte> utf8Name)
+	{
+		int nulIndex = utf8Name.IndexOf((byte) 0);
+		if (nulIndex >= 0)
+		{
+			utf8Name = utf8Name[..nulIndex];
+		}
 
-        if (Ascii.IsValid(utf8Name))
-        {
-            var buffer = (byte*)NativeMemory.Alloc((nuint)utf8Name.Length + 1);
-            utf8Name.CopyTo(new Span<byte>(buffer, utf8Name.Length));
-            buffer[utf8Name.Length] = 0;
-            return buffer;
-        }
+		if (Ascii.IsValid(utf8Name))
+		{
+			byte* buffer = (byte*) NativeMemory.Alloc((nuint) utf8Name.Length + 1);
+			utf8Name.CopyTo(new Span<byte>(buffer, utf8Name.Length));
+			buffer[utf8Name.Length] = 0;
+			return buffer;
+		}
 
-        // Non-ASCII: the only correct target is the process ANSI code page, which the BCL exposes through this call
-        // (it uses the system code page on Windows; UTF-8 elsewhere, where Cheat Engine does not run anyway).
-        var decoded = Encoding.UTF8.GetString(utf8Name);
-        var ansi = Marshal.StringToHGlobalAnsi(decoded);
-        return (byte*)ansi;
-    }
+		// Non-ASCII: the only correct target is the process ANSI code page, which the BCL exposes through this call
+		// (it uses the system code page on Windows; UTF-8 elsewhere, where Cheat Engine does not run anyway).
+		string decoded = Encoding.UTF8.GetString(utf8Name);
+		IntPtr ansi = Marshal.StringToHGlobalAnsi(decoded);
+		return (byte*) ansi;
+	}
 
-    /// <summary>Reads a buffer produced by <see cref="Allocate" /> back as bytes, without the NUL. For diagnostics and tests.</summary>
-    /// <param name="buffer">The buffer; null yields an empty span.</param>
-    /// <returns>The bytes before the first NUL.</returns>
-    internal static ReadOnlySpan<byte> Read(byte* buffer)
-    {
-        return buffer is null ? default : MemoryMarshal.CreateReadOnlySpanFromNullTerminated(buffer);
-    }
+	/// <summary>Reads a buffer produced by <see cref="Allocate" /> back as bytes, without the NUL. For diagnostics and tests.</summary>
+	/// <param name="buffer">The buffer; null yields an empty span.</param>
+	/// <returns>The bytes before the first NUL.</returns>
+	internal static ReadOnlySpan<byte> Read(byte* buffer)
+	{
+		return buffer is null ? default : MemoryMarshal.CreateReadOnlySpanFromNullTerminated(buffer);
+	}
 }

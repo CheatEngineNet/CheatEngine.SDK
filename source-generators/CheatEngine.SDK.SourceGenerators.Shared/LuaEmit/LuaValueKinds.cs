@@ -17,97 +17,97 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 /// </remarks>
 internal static class LuaValueKinds
 {
-    /// <summary>The <c>global::</c>-qualified marshaller that pushes and reads values of <paramref name="kind" />.</summary>
-    public static string MarshallerTypeName(LuaValueKind kind)
-    {
-        return kind switch
-        {
-            LuaValueKind.Int32 => LuaApiNames.Int32Marshaller,
-            LuaValueKind.Int64 => LuaApiNames.Int64Marshaller,
-            LuaValueKind.Single => LuaApiNames.SingleMarshaller,
-            LuaValueKind.Double => LuaApiNames.DoubleMarshaller,
-            LuaValueKind.Boolean => LuaApiNames.BooleanMarshaller,
-            LuaValueKind.Address => LuaApiNames.AddressMarshaller,
-            LuaValueKind.Utf8 => LuaApiNames.Utf8Marshaller,
-            LuaValueKind.String => LuaApiNames.StringMarshaller,
-            _ => throw new ArgumentOutOfRangeException(nameof(kind))
-        };
-    }
+	/// <summary>The <c>global::</c>-qualified marshaller that pushes and reads values of <paramref name="kind" />.</summary>
+	public static string MarshallerTypeName(LuaValueKind kind)
+	{
+		return kind switch
+		{
+			LuaValueKind.Int32 => LuaApiNames.Int32Marshaller,
+			LuaValueKind.Int64 => LuaApiNames.Int64Marshaller,
+			LuaValueKind.Single => LuaApiNames.SingleMarshaller,
+			LuaValueKind.Double => LuaApiNames.DoubleMarshaller,
+			LuaValueKind.Boolean => LuaApiNames.BooleanMarshaller,
+			LuaValueKind.Address => LuaApiNames.AddressMarshaller,
+			LuaValueKind.Utf8 => LuaApiNames.Utf8Marshaller,
+			LuaValueKind.String => LuaApiNames.StringMarshaller,
+			_ => throw new ArgumentOutOfRangeException(nameof(kind))
+		};
+	}
 
-    /// <summary>
-    ///     The C# type as generated code spells it: the keyword for the primitives (<see langword="int" />,
-    ///     <see langword="nuint" />, ...),
-    ///     <c>global::</c>-qualified for the span, <see langword="string" /> or <see langword="string" />? for text.
-    /// </summary>
-    /// <param name="kind">The kind.</param>
-    /// <param name="isNullable">
-    ///     For <see cref="LuaValueKind.String" />: whether the declaration wrote <c>string?</c>. Ignored
-    ///     for the other kinds.
-    /// </param>
-    public static string TypeName(LuaValueKind kind, bool isNullable = false)
-    {
-        return kind switch
-        {
-            LuaValueKind.Int32 => "int",
-            LuaValueKind.Int64 => "long",
-            LuaValueKind.Single => "float",
-            LuaValueKind.Double => "double",
-            LuaValueKind.Boolean => "bool",
-            LuaValueKind.Address => "nuint",
-            LuaValueKind.Utf8 => LuaApiNames.ReadOnlySpanOfByte,
-            LuaValueKind.String => isNullable ? "string?" : "string",
-            _ => throw new ArgumentOutOfRangeException(nameof(kind))
-        };
-    }
+	/// <summary>
+	///     The C# type as generated code spells it: the keyword for the primitives (<see langword="int" />,
+	///     <see langword="nuint" />, ...),
+	///     <c>global::</c>-qualified for the span, <see langword="string" /> or <see langword="string" />? for text.
+	/// </summary>
+	/// <param name="kind">The kind.</param>
+	/// <param name="isNullable">
+	///     For <see cref="LuaValueKind.String" />: whether the declaration wrote <c>string?</c>. Ignored
+	///     for the other kinds.
+	/// </param>
+	public static string TypeName(LuaValueKind kind, bool isNullable = false)
+	{
+		return kind switch
+		{
+			LuaValueKind.Int32 => "int",
+			LuaValueKind.Int64 => "long",
+			LuaValueKind.Single => "float",
+			LuaValueKind.Double => "double",
+			LuaValueKind.Boolean => "bool",
+			LuaValueKind.Address => "nuint",
+			LuaValueKind.Utf8 => LuaApiNames.ReadOnlySpanOfByte,
+			LuaValueKind.String => isNullable ? "string?" : "string",
+			_ => throw new ArgumentOutOfRangeException(nameof(kind))
+		};
+	}
 
-    /// <summary>
-    ///     The Lua type a thunk expects for an argument of this kind, in Lua's own words
-    ///     (<c language="lua">integer</c>, <c language="lua">number</c>, <c language="lua">boolean</c>,
-    ///     <c language="lua">string</c>).
-    /// </summary>
-    public static string ExpectedArgument(LuaValueKind kind)
-    {
-        return kind switch
-        {
-            LuaValueKind.Int32 or LuaValueKind.Int64 or LuaValueKind.Address => "integer",
-            LuaValueKind.Single or LuaValueKind.Double => "number",
-            LuaValueKind.Boolean => "boolean",
-            LuaValueKind.Utf8 or LuaValueKind.String => "string",
-            _ => throw new ArgumentOutOfRangeException(nameof(kind))
-        };
-    }
+	/// <summary>
+	///     The Lua type a thunk expects for an argument of this kind, in Lua's own words
+	///     (<c language="lua">integer</c>, <c language="lua">number</c>, <c language="lua">boolean</c>,
+	///     <c language="lua">string</c>).
+	/// </summary>
+	public static string ExpectedArgument(LuaValueKind kind)
+	{
+		return kind switch
+		{
+			LuaValueKind.Int32 or LuaValueKind.Int64 or LuaValueKind.Address => "integer",
+			LuaValueKind.Single or LuaValueKind.Double => "number",
+			LuaValueKind.Boolean => "boolean",
+			LuaValueKind.Utf8 or LuaValueKind.String => "string",
+			_ => throw new ArgumentOutOfRangeException(nameof(kind))
+		};
+	}
 
-    /// <summary>
-    ///     What a throwing wrapper expected from a result of this kind, with its article (<c>an integer</c>,
-    ///     <c>a number</c>, <c>a boolean</c>, <c>a string</c>).
-    /// </summary>
-    public static string ExpectedResult(LuaValueKind kind)
-    {
-        return kind switch
-        {
-            LuaValueKind.Int32 or LuaValueKind.Int64 or LuaValueKind.Address => "an integer",
-            LuaValueKind.Single or LuaValueKind.Double => "a number",
-            LuaValueKind.Boolean => "a boolean",
-            LuaValueKind.Utf8 or LuaValueKind.String => "a string",
-            _ => throw new ArgumentOutOfRangeException(nameof(kind))
-        };
-    }
+	/// <summary>
+	///     What a throwing wrapper expected from a result of this kind, with its article (<c>an integer</c>,
+	///     <c>a number</c>, <c>a boolean</c>, <c>a string</c>).
+	/// </summary>
+	public static string ExpectedResult(LuaValueKind kind)
+	{
+		return kind switch
+		{
+			LuaValueKind.Int32 or LuaValueKind.Int64 or LuaValueKind.Address => "an integer",
+			LuaValueKind.Single or LuaValueKind.Double => "a number",
+			LuaValueKind.Boolean => "a boolean",
+			LuaValueKind.Utf8 or LuaValueKind.String => "a string",
+			_ => throw new ArgumentOutOfRangeException(nameof(kind))
+		};
+	}
 
-    /// <summary>
-    ///     Whether a wrapper may return a value of this kind. <see cref="LuaValueKind.Utf8" /> may not: the span would
-    ///     point into a Lua string that the wrapper pops before it returns.
-    /// </summary>
-    public static bool CanBeResult(LuaValueKind kind)
-    {
-        return kind != LuaValueKind.Utf8;
-    }
+	/// <summary>
+	///     Whether a wrapper may return a value of this kind. <see cref="LuaValueKind.Utf8" /> may not: the span would
+	///     point into a Lua string that the wrapper pops before it returns.
+	/// </summary>
+	public static bool CanBeResult(LuaValueKind kind)
+	{
+		return kind != LuaValueKind.Utf8;
+	}
 
-    /// <summary>
-    ///     Whether values of this kind are reference types, whose defaulting in generated code needs <c>default!</c>
-    ///     under nullable analysis.
-    /// </summary>
-    public static bool IsReferenceType(LuaValueKind kind)
-    {
-        return kind == LuaValueKind.String;
-    }
+	/// <summary>
+	///     Whether values of this kind are reference types, whose defaulting in generated code needs <c>default!</c>
+	///     under nullable analysis.
+	/// </summary>
+	public static bool IsReferenceType(LuaValueKind kind)
+	{
+		return kind == LuaValueKind.String;
+	}
 }

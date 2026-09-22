@@ -35,113 +35,116 @@ namespace CheatEngine.SDK.Abi;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Bool32(int rawValue) : IEquatable<Bool32>
 {
-    /// <summary>Gets the false value (raw 0).</summary>
-    public static Bool32 False => default;
+	/// <summary>Gets the false value (raw 0).</summary>
+	public static Bool32 False => default;
 
-    /// <summary>Gets the canonical true value written by this SDK (raw 1, the Win32 <c>TRUE</c>).</summary>
-    public static Bool32 True => new(1);
+	/// <summary>Gets the canonical true value written by this SDK (raw 1, the Win32 <c>TRUE</c>).</summary>
+	public static Bool32 True => new(1);
 
-    /// <summary>Gets the raw 32-bit pattern. Diagnostic use only: do not compare it with 1.</summary>
-    public int RawValue { get; } = rawValue;
+	/// <summary>Gets the raw 32-bit pattern. Diagnostic use only: do not compare it with 1.</summary>
+	public int RawValue
+	{
+		get;
+	} = rawValue;
 
-    /// <summary>Gets a value indicating whether the raw pattern is non-zero.</summary>
-    public bool IsTrue => RawValue != 0;
+	/// <summary>Gets a value indicating whether the raw pattern is non-zero.</summary>
+	public bool IsTrue => RawValue != 0;
 
-    /// <summary>Converts a managed boolean to the canonical raw 1 / raw 0 representation.</summary>
-    /// <param name="value">The managed boolean.</param>
-    /// <returns><see cref="True" /> or <see cref="False" />.</returns>
-    public static Bool32 FromBoolean(bool value)
-    {
-        return new Bool32(value ? 1 : 0);
-    }
+	/// <summary>Converts a managed boolean to the canonical raw 1 / raw 0 representation.</summary>
+	/// <param name="value">The managed boolean.</param>
+	/// <returns><see cref="True" /> or <see cref="False" />.</returns>
+	public static Bool32 FromBoolean(bool value)
+	{
+		return new Bool32(value ? 1 : 0);
+	}
 
-    /// <summary>Reads the value as a managed boolean (non-zero is true).</summary>
-    /// <returns><see langword="true" /> when the raw pattern is non-zero.</returns>
-    public bool ToBoolean()
-    {
-        return RawValue != 0;
-    }
+	/// <summary>Reads the value as a managed boolean (non-zero is true).</summary>
+	/// <returns><see langword="true" /> when the raw pattern is non-zero.</returns>
+	public bool ToBoolean()
+	{
+		return RawValue != 0;
+	}
 
-    /// <summary>Lossless conversion from a managed boolean (raw 1 / raw 0).</summary>
-    /// <param name="value">The managed boolean.</param>
-    public static implicit operator Bool32(bool value)
-    {
-        return FromBoolean(value);
-    }
+	/// <summary>Lossless conversion from a managed boolean (raw 1 / raw 0).</summary>
+	/// <param name="value">The managed boolean.</param>
+	public static implicit operator Bool32(bool value)
+	{
+		return FromBoolean(value);
+	}
 
-    /// <summary>Truthiness of the raw pattern. Explicit because the raw bits are dropped.</summary>
-    /// <param name="value">The ABI boolean.</param>
-    public static explicit operator bool(Bool32 value)
-    {
-        return value.RawValue != 0;
-    }
+	/// <summary>Truthiness of the raw pattern. Explicit because the raw bits are dropped.</summary>
+	/// <param name="value">The ABI boolean.</param>
+	public static explicit operator bool(Bool32 value)
+	{
+		return value.RawValue != 0;
+	}
 
-    /// <summary>Lets the value be used directly as a condition (<c>if (result) ...</c>).</summary>
-    /// <param name="value">The ABI boolean.</param>
-    /// <returns><see langword="true" /> when the raw pattern is non-zero.</returns>
-    public static bool operator true(Bool32 value)
-    {
-        return value.RawValue != 0;
-    }
+	/// <summary>Lets the value be used directly as a condition (<c>if (result) ...</c>).</summary>
+	/// <param name="value">The ABI boolean.</param>
+	/// <returns><see langword="true" /> when the raw pattern is non-zero.</returns>
+	public static bool operator true(Bool32 value)
+	{
+		return value.RawValue != 0;
+	}
 
-    /// <summary>Counterpart of the <see langword="true" /> operator.</summary>
-    /// <param name="value">The ABI boolean.</param>
-    /// <returns><see langword="true" /> when the raw pattern is zero.</returns>
-    public static bool operator false(Bool32 value)
-    {
-        return value.RawValue == 0;
-    }
+	/// <summary>Counterpart of the <see langword="true" /> operator.</summary>
+	/// <param name="value">The ABI boolean.</param>
+	/// <returns><see langword="true" /> when the raw pattern is zero.</returns>
+	public static bool operator false(Bool32 value)
+	{
+		return value.RawValue == 0;
+	}
 
-    /// <summary>Logical negation (<c>if (!result) ...</c>).</summary>
-    /// <param name="value">The ABI boolean.</param>
-    /// <returns><see langword="true" /> when the raw pattern is zero.</returns>
-    public static bool operator !(Bool32 value)
-    {
-        return value.RawValue == 0;
-    }
+	/// <summary>Logical negation (<c>if (!result) ...</c>).</summary>
+	/// <param name="value">The ABI boolean.</param>
+	/// <returns><see langword="true" /> when the raw pattern is zero.</returns>
+	public static bool operator !(Bool32 value)
+	{
+		return value.RawValue == 0;
+	}
 
-    /// <summary>Compares truthiness, not raw bits: raw 1 and raw -1 are equal.</summary>
-    /// <param name="left">The first value.</param>
-    /// <param name="right">The second value.</param>
-    /// <returns><see langword="true" /> when both values are true or both are false.</returns>
-    public static bool operator ==(Bool32 left, Bool32 right)
-    {
-        return left.Equals(right);
-    }
+	/// <summary>Compares truthiness, not raw bits: raw 1 and raw -1 are equal.</summary>
+	/// <param name="left">The first value.</param>
+	/// <param name="right">The second value.</param>
+	/// <returns><see langword="true" /> when both values are true or both are false.</returns>
+	public static bool operator ==(Bool32 left, Bool32 right)
+	{
+		return left.Equals(right);
+	}
 
-    /// <summary>Compares truthiness, not raw bits.</summary>
-    /// <param name="left">The first value.</param>
-    /// <param name="right">The second value.</param>
-    /// <returns><see langword="true" /> when exactly one of the values is true.</returns>
-    public static bool operator !=(Bool32 left, Bool32 right)
-    {
-        return !left.Equals(right);
-    }
+	/// <summary>Compares truthiness, not raw bits.</summary>
+	/// <param name="left">The first value.</param>
+	/// <param name="right">The second value.</param>
+	/// <returns><see langword="true" /> when exactly one of the values is true.</returns>
+	public static bool operator !=(Bool32 left, Bool32 right)
+	{
+		return !left.Equals(right);
+	}
 
-    /// <summary>Compares truthiness, not raw bits.</summary>
-    /// <param name="other">The value to compare with.</param>
-    /// <returns><see langword="true" /> when both values are true or both are false.</returns>
-    public bool Equals(Bool32 other)
-    {
-        return RawValue != 0 == (other.RawValue != 0);
-    }
+	/// <summary>Compares truthiness, not raw bits.</summary>
+	/// <param name="other">The value to compare with.</param>
+	/// <returns><see langword="true" /> when both values are true or both are false.</returns>
+	public bool Equals(Bool32 other)
+	{
+		return RawValue != 0 == (other.RawValue != 0);
+	}
 
-    /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return obj is Bool32 other && Equals(other);
-    }
+	/// <inheritdoc />
+	public override bool Equals(object? obj)
+	{
+		return obj is Bool32 other && Equals(other);
+	}
 
-    /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return RawValue != 0 ? 1 : 0;
-    }
+	/// <inheritdoc />
+	public override int GetHashCode()
+	{
+		return RawValue != 0 ? 1 : 0;
+	}
 
-    /// <summary>Returns <c>"True"</c> or <c>"False"</c>. Allocation-free (both strings are literals).</summary>
-    /// <returns>The truthiness of the value as text.</returns>
-    public override string ToString()
-    {
-        return RawValue != 0 ? "True" : "False";
-    }
+	/// <summary>Returns <c>"True"</c> or <c>"False"</c>. Allocation-free (both strings are literals).</summary>
+	/// <returns>The truthiness of the value as text.</returns>
+	public override string ToString()
+	{
+		return RawValue != 0 ? "True" : "False";
+	}
 }

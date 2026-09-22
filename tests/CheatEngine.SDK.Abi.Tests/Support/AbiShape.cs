@@ -36,101 +36,133 @@ namespace CheatEngine.SDK.Abi.Tests.Support;
 /// </remarks>
 internal static class AbiShape
 {
-    private const BindingFlags InstanceFields = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+	private const BindingFlags InstanceFields = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
-    /// <summary>Returns the first rule <paramref name="structure" /> breaks, or <see langword="null" />.</summary>
-    /// <param name="structure">The structure to inspect.</param>
-    /// <param name="trustedAssemblies">
-    ///     Assemblies whose structures may appear by value or behind a pointer. Every other non-primitive value type is
-    ///     foreign: the mapping references nothing, so such a type is spelled <c>void*</c> instead.
-    /// </param>
-    public static string? FindViolation(Type structure, params ReadOnlySpan<Assembly> trustedAssemblies)
-    {
-        return CheckStructure(structure, structure.Name, trustedAssemblies, []);
-    }
+	/// <summary>Returns the first rule <paramref name="structure" /> breaks, or <see langword="null" />.</summary>
+	/// <param name="structure">The structure to inspect.</param>
+	/// <param name="trustedAssemblies">
+	///     Assemblies whose structures may appear by value or behind a pointer. Every other non-primitive value type is
+	///     foreign: the mapping references nothing, so such a type is spelled <c>void*</c> instead.
+	/// </param>
+	public static string? FindViolation(Type structure, params ReadOnlySpan<Assembly> trustedAssemblies)
+	{
+		return CheckStructure(structure, structure.Name, trustedAssemblies, []);
+	}
 
-    private static string? CheckStructure(Type structure, string path, ReadOnlySpan<Assembly> trusted,
-        HashSet<Type> visited)
-    {
-        // Already being inspected further up (a pointer cycle) or already found clean: nothing new to learn.
-        if (!visited.Add(structure)) return null;
+	private static string? CheckStructure(Type structure, string path, ReadOnlySpan<Assembly> trusted,
+		HashSet<Type> visited)
+	{
+		// Already being inspected further up (a pointer cycle) or already found clean: nothing new to learn.
+		if (!visited.Add(structure))
+		{
+			return null;
+		}
 
-        if (!structure.IsLayoutSequential)
-            return $"{path}: {structure.Name} must use sequential layout, not Auto or Explicit.";
+		if (!structure.IsLayoutSequential)
+		{
+			return $"{path}: {structure.Name} must use sequential layout, not Auto or Explicit.";
+		}
 
-        foreach (var field in structure.GetFields(InstanceFields))
-        {
-            // The MODIFIED type: the only reflection view that still carries the calling convention of a function pointer.
-            var violation = CheckType(field.GetModifiedFieldType(), $"{path}.{field.Name}", false, trusted, visited);
-            if (violation is not null) return violation;
-        }
+		foreach (FieldInfo field in structure.GetFields(InstanceFields))
+		{
+			// The MODIFIED type: the only reflection view that still carries the calling convention of a function pointer.
+			string? violation = CheckType(field.GetModifiedFieldType(), $"{path}.{field.Name}", false, trusted,
+				visited);
+			if (violation is not null)
+			{
+				return violation;
+			}
+		}
 
-        return null;
-    }
+		return null;
+	}
 
-    private static string? CheckType(Type type, string path, bool allowVoid, ReadOnlySpan<Assembly> trusted,
-        HashSet<Type> visited)
-    {
-        // Identity and classification questions go to the unmodified type; navigation (element type, signature) stays
-        // on the modified one so that nested function pointers keep their conventions.
-        var plain = type.UnderlyingSystemType;
+	private static string? CheckType(Type type, string path, bool allowVoid, ReadOnlySpan<Assembly> trusted,
+		HashSet<Type> visited)
+	{
+		// Identity and classification questions go to the unmodified type; navigation (element type, signature) stays
+		// on the modified one so that nested function pointers keep their conventions.
+		Type plain = type.UnderlyingSystemType;
 
-        if (plain == typeof(void)) return allowVoid ? null : $"{path}: void is only valid as a result or as a pointee.";
+		if (plain == typeof(void))
+		{
+			return allowVoid ? null : $"{path}: void is only valid as a result or as a pointee.";
+		}
 
-        if (plain.IsFunctionPointer) return CheckFunctionPointer(type, path, trusted, visited);
+		if (plain.IsFunctionPointer)
+		{
+			return CheckFunctionPointer(type, path, trusted, visited);
+		}
 
-        if (plain.IsPointer)
-        {
-            var element = type.GetElementType();
-            return element is null
-                ? $"{path}: pointer without an element type."
-                : CheckType(element, path + "*", true, trusted, visited);
-        }
+		if (plain.IsPointer)
+		{
+			Type? element = type.GetElementType();
+			return element is null
+				? $"{path}: pointer without an element type."
+				: CheckType(element, path + "*", true, trusted, visited);
+		}
 
-        if (plain.IsByRef) return $"{path}: passed by reference (ref/in/out); the ABI uses pointers.";
+		if (plain.IsByRef)
+		{
+			return $"{path}: passed by reference (ref/in/out); the ABI uses pointers.";
+		}
 
-        if (plain.IsEnum)
-            return Enum.GetUnderlyingType(plain) == typeof(int)
-                ? null
-                : $"{path}: enumeration {plain.Name} is not 4 bytes wide.";
+		if (plain.IsEnum)
+		{
+			return Enum.GetUnderlyingType(plain) == typeof(int)
+				? null
+				: $"{path}: enumeration {plain.Name} is not 4 bytes wide.";
+		}
 
-        if (plain.IsPrimitive)
-            return plain == typeof(bool) || plain == typeof(char)
-                ? $"{path}: {plain.Name} has no fixed ABI width here; use Bool32/Bool8 or a fixed-width integer."
-                : null;
+		if (plain.IsPrimitive)
+		{
+			return plain == typeof(bool) || plain == typeof(char)
+				? $"{path}: {plain.Name} has no fixed ABI width here; use Bool32/Bool8 or a fixed-width integer."
+				: null;
+		}
 
-        if (plain.IsValueType && !plain.IsGenericType && trusted.Contains(plain.Assembly))
-            return CheckStructure(plain, path, trusted, visited);
+		if (plain.IsValueType && !plain.IsGenericType && trusted.Contains(plain.Assembly))
+		{
+			return CheckStructure(plain, path, trusted, visited);
+		}
 
-        return $"{path}: {plain} is a reference, a generic or a foreign value type: not allowed in an ABI layout.";
-    }
+		return $"{path}: {plain} is a reference, a generic or a foreign value type: not allowed in an ABI layout.";
+	}
 
-    private static string? CheckFunctionPointer(Type type, string path, ReadOnlySpan<Assembly> trusted,
-        HashSet<Type> visited)
-    {
-        if (!type.UnderlyingSystemType.IsUnmanagedFunctionPointer)
-            return $"{path}: managed function pointer; the host can only call unmanaged ones.";
+	private static string? CheckFunctionPointer(Type type, string path, ReadOnlySpan<Assembly> trusted,
+		HashSet<Type> visited)
+	{
+		if (!type.UnderlyingSystemType.IsUnmanagedFunctionPointer)
+		{
+			return $"{path}: managed function pointer; the host can only call unmanaged ones.";
+		}
 
-        var conventions = type.GetFunctionPointerCallingConventions();
-        if (conventions.Length != 1 || conventions[0] != typeof(CallConvStdcall))
-        {
-            var stated = conventions.Length == 0
-                ? "none"
-                : string.Join(", ", conventions.Select(static convention => convention.Name));
-            return $"{path}: calling convention must be exactly Stdcall (stated: {stated}).";
-        }
+		Type[] conventions = type.GetFunctionPointerCallingConventions();
+		if (conventions.Length != 1 || conventions[0] != typeof(CallConvStdcall))
+		{
+			string stated = conventions.Length == 0
+				? "none"
+				: string.Join(", ", conventions.Select(static convention => convention.Name));
+			return $"{path}: calling convention must be exactly Stdcall (stated: {stated}).";
+		}
 
-        var violation = CheckType(type.GetFunctionPointerReturnType(), path + "(result)", true, trusted, visited);
-        if (violation is not null) return violation;
+		string? violation = CheckType(type.GetFunctionPointerReturnType(), path + "(result)", true, trusted, visited);
+		if (violation is not null)
+		{
+			return violation;
+		}
 
-        var parameters = type.GetFunctionPointerParameterTypes();
-        for (var index = 0; index < parameters.Length; index++)
-        {
-            violation = CheckType(parameters[index],
-                $"{path}(parameter {index.ToString(CultureInfo.InvariantCulture)})", allowVoid: false, trusted, visited);
-            if (violation is not null) return violation;
-        }
+		Type[] parameters = type.GetFunctionPointerParameterTypes();
+		for (int index = 0; index < parameters.Length; index++)
+		{
+			violation = CheckType(parameters[index],
+				$"{path}(parameter {index.ToString(CultureInfo.InvariantCulture)})", false, trusted, visited);
+			if (violation is not null)
+			{
+				return violation;
+			}
+		}
 
-        return null;
-    }
+		return null;
+	}
 }

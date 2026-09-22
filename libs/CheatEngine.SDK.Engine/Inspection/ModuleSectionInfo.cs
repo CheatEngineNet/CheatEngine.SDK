@@ -14,7 +14,7 @@ namespace CheatEngine.SDK.Engine.Inspection;
 /// <param name="Address">The section's current target-process address.</param>
 /// <param name="FileOffset">The section's byte offset in the module file.</param>
 public readonly record struct ModuleSectionInfo(
-    string Name,
-    MemorySize Size,
-    Address Address,
-    ModuleFileOffset FileOffset);
+	string Name,
+	MemorySize Size,
+	Address Address,
+	ModuleFileOffset FileOffset);

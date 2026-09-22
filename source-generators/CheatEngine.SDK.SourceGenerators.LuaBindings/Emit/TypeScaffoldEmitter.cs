@@ -17,33 +17,42 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Emit;
 /// </remarks>
 internal static class TypeScaffoldEmitter
 {
-    /// <summary>Opens the namespace (when not global) and the partial parts.</summary>
-    public static void Open(SourceWriter writer, ContainingTypeModel type)
-    {
-        if (type.Namespace.Length > 0)
-        {
-            writer.Write("namespace ");
-            writer.WriteLine(type.Namespace);
-            writer.OpenBlock();
-        }
+	/// <summary>Opens the namespace (when not global) and the partial parts.</summary>
+	public static void Open(SourceWriter writer, ContainingTypeModel type)
+	{
+		if (type.Namespace.Length > 0)
+		{
+			writer.Write("namespace ");
+			writer.WriteLine(type.Namespace);
+			writer.OpenBlock();
+		}
 
-        foreach (var declaration in type.Declarations)
-        {
-            if (declaration.IsReadOnly) writer.Write("readonly ");
+		foreach (TypeDeclarationModel declaration in type.Declarations)
+		{
+			if (declaration.IsReadOnly)
+			{
+				writer.Write("readonly ");
+			}
 
-            writer.Write("partial ");
-            writer.Write(declaration.Keyword);
-            writer.Write(' ');
-            writer.WriteLine(declaration.Name);
-            writer.OpenBlock();
-        }
-    }
+			writer.Write("partial ");
+			writer.Write(declaration.Keyword);
+			writer.Write(' ');
+			writer.WriteLine(declaration.Name);
+			writer.OpenBlock();
+		}
+	}
 
-    /// <summary>Closes what <see cref="Open" /> opened.</summary>
-    public static void Close(SourceWriter writer, ContainingTypeModel type)
-    {
-        for (var i = 0; i < type.Declarations.Length; i++) writer.CloseBlock();
+	/// <summary>Closes what <see cref="Open" /> opened.</summary>
+	public static void Close(SourceWriter writer, ContainingTypeModel type)
+	{
+		for (int i = 0; i < type.Declarations.Length; i++)
+		{
+			writer.CloseBlock();
+		}
 
-        if (type.Namespace.Length > 0) writer.CloseBlock();
-    }
+		if (type.Namespace.Length > 0)
+		{
+			writer.CloseBlock();
+		}
+	}
 }

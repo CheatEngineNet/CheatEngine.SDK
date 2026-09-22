@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+
 using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
@@ -38,66 +39,69 @@ namespace CheatEngine.SDK.Lua.Callbacks;
 /// </remarks>
 public readonly unsafe struct LuaNativeFunction : IEquatable<LuaNativeFunction>
 {
-    /// <summary>Wraps the address of a <c>cdecl</c> function <c>int (lua_State*)</c>; zero is the null function.</summary>
-    /// <param name="address">The function address.</param>
-    public LuaNativeFunction(nint address)
-    {
-        Address = address;
-    }
+	/// <summary>Wraps the address of a <c>cdecl</c> function <c>int (lua_State*)</c>; zero is the null function.</summary>
+	/// <param name="address">The function address.</param>
+	public LuaNativeFunction(nint address)
+	{
+		Address = address;
+	}
 
-    /// <summary>Wraps a typed function pointer whose parameter is the state as an integer (the shape generated thunks use).</summary>
-    /// <param name="function">The function, usually <c>&amp;Thunk</c>.</param>
-    public LuaNativeFunction(delegate* unmanaged[Cdecl]<nint, int> function)
-    {
-        Address = (nint)function;
-    }
+	/// <summary>Wraps a typed function pointer whose parameter is the state as an integer (the shape generated thunks use).</summary>
+	/// <param name="function">The function, usually <c>&amp;Thunk</c>.</param>
+	public LuaNativeFunction(delegate* unmanaged[Cdecl]<nint, int> function)
+	{
+		Address = (nint) function;
+	}
 
-    /// <summary>Gets the function address; zero for the null function.</summary>
-    public nint Address { get; }
+	/// <summary>Gets the function address; zero for the null function.</summary>
+	public nint Address
+	{
+		get;
+	}
 
-    /// <summary>Gets a value indicating whether this is the null function, which must not be pushed.</summary>
-    public bool IsNull => Address == 0;
+	/// <summary>Gets a value indicating whether this is the null function, which must not be pushed.</summary>
+	public bool IsNull => Address == 0;
 
-    internal delegate* unmanaged[Cdecl]<lua_State*, int> Pointer =>
-        (delegate* unmanaged[Cdecl]<lua_State*, int>)Address;
+	internal delegate* unmanaged[Cdecl]<lua_State*, int> Pointer =>
+		(delegate* unmanaged[Cdecl]<lua_State*, int>) Address;
 
-    /// <summary>Compares addresses.</summary>
-    /// <param name="left">First function.</param>
-    /// <param name="right">Second function.</param>
-    public static bool operator ==(LuaNativeFunction left, LuaNativeFunction right)
-    {
-        return left.Address == right.Address;
-    }
+	/// <summary>Compares addresses.</summary>
+	/// <param name="left">First function.</param>
+	/// <param name="right">Second function.</param>
+	public static bool operator ==(LuaNativeFunction left, LuaNativeFunction right)
+	{
+		return left.Address == right.Address;
+	}
 
-    /// <summary>Compares addresses.</summary>
-    /// <param name="left">First function.</param>
-    /// <param name="right">Second function.</param>
-    public static bool operator !=(LuaNativeFunction left, LuaNativeFunction right)
-    {
-        return left.Address != right.Address;
-    }
+	/// <summary>Compares addresses.</summary>
+	/// <param name="left">First function.</param>
+	/// <param name="right">Second function.</param>
+	public static bool operator !=(LuaNativeFunction left, LuaNativeFunction right)
+	{
+		return left.Address != right.Address;
+	}
 
-    /// <inheritdoc />
-    public bool Equals(LuaNativeFunction other)
-    {
-        return Address == other.Address;
-    }
+	/// <inheritdoc />
+	public bool Equals(LuaNativeFunction other)
+	{
+		return Address == other.Address;
+	}
 
-    /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return obj is LuaNativeFunction other && Equals(other);
-    }
+	/// <inheritdoc />
+	public override bool Equals(object? obj)
+	{
+		return obj is LuaNativeFunction other && Equals(other);
+	}
 
-    /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return Address.GetHashCode();
-    }
+	/// <inheritdoc />
+	public override int GetHashCode()
+	{
+		return Address.GetHashCode();
+	}
 
-    /// <summary><c>lua_CFunction@0x...</c>.</summary>
-    public override string ToString()
-    {
-        return "lua_CFunction@0x" + Address.ToString("X", CultureInfo.InvariantCulture);
-    }
+	/// <summary><c>lua_CFunction@0x...</c>.</summary>
+	public override string ToString()
+	{
+		return "lua_CFunction@0x" + Address.ToString("X", CultureInfo.InvariantCulture);
+	}
 }

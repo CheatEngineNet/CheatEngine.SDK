@@ -8,10 +8,10 @@ namespace CheatEngine.SDK.Hosting.Tests.Support;
 /// </summary>
 internal sealed class NullReturningPluginFactory : IPluginFactory
 {
-    public static ReadOnlySpan<byte> Utf8Name => "Null Plugin"u8;
+	public static ReadOnlySpan<byte> Utf8Name => "Null Plugin"u8;
 
-    public static CheatEnginePlugin Create()
-    {
-        return null!;
-    }
+	public static CheatEnginePlugin Create()
+	{
+		return null!;
+	}
 }

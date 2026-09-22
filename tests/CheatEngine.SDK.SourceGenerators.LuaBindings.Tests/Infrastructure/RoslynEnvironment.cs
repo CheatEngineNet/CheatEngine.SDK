@@ -1,8 +1,10 @@
 using System.Collections.Immutable;
+
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.State;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -17,46 +19,52 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
 /// </summary>
 internal sealed class RoslynEnvironment
 {
-    /// <summary>Documentation comments are parsed and diagnosed, like in a project with <c>GenerateDocumentationFile</c>.</summary>
-    public static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14, DocumentationMode.Diagnose);
+	/// <summary>Documentation comments are parsed and diagnosed, like in a project with <c>GenerateDocumentationFile</c>.</summary>
+	public static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14, DocumentationMode.Diagnose);
 
-    /// <summary>Strict, with unsafe ON: the registration table takes thunk addresses. Nullable on, every warning wave.</summary>
-    public static readonly CSharpCompilationOptions CompilationOptions = new(
-        OutputKind.DynamicallyLinkedLibrary,
-        nullableContextOptions: NullableContextOptions.Enable,
-        allowUnsafe: true,
-        warningLevel: 9999);
+	/// <summary>Strict, with unsafe ON: the registration table takes thunk addresses. Nullable on, every warning wave.</summary>
+	public static readonly CSharpCompilationOptions CompilationOptions = new(
+		OutputKind.DynamicallyLinkedLibrary,
+		nullableContextOptions: NullableContextOptions.Enable,
+		allowUnsafe: true,
+		warningLevel: 9999);
 
-    /// <summary>The same options with unsafe OFF: the generator must then emit nothing.</summary>
-    public static readonly CSharpCompilationOptions SafeCompilationOptions = CompilationOptions.WithAllowUnsafe(false);
+	/// <summary>The same options with unsafe OFF: the generator must then emit nothing.</summary>
+	public static readonly CSharpCompilationOptions SafeCompilationOptions = CompilationOptions.WithAllowUnsafe(false);
 
-    private static readonly Lazy<RoslynEnvironment> LazyShared =
-        new(static () => new RoslynEnvironment(LocalFrameworkReferences.Load()));
+	private static readonly Lazy<RoslynEnvironment> LazyShared =
+		new(static () => new RoslynEnvironment(LocalFrameworkReferences.Load()));
 
-    private RoslynEnvironment(ImmutableArray<MetadataReference> frameworkReferences)
-    {
-        FrameworkReferences = frameworkReferences;
-        SdkReferences =
-        [
-            MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(LuaApi).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(LuaState).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(CEObject).Assembly.Location),
-        ];
-    }
+	private RoslynEnvironment(ImmutableArray<MetadataReference> frameworkReferences)
+	{
+		FrameworkReferences = frameworkReferences;
+		SdkReferences =
+		[
+			MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location),
+			MetadataReference.CreateFromFile(typeof(LuaApi).Assembly.Location),
+			MetadataReference.CreateFromFile(typeof(LuaState).Assembly.Location),
+			MetadataReference.CreateFromFile(typeof(CEObject).Assembly.Location)
+		];
+	}
 
-    /// <summary>The process-wide environment.</summary>
-    public static RoslynEnvironment Shared => LazyShared.Value;
+	/// <summary>The process-wide environment.</summary>
+	public static RoslynEnvironment Shared => LazyShared.Value;
 
-    /// <summary><c>Microsoft.NETCore.App</c> 10.0: reference assemblies, or the running runtime as a fallback.</summary>
-    public ImmutableArray<MetadataReference> FrameworkReferences { get; }
+	/// <summary><c>Microsoft.NETCore.App</c> 10.0: reference assemblies, or the running runtime as a fallback.</summary>
+	public ImmutableArray<MetadataReference> FrameworkReferences
+	{
+		get;
+	}
 
-    /// <summary>
-    ///     The real <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c>
-    ///     , as loaded in this process.
-    /// </summary>
-    public ImmutableArray<MetadataReference> SdkReferences { get; }
+	/// <summary>
+	///     The real <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c>
+	///     , as loaded in this process.
+	/// </summary>
+	public ImmutableArray<MetadataReference> SdkReferences
+	{
+		get;
+	}
 
-    /// <summary>Framework + SDK: the references of a plugin compilation.</summary>
-    public ImmutableArray<MetadataReference> PluginReferences => FrameworkReferences.AddRange(SdkReferences);
+	/// <summary>Framework + SDK: the references of a plugin compilation.</summary>
+	public ImmutableArray<MetadataReference> PluginReferences => FrameworkReferences.AddRange(SdkReferences);
 }

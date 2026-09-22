@@ -117,11 +117,11 @@ push the file past the limit, the sink shifts every archive up by one, drops the
 lock covers the roll and the write, so entries from several threads never interleave. With a 200 byte limit and two
 archives, twenty short entries end like this:
 
-| File           | Holds                                                                                          |
-|----------------|------------------------------------------------------------------------------------------------|
-| `plugin.log`   | The newest entries, including `entry 20`                                                       |
-| `plugin.log.1` | The entries before them                                                                        |
-| `plugin.log.2` | The oldest entries still kept; ordinary entries stay within 200 bytes                    |
+| File           | Holds                                                                 |
+|----------------|-----------------------------------------------------------------------|
+| `plugin.log`   | The newest entries, including `entry 20`                              |
+| `plugin.log.1` | The entries before them                                               |
+| `plugin.log.2` | The oldest entries still kept; ordinary entries stay within 200 bytes |
 
 Each line has a timestamp in UTC, the level and the message. An exception follows on the next lines, in full:
 

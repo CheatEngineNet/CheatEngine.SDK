@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Runtime;
@@ -60,183 +61,205 @@ namespace CheatEngine.SDK.Engine.Objects;
 ///     </para>
 /// </remarks>
 public sealed class Owned<T> : IDisposable
-    where T : struct, ICEObject<T>
+	where T : struct, ICEObject<T>
 {
-    private T _value;
+	private T _value;
 
-    /// <summary>Takes ownership of <paramref name="value" /> from an SDK factory with an established ownership contract.</summary>
-    /// <param name="value">
-    ///     A handle to an object nobody else owns, obtained from a documented SDK creation binding or from
-    ///     <see cref="Transfer" />.
-    /// </param>
-    /// <exception cref="ArgumentException"><paramref name="value" /> is a null handle.</exception>
-    internal Owned(T value)
-    {
-        if (value.Handle.IsNull) throw new ArgumentException("A null handle cannot be owned.", nameof(value));
+	/// <summary>Takes ownership of <paramref name="value" /> from an SDK factory with an established ownership contract.</summary>
+	/// <param name="value">
+	///     A handle to an object nobody else owns, obtained from a documented SDK creation binding or from
+	///     <see cref="Transfer" />.
+	/// </param>
+	/// <exception cref="ArgumentException"><paramref name="value" /> is a null handle.</exception>
+	internal Owned(T value)
+	{
+		if (value.Handle.IsNull)
+		{
+			throw new ArgumentException("A null handle cannot be owned.", nameof(value));
+		}
 
-        _value = value;
-    }
+		_value = value;
+	}
 
-    /// <summary>
-    ///     Gets the typed handle, for calling the object's members. A borrowed view: do not keep it beyond the wrapper's
-    ///     life.
-    /// </summary>
-    /// <exception cref="ObjectDisposedException">The wrapper was disposed, transferred or abandoned.</exception>
-    public T Value
-    {
-        get
-        {
-            if (IsDisposed) ThrowDisposed();
+	/// <summary>
+	///     Gets the typed handle, for calling the object's members. A borrowed view: do not keep it beyond the wrapper's
+	///     life.
+	/// </summary>
+	/// <exception cref="ObjectDisposedException">The wrapper was disposed, transferred or abandoned.</exception>
+	public T Value
+	{
+		get
+		{
+			if (IsDisposed)
+			{
+				ThrowDisposed();
+			}
 
-            return _value;
-        }
-    }
+			return _value;
+		}
+	}
 
-    /// <summary>Gets the untyped handle of the owned object.</summary>
-    /// <exception cref="ObjectDisposedException">The wrapper was disposed, transferred or abandoned.</exception>
-    public CEObject Handle => Value.Handle;
+	/// <summary>Gets the untyped handle of the owned object.</summary>
+	/// <exception cref="ObjectDisposedException">The wrapper was disposed, transferred or abandoned.</exception>
+	public CEObject Handle => Value.Handle;
 
-    /// <summary>
-    ///     Gets a value indicating whether the wrapper no longer owns anything, after <see cref="Dispose" />,
-    ///     <see cref="TryDestroy" />, <see cref="Transfer" /> or <see cref="Abandon" />.
-    /// </summary>
-    public bool IsDisposed => _value.Handle.IsNull;
+	/// <summary>
+	///     Gets a value indicating whether the wrapper no longer owns anything, after <see cref="Dispose" />,
+	///     <see cref="TryDestroy" />, <see cref="Transfer" /> or <see cref="Abandon" />.
+	/// </summary>
+	public bool IsDisposed => _value.Handle.IsNull;
 
-    /// <summary>
-    ///     Destroys the object through <see cref="TryDestroy" /> on the ambient state, discarding a protected Lua
-    ///     failure after an invocation began. It is idempotent. If the runtime is detached, the current thread cannot
-    ///     obtain a state, or the binding has no host-object pusher, it throws and retains ownership so the caller can
-    ///     retry or explicitly abandon the object; it never reports a no-op as a completed destruction.
-    /// </summary>
-    public void Dispose()
-    {
-        if (IsDisposed) return;
+	/// <summary>
+	///     Destroys the object through <see cref="TryDestroy" /> on the ambient state, discarding a protected Lua
+	///     failure after an invocation began. It is idempotent. If the runtime is detached, the current thread cannot
+	///     obtain a state, or the binding has no host-object pusher, it throws and retains ownership so the caller can
+	///     retry or explicitly abandon the object; it never reports a no-op as a completed destruction.
+	/// </summary>
+	public void Dispose()
+	{
+		if (IsDisposed)
+		{
+			return;
+		}
 
-        using var operation = LuaRuntime.AcquireOperation();
-        var state = operation.State;
-        using LuaFrame frame = new(state);
-        _ = TryDestroyCore(state);
-    }
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		using LuaFrame frame = new(state);
+		_ = TryDestroyCore(state);
+	}
 
-    /// <summary>
-    ///     The handle as a borrowed value, for passing the object to an API that does not take ownership. Same as
-    ///     <see cref="Value" />, named for the intent.
-    /// </summary>
-    /// <returns>The typed handle.</returns>
-    /// <exception cref="ObjectDisposedException">The wrapper was disposed, transferred or abandoned.</exception>
-    public T ToBorrowed()
-    {
-        return Value;
-    }
+	/// <summary>
+	///     The handle as a borrowed value, for passing the object to an API that does not take ownership. Same as
+	///     <see cref="Value" />, named for the intent.
+	/// </summary>
+	/// <returns>The typed handle.</returns>
+	/// <exception cref="ObjectDisposedException">The wrapper was disposed, transferred or abandoned.</exception>
+	public T ToBorrowed()
+	{
+		return Value;
+	}
 
-    /// <summary>
-    ///     Moves this ownership capability into a new wrapper without calling CE. The source wrapper becomes empty.
-    /// </summary>
-    /// <returns>The new sole owner.</returns>
-    /// <exception cref="ObjectDisposedException">The wrapper was disposed, transferred or abandoned.</exception>
-    public Owned<T> Transfer()
-    {
-        var destination = PrepareTransfer();
-        CompleteTransfer(destination);
-        return destination;
-    }
+	/// <summary>
+	///     Moves this ownership capability into a new wrapper without calling CE. The source wrapper becomes empty.
+	/// </summary>
+	/// <returns>The new sole owner.</returns>
+	/// <exception cref="ObjectDisposedException">The wrapper was disposed, transferred or abandoned.</exception>
+	public Owned<T> Transfer()
+	{
+		Owned<T> destination = PrepareTransfer();
+		CompleteTransfer(destination);
+		return destination;
+	}
 
-    // A multi-owner handoff prepares every destination before any source is made empty. These members are internal so
-    // that a consumer cannot ever observe the brief, private preparation state as a second ownership capability.
-    internal Owned<T> PrepareTransfer()
-    {
-        var value = Value;
-        return new Owned<T>(value);
-    }
+	// A multi-owner handoff prepares every destination before any source is made empty. These members are internal so
+	// that a consumer cannot ever observe the brief, private preparation state as a second ownership capability.
+	internal Owned<T> PrepareTransfer()
+	{
+		T value = Value;
+		return new Owned<T>(value);
+	}
 
-    internal void CompleteTransfer(Owned<T> destination)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        if (destination.Value.Handle != Value.Handle)
-            throw new ArgumentException("The destination does not represent this owned object.", nameof(destination));
+	internal void CompleteTransfer(Owned<T> destination)
+	{
+		ArgumentNullException.ThrowIfNull(destination);
+		if (destination.Value.Handle != Value.Handle)
+		{
+			throw new ArgumentException("The destination does not represent this owned object.", nameof(destination));
+		}
 
-        _value = default;
-    }
+		_value = default;
+	}
 
-    /// <summary>
-    ///     Explicitly stops managed cleanup without calling CE and returns a borrowed handle. This is abandonment, not
-    ///     an ownership transfer: the returned value cannot be wrapped in <see cref="Owned{T}" /> by consumer code.
-    /// </summary>
-    /// <returns>The still-live object as a borrowed handle.</returns>
-    /// <exception cref="ObjectDisposedException">The wrapper was already empty.</exception>
-    /// <remarks>
-    ///     Use only when ownership has moved into a CE operation whose contract is already documented, or when an
-    ///     unavoidable shutdown path has been recorded. Prefer <see cref="Transfer" /> for a managed hand-off.
-    /// </remarks>
-    public T Abandon()
-    {
-        var value = Value;
-        _value = default;
-        return value;
-    }
+	/// <summary>
+	///     Explicitly stops managed cleanup without calling CE and returns a borrowed handle. This is abandonment, not
+	///     an ownership transfer: the returned value cannot be wrapped in <see cref="Owned{T}" /> by consumer code.
+	/// </summary>
+	/// <returns>The still-live object as a borrowed handle.</returns>
+	/// <exception cref="ObjectDisposedException">The wrapper was already empty.</exception>
+	/// <remarks>
+	///     Use only when ownership has moved into a CE operation whose contract is already documented, or when an
+	///     unavoidable shutdown path has been recorded. Prefer <see cref="Transfer" /> for a managed hand-off.
+	/// </remarks>
+	public T Abandon()
+	{
+		T value = Value;
+		_value = default;
+		return value;
+	}
 
-    /// <summary>
-    ///     Destroys the object now, through a protected <c>destroy()</c> call on <paramref name="state" />, and marks the
-    ///     wrapper empty after a protected call began, whatever its status. Stack after success: unchanged; after
-    ///     failure: one error value, for the caller's frame to read or discard. Already empty: returns
-    ///     <see cref="LuaStatus.Ok" /> and pushes nothing.
-    /// </summary>
-    /// <param name="state">The calling thread's state.</param>
-    /// <returns>The status of the destroy call.</returns>
-    /// <exception cref="InvalidOperationException">
-    ///     The plugin is not enabled, the caller has no Lua state, or the attached host binding has no object pusher
-    ///     (an embedding without <c>LuaPushClassInstance</c>). Nothing was called, the stack is untouched, and this
-    ///     wrapper retains ownership for an explicit retry or <see cref="Abandon" />.
-    /// </exception>
-    [RequiresPluginEnabled]
-    public LuaStatus TryDestroy(LuaState state)
-    {
-        if (IsDisposed) return LuaStatus.Ok;
+	/// <summary>
+	///     Destroys the object now, through a protected <c>destroy()</c> call on <paramref name="state" />, and marks the
+	///     wrapper empty after a protected call began, whatever its status. Stack after success: unchanged; after
+	///     failure: one error value, for the caller's frame to read or discard. Already empty: returns
+	///     <see cref="LuaStatus.Ok" /> and pushes nothing.
+	/// </summary>
+	/// <param name="state">The calling thread's state.</param>
+	/// <returns>The status of the destroy call.</returns>
+	/// <exception cref="InvalidOperationException">
+	///     The plugin is not enabled, the caller has no Lua state, or the attached host binding has no object pusher
+	///     (an embedding without <c>LuaPushClassInstance</c>). Nothing was called, the stack is untouched, and this
+	///     wrapper retains ownership for an explicit retry or <see cref="Abandon" />.
+	/// </exception>
+	[RequiresPluginEnabled]
+	public LuaStatus TryDestroy(LuaState state)
+	{
+		if (IsDisposed)
+		{
+			return LuaStatus.Ok;
+		}
 
-        using var operation = LuaRuntime.AcquireOperation();
-        if (operation.State != state)
-            throw new InvalidOperationException(
-                "The supplied Lua state is not the state currently assigned to this thread by the attached host.");
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		if (operation.State != state)
+		{
+			throw new InvalidOperationException(
+				"The supplied Lua state is not the state currently assigned to this thread by the attached host.");
+		}
 
-        return TryDestroyCore(operation.State);
-    }
+		return TryDestroyCore(operation.State);
+	}
 
-    private LuaStatus TryDestroyCore(LuaState state)
-    {
-        EnsureDestructionCanStart(state);
-        var handle = _value.Handle;
-        var status = handle.TryDestroy(state);
-        _value = default;
-        return status;
-    }
+	private LuaStatus TryDestroyCore(LuaState state)
+	{
+		EnsureDestructionCanStart(state);
+		CEObject handle = _value.Handle;
+		LuaStatus status = handle.TryDestroy(state);
+		_value = default;
+		return status;
+	}
 
-    /// <summary><c>Owned(CEObject@0x...)</c>, or <c>Owned(disposed)</c>.</summary>
-    public override string ToString()
-    {
-        return IsDisposed ? "Owned(disposed)" : "Owned(" + _value.Handle + ")";
-    }
+	/// <summary><c>Owned(CEObject@0x...)</c>, or <c>Owned(disposed)</c>.</summary>
+	public override string ToString()
+	{
+		return IsDisposed ? "Owned(disposed)" : "Owned(" + _value.Handle + ")";
+	}
 
-    private static void EnsureDestructionCanStart(LuaState state)
-    {
-        var binding = LuaRuntime.CurrentBinding;
-        if (!binding.IsValid)
-            throw new InvalidOperationException(
-                "The plugin is not enabled, so the owned Cheat Engine object cannot be destroyed yet.");
+	private static void EnsureDestructionCanStart(LuaState state)
+	{
+		LuaHostBinding binding = LuaRuntime.CurrentBinding;
+		if (!binding.IsValid)
+		{
+			throw new InvalidOperationException(
+				"The plugin is not enabled, so the owned Cheat Engine object cannot be destroyed yet.");
+		}
 
-        if (binding.HostObjectPusher == 0)
-            throw new InvalidOperationException(
-                "The attached host binding has no host-object pusher, so the owned Cheat Engine object cannot be destroyed.");
+		if (binding.HostObjectPusher == 0)
+		{
+			throw new InvalidOperationException(
+				"The attached host binding has no host-object pusher, so the owned Cheat Engine object cannot be destroyed.");
+		}
 
-        if (state.IsNull)
-            throw new InvalidOperationException(
-                "The current thread has no Lua state, so the owned Cheat Engine object cannot be destroyed.");
-    }
+		if (state.IsNull)
+		{
+			throw new InvalidOperationException(
+				"The current thread has no Lua state, so the owned Cheat Engine object cannot be destroyed.");
+		}
+	}
 
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowDisposed()
-    {
-        throw new ObjectDisposedException(typeof(Owned<T>).Name,
-            "The wrapper no longer owns an object: it was disposed, transferred or abandoned.");
-    }
+	[DoesNotReturn]
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	private static void ThrowDisposed()
+	{
+		throw new ObjectDisposedException(typeof(Owned<T>).Name,
+			"The wrapper no longer owns an object: it was disposed, transferred or abandoned.");
+	}
 }

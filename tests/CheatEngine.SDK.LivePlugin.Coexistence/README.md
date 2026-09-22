@@ -1,6 +1,7 @@
 # CheatEngine.SDK.LivePlugin.Coexistence
 
-An opt-in, manual fixture for the exact-host portion of [SDK-005](../../documentations/engineering/work-items/SDK-005.md).
+An opt-in, manual fixture for the exact-host portion
+of [SDK-005](../../documentations/engineering/work-items/SDK-005.md).
 It builds two distinct plugin assemblies, `PluginA` and `PluginB`, and records the identities that Cheat Engine actually
 loads. It is not a unit test, it is not part of ordinary CI, and this repository contains **no executed result** for it.
 
@@ -18,11 +19,11 @@ process, mutate memory, install hooks, or create a loader isolation model.
 
 ## What it can and cannot establish
 
-| Observation | Establishes | Does not establish |
-|---|---|---|
-| A and B enable and answer separate Lua globals | The recorded host accepted both exact output directories for that run | A general CE version/loader guarantee |
-| The identity lines | The actual plugin/Hosting assembly and runtime load-context relationship for that run | That all static state is safely isolated; Lua and CE globals can still be shared |
-| Disable A while B remains callable | The narrow A/B global-registration and lifecycle observation | Callback, worker-dispatch, target-provenance, or retained-owner safety |
+| Observation                                    | Establishes                                                                           | Does not establish                                                               |
+|------------------------------------------------|---------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| A and B enable and answer separate Lua globals | The recorded host accepted both exact output directories for that run                 | A general CE version/loader guarantee                                            |
+| The identity lines                             | The actual plugin/Hosting assembly and runtime load-context relationship for that run | That all static state is safely isolated; Lua and CE globals can still be shared |
+| Disable A while B remains callable             | The narrow A/B global-registration and lifecycle observation                          | Callback, worker-dispatch, target-provenance, or retained-owner safety           |
 
 The fixture intentionally uses the current source graph for both plugins. A side-by-side SDK-version run is separate:
 obtain two qualified package/output tuples, keep each complete dependency set in its own directory, record their
@@ -87,7 +88,8 @@ behaviour the fixture is meant to observe.
 
 This fixture observes a managed plugin route only. .NET permits a collectible `AssemblyLoadContext` to be unloaded
 cooperatively only after relevant threads and strong references are gone; it does not say what load context Cheat
-Engine uses for a plugin. See [AssemblyLoadContext unloadability](https://learn.microsoft.com/dotnet/standard/assembly/unloadability).
+Engine uses for a plugin.
+See [AssemblyLoadContext unloadability](https://learn.microsoft.com/dotnet/standard/assembly/unloadability).
 
 Native AOT is a separate deployment profile. A standalone AOT publish/probe is publication evidence, not proof that
 Cheat Engine can load, disable and remove a native plugin. Microsoft documents that unloading Native AOT libraries with

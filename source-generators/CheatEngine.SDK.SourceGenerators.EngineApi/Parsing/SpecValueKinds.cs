@@ -15,54 +15,54 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Parsing;
 /// </remarks>
 internal static class SpecValueKinds
 {
-    /// <summary>
-    ///     Parses one kind token; <see langword="false" /> for anything else, <paramref name="kind" />/
-    ///     <paramref name="isNullable" /> then undefined.
-    /// </summary>
-    public static bool TryParse(string token, out LuaValueKind kind, out bool isNullable)
-    {
-        switch (token)
-        {
-            case "int32":
-                kind = LuaValueKind.Int32;
-                isNullable = false;
-                return true;
-            case "int64":
-                kind = LuaValueKind.Int64;
-                isNullable = false;
-                return true;
-            case "single":
-                kind = LuaValueKind.Single;
-                isNullable = false;
-                return true;
-            case "double":
-                kind = LuaValueKind.Double;
-                isNullable = false;
-                return true;
-            case "boolean":
-                kind = LuaValueKind.Boolean;
-                isNullable = false;
-                return true;
-            case "address":
-                kind = LuaValueKind.Address;
-                isNullable = false;
-                return true;
-            case "utf8":
-                kind = LuaValueKind.Utf8;
-                isNullable = false;
-                return true;
-            case "string":
-                kind = LuaValueKind.String;
-                isNullable = false;
-                return true;
-            case "string?":
-                kind = LuaValueKind.String;
-                isNullable = true;
-                return true;
-            default:
-                kind = default;
-                isNullable = false;
-                return false;
-        }
-    }
+	/// <summary>
+	///     Parses one kind token; <see langword="false" /> for anything else, <paramref name="kind" />/
+	///     <paramref name="isNullable" /> then undefined.
+	/// </summary>
+	public static bool TryParse(string token, out LuaValueKind kind, out bool isNullable)
+	{
+		switch (token)
+		{
+			case "int32":
+				kind = LuaValueKind.Int32;
+				isNullable = false;
+				return true;
+			case "int64":
+				kind = LuaValueKind.Int64;
+				isNullable = false;
+				return true;
+			case "single":
+				kind = LuaValueKind.Single;
+				isNullable = false;
+				return true;
+			case "double":
+				kind = LuaValueKind.Double;
+				isNullable = false;
+				return true;
+			case "boolean":
+				kind = LuaValueKind.Boolean;
+				isNullable = false;
+				return true;
+			case "address":
+				kind = LuaValueKind.Address;
+				isNullable = false;
+				return true;
+			case "utf8":
+				kind = LuaValueKind.Utf8;
+				isNullable = false;
+				return true;
+			case "string":
+				kind = LuaValueKind.String;
+				isNullable = false;
+				return true;
+			case "string?":
+				kind = LuaValueKind.String;
+				isNullable = true;
+				return true;
+			default:
+				kind = default;
+				isNullable = false;
+				return false;
+		}
+	}
 }

@@ -12,52 +12,63 @@ namespace CheatEngine.SDK.Engine.Targets;
 [StructLayout(LayoutKind.Auto)]
 public readonly struct TargetProcessIncarnation : IEquatable<TargetProcessIncarnation>
 {
-    internal TargetProcessIncarnation(int processId, long startedAtUtcTicks)
-    {
-        if (processId <= 0)
-            throw new ArgumentOutOfRangeException(nameof(processId), processId,
-                "A target process incarnation requires a positive process identifier.");
-        if (startedAtUtcTicks <= 0)
-            throw new ArgumentOutOfRangeException(nameof(startedAtUtcTicks), startedAtUtcTicks,
-                "A target process incarnation requires a positive UTC creation time.");
+	internal TargetProcessIncarnation(int processId, long startedAtUtcTicks)
+	{
+		if (processId <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(processId), processId,
+				"A target process incarnation requires a positive process identifier.");
+		}
 
-        ProcessId = processId;
-        StartedAtUtcTicks = startedAtUtcTicks;
-    }
+		if (startedAtUtcTicks <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(startedAtUtcTicks), startedAtUtcTicks,
+				"A target process incarnation requires a positive UTC creation time.");
+		}
 
-    /// <summary>Gets the positive Windows process identifier observed by Cheat Engine.</summary>
-    public int ProcessId { get; }
+		ProcessId = processId;
+		StartedAtUtcTicks = startedAtUtcTicks;
+	}
 
-    /// <summary>Gets the UTC ticks of the local process creation-time observation.</summary>
-    public long StartedAtUtcTicks { get; }
+	/// <summary>Gets the positive Windows process identifier observed by Cheat Engine.</summary>
+	public int ProcessId
+	{
+		get;
+	}
 
-    /// <inheritdoc />
-    public bool Equals(TargetProcessIncarnation other)
-    {
-        return ProcessId == other.ProcessId && StartedAtUtcTicks == other.StartedAtUtcTicks;
-    }
+	/// <summary>Gets the UTC ticks of the local process creation-time observation.</summary>
+	public long StartedAtUtcTicks
+	{
+		get;
+	}
 
-    /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return obj is TargetProcessIncarnation other && Equals(other);
-    }
+	/// <inheritdoc />
+	public bool Equals(TargetProcessIncarnation other)
+	{
+		return ProcessId == other.ProcessId && StartedAtUtcTicks == other.StartedAtUtcTicks;
+	}
 
-    /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(ProcessId, StartedAtUtcTicks);
-    }
+	/// <inheritdoc />
+	public override bool Equals(object? obj)
+	{
+		return obj is TargetProcessIncarnation other && Equals(other);
+	}
 
-    /// <summary>Compares two target-process incarnations.</summary>
-    public static bool operator ==(TargetProcessIncarnation left, TargetProcessIncarnation right)
-    {
-        return left.Equals(right);
-    }
+	/// <inheritdoc />
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(ProcessId, StartedAtUtcTicks);
+	}
 
-    /// <summary>Compares two target-process incarnations.</summary>
-    public static bool operator !=(TargetProcessIncarnation left, TargetProcessIncarnation right)
-    {
-        return !left.Equals(right);
-    }
+	/// <summary>Compares two target-process incarnations.</summary>
+	public static bool operator ==(TargetProcessIncarnation left, TargetProcessIncarnation right)
+	{
+		return left.Equals(right);
+	}
+
+	/// <summary>Compares two target-process incarnations.</summary>
+	public static bool operator !=(TargetProcessIncarnation left, TargetProcessIncarnation right)
+	{
+		return !left.Equals(right);
+	}
 }

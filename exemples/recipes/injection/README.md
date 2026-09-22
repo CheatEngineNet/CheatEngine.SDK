@@ -182,14 +182,14 @@ print(my_plugin_inject("helper.dll"))                    -- true, or false when 
 
 ## Good to know
 
-| Topic             | Detail                                                                                                                                                                |
-|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Failure of a call | `TryExecuteCode` returns `false` when the call raises or returns `nil`; its synchronous return proves the target is no longer using this helper's buffer             |
+| Topic             | Detail                                                                                                                                                                         |
+|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Failure of a call | `TryExecuteCode` returns `false` when the call raises or returns `nil`; its synchronous return proves the target is no longer using this helper's buffer                       |
 | Timeout           | Do not put caller-owned arguments behind `executeCodeEx` and then free them after a timeout. Keep those allocations in an operation object until target completion is observed |
-| Exceptions        | A `[LuaFunction]` that throws reaches Lua as an error, here `System.InvalidOperationException: The remote call failed.`, and the buffer is already freed by then      |
-| Script text       | `autoAssemble` runs whatever it receives. `Patch` accepts only symbol characters and two digit hex bytes, so a caller cannot smuggle a second command into the script |
-| Protection        | `fullAccess(address, size)` makes a block writable and executable. Use it on your own allocation, never on the game's code                                            |
-| Path              | `Path.GetFullPath` resolves a relative name against the current directory of Cheat Engine, so pass an absolute path when you can                                      |
+| Exceptions        | A `[LuaFunction]` that throws reaches Lua as an error, here `System.InvalidOperationException: The remote call failed.`, and the buffer is already freed by then               |
+| Script text       | `autoAssemble` runs whatever it receives. `Patch` accepts only symbol characters and two digit hex bytes, so a caller cannot smuggle a second command into the script          |
+| Protection        | `fullAccess(address, size)` makes a block writable and executable. Use it on your own allocation, never on the game's code                                                     |
+| Path              | `Path.GetFullPath` resolves a relative name against the current directory of Cheat Engine, so pass an absolute path when you can                                               |
 
 > [!WARNING]
 > Injecting a DLL and calling target code are operations on someone else's process. Do them only against software you
@@ -198,7 +198,8 @@ print(my_plugin_inject("helper.dll"))                    -- true, or false when 
 ## Promise
 
 - A `Try` form never throws for a missing global, a raised error or a wrong result kind.
-- The remote buffer is released after a failed write or after `executeCode` has returned, so it is never released while the target call may still read it.
+- The remote buffer is released after a failed write or after `executeCode` has returned, so it is never released while
+  the target call may still read it.
 - Nothing you pass reaches an Auto Assembler script before `Patch` has checked it.
 - The generated thunk catches every exception, and the Lua stack returns to its previous height after every call.
 

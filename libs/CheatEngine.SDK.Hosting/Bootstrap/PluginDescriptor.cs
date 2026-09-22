@@ -1,4 +1,5 @@
 using System;
+
 using CheatEngine.SDK.Hosting.Plugin;
 
 namespace CheatEngine.SDK.Hosting.Bootstrap;
@@ -12,9 +13,12 @@ namespace CheatEngine.SDK.Hosting.Bootstrap;
 /// </summary>
 internal abstract class PluginDescriptor
 {
-    /// <summary>Gets the factory type, for the deterministic rejection of a second, different factory.</summary>
-    internal abstract Type FactoryType { get; }
+	/// <summary>Gets the factory type, for the deterministic rejection of a second, different factory.</summary>
+	internal abstract Type FactoryType
+	{
+		get;
+	}
 
-    /// <summary>Constructs the plugin (<see cref="IPluginFactory.Create" />).</summary>
-    internal abstract CheatEnginePlugin CreatePlugin();
+	/// <summary>Constructs the plugin (<see cref="IPluginFactory.Create" />).</summary>
+	internal abstract CheatEnginePlugin CreatePlugin();
 }

@@ -21,23 +21,23 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 /// </remarks>
 public enum MemoryScanState
 {
-    /// <summary>The session has a scanner and result-list pair, but no readable scan result.</summary>
-    New = 0,
+	/// <summary>The session has a scanner and result-list pair, but no readable scan result.</summary>
+	New = 0,
 
-    /// <summary>A first or next scan was accepted and has not yet completed successfully.</summary>
-    Scanning = 1,
+	/// <summary>A first or next scan was accepted and has not yet completed successfully.</summary>
+	Scanning = 1,
 
-    /// <summary>
-    ///     <c>waitTillDone</c> completed successfully and the attached found list initialized successfully.
-    /// </summary>
-    ResultsReady = 2,
+	/// <summary>
+	///     <c>waitTillDone</c> completed successfully and the attached found list initialized successfully.
+	/// </summary>
+	ResultsReady = 2,
 
-    /// <summary>
-    ///     A protected operation or result marshalling step failed after the session began a transition. The session
-    ///     refuses reads and new scans until <see cref="MemoryScanSession.Reset()" /> succeeds.
-    /// </summary>
-    Invalidated = 3,
+	/// <summary>
+	///     A protected operation or result marshalling step failed after the session began a transition. The session
+	///     refuses reads and new scans until <see cref="MemoryScanSession.Reset()" /> succeeds.
+	/// </summary>
+	Invalidated = 3,
 
-    /// <summary>The session released its child list and then its scanner; no operation remains valid.</summary>
-    Disposed = 4,
+	/// <summary>The session released its child list and then its scanner; no operation remains valid.</summary>
+	Disposed = 4
 }

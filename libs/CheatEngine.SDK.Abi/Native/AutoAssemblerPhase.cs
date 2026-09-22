@@ -18,15 +18,15 @@ namespace CheatEngine.SDK.Abi.Native;
 /// </remarks>
 public enum AutoAssemblerPhase
 {
-    /// <summary>Upstream <c>aaInitialize</c> (0): start of a run.</summary>
-    Initialize = 0,
+	/// <summary>Upstream <c>aaInitialize</c> (0): start of a run.</summary>
+	Initialize = 0,
 
-    /// <summary>Upstream <c>aaPhase1</c> (1): first pass.</summary>
-    Phase1 = 1,
+	/// <summary>Upstream <c>aaPhase1</c> (1): first pass.</summary>
+	Phase1 = 1,
 
-    /// <summary>Upstream <c>aaPhase2</c> (2): second pass.</summary>
-    Phase2 = 2,
+	/// <summary>Upstream <c>aaPhase2</c> (2): second pass.</summary>
+	Phase2 = 2,
 
-    /// <summary>Upstream <c>aaFinalize</c> (3): end of a run.</summary>
-    Finalize = 3
+	/// <summary>Upstream <c>aaFinalize</c> (3): end of a run.</summary>
+	Finalize = 3
 }

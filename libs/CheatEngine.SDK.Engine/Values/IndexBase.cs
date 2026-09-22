@@ -29,58 +29,61 @@ namespace CheatEngine.SDK.Engine.Values;
 /// </remarks>
 public static class IndexBase
 {
-    /// <summary>The first index of a Cheat Engine object, and of every index this assembly exposes.</summary>
-    public const int FirstObjectIndex = 0;
+	/// <summary>The first index of a Cheat Engine object, and of every index this assembly exposes.</summary>
+	public const int FirstObjectIndex = 0;
 
-    /// <summary>The first key of a Lua sequence.</summary>
-    public const long FirstLuaKey = 1;
+	/// <summary>The first key of a Lua sequence.</summary>
+	public const long FirstLuaKey = 1;
 
-    /// <summary>Converts a zero-based index into the key of the same element in a Lua sequence.</summary>
-    /// <param name="zeroBasedIndex">The index as C# and Cheat Engine objects count it.</param>
-    /// <returns>The one-based Lua key.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="zeroBasedIndex" /> is negative.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static long ToLuaKey(int zeroBasedIndex)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(zeroBasedIndex);
-        return zeroBasedIndex + FirstLuaKey;
-    }
+	/// <summary>Converts a zero-based index into the key of the same element in a Lua sequence.</summary>
+	/// <param name="zeroBasedIndex">The index as C# and Cheat Engine objects count it.</param>
+	/// <returns>The one-based Lua key.</returns>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="zeroBasedIndex" /> is negative.</exception>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static long ToLuaKey(int zeroBasedIndex)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(zeroBasedIndex);
+		return zeroBasedIndex + FirstLuaKey;
+	}
 
-    /// <summary>Converts the key of a Lua sequence element into a zero-based index.</summary>
-    /// <param name="luaKey">The one-based Lua key.</param>
-    /// <returns>The zero-based index.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">
-    ///     <paramref name="luaKey" /> is below one, or the index would not fit an
-    ///     <see cref="int" />.
-    /// </exception>
-    public static int FromLuaKey(long luaKey)
-    {
-        if (!TryFromLuaKey(luaKey, out var zeroBasedIndex)) ThrowNotASequenceKey(luaKey);
+	/// <summary>Converts the key of a Lua sequence element into a zero-based index.</summary>
+	/// <param name="luaKey">The one-based Lua key.</param>
+	/// <returns>The zero-based index.</returns>
+	/// <exception cref="ArgumentOutOfRangeException">
+	///     <paramref name="luaKey" /> is below one, or the index would not fit an
+	///     <see cref="int" />.
+	/// </exception>
+	public static int FromLuaKey(long luaKey)
+	{
+		if (!TryFromLuaKey(luaKey, out int zeroBasedIndex))
+		{
+			ThrowNotASequenceKey(luaKey);
+		}
 
-        return zeroBasedIndex;
-    }
+		return zeroBasedIndex;
+	}
 
-    /// <summary>Converts the key of a Lua sequence element into a zero-based index, for keys read back from Lua.</summary>
-    /// <param name="luaKey">The key, as any Lua integer.</param>
-    /// <param name="zeroBasedIndex">The zero-based index; 0 on failure.</param>
-    /// <returns><see langword="false" /> when the key is below one or the index would not fit an <see cref="int" />.</returns>
-    public static bool TryFromLuaKey(long luaKey, out int zeroBasedIndex)
-    {
-        if (luaKey < FirstLuaKey || luaKey > int.MaxValue + FirstLuaKey)
-        {
-            zeroBasedIndex = 0;
-            return false;
-        }
+	/// <summary>Converts the key of a Lua sequence element into a zero-based index, for keys read back from Lua.</summary>
+	/// <param name="luaKey">The key, as any Lua integer.</param>
+	/// <param name="zeroBasedIndex">The zero-based index; 0 on failure.</param>
+	/// <returns><see langword="false" /> when the key is below one or the index would not fit an <see cref="int" />.</returns>
+	public static bool TryFromLuaKey(long luaKey, out int zeroBasedIndex)
+	{
+		if (luaKey < FirstLuaKey || luaKey > int.MaxValue + FirstLuaKey)
+		{
+			zeroBasedIndex = 0;
+			return false;
+		}
 
-        zeroBasedIndex = (int)(luaKey - FirstLuaKey);
-        return true;
-    }
+		zeroBasedIndex = (int) (luaKey - FirstLuaKey);
+		return true;
+	}
 
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowNotASequenceKey(long luaKey)
-    {
-        throw new ArgumentOutOfRangeException(nameof(luaKey), luaKey,
-            "A Lua sequence key is at least 1 and at most int.MaxValue + 1.");
-    }
+	[DoesNotReturn]
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	private static void ThrowNotASequenceKey(long luaKey)
+	{
+		throw new ArgumentOutOfRangeException(nameof(luaKey), luaKey,
+			"A Lua sequence key is at least 1 and at most int.MaxValue + 1.");
+	}
 }

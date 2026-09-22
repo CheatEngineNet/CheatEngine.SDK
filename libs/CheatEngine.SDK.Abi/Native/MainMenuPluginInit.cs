@@ -23,25 +23,25 @@ namespace CheatEngine.SDK.Abi.Native;
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct MainMenuPluginInit
 {
-    /// <summary>NUL-terminated ANSI caption of the menu entry (offset 0).</summary>
-    /// <remarks>The 7.5 host copies the text during registration (<i>inferred</i> for 7.7).</remarks>
-    public byte* Name;
+	/// <summary>NUL-terminated ANSI caption of the menu entry (offset 0).</summary>
+	/// <remarks>The 7.5 host copies the text during registration (<i>inferred</i> for 7.7).</remarks>
+	public byte* Name;
 
-    /// <summary>Invoked when the user picks the menu entry (offset 8).</summary>
-    /// <remarks>Must stay valid until the function is unregistered. Must not let an exception escape.</remarks>
-    public delegate* unmanaged[Stdcall]<void> Callback;
+	/// <summary>Invoked when the user picks the menu entry (offset 8).</summary>
+	/// <remarks>Must stay valid until the function is unregistered. Must not let an exception escape.</remarks>
+	public delegate* unmanaged[Stdcall]<void> Callback;
 
-    /// <summary>NUL-terminated ANSI shortcut in text form, for example <c>Ctrl+R</c> (offset 16).</summary>
-    /// <remarks>
-    ///     <para>
-    ///         Both upstream declarations type the field as a C string and the header describes the parsing as best-effort
-    ///         (<i>verified</i>); the shipped C example always passes text.
-    ///     </para>
-    ///     <para>
-    ///         Whether the host tolerates a null pointer here is <b>not established</b>: no local file says so and the 7.7
-    ///         host is closed source. Do not pass null. To register without a shortcut, point at an empty NUL-terminated
-    ///         string: that stays inside the declared contract (its effect, expected to be "no shortcut", is unverified).
-    ///     </para>
-    /// </remarks>
-    public byte* Shortcut;
+	/// <summary>NUL-terminated ANSI shortcut in text form, for example <c>Ctrl+R</c> (offset 16).</summary>
+	/// <remarks>
+	///     <para>
+	///         Both upstream declarations type the field as a C string and the header describes the parsing as best-effort
+	///         (<i>verified</i>); the shipped C example always passes text.
+	///     </para>
+	///     <para>
+	///         Whether the host tolerates a null pointer here is <b>not established</b>: no local file says so and the 7.7
+	///         host is closed source. Do not pass null. To register without a shortcut, point at an empty NUL-terminated
+	///         string: that stays inside the declared contract (its effect, expected to be "no shortcut", is unverified).
+	///     </para>
+	/// </remarks>
+	public byte* Shortcut;
 }

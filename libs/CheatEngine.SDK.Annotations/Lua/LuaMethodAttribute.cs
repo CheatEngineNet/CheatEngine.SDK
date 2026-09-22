@@ -30,28 +30,31 @@ namespace CheatEngine.SDK.Annotations.Lua;
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 public sealed class LuaMethodAttribute : Attribute
 {
-    /// <summary>
-    ///     Initializes the attribute with the name of the Cheat Engine method to bind.
-    /// </summary>
-    /// <param name="name">
-    ///     The method name as Cheat Engine's Lua object model spells it, for example <c>firstScan</c>; the external
-    ///     spelling is contract. Must not be <see langword="null" /> or empty.
-    /// </param>
-    /// <exception cref="ArgumentNullException"><paramref name="name" /> is <see langword="null" />.</exception>
-    /// <exception cref="ArgumentException"><paramref name="name" /> is empty.</exception>
-    /// <remarks>
-    ///     The constructor only runs when something materialises the attribute through reflection. The compiler stores
-    ///     the argument without executing this check, so <c>[LuaMethod(null!)]</c> and <c>[LuaMethod("")]</c> compile; a
-    ///     generator reads a <see langword="null" /> constant or an empty string and has to validate the name itself.
-    /// </remarks>
-    public LuaMethodAttribute(string name)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        Name = name;
-    }
+	/// <summary>
+	///     Initializes the attribute with the name of the Cheat Engine method to bind.
+	/// </summary>
+	/// <param name="name">
+	///     The method name as Cheat Engine's Lua object model spells it, for example <c>firstScan</c>; the external
+	///     spelling is contract. Must not be <see langword="null" /> or empty.
+	/// </param>
+	/// <exception cref="ArgumentNullException"><paramref name="name" /> is <see langword="null" />.</exception>
+	/// <exception cref="ArgumentException"><paramref name="name" /> is empty.</exception>
+	/// <remarks>
+	///     The constructor only runs when something materialises the attribute through reflection. The compiler stores
+	///     the argument without executing this check, so <c>[LuaMethod(null!)]</c> and <c>[LuaMethod("")]</c> compile; a
+	///     generator reads a <see langword="null" /> constant or an empty string and has to validate the name itself.
+	/// </remarks>
+	public LuaMethodAttribute(string name)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(name);
+		Name = name;
+	}
 
-    /// <summary>
-    ///     Gets the name of the bound Cheat Engine method. Never <see langword="null" /> or empty.
-    /// </summary>
-    public string Name { get; }
+	/// <summary>
+	///     Gets the name of the bound Cheat Engine method. Never <see langword="null" /> or empty.
+	/// </summary>
+	public string Name
+	{
+		get;
+	}
 }

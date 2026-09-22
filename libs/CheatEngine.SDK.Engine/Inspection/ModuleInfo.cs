@@ -19,8 +19,8 @@ namespace CheatEngine.SDK.Engine.Inspection;
 /// <param name="Is64Bit">Whether Cheat Engine reports this module as a 64-bit module.</param>
 /// <param name="PathToFile">The path from which Cheat Engine reports the module was loaded.</param>
 public readonly record struct ModuleInfo(
-    string Name,
-    Address BaseAddress,
-    MemorySize? ImageSize,
-    bool Is64Bit,
-    string PathToFile);
+	string Name,
+	Address BaseAddress,
+	MemorySize? ImageSize,
+	bool Is64Bit,
+	string PathToFile);

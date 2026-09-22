@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Abi.Managed;
 
 namespace CheatEngine.SDK.Abi.Native;
@@ -28,22 +29,22 @@ namespace CheatEngine.SDK.Abi.Native;
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct PluginVersion
 {
-    /// <summary>
-    ///     SDK version the plugin is compatible with (offset 0): write <see cref="AbiConstants.SdkVersion" />.
-    /// </summary>
-    /// <remarks>
-    ///     The explanatory note next to this field in the C header still talks about versions 1 and 2; it predates
-    ///     the current value of the version constant in the same file and is not a constraint.
-    /// </remarks>
-    public uint Version;
+	/// <summary>
+	///     SDK version the plugin is compatible with (offset 0): write <see cref="AbiConstants.SdkVersion" />.
+	/// </summary>
+	/// <remarks>
+	///     The explanatory note next to this field in the C header still talks about versions 1 and 2; it predates
+	///     the current value of the version constant in the same file and is not a constraint.
+	/// </remarks>
+	public uint Version;
 
-    /// <summary>
-    ///     NUL-terminated ANSI display name of the plugin (offset 8).
-    /// </summary>
-    /// <remarks>
-    ///     Ownership: the plugin's. The pointer must outlive the call (static or never-freed native memory, not a
-    ///     stack buffer, not a pinned managed array). On the managed path use the same buffer as
-    ///     <see cref="PluginInitRecord.Name" />.
-    /// </remarks>
-    public byte* PluginName;
+	/// <summary>
+	///     NUL-terminated ANSI display name of the plugin (offset 8).
+	/// </summary>
+	/// <remarks>
+	///     Ownership: the plugin's. The pointer must outlive the call (static or never-freed native memory, not a
+	///     stack buffer, not a pinned managed array). On the managed path use the same buffer as
+	///     <see cref="PluginInitRecord.Name" />.
+	/// </remarks>
+	public byte* PluginName;
 }

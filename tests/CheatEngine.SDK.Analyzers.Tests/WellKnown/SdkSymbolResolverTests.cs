@@ -1,7 +1,11 @@
+using System.Collections.Immutable;
+
 using CheatEngine.SDK.Analyzers.Tests.Infrastructure;
 using CheatEngine.SDK.Analyzers.WellKnown;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Emit;
 
 namespace CheatEngine.SDK.Analyzers.Tests.WellKnown;
 
@@ -11,73 +15,80 @@ namespace CheatEngine.SDK.Analyzers.Tests.WellKnown;
 /// </summary>
 public sealed class SdkSymbolResolverTests
 {
-    private const string RequiresPluginEnabledAttribute =
-        "CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute";
+	private const string RequiresPluginEnabledAttribute =
+		"CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute";
 
-    private const string LookalikeAttributeSource = """
-                                                    namespace CheatEngine.SDK.Annotations.Lifetime
-                                                    {
-                                                        public sealed class RequiresPluginEnabledAttribute : global::System.Attribute
-                                                        {
-                                                        }
-                                                    }
-                                                    """;
+	private const string LookalikeAttributeSource = """
+	                                                namespace CheatEngine.SDK.Annotations.Lifetime
+	                                                {
+	                                                    public sealed class RequiresPluginEnabledAttribute : global::System.Attribute
+	                                                    {
+	                                                    }
+	                                                }
+	                                                """;
 
-    private static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14);
+	private static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14);
 
-    private static readonly CSharpCompilationOptions CompilationOptions = new(
-        OutputKind.DynamicallyLinkedLibrary,
-        nullableContextOptions: NullableContextOptions.Enable);
+	private static readonly CSharpCompilationOptions CompilationOptions = new(
+		OutputKind.DynamicallyLinkedLibrary,
+		nullableContextOptions: NullableContextOptions.Enable);
 
-    [Fact]
-    public void Annotation_source_lookalike_does_not_hide_the_sdk_contract()
-    {
-        var compilation = CreateCompilation(LookalikeAttributeSource);
+	[Fact]
+	public void Annotation_source_lookalike_does_not_hide_the_sdk_contract()
+	{
+		CSharpCompilation compilation = CreateCompilation(LookalikeAttributeSource);
 
-        var resolved = SdkSymbolResolver.Annotation(compilation, RequiresPluginEnabledAttribute);
+		INamedTypeSymbol? resolved = SdkSymbolResolver.Annotation(compilation, RequiresPluginEnabledAttribute);
 
-        Assert.NotNull(resolved);
-        Assert.Equal("CheatEngine.SDK.Annotations", resolved!.ContainingAssembly.Identity.Name);
-    }
+		Assert.NotNull(resolved);
+		Assert.Equal("CheatEngine.SDK.Annotations", resolved!.ContainingAssembly.Identity.Name);
+	}
 
-    [Fact]
-    public void Annotation_duplicate_referenced_lookalike_does_not_hide_the_sdk_contract()
-    {
-        var foreignLookalike = CreateReference("Foreign.Annotations", LookalikeAttributeSource);
-        var compilation = CreateCompilation(string.Empty, foreignLookalike);
+	[Fact]
+	public void Annotation_duplicate_referenced_lookalike_does_not_hide_the_sdk_contract()
+	{
+		PortableExecutableReference foreignLookalike = CreateReference("Foreign.Annotations", LookalikeAttributeSource);
+		CSharpCompilation compilation = CreateCompilation(string.Empty, foreignLookalike);
 
-        var resolved = SdkSymbolResolver.Annotation(compilation, RequiresPluginEnabledAttribute);
+		INamedTypeSymbol? resolved = SdkSymbolResolver.Annotation(compilation, RequiresPluginEnabledAttribute);
 
-        Assert.NotNull(resolved);
-        Assert.Equal("CheatEngine.SDK.Annotations", resolved!.ContainingAssembly.Identity.Name);
-    }
+		Assert.NotNull(resolved);
+		Assert.Equal("CheatEngine.SDK.Annotations", resolved!.ContainingAssembly.Identity.Name);
+	}
 
-    private static CSharpCompilation CreateCompilation(string source, params MetadataReference[] additionalReferences)
-    {
-        var references = LocalFrameworkReferences.References.AddRange(ContractStubs.References);
-        foreach (var reference in additionalReferences)
-            references = references.Add(reference);
+	private static CSharpCompilation CreateCompilation(string source, params MetadataReference[] additionalReferences)
+	{
+		ImmutableArray<MetadataReference> references =
+			LocalFrameworkReferences.References.AddRange(ContractStubs.References);
+		foreach (MetadataReference reference in additionalReferences)
+		{
+			references = references.Add(reference);
+		}
 
-        return CSharpCompilation.Create(
-            "SdkSymbolResolverTestAssembly",
-            [CSharpSyntaxTree.ParseText(source, ParseOptions, "Test.cs",
-                cancellationToken: TestContext.Current.CancellationToken)],
-            references,
-            CompilationOptions);
-    }
+		return CSharpCompilation.Create(
+			"SdkSymbolResolverTestAssembly",
+			[
+				CSharpSyntaxTree.ParseText(source, ParseOptions, "Test.cs",
+					cancellationToken: TestContext.Current.CancellationToken)
+			],
+			references,
+			CompilationOptions);
+	}
 
-    private static PortableExecutableReference CreateReference(string assemblyName, string source)
-    {
-        var compilation = CSharpCompilation.Create(
-            assemblyName,
-            [CSharpSyntaxTree.ParseText(source, ParseOptions, assemblyName + ".cs",
-                cancellationToken: TestContext.Current.CancellationToken)],
-            LocalFrameworkReferences.References,
-            CompilationOptions);
-        using MemoryStream image = new();
-        var result = compilation.Emit(image, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.True(result.Success, "The foreign lookalike did not compile:\n" + string.Join('\n', result.Diagnostics));
+	private static PortableExecutableReference CreateReference(string assemblyName, string source)
+	{
+		CSharpCompilation compilation = CSharpCompilation.Create(
+			assemblyName,
+			[
+				CSharpSyntaxTree.ParseText(source, ParseOptions, assemblyName + ".cs",
+					cancellationToken: TestContext.Current.CancellationToken)
+			],
+			LocalFrameworkReferences.References,
+			CompilationOptions);
+		using MemoryStream image = new();
+		EmitResult result = compilation.Emit(image, cancellationToken: TestContext.Current.CancellationToken);
+		Assert.True(result.Success, "The foreign lookalike did not compile:\n" + string.Join('\n', result.Diagnostics));
 
-        return MetadataReference.CreateFromImage([.. image.ToArray()], filePath: assemblyName + ".dll");
-    }
+		return MetadataReference.CreateFromImage([.. image.ToArray()], filePath: assemblyName + ".dll");
+	}
 }

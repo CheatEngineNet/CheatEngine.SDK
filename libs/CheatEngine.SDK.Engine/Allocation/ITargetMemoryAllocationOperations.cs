@@ -25,29 +25,29 @@ namespace CheatEngine.SDK.Engine.Allocation;
 /// </remarks>
 public interface ITargetMemoryAllocationOperations
 {
-    /// <summary>
-    ///     Attempts to allocate memory in the attached target process.
-    /// </summary>
-    /// <param name="request">The validated target allocation request.</param>
-    /// <param name="address">The nonzero target address on success; <see cref="Address.Zero" /> on expected failure.</param>
-    /// <returns><see langword="true" /> on success; <see langword="false" /> for an expected CE allocation failure.</returns>
-    /// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or non-callable.</exception>
-    /// <exception cref="EngineBindingException">The binding cannot uphold its documented contract.</exception>
-    /// <exception cref="EngineMarshallingException">The CE result cannot be represented by this contract.</exception>
-    /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
-    [RequiresPluginEnabled]
-    public bool TryAllocate(TargetAllocationRequest request, out Address address);
+	/// <summary>
+	///     Attempts to allocate memory in the attached target process.
+	/// </summary>
+	/// <param name="request">The validated target allocation request.</param>
+	/// <param name="address">The nonzero target address on success; <see cref="Address.Zero" /> on expected failure.</param>
+	/// <returns><see langword="true" /> on success; <see langword="false" /> for an expected CE allocation failure.</returns>
+	/// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or non-callable.</exception>
+	/// <exception cref="EngineBindingException">The binding cannot uphold its documented contract.</exception>
+	/// <exception cref="EngineMarshallingException">The CE result cannot be represented by this contract.</exception>
+	/// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
+	[RequiresPluginEnabled]
+	public bool TryAllocate(TargetAllocationRequest request, out Address address);
 
-    /// <summary>
-    ///     Attempts to free a region previously created through <see cref="TryAllocate" />.
-    /// </summary>
-    /// <param name="address">The owned nonzero address in the target process.</param>
-    /// <param name="size">The original allocation request size passed to <c>deAlloc</c>.</param>
-    /// <returns><see langword="true" /> on success; <see langword="false" /> for an expected CE deallocation failure.</returns>
-    /// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or non-callable.</exception>
-    /// <exception cref="EngineBindingException">The binding cannot uphold its documented contract.</exception>
-    /// <exception cref="EngineMarshallingException">The CE result cannot be represented by this contract.</exception>
-    /// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
-    [RequiresPluginEnabled]
-    public bool TryDeallocate(Address address, TargetAllocationSize size);
+	/// <summary>
+	///     Attempts to free a region previously created through <see cref="TryAllocate" />.
+	/// </summary>
+	/// <param name="address">The owned nonzero address in the target process.</param>
+	/// <param name="size">The original allocation request size passed to <c>deAlloc</c>.</param>
+	/// <returns><see langword="true" /> on success; <see langword="false" /> for an expected CE deallocation failure.</returns>
+	/// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or non-callable.</exception>
+	/// <exception cref="EngineBindingException">The binding cannot uphold its documented contract.</exception>
+	/// <exception cref="EngineMarshallingException">The CE result cannot be represented by this contract.</exception>
+	/// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
+	[RequiresPluginEnabled]
+	public bool TryDeallocate(Address address, TargetAllocationSize size);
 }

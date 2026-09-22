@@ -7,12 +7,12 @@ namespace CheatEngine.SDK.Engine.Inspection;
 /// </remarks>
 public enum MemoryRegionType : uint
 {
-    /// <summary>Private committed pages (<c>MEM_PRIVATE</c>).</summary>
-    Private = 0x20000,
+	/// <summary>Private committed pages (<c>MEM_PRIVATE</c>).</summary>
+	Private = 0x20000,
 
-    /// <summary>Mapped-file pages (<c>MEM_MAPPED</c>).</summary>
-    Mapped = 0x40000,
+	/// <summary>Mapped-file pages (<c>MEM_MAPPED</c>).</summary>
+	Mapped = 0x40000,
 
-    /// <summary>Image-mapped pages (<c>MEM_IMAGE</c>).</summary>
-    Image = 0x1000000,
+	/// <summary>Image-mapped pages (<c>MEM_IMAGE</c>).</summary>
+	Image = 0x1000000
 }

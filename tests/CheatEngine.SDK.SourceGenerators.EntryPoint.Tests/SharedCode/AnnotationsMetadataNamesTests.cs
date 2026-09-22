@@ -14,17 +14,17 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.SharedCode;
 /// </summary>
 public sealed class AnnotationsMetadataNamesTests
 {
-    [Fact]
-    public void Plugin_names_match_the_real_types()
-    {
-        Assert.Equal(AnnotationsMetadataNames.CheatEnginePluginAttribute, typeof(CheatEnginePluginAttribute).FullName);
-        Assert.Equal(AnnotationsMetadataNames.CheatEnginePluginBase, typeof(CheatEnginePlugin).FullName);
-    }
+	[Fact]
+	public void Plugin_names_match_the_real_types()
+	{
+		Assert.Equal(AnnotationsMetadataNames.CheatEnginePluginAttribute, typeof(CheatEnginePluginAttribute).FullName);
+		Assert.Equal(AnnotationsMetadataNames.CheatEnginePluginBase, typeof(CheatEnginePlugin).FullName);
+	}
 
-    [Fact]
-    public void Lua_binding_attribute_names_match_the_real_types()
-    {
-        Assert.Equal(AnnotationsMetadataNames.LuaFunctionAttribute, typeof(LuaFunctionAttribute).FullName);
-        Assert.Equal(AnnotationsMetadataNames.LuaGlobalAttribute, typeof(LuaGlobalAttribute).FullName);
-    }
+	[Fact]
+	public void Lua_binding_attribute_names_match_the_real_types()
+	{
+		Assert.Equal(AnnotationsMetadataNames.LuaFunctionAttribute, typeof(LuaFunctionAttribute).FullName);
+		Assert.Equal(AnnotationsMetadataNames.LuaGlobalAttribute, typeof(LuaGlobalAttribute).FullName);
+	}
 }

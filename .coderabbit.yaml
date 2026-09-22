@@ -1,0 +1,131 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+
+language: en-US
+early_access: false
+
+reviews:
+  # Keep automated review useful for real defects without turning the App into a second formatter or approval process.
+  profile: chill
+  request_changes_workflow: false
+  review_details: false
+  review_progress: true
+  commit_status: false
+  fail_commit_status: false
+  high_level_summary: true
+  high_level_summary_instructions: >-
+    Summarize only material SDK contract, native ABI, generator, test, packaging, or CI/CD effects. Keep it concise.
+  collapse_walkthrough: true
+  changed_files_summary: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  auto_apply_labels: false
+  auto_assign_reviewers: false
+  in_progress_fortune: false
+  poem: false
+  enable_prompt_for_ai_agents: false
+  abort_on_close: true
+  slop_detection:
+    enabled: false
+  # This repository uses the GitHub App for review, not a CodeRabbit coding agent or autonomous follow-up changes.
+  pre_merge_checks:
+    title:
+      mode: 'off'
+    description:
+      mode: 'off'
+    issue_assessment:
+      mode: 'off'
+    docstrings:
+      mode: 'off'
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    autofix:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    base_branches: [ main ]
+  # Exclude only generated outputs and non-reviewable binary payloads. Source, specifications, tests, CI and docs stay in scope.
+  path_filters:
+    - '!artifacts/**'
+    - '!TestResults/**'
+    - '!**/bin/**'
+    - '!**/obj/**'
+    - '!**/*.dll'
+    - '!**/*.exe'
+    - '!**/*.pdb'
+    - '!**/*.coverage'
+    - '!**/*.nupkg'
+    - '!**/*.snupkg'
+  path_instructions:
+    - path: 'libs/CheatEngine.SDK.Abi/**'
+      instructions: >-
+        This is the low-level Cheat Engine ABI boundary. Treat layouts, offsets, packing, signatures, calling
+        conventions and marshalling as compatibility contracts. Require x64 fixture evidence and never infer live-host
+        qualification from a fixture-only test.
+    - path: 'native/**'
+      instructions: >-
+        Review native bridge changes for exported symbol names, x64 ABI stability, deterministic builds and source
+        fingerprints. Do not weaken reproducibility or substitute fixture evidence for interaction with a live Cheat
+        Engine process.
+    - path: 'libs/CheatEngine.SDK.Lua/**'
+      instructions: >-
+        Preserve Lua stack balance, native error boundaries, callback lifetime and explicit ownership. Protected Lua
+        operation invariants are enforced by C# contract tests; do not propose restoring retired script-only CI gates.
+    - path: 'libs/CheatEngine.SDK.Lua.Interop/**'
+      instructions: >-
+        Preserve generated binding names, P/Invoke shapes, callback lifetime and protected Lua boundary behavior.
+        Flag changes that silently alter the public native contract or move Cheat Engine mappings into the Client.
+    - path: 'analyzers/**'
+      instructions: >-
+        Analyzer diagnostics and fixes are consumer-facing contracts. Review generated-code compatibility, diagnostic
+        identifiers, Roslyn version constraints and focused regression tests.
+    - path: 'source-generators/**'
+      instructions: >-
+        Generators define SDK contracts. Require synchronized changes to parsing, emitted source, public API shape and
+        generator tests; do not accept Client-specific Cheat Engine mappings here.
+    - path: 'src/**'
+      instructions: >-
+        This package is the low-level SDK boundary. Preserve direct-consumer packaging semantics, native bridge assets
+        and binary compatibility. Fluent developer workflows and application policy belong in CheatEngine.Client.
+    - path: 'tests/**'
+      instructions: >-
+        Tests use xUnit v3 with Microsoft.Testing.Platform. Debug CI rejects skipped tests. Distinguish fixture,
+        package and NativeAOT probes from actual live Cheat Engine host qualification.
+    - path: '.github/**'
+      instructions: >-
+        Preserve the discover/native/build/test/pack/AOT/gate DAG and its bridge, coverage and NuGet artifact flows.
+        Require least-privilege permissions and pinned action SHAs. actionlint already runs in pull-request CI; do not
+        ask for a duplicate CodeRabbit actionlint run. Never use pull_request_target to check out or execute code from
+        forks. Sonar secrets must remain unavailable to forks.
+  tools:
+    # CodeRabbit is used as the GitHub App; pipeline failures are surfaced through its GitHub Checks integration.
+    github-checks:
+      enabled: true
+    # pull-request-ci.yml is the deterministic actionlint owner.
+    actionlint:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  automatic_linking_mode: disabled
+  linked_repositories:
+    - repository: CheatEngineNet/CheatEngine.Client
+      instructions: >-
+        This is the high-level developer-focused Client. It depends on this SDK for ABI, native Lua and Cheat Engine
+        contracts, but owns fluent APIs, application policy, dependency injection and user workflows. Flag accidental
+        duplication or inversion of that boundary.

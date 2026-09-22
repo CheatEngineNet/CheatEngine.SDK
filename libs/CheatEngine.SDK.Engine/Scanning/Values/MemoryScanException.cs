@@ -1,4 +1,5 @@
 using System;
+
 using CheatEngine.SDK.Lua.Calls;
 
 namespace CheatEngine.SDK.Engine.Scanning.Values;
@@ -14,17 +15,23 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 /// </remarks>
 public sealed class MemoryScanException : InvalidOperationException
 {
-    internal MemoryScanException(MemoryScanFailureKind kind, string operation, string message,
-        LuaException? innerException = null)
-        : base(message, innerException)
-    {
-        FailureKind = kind;
-        Operation = operation;
-    }
+	internal MemoryScanException(MemoryScanFailureKind kind, string operation, string message,
+		LuaException? innerException = null)
+		: base(message, innerException)
+	{
+		FailureKind = kind;
+		Operation = operation;
+	}
 
-    /// <summary>Gets the stable category of the failed operation.</summary>
-    public MemoryScanFailureKind FailureKind { get; }
+	/// <summary>Gets the stable category of the failed operation.</summary>
+	public MemoryScanFailureKind FailureKind
+	{
+		get;
+	}
 
-    /// <summary>Gets the stable SDK operation identifier that failed.</summary>
-    public string Operation { get; }
+	/// <summary>Gets the stable SDK operation identifier that failed.</summary>
+	public string Operation
+	{
+		get;
+	}
 }

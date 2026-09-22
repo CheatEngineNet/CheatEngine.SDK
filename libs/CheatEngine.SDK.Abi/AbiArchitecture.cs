@@ -21,37 +21,39 @@ namespace CheatEngine.SDK.Abi;
 /// </remarks>
 public static class AbiArchitecture
 {
-    /// <summary>
-    ///     Gets a value indicating whether the current process has the architecture this assembly is validated for
-    ///     (x64).
-    /// </summary>
-    /// <remarks>Thread-safe, allocation-free, never throws.</remarks>
-    public static bool IsSupported => IsSupportedArchitecture(RuntimeInformation.ProcessArchitecture);
+	/// <summary>
+	///     Gets a value indicating whether the current process has the architecture this assembly is validated for
+	///     (x64).
+	/// </summary>
+	/// <remarks>Thread-safe, allocation-free, never throws.</remarks>
+	public static bool IsSupported => IsSupportedArchitecture(RuntimeInformation.ProcessArchitecture);
 
-    /// <summary>
-    ///     Throws when the current process does not have the architecture this assembly is validated for.
-    /// </summary>
-    /// <remarks>
-    ///     Thread-safe. Must not be called from a frame that native code called directly, unless that frame catches
-    ///     the exception: use <see cref="IsSupported" /> there.
-    /// </remarks>
-    /// <exception cref="PlatformNotSupportedException">The process is not an x64 process.</exception>
-    public static void ThrowIfUnsupported()
-    {
-        ThrowIfUnsupported(RuntimeInformation.ProcessArchitecture);
-    }
+	/// <summary>
+	///     Throws when the current process does not have the architecture this assembly is validated for.
+	/// </summary>
+	/// <remarks>
+	///     Thread-safe. Must not be called from a frame that native code called directly, unless that frame catches
+	///     the exception: use <see cref="IsSupported" /> there.
+	/// </remarks>
+	/// <exception cref="PlatformNotSupportedException">The process is not an x64 process.</exception>
+	public static void ThrowIfUnsupported()
+	{
+		ThrowIfUnsupported(RuntimeInformation.ProcessArchitecture);
+	}
 
-    /// <summary>The policy itself, separated from the process query so that every branch is testable on any machine.</summary>
-    internal static bool IsSupportedArchitecture(Architecture architecture)
-    {
-        return architecture == Architecture.X64;
-    }
+	/// <summary>The policy itself, separated from the process query so that every branch is testable on any machine.</summary>
+	internal static bool IsSupportedArchitecture(Architecture architecture)
+	{
+		return architecture == Architecture.X64;
+	}
 
-    /// <summary>Throwing form of <see cref="IsSupportedArchitecture" />.</summary>
-    internal static void ThrowIfUnsupported(Architecture architecture)
-    {
-        if (!IsSupportedArchitecture(architecture))
-            throw new PlatformNotSupportedException(
-                $"CheatEngine.SDK.Abi is validated for x64 processes only; this process is {architecture}.");
-    }
+	/// <summary>Throwing form of <see cref="IsSupportedArchitecture" />.</summary>
+	internal static void ThrowIfUnsupported(Architecture architecture)
+	{
+		if (!IsSupportedArchitecture(architecture))
+		{
+			throw new PlatformNotSupportedException(
+				$"CheatEngine.SDK.Abi is validated for x64 processes only; this process is {architecture}.");
+		}
+	}
 }

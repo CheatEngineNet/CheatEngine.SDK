@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
+
 using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.Analyzers.WellKnown;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -25,95 +27,115 @@ namespace CheatEngine.SDK.Analyzers.Usage;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class UnmanagedCallersOnlyGuardAnalyzer : DiagnosticAnalyzer
 {
-    /// <inheritdoc />
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-    [
-        DiagnosticDescriptors.UnguardedUnmanagedCallersOnly
-    ];
+	/// <inheritdoc />
+	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
+	{
+		get;
+	} =
+	[
+		DiagnosticDescriptors.UnguardedUnmanagedCallersOnly
+	];
 
-    /// <inheritdoc />
-    public override void Initialize(AnalysisContext context)
-    {
-        context.EnableConcurrentExecution();
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-        context.RegisterCompilationStartAction(OnCompilationStart);
-    }
+	/// <inheritdoc />
+	public override void Initialize(AnalysisContext context)
+	{
+		context.EnableConcurrentExecution();
+		context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+		context.RegisterCompilationStartAction(OnCompilationStart);
+	}
 
-    private static void OnCompilationStart(CompilationStartAnalysisContext context)
-    {
-        var compilation = context.Compilation;
-        var referencesCheatEngineSdk =
-            compilation.GetTypeByMetadataName(WellKnownTypeNames.CheatEnginePluginAttribute) is not null
-            || compilation.GetTypeByMetadataName(WellKnownTypeNames.CheatEnginePluginBase) is not null;
-        if (!referencesCheatEngineSdk) return;
+	private static void OnCompilationStart(CompilationStartAnalysisContext context)
+	{
+		Compilation compilation = context.Compilation;
+		bool referencesCheatEngineSdk =
+			compilation.GetTypeByMetadataName(WellKnownTypeNames.CheatEnginePluginAttribute) is not null
+			|| compilation.GetTypeByMetadataName(WellKnownTypeNames.CheatEnginePluginBase) is not null;
+		if (!referencesCheatEngineSdk)
+		{
+			return;
+		}
 
-        var unmanagedCallersOnly = compilation.GetTypeByMetadataName(WellKnownTypeNames.UnmanagedCallersOnlyAttribute);
-        var exceptionType = compilation.GetTypeByMetadataName(WellKnownTypeNames.Exception);
-        if (unmanagedCallersOnly is null || exceptionType is null) return;
+		INamedTypeSymbol? unmanagedCallersOnly =
+			compilation.GetTypeByMetadataName(WellKnownTypeNames.UnmanagedCallersOnlyAttribute);
+		INamedTypeSymbol? exceptionType = compilation.GetTypeByMetadataName(WellKnownTypeNames.Exception);
+		if (unmanagedCallersOnly is null || exceptionType is null)
+		{
+			return;
+		}
 
-        // Optional: without them the guard still works, it only stops recognising [DoesNotReturn] calls as throws.
-        ExceptionGuard guard = new(
-            exceptionType,
-            compilation.GetTypeByMetadataName(WellKnownTypeNames.DoesNotReturnAttribute),
-            compilation.GetTypeByMetadataName(WellKnownTypeNames.Environment));
+		// Optional: without them the guard still works, it only stops recognising [DoesNotReturn] calls as throws.
+		ExceptionGuard guard = new(
+			exceptionType,
+			compilation.GetTypeByMetadataName(WellKnownTypeNames.DoesNotReturnAttribute),
+			compilation.GetTypeByMetadataName(WellKnownTypeNames.Environment));
 
-        context.RegisterOperationAction(
-            operationContext => AnalyzeMethodBody(operationContext, unmanagedCallersOnly, guard),
-            OperationKind.MethodBody);
-        context.RegisterOperationAction(
-            operationContext => AnalyzeLocalFunction(operationContext, unmanagedCallersOnly, guard),
-            OperationKind.LocalFunction);
-    }
+		context.RegisterOperationAction(
+			operationContext => AnalyzeMethodBody(operationContext, unmanagedCallersOnly, guard),
+			OperationKind.MethodBody);
+		context.RegisterOperationAction(
+			operationContext => AnalyzeLocalFunction(operationContext, unmanagedCallersOnly, guard),
+			OperationKind.LocalFunction);
+	}
 
-    private static void AnalyzeMethodBody(OperationAnalysisContext context, INamedTypeSymbol unmanagedCallersOnly,
-        ExceptionGuard guard)
-    {
-        var body = (IMethodBodyOperation)context.Operation;
-        if (context.ContainingSymbol is not IMethodSymbol method ||
-            !IsUnmanagedCallersOnly(method, unmanagedCallersOnly)) return;
+	private static void AnalyzeMethodBody(OperationAnalysisContext context, INamedTypeSymbol unmanagedCallersOnly,
+		ExceptionGuard guard)
+	{
+		IMethodBodyOperation body = (IMethodBodyOperation) context.Operation;
+		if (context.ContainingSymbol is not IMethodSymbol method ||
+		    !IsUnmanagedCallersOnly(method, unmanagedCallersOnly))
+		{
+			return;
+		}
 
-        if (IsUnguarded(body.BlockBody, guard) || IsUnguarded(body.ExpressionBody, guard))
-        {
-            var location = body.Syntax is MethodDeclarationSyntax declaration
-                ? declaration.Identifier.GetLocation()
-                : FirstLocation(method);
-            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.UnguardedUnmanagedCallersOnly, location,
-                method.Name));
-        }
-    }
+		if (IsUnguarded(body.BlockBody, guard) || IsUnguarded(body.ExpressionBody, guard))
+		{
+			Location location = body.Syntax is MethodDeclarationSyntax declaration
+				? declaration.Identifier.GetLocation()
+				: FirstLocation(method);
+			context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.UnguardedUnmanagedCallersOnly, location,
+				method.Name));
+		}
+	}
 
-    private static void AnalyzeLocalFunction(OperationAnalysisContext context, INamedTypeSymbol unmanagedCallersOnly,
-        ExceptionGuard guard)
-    {
-        var localFunction = (ILocalFunctionOperation)context.Operation;
-        if (!IsUnmanagedCallersOnly(localFunction.Symbol, unmanagedCallersOnly)) return;
+	private static void AnalyzeLocalFunction(OperationAnalysisContext context, INamedTypeSymbol unmanagedCallersOnly,
+		ExceptionGuard guard)
+	{
+		ILocalFunctionOperation localFunction = (ILocalFunctionOperation) context.Operation;
+		if (!IsUnmanagedCallersOnly(localFunction.Symbol, unmanagedCallersOnly))
+		{
+			return;
+		}
 
-        if (IsUnguarded(localFunction.Body, guard))
-        {
-            var location = localFunction.Syntax is LocalFunctionStatementSyntax declaration
-                ? declaration.Identifier.GetLocation()
-                : FirstLocation(localFunction.Symbol);
-            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.UnguardedUnmanagedCallersOnly, location,
-                localFunction.Symbol.Name));
-        }
-    }
+		if (IsUnguarded(localFunction.Body, guard))
+		{
+			Location location = localFunction.Syntax is LocalFunctionStatementSyntax declaration
+				? declaration.Identifier.GetLocation()
+				: FirstLocation(localFunction.Symbol);
+			context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.UnguardedUnmanagedCallersOnly, location,
+				localFunction.Symbol.Name));
+		}
+	}
 
-    private static bool IsUnguarded(IBlockOperation? body, ExceptionGuard guard)
-    {
-        return body is not null && !guard.IsGuarded(body);
-    }
+	private static bool IsUnguarded(IBlockOperation? body, ExceptionGuard guard)
+	{
+		return body is not null && !guard.IsGuarded(body);
+	}
 
-    private static bool IsUnmanagedCallersOnly(IMethodSymbol method, INamedTypeSymbol unmanagedCallersOnly)
-    {
-        foreach (var attribute in method.GetAttributes())
-            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, unmanagedCallersOnly))
-                return true;
+	private static bool IsUnmanagedCallersOnly(IMethodSymbol method, INamedTypeSymbol unmanagedCallersOnly)
+	{
+		foreach (AttributeData attribute in method.GetAttributes())
+		{
+			if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, unmanagedCallersOnly))
+			{
+				return true;
+			}
+		}
 
-        return false;
-    }
+		return false;
+	}
 
-    private static Location FirstLocation(IMethodSymbol method)
-    {
-        return method.Locations.IsEmpty ? Location.None : method.Locations[0];
-    }
+	private static Location FirstLocation(IMethodSymbol method)
+	{
+		return method.Locations.IsEmpty ? Location.None : method.Locations[0];
+	}
 }

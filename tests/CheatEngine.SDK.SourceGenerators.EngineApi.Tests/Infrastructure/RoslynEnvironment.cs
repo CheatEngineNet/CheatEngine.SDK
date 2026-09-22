@@ -1,8 +1,10 @@
 using System.Collections.Immutable;
+
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.State;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -17,49 +19,55 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Tests.Infrastructure;
 /// </summary>
 internal sealed class RoslynEnvironment
 {
-    /// <summary>Documentation comments are parsed and diagnosed, like in a project with <c>GenerateDocumentationFile</c>.</summary>
-    public static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14, DocumentationMode.Diagnose);
+	/// <summary>Documentation comments are parsed and diagnosed, like in a project with <c>GenerateDocumentationFile</c>.</summary>
+	public static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14, DocumentationMode.Diagnose);
 
-    /// <summary>Strict: nullable on, every warning wave. EngineApi bodies contain no unsafe code, so unsafe stays off.</summary>
-    public static readonly CSharpCompilationOptions CompilationOptions = new(
-        OutputKind.DynamicallyLinkedLibrary,
-        nullableContextOptions: NullableContextOptions.Enable,
-        warningLevel: 9999);
+	/// <summary>Strict: nullable on, every warning wave. EngineApi bodies contain no unsafe code, so unsafe stays off.</summary>
+	public static readonly CSharpCompilationOptions CompilationOptions = new(
+		OutputKind.DynamicallyLinkedLibrary,
+		nullableContextOptions: NullableContextOptions.Enable,
+		warningLevel: 9999);
 
-    private static readonly Lazy<RoslynEnvironment> LazyShared =
-        new(static () => new RoslynEnvironment(LocalFrameworkReferences.Load()));
+	private static readonly Lazy<RoslynEnvironment> LazyShared =
+		new(static () => new RoslynEnvironment(LocalFrameworkReferences.Load()));
 
-    private RoslynEnvironment(ImmutableArray<MetadataReference> frameworkReferences)
-    {
-        FrameworkReferences = frameworkReferences;
-        SdkReferences =
-        [
-            MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(LuaApi).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(LuaState).Assembly.Location),
+	private RoslynEnvironment(ImmutableArray<MetadataReference> frameworkReferences)
+	{
+		FrameworkReferences = frameworkReferences;
+		SdkReferences =
+		[
+			MetadataReference.CreateFromFile(typeof(LuaFunctionAttribute).Assembly.Location),
+			MetadataReference.CreateFromFile(typeof(LuaApi).Assembly.Location),
+			MetadataReference.CreateFromFile(typeof(LuaState).Assembly.Location),
 
-            // Not a real CheatEngine.SDK.Engine reference (this project deliberately does not reference it): this test
-            // assembly's own file, so a generated wrapper's 'global::CheatEngine.SDK.Engine.Values.Address'
-            // resolves to Infrastructure/Address.cs (declared in namespace CheatEngine.SDK.Engine.Values), loaded a second
-            // time from the same file by the custom AssemblyLoadContext's fallback to the default context
-            // (GeneratedAssembly's own doc comment).
-            MetadataReference.CreateFromFile(typeof(Address).Assembly.Location)
-        ];
-    }
+			// Not a real CheatEngine.SDK.Engine reference (this project deliberately does not reference it): this test
+			// assembly's own file, so a generated wrapper's 'global::CheatEngine.SDK.Engine.Values.Address'
+			// resolves to Infrastructure/Address.cs (declared in namespace CheatEngine.SDK.Engine.Values), loaded a second
+			// time from the same file by the custom AssemblyLoadContext's fallback to the default context
+			// (GeneratedAssembly's own doc comment).
+			MetadataReference.CreateFromFile(typeof(Address).Assembly.Location)
+		];
+	}
 
-    /// <summary>The process-wide environment.</summary>
-    public static RoslynEnvironment Shared => LazyShared.Value;
+	/// <summary>The process-wide environment.</summary>
+	public static RoslynEnvironment Shared => LazyShared.Value;
 
-    /// <summary><c>Microsoft.NETCore.App</c> 10.0: reference assemblies, or the running runtime as a fallback.</summary>
-    public ImmutableArray<MetadataReference> FrameworkReferences { get; }
+	/// <summary><c>Microsoft.NETCore.App</c> 10.0: reference assemblies, or the running runtime as a fallback.</summary>
+	public ImmutableArray<MetadataReference> FrameworkReferences
+	{
+		get;
+	}
 
-    /// <summary>
-    ///     The real <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c>, as
-    ///     loaded in this process,
-    ///     plus this test assembly's own file for the <see cref="Address" /> stub (see its own doc comment).
-    /// </summary>
-    public ImmutableArray<MetadataReference> SdkReferences { get; }
+	/// <summary>
+	///     The real <c>CheatEngine.SDK.Annotations</c>, <c>CheatEngine.SDK.Lua.Interop</c> and <c>CheatEngine.SDK.Lua</c>, as
+	///     loaded in this process,
+	///     plus this test assembly's own file for the <see cref="Address" /> stub (see its own doc comment).
+	/// </summary>
+	public ImmutableArray<MetadataReference> SdkReferences
+	{
+		get;
+	}
 
-    /// <summary>Framework + SDK: the references of a compilation the generated wrappers land in.</summary>
-    public ImmutableArray<MetadataReference> PluginReferences => FrameworkReferences.AddRange(SdkReferences);
+	/// <summary>Framework + SDK: the references of a compilation the generated wrappers land in.</summary>
+	public ImmutableArray<MetadataReference> PluginReferences => FrameworkReferences.AddRange(SdkReferences);
 }

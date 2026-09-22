@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Immutable;
 using System.Threading;
+
 using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.Analyzers.WellKnown;
 using CheatEngine.SDK.SourceGenerators.Shared.Shapes;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -38,211 +40,250 @@ namespace CheatEngine.SDK.Analyzers.Plugin;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
 {
-    // The namespace of the type CESDK.CESDK that Cheat Engine looks up in every plugin assembly. The SDK's own namespaces
-    // (CheatEngine.SDK.*) are not reserved: only a root segment of exactly this name is.
-    private const string ReservedRootNamespace = "CESDK";
+	// The namespace of the type CESDK.CESDK that Cheat Engine looks up in every plugin assembly. The SDK's own namespaces
+	// (CheatEngine.SDK.*) are not reserved: only a root segment of exactly this name is.
+	private const string ReservedRootNamespace = "CESDK";
 
-    // The MSBuild switch of the entry point generator, as the compiler sees it.
-    private const string GenerateEntryPointKey = "build_property.CheatEngineSdkGenerateEntryPoint";
+	// The MSBuild switch of the entry point generator, as the compiler sees it.
+	private const string GenerateEntryPointKey = "build_property.CheatEngineSdkGenerateEntryPoint";
 
-    /// <inheritdoc />
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-    [
-        DiagnosticDescriptors.InvalidPluginClass,
-        DiagnosticDescriptors.MultiplePluginClasses,
-        DiagnosticDescriptors.InvalidManualBootstrap,
-        DiagnosticDescriptors.ReservedNamespace,
-        DiagnosticDescriptors.GeneratedEntryPointCollision,
-    ];
+	/// <inheritdoc />
+	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
+	{
+		get;
+	} =
+	[
+		DiagnosticDescriptors.InvalidPluginClass,
+		DiagnosticDescriptors.MultiplePluginClasses,
+		DiagnosticDescriptors.InvalidManualBootstrap,
+		DiagnosticDescriptors.ReservedNamespace,
+		DiagnosticDescriptors.GeneratedEntryPointCollision
+	];
 
-    /// <inheritdoc />
-    public override void Initialize(AnalysisContext context)
-    {
-        context.EnableConcurrentExecution();
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-        context.RegisterCompilationStartAction(OnCompilationStart);
-    }
+	/// <inheritdoc />
+	public override void Initialize(AnalysisContext context)
+	{
+		context.EnableConcurrentExecution();
+		context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+		context.RegisterCompilationStartAction(OnCompilationStart);
+	}
 
-    private static void OnCompilationStart(CompilationStartAnalysisContext context)
-    {
-        var pluginAttribute =
-            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.CheatEnginePluginAttribute);
-        var pluginBase = SdkSymbolResolver.Hosting(context.Compilation, WellKnownTypeNames.CheatEnginePluginBase);
-        if (pluginAttribute is null || pluginBase is null) return;
+	private static void OnCompilationStart(CompilationStartAnalysisContext context)
+	{
+		INamedTypeSymbol? pluginAttribute =
+			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.CheatEnginePluginAttribute);
+		INamedTypeSymbol? pluginBase =
+			SdkSymbolResolver.Hosting(context.Compilation, WellKnownTypeNames.CheatEnginePluginBase);
+		if (pluginAttribute is null || pluginBase is null)
+		{
+			return;
+		}
 
-        // CESDK0001, CESDK0002, CESDK0004 and CESDK0005 describe what the GENERATED entry point needs. The direct
-        // package build asset makes the property compiler-visible and supplies true by default. Without that explicit
-        // contract (for example through an indirect package reference), this analyzer must stay out of the way rather
-        // than inventing either a generated or manual bootstrap obligation. An explicit false transfers ownership of
-        // CESDK.CESDK to the author, which CESDK0003 validates at compilation end.
-        bool? entryPointIsGenerated = null;
-        if (context.Options.AnalyzerConfigOptionsProvider.GlobalOptions.TryGetValue(GenerateEntryPointKey, out var raw)
-            && bool.TryParse(raw, out var generate))
-            entryPointIsGenerated = generate;
+		// CESDK0001, CESDK0002, CESDK0004 and CESDK0005 describe what the GENERATED entry point needs. The direct
+		// package build asset makes the property compiler-visible and supplies true by default. Without that explicit
+		// contract (for example through an indirect package reference), this analyzer must stay out of the way rather
+		// than inventing either a generated or manual bootstrap obligation. An explicit false transfers ownership of
+		// CESDK.CESDK to the author, which CESDK0003 validates at compilation end.
+		bool? entryPointIsGenerated = null;
+		if (context.Options.AnalyzerConfigOptionsProvider.GlobalOptions.TryGetValue(GenerateEntryPointKey,
+			    out string? raw)
+		    && bool.TryParse(raw, out bool generate))
+		{
+			entryPointIsGenerated = generate;
+		}
 
-        // The last two are optional: without them the matching CESDK0001 checks are stricter or skipped, never wrong.
-        PluginContractSymbols symbols = new(
-            pluginAttribute,
-            pluginBase,
-            context.Compilation.GetTypeByMetadataName(WellKnownTypeNames.SetsRequiredMembersAttribute),
-            context.Compilation.GetTypeByMetadataName(WellKnownTypeNames.ObsoleteAttribute));
+		// The last two are optional: without them the matching CESDK0001 checks are stricter or skipped, never wrong.
+		PluginContractSymbols symbols = new(
+			pluginAttribute,
+			pluginBase,
+			context.Compilation.GetTypeByMetadataName(WellKnownTypeNames.SetsRequiredMembersAttribute),
+			context.Compilation.GetTypeByMetadataName(WellKnownTypeNames.ObsoleteAttribute));
 
-        PluginCompilationState state = new(entryPointIsGenerated);
-        context.RegisterSymbolAction(
-            symbolContext => AnalyzeNamedType(symbolContext, symbols, state, entryPointIsGenerated),
-            SymbolKind.NamedType);
-        context.RegisterSyntaxNodeAction(
-            nodeContext => AnalyzeNamespaceDeclaration(nodeContext, state),
-            SyntaxKind.NamespaceDeclaration,
-            SyntaxKind.FileScopedNamespaceDeclaration);
-        context.RegisterCompilationEndAction(state.Report);
-    }
+		PluginCompilationState state = new(entryPointIsGenerated);
+		context.RegisterSymbolAction(
+			symbolContext => AnalyzeNamedType(symbolContext, symbols, state, entryPointIsGenerated),
+			SymbolKind.NamedType);
+		context.RegisterSyntaxNodeAction(
+			nodeContext => AnalyzeNamespaceDeclaration(nodeContext, state),
+			SyntaxKind.NamespaceDeclaration,
+			SyntaxKind.FileScopedNamespaceDeclaration);
+		context.RegisterCompilationEndAction(state.Report);
+	}
 
-    private static void AnalyzeNamedType(
-        SymbolAnalysisContext context,
-        PluginContractSymbols symbols,
-        PluginCompilationState state,
-        bool? entryPointIsGenerated)
-    {
-        var type = (INamedTypeSymbol)context.Symbol;
+	private static void AnalyzeNamedType(
+		SymbolAnalysisContext context,
+		PluginContractSymbols symbols,
+		PluginCompilationState state,
+		bool? entryPointIsGenerated)
+	{
+		INamedTypeSymbol type = (INamedTypeSymbol) context.Symbol;
 
-        if (IsEntryPointType(type))
-            state.AddEntryPointType(
-                type.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat),
-                FirstLocation(type),
-                IsManualBootstrap(type));
+		if (IsEntryPointType(type))
+		{
+			state.AddEntryPointType(
+				type.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat),
+				FirstLocation(type),
+				IsManualBootstrap(type));
+		}
 
-        // The attribute targets classes only: on anything else the compiler already reports CS0592.
-        if (type.TypeKind != TypeKind.Class ||
-            FindAttribute(type, symbols.PluginAttribute) is not { } attribute) return;
+		// The attribute targets classes only: on anything else the compiler already reports CS0592.
+		if (type.TypeKind != TypeKind.Class ||
+		    FindAttribute(type, symbols.PluginAttribute) is not { } attribute)
+		{
+			return;
+		}
 
-        var name = type.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
-        var attributeSyntax = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
-        var classLocation = GetClassLocation(type, attributeSyntax);
-        state.AddPluginClass(name, classLocation);
-        if (entryPointIsGenerated is not true) return;
+		string name = type.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
+		SyntaxNode? attributeSyntax = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
+		Location classLocation = GetClassLocation(type, attributeSyntax);
+		state.AddPluginClass(name, classLocation);
+		if (entryPointIsGenerated is not true)
+		{
+			return;
+		}
 
-        var problems = PluginShape.Inspect(
-            type,
-            attribute,
-            symbols.PluginBase,
-            symbols.SetsRequiredMembersAttribute,
-            symbols.ObsoleteAttribute,
-            out _,
-            out _);
-        if (problems == PluginShapeIssues.None) return;
+		PluginShapeIssues problems = PluginShape.Inspect(
+			type,
+			attribute,
+			symbols.PluginBase,
+			symbols.SetsRequiredMembersAttribute,
+			symbols.ObsoleteAttribute,
+			out _,
+			out _);
+		if (problems == PluginShapeIssues.None)
+		{
+			return;
+		}
 
-        foreach (var problem in PluginClassProblemText.ReportOrder)
-        {
-            if ((problems & problem) == PluginShapeIssues.None) continue;
+		foreach (PluginShapeIssues problem in PluginClassProblemText.ReportOrder)
+		{
+			if ((problems & problem) == PluginShapeIssues.None)
+			{
+				continue;
+			}
 
-            // The name is a property of the attribute application, everything else of the class declaration.
-            var location = problem == PluginShapeIssues.InvalidName && attributeSyntax is not null
-                ? attributeSyntax.GetLocation()
-                : classLocation;
+			// The name is a property of the attribute application, everything else of the class declaration.
+			Location location = problem == PluginShapeIssues.InvalidName && attributeSyntax is not null
+				? attributeSyntax.GetLocation()
+				: classLocation;
 
-            context.ReportDiagnostic(Diagnostic.Create(
-                DiagnosticDescriptors.InvalidPluginClass,
-                location,
-                ImmutableDictionary<string, string?>.Empty.Add(DiagnosticProperties.PluginClassProblem,
-                    problem.ToString()),
-                name,
-                PluginClassProblemText.Describe(problem)));
-        }
-    }
+			context.ReportDiagnostic(Diagnostic.Create(
+				DiagnosticDescriptors.InvalidPluginClass,
+				location,
+				ImmutableDictionary<string, string?>.Empty.Add(DiagnosticProperties.PluginClassProblem,
+					problem.ToString()),
+				name,
+				PluginClassProblemText.Describe(problem)));
+		}
+	}
 
-    private static AttributeData? FindAttribute(INamedTypeSymbol type, INamedTypeSymbol attributeClass)
-    {
-        foreach (var attribute in type.GetAttributes())
-            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeClass))
-                return attribute;
+	private static AttributeData? FindAttribute(INamedTypeSymbol type, INamedTypeSymbol attributeClass)
+	{
+		foreach (AttributeData attribute in type.GetAttributes())
+		{
+			if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeClass))
+			{
+				return attribute;
+			}
+		}
 
-        return null;
-    }
+		return null;
+	}
 
-    private static bool IsEntryPointType(INamedTypeSymbol type)
-    {
-        return type is
-        {
-            Name: ReservedRootNamespace,
-            Arity: 0,
-            ContainingType: null,
-            ContainingNamespace:
-            {
-                Name: ReservedRootNamespace,
-                ContainingNamespace.IsGlobalNamespace: true,
-            },
-        };
-    }
+	private static bool IsEntryPointType(INamedTypeSymbol type)
+	{
+		return type is
+		{
+			Name: ReservedRootNamespace,
+			Arity: 0,
+			ContainingType: null,
+			ContainingNamespace:
+			{
+				Name: ReservedRootNamespace,
+				ContainingNamespace.IsGlobalNamespace: true
+			}
+		};
+	}
 
-    private static bool IsManualBootstrap(INamedTypeSymbol type)
-    {
-        if (!type.IsStatic) return false;
+	private static bool IsManualBootstrap(INamedTypeSymbol type)
+	{
+		if (!type.IsStatic)
+		{
+			return false;
+		}
 
-        foreach (var member in type.GetMembers("CEPluginInitialize"))
-        {
-            if (member is not IMethodSymbol
-                {
-                    MethodKind: MethodKind.Ordinary,
-                    IsStatic: true,
-                    IsGenericMethod: false,
-                    DeclaredAccessibility: Accessibility.Public,
-                    ReturnsByRef: false,
-                    ReturnsByRefReadonly: false,
-                    ReturnType.SpecialType: SpecialType.System_Int32,
-                    Parameters:
-                    [
-                        { RefKind: RefKind.None, Type.SpecialType: SpecialType.System_IntPtr },
-                        { RefKind: RefKind.None, Type.SpecialType: SpecialType.System_Int32 }
-                    ],
-                })
-                continue;
+		foreach (ISymbol member in type.GetMembers("CEPluginInitialize"))
+		{
+			if (member is not IMethodSymbol
+			    {
+				    MethodKind: MethodKind.Ordinary,
+				    IsStatic: true,
+				    IsGenericMethod: false,
+				    DeclaredAccessibility: Accessibility.Public,
+				    ReturnsByRef: false,
+				    ReturnsByRefReadonly: false,
+				    ReturnType.SpecialType: SpecialType.System_Int32,
+				    Parameters:
+				    [
+					    { RefKind: RefKind.None, Type.SpecialType: SpecialType.System_IntPtr },
+					    { RefKind: RefKind.None, Type.SpecialType: SpecialType.System_Int32 }
+				    ]
+			    })
+			{
+				continue;
+			}
 
-            return true;
-        }
+			return true;
+		}
 
-        return false;
-    }
+		return false;
+	}
 
-    private static Location FirstLocation(ISymbol symbol)
-    {
-        return symbol.Locations.IsEmpty ? Location.None : symbol.Locations[0];
-    }
+	private static Location FirstLocation(ISymbol symbol)
+	{
+		return symbol.Locations.IsEmpty ? Location.None : symbol.Locations[0];
+	}
 
-    // A partial class has one location per part: the part that carries the attribute is the one the user thinks of
-    // as "the plugin class", and the only one that certainly is not generated code.
-    private static Location GetClassLocation(INamedTypeSymbol type, SyntaxNode? attributeSyntax)
-    {
-        for (var node = attributeSyntax; node is not null; node = node.Parent)
-            if (node is BaseTypeDeclarationSyntax declaration)
-                return declaration.Identifier.GetLocation();
+	// A partial class has one location per part: the part that carries the attribute is the one the user thinks of
+	// as "the plugin class", and the only one that certainly is not generated code.
+	private static Location GetClassLocation(INamedTypeSymbol type, SyntaxNode? attributeSyntax)
+	{
+		for (SyntaxNode? node = attributeSyntax; node is not null; node = node.Parent)
+		{
+			if (node is BaseTypeDeclarationSyntax declaration)
+			{
+				return declaration.Identifier.GetLocation();
+			}
+		}
 
-        return type.Locations.IsEmpty ? Location.None : type.Locations[0];
-    }
+		return type.Locations.IsEmpty ? Location.None : type.Locations[0];
+	}
 
-    private static void AnalyzeNamespaceDeclaration(SyntaxNodeAnalysisContext context, PluginCompilationState state)
-    {
-        var declaration = (BaseNamespaceDeclarationSyntax)context.Node;
+	private static void AnalyzeNamespaceDeclaration(SyntaxNodeAnalysisContext context, PluginCompilationState state)
+	{
+		BaseNamespaceDeclarationSyntax declaration = (BaseNamespaceDeclarationSyntax) context.Node;
 
-        // A nested declaration is under 'CESDK' exactly when its outermost declaration is: one report per outermost one.
-        if (declaration.Parent is not CompilationUnitSyntax
-            || context.SemanticModel.GetDeclaredSymbol(declaration, context.CancellationToken) is not INamespaceSymbol
-                declared
-            || !IsUnderReservedRoot(declared, context.CancellationToken))
-            return;
+		// A nested declaration is under 'CESDK' exactly when its outermost declaration is: one report per outermost one.
+		if (declaration.Parent is not CompilationUnitSyntax
+		    || context.SemanticModel.GetDeclaredSymbol(declaration, context.CancellationToken) is not INamespaceSymbol
+			    declared
+		    || !IsUnderReservedRoot(declared, context.CancellationToken))
+		{
+			return;
+		}
 
-        state.AddReservedNamespace(declared.ToDisplayString(), declaration.Name.GetLocation());
-    }
+		state.AddReservedNamespace(declared.ToDisplayString(), declaration.Name.GetLocation());
+	}
 
-    private static bool IsUnderReservedRoot(INamespaceSymbol declared, CancellationToken cancellationToken)
-    {
-        var root = declared;
-        while (root.ContainingNamespace is { IsGlobalNamespace: false } parent)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            root = parent;
-        }
+	private static bool IsUnderReservedRoot(INamespaceSymbol declared, CancellationToken cancellationToken)
+	{
+		INamespaceSymbol root = declared;
+		while (root.ContainingNamespace is { IsGlobalNamespace: false } parent)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			root = parent;
+		}
 
-        return string.Equals(root.Name, ReservedRootNamespace, StringComparison.Ordinal);
-    }
+		return string.Equals(root.Name, ReservedRootNamespace, StringComparison.Ordinal);
+	}
 }

@@ -10,6 +10,7 @@ namespace CheatEngine.SDK.Lua.Tests.Protected;
 public sealed class NativeFailureProcessTests
 {
 	[Fact]
+	[Trait("Qualification", "Q12")]
 	public async Task Generated_function_PushClosure_failure_returns_status_and_restores_stack()
 	{
 		Assert.SkipUnless(NativeLuaLibrary.IsAvailable, NativeLuaLibrary.UnavailableReason);

@@ -59,6 +59,7 @@ public sealed class LuaModuleTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q11")]
 	public void TryGetLoaded_finds_the_lua_module_the_fixture_loaded_without_loading_another()
 	{
 		LuaTest.RequireNativeLua();

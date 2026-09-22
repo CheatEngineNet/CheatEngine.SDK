@@ -50,6 +50,7 @@ public sealed class LuaRefEpochTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q17")]
 	public void A_reference_from_another_epoch_is_resolved_but_stale()
 	{
 		LuaRef reference = new();
@@ -62,6 +63,7 @@ public sealed class LuaRefEpochTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q17")]
 	public void A_reference_from_another_state_generation_is_resolved_but_stale()
 	{
 		LuaRef reference = new();

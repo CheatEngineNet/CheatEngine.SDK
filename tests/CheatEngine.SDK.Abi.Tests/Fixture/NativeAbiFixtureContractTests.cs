@@ -13,6 +13,7 @@ namespace CheatEngine.SDK.Abi.Tests.Fixture;
 public sealed class NativeAbiFixtureContractTests
 {
 	[Fact]
+	[Trait("Qualification", "Q01")]
 	public void Header_derived_classic_records_have_the_fixture_x64_sizes()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
@@ -33,6 +34,7 @@ public sealed class NativeAbiFixtureContractTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q01")]
 	public void Header_derived_classic_records_have_the_fixture_x64_alignments()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);

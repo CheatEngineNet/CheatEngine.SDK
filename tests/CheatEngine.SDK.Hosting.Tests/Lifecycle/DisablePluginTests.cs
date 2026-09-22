@@ -59,6 +59,7 @@ public sealed unsafe class DisablePluginTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q07")]
 	public void Disable_from_an_admitted_Lua_operation_is_refused_without_changing_the_lifecycle()
 	{
 		HostingTest.RequireNativeLua();
@@ -81,6 +82,7 @@ public sealed unsafe class DisablePluginTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q07")]
 	public void Disable_from_executing_dispatched_work_is_refused_without_waiting_for_that_work()
 	{
 		HostingTest.RequireNativeLua();
@@ -252,6 +254,7 @@ public sealed unsafe class DisablePluginTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q15")]
 	public void Disable_neutralizes_the_callbacks_the_plugin_forgot()
 	{
 		HostingTest.RequireNativeLua();
@@ -364,6 +367,7 @@ public sealed unsafe class DisablePluginTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q05")]
 	public void Enable_disable_enable_reuses_the_instance_and_attaches_with_a_new_epoch()
 	{
 		HostingTest.RequireNativeLua();

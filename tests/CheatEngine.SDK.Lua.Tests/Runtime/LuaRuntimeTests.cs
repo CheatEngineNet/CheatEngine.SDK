@@ -39,6 +39,7 @@ public sealed class LuaRuntimeTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q17")]
 	public void BeginStateReset_advances_only_the_state_generation_while_the_host_remains_attached()
 	{
 		LuaTest.RequireNativeLua();

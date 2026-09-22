@@ -22,6 +22,7 @@ public sealed class LuaRegistrationSetTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q16")]
 	public void Reject_existing_preflights_without_replacing_the_effective_global()
 	{
 		LuaTest.RequireNativeLua();
@@ -40,6 +41,7 @@ public sealed class LuaRegistrationSetTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q16")]
 	public void Replace_existing_restores_the_prior_value_only_while_the_lease_still_owns_the_global()
 	{
 		LuaTest.RequireNativeLua();
@@ -63,6 +65,7 @@ public sealed class LuaRegistrationSetTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q16")]
 	public void Release_preserves_a_later_replacement_and_reports_it_without_writing()
 	{
 		LuaTest.RequireNativeLua();

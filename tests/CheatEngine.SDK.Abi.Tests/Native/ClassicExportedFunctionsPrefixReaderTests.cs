@@ -12,6 +12,7 @@ namespace CheatEngine.SDK.Abi.Tests.Native;
 public sealed unsafe class ClassicExportedFunctionsPrefixReaderTests
 {
 	[Fact]
+	[Trait("Qualification", "Q39")]
 	public void TryCopy_rejects_an_empty_table_representation()
 	{
 		bool copied =
@@ -22,6 +23,7 @@ public sealed unsafe class ClassicExportedFunctionsPrefixReaderTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q39")]
 	public void TryCopy_rejects_a_buffer_that_cannot_contain_the_declared_size_field()
 	{
 		Span<byte> table = stackalloc byte[ClassicExportedFunctionsPrefixReader.DeclaredSizeByteCount - 1];
@@ -36,6 +38,7 @@ public sealed unsafe class ClassicExportedFunctionsPrefixReaderTests
 	[InlineData(0)]
 	[InlineData(-1)]
 	[InlineData(ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount - 1)]
+	[Trait("Qualification", "Q39")]
 	public void TryCopy_rejects_a_truncated_declared_table(int declaredSize)
 	{
 		Span<byte> table = stackalloc byte[ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount];
@@ -48,6 +51,7 @@ public sealed unsafe class ClassicExportedFunctionsPrefixReaderTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q39")]
 	public void TryCopy_rejects_a_physically_truncated_table_even_when_its_size_claim_is_sufficient()
 	{
 		Span<byte> table = stackalloc byte[ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount - 1];
@@ -62,6 +66,7 @@ public sealed unsafe class ClassicExportedFunctionsPrefixReaderTests
 	[Theory]
 	[InlineData(ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount)]
 	[InlineData(int.MaxValue)]
+	[Trait("Qualification", "Q39")]
 	public void TryCopy_copies_exactly_the_qualified_prefix_without_overflow(int declaredSize)
 	{
 		uint processId = 0x2468u;

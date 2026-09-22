@@ -15,6 +15,7 @@ namespace CheatEngine.SDK.Hosting.Tests.Bootstrap;
 public sealed unsafe class InitializeManagedTests
 {
 	[Fact]
+	[Trait("Qualification", "Q02")]
 	public void Writes_exactly_the_36_byte_record_and_nothing_past_it()
 	{
 		HostingTest.Reset();
@@ -40,6 +41,7 @@ public sealed unsafe class InitializeManagedTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q02")]
 	public void Writes_the_record_at_an_odd_address_without_touching_the_guard()
 	{
 		HostingTest.Reset();
@@ -53,6 +55,7 @@ public sealed unsafe class InitializeManagedTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q05")]
 	public void Second_call_is_idempotent_and_writes_the_same_bytes_including_the_name_pointer()
 	{
 		HostingTest.Reset();
@@ -81,6 +84,7 @@ public sealed unsafe class InitializeManagedTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q05.a")]
 	public void Non_ASCII_name_is_converted_to_the_process_ANSI_code_page()
 	{
 		HostingTest.Reset();
@@ -129,6 +133,7 @@ public sealed unsafe class InitializeManagedTests
 	[InlineData(36)]
 	[InlineData(40)]
 	[InlineData(4096)]
+	[Trait("Qualification", "Q04")]
 	public void An_opaque_bootstrap_argument_is_recorded_without_changing_the_record_write(int hostArgument)
 	{
 		HostingTest.Reset();

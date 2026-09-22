@@ -25,6 +25,7 @@ public sealed unsafe class ReentrancyTests
 	[Trait("Category", "NativeLua")]
 	[SuppressMessage("xUnit.Analyzers", "xUnit1051",
 		Justification = "The bounded lifecycle barrier is a deterministic host-thread synchronization point.")]
+	[Trait("Qualification", "Q07")]
 	public void A_concurrent_disable_during_OnEnable_fails_immediately_and_the_outer_enable_decides_the_state()
 	{
 		HostingTest.RequireNativeLua();
@@ -81,6 +82,7 @@ public sealed unsafe class ReentrancyTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q07")]
 	public void Disable_nested_in_OnEnable_is_refused_and_the_enable_stands()
 	{
 		HostingTest.RequireNativeLua();
@@ -182,6 +184,7 @@ public sealed unsafe class ReentrancyTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q07")]
 	public void Disable_nested_in_OnDisable_is_refused_and_OnDisable_runs_once()
 	{
 		HostingTest.RequireNativeLua();

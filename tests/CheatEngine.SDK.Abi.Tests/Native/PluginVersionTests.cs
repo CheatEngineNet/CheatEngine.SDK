@@ -8,6 +8,7 @@ namespace CheatEngine.SDK.Abi.Tests.Native;
 public sealed unsafe class PluginVersionTests
 {
 	[Fact]
+	[Trait("Qualification", "Q01")]
 	public void Size_on_64_bit_is_16_bytes()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
@@ -16,6 +17,7 @@ public sealed unsafe class PluginVersionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q01")]
 	public void Field_offsets_on_64_bit_match_the_c_structure()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
@@ -27,6 +29,7 @@ public sealed unsafe class PluginVersionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q01")]
 	public void Write_through_a_pointer_on_64_bit_leaves_the_padding_alone_and_places_the_name_at_8()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);

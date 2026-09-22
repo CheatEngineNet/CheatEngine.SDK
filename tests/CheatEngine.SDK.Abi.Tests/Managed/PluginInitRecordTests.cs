@@ -16,6 +16,7 @@ public sealed unsafe class PluginInitRecordTests
 	private static int s_disableCalls;
 
 	[Fact]
+	[Trait("Qualification", "Q02")]
 	public void Size_on_64_bit_is_36_bytes_packed()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
@@ -24,6 +25,7 @@ public sealed unsafe class PluginInitRecordTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q02")]
 	public void Field_offsets_on_64_bit_match_the_host_record()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
@@ -45,6 +47,7 @@ public sealed unsafe class PluginInitRecordTests
 	[Theory]
 	[InlineData(16)]
 	[InlineData(13)]
+	[Trait("Qualification", "Q02")]
 	public void Write_through_a_pointer_on_64_bit_touches_exactly_36_bytes(int start)
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);

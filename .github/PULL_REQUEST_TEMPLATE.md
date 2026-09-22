@@ -1,34 +1,29 @@
-## Outcome and linked issue
+## Summary
 
-Closes <!-- link only the issue actually completed by this PR -->
+<!-- What changes and why. The squash-merge commit subject is the pull request title: keep it short and imperative. -->
 
-## Scope and architectural ownership
+## Scope and ownership
 
-Describe resulting behavior, affected contracts, and exclusions. SDK owns CE integration; Client owns workflows and
-policy.
+<!-- Affected contracts (ABI, Lua stack, generators, analyzers, package layout, CI) and what is out of scope.
+The SDK owns Cheat Engine integration; CheatEngine.Client owns workflows and policy. -->
 
-## Dependencies and containing artifacts
+## Validation
 
-Link upstream prerequisites without closing them. Identify the SDK package containing every consumed primitive.
+| Check                  | Evidence (command, run link or artifact)                     | Result       |
+|------------------------|--------------------------------------------------------------|--------------|
+| CI / Gate              | <!-- link to the Pull request CI run -->                     | Pending      |
+| Local build and tests  | <!-- e.g. dotnet test --solution CheatEngine.SDK.slnx -c Debug --fail-skips on --> | Not executed |
+| Packed package         | <!-- nuget-package artifact of the run, or local dotnet pack --> | Not executed |
+| Live Cheat Engine host | <!-- CE build and architecture, or "not applicable" -->      | Not executed |
 
-## Validation actually performed
+## Compatibility and release impact
 
-| Check           | Command / profile | Actual result | Evidence |
-|-----------------|-------------------|---------------|----------|
-| Unit / fixture  |                   | Not executed  |          |
-| Packed consumer |                   | Not executed  |          |
-| Live host       |                   | Not executed  |          |
-| AOT publication |                   | Not executed  |          |
+<!-- Public API or behavior changes, ownership, lifetime, cleanup, cancellation and migration. -->
 
-## Compatibility, lifetime and partial effects
+## Checklist
 
-Explain public API or behavior changes, ownership, target switches, cleanup, cancellation and migration.
-
-## Documentation and review checklist
-
-- [ ] Scope is focused; existing repository style and contribution rules are preserved.
-- [ ] Relevant regression evidence is attached; pending gates remain explicit.
-- [ ] Ownership, provenance, and raw-state exposure match the supported consumer boundary of the affected layer.
-- [ ] Capability and artifact claims match actual results.
-- [ ] Documentation and release impact are recorded.
-- [ ] No automatic merge, release, protection change or unsupported capability activation is requested.
+- [ ] The change is focused and follows CONTRIBUTING.md.
+- [ ] Tests cover the change; no skipped test hides a failure.
+- [ ] Consumer-visible changes are recorded under `[Unreleased]` in CHANGELOG.md.
+- [ ] Affected READMEs and documentation are updated in this pull request.
+- [ ] The claims above match the actual CI and local results; live-host limitations are stated.

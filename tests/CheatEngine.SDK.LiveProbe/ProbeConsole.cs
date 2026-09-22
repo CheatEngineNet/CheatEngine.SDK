@@ -15,6 +15,37 @@ internal static partial class ProbeConsole
 		return LiveProbeState.GetStatus();
 	}
 
+	/// <summary>
+	///     Returns the same observations as <see cref="Status" /> as one JSON object (schema
+	///     <c>ce77-live-probe-status-v1</c>) for the qualification driver: plugin id, epoch, reported exports size, the raw
+	///     second bootstrap integer, assembly identities and the fault-switch decision.
+	/// </summary>
+	[LuaFunction("ce77_live_probe_status_json")]
+	public static string StatusJson()
+	{
+		return LiveProbeState.GetStatusJson();
+	}
+
+	/// <summary>
+	///     Authorized only: throws a managed exception inside the generated thunk so that a <c>pcall</c> can record the
+	///     resulting Lua error (qualification scenario Q14 at C3). Returns the denial text when not authorized.
+	/// </summary>
+	[LuaFunction("ce77_live_probe_throw_managed_exception")]
+	public static string ThrowManagedException()
+	{
+		return LiveProbeState.ThrowManagedExceptionIfAuthorized();
+	}
+
+	/// <summary>
+	///     Authorized only: pumps Cheat Engine's messages for 1 to 60 seconds from admitted main-thread work, so that an
+	///     operator can untick the plugin while this callback runs (Q07 at C3). Returns a JSON phase record.
+	/// </summary>
+	[LuaFunction("ce77_live_probe_pump_messages")]
+	public static string PumpMessages(double seconds)
+	{
+		return LiveProbeState.PumpMessages(seconds);
+	}
+
 	/// <summary>Captures a JSON identity record for the authorized CE host, Lua, bridge, plugin, and disposable target.</summary>
 	[LuaFunction("ce77_live_probe_host_profile")]
 	public static string HostProfile()

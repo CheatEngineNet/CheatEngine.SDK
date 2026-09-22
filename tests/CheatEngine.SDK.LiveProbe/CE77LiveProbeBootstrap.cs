@@ -30,7 +30,12 @@ public static unsafe class CESDK
 		try
 		{
 			LiveProbeState.CaptureBootstrap(initRecord, opaqueHostArgument);
+#if LIVEPROBE_NON_ASCII_NAME
+			int result =
+				PluginHost.InitializeManaged<LiveProbe.ProbePluginFactoryNonAscii>(initRecord, opaqueHostArgument);
+#else
 			int result = PluginHost.InitializeManaged<LiveProbe.ProbePluginFactory>(initRecord, opaqueHostArgument);
+#endif
 			LiveProbeState.TryWriteTailCanaryAfterPackedRecord(initRecord, result);
 			return result;
 		}

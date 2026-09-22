@@ -28,6 +28,10 @@ internal sealed class Ce77LiveProbePlugin : CheatEnginePlugin
 
 		LiveProbeState.ValidateAfterEnable();
 		HostLog.Write(HostLogLevel.Information, LiveProbeState.GetStatus());
+
+		// Checkpoint B, Q06: an authorized liveprobe.fault.json can make this enable fail after the console commands
+		// were registered, so the SDK's cleanup of a failed enable is observable.
+		LiveProbeFaultInjection.EnterOnEnable();
 	}
 
 	/// <inheritdoc />
@@ -42,5 +46,8 @@ internal sealed class Ce77LiveProbePlugin : CheatEnginePlugin
 		// Deliberately do not dispose the callback-shutdown probe here. LuaRuntime.Detach, which runs immediately after
 		// OnDisable, is the system under test: it must neutralize the callback before freeing its GCHandle.
 		LiveProbeState.RecordDisable();
+
+		// Checkpoint B, Q08: an authorized liveprobe.fault.json can make OnDisable throw after its own cleanup.
+		LiveProbeFaultInjection.EnterOnDisable();
 	}
 }

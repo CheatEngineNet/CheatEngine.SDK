@@ -10,6 +10,8 @@ internal sealed class ProbePluginFactory : IPluginFactory
 
 	public static CheatEnginePlugin Create()
 	{
+		// Checkpoint B, Q06: an authorized liveprobe.fault.json can make construction fail for this enable.
+		LiveProbeFaultInjection.EnterFactoryCreate();
 		return new Ce77LiveProbePlugin();
 	}
 }

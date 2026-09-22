@@ -13,6 +13,14 @@
     <CompilerGeneratedFilesOutputPath>$(ArtifactsPath)\obj\$(MSBuildProjectName)\generated\$(Configuration)</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
+  <!--
+    Checkpoint B, qualification scenario Q05.a: `dotnet build -p:LiveProbeNonAsciiName=true` gives the plugin a non-ASCII
+    display name (ProbePluginFactoryNonAscii). The default build keeps the ASCII name.
+  -->
+  <PropertyGroup Condition="'$(LiveProbeNonAsciiName)' == 'true'">
+    <DefineConstants>$(DefineConstants);LIVEPROBE_NON_ASCII_NAME</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="../../libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj"/>
     <ProjectReference Include="../../libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj"/>

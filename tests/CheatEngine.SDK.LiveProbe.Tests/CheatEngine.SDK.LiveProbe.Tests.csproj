@@ -16,7 +16,13 @@
     <Compile Include="../CheatEngine.SDK.LiveProbe/AuthorizationDecision.cs" Link="LiveProbe/AuthorizationDecision.cs"/>
     <Compile Include="../CheatEngine.SDK.LiveProbe/HostProfileObservation.cs" Link="LiveProbe/HostProfileObservation.cs"/>
     <Compile Include="../CheatEngine.SDK.LiveProbe/LiveProbeAuthorization.cs" Link="LiveProbe/LiveProbeAuthorization.cs"/>
+    <Compile Include="../CheatEngine.SDK.LiveProbe/LiveProbeFaultDecision.cs" Link="LiveProbe/LiveProbeFaultDecision.cs"/>
+    <Compile Include="../CheatEngine.SDK.LiveProbe/LiveProbeFaultInjection.cs" Link="LiveProbe/LiveProbeFaultInjection.cs"/>
+    <Compile Include="../CheatEngine.SDK.LiveProbe/LiveProbeFaultStage.cs" Link="LiveProbe/LiveProbeFaultStage.cs"/>
+    <Compile Include="../CheatEngine.SDK.LiveProbe/LiveProbeHostFacts.cs" Link="LiveProbe/LiveProbeHostFacts.cs"/>
     <Compile Include="../CheatEngine.SDK.LiveProbe/LiveProbeState.cs" Link="LiveProbe/LiveProbeState.cs"/>
+    <Compile Include="../CheatEngine.SDK.LiveProbe/LiveProbeStatusReport.cs" Link="LiveProbe/LiveProbeStatusReport.cs"/>
+    <Compile Include="../CheatEngine.SDK.LiveProbe/LiveProbeStatusSnapshot.cs" Link="LiveProbe/LiveProbeStatusSnapshot.cs"/>
   </ItemGroup>
 
 </Project>

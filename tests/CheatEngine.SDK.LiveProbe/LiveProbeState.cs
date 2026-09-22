@@ -1,9 +1,12 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 
 using CheatEngine.SDK.Abi.Managed;
+using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Threading;
 using CheatEngine.SDK.Lua.Callbacks;
@@ -19,6 +22,12 @@ namespace LiveProbe;
 internal static unsafe class LiveProbeState
 {
 	private const uint TailCanary = 0x7A_51_CE_77U;
+	private const int MinimumPumpSeconds = 1;
+	private const int MaximumPumpSeconds = 60;
+
+	/// <summary>The message of the exception <c>ce77_live_probe_throw_managed_exception()</c> throws (Q14 at C3).</summary>
+	internal const string ManagedExceptionMarker = "CE 7.7 live probe deliberate managed exception (Q14).";
+
 	private static readonly Lock Gate = new();
 	private static BootstrapObservation s_bootstrap;
 	private static AuthorizationDecision s_bootstrapAuthorization = AuthorizationDecision.Denied("Not evaluated.");
@@ -32,6 +41,7 @@ internal static unsafe class LiveProbeState
 	private static LuaCallback<CallbackCounter>? s_callback;
 	private static CallbackCounter? s_callbackCounter;
 	private static int s_luaProbeSerial;
+	private static int s_managedExceptionThrows;
 
 	internal static void CaptureBootstrap(nint initRecord, int opaqueHostArgument)
 	{
@@ -171,6 +181,12 @@ internal static unsafe class LiveProbeState
 
 	internal static string GetStatus()
 	{
+		return GetStatus(LiveProbeHostFacts.Capture());
+	}
+
+	// The facts parameter is the unit-test seam: production always captures them from PluginHost immediately.
+	internal static string GetStatus(LiveProbeHostFacts host)
+	{
 		lock (Gate)
 		{
 			StringBuilder builder = new(1024);
@@ -179,7 +195,21 @@ internal static unsafe class LiveProbeState
 				.Append(s_bootstrap.InitRecord.ToString("X", CultureInfo.InvariantCulture))
 				.Append(", opaqueSecondInt=").Append(s_bootstrap.OpaqueArgument)
 				.Append(" (raw; no size/version meaning assigned)")
-				.Append(", tailCanaryWritten=").Append(s_bootstrap.TailCanaryWritten)
+				.Append(", pluginHostLastInitRecordArgument=").Append(host.LastInitRecordArgument)
+				.Append(", phase=").Append(host.Phase);
+
+			if (host.HasContext)
+			{
+				builder.Append(", pluginId=").Append(host.PluginId)
+					.Append(", epoch=").Append(host.Epoch)
+					.Append(", reportedExportsSize=").Append(host.ReportedExportsSize);
+			}
+			else
+			{
+				builder.Append(", context=none");
+			}
+
+			builder.Append(", tailCanaryWritten=").Append(s_bootstrap.TailCanaryWritten)
 				.Append(", tailWrites=").Append(s_bootstrap.TailWriteCount);
 
 			if (s_bootstrap.TailCanaryWritten)
@@ -211,6 +241,95 @@ internal static unsafe class LiveProbeState
 
 			return builder.ToString();
 		}
+	}
+
+	internal static string GetStatusJson()
+	{
+		return GetStatusJson(LiveProbeHostFacts.Capture());
+	}
+
+	// One JSON object for the qualification driver (schema ce77-live-probe-status-v1). Like the text status it is a
+	// read of process-local facts: it neither touches a target nor calls Lua, so it is not authorization-gated.
+	internal static string GetStatusJson(LiveProbeHostFacts host)
+	{
+		LiveProbeStatusSnapshot snapshot;
+		lock (Gate)
+		{
+			snapshot = new LiveProbeStatusSnapshot(
+				host,
+				s_bootstrap.Calls,
+				s_bootstrap.OpaqueArgument,
+				s_bootstrap.TailCanaryWritten,
+				s_bootstrap.TailWriteCount,
+				s_bootstrap.TailReadBeforeWrite,
+				s_bootstrap.TailFailure,
+				s_bootstrapAuthorization.IsAllowed,
+				s_bootstrapAuthorization.Reason,
+				IsRuntimeProbeAllowedUnsafe(),
+				s_targetMatchFailure,
+				LiveProbeFaultInjection.Current,
+				LiveProbeFaultInjection.InjectedFaults,
+				s_managedExceptionThrows,
+				s_synchronize.ToDisplayString(),
+				s_luaThread.ToDisplayString(),
+				s_reset.ToDisplayString(),
+				s_callback is null
+					? "not prepared"
+					: string.Create(CultureInfo.InvariantCulture,
+						$"prepared=true, released={s_callback.IsReleased}, managedCalls={s_callbackCounter?.Calls ?? 0}"));
+		}
+
+		return LiveProbeStatusReport.ToJson(snapshot);
+	}
+
+	internal static string ThrowManagedExceptionIfAuthorized()
+	{
+		return ThrowManagedExceptionIfAuthorized(LiveProbeAuthorization.Evaluate, ProbeHostGlobals.GetOpenedProcessId);
+	}
+
+	// Q14 at C3: the generated [LuaFunction] thunk must turn this exception into a Lua error that the driver's pcall
+	// catches, and the next call on the same state must still work. Without a fresh authorization it returns the
+	// denial and throws nothing.
+	internal static string ThrowManagedExceptionIfAuthorized(Func<AuthorizationDecision> evaluateAuthorization,
+		Func<long> getOpenedProcessId)
+	{
+		if (!TryRequireRuntimeAuthorization(evaluateAuthorization, getOpenedProcessId, out string denied))
+		{
+			return denied;
+		}
+
+		lock (Gate)
+		{
+			s_managedExceptionThrows++;
+		}
+
+		throw new InvalidOperationException(ManagedExceptionMarker);
+	}
+
+	internal static string PumpMessages(double seconds)
+	{
+		return PumpMessages(LiveProbeAuthorization.Evaluate, ProbeHostGlobals.GetOpenedProcessId, seconds,
+			PumpInsideAdmittedWork);
+	}
+
+	// Q07 at C3, an observation rather than a promise: the pump runs as admitted main-thread work so that the operator
+	// can untick the plugin in Cheat Engine while this callback is still running. The SDK is expected to refuse that
+	// nested disable without waiting for itself; the returned record lists the lifecycle phases seen between pumps.
+	internal static string PumpMessages(Func<AuthorizationDecision> evaluateAuthorization,
+		Func<long> getOpenedProcessId, double seconds, Func<double, string> pump)
+	{
+		if (!double.IsFinite(seconds) || seconds < MinimumPumpSeconds || seconds > MaximumPumpSeconds)
+		{
+			return string.Create(CultureInfo.InvariantCulture,
+				$"Pump refused: the duration must be between {MinimumPumpSeconds} and {MaximumPumpSeconds} seconds.");
+		}
+
+		if (!TryRequireRuntimeAuthorization(evaluateAuthorization, getOpenedProcessId, out string denied))
+		{
+			return denied;
+		}
+
+		return pump(seconds);
 	}
 
 	internal static string CaptureHostProfile()
@@ -448,6 +567,57 @@ internal static unsafe class LiveProbeState
 
 		return
 			"Callback prepared. First run pcall(ce77_live_probe_callback_shutdown) once (it returns a count). Then disable this plugin in CE, run pcall(ce77_live_probe_callback_shutdown) again, and preserve the raw pcall result. Re-enable and call ce77_live_probe_status().";
+	}
+
+	private static string PumpInsideAdmittedWork(double seconds)
+	{
+		return MainThread.Invoke(static duration => PumpAndObservePhases(duration), seconds);
+	}
+
+	private static string PumpAndObservePhases(double seconds)
+	{
+		PluginHostLifecyclePhase before = PluginHost.Phase;
+		PluginHostLifecyclePhase last = before;
+		List<string> sequence = [before.ToString()];
+		int pumps = 0;
+		TimeSpan limit = TimeSpan.FromSeconds(seconds);
+		Stopwatch elapsed = Stopwatch.StartNew();
+		while (elapsed.Elapsed < limit)
+		{
+			MainThread.ProcessMessages();
+			pumps++;
+			PluginHostLifecyclePhase now = PluginHost.Phase;
+			if (now != last)
+			{
+				sequence.Add(now.ToString());
+				last = now;
+			}
+
+			Thread.Sleep(20);
+		}
+
+		using MemoryStream stream = new();
+		using (Utf8JsonWriter writer = new(stream))
+		{
+			writer.WriteStartObject();
+			writer.WriteString("schema", "ce77-live-probe-pump-v1");
+			writer.WriteNumber("requestedSeconds", seconds);
+			writer.WriteNumber("elapsedMs", (long) elapsed.Elapsed.TotalMilliseconds);
+			writer.WriteNumber("pumps", pumps);
+			writer.WriteString("phaseBefore", before.ToString());
+			writer.WriteString("phaseAfter", PluginHost.Phase.ToString());
+			writer.WriteStartArray("phaseSequence");
+			foreach (string phase in sequence)
+			{
+				writer.WriteStringValue(phase);
+			}
+
+			writer.WriteEndArray();
+			writer.WriteBoolean("enabledAfter", PluginHost.IsEnabled);
+			writer.WriteEndObject();
+		}
+
+		return Encoding.UTF8.GetString(stream.ToArray());
 	}
 
 	private static void RunSynchronizeProbe()

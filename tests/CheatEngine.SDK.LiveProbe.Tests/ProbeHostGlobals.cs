@@ -1,7 +1,8 @@
-namespace CheatEngine.SDK.LiveProbe.Tests;
+namespace LiveProbe;
 
-// The source-linked LiveProbeState tests inject the PID reader and never call this generated Lua global. Keeping the
-// stub local avoids loading a plugin generator or a Cheat Engine host during unit tests.
+// The source-linked LiveProbe sources call ProbeHostGlobals.GetOpenedProcessId, which the plugin project generates from
+// [LuaGlobal("getOpenedProcessID")]. The tests inject the PID reader and never call it; this stub keeps the same
+// namespace and signature without loading the LuaBindings generator or a Cheat Engine host.
 internal static class ProbeHostGlobals
 {
 	internal static long GetOpenedProcessId()

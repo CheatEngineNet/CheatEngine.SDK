@@ -6,7 +6,6 @@ using System.Text;
 using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Threading;
-using CheatEngine.SDK.LiveProbe.Tests;
 using CheatEngine.SDK.Lua.Callbacks;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.References;

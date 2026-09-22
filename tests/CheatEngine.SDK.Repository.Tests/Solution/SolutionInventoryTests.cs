@@ -9,9 +9,7 @@ public sealed class SolutionInventoryTests
 	private static readonly Dictionary<string, string> s_outOfSolution = new(StringComparer.Ordinal)
 	{
 		["tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj"] =
-			"Native AOT executable probe, restored and published on its own by the CI aot job.",
-		["tests/CheatEngine.SDK.LiveProbe/CheatEngine.SDK.LiveProbe.csproj"] =
-			"Manually loaded CE 7.7 evidence harness; the qualification work brings it into the solution."
+			"Native AOT executable probe, restored and published on its own by the CI aot job."
 	};
 
 	[Fact]

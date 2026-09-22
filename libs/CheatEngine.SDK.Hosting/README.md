@@ -110,8 +110,8 @@ all CE/Lua participants are serialized.
 The opt-in [two-plugin live fixture](../../tests/CheatEngine.SDK.LivePlugin.Coexistence/README.md) logs the exact
 plugin, Hosting-assembly and runtime `AssemblyLoadContext` identities for a controlled host run. It is an observation
 protocol, not a CI test or a portability promise. It must be run and recorded before a supported coexistence profile is
-claimed. The related architecture-review scenarios R25/T049–T050, R26/T051–T052 and R34/T067–T068/T076 remain
-specified, not executed.
+claimed. The related qualification scenarios Q09 and Q10 (coexistence), Q19 (first calls from two workers) and Q30
+(target switch) remain not executed.
 
 The current supported route is the managed, framework-dependent plugin route. The standalone Native AOT probe checks
 library publication constraints; it does not establish that Cheat Engine can load, disable, unload or remove a Native

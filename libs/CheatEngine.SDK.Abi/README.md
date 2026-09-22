@@ -64,7 +64,9 @@ official [pinned
 and [pinned
 `plugin.pas`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/plugin.pas).
 
-The source index records the installed-file hashes reviewed for the historic CE 7.7 baseline. The independently
+These installed-file hashes were recorded in a source index that was retired on 2026-09-22 and is not restored; they
+remain declarations (`DeclaredRepo`) until the [support profile](../../docs/qualification/support-profile.md)
+re-measures them. The independently
 compiled fixture is deliberately more limited: it compiles a checked-in transcription of the pinned upstream C-header
 subset under MSVC x64, validates 104 facts, and compares its `sizeof`, `offsetof`, alignment, export, and topology facts
 with a versioned expectation. The Debug CI test run also passes that facts file into a compiled managed test, which measures

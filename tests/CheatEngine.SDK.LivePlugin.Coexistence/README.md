@@ -42,8 +42,8 @@ DLL, record:
 - the timestamp, operator and complete DebugView transcript; and
 - the Plugin A/B identity lines, every Lua command result, and any loader/enable failure.
 
-Leaving any field unknown means the result is an unqualified manual observation. The architecture-review scenarios
-remain `Specified_Not_Executed`: R25/T049–T050, R26/T051–T052, and R34/T067–T068/T076.
+Leaving any field unknown means the result is an unqualified manual observation. Qualification scenarios Q09 and Q10
+remain not executed, as do the related scenarios Q19 and Q30.
 
 ## Build and run
 
@@ -98,8 +98,8 @@ See [Native AOT libraries](https://learn.microsoft.com/dotnet/core/deploying/nat
 
 ## Scope deliberately left to follow-up fixtures
 
-- `T051` and `T052`: first-thread Lua acquisition, refusal and cross-plugin worker/main-thread concurrency;
-- `T068` and `T076`: target switch and retained allocation/patch ownership; and
+- Q19: first-thread Lua acquisition, refusal and cross-plugin worker/main-thread concurrency;
+- Q30: target switch and retained allocation/patch ownership; and
 - a real side-by-side package test, after the package tuple and loader profile are identified.
 
 Those scenarios need their production owners and exact host facts. This fixture must not be used to advertise them as

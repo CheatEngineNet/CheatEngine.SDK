@@ -78,7 +78,7 @@ dotnet add package CheatEngine.SDK --version 1.0.0
 | `AllowUnsafeBlocks`                | Consumer opt-in          | Set `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` for `[LuaFunction]` exports, whose generated thunks take native addresses; a `[LuaGlobal]`-only project can leave it `false` |
 | `EnableDynamicLoading`             | `true` while empty       | Copies referenced assemblies next to your plugin and writes its runtime config                                                                                                 |
 | `CheatEngineSdkGenerateEntryPoint` | `true` while empty       | Set `false` to write `CESDK.CESDK.CEPluginInitialize` by hand                                                                                                                  |
-| `PlatformTarget`                   | yours                    | Must not be `x86`: the build stops with `CESDK9101`                                                                                                                            |
+| `PlatformTarget`                   | yours                    | Leave it unset, or set `AnyCPU` or `x64`; any other explicit value (`x86`, `ARM`, `ARM64`, …) stops the build with `CESDK9101` (`PlatformTargetTests`)                         |
 
 | Requirement  | Version                                                                                                                                                                 |
 |--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

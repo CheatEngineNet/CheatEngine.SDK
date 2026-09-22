@@ -101,7 +101,6 @@ normal cleanup route.
   reset/generation contract.
 - The worker-and-registry observation is opt-in only. A distinct worker Lua pointer may be a coroutine sharing the main
   virtual machine, heap and registry, so it is not evidence of independent heaps or safe concurrent execution.
-- No live test is invoked by `dotnet test`, normal CI, Release validation or packaging. The only automated validation of
-  this project is compilation.
+- No live test is invoked by `dotnet test`, normal CI, Release validation or packaging.
 
 Result recording and evidence rules: [local qualification protocol](../../docs/qualification/local-protocol.md).

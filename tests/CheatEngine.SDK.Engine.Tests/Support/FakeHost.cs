@@ -30,7 +30,7 @@ namespace CheatEngine.SDK.Engine.Tests.Support;
 ///     state lives in a Lua table stored as the userdata's user value (<c>lua_setuservalue</c>), keyed by pointer in a
 ///     registry table so that every push of the same pointer finds the same state.
 /// </remarks>
-internal static unsafe class FakeHost // NOSONAR: the fixture implements Cheat Engine's unmanaged callback ABI.
+internal static unsafe partial class FakeHost // NOSONAR: the fixture implements Cheat Engine's unmanaged callback ABI.
 {
 	// Registry keys: light userdata whose values are the addresses of these bytes (stable for the process).
 	private const int MetatableKey = 0;

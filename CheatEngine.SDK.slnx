@@ -86,6 +86,7 @@
       <Platform Project="x64"/>
     </Project>
     <Project Path="tests/CheatEngine.SDK.LiveProbe.Tests/CheatEngine.SDK.LiveProbe.Tests.csproj"/>
+    <Project Path="tests/CheatEngine.SDK.Repository.Tests/CheatEngine.SDK.Repository.Tests.csproj"/>
     <Project Path="tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj">
       <Platform Project="x64"/>
     </Project>

@@ -14,6 +14,10 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0"/>
     <PackageVersion Include="PolySharp" Version="1.16.0"/>
+    <!-- Public API tracking of the shipping libraries (PublicAPI.Shipped.txt / PublicAPI.Unshipped.txt). -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0"/>
+    <!-- SPDX software bill of materials embedded in the package at pack time. -->
+    <PackageVersion Include="Microsoft.Sbom.Targets" Version="4.1.13"/>
   </ItemGroup>
 
   <ItemGroup Label="Tests">
@@ -27,6 +31,11 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="1.1.4"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing" Version="1.1.4"/>
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8"/>
+    <!-- Hang and crash dumps for native-interop test hosts (MTP hangdump and crashdump options). -->
+    <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="2.4.1"/>
+    <PackageVersion Include="Microsoft.Testing.Extensions.CrashDump" Version="2.4.1"/>
+    <!-- Workflow contract tests parse .github/workflows/*.yml. -->
+    <PackageVersion Include="YamlDotNet" Version="18.1.0"/>
   </ItemGroup>
 
   <!-- Added to every project as build-only assets (PrivateAssets=all). -->

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Repository policy tests. They only read committed files (solution, Markdown, workflows, qualification and catalogue
+    documents), never build, pack or start a process, so every change can run them in seconds. Deliberately no
+    ProjectReference.
+  -->
+
+  <ItemGroup>
+    <Using Include="System.Xml.Linq"/>
+  </ItemGroup>
+
+</Project>

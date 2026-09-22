@@ -17,11 +17,4 @@ jobs:
     if: github.event.pull_request.draft == false
     uses: ./.github/workflows/ci.yml
     with:
-      collect-coverage: >-
-        ${{ vars.SONAR_CI_ENABLED == 'true'
-        && github.event.pull_request.draft == false
-        && github.event.pull_request.head.repo.full_name == github.repository
-        && github.event.pull_request.user.login != 'dependabot[bot]' }}
       dependency-review: ${{ vars.DEPENDENCY_REVIEW_ENABLED == 'true' }}
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

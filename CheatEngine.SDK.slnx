@@ -31,6 +31,16 @@
     <File Path="eng/Shipping.props"/>
     <File Path="eng/Tests.props"/>
   </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/README.md"/>
+  </Folder>
+  <Folder Name="/docs/abi/">
+    <File Path="docs/abi/README.md"/>
+    <File Path="docs/abi/nativeaot-profile.md"/>
+  </Folder>
+  <Folder Name="/docs/catalog/">
+    <File Path="docs/catalog/README.md"/>
+  </Folder>
   <Folder Name="/native/cheat-engine/">
     <File Path="native/cheat-engine/README.md"/>
     <File Path="native/cheat-engine/lua53-64.dll"/>

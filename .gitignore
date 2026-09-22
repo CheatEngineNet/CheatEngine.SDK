@@ -9,9 +9,6 @@ TestResults/
 BenchmarkDotNet.Artifacts/
 *.binlog
 
-__pycache__/
-*.py[cod]
-
 .idea/
 .vs/
 .xmake/

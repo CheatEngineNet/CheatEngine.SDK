@@ -7,9 +7,7 @@ on:
     types: [ checks_requested ]
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+# No concurrency group: every main commit and merge group keeps its own complete run.
 
 permissions:
   contents: read
@@ -19,5 +17,6 @@ jobs:
     name: CI
     uses: ./.github/workflows/ci.yml
     with:
-      collect-coverage: true
-      dependency-review: false
+      sonar: true # ci.yml skips it for the merge queue and only reports the quality gate outside pull requests
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

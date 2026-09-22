@@ -67,7 +67,7 @@ and [pinned
 The source index records the installed-file hashes reviewed for the historic CE 7.7 baseline. The independently
 compiled fixture is deliberately more limited: it compiles a checked-in transcription of the pinned upstream C-header
 subset under MSVC x64, validates 104 facts, and compares its `sizeof`, `offsetof`, alignment, export, and topology facts
-with a versioned expectation. The native CI job also passes that facts file into a compiled managed test, which measures
+with a versioned expectation. The Debug CI test run also passes that facts file into a compiled managed test, which measures
 the matching managed record sizes, offsets, and alignments directly. It is therefore a `compiled-transcription-fixture`
 proof, not proof that a live CE host
 loads a slot, uses a given Pascal boolean width, or provides a non-null table entry. The records stay internal until a

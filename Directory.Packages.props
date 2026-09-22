@@ -20,6 +20,8 @@
     <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.1"/>
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2"/>
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.4.1"/>
+    <!-- The report-gh option: test annotations and one job summary per dotnet test run; inert outside GitHub Actions. -->
+    <PackageVersion Include="Microsoft.Testing.Extensions.GitHubActionsReport" Version="2.4.1"/>
     <!-- The framework-agnostic flavors, used with DefaultVerifier. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.4"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="1.1.4"/>

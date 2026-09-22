@@ -27,7 +27,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         a wrapper type stands for exactly one Cheat Engine class.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Struct, Inherited = false)]
+[AttributeUsage(AttributeTargets.Struct)]
 public sealed class LuaClassAttribute : Attribute
 {
 	/// <summary>

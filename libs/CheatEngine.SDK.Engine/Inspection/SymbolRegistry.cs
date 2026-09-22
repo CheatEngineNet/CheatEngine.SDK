@@ -172,7 +172,8 @@ public static partial class SymbolRegistry
 	private static partial LuaOperationStatus UnregisterCore([LuaMarshaller(typeof(SymbolName))] SymbolName name);
 
 	[SuppressMessage("Meziantou.Analyzer", "MA0051:Method is too long",
-		Justification = "ReleaseOwned is the single atomic lease-cleanup transaction and must preserve its state ordering.")]
+		Justification =
+			"ReleaseOwned is the single atomic lease-cleanup transaction and must preserve its state ordering.")]
 	internal static SymbolRegistrationReleaseOutcome ReleaseOwned(SymbolRegistrationLease lease)
 	{
 		lock (SOwnedRegistrationGate)

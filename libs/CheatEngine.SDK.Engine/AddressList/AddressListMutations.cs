@@ -1,6 +1,6 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Objects;

@@ -20,7 +20,7 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         generated wrapper restores the Lua stack before returning.
 ///     </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.ReturnValue, Inherited = false)]
+[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.ReturnValue)]
 public sealed class LuaMarshallerAttribute : Attribute
 {
 	/// <summary>Initializes the attribute with the concrete static marshaller type.</summary>

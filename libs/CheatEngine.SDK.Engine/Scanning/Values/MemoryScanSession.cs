@@ -603,7 +603,8 @@ public sealed class MemoryScanSession : IDisposable
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
 	[SuppressMessage("Meziantou.Analyzer", "MA0051:Method is too long",
-		Justification = "This bounded materialization operation keeps its cancellation and ownership milestones together.")]
+		Justification =
+			"This bounded materialization operation keeps its cancellation and ownership milestones together.")]
 	public MemoryScanMaterializationStatus TryCopyResultsCancellable(Span<MemoryScanResult> destination,
 		out ulong totalCount, out int written, CancellationToken cancellationToken)
 	{

@@ -20,7 +20,8 @@ internal static class LiveProbeAuthorization
 	private const string ManifestVariable = "CE_SDK_LIVE_PROBE_AUTHORIZATION_FILE";
 
 	[SuppressMessage("Meziantou.Analyzer", "MA0051:Method is too long",
-		Justification = "Authorization evaluation keeps all fail-closed checks and diagnostics in one auditable sequence.")]
+		Justification =
+			"Authorization evaluation keeps all fail-closed checks and diagnostics in one auditable sequence.")]
 	internal static AuthorizationDecision Evaluate()
 	{
 		if (!TryAuthorizeManifest(out AuthorizationManifest manifest, out string manifestFailure))

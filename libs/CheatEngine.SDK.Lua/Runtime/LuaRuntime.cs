@@ -15,6 +15,8 @@ using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.State;
 
+using static System.Threading.Volatile;
+
 namespace CheatEngine.SDK.Lua.Runtime;
 
 /// <summary>
@@ -89,7 +91,7 @@ public static unsafe class LuaRuntime
 	internal static Action? OperationAdmissionClosedForTesting;
 
 	/// <summary>Gets a value indicating whether a host binding is attached. Lock-free; any thread.</summary>
-	public static bool IsAttached => Volatile.Read(ref s_services) is not null;
+	public static bool IsAttached => Read(ref s_services) is not null;
 
 	/// <summary>
 	///     Gets whether the calling thread currently owns an admitted Lua operation. Internal lifecycle code uses this
@@ -127,7 +129,7 @@ public static unsafe class LuaRuntime
 	public static LuaStateIdentity CurrentStateIdentity
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get => UnpackIdentity(Volatile.Read(ref s_identity));
+		get => UnpackIdentity(Read(ref s_identity));
 	}
 
 	/// <summary>
@@ -138,13 +140,13 @@ public static unsafe class LuaRuntime
 	{
 		get
 		{
-			LuaHostServices? services = Volatile.Read(ref s_services);
+			LuaHostServices? services = Read(ref s_services);
 			return services is not null && services.MainThreadId == Environment.CurrentManagedThreadId;
 		}
 	}
 
 	/// <summary>Gets the attached binding, or <see langword="default" /> while detached.</summary>
-	public static LuaHostBinding CurrentBinding => Volatile.Read(ref s_services)?.Binding ?? default;
+	public static LuaHostBinding CurrentBinding => Read(ref s_services)?.Binding ?? default;
 
 	/// <summary>
 	///     Acquires a Lua state together with a lifecycle admission that spans the whole synchronous operation.
@@ -167,7 +169,7 @@ public static unsafe class LuaRuntime
 			return new LuaRuntimeOperation(state, true);
 		}
 
-		if (Volatile.Read(ref s_services) is null)
+		if (Read(ref s_services) is null)
 		{
 			ThrowDetached();
 		}
@@ -242,7 +244,7 @@ public static unsafe class LuaRuntime
 			throw new ArgumentException("A supplied Lua operation state cannot be null.", nameof(state));
 		}
 
-		if (Volatile.Read(ref s_services) is null)
+		if (Read(ref s_services) is null)
 		{
 			ThrowDetached();
 		}
@@ -288,7 +290,7 @@ public static unsafe class LuaRuntime
 	{
 		using LuaRuntimeOperation operation = EnterStateOperation(state);
 		LuaStateIdentity identity = CurrentStateIdentity;
-		bool requiresAttachedRuntime = Volatile.Read(ref s_services) is not null;
+		bool requiresAttachedRuntime = Read(ref s_services) is not null;
 		return state.TryPushGeneratedFunction(thunk, identity, requiresAttachedRuntime);
 	}
 
@@ -331,7 +333,7 @@ public static unsafe class LuaRuntime
 				{
 					LuaStateIdentity identity = CurrentStateIdentity;
 					PublishIdentity(unchecked(identity.AttachEpoch + 1), identity.StateGeneration);
-					Volatile.Write(ref s_services, new LuaHostServices(binding));
+					Write(ref s_services, new LuaHostServices(binding));
 					LuaHostSubscriptionRegistry.OpenRegistrationAdmission();
 				}
 			}
@@ -341,7 +343,7 @@ public static unsafe class LuaRuntime
 				// If replacement cleanup failed, s_services still names the previous usable binding. Reopen it rather
 				// than stranding every caller behind the admission gate until a later lifecycle call happens to retry.
 				OpenOperationAdmission();
-				if (Volatile.Read(ref s_services) is not null)
+				if (s_services != null)
 				{
 					LuaHostSubscriptionRegistry.OpenRegistrationAdmission();
 				}
@@ -422,7 +424,7 @@ public static unsafe class LuaRuntime
 			{
 				LuaHostSubscriptionRegistry.DetachAll(new LuaState(services.Provider()));
 				LuaCallbackRegistry.DetachAll(services);
-				Volatile.Write(ref s_services, null);
+				Write(ref s_services, null);
 				detachSucceeded = true;
 			}
 			finally
@@ -503,7 +505,7 @@ public static unsafe class LuaRuntime
 	public static void PushHostObject(LuaState state, nint nativeObject)
 	{
 		using LuaRuntimeOperation operation = EnterStateOperation(state);
-		LuaHostServices? services = Volatile.Read(ref s_services);
+		LuaHostServices? services = Read(ref s_services);
 		if (services is null)
 		{
 			ThrowDetached();
@@ -530,7 +532,7 @@ public static unsafe class LuaRuntime
 	/// </remarks>
 	internal static LuaRuntimeOperation EnterStateOperation(LuaState state)
 	{
-		if (t_transitionDepth != 0 || t_operationDepth != 0 || Volatile.Read(ref s_services) is null)
+		if (t_transitionDepth != 0 || t_operationDepth != 0 || Read(ref s_services) is null)
 		{
 			return default;
 		}
@@ -558,13 +560,13 @@ public static unsafe class LuaRuntime
 		// A callback that is re-entered by an already admitted Lua operation shares that outer lease. The lifecycle
 		// transition owner is different: admitting plugin code there would let a finalizer/metamethod re-enter after
 		// CloseOperationAdmissionAndDrain has established exclusive cleanup.
-		if (t_transitionDepth != 0 && Volatile.Read(ref s_services) is not null)
+		if (t_transitionDepth != 0 && Read(ref s_services) is not null)
 		{
 			operation = default;
 			return false;
 		}
 
-		if (t_operationDepth != 0 || Volatile.Read(ref s_services) is null)
+		if (t_operationDepth != 0 || Read(ref s_services) is null)
 		{
 			operation = default;
 			return true;
@@ -588,7 +590,7 @@ public static unsafe class LuaRuntime
 	internal static void CloseHostSubscriptionAdmissionAndDrain()
 	{
 		ThrowIfTransitionFromCurrentOperation();
-		if (Volatile.Read(ref s_services) is null)
+		if (Read(ref s_services) is null)
 		{
 			return;
 		}
@@ -601,8 +603,8 @@ public static unsafe class LuaRuntime
 	// before user code; one admitted before the boundary retains its lease until its unmanaged thunk returns.
 	internal static bool IsGeneratedFunctionRegistrationCurrent(int attachEpoch, int stateGeneration)
 	{
-		return Volatile.Read(ref s_services) is not null
-		       && Volatile.Read(ref s_identity) == PackIdentity(attachEpoch, stateGeneration)
+		return Read(ref s_services) is not null
+		       && Read(ref s_identity) == PackIdentity(attachEpoch, stateGeneration)
 		       && IsOperationAdmissionOpen();
 	}
 
@@ -623,7 +625,7 @@ public static unsafe class LuaRuntime
 			s_acceptOperations = false;
 		}
 
-		Volatile.Read(ref OperationAdmissionClosedForTesting)?.Invoke();
+		Read(ref OperationAdmissionClosedForTesting)?.Invoke();
 		SOperationsDrained.Wait();
 	}
 
@@ -640,7 +642,7 @@ public static unsafe class LuaRuntime
 			s_resetTransitionActive = false;
 			EndTransition();
 			OpenOperationAdmission();
-			if (Volatile.Read(ref s_services) is not null)
+			if (Read(ref s_services) is not null)
 			{
 				LuaHostSubscriptionRegistry.OpenRegistrationAdmission();
 			}
@@ -825,7 +827,7 @@ public static unsafe class LuaRuntime
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static void PublishIdentity(int attachEpoch, int stateGeneration)
 	{
-		Volatile.Write(ref s_identity, PackIdentity(attachEpoch, stateGeneration));
+		Write(ref s_identity, PackIdentity(attachEpoch, stateGeneration));
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]

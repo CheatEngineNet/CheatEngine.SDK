@@ -18,12 +18,10 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         Instances are immutable and may be used from any thread.
 ///     </para>
 ///     <para>
-///         <b>Usage.</b> <see cref="AttributeUsageAttribute.Inherited" /> is <see langword="false" />: the attribute asks
-///         for
-///         the accessors of the one declaration that carries it; an override is another declaration with accessors of its
-///         own. <see cref="AttributeUsageAttribute.AllowMultiple" /> is <see langword="false" />: one managed property
-///         maps to
-///         one Cheat Engine property.
+///         <b>Usage.</b> The attribute uses the framework default for
+///         <see cref="AttributeUsageAttribute.Inherited" /> so metadata consumers can observe it through an inherited
+///         property when appropriate. <see cref="AttributeUsageAttribute.AllowMultiple" /> is
+///         <see langword="false" />: one managed property maps to one Cheat Engine property.
 ///     </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property)]

@@ -36,11 +36,11 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
 	                              """;
 
 	[Fact]
-	public void Lua_annotation_usage_is_explicit_and_excludes_global_properties()
+	public void Lua_annotation_usage_uses_default_inheritance_and_excludes_global_properties()
 	{
 		AttributeUsageAttribute luaClass = AttributeUsage(typeof(LuaClassAttribute));
 		Assert.Equal(AttributeTargets.Struct, luaClass.ValidOn);
-		Assert.False(luaClass.Inherited);
+		Assert.True(luaClass.Inherited);
 		Assert.False(luaClass.AllowMultiple);
 
 		AttributeUsageAttribute luaGlobal = AttributeUsage(typeof(LuaGlobalAttribute));
@@ -48,6 +48,7 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
 		Assert.False(luaGlobal.Inherited);
 		Assert.False(luaGlobal.AllowMultiple);
 
+		Assert.True(AttributeUsage(typeof(LuaPropertyAttribute)).Inherited);
 		Assert.False(AttributeUsage(typeof(LuaMethodAttribute)).AllowMultiple);
 		Assert.False(AttributeUsage(typeof(LuaPropertyAttribute)).AllowMultiple);
 	}

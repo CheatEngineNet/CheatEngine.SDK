@@ -15,6 +15,10 @@ on:
         description: Also run every test project against the Release build, which is what ships.
         type: boolean
         default: false
+      dependency-review:
+        description: Run dependency-review-action for non-draft pull requests. Enable only after GitHub Dependency graph is enabled for the repository.
+        type: boolean
+        default: false
     secrets:
       SONAR_TOKEN:
         description: SonarQube Cloud token for protected same-repository analysis.
@@ -479,14 +483,14 @@ jobs:
 
   dependency-review:
     name: Dependency review
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
+    if: ${{ inputs.dependency-review && github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
     steps:
       - name: Review dependency changes
-        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
   lint-workflows:
@@ -540,7 +544,7 @@ jobs:
           SONAR_RESULT: ${{ needs.sonar.result }}
           SONAR_REQUIRED: ${{ inputs.collect-coverage }}
           DEPENDENCY_RESULT: ${{ needs.dependency-review.result }}
-          DEPENDENCY_REQUIRED: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
+          DEPENDENCY_REQUIRED: ${{ inputs.dependency-review && github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
           LINT_RESULT: ${{ needs.lint-workflows.result }}
         run: |
           $results = [ordered]@{

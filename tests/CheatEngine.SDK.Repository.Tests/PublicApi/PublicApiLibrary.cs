@@ -79,6 +79,18 @@ internal sealed class PublicApiLibrary
 		}
 	}
 
+	/// <summary>The current declared surface: Shipped without the removed declarations, plus the added ones.</summary>
+	public IReadOnlySet<string> Declared
+	{
+		get
+		{
+			HashSet<string> declared = new(Shipped, StringComparer.Ordinal);
+			declared.ExceptWith(Removed);
+			declared.UnionWith(Added);
+			return declared;
+		}
+	}
+
 	/// <summary>Every repository-relative <c>libs/&lt;name&gt;</c> directory that holds a project file.</summary>
 	public static IReadOnlyList<string> EnumerateLibraryDirectories()
 	{

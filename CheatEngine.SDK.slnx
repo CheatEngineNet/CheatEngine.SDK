@@ -27,6 +27,10 @@
     <File Path=".github/workflows/sonar.yml"/>
   </Folder>
   <Folder Name="/eng/">
+    <File Path="eng/api/apicompat-invisible-changes.txt"/>
+    <File Path="eng/api/client-consumed-sdk-types.txt"/>
+    <File Path="eng/api/client-induced-breaks.txt"/>
+    <File Path="eng/api/README.md"/>
     <File Path="eng/BannedSymbols.txt"/>
     <File Path="eng/RoslynComponent.props"/>
     <File Path="eng/Shipping.props"/>

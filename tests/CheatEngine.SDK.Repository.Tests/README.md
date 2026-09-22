@@ -18,6 +18,8 @@ this project only reads committed files. It never builds, packs, restores or sta
 | `Infrastructure/` | `RepositoryRoot` finds `CheatEngine.SDK.slnx` above the test binaries and enumerates source files. |
 | `Solution/`       | `SolutionInventoryTests` compares the projects on disk with the projects listed in the solution.   |
 | `Documentation/`  | `DocumentationIntegrityTests` checks every Markdown file: links, anchors, paths, `docs/` pages.    |
+| `Toolchain/` | `ToolchainPinTests` reads `global.json`, `Directory.Build.props` and `Directory.Solution.targets`: exact SDK, analysis-level pin, NuGet audit policy. |
+| `PublicApi/` | PublicAPI files, `CompatibilitySuppressions.xml` and the `eng/api/*.txt` lists: file shape, declared breaks, Client-induced breaks, enum contracts. |
 
 Later work adds one folder per contract (for example `Documentation/`, `Workflows/`, `Qualification/`).
 
@@ -49,6 +51,37 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   (`No_markdown_file_claims_complete_coverage_or_universal_support`).
 - The Markdown parser and every rule are self-tested on in-memory pages, so each gate is shown to fail on the
   regression it exists for (`MarkdownDocumentTests`).
+- The .NET SDK is pinned exactly: `rollForward: disable`, no prerelease, and an `errorMessage` naming the pinned version
+  and its install command (`Global_json_requires_the_exact_sdk_with_roll_forward_disabled`,
+  `Global_json_error_message_names_the_pinned_sdk_version`).
+- The analysis level is a release-shaped pin that moves with the SDK major and minor, and no other MSBuild file sets it
+  (`Analysis_level_is_pinned_to_a_release_not_latest`, `Analysis_level_pin_moves_with_the_pinned_sdk_major_and_minor`,
+  `No_project_or_props_file_overrides_the_pinned_analysis_level`).
+- High and critical NuGet advisories fail every restore, CI solution restores assert that every project was audited,
+  and advisory suppressions live only in `Directory.Build.props` with a justification and an expiry
+  (`Nuget_audit_blocks_high_and_critical_advisories_in_every_build`,
+  `Ci_solution_restores_assert_that_nuget_audit_covered_every_project`,
+  `Nuget_audit_suppressions_live_in_the_root_props_with_a_justification_and_an_expiry`).
+- Each of the six shipping libraries, and nothing else, has both PublicAPI files, each starting with
+  `#nullable enable` and ordinally sorted without duplicates; Shipped never carries a removal marker, and every
+  `*REMOVED*` line repeats a Shipped line exactly (`Every_shipping_library_has_both_public_api_files`,
+  `Public_api_files_exist_only_next_to_shipping_libraries`, `Every_public_api_file_starts_with_nullable_enable`,
+  `Every_public_api_file_is_ordinally_sorted_after_its_header`, `Shipped_files_never_contain_removed_markers`,
+  `Every_removed_line_names_a_line_of_the_shipped_file`, `Unshipped_never_redeclares_a_live_shipped_line`).
+- The ApiCompat baseline suppressions, the `*REMOVED*` lines and the reviewed list of changes ApiCompat cannot see
+  describe the same breaks against 1.0.0, and the suppressions that touch a Client-consumed type are exactly the listed
+  Client-induced breaks; SDK-side C0 evidence for Q48 only
+  (`Every_suppression_is_a_baseline_suppression_of_one_library_against_itself`,
+  `Every_baseline_suppression_matches_a_removed_public_api_line`,
+  `Every_removed_public_api_line_is_suppressed_or_declared_invisible_to_apicompat`,
+  `Every_invisible_change_names_a_current_removed_line_with_a_reason`,
+  `Suppressions_touching_client_consumed_types_are_listed_as_induced_client_breaks`,
+  `Every_client_consumed_type_resolves_in_the_declared_api_or_is_marked_unresolved`).
+- Enums that mirror Cheat Engine constants or appear in Client signatures keep their 1.0.0 members, every enum added
+  since 1.0.0 is classified, and status/outcome enums start with a neutral zero member, except a pending list that can
+  only shrink (`Enums_mirroring_cheat_engine_constants_or_client_signatures_keep_their_1_0_0_members`,
+  `Every_enum_added_after_1_0_0_is_classified`, `Status_and_outcome_enums_added_after_1_0_0_do_not_default_to_success`,
+  `Pending_zero_value_fixes_are_still_needed`).
 
 ## Run the tests
 

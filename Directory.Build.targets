@@ -111,6 +111,54 @@
            Text="NuGetAuditSuppress '%(NuGetAuditSuppress.Identity)' expired on %(NuGetAuditSuppress.Expires). Re-review the advisory: fix it, or renew the suppression with a new justification and date."/>
   </Target>
 
+  <!--
+    Package validation against the last published release (src/CheatEngine.SDK/CheatEngine.SDK.csproj):
+    https://learn.microsoft.com/dotnet/fundamentals/apicompat/package-validation/baseline-version-validator
+    Compatibility mode only (strict mode would reject additions). CI must validate against the committed
+    CompatibilitySuppressions.xml and the downloaded baseline: it never regenerates, relaxes or bypasses them. Only the
+    integrator regenerates the file, locally, with -p:ApiCompatGenerateSuppressionFile=true (eng/api/README.md).
+  -->
+  <Target Name="CheatEngineSdkCheckPackageValidation"
+          BeforeTargets="GenerateNuspec"
+          Condition="'$(IsPackable)' == 'true'">
+    <ItemGroup>
+      <_CheatEngineSdkPackNoWarnCode Include="$([MSBuild]::Unescape($([System.Text.RegularExpressions.Regex]::Replace('$(NoWarn)', '[\s,;]+', ';').ToUpperInvariant())))"/>
+      <!-- ApiCompat (CPxxxx) and package validation (PKVxxx) diagnostics honor NoWarn, which would hide a break wholesale. -->
+      <_CheatEngineSdkSilencedCompatCode Include="@(_CheatEngineSdkPackNoWarnCode)"
+                                         Condition="$([System.String]::Copy('%(Identity)').StartsWith('CP')) or $([System.String]::Copy('%(Identity)').StartsWith('PKV'))"/>
+    </ItemGroup>
+    <Error Condition="'@(_CheatEngineSdkSilencedCompatCode)' != ''"
+           Code="CESDK9006"
+           Text="$(MSBuildProjectName) silences package validation diagnostics @(_CheatEngineSdkSilencedCompatCode, ', ') through NoWarn. Declare each intentional break in CompatibilitySuppressions.xml instead (eng/api/README.md#apicompat-baseline)."/>
+    <Error Condition="'$(EnablePackageValidation)' != 'true' or '$(PackageValidationBaselineVersion)' == '' or '$(EnableStrictModeForBaselineValidation)' == 'true'"
+           Code="CESDK9006"
+           Text="$(MSBuildProjectName) packs with EnablePackageValidation '$(EnablePackageValidation)', PackageValidationBaselineVersion '$(PackageValidationBaselineVersion)' and EnableStrictModeForBaselineValidation '$(EnableStrictModeForBaselineValidation)'. Every pack is validated against the last published release in compatibility mode: true, a released version, not true (eng/api/README.md#apicompat-baseline)."/>
+    <Error Condition="'$(ContinuousIntegrationBuild)' == 'true' and ('$(ApiCompatGenerateSuppressionFile)' == 'true' or '$(GenerateCompatibilitySuppressionFile)' == 'true' or '$(ApiCompatPermitUnnecessarySuppressions)' == 'true' or '$(DisablePackageBaselineValidation)' == 'true' or '$(RunApiCompat)' == 'false' or '$(PackageValidationBaselinePath)' != '')"
+           Code="CESDK9006"
+           Text="A CI pack of $(MSBuildProjectName) must validate against the committed CompatibilitySuppressions.xml and the downloaded $(PackageValidationBaselineVersion) baseline, but ApiCompatGenerateSuppressionFile='$(ApiCompatGenerateSuppressionFile)', GenerateCompatibilitySuppressionFile='$(GenerateCompatibilitySuppressionFile)', ApiCompatPermitUnnecessarySuppressions='$(ApiCompatPermitUnnecessarySuppressions)', DisablePackageBaselineValidation='$(DisablePackageBaselineValidation)', RunApiCompat='$(RunApiCompat)', PackageValidationBaselinePath='$(PackageValidationBaselinePath)'. Only the integrator regenerates the suppression file, locally (eng/api/README.md#apicompat-baseline)."/>
+  </Target>
+
+  <!--
+    SemVer: a package that declares intentional breaks against its baseline (baseline suppressions in
+    CompatibilitySuppressions.xml) must be on a higher major line than that baseline. The version comes from MinVer, so
+    this runs after it.
+  -->
+  <Target Name="CheatEngineSdkCheckBreakingChangeMajor"
+          BeforeTargets="GenerateNuspec"
+          DependsOnTargets="MinVer"
+          Condition="'$(IsPackable)' == 'true' and '$(PackageValidationBaselineVersion)' != ''">
+    <PropertyGroup>
+      <_CheatEngineSdkSuppressionFile>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', 'CompatibilitySuppressions.xml'))</_CheatEngineSdkSuppressionFile>
+      <_CheatEngineSdkDeclaresBreaks>false</_CheatEngineSdkDeclaresBreaks>
+      <_CheatEngineSdkDeclaresBreaks Condition="Exists('$(_CheatEngineSdkSuppressionFile)') and $([System.IO.File]::ReadAllText('$(_CheatEngineSdkSuppressionFile)').Contains('&lt;IsBaselineSuppression&gt;true&lt;/IsBaselineSuppression&gt;'))">true</_CheatEngineSdkDeclaresBreaks>
+      <_CheatEngineSdkPackageMajor>$(PackageVersion.Split('-')[0].Split('.')[0])</_CheatEngineSdkPackageMajor>
+      <_CheatEngineSdkBaselineMajor>$(PackageValidationBaselineVersion.Split('-')[0].Split('.')[0])</_CheatEngineSdkBaselineMajor>
+    </PropertyGroup>
+    <Error Condition="'$(_CheatEngineSdkDeclaresBreaks)' == 'true' and $(_CheatEngineSdkPackageMajor) &lt;= $(_CheatEngineSdkBaselineMajor)"
+           Code="CESDK9007"
+           Text="$(MSBuildProjectName) $(PackageVersion) declares intentional breaks against $(PackageValidationBaselineVersion) in CompatibilitySuppressions.xml: intentional breaks against $(PackageValidationBaselineVersion) require a new major; raise MinVerMinimumMajorMinor (Directory.Build.props) or tag a new major."/>
+  </Target>
+
   <!-- The release path never suppresses: a stable (non-prerelease) package version cannot be packed while any suppression exists. -->
   <Target Name="CheatEngineSdkRefuseAuditSuppressionsOnRelease"
           BeforeTargets="GenerateNuspec"

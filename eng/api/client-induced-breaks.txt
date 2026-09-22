@@ -1,0 +1,18 @@
+# Intentional breaks against CheatEngine.SDK 1.0.0 that touch a type the Client consumes (audit A20-Q48-2, A11-19).
+#
+# Derived, not hand-written: every baseline suppression of src/CheatEngine.SDK/CompatibilitySuppressions.xml whose
+# containing type (the type itself for a T: target) is listed in client-consumed-sdk-types.txt. Format:
+# "<suppression Target DocId> | <ApiCompat DiagnosticId>", ordinal order. The Client consumes this list for the
+# "Client impact" section of its docs/migration/sdk-2.0.md; every entry is a Client public break or a Client behavior
+# change once the Client moves to SDK 2.x.
+#
+# Regenerate it whenever the integrator regenerates CompatibilitySuppressions.xml or the consumed list changes:
+# tests/CheatEngine.SDK.Repository.Tests/PublicApi/CompatibilitySuppressionTests.cs fails and prints the expected lines.
+# This is SDK-side C0 evidence for Q48 only; it never closes Q48 at C1/C3 and never closes F05.
+F:CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.DestinationTooSmall | CP0011
+F:CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.InvalidResult | CP0011
+F:CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.WriteFailed | CP0011
+M:CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.#ctor(System.Boolean,System.Boolean) | CP0002
+M:CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.Deconstruct(System.Boolean@,System.Boolean@) | CP0002
+M:CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.get_UseHostSymbolTable | CP0002
+M:CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.set_UseHostSymbolTable(System.Boolean) | CP0002

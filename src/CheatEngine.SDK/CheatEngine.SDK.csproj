@@ -10,6 +10,13 @@
     <PackageTags>cheat-engine;cheat-engine-plugin;sdk;lua;source-generator;roslyn-analyzer;reverse-engineering</PackageTags>
     <PackageReleaseNotes>$(PackageProjectUrl)/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <EnablePackageValidation>true</EnablePackageValidation>
+    <!--
+      Compares lib/net10.0 with the published CheatEngine.SDK 1.0.0 (downloaded at restore as a PackageDownload, read from
+      the NuGet global packages folder at pack). Intentional breaks live in CompatibilitySuppressions.xml, regenerated only
+      by the integrator; a stale suppression fails the pack (ApiCompatPermitUnnecessarySuppressions stays false). Strict
+      mode stays off so additions remain legal. CESDK9006 guards these settings (eng/api/README.md).
+    -->
+    <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion>
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_CheatEngineSdkEmbedLibraries</TargetsForTfmSpecificBuildOutput>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_CheatEngineSdkPackRoslynComponents</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>

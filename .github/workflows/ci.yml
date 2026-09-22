@@ -477,6 +477,18 @@ jobs:
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+  dependency-review:
+    name: Dependency review
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        with:
+          fail-on-severity: high
   lint-workflows:
     name: Lint workflows
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
@@ -512,7 +524,7 @@ jobs:
   gate:
     name: Gate
     if: ${{ always() }}
-    needs: [ discover, native, build, test, pack, aot, sonar, lint-workflows ]
+    needs: [ discover, native, build, test, pack, aot, sonar, dependency-review, lint-workflows ]
     runs-on: windows-latest
     timeout-minutes: 5
     permissions: { }
@@ -527,6 +539,8 @@ jobs:
           AOT_RESULT: ${{ needs.aot.result }}
           SONAR_RESULT: ${{ needs.sonar.result }}
           SONAR_REQUIRED: ${{ inputs.collect-coverage }}
+          DEPENDENCY_RESULT: ${{ needs.dependency-review.result }}
+          DEPENDENCY_REQUIRED: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
           LINT_RESULT: ${{ needs.lint-workflows.result }}
         run: |
           $results = [ordered]@{
@@ -537,6 +551,7 @@ jobs:
             pack = $env:PACK_RESULT
             aot = $env:AOT_RESULT
             sonar = $env:SONAR_RESULT
+            'dependency-review' = $env:DEPENDENCY_RESULT
             'lint-workflows' = $env:LINT_RESULT
           }
           $rows = $results.GetEnumerator() | ForEach-Object { "| $($_.Key) | $($_.Value) |" }
@@ -544,6 +559,7 @@ jobs:
           $failed = @($results.GetEnumerator() | Where-Object {
             $_.Key -in 'discover', 'native', 'build', 'test', 'pack', 'aot' -and $_.Value -ne 'success' -or
             $_.Key -eq 'sonar' -and $env:SONAR_REQUIRED -eq 'true' -and $_.Value -ne 'success' -or
+            $_.Key -eq 'dependency-review' -and $env:DEPENDENCY_REQUIRED -eq 'true' -and $_.Value -ne 'success' -or
             $_.Key -eq 'lint-workflows' -and $_.Value -ne 'success'
           } | ForEach-Object Key)
           if ($failed.Count -gt 0) {

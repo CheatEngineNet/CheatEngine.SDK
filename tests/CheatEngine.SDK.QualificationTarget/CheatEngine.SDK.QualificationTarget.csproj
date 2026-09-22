@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Deterministic lab target for the exact-host qualification runs (eng/qualification): a module-resident marker, heap
+    copies of it, a region with many matches of a second pattern and two value cells. It references no SDK project: the
+    plugin under test observes it from Cheat Engine. In the solution so CI compiles it; CI never runs or publishes it.
+    Native AOT so that the x86 build runs on a host with no x86 .NET 10 runtime
+    (https://learn.microsoft.com/dotnet/core/deploying/native-aot/#platform-architecture-restrictions).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>QualificationTarget</RootNamespace>
+    <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+    <!--
+      Every solution restore downloads the packs of both RIDs. The target references no other framework, so skip the
+      ASP.NET Core and Windows Desktop runtime packs a transitive framework reference would need
+      (https://learn.microsoft.com/dotnet/core/project-sdk/msbuild-props#disabletransitiveframeworkreferencedownloads).
+    -->
+    <DisableTransitiveFrameworkReferenceDownloads>true</DisableTransitiveFrameworkReferenceDownloads>
+  </PropertyGroup>
+
+</Project>

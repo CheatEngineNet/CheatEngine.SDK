@@ -106,10 +106,9 @@ reviews:
         package and NativeAOT probes from actual live Cheat Engine host qualification.
     - path: '.github/**'
       instructions: >-
-        Preserve the discover/native/build/test/pack/AOT/gate DAG and its bridge, coverage and NuGet artifact flows.
-        Require least-privilege permissions and pinned action SHAs. actionlint already runs in pull-request CI; do not
-        ask for a duplicate CodeRabbit actionlint run. Never use pull_request_target to check out or execute code from
-        forks. Sonar secrets must remain unavailable to forks.
+        Preserve the discover/native/build/test/pack/AOT/gate DAG and its bridge and NuGet artifact flows. Require
+        least-privilege permissions and pinned action SHAs. actionlint already runs in pull-request CI; do not ask for a
+        duplicate CodeRabbit actionlint run. Never use pull_request_target to check out or execute code from forks.
   tools:
     # CodeRabbit is used as the GitHub App; pipeline failures are surfaced through its GitHub Checks integration.
     github-checks:

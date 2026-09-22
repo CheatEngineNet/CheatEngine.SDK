@@ -8,16 +8,22 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
 /// </summary>
 internal static class AllocationGate
 {
-    public static void AssertZero(Action body, int iterations = 2_000, int warmUp = 64)
-    {
-        for (var i = 0; i < warmUp; i++) body();
+	public static void AssertZero(Action body, int iterations = 2_000, int warmUp = 64)
+	{
+		for (int i = 0; i < warmUp; i++)
+		{
+			body();
+		}
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < iterations; i++) body();
+		long before = GC.GetAllocatedBytesForCurrentThread();
+		for (int i = 0; i < iterations; i++)
+		{
+			body();
+		}
 
-        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.True(allocated == 0,
-            string.Create(CultureInfo.InvariantCulture,
-                $"{allocated} bytes were allocated over {iterations} iterations ({(double)allocated / iterations:F1} per call)."));
-    }
+		long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+		Assert.True(allocated == 0,
+			string.Create(CultureInfo.InvariantCulture,
+				$"{allocated} bytes were allocated over {iterations} iterations ({(double) allocated / iterations:F1} per call)."));
+	}
 }

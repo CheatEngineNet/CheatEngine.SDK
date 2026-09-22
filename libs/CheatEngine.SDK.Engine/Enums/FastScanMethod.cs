@@ -11,12 +11,12 @@ namespace CheatEngine.SDK.Engine.Enums;
 /// </remarks>
 public enum FastScanMethod
 {
-    /// <summary>Check every address. CE: <c>fsmNotAligned</c>.</summary>
-    NotAligned = 0,
+	/// <summary>Check every address. CE: <c>fsmNotAligned</c>.</summary>
+	NotAligned = 0,
 
-    /// <summary>Only addresses divisible by the alignment parameter. CE: <c>fsmAligned</c>.</summary>
-    Aligned = 1,
+	/// <summary>Only addresses divisible by the alignment parameter. CE: <c>fsmAligned</c>.</summary>
+	Aligned = 1,
 
-    /// <summary>Only addresses whose hexadecimal text ends with the alignment parameter. CE: <c>fsmLastDigits</c>.</summary>
-    LastDigits = 2
+	/// <summary>Only addresses whose hexadecimal text ends with the alignment parameter. CE: <c>fsmLastDigits</c>.</summary>
+	LastDigits = 2
 }

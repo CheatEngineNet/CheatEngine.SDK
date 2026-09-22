@@ -9,16 +9,19 @@ namespace CheatEngine.SDK.Lua.Tests.Support;
 /// </summary>
 internal sealed unsafe class RuntimeScope : IDisposable
 {
-    public RuntimeScope(NativeLuaState state, bool withPusher = true)
-    {
-        Binding = HostDouble.CreateBinding(state.L, withPusher);
-        LuaRuntime.Attach(Binding);
-    }
+	public RuntimeScope(NativeLuaState state, bool withPusher = true)
+	{
+		Binding = HostDouble.CreateBinding(state.L, withPusher);
+		LuaRuntime.Attach(Binding);
+	}
 
-    public LuaHostBinding Binding { get; }
+	public LuaHostBinding Binding
+	{
+		get;
+	}
 
-    public void Dispose()
-    {
-        LuaRuntime.Detach();
-    }
+	public void Dispose()
+	{
+		LuaRuntime.Detach();
+	}
 }

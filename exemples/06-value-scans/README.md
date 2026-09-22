@@ -12,10 +12,10 @@
 
 ---
 
-|                          |                                                                                                                                        |
-|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| **You learn**            | Why a MemScan and its FoundList form one parent/child state machine, and why an object pointer is not enough to establish ownership    |
-| **Cheat Engine surface** | `createMemScan`, `createFoundList`, `firstScan`, `nextScan`, `newScan`, `waitTillDone`, `initialize`, and `deinitialize`               |
+|                          |                                                                                                                                                                                        |
+|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **You learn**            | Why a MemScan and its FoundList form one parent/child state machine, and why an object pointer is not enough to establish ownership                                                    |
+| **Cheat Engine surface** | `createMemScan`, `createFoundList`, `firstScan`, `nextScan`, `newScan`, `waitTillDone`, `initialize`, and `deinitialize`                                                               |
 | **Current SDK boundary** | `MemoryScanSessions.TryCreateDetailed` owns the created parent/child pair and reports factual creation outcomes; Client availability remains deferred pending the CE 7.7 x64 live gate |
 
 ## Status
@@ -56,11 +56,11 @@ stateDiagram-v2
     Invalidated --> Disposed: Abandon when context is stale
 ```
 
-| State          | Operations that are safe by the session contract | Why                                                                                                      |
-|----------------|--------------------------------------------------|----------------------------------------------------------------------------------------------------------|
-| `New`          | First scan or ordered disposal                   | There is no readable result view yet                                                                     |
-| `Scanning`     | Wait for completion or ordered disposal          | The list must not be read while CE updates it                                                            |
-| `ResultsReady` | Bounded copy, next scan, reset, or disposal      | The same initialized FoundList represents this completed scan                                            |
+| State          | Operations that are safe by the session contract  | Why                                                                                                    |
+|----------------|---------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| `New`          | First scan or ordered disposal                    | There is no readable result view yet                                                                   |
+| `Scanning`     | Wait for completion or ordered disposal           | The list must not be read while CE updates it                                                          |
+| `ResultsReady` | Bounded copy, next scan, reset, or disposal       | The same initialized FoundList represents this completed scan                                          |
 | `Invalidated`  | Reset or ordered disposal only if context matches | A protected error leaves native state ambiguous; a stale context instead requires explicit abandonment |
 
 The important order is `deinitialize` before a next scan/reset, and `waitTillDone` followed by `initialize` before

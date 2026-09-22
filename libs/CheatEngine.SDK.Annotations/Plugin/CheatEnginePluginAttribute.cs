@@ -39,30 +39,33 @@ namespace CheatEngine.SDK.Annotations.Plugin;
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class CheatEnginePluginAttribute : Attribute
 {
-    /// <summary>
-    ///     Initializes the attribute with the name the plugin reports to Cheat Engine.
-    /// </summary>
-    /// <param name="name">
-    ///     The display name of the plugin. Must not be <see langword="null" /> or empty. Prefer ASCII: how Cheat Engine
-    ///     decodes other characters in a plugin name has not been verified.
-    /// </param>
-    /// <exception cref="ArgumentNullException"><paramref name="name" /> is <see langword="null" />.</exception>
-    /// <exception cref="ArgumentException"><paramref name="name" /> is empty.</exception>
-    /// <remarks>
-    ///     The constructor only runs when something materialises the attribute through reflection. The compiler stores
-    ///     the argument without executing this check, and generators and analyzers read it from there, so
-    ///     <c>[CheatEnginePlugin(null!)]</c> and <c>[CheatEnginePlugin("")]</c> compile. The consumers validate the
-    ///     argument themselves: a <see langword="null" />, empty or blank name is reported as CESDK0001 and no entry point
-    ///     is generated for it.
-    /// </remarks>
-    public CheatEnginePluginAttribute(string name)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        Name = name;
-    }
+	/// <summary>
+	///     Initializes the attribute with the name the plugin reports to Cheat Engine.
+	/// </summary>
+	/// <param name="name">
+	///     The display name of the plugin. Must not be <see langword="null" /> or empty. Prefer ASCII: how Cheat Engine
+	///     decodes other characters in a plugin name has not been verified.
+	/// </param>
+	/// <exception cref="ArgumentNullException"><paramref name="name" /> is <see langword="null" />.</exception>
+	/// <exception cref="ArgumentException"><paramref name="name" /> is empty.</exception>
+	/// <remarks>
+	///     The constructor only runs when something materialises the attribute through reflection. The compiler stores
+	///     the argument without executing this check, and generators and analyzers read it from there, so
+	///     <c>[CheatEnginePlugin(null!)]</c> and <c>[CheatEnginePlugin("")]</c> compile. The consumers validate the
+	///     argument themselves: a <see langword="null" />, empty or blank name is reported as CESDK0001 and no entry point
+	///     is generated for it.
+	/// </remarks>
+	public CheatEnginePluginAttribute(string name)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(name);
+		Name = name;
+	}
 
-    /// <summary>
-    ///     Gets the name the plugin reports to Cheat Engine. Never <see langword="null" /> or empty.
-    /// </summary>
-    public string Name { get; }
+	/// <summary>
+	///     Gets the name the plugin reports to Cheat Engine. Never <see langword="null" /> or empty.
+	/// </summary>
+	public string Name
+	{
+		get;
+	}
 }

@@ -1,4 +1,5 @@
 using System;
+
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Engine.Objects;
 
@@ -29,67 +30,67 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 [LuaClass("MemScan")]
 public readonly struct MemScan : ICEObject<MemScan>, IEquatable<MemScan>
 {
-    private readonly CEObject _handle;
+	private readonly CEObject _handle;
 
-    /// <summary>Wraps a borrowed <c>MemScan</c> handle without validating its native class.</summary>
-    /// <param name="handle">The native handle; a null handle gives the default value.</param>
-    public MemScan(CEObject handle)
-    {
-        _handle = handle;
-    }
+	/// <summary>Wraps a borrowed <c>MemScan</c> handle without validating its native class.</summary>
+	/// <param name="handle">The native handle; a null handle gives the default value.</param>
+	public MemScan(CEObject handle)
+	{
+		_handle = handle;
+	}
 
-    /// <inheritdoc />
-    public CEObject Handle => _handle;
+	/// <inheritdoc />
+	public CEObject Handle => _handle;
 
-    /// <inheritdoc />
-    public static MemScan FromHandle(CEObject handle)
-    {
-        return new MemScan(handle);
-    }
+	/// <inheritdoc />
+	public static MemScan FromHandle(CEObject handle)
+	{
+		return new MemScan(handle);
+	}
 
-    /// <summary>Gets a value indicating whether this is the null handle.</summary>
-    public bool IsNull => _handle.IsNull;
+	/// <summary>Gets a value indicating whether this is the null handle.</summary>
+	public bool IsNull => _handle.IsNull;
 
-    /// <summary>Compares two borrowed handles by native pointer value.</summary>
-    /// <param name="left">The first handle.</param>
-    /// <param name="right">The second handle.</param>
-    /// <returns><see langword="true" /> when both handles carry the same pointer.</returns>
-    public static bool operator ==(MemScan left, MemScan right)
-    {
-        return left.Equals(right);
-    }
+	/// <summary>Compares two borrowed handles by native pointer value.</summary>
+	/// <param name="left">The first handle.</param>
+	/// <param name="right">The second handle.</param>
+	/// <returns><see langword="true" /> when both handles carry the same pointer.</returns>
+	public static bool operator ==(MemScan left, MemScan right)
+	{
+		return left.Equals(right);
+	}
 
-    /// <summary>Compares two borrowed handles by native pointer value.</summary>
-    /// <param name="left">The first handle.</param>
-    /// <param name="right">The second handle.</param>
-    /// <returns><see langword="true" /> when the pointers differ.</returns>
-    public static bool operator !=(MemScan left, MemScan right)
-    {
-        return !left.Equals(right);
-    }
+	/// <summary>Compares two borrowed handles by native pointer value.</summary>
+	/// <param name="left">The first handle.</param>
+	/// <param name="right">The second handle.</param>
+	/// <returns><see langword="true" /> when the pointers differ.</returns>
+	public static bool operator !=(MemScan left, MemScan right)
+	{
+		return !left.Equals(right);
+	}
 
-    /// <inheritdoc />
-    public bool Equals(MemScan other)
-    {
-        return _handle.Equals(other._handle);
-    }
+	/// <inheritdoc />
+	public bool Equals(MemScan other)
+	{
+		return _handle.Equals(other._handle);
+	}
 
-    /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return obj is MemScan other && Equals(other);
-    }
+	/// <inheritdoc />
+	public override bool Equals(object? obj)
+	{
+		return obj is MemScan other && Equals(other);
+	}
 
-    /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return _handle.GetHashCode();
-    }
+	/// <inheritdoc />
+	public override int GetHashCode()
+	{
+		return _handle.GetHashCode();
+	}
 
-    /// <summary>Formats the underlying native handle.</summary>
-    /// <returns>The underlying <see cref="CEObject" /> representation.</returns>
-    public override string ToString()
-    {
-        return _handle.ToString();
-    }
+	/// <summary>Formats the underlying native handle.</summary>
+	/// <returns>The underlying <see cref="CEObject" /> representation.</returns>
+	public override string ToString()
+	{
+		return _handle.ToString();
+	}
 }

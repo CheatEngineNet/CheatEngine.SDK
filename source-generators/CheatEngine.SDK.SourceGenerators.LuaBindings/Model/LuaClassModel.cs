@@ -5,7 +5,7 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 ///     an unchanged type remains unchanged to the incremental pipeline.
 /// </summary>
 internal sealed record LuaClassModel(
-    ContainingTypeModel ContainingType,
-    string LuaName,
-    bool IsValid,
-    string HintName = "");
+	ContainingTypeModel ContainingType,
+	string LuaName,
+	bool IsValid,
+	string HintName = "");

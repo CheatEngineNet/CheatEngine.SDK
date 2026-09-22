@@ -11,12 +11,12 @@ namespace CheatEngine.SDK.Engine.Enums;
 /// </remarks>
 public enum DuplicateHandling
 {
-    /// <summary>Drop the duplicate silently. CE: <c>dupIgnore</c>.</summary>
-    Ignore = 0,
+	/// <summary>Drop the duplicate silently. CE: <c>dupIgnore</c>.</summary>
+	Ignore = 0,
 
-    /// <summary>Keep the duplicate. CE: <c>dupAccept</c>.</summary>
-    Accept = 1,
+	/// <summary>Keep the duplicate. CE: <c>dupAccept</c>.</summary>
+	Accept = 1,
 
-    /// <summary>Raise an error. CE: <c>dupError</c>.</summary>
-    Error = 2
+	/// <summary>Raise an error. CE: <c>dupError</c>.</summary>
+	Error = 2
 }

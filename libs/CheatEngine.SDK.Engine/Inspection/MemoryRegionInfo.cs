@@ -20,11 +20,11 @@ namespace CheatEngine.SDK.Engine.Inspection;
 /// <param name="Type">The Windows <c>MEM_*</c> backing type.</param>
 /// <param name="Extra">The optional mapped-file description, or <see langword="null" /> when omitted.</param>
 public readonly record struct MemoryRegionInfo(
-    Address BaseAddress,
-    Address AllocationBase,
-    MemoryProtection AllocationProtection,
-    MemorySize Size,
-    MemoryRegionState State,
-    MemoryProtection Protection,
-    MemoryRegionType Type,
-    string? Extra);
+	Address BaseAddress,
+	Address AllocationBase,
+	MemoryProtection AllocationProtection,
+	MemorySize Size,
+	MemoryRegionState State,
+	MemoryProtection Protection,
+	MemoryRegionType Type,
+	string? Extra);

@@ -17,15 +17,15 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 ///     alone cannot tell apart) still get distinct names.
 /// </param>
 internal sealed record LuaGlobalTableModel(
-    ContainingTypeModel ContainingType,
-    EquatableArray<string> CachedGlobals,
-    EquatableArray<LuaGlobalCallModel> Calls,
-    string HintName)
+	ContainingTypeModel ContainingType,
+	EquatableArray<string> CachedGlobals,
+	EquatableArray<LuaGlobalCallModel> Calls,
+	string HintName)
 {
-    /// <summary>
-    ///     Suffix of the hint name: <c>Demo.Memory.LuaGlobals.g.cs</c>. Owned here because
-    ///     <see cref="LuaGlobalTables.Group" /> needs it to resolve <see cref="HintName" />;
-    ///     <c>Emit/LuaGlobalFileEmitter.cs</c> reuses this constant.
-    /// </summary>
-    public const string HintSuffix = ".LuaGlobals.g.cs";
+	/// <summary>
+	///     Suffix of the hint name: <c>Demo.Memory.LuaGlobals.g.cs</c>. Owned here because
+	///     <see cref="LuaGlobalTables.Group" /> needs it to resolve <see cref="HintName" />;
+	///     <c>Emit/LuaGlobalFileEmitter.cs</c> reuses this constant.
+	/// </summary>
+	public const string HintSuffix = ".LuaGlobals.g.cs";
 }

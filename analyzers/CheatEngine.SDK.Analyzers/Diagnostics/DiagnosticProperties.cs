@@ -8,9 +8,9 @@ namespace CheatEngine.SDK.Analyzers.Diagnostics;
 /// </summary>
 internal static class DiagnosticProperties
 {
-    /// <summary>
-    ///     On CESDK0001: the name of the single <see cref="PluginShapeIssues" /> flag the
-    ///     diagnostic is about.
-    /// </summary>
-    public const string PluginClassProblem = "CheatEngine.SDK.PluginClassProblem";
+	/// <summary>
+	///     On CESDK0001: the name of the single <see cref="PluginShapeIssues" /> flag the
+	///     diagnostic is about.
+	/// </summary>
+	public const string PluginClassProblem = "CheatEngine.SDK.PluginClassProblem";
 }

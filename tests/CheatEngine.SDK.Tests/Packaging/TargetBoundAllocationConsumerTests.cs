@@ -6,9 +6,9 @@ namespace CheatEngine.SDK.Tests.Packaging;
 [Collection(PackagedUmbrellaSuite.Name)]
 public sealed class TargetBoundAllocationConsumerTests(PackagedUmbrellaFixture fixture)
 {
-    [Fact]
-    public void Packed_consumer_compiles_an_independent_target_bound_allocation_backend()
-    {
-        Assert.True(File.Exists(Path.Combine(fixture.DefaultDeploymentDirectory, "DefaultConsumer.dll")));
-    }
+	[Fact]
+	public void Packed_consumer_compiles_an_independent_target_bound_allocation_backend()
+	{
+		Assert.True(File.Exists(Path.Combine(fixture.DefaultDeploymentDirectory, "DefaultConsumer.dll")));
+	}
 }

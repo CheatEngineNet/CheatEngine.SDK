@@ -1,3 +1,5 @@
+using System;
+
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Inspection;
 using CheatEngine.SDK.Lua.Calls;
@@ -27,128 +29,179 @@ namespace CheatEngine.SDK.Engine.Assembly;
 /// </remarks>
 public static class InstructionProfiles
 {
-    private static readonly LuaRef SGetOpenedProcessId = new();
-    private static readonly LuaRef STargetIs64Bit = new();
-    private static readonly LuaRef STargetIsX86 = new();
-    private static readonly LuaRef STargetIsArm = new();
+	private static readonly LuaRef SGetOpenedProcessId = new();
+	private static readonly LuaRef STargetIs64Bit = new();
+	private static readonly LuaRef STargetIsX86 = new();
+	private static readonly LuaRef STargetIsArm = new();
 
-    /// <summary>Observes the current CE target and returns a profile only when its selected PID and ISA probes agree.</summary>
-    /// <param name="targetProfile">The copied profile and selected PID only when the returned status is success.</param>
-    /// <returns>A target, availability, protected-Lua, or profile-consistency outcome.</returns>
-    /// <exception cref="global::System.InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
-    [RequiresPluginEnabled]
-    public static InstructionOperationStatus TryObserveCurrent(out InstructionTargetProfile targetProfile)
-    {
-        targetProfile = default;
-        using var operation = LuaRuntime.AcquireOperation();
-        var state = operation.State;
-        var top = state.Top;
-        try
-        {
-            var status = TryGetCurrentTarget(state, out var firstTarget);
-            if (status != InstructionOperationStatus.Success) return status;
+	/// <summary>Observes the current CE target and returns a profile only when its selected PID and ISA probes agree.</summary>
+	/// <param name="targetProfile">The copied profile and selected PID only when the returned status is success.</param>
+	/// <returns>A target, availability, protected-Lua, or profile-consistency outcome.</returns>
+	/// <exception cref="global::System.InvalidOperationException">
+	///     The plugin is not enabled or the calling thread has no Lua
+	///     state.
+	/// </exception>
+	[RequiresPluginEnabled]
+	public static InstructionOperationStatus TryObserveCurrent(out InstructionTargetProfile targetProfile)
+	{
+		targetProfile = default;
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		int top = state.Top;
+		try
+		{
+			InstructionOperationStatus status = TryGetCurrentTarget(state, out TargetProcessId firstTarget);
+			if (status != InstructionOperationStatus.Success)
+			{
+				return status;
+			}
 
-            status = TryCallBoolean(state, STargetIs64Bit, "targetIs64Bit"u8, out var is64Bit);
-            if (status != InstructionOperationStatus.Success) return status;
-            status = TryCallBoolean(state, STargetIsX86, "targetIsX86"u8, out var isX86);
-            if (status != InstructionOperationStatus.Success) return status;
-            status = TryCallBoolean(state, STargetIsArm, "targetIsArm"u8, out var isArm);
-            if (status != InstructionOperationStatus.Success) return status;
+			status = TryCallBoolean(state, STargetIs64Bit, "targetIs64Bit"u8, out bool is64Bit);
+			if (status != InstructionOperationStatus.Success)
+			{
+				return status;
+			}
 
-            if (!TryCreateProfile(is64Bit, isX86, isArm, out var profile))
-                return InstructionOperationStatus.InvalidProfile;
+			status = TryCallBoolean(state, STargetIsX86, "targetIsX86"u8, out bool isX86);
+			if (status != InstructionOperationStatus.Success)
+			{
+				return status;
+			}
 
-            status = TryGetCurrentTarget(state, out var finalTarget);
-            if (status != InstructionOperationStatus.Success) return status;
-            if (firstTarget != finalTarget) return InstructionOperationStatus.TargetChanged;
+			status = TryCallBoolean(state, STargetIsArm, "targetIsArm"u8, out bool isArm);
+			if (status != InstructionOperationStatus.Success)
+			{
+				return status;
+			}
 
-            targetProfile = new InstructionTargetProfile(firstTarget, profile);
-            return InstructionOperationStatus.Success;
-        }
-        catch (LuaException)
-        {
-            targetProfile = default;
-            return InstructionOperationStatus.LuaFailure;
-        }
-        finally
-        {
-            state.SetTop(top);
-        }
-    }
+			if (!TryCreateProfile(is64Bit, isX86, isArm, out InstructionProfile profile))
+			{
+				return InstructionOperationStatus.InvalidProfile;
+			}
 
-    internal static InstructionOperationStatus TryVerifyCurrent(LuaState state, TargetProcessId expectedTarget)
-    {
-        var status = TryGetCurrentTarget(state, out var actualTarget);
-        return status == InstructionOperationStatus.Success && actualTarget != expectedTarget
-            ? InstructionOperationStatus.TargetChanged
-            : status;
-    }
+			status = TryGetCurrentTarget(state, out TargetProcessId finalTarget);
+			if (status != InstructionOperationStatus.Success)
+			{
+				return status;
+			}
 
-    private static InstructionOperationStatus TryGetCurrentTarget(LuaState state, out TargetProcessId target)
-    {
-        target = default;
-        var status = TryPushGlobal(state, SGetOpenedProcessId, "getOpenedProcessID"u8);
-        if (status != InstructionOperationStatus.Success) return status;
-        if (!state.TryCall(0, 1).IsOk) return InstructionOperationStatus.LuaFailure;
-        if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out var value) ||
-            value is < 0 or > int.MaxValue)
-            return InstructionOperationStatus.InvalidResult;
-        if (value == 0) return InstructionOperationStatus.TargetNotSelected;
+			if (firstTarget != finalTarget)
+			{
+				return InstructionOperationStatus.TargetChanged;
+			}
 
-        target = new TargetProcessId((int)value);
-        return InstructionOperationStatus.Success;
-    }
+			targetProfile = new InstructionTargetProfile(firstTarget, profile);
+			return InstructionOperationStatus.Success;
+		}
+		catch (LuaException)
+		{
+			targetProfile = default;
+			return InstructionOperationStatus.LuaFailure;
+		}
+		finally
+		{
+			state.SetTop(top);
+		}
+	}
 
-    private static InstructionOperationStatus TryCallBoolean(LuaState state, LuaRef cache, global::System.ReadOnlySpan<byte> name,
-        out bool value)
-    {
-        value = default;
-        var status = TryPushGlobal(state, cache, name);
-        if (status != InstructionOperationStatus.Success) return status;
-        if (!state.TryCall(0, 1).IsOk) return InstructionOperationStatus.LuaFailure;
-        if (state.TypeOf(-1) != LuaType.Boolean) return InstructionOperationStatus.InvalidResult;
+	internal static InstructionOperationStatus TryVerifyCurrent(LuaState state, TargetProcessId expectedTarget)
+	{
+		InstructionOperationStatus status = TryGetCurrentTarget(state, out TargetProcessId actualTarget);
+		return status == InstructionOperationStatus.Success && actualTarget != expectedTarget
+			? InstructionOperationStatus.TargetChanged
+			: status;
+	}
 
-        value = state.ToBoolean(-1);
-        return InstructionOperationStatus.Success;
-    }
+	private static InstructionOperationStatus TryGetCurrentTarget(LuaState state, out TargetProcessId target)
+	{
+		target = default;
+		InstructionOperationStatus status = TryPushGlobal(state, SGetOpenedProcessId, "getOpenedProcessID"u8);
+		if (status != InstructionOperationStatus.Success)
+		{
+			return status;
+		}
 
-    private static InstructionOperationStatus TryPushGlobal(LuaState state, LuaRef cache, global::System.ReadOnlySpan<byte> name)
-    {
-        return LuaGlobalFunctions.TryPushWithStatus(state, cache, name) switch
-        {
-            LuaGlobalPushStatus.Success => InstructionOperationStatus.Success,
-            LuaGlobalPushStatus.Unavailable => InstructionOperationStatus.GlobalUnavailable,
-            _ => InstructionOperationStatus.LuaFailure,
-        };
-    }
+		if (!state.TryCall(0, 1).IsOk)
+		{
+			return InstructionOperationStatus.LuaFailure;
+		}
 
-    private static bool TryCreateProfile(bool is64Bit, bool isX86, bool isArm, out InstructionProfile profile)
-    {
-        if (isX86 && isArm)
-        {
-            profile = default;
-            return false;
-        }
+		if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out long value) ||
+		    value is < 0 or > int.MaxValue)
+		{
+			return InstructionOperationStatus.InvalidResult;
+		}
 
-        if (isX86)
-        {
-            profile = is64Bit ? default : InstructionProfile.X86;
-            return !is64Bit;
-        }
+		if (value == 0)
+		{
+			return InstructionOperationStatus.TargetNotSelected;
+		}
 
-        if (isArm)
-        {
-            profile = is64Bit ? InstructionProfile.Arm64 : InstructionProfile.Arm32;
-            return true;
-        }
+		target = new TargetProcessId((int) value);
+		return InstructionOperationStatus.Success;
+	}
 
-        if (is64Bit)
-        {
-            profile = InstructionProfile.X64;
-            return true;
-        }
+	private static InstructionOperationStatus TryCallBoolean(LuaState state, LuaRef cache, ReadOnlySpan<byte> name,
+		out bool value)
+	{
+		value = default;
+		InstructionOperationStatus status = TryPushGlobal(state, cache, name);
+		if (status != InstructionOperationStatus.Success)
+		{
+			return status;
+		}
 
-        profile = default;
-        return false;
-    }
+		if (!state.TryCall(0, 1).IsOk)
+		{
+			return InstructionOperationStatus.LuaFailure;
+		}
+
+		if (state.TypeOf(-1) != LuaType.Boolean)
+		{
+			return InstructionOperationStatus.InvalidResult;
+		}
+
+		value = state.ToBoolean(-1);
+		return InstructionOperationStatus.Success;
+	}
+
+	private static InstructionOperationStatus TryPushGlobal(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
+	{
+		return LuaGlobalFunctions.TryPushWithStatus(state, cache, name) switch
+		{
+			LuaGlobalPushStatus.Success => InstructionOperationStatus.Success,
+			LuaGlobalPushStatus.Unavailable => InstructionOperationStatus.GlobalUnavailable,
+			_ => InstructionOperationStatus.LuaFailure
+		};
+	}
+
+	private static bool TryCreateProfile(bool is64Bit, bool isX86, bool isArm, out InstructionProfile profile)
+	{
+		if (isX86 && isArm)
+		{
+			profile = default;
+			return false;
+		}
+
+		if (isX86)
+		{
+			profile = is64Bit ? default : InstructionProfile.X86;
+			return !is64Bit;
+		}
+
+		if (isArm)
+		{
+			profile = is64Bit ? InstructionProfile.Arm64 : InstructionProfile.Arm32;
+			return true;
+		}
+
+		if (is64Bit)
+		{
+			profile = InstructionProfile.X64;
+			return true;
+		}
+
+		profile = default;
+		return false;
+	}
 }

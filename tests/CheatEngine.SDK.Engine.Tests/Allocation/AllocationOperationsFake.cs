@@ -9,111 +9,176 @@ namespace CheatEngine.SDK.Engine.Tests.Allocation;
 ///     Deterministic managed implementation of the allocation boundary. It deliberately models only the public
 ///     contract, not a Lua fixture or a live Cheat Engine process.
 /// </summary>
-internal sealed class AllocationOperationsFake : ITargetMemoryAllocationOperations, ITargetBoundMemoryAllocationOperations
+internal sealed class AllocationOperationsFake : ITargetMemoryAllocationOperations,
+	ITargetBoundMemoryAllocationOperations
 {
-    private static readonly TargetProcessIncarnation STarget = new(4242, 1);
+	private static readonly TargetProcessIncarnation STarget = new(4242, 1);
 
-    public Address AllocatedAddress { get; set; } = new(0x7FF6_1000_0000);
+	public Address AllocatedAddress
+	{
+		get;
+		set;
+	} = new(0x7FF6_1000_0000);
 
-    public bool AllocationResult { get; set; } = true;
+	public bool AllocationResult
+	{
+		get;
+		set;
+	} = true;
 
-    public Exception? AllocationException { get; set; }
+	public Exception? AllocationException
+	{
+		get;
+		set;
+	}
 
-    public bool DeallocationResult { get; set; } = true;
+	public bool DeallocationResult
+	{
+		get;
+		set;
+	} = true;
 
-    public Exception? DeallocationException { get; set; }
+	public Exception? DeallocationException
+	{
+		get;
+		set;
+	}
 
-    public int AllocateCalls { get; private set; }
+	public int AllocateCalls
+	{
+		get;
+		private set;
+	}
 
-    public int DeallocateCalls { get; private set; }
+	public int DeallocateCalls
+	{
+		get;
+		private set;
+	}
 
-    public TargetAllocationRequest LastRequest { get; private set; }
+	public TargetAllocationRequest LastRequest
+	{
+		get;
+		private set;
+	}
 
-    public Address LastDeallocatedAddress { get; private set; }
+	public Address LastDeallocatedAddress
+	{
+		get;
+		private set;
+	}
 
-    public TargetAllocationSize LastDeallocatedSize { get; private set; }
+	public TargetAllocationSize LastDeallocatedSize
+	{
+		get;
+		private set;
+	}
 
-    public TargetSelectionObservation TargetObservation { get; set; } = TargetSelectionObservation.Qualified(STarget);
+	public TargetSelectionObservation TargetObservation
+	{
+		get;
+		set;
+	} = TargetSelectionObservation.Qualified(STarget);
 
-    public TargetMemoryAllocationOutcome? BoundAllocationOutcomeOverride { get; set; }
+	public TargetMemoryAllocationOutcome? BoundAllocationOutcomeOverride
+	{
+		get;
+		set;
+	}
 
-    public bool TryAllocate(TargetAllocationRequest request, out Address address)
-    {
-        AllocateCalls++;
-        LastRequest = request;
-        if (AllocationException is not null) throw AllocationException;
+	public TargetMemoryAllocationOutcome AllocateBoundWithOutcome(TargetAllocationRequest request,
+		out TargetProcessIncarnation incarnation, out TargetSelectionObservation observation)
+	{
+		observation = TargetObservation;
+		incarnation = observation.Incarnation.GetValueOrDefault();
+		if (!observation.IsQualified)
+		{
+			return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
+				EngineFailureKind.TargetIdentityUnavailable));
+		}
 
-        address = AllocatedAddress;
-        return AllocationResult;
-    }
+		if (BoundAllocationOutcomeOverride.HasValue)
+		{
+			return BoundAllocationOutcomeOverride.GetValueOrDefault();
+		}
 
-    public bool TryDeallocate(Address address, TargetAllocationSize size)
-    {
-        DeallocateCalls++;
-        LastDeallocatedAddress = address;
-        LastDeallocatedSize = size;
-        if (DeallocationException is not null) throw DeallocationException;
+		bool allocated = TryAllocate(request, out Address address);
 
-        return DeallocationResult;
-    }
+		// Preserve caller-provided shapes so boundary tests can deliberately exercise
+		// malformed native results which public factories rightly reject.
+		return allocated
+			? new TargetMemoryAllocationOutcome(TargetMemoryOperationOutcome.Succeeded(), address)
+			: new TargetMemoryAllocationOutcome(
+				TargetMemoryOperationOutcome.Failed(EngineFailureKind.ExpectedOperationFailure),
+				address);
+	}
 
-    public TargetMemoryAllocationOutcome AllocateBoundWithOutcome(TargetAllocationRequest request,
-        out TargetProcessIncarnation incarnation, out TargetSelectionObservation observation)
-    {
-        observation = TargetObservation;
-        incarnation = observation.Incarnation.GetValueOrDefault();
-        if (!observation.IsQualified)
-            return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
-                EngineFailureKind.TargetIdentityUnavailable));
+	public bool TryDeallocateBound(TargetProcessIncarnation expected, Address address, TargetAllocationSize size,
+		out TargetIdentityCheck targetCheck)
+	{
+		TargetMemoryOperationOutcome outcome = DeallocateBoundWithOutcome(expected, address, size, out targetCheck);
+		return targetCheck.IsCurrent && outcome.IsSuccess;
+	}
 
-        if (BoundAllocationOutcomeOverride.HasValue)
-            return BoundAllocationOutcomeOverride.GetValueOrDefault();
+	public TargetMemoryOperationOutcome DeallocateBoundWithOutcome(TargetProcessIncarnation expected, Address address,
+		TargetAllocationSize size, out TargetIdentityCheck targetCheck)
+	{
+		targetCheck = GetTargetCheck(expected, TargetObservation);
+		if (!targetCheck.IsCurrent)
+		{
+			return TargetMemoryOperationOutcome.Failed(targetCheck.Kind is TargetIdentityCheckKind.TargetChanged
+				or TargetIdentityCheckKind.ProcessReused
+				? EngineFailureKind.TargetIdentityMismatch
+				: EngineFailureKind.TargetIdentityUnavailable);
+		}
 
-        var allocated = TryAllocate(request, out var address);
+		return TryDeallocate(address, size)
+			? TargetMemoryOperationOutcome.Succeeded()
+			: TargetMemoryOperationOutcome.Failed(EngineFailureKind.ExpectedOperationFailure);
+	}
 
-        // Preserve caller-provided shapes so boundary tests can deliberately exercise
-        // malformed native results which public factories rightly reject.
-        return allocated
-            ? new TargetMemoryAllocationOutcome(TargetMemoryOperationOutcome.Succeeded(), address)
-            : new TargetMemoryAllocationOutcome(
-                TargetMemoryOperationOutcome.Failed(EngineFailureKind.ExpectedOperationFailure),
-                address);
-    }
+	public bool TryAllocate(TargetAllocationRequest request, out Address address)
+	{
+		AllocateCalls++;
+		LastRequest = request;
+		if (AllocationException is not null)
+		{
+			throw AllocationException;
+		}
 
-    public bool TryDeallocateBound(TargetProcessIncarnation expected, Address address, TargetAllocationSize size,
-        out TargetIdentityCheck targetCheck)
-    {
-        var outcome = DeallocateBoundWithOutcome(expected, address, size, out targetCheck);
-        return targetCheck.IsCurrent && outcome.IsSuccess;
-    }
+		address = AllocatedAddress;
+		return AllocationResult;
+	}
 
-    public TargetMemoryOperationOutcome DeallocateBoundWithOutcome(TargetProcessIncarnation expected, Address address,
-        TargetAllocationSize size, out TargetIdentityCheck targetCheck)
-    {
-        targetCheck = GetTargetCheck(expected, TargetObservation);
-        if (!targetCheck.IsCurrent)
-            return TargetMemoryOperationOutcome.Failed(targetCheck.Kind is TargetIdentityCheckKind.TargetChanged
-                or TargetIdentityCheckKind.ProcessReused
-                ? EngineFailureKind.TargetIdentityMismatch
-                : EngineFailureKind.TargetIdentityUnavailable);
+	public bool TryDeallocate(Address address, TargetAllocationSize size)
+	{
+		DeallocateCalls++;
+		LastDeallocatedAddress = address;
+		LastDeallocatedSize = size;
+		if (DeallocationException is not null)
+		{
+			throw DeallocationException;
+		}
 
-        return TryDeallocate(address, size)
-            ? TargetMemoryOperationOutcome.Succeeded()
-            : TargetMemoryOperationOutcome.Failed(EngineFailureKind.ExpectedOperationFailure);
-    }
+		return DeallocationResult;
+	}
 
-    private static TargetIdentityCheck GetTargetCheck(TargetProcessIncarnation expected,
-        TargetSelectionObservation observation)
-    {
-        if (!observation.IsQualified)
-            return TargetSelection.CreateUnavailableCheck(observation);
+	private static TargetIdentityCheck GetTargetCheck(TargetProcessIncarnation expected,
+		TargetSelectionObservation observation)
+	{
+		if (!observation.IsQualified)
+		{
+			return TargetSelection.CreateUnavailableCheck(observation);
+		}
 
-        var current = observation.Incarnation.GetValueOrDefault();
-        if (current.ProcessId != expected.ProcessId)
-            return new TargetIdentityCheck(TargetIdentityCheckKind.TargetChanged, observation);
+		TargetProcessIncarnation current = observation.Incarnation.GetValueOrDefault();
+		if (current.ProcessId != expected.ProcessId)
+		{
+			return new TargetIdentityCheck(TargetIdentityCheckKind.TargetChanged, observation);
+		}
 
-        return current.StartedAtUtcTicks == expected.StartedAtUtcTicks
-            ? new TargetIdentityCheck(TargetIdentityCheckKind.Current, observation)
-            : new TargetIdentityCheck(TargetIdentityCheckKind.ProcessReused, observation);
-    }
+		return current.StartedAtUtcTicks == expected.StartedAtUtcTicks
+			? new TargetIdentityCheck(TargetIdentityCheckKind.Current, observation)
+			: new TargetIdentityCheck(TargetIdentityCheckKind.ProcessReused, observation);
+	}
 }

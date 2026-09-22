@@ -8,15 +8,15 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
 /// <param name="ReturnKind">The kind pushed as the result, or <see langword="null" /> for <see langword="void" />.</param>
 /// <param name="ReturnMarshaller">An explicit static marshaller for the result, or <see langword="null" />.</param>
 internal readonly record struct LuaFunctionSignature(
-    bool PassesState,
-    EquatableArray<LuaArgumentModel> Arguments,
-    LuaValueKind? ReturnKind,
-    LuaCustomMarshallerModel? ReturnMarshaller = null)
+	bool PassesState,
+	EquatableArray<LuaArgumentModel> Arguments,
+	LuaValueKind? ReturnKind,
+	LuaCustomMarshallerModel? ReturnMarshaller = null)
 {
-    /// <summary>Initializes a built-in scalar signature with the pre-custom-marshaller binary shape.</summary>
-    public LuaFunctionSignature(bool passesState, EquatableArray<LuaArgumentModel> arguments,
-        LuaValueKind? returnKind)
-        : this(passesState, arguments, returnKind, null)
-    {
-    }
+	/// <summary>Initializes a built-in scalar signature with the pre-custom-marshaller binary shape.</summary>
+	public LuaFunctionSignature(bool passesState, EquatableArray<LuaArgumentModel> arguments,
+		LuaValueKind? returnKind)
+		: this(passesState, arguments, returnKind, null)
+	{
+	}
 }

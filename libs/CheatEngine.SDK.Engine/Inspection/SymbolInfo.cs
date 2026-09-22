@@ -15,7 +15,7 @@ namespace CheatEngine.SDK.Engine.Inspection;
 /// <param name="Address">The target-process address of the symbol.</param>
 /// <param name="Size">The symbol extent in bytes.</param>
 public readonly record struct SymbolInfo(
-    string ModuleName,
-    string SearchKey,
-    Address Address,
-    MemorySize Size);
+	string ModuleName,
+	string SearchKey,
+	Address Address,
+	MemorySize Size);

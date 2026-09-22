@@ -105,7 +105,8 @@ public sealed class LiveProbeStateTests
 
 		Assert.Equal("C:\\disposable-target.exe", result);
 		Assert.Equal(2, evaluationCount);
-		Assert.Contains("Runtime gate: denied; The manifest was not present during enable.", LiveProbeState.GetStatus());
+		Assert.Contains("Runtime gate: denied; The manifest was not present during enable.",
+			LiveProbeState.GetStatus());
 	}
 
 	[Fact]
@@ -122,7 +123,8 @@ public sealed class LiveProbeStateTests
 		LiveProbeState.ValidateAfterEnable(evaluateAuthorization, static () => 401);
 
 		bool isAllowed = LiveProbeState.TryRequireRuntimeAuthorization(evaluateAuthorization,
-			static () => throw new InvalidOperationException("A denied authorization must not read CE's PID."), out string denial);
+			static () => throw new InvalidOperationException("A denied authorization must not read CE's PID."),
+			out string denial);
 
 		Assert.False(isAllowed);
 		Assert.Equal("Live probe denied: The authorization manifest has expired.", denial);

@@ -137,14 +137,14 @@ flowchart LR
     E --> F["List of Address<br/>plain managed data"]
 ```
 
-| Step                       | Why                                                                                        |
-|----------------------------|--------------------------------------------------------------------------------------------|
-| `AobScanner.TryScanOutcome` | Performs the protected CE call, distinguishes no-match from failure, and provides an owner only for a valid list |
-| `Owned<StringList>`        | Is the factory-issued ownership proof; `Dispose` executes the documented destroy path once |
-| `AobScanOutcome.ResultCount` | Is the valid list count observed immediately after CE returns; it is not an execution bound |
-| `StringList.TryGetItem(i)` | Uses Cheat Engine's zero-based index and copies one address string                         |
-| `Address.TryParse`         | Decodes CE's hexadecimal address text into the target-address type                         |
-| `using (owner)`            | Releases the list before it can escape as a stale native handle                            |
+| Step                         | Why                                                                                                              |
+|------------------------------|------------------------------------------------------------------------------------------------------------------|
+| `AobScanner.TryScanOutcome`  | Performs the protected CE call, distinguishes no-match from failure, and provides an owner only for a valid list |
+| `Owned<StringList>`          | Is the factory-issued ownership proof; `Dispose` executes the documented destroy path once                       |
+| `AobScanOutcome.ResultCount` | Is the valid list count observed immediately after CE returns; it is not an execution bound                      |
+| `StringList.TryGetItem(i)`   | Uses Cheat Engine's zero-based index and copies one address string                                               |
+| `Address.TryParse`           | Decodes CE's hexadecimal address text into the target-address type                                               |
+| `using (owner)`              | Releases the list before it can escape as a stale native handle                                                  |
 
 ### 4. Export it and patch with it
 
@@ -238,13 +238,13 @@ signature, run the full `Signatures.Scan` and require a count of one, which is w
 
 A signature that survives updates follows a few habits:
 
-| Habit                                                                   | Why                                                              |
-|-------------------------------------------------------------------------|------------------------------------------------------------------|
-| Keep the opcode bytes and wildcard displacements and absolute addresses | Offsets and addresses move between builds, and opcodes rarely do |
-| Use twelve or more bytes with several fixed anchors                     | A short pattern matches unrelated code                           |
+| Habit                                                                          | Why                                                                                   |
+|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| Keep the opcode bytes and wildcard displacements and absolute addresses        | Offsets and addresses move between builds, and opcodes rarely do                      |
+| Use twelve or more bytes with several fixed anchors                            | A short pattern matches unrelated code                                                |
 | Use `AOBScanModuleUnique` only when its separate raw CE binding is appropriate | It narrows that raw CE primitive but does not prove uniqueness or extend `AobScanner` |
-| Add `+X` when the target is code                                        | Data that happens to hold the same bytes is skipped              |
-| Check the count after every game update                                 | A count other than one means the signature drifted               |
+| Add `+X` when the target is code                                               | Data that happens to hold the same bytes is skipped                                   |
+| Check the count after every game update                                        | A count other than one means the signature drifted                                    |
 
 > [!WARNING]
 > A patch writes into the target process. Try it on a disposable process first, keep the original bytes next to the new
@@ -268,7 +268,8 @@ A signature that survives updates follows a few habits:
 ## Promise
 
 - The list object is destroyed exactly once, on every path that received one.
-- A failed protected Lua call becomes a structured `ProtectedLuaFailure` and never leaves an error value on the Lua stack.
+- A failed protected Lua call becomes a structured `ProtectedLuaFailure` and never leaves an error value on the Lua
+  stack.
 - The Lua stack returns to its previous height after every scan.
 - The result is plain `Address` data, so it stays valid after the list is gone.
 

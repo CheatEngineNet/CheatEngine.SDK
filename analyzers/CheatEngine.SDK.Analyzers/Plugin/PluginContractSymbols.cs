@@ -21,20 +21,32 @@ namespace CheatEngine.SDK.Analyzers.Plugin;
 ///     same namespace and name from another assembly does not satisfy the entry-point contract.
 /// </remarks>
 internal sealed class PluginContractSymbols(
-    INamedTypeSymbol pluginAttribute,
-    INamedTypeSymbol pluginBase,
-    INamedTypeSymbol? setsRequiredMembersAttribute,
-    INamedTypeSymbol? obsoleteAttribute)
+	INamedTypeSymbol pluginAttribute,
+	INamedTypeSymbol pluginBase,
+	INamedTypeSymbol? setsRequiredMembersAttribute,
+	INamedTypeSymbol? obsoleteAttribute)
 {
-    /// <summary>The marker attribute of a plugin class.</summary>
-    public INamedTypeSymbol PluginAttribute { get; } = pluginAttribute;
+	/// <summary>The marker attribute of a plugin class.</summary>
+	public INamedTypeSymbol PluginAttribute
+	{
+		get;
+	} = pluginAttribute;
 
-    /// <summary>The actual SDK plugin base. Source lookalikes from another assembly never satisfy the entry-point contract.</summary>
-    public INamedTypeSymbol PluginBase { get; } = pluginBase;
+	/// <summary>The actual SDK plugin base. Source lookalikes from another assembly never satisfy the entry-point contract.</summary>
+	public INamedTypeSymbol PluginBase
+	{
+		get;
+	} = pluginBase;
 
-    /// <summary>On a constructor: <c>new T()</c> needs no object initializer although <c>T</c> has required members.</summary>
-    public INamedTypeSymbol? SetsRequiredMembersAttribute { get; } = setsRequiredMembersAttribute;
+	/// <summary>On a constructor: <c>new T()</c> needs no object initializer although <c>T</c> has required members.</summary>
+	public INamedTypeSymbol? SetsRequiredMembersAttribute
+	{
+		get;
+	} = setsRequiredMembersAttribute;
 
-    /// <summary>With <c>error: true</c>: naming the marked symbol is CS0619.</summary>
-    public INamedTypeSymbol? ObsoleteAttribute { get; } = obsoleteAttribute;
+	/// <summary>With <c>error: true</c>: naming the marked symbol is CS0619.</summary>
+	public INamedTypeSymbol? ObsoleteAttribute
+	{
+		get;
+	} = obsoleteAttribute;
 }

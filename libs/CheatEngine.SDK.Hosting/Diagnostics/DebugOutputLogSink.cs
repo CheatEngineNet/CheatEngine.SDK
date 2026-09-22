@@ -16,36 +16,42 @@ namespace CheatEngine.SDK.Hosting.Diagnostics;
 /// </remarks>
 public sealed partial class DebugOutputLogSink : IHostLogSink
 {
-    private DebugOutputLogSink()
-    {
-    }
+	private DebugOutputLogSink()
+	{
+	}
 
-    /// <summary>Gets the shared instance.</summary>
-    public static DebugOutputLogSink Instance { get; } = new();
+	/// <summary>Gets the shared instance.</summary>
+	public static DebugOutputLogSink Instance
+	{
+		get;
+	} = new();
 
-    /// <inheritdoc />
-    public void Write(HostLogLevel level, string message, Exception? exception)
-    {
-        if (!OperatingSystem.IsWindows()) return;
+	/// <inheritdoc />
+	public void Write(HostLogLevel level, string message, Exception? exception)
+	{
+		if (!OperatingSystem.IsWindows())
+		{
+			return;
+		}
 
-        var text = exception is null
-            ? "[CheatEngine.SDK.Hosting] " + level + ": " + message + "\n"
-            : "[CheatEngine.SDK.Hosting] " + level + ": " + message + "\n" + exception + "\n";
-        WriteToDebugOutput(text);
-    }
+		string text = exception is null
+			? "[CheatEngine.SDK.Hosting] " + level + ": " + message + "\n"
+			: "[CheatEngine.SDK.Hosting] " + level + ": " + message + "\n" + exception + "\n";
+		WriteToDebugOutput(text);
+	}
 
-    [SupportedOSPlatform("windows")]
-    private static unsafe void WriteToDebugOutput(string text)
-    {
-        fixed (char* p = text)
-        {
-            OutputDebugStringW(p);
-        }
-    }
+	[SupportedOSPlatform("windows")]
+	private static unsafe void WriteToDebugOutput(string text)
+	{
+		fixed (char* p = text)
+		{
+			OutputDebugStringW(p);
+		}
+	}
 
-    // void OutputDebugStringW(LPCWSTR lpOutputString); the string is read during the call only.
-    [LibraryImport("kernel32", EntryPoint = "OutputDebugStringW")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    [SupportedOSPlatform("windows")]
-    private static unsafe partial void OutputDebugStringW(char* lpOutputString);
+	// void OutputDebugStringW(LPCWSTR lpOutputString); the string is read during the call only.
+	[LibraryImport("kernel32", EntryPoint = "OutputDebugStringW")]
+	[DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+	[SupportedOSPlatform("windows")]
+	private static unsafe partial void OutputDebugStringW(char* lpOutputString);
 }

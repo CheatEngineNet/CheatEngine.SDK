@@ -14,18 +14,22 @@
 
 </div>
 
-CheatEngine.SDK lets you write Cheat Engine 7.7 plugins in C#. It packages the plugin-facing libraries, source generators, and analyzers needed to generate the entry point Cheat Engine loads and to expose C# methods to Lua. It is an independent project and is not affiliated with Cheat Engine.
+CheatEngine.SDK lets you write Cheat Engine 7.7 plugins in C#. It packages the plugin-facing libraries, source
+generators, and analyzers needed to generate the entry point Cheat Engine loads and to expose C# methods to Lua. It is
+an independent project and is not affiliated with Cheat Engine.
 
 ## Requirements
 
-| Requirement | Supported version |
-| --- | --- |
-| .NET SDK | 10.0.401 (or a later SDK selected through `latestFeature`) |
+| Requirement   | Supported version                                                                               |
+|---------------|-------------------------------------------------------------------------------------------------|
+| .NET SDK      | 10.0.401 (or a later SDK selected through `latestFeature`)                                      |
 | .NET runtimes | .NET 10 `Microsoft.NETCore.App`, `Microsoft.WindowsDesktop.App`, and `Microsoft.AspNetCore.App` |
-| Cheat Engine | 7.7 |
-| Platform | Windows x64 |
+| Cheat Engine  | 7.7                                                                                             |
+| Platform      | Windows x64                                                                                     |
 
-Cheat Engine must be configured to run on .NET 10. The [live-plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md#run-it-in-cheat-engine) explains the required `ce.runtimeconfig.json` changes.
+Cheat Engine must be configured to run on .NET 10.
+The [live-plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md#run-it-in-cheat-engine) explains the required
+`ce.runtimeconfig.json` changes.
 
 ## Install
 
@@ -81,13 +85,15 @@ internal static partial class Commands
 }
 ```
 
-Build the project, then keep the complete output directory together when loading `MyPlugin.dll` from Cheat Engine's plugin settings:
+Build the project, then keep the complete output directory together when loading `MyPlugin.dll` from Cheat Engine's
+plugin settings:
 
 ```powershell
 dotnet build -c Release
 ```
 
-After enabling the plugin, run `print(greet("world"))` in Cheat Engine's Lua Engine window. For a fuller walkthrough, start with [Example 01](exemples/01-first-plugin/README.md).
+After enabling the plugin, run `print(greet("world"))` in Cheat Engine's Lua Engine window. For a fuller walkthrough,
+start with [Example 01](exemples/01-first-plugin/README.md).
 
 ## Build from source
 
@@ -101,20 +107,22 @@ dotnet test --solution CheatEngine.SDK.slnx -c Release
 dotnet pack src/CheatEngine.SDK -c Release -o artifacts/nuget
 ```
 
-Ordinary managed builds use the checked-in Windows x64 Lua bridge, so they do not require a C toolchain. Contributors changing [`native/cheatengine-sdk-lua-bridge`](native/cheatengine-sdk-lua-bridge/README.md) need xmake and a Windows x64 C toolchain to rebuild it.
+Ordinary managed builds use the checked-in Windows x64 Lua bridge, so they do not require a C toolchain. Contributors
+changing [`native/cheatengine-sdk-lua-bridge`](native/cheatengine-sdk-lua-bridge/README.md) need xmake and a Windows x64
+C toolchain to rebuild it.
 
 ## Project layout
 
-| Path | Purpose |
-| --- | --- |
-| [`libs/`](libs/) | Layered annotations, ABI, Lua, engine, and hosting libraries. |
-| [`src/CheatEngine.SDK/`](src/CheatEngine.SDK/) | The `CheatEngine.SDK` NuGet package and consumer build properties. |
-| [`source-generators/`](source-generators/) | Generated plugin entry-point and Lua-binding components. |
-| [`analyzers/`](analyzers/) | Diagnostics, code fixes, and their documentation. |
-| [`native/`](native/) | The Lua test fixture and bundled Windows x64 Lua protection bridge. |
-| [`tests/`](tests/) | Unit tests, benchmarks, shared fixtures, and the live-plugin sample. |
-| [`exemples/`](exemples/) | Guides, recipes, and API documentation. The directory name is intentional. |
-| [`eng/`](eng/) | Shared build configuration. |
+| Path                                           | Purpose                                                                    |
+|------------------------------------------------|----------------------------------------------------------------------------|
+| [`libs/`](libs/)                               | Layered annotations, ABI, Lua, engine, and hosting libraries.              |
+| [`src/CheatEngine.SDK/`](src/CheatEngine.SDK/) | The `CheatEngine.SDK` NuGet package and consumer build properties.         |
+| [`source-generators/`](source-generators/)     | Generated plugin entry-point and Lua-binding components.                   |
+| [`analyzers/`](analyzers/)                     | Diagnostics, code fixes, and their documentation.                          |
+| [`native/`](native/)                           | The Lua test fixture and bundled Windows x64 Lua protection bridge.        |
+| [`tests/`](tests/)                             | Unit tests, benchmarks, shared fixtures, and the live-plugin sample.       |
+| [`exemples/`](exemples/)                       | Guides, recipes, and API documentation. The directory name is intentional. |
+| [`eng/`](eng/)                                 | Shared build configuration.                                                |
 
 ## Documentation
 
@@ -126,4 +134,6 @@ Ordinary managed builds use the checked-in Windows x64 Lua bridge, so they do no
 
 ## License
 
-[MIT](LICENSE). Cheat Engine is licensed separately. The Lua DLL retained under [`native/cheat-engine`](native/cheat-engine/README.md) is a test fixture under Cheat Engine's terms and is not included in the NuGet package.
+[MIT](LICENSE). Cheat Engine is licensed separately. The Lua DLL retained under [
+`native/cheat-engine`](native/cheat-engine/README.md) is a test fixture under Cheat Engine's terms and is not included
+in the NuGet package.

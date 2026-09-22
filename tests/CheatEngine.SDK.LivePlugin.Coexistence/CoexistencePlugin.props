@@ -13,21 +13,21 @@
 
   <!-- Match the component set of a managed plugin consumer. The fixture observes the host loader; it does not configure one. -->
   <ItemGroup>
-    <ProjectReference Include="../../../libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj" />
-    <ProjectReference Include="../../../libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj" />
-    <ProjectReference Include="../../../libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj" />
-    <ProjectReference Include="../../../libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj" />
-    <ProjectReference Include="../../../libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj" />
-    <ProjectReference Include="../../../libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj" />
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj"/>
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj"/>
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj"/>
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj"/>
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
+    <ProjectReference Include="../../../libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../analyzers/CheatEngine.SDK.Analyzers/CheatEngine.SDK.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../../../analyzers/CheatEngine.SDK.Analyzers.CodeFixes/CheatEngine.SDK.Analyzers.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../../../source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/CheatEngine.SDK.SourceGenerators.EntryPoint.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/CheatEngine.SDK.SourceGenerators.LuaBindings.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../../../source-generators/CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <Compile Include="../CoexistenceDiagnostics.cs" Link="CoexistenceDiagnostics.cs" />
+    <ProjectReference Include="../../../analyzers/CheatEngine.SDK.Analyzers/CheatEngine.SDK.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../../analyzers/CheatEngine.SDK.Analyzers.CodeFixes/CheatEngine.SDK.Analyzers.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../../source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/CheatEngine.SDK.SourceGenerators.EntryPoint.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/CheatEngine.SDK.SourceGenerators.LuaBindings.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../../source-generators/CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <Compile Include="../CoexistenceDiagnostics.cs" Link="CoexistenceDiagnostics.cs"/>
   </ItemGroup>
 
 </Project>

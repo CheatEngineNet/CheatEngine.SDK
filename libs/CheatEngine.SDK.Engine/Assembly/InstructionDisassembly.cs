@@ -16,9 +16,9 @@ namespace CheatEngine.SDK.Engine.Assembly;
 /// <param name="Extra">The additional annotation column returned by CE's helper.</param>
 /// <param name="Utf8ByteLength">The total copied UTF-8 byte length of the four text fields.</param>
 public readonly record struct InstructionDisassembly(
-    Address Address,
-    string AddressText,
-    string Bytes,
-    string Opcode,
-    string Extra,
-    int Utf8ByteLength);
+	Address Address,
+	string AddressText,
+	string Bytes,
+	string Opcode,
+	string Extra,
+	int Utf8ByteLength);

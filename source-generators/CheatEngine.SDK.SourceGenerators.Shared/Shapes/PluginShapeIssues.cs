@@ -20,69 +20,69 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.Shapes;
 [Flags]
 internal enum PluginShapeIssues
 {
-    /// <summary>The class can be constructed by the generated factory.</summary>
-    None = 0,
+	/// <summary>The class can be constructed by the generated factory.</summary>
+	None = 0,
 
-    /// <summary>The class is <see langword="static" />. Its own bit: every other problem follows from it.</summary>
-    Static = 1 << 0,
+	/// <summary>The class is <see langword="static" />. Its own bit: every other problem follows from it.</summary>
+	Static = 1 << 0,
 
-    /// <summary>The class is <see langword="abstract" />.</summary>
-    Abstract = 1 << 1,
+	/// <summary>The class is <see langword="abstract" />.</summary>
+	Abstract = 1 << 1,
 
-    /// <summary>The class itself has type parameters.</summary>
-    Generic = 1 << 2,
+	/// <summary>The class itself has type parameters.</summary>
+	Generic = 1 << 2,
 
-    /// <summary>A type the class is nested in has type parameters.</summary>
-    NestedInGeneric = 1 << 3,
+	/// <summary>A type the class is nested in has type parameters.</summary>
+	NestedInGeneric = 1 << 3,
 
-    /// <summary>
-    ///     No base class is the resolved <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> symbol in the base-type
-    ///     chain. Current generators and analyzers pass that symbol from the referenced SDK assembly, so a same-named
-    ///     source or foreign-reference type cannot impersonate it. The legacy structural fallback exists only for older
-    ///     internal callers that have not supplied a symbol.
-    /// </summary>
-    NotDerivedFromPluginBase = 1 << 4,
+	/// <summary>
+	///     No base class is the resolved <c>CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin</c> symbol in the base-type
+	///     chain. Current generators and analyzers pass that symbol from the referenced SDK assembly, so a same-named
+	///     source or foreign-reference type cannot impersonate it. The legacy structural fallback exists only for older
+	///     internal callers that have not supplied a symbol.
+	/// </summary>
+	NotDerivedFromPluginBase = 1 << 4,
 
-    /// <summary>
-    ///     The class, or a type it is nested in, is <see langword="private" />, <see langword="protected" /> or
-    ///     <see langword="private protected" />: not reachable from a generated top-level type in another file.
-    /// </summary>
-    Inaccessible = 1 << 5,
+	/// <summary>
+	///     The class, or a type it is nested in, is <see langword="private" />, <see langword="protected" /> or
+	///     <see langword="private protected" />: not reachable from a generated top-level type in another file.
+	/// </summary>
+	Inaccessible = 1 << 5,
 
-    /// <summary>The class, or a type it is nested in, is a <see langword="file" /> type: out of reach from another file.</summary>
-    FileLocal = 1 << 6,
+	/// <summary>The class, or a type it is nested in, is a <see langword="file" /> type: out of reach from another file.</summary>
+	FileLocal = 1 << 6,
 
-    /// <summary>
-    ///     Constructors are declared, and none of them has zero parameters. A constructor with optional or
-    ///     <see langword="params" /> parameters is not the explicit parameterless construction contract the generated
-    ///     factory requires.
-    /// </summary>
-    MissingParameterlessConstructor = 1 << 7,
+	/// <summary>
+	///     Constructors are declared, and none of them has zero parameters. A constructor with optional or
+	///     <see langword="params" /> parameters is not the explicit parameterless construction contract the generated
+	///     factory requires.
+	/// </summary>
+	MissingParameterlessConstructor = 1 << 7,
 
-    /// <summary>
-    ///     A real zero-parameter constructor exists, but every such constructor is <see langword="private" />,
-    ///     <see langword="protected" /> or <see langword="private protected" />.
-    /// </summary>
-    InaccessibleParameterlessConstructor = 1 << 8,
+	/// <summary>
+	///     A real zero-parameter constructor exists, but every such constructor is <see langword="private" />,
+	///     <see langword="protected" /> or <see langword="private protected" />.
+	/// </summary>
+	InaccessibleParameterlessConstructor = 1 << 8,
 
-    /// <summary>The display name given to the attribute is missing, <see langword="null" />, empty or white space.</summary>
-    InvalidName = 1 << 9,
+	/// <summary>The display name given to the attribute is missing, <see langword="null" />, empty or white space.</summary>
+	InvalidName = 1 << 9,
 
-    /// <summary>
-    ///     The class or a base class declares <see langword="required" /> members and the parameterless constructor is
-    ///     not marked <c>[SetsRequiredMembers]</c>: <c>new T()</c> without an object initializer is CS9035.
-    /// </summary>
-    RequiredMembers = 1 << 10,
+	/// <summary>
+	///     The class or a base class declares <see langword="required" /> members and the parameterless constructor is
+	///     not marked <c>[SetsRequiredMembers]</c>: <c>new T()</c> without an object initializer is CS9035.
+	/// </summary>
+	RequiredMembers = 1 << 10,
 
-    /// <summary>
-    ///     The class, a type it is nested in, or its parameterless constructor is marked <c>[Obsolete]</c> with
-    ///     <c>error: true</c>: naming it is CS0619, which no <c>#pragma</c> can silence.
-    /// </summary>
-    ObsoleteError = 1 << 11,
+	/// <summary>
+	///     The class, a type it is nested in, or its parameterless constructor is marked <c>[Obsolete]</c> with
+	///     <c>error: true</c>: naming it is CS0619, which no <c>#pragma</c> can silence.
+	/// </summary>
+	ObsoleteError = 1 << 11,
 
-    /// <summary>
-    ///     The class is, or is nested in, the top-level type <c>CESDK.CESDK</c>: the name Cheat Engine dictates for the
-    ///     generated entry point type, of which an assembly holds only one.
-    /// </summary>
-    ReservedEntryPointName = 1 << 12
+	/// <summary>
+	///     The class is, or is nested in, the top-level type <c>CESDK.CESDK</c>: the name Cheat Engine dictates for the
+	///     generated entry point type, of which an assembly holds only one.
+	/// </summary>
+	ReservedEntryPointName = 1 << 12
 }

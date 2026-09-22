@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Abi;
 using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Abi.Native;
@@ -23,74 +24,77 @@ namespace CheatEngine.SDK.Hosting.Tests.Support;
 /// </remarks>
 internal sealed unsafe class HostSimulator : IDisposable
 {
-    public const byte GuardByte = 0xCD;
-    public const int GuardLength = 64;
+	public const byte GuardByte = 0xCD;
+	public const int GuardLength = 64;
 
-    private readonly int _offset;
-    private byte* _block;
+	private readonly int _offset;
+	private byte* _block;
 
-    public HostSimulator(bool oddAddress = false)
-    {
-        _offset = oddAddress ? 1 : 0;
-        var length = _offset + RecordSize + GuardLength;
-        _block = (byte*)NativeMemory.Alloc((nuint)length);
-        new Span<byte>(_block, length).Fill(GuardByte);
-    }
+	public HostSimulator(bool oddAddress = false)
+	{
+		_offset = oddAddress ? 1 : 0;
+		int length = _offset + RecordSize + GuardLength;
+		_block = (byte*) NativeMemory.Alloc((nuint) length);
+		new Span<byte>(_block, length).Fill(GuardByte);
+	}
 
-    public static int RecordSize => sizeof(PluginInitRecord);
+	public static int RecordSize => sizeof(PluginInitRecord);
 
-    /// <summary>The address the host passes as <c>args</c>.</summary>
-    public nint RecordAddress => (nint)(_block + _offset);
+	/// <summary>The address the host passes as <c>args</c>.</summary>
+	public nint RecordAddress => (nint) (_block + _offset);
 
-    /// <summary>The 36 bytes of the record as the host sees them.</summary>
-    public ReadOnlySpan<byte> RecordBytes => new(_block + _offset, RecordSize);
+	/// <summary>The 36 bytes of the record as the host sees them.</summary>
+	public ReadOnlySpan<byte> RecordBytes => new(_block + _offset, RecordSize);
 
-    /// <summary>True while no byte after the record has been touched.</summary>
-    public bool GuardIntact =>
-        new ReadOnlySpan<byte>(_block + _offset + RecordSize, GuardLength).IndexOfAnyExcept(GuardByte) < 0;
+	/// <summary>True while no byte after the record has been touched.</summary>
+	public bool GuardIntact =>
+		new ReadOnlySpan<byte>(_block + _offset + RecordSize, GuardLength).IndexOfAnyExcept(GuardByte) < 0;
 
-    /// <summary>True while the record still holds the fill pattern, i.e. nothing was written.</summary>
-    public bool RecordUntouched => RecordBytes.IndexOfAnyExcept(GuardByte) < 0;
+	/// <summary>True while the record still holds the fill pattern, i.e. nothing was written.</summary>
+	public bool RecordUntouched => RecordBytes.IndexOfAnyExcept(GuardByte) < 0;
 
-    public ref PluginInitRecord Record => ref *(PluginInitRecord*)RecordAddress;
+	public ref PluginInitRecord Record => ref *(PluginInitRecord*) RecordAddress;
 
-    /// <summary>
-    ///     Ends the simulated host: resets the host state while the fixture state is still open (see the type remarks),
-    ///     clears the provider, frees the buffer.
-    /// </summary>
-    public void Dispose()
-    {
-        if (_block is null) return;
+	/// <summary>
+	///     Ends the simulated host: resets the host state while the fixture state is still open (see the type remarks),
+	///     clears the provider, frees the buffer.
+	/// </summary>
+	public void Dispose()
+	{
+		if (_block is null)
+		{
+			return;
+		}
 
-        PluginHost.ResetForTests();
-        LuaRuntime.Detach();
-        FakeExports.UseState(null);
-        NativeMemory.Free(_block);
-        _block = null;
-    }
+		PluginHost.ResetForTests();
+		LuaRuntime.Detach();
+		FakeExports.UseState(null);
+		NativeMemory.Free(_block);
+		_block = null;
+	}
 
-    /// <summary>The bootstrap call, as the generated entry point makes it.</summary>
-    public int Initialize<TFactory>(int hostArgument = 0)
-        where TFactory : IPluginFactory
-    {
-        return PluginHost.InitializeManaged<TFactory>(RecordAddress, hostArgument);
-    }
+	/// <summary>The bootstrap call, as the generated entry point makes it.</summary>
+	public int Initialize<TFactory>(int hostArgument = 0)
+		where TFactory : IPluginFactory
+	{
+		return PluginHost.InitializeManaged<TFactory>(RecordAddress, hostArgument);
+	}
 
-    /// <summary>The host's version query through the record's pointer.</summary>
-    public Bool32 CallGetVersion(PluginVersion* version, int size)
-    {
-        return Record.GetVersion(version, size);
-    }
+	/// <summary>The host's version query through the record's pointer.</summary>
+	public Bool32 CallGetVersion(PluginVersion* version, int size)
+	{
+		return Record.GetVersion(version, size);
+	}
 
-    /// <summary>The host's enable call through the record's pointer.</summary>
-    public Bool32 CallEnable(ManagedExportedFunctions* exports, uint pluginId)
-    {
-        return Record.EnablePlugin(exports, pluginId);
-    }
+	/// <summary>The host's enable call through the record's pointer.</summary>
+	public Bool32 CallEnable(ManagedExportedFunctions* exports, uint pluginId)
+	{
+		return Record.EnablePlugin(exports, pluginId);
+	}
 
-    /// <summary>The host's disable call through the record's pointer.</summary>
-    public Bool32 CallDisable()
-    {
-        return Record.DisablePlugin();
-    }
+	/// <summary>The host's disable call through the record's pointer.</summary>
+	public Bool32 CallDisable()
+	{
+		return Record.DisablePlugin();
+	}
 }

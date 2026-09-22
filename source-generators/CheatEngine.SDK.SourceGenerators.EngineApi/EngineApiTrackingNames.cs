@@ -14,27 +14,27 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi;
 /// </remarks>
 internal static class EngineApiTrackingNames
 {
-    /// <summary>The additional text, after the <c>*.cheatengine-sdk-api.txt</c> filter.</summary>
-    public const string SpecTextFile = TrackingNames.Prefix + "EngineApi.SpecTextFile";
+	/// <summary>The additional text, after the <c>*.cheatengine-sdk-api.txt</c> filter.</summary>
+	public const string SpecTextFile = TrackingNames.Prefix + "EngineApi.SpecTextFile";
 
-    /// <summary>One file, parsed to a value-equatable model (hint name not yet assigned).</summary>
-    public const string ParsedSpec = TrackingNames.Prefix + "EngineApi.ParsedSpec";
+	/// <summary>One file, parsed to a value-equatable model (hint name not yet assigned).</summary>
+	public const string ParsedSpec = TrackingNames.Prefix + "EngineApi.ParsedSpec";
 
-    /// <summary>Every parsed file of the pass, collected.</summary>
-    public const string CollectedSpecs = TrackingNames.Prefix + "EngineApi.CollectedSpecs";
+	/// <summary>Every parsed file of the pass, collected.</summary>
+	public const string CollectedSpecs = TrackingNames.Prefix + "EngineApi.CollectedSpecs";
 
-    /// <summary>Every file with its hint name resolved (collision-safe across the whole pass).</summary>
-    public const string SpecFiles = TrackingNames.Prefix + "EngineApi.SpecFiles";
+	/// <summary>Every file with its hint name resolved (collision-safe across the whole pass).</summary>
+	public const string SpecFiles = TrackingNames.Prefix + "EngineApi.SpecFiles";
 
-    /// <summary>One file, hint name included: the per-file output unit.</summary>
-    public const string SpecFile = TrackingNames.Prefix + "EngineApi.SpecFile";
+	/// <summary>One file, hint name included: the per-file output unit.</summary>
+	public const string SpecFile = TrackingNames.Prefix + "EngineApi.SpecFile";
 
-    /// <summary>Files with valid entries and no cross-file conflict: what reaches the source-emission output.</summary>
-    public const string SpecFileOutput = TrackingNames.Prefix + "EngineApi.SpecFileOutput";
+	/// <summary>Files with valid entries and no cross-file conflict: what reaches the source-emission output.</summary>
+	public const string SpecFileOutput = TrackingNames.Prefix + "EngineApi.SpecFileOutput";
 
-    /// <summary>Every step name above, for the cacheability test.</summary>
-    public static readonly string[] All =
-    [
-        SpecTextFile, ParsedSpec, CollectedSpecs, SpecFiles, SpecFile, SpecFileOutput
-    ];
+	/// <summary>Every step name above, for the cacheability test.</summary>
+	public static readonly string[] All =
+	[
+		SpecTextFile, ParsedSpec, CollectedSpecs, SpecFiles, SpecFile, SpecFileOutput
+	];
 }

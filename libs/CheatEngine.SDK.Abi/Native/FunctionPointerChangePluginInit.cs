@@ -23,7 +23,7 @@ namespace CheatEngine.SDK.Abi.Native;
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct FunctionPointerChangePluginInit
 {
-    /// <summary>Address of the <c>stdcall</c> callback (offset 0). Untyped, see the type remarks.</summary>
-    /// <remarks>Must stay valid until the function is unregistered. Must not let an exception escape.</remarks>
-    public void* Callback;
+	/// <summary>Address of the <c>stdcall</c> callback (offset 0). Untyped, see the type remarks.</summary>
+	/// <remarks>Must stay valid until the function is unregistered. Must not let an exception escape.</remarks>
+	public void* Callback;
 }

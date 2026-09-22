@@ -10,12 +10,12 @@ namespace CheatEngine.SDK.Engine.Targets;
 [Flags]
 public enum TargetIdentityEvidence : byte
 {
-    /// <summary>No target-identity fact is available.</summary>
-    None = 0,
+	/// <summary>No target-identity fact is available.</summary>
+	None = 0,
 
-    /// <summary>Cheat Engine reported the numeric identifier of its selected process.</summary>
-    CheatEngineSelectedProcessId = 1,
+	/// <summary>Cheat Engine reported the numeric identifier of its selected process.</summary>
+	CheatEngineSelectedProcessId = 1,
 
-    /// <summary>The local operating system supplied the selected process's creation time.</summary>
-    LocalProcessStartTime = 2,
+	/// <summary>The local operating system supplied the selected process's creation time.</summary>
+	LocalProcessStartTime = 2
 }

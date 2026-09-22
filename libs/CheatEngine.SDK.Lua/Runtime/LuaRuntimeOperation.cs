@@ -17,26 +17,33 @@ namespace CheatEngine.SDK.Lua.Runtime;
 /// </remarks>
 public ref struct LuaRuntimeOperation
 {
-    private bool _admitted;
+	private bool _admitted;
 
-    internal LuaRuntimeOperation(LuaState state, bool admitted)
-    {
-        State = state;
-        _admitted = admitted;
-    }
+	internal LuaRuntimeOperation(LuaState state, bool admitted)
+	{
+		State = state;
+		_admitted = admitted;
+	}
 
-    /// <summary>Gets the Lua state acquired for this operation on the calling thread.</summary>
-    public LuaState State { get; }
+	/// <summary>Gets the Lua state acquired for this operation on the calling thread.</summary>
+	public LuaState State
+	{
+		get;
+	}
 
-    /// <summary>
-    ///     Ends the operation admission. Idempotent for the same value; callers should rely on a <see langword="using" /> scope
-    ///     instead of invoking it directly.
-    /// </summary>
-    public void Dispose()
-    {
-        if (!_admitted) return;
+	/// <summary>
+	///     Ends the operation admission. Idempotent for the same value; callers should rely on a <see langword="using" />
+	///     scope
+	///     instead of invoking it directly.
+	/// </summary>
+	public void Dispose()
+	{
+		if (!_admitted)
+		{
+			return;
+		}
 
-        _admitted = false;
-        LuaRuntime.ExitOperation();
-    }
+		_admitted = false;
+		LuaRuntime.ExitOperation();
+	}
 }

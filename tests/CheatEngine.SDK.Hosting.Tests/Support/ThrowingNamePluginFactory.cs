@@ -9,10 +9,10 @@ namespace CheatEngine.SDK.Hosting.Tests.Support;
 /// </summary>
 internal sealed class ThrowingNamePluginFactory : IPluginFactory
 {
-    public static ReadOnlySpan<byte> Utf8Name => throw new NotSupportedException("name failure requested by the test");
+	public static ReadOnlySpan<byte> Utf8Name => throw new NotSupportedException("name failure requested by the test");
 
-    public static CheatEnginePlugin Create()
-    {
-        return new RecordingPlugin();
-    }
+	public static CheatEnginePlugin Create()
+	{
+		return new RecordingPlugin();
+	}
 }

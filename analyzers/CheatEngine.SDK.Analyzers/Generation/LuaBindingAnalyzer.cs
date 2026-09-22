@@ -1,9 +1,11 @@
 using System.Collections.Immutable;
+
 using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.Analyzers.WellKnown;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -41,152 +43,193 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 {
-    /// <inheritdoc />
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-    [
-        DiagnosticDescriptors.UnsafeBlocksRequired,
-        DiagnosticDescriptors.InvalidLuaBindingContainingType,
-        DiagnosticDescriptors.InvalidLuaFunction,
-        DiagnosticDescriptors.InvalidLuaGlobal,
-        DiagnosticDescriptors.DuplicateLuaName,
-    ];
+	/// <inheritdoc />
+	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
+	{
+		get;
+	} =
+	[
+		DiagnosticDescriptors.UnsafeBlocksRequired,
+		DiagnosticDescriptors.InvalidLuaBindingContainingType,
+		DiagnosticDescriptors.InvalidLuaFunction,
+		DiagnosticDescriptors.InvalidLuaGlobal,
+		DiagnosticDescriptors.DuplicateLuaName
+	];
 
-    /// <inheritdoc />
-    public override void Initialize(AnalysisContext context)
-    {
-        context.EnableConcurrentExecution();
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-        context.RegisterCompilationStartAction(OnCompilationStart);
-    }
+	/// <inheritdoc />
+	public override void Initialize(AnalysisContext context)
+	{
+		context.EnableConcurrentExecution();
+		context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+		context.RegisterCompilationStartAction(OnCompilationStart);
+	}
 
-    private static void OnCompilationStart(CompilationStartAnalysisContext context)
-    {
-        var luaFunctionAttribute =
-            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaFunctionAttribute);
-        var luaGlobalAttribute =
-            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaGlobalAttribute);
-        if (luaFunctionAttribute is null && luaGlobalAttribute is null) return;
+	private static void OnCompilationStart(CompilationStartAnalysisContext context)
+	{
+		INamedTypeSymbol? luaFunctionAttribute =
+			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaFunctionAttribute);
+		INamedTypeSymbol? luaGlobalAttribute =
+			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaGlobalAttribute);
+		if (luaFunctionAttribute is null && luaGlobalAttribute is null)
+		{
+			return;
+		}
 
-        LuaBindingContractSymbols symbols = new(
-            luaFunctionAttribute,
-            luaGlobalAttribute,
-            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaMarshallerAttribute),
-            SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.ILuaMarshaller),
-            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaClassAttribute),
-            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaMethodAttribute),
-            SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaPropertyAttribute),
-            SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaState));
+		LuaBindingContractSymbols symbols = new(
+			luaFunctionAttribute,
+			luaGlobalAttribute,
+			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaMarshallerAttribute),
+			SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.ILuaMarshaller),
+			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaClassAttribute),
+			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaMethodAttribute),
+			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaPropertyAttribute),
+			SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaState));
 
-        // Mirrors CheatEngine.SDK.SourceGenerators.LuaBindings.Model.CompilationFacts.From: a non-C# compilation (never seen
-        // here, the analyzer is C#-only) would read as "unsafe not allowed" too.
-        var allowsUnsafe = context.Compilation.Options is CSharpCompilationOptions { AllowUnsafe: true };
+		// Mirrors CheatEngine.SDK.SourceGenerators.LuaBindings.Model.CompilationFacts.From: a non-C# compilation (never seen
+		// here, the analyzer is C#-only) would read as "unsafe not allowed" too.
+		bool allowsUnsafe = context.Compilation.Options is CSharpCompilationOptions { AllowUnsafe: true };
 
-        LuaFunctionDuplicateState duplicateNames = new();
-        context.RegisterSymbolAction(
-            symbolContext => AnalyzeMethod(symbolContext, symbols, allowsUnsafe, duplicateNames), SymbolKind.Method);
-        context.RegisterCompilationEndAction(duplicateNames.Report);
-    }
+		LuaFunctionDuplicateState duplicateNames = new();
+		context.RegisterSymbolAction(
+			symbolContext => AnalyzeMethod(symbolContext, symbols, allowsUnsafe, duplicateNames), SymbolKind.Method);
+		context.RegisterCompilationEndAction(duplicateNames.Report);
+	}
 
-    private static void AnalyzeMethod(SymbolAnalysisContext context, LuaBindingContractSymbols symbols,
-        bool allowsUnsafe, LuaFunctionDuplicateState duplicateNames)
-    {
-        var method = (IMethodSymbol)context.Symbol;
-        var luaFunction = symbols.LuaFunctionAttribute is null
-            ? null
-            : FindAttribute(method, symbols.LuaFunctionAttribute);
-        var luaGlobal = symbols.LuaGlobalAttribute is null ? null : FindAttribute(method, symbols.LuaGlobalAttribute);
-        if (luaFunction is null && luaGlobal is null) return;
+	private static void AnalyzeMethod(SymbolAnalysisContext context, LuaBindingContractSymbols symbols,
+		bool allowsUnsafe, LuaFunctionDuplicateState duplicateNames)
+	{
+		IMethodSymbol method = (IMethodSymbol) context.Symbol;
+		AttributeData? luaFunction = symbols.LuaFunctionAttribute is null
+			? null
+			: FindAttribute(method, symbols.LuaFunctionAttribute);
+		AttributeData? luaGlobal = symbols.LuaGlobalAttribute is null
+			? null
+			: FindAttribute(method, symbols.LuaGlobalAttribute);
+		if (luaFunction is null && luaGlobal is null)
+		{
+			return;
+		}
 
-        var name = method.Name;
-        var location = FirstLocation(method);
+		string name = method.Name;
+		Location location = FirstLocation(method);
 
-        if (!allowsUnsafe && luaFunction is not null)
-            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.UnsafeBlocksRequired, location, name));
+		if (!allowsUnsafe && luaFunction is not null)
+		{
+			context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.UnsafeBlocksRequired, location, name));
+		}
 
-        var typeIssues = ContainingTypeShape.Inspect(method.ContainingType, context.CancellationToken);
-        foreach (var problem in ContainingTypeProblemText.ReportOrder)
-        {
-            if ((typeIssues & problem) == ContainingTypeIssues.None) continue;
+		ContainingTypeIssues typeIssues = ContainingTypeShape.Inspect(method.ContainingType, context.CancellationToken);
+		foreach (ContainingTypeIssues problem in ContainingTypeProblemText.ReportOrder)
+		{
+			if ((typeIssues & problem) == ContainingTypeIssues.None)
+			{
+				continue;
+			}
 
-            context.ReportDiagnostic(Diagnostic.Create(
-                DiagnosticDescriptors.InvalidLuaBindingContainingType, location, name,
-                ContainingTypeProblemText.Describe(problem)));
-        }
+			context.ReportDiagnostic(Diagnostic.Create(
+				DiagnosticDescriptors.InvalidLuaBindingContainingType, location, name,
+				ContainingTypeProblemText.Describe(problem)));
+		}
 
-        if (luaFunction is not null)
-            AnalyzeLuaFunction(context, method, luaFunction, location, typeIssues, duplicateNames, symbols);
+		if (luaFunction is not null)
+		{
+			AnalyzeLuaFunction(context, method, luaFunction, location, typeIssues, duplicateNames, symbols);
+		}
 
-        if (luaGlobal is not null) AnalyzeLuaGlobal(context, method, luaGlobal, location, symbols);
-    }
+		if (luaGlobal is not null)
+		{
+			AnalyzeLuaGlobal(context, method, luaGlobal, location, symbols);
+		}
+	}
 
-    private static void AnalyzeLuaFunction(
-        SymbolAnalysisContext context,
-        IMethodSymbol method,
-        AttributeData attribute,
-        Location location,
-        ContainingTypeIssues typeIssues,
-        LuaFunctionDuplicateState duplicateNames,
-        LuaBindingContractSymbols symbols)
-    {
-        var name = ReadName(attribute);
-        var issues = LuaFunctionShape.Inspect(context.Compilation, method, symbols.LuaState, symbols.LuaMarshallerAttribute,
-            symbols.LuaMarshallerContract, out _);
-        if (!LuaNames.IsValidName(name)) issues |= LuaFunctionShapeIssues.InvalidName;
+	private static void AnalyzeLuaFunction(
+		SymbolAnalysisContext context,
+		IMethodSymbol method,
+		AttributeData attribute,
+		Location location,
+		ContainingTypeIssues typeIssues,
+		LuaFunctionDuplicateState duplicateNames,
+		LuaBindingContractSymbols symbols)
+	{
+		string? name = ReadName(attribute);
+		LuaFunctionShapeIssues issues = LuaFunctionShape.Inspect(context.Compilation, method, symbols.LuaState,
+			symbols.LuaMarshallerAttribute,
+			symbols.LuaMarshallerContract, out _);
+		if (!LuaNames.IsValidName(name))
+		{
+			issues |= LuaFunctionShapeIssues.InvalidName;
+		}
 
-        foreach (var problem in LuaFunctionProblemText.ReportOrder)
-        {
-            if ((issues & problem) == LuaFunctionShapeIssues.None) continue;
+		foreach (LuaFunctionShapeIssues problem in LuaFunctionProblemText.ReportOrder)
+		{
+			if ((issues & problem) == LuaFunctionShapeIssues.None)
+			{
+				continue;
+			}
 
-            context.ReportDiagnostic(Diagnostic.Create(
-                DiagnosticDescriptors.InvalidLuaFunction, location, method.Name,
-                LuaFunctionProblemText.Describe(problem)));
-        }
+			context.ReportDiagnostic(Diagnostic.Create(
+				DiagnosticDescriptors.InvalidLuaFunction, location, method.Name,
+				LuaFunctionProblemText.Describe(problem)));
+		}
 
-        // A duplicate-name verdict needs every sibling member of the containing type, not just this one method:
-        // only a method with no other problem is a candidate, exactly the generator's own grouping input
-        // (LuaFunctionModel.IsValid). The compilation-end action (LuaFunctionDuplicateState.Report) reports it.
-        if (issues == LuaFunctionShapeIssues.None && typeIssues == ContainingTypeIssues.None)
-            duplicateNames.AddCandidate(method.ContainingType, name!, method.Name, location);
-    }
+		// A duplicate-name verdict needs every sibling member of the containing type, not just this one method:
+		// only a method with no other problem is a candidate, exactly the generator's own grouping input
+		// (LuaFunctionModel.IsValid). The compilation-end action (LuaFunctionDuplicateState.Report) reports it.
+		if (issues == LuaFunctionShapeIssues.None && typeIssues == ContainingTypeIssues.None)
+		{
+			duplicateNames.AddCandidate(method.ContainingType, name!, method.Name, location);
+		}
+	}
 
-    private static void AnalyzeLuaGlobal(SymbolAnalysisContext context, IMethodSymbol method, AttributeData attribute,
-        Location location, LuaBindingContractSymbols symbols)
-    {
-        var issues = LuaGlobalShape.Inspect(context.Compilation, method, symbols.LuaState, symbols.LuaMarshallerAttribute,
-            symbols.LuaMarshallerContract, out _);
-        if (!LuaNames.IsValidName(ReadName(attribute))) issues |= LuaGlobalShapeIssues.InvalidName;
+	private static void AnalyzeLuaGlobal(SymbolAnalysisContext context, IMethodSymbol method, AttributeData attribute,
+		Location location, LuaBindingContractSymbols symbols)
+	{
+		LuaGlobalShapeIssues issues = LuaGlobalShape.Inspect(context.Compilation, method, symbols.LuaState,
+			symbols.LuaMarshallerAttribute,
+			symbols.LuaMarshallerContract, out _);
+		if (!LuaNames.IsValidName(ReadName(attribute)))
+		{
+			issues |= LuaGlobalShapeIssues.InvalidName;
+		}
 
-        foreach (var problem in LuaGlobalProblemText.ReportOrder)
-        {
-            if ((issues & problem) == LuaGlobalShapeIssues.None) continue;
+		foreach (LuaGlobalShapeIssues problem in LuaGlobalProblemText.ReportOrder)
+		{
+			if ((issues & problem) == LuaGlobalShapeIssues.None)
+			{
+				continue;
+			}
 
-            context.ReportDiagnostic(Diagnostic.Create(
-                DiagnosticDescriptors.InvalidLuaGlobal, location, method.Name, LuaGlobalProblemText.Describe(problem)));
-        }
-    }
+			context.ReportDiagnostic(Diagnostic.Create(
+				DiagnosticDescriptors.InvalidLuaGlobal, location, method.Name, LuaGlobalProblemText.Describe(problem)));
+		}
+	}
 
-    // The name argument of [LuaFunction(name)]/[LuaGlobal(name)]; null while the author is typing (missing, not a
-    // string, or explicitly null), which LuaNames.IsValidName also rejects. The attribute constructor's own
-    // ArgumentException never runs at compile time, so an empty string reaches here too.
-    private static string? ReadName(AttributeData attribute)
-    {
-        var arguments = attribute.ConstructorArguments;
-        return arguments is [{ Kind: TypedConstantKind.Primitive, Value: string name }]
-            ? name
-            : null;
-    }
+	// The name argument of [LuaFunction(name)]/[LuaGlobal(name)]; null while the author is typing (missing, not a
+	// string, or explicitly null), which LuaNames.IsValidName also rejects. The attribute constructor's own
+	// ArgumentException never runs at compile time, so an empty string reaches here too.
+	private static string? ReadName(AttributeData attribute)
+	{
+		ImmutableArray<TypedConstant> arguments = attribute.ConstructorArguments;
+		return arguments is [{ Kind: TypedConstantKind.Primitive, Value: string name }]
+			? name
+			: null;
+	}
 
-    private static AttributeData? FindAttribute(IMethodSymbol method, INamedTypeSymbol attributeClass)
-    {
-        foreach (var attribute in method.GetAttributes())
-            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeClass))
-                return attribute;
+	private static AttributeData? FindAttribute(IMethodSymbol method, INamedTypeSymbol attributeClass)
+	{
+		foreach (AttributeData attribute in method.GetAttributes())
+		{
+			if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeClass))
+			{
+				return attribute;
+			}
+		}
 
-        return null;
-    }
+		return null;
+	}
 
-    private static Location FirstLocation(IMethodSymbol method)
-    {
-        return method.Locations.IsEmpty ? Location.None : method.Locations[0];
-    }
+	private static Location FirstLocation(IMethodSymbol method)
+	{
+		return method.Locations.IsEmpty ? Location.None : method.Locations[0];
+	}
 }

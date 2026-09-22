@@ -1,5 +1,7 @@
 using System;
 using System.Threading;
+
+using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 
@@ -12,86 +14,102 @@ namespace CheatEngine.SDK.Lua.Callbacks;
 /// </summary>
 internal static class LuaCallbackRegistry
 {
-    private static LuaCallback? s_head;
+	private static LuaCallback? s_head;
 
-    // Deterministic cleanup-failure seam used only by the SDK's friend test assembly. It runs after a callback was
-    // fully released, so a thrown test exception leaves the remaining callbacks linked for a retry.
-    internal static Action? AfterReleaseForTesting;
+	// Deterministic cleanup-failure seam used only by the SDK's friend test assembly. It runs after a callback was
+	// fully released, so a thrown test exception leaves the remaining callbacks linked for a retry.
+	internal static Action? AfterReleaseForTesting;
 
-    /// <summary>Serializes callback list changes and handle release.</summary>
-    internal static Lock Gate { get; } = new();
+	/// <summary>Serializes callback list changes and handle release.</summary>
+	internal static Lock Gate
+	{
+		get;
+	} = new();
 
-    /// <summary>Number of live callbacks; for tests and diagnostics.</summary>
-    internal static int Count
-    {
-        get
-        {
-            lock (Gate)
-            {
-                var count = 0;
-                for (var current = s_head; current is not null; current = current.Next) count++;
+	/// <summary>Number of live callbacks; for tests and diagnostics.</summary>
+	internal static int Count
+	{
+		get
+		{
+			lock (Gate)
+			{
+				int count = 0;
+				for (LuaCallback? current = s_head; current is not null; current = current.Next)
+				{
+					count++;
+				}
 
-                return count;
-            }
-        }
-    }
+				return count;
+			}
+		}
+	}
 
-    internal static void Add(LuaCallback callback)
-    {
-        lock (Gate)
-        {
-            callback.Next = s_head;
-            s_head?.Previous = callback;
+	internal static void Add(LuaCallback callback)
+	{
+		lock (Gate)
+		{
+			callback.Next = s_head;
+			s_head?.Previous = callback;
 
-            s_head = callback;
-            callback.IsLinked = true;
-        }
-    }
+			s_head = callback;
+			callback.IsLinked = true;
+		}
+	}
 
-    /// <summary>
-    ///     Unlinks <paramref name="callback" />, or does nothing when it is not linked. Takes the gate itself, and
-    ///     <see cref="Lock" /> is reentrant, so a caller that already holds it pays next to nothing.
-    /// </summary>
-    internal static void Remove(LuaCallback callback)
-    {
-        lock (Gate)
-        {
-            if (!callback.IsLinked) return;
+	/// <summary>
+	///     Unlinks <paramref name="callback" />, or does nothing when it is not linked. Takes the gate itself, and
+	///     <see cref="Lock" /> is reentrant, so a caller that already holds it pays next to nothing.
+	/// </summary>
+	internal static void Remove(LuaCallback callback)
+	{
+		lock (Gate)
+		{
+			if (!callback.IsLinked)
+			{
+				return;
+			}
 
-            if (callback.Previous is null)
-                s_head = callback.Next;
-            else
-                callback.Previous.Next = callback.Next;
+			if (callback.Previous is null)
+			{
+				s_head = callback.Next;
+			}
+			else
+			{
+				callback.Previous.Next = callback.Next;
+			}
 
-            callback.Next?.Previous = callback.Previous;
+			callback.Next?.Previous = callback.Previous;
 
-            callback.Next = null;
-            callback.Previous = null;
-            callback.IsLinked = false;
-        }
-    }
+			callback.Next = null;
+			callback.Previous = null;
+			callback.IsLinked = false;
+		}
+	}
 
-    /// <summary>
-    ///     Releases every live callback with a state acquired from <paramref name="services" /> on the calling thread. When
-    ///     the provider yields no state the closures cannot be neutralized, and the callbacks are abandoned instead:
-    ///     marked released with their managed state kept alive, which leaks but cannot crash.
-    /// </summary>
-    internal static unsafe void DetachAll(LuaHostServices services)
-    {
-        lock (Gate)
-        {
-            if (s_head is null) return;
+	/// <summary>
+	///     Releases every live callback with a state acquired from <paramref name="services" /> on the calling thread. When
+	///     the provider yields no state the closures cannot be neutralized, and the callbacks are abandoned instead:
+	///     marked released with their managed state kept alive, which leaks but cannot crash.
+	/// </summary>
+	internal static unsafe void DetachAll(LuaHostServices services)
+	{
+		lock (Gate)
+		{
+			if (s_head is null)
+			{
+				return;
+			}
 
-            var l = services.Provider();
-            LuaState state = new(l);
-            // Release unlinks the head it is called on, so s_head is re-read on every iteration and the loop
-            // ends when the list is empty. Keep the explicit re-read: a "condition is always true" IDE quick-fix once
-            // turned this loop into while (true), which ended every Detach with a NullReferenceException.
-            for (var head = s_head; head is not null; head = s_head)
-            {
-                head.Release(state);
-                Volatile.Read(ref AfterReleaseForTesting)?.Invoke();
-            }
-        }
-    }
+			lua_State* l = services.Provider();
+			LuaState state = new(l);
+			// Release unlinks the head it is called on, so s_head is re-read on every iteration and the loop
+			// ends when the list is empty. Keep the explicit re-read: a "condition is always true" IDE quick-fix once
+			// turned this loop into while (true), which ended every Detach with a NullReferenceException.
+			for (LuaCallback? head = s_head; head is not null; head = s_head)
+			{
+				head.Release(state);
+				Volatile.Read(ref AfterReleaseForTesting)?.Invoke();
+			}
+		}
+	}
 }

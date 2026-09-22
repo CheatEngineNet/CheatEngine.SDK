@@ -8,12 +8,12 @@ namespace CheatEngine.SDK.Engine.Enums;
 /// <remarks>Values verified against <c>defines.lua</c> of Cheat Engine 7.7.0.10621.</remarks>
 public enum BreakpointTrigger
 {
-    /// <summary>The instruction at the address is executed; the default. CE: <c>bptExecute</c>.</summary>
-    Execute = 0,
+	/// <summary>The instruction at the address is executed; the default. CE: <c>bptExecute</c>.</summary>
+	Execute = 0,
 
-    /// <summary>The range is read or written. CE: <c>bptAccess</c>.</summary>
-    Access = 1,
+	/// <summary>The range is read or written. CE: <c>bptAccess</c>.</summary>
+	Access = 1,
 
-    /// <summary>The range is written. CE: <c>bptWrite</c>.</summary>
-    Write = 2
+	/// <summary>The range is written. CE: <c>bptWrite</c>.</summary>
+	Write = 2
 }

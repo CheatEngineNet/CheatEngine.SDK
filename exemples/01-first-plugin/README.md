@@ -221,7 +221,8 @@ To see the host's log, start Sysinternals DebugView, turn on **Capture > Capture
 - Building generates `CESDK.CESDK.CEPluginInitialize`, the exact entry point Cheat Engine looks up.
 - An `OnEnable` exception is logged and reported to Cheat Engine as a failed call. An `OnDisable` exception is logged,
   cleanup continues, and Cheat Engine is told the plugin is disabled only when cleanup, including Lua detachment,
-  completes successfully. A detach failure returns `FALSE` and leaves the lifecycle in `Disabling`. Neither exception reaches Cheat
+  completes successfully. A detach failure returns `FALSE` and leaves the lifecycle in `Disabling`. Neither exception
+  reaches Cheat
   Engine itself.
 - A disable and a new enable reuse the same plugin instance.
 - The host lifecycle is explicit: `Uninitialized → Registered → Enabling → Enabled → Disabling → Registered`.

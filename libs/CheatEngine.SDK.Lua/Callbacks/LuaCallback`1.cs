@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Lua.References;
 
 namespace CheatEngine.SDK.Lua.Callbacks;
@@ -9,13 +10,13 @@ namespace CheatEngine.SDK.Lua.Callbacks;
 /// </summary>
 /// <typeparam name="TState">The state's type, a class.</typeparam>
 public sealed class LuaCallback<TState> : LuaCallback
-    where TState : class
+	where TState : class
 {
-    internal LuaCallback(GCHandle<object> handle, LuaRef closure, LuaRef wrapped)
-        : base(handle, closure, wrapped)
-    {
-    }
+	internal LuaCallback(GCHandle<object> handle, LuaRef closure, LuaRef wrapped)
+		: base(handle, closure, wrapped)
+	{
+	}
 
-    /// <summary>Gets the managed state object; <see langword="null" /> after release.</summary>
-    public TState? State => StateObject as TState;
+	/// <summary>Gets the managed state object; <see langword="null" /> after release.</summary>
+	public TState? State => StateObject as TState;
 }

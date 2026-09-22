@@ -10,12 +10,12 @@ namespace CheatEngine.SDK.Engine.Enums;
 /// </remarks>
 public enum ContinueMethod
 {
-    /// <summary>Resume normally. CE: <c>co_run</c>.</summary>
-    Run = 0,
+	/// <summary>Resume normally. CE: <c>co_run</c>.</summary>
+	Run = 0,
 
-    /// <summary>Execute one instruction, following a call into the callee. CE: <c>co_stepinto</c>.</summary>
-    StepInto = 1,
+	/// <summary>Execute one instruction, following a call into the callee. CE: <c>co_stepinto</c>.</summary>
+	StepInto = 1,
 
-    /// <summary>Execute one instruction, running a call to completion. CE: <c>co_stepover</c>.</summary>
-    StepOver = 2
+	/// <summary>Execute one instruction, running a call to completion. CE: <c>co_stepover</c>.</summary>
+	StepOver = 2
 }

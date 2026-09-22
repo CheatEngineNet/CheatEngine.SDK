@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Lua.State;
 
@@ -11,19 +12,19 @@ namespace CheatEngine.SDK.Lua.Marshalling;
 /// <remarks>One C API call each way; allocates nothing.</remarks>
 public readonly struct DoubleMarshaller : ILuaMarshaller<double>
 {
-    /// <inheritdoc />
-    [LuaStackEffect(1)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Push(LuaState state, double value)
-    {
-        state.PushNumber(value);
-    }
+	/// <inheritdoc />
+	[LuaStackEffect(1)]
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static void Push(LuaState state, double value)
+	{
+		state.PushNumber(value);
+	}
 
-    /// <inheritdoc />
-    [LuaStackEffect(0)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryRead(LuaState state, int index, out double value)
-    {
-        return state.TryReadNumber(index, out value);
-    }
+	/// <inheritdoc />
+	[LuaStackEffect(0)]
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool TryRead(LuaState state, int index, out double value)
+	{
+		return state.TryReadNumber(index, out value);
+	}
 }

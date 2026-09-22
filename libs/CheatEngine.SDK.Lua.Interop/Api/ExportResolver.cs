@@ -9,28 +9,35 @@ namespace CheatEngine.SDK.Lua.Interop.Api;
 /// </summary>
 internal unsafe ref struct ExportResolver
 {
-    private readonly nint _module;
-    private List<string>? _missing;
+	private readonly nint _module;
+	private List<string>? _missing;
 
-    /// <summary>Creates a resolver over a module handle that the caller guarantees to be valid and loaded.</summary>
-    public ExportResolver(nint module)
-    {
-        _module = module;
-    }
+	/// <summary>Creates a resolver over a module handle that the caller guarantees to be valid and loaded.</summary>
+	public ExportResolver(nint module)
+	{
+		_module = module;
+	}
 
-    /// <summary>Number of names asked for so far.</summary>
-    public int Requested { get; private set; }
+	/// <summary>Number of names asked for so far.</summary>
+	public int Requested
+	{
+		get;
+		private set;
+	}
 
-    /// <summary>The names that were asked for and are not exported by the module, in request order.</summary>
-    public readonly IReadOnlyList<string> Missing => _missing is null ? [] : _missing;
+	/// <summary>The names that were asked for and are not exported by the module, in request order.</summary>
+	public readonly IReadOnlyList<string> Missing => _missing is null ? [] : _missing;
 
-    /// <summary>Returns the address of <paramref name="name" />, or null after recording the name as missing.</summary>
-    public void* Resolve(string name)
-    {
-        Requested++;
-        if (NativeLibrary.TryGetExport(_module, name, out var address) && address != 0) return (void*)address;
+	/// <summary>Returns the address of <paramref name="name" />, or null after recording the name as missing.</summary>
+	public void* Resolve(string name)
+	{
+		Requested++;
+		if (NativeLibrary.TryGetExport(_module, name, out lua_KContext address) && address != 0)
+		{
+			return (void*) address;
+		}
 
-        (_missing ??= []).Add(name);
-        return null;
-    }
+		(_missing ??= []).Add(name);
+		return null;
+	}
 }

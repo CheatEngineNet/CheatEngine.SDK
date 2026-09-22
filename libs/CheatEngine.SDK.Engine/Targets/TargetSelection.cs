@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+
 using CheatEngine.SDK.Lua.CompilerServices;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
@@ -17,118 +18,136 @@ namespace CheatEngine.SDK.Engine.Targets;
 /// </remarks>
 public static class TargetSelection
 {
-    private static readonly LuaRef SGetOpenedProcessId = new();
+	private static readonly LuaRef SGetOpenedProcessId = new();
 
-    /// <summary>Gets a copied observation of Cheat Engine's current target selection.</summary>
-    public static TargetSelectionObservation ObserveCurrent()
-    {
-        using var operation = LuaRuntime.AcquireOperation();
-        var state = operation.State;
-        var top = state.Top;
-        try
-        {
-            return ObserveCurrent(state);
-        }
-        finally
-        {
-            state.SetTop(top);
-        }
-    }
+	/// <summary>Gets a copied observation of Cheat Engine's current target selection.</summary>
+	public static TargetSelectionObservation ObserveCurrent()
+	{
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		int top = state.Top;
+		try
+		{
+			return ObserveCurrent(state);
+		}
+		finally
+		{
+			state.SetTop(top);
+		}
+	}
 
-    /// <summary>Checks whether the current qualified selection still denotes <paramref name="expected" />.</summary>
-    /// <param name="expected">The incarnation captured when the target-bound owner was acquired.</param>
-    /// <returns>A factual current, changed, reused, or unavailable result.</returns>
-    public static TargetIdentityCheck ValidateCurrent(TargetProcessIncarnation expected)
-    {
-        using var operation = LuaRuntime.AcquireOperation();
-        var state = operation.State;
-        var top = state.Top;
-        try
-        {
-            return ValidateCurrent(state, expected);
-        }
-        finally
-        {
-            state.SetTop(top);
-        }
-    }
+	/// <summary>Checks whether the current qualified selection still denotes <paramref name="expected" />.</summary>
+	/// <param name="expected">The incarnation captured when the target-bound owner was acquired.</param>
+	/// <returns>A factual current, changed, reused, or unavailable result.</returns>
+	public static TargetIdentityCheck ValidateCurrent(TargetProcessIncarnation expected)
+	{
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		int top = state.Top;
+		try
+		{
+			return ValidateCurrent(state, expected);
+		}
+		finally
+		{
+			state.SetTop(top);
+		}
+	}
 
-    internal static TargetSelectionObservation ObserveCurrent(LuaState state)
-    {
-        var global = LuaGlobalFunctions.TryPushWithOutcome(state, SGetOpenedProcessId, "getOpenedProcessID"u8);
-        if (!global.IsSuccess)
-        {
-            return global.Status == LuaGlobalPushStatus.Unavailable
-                ? TargetSelectionObservation.FromStatus(TargetSelectionObservationStatus.GlobalUnavailable)
-                : TargetSelectionObservation.FromStatus(TargetSelectionObservationStatus.LuaFailure);
-        }
+	internal static TargetSelectionObservation ObserveCurrent(LuaState state)
+	{
+		LuaGlobalPushOutcome global =
+			LuaGlobalFunctions.TryPushWithOutcome(state, SGetOpenedProcessId, "getOpenedProcessID"u8);
+		if (!global.IsSuccess)
+		{
+			return global.Status == LuaGlobalPushStatus.Unavailable
+				? TargetSelectionObservation.FromStatus(TargetSelectionObservationStatus.GlobalUnavailable)
+				: TargetSelectionObservation.FromStatus(TargetSelectionObservationStatus.LuaFailure);
+		}
 
-        if (!state.TryCall(0, 1).IsOk)
-            return TargetSelectionObservation.FromStatus(TargetSelectionObservationStatus.LuaFailure);
-        if (!state.TryReadInteger(-1, out var rawProcessId))
-            return TargetSelectionObservation.FromStatus(TargetSelectionObservationStatus.InvalidResult);
-        if (rawProcessId == 0) return TargetSelectionObservation.NoTarget();
-        if (rawProcessId < 0 || rawProcessId > int.MaxValue)
-            return TargetSelectionObservation.FromStatus(TargetSelectionObservationStatus.InvalidResult);
+		if (!state.TryCall(0, 1).IsOk)
+		{
+			return TargetSelectionObservation.FromStatus(TargetSelectionObservationStatus.LuaFailure);
+		}
 
-        var processId = (int)rawProcessId;
-        return TryObserveIncarnation(processId, out var incarnation)
-            ? TargetSelectionObservation.Qualified(incarnation)
-            : TargetSelectionObservation.Unqualified(processId);
-    }
+		if (!state.TryReadInteger(-1, out long rawProcessId))
+		{
+			return TargetSelectionObservation.FromStatus(TargetSelectionObservationStatus.InvalidResult);
+		}
 
-    internal static TargetIdentityCheck ValidateCurrent(LuaState state, TargetProcessIncarnation expected)
-    {
-        var observed = ObserveCurrent(state);
-        if (!observed.IsQualified)
-            return CreateUnavailableCheck(observed);
+		if (rawProcessId == 0)
+		{
+			return TargetSelectionObservation.NoTarget();
+		}
 
-        var current = observed.Incarnation.GetValueOrDefault();
-        if (current.ProcessId != expected.ProcessId)
-            return new TargetIdentityCheck(TargetIdentityCheckKind.TargetChanged, observed);
+		if (rawProcessId < 0 || rawProcessId > int.MaxValue)
+		{
+			return TargetSelectionObservation.FromStatus(TargetSelectionObservationStatus.InvalidResult);
+		}
 
-        return current.StartedAtUtcTicks == expected.StartedAtUtcTicks
-            ? new TargetIdentityCheck(TargetIdentityCheckKind.Current, observed)
-            : new TargetIdentityCheck(TargetIdentityCheckKind.ProcessReused, observed);
-    }
+		int processId = (int) rawProcessId;
+		return TryObserveIncarnation(processId, out TargetProcessIncarnation incarnation)
+			? TargetSelectionObservation.Qualified(incarnation)
+			: TargetSelectionObservation.Unqualified(processId);
+	}
 
-    internal static TargetIdentityCheck CreateUnavailableCheck(TargetSelectionObservation observation)
-    {
-        return new TargetIdentityCheck(MapUnavailable(observation.Status), observation);
-    }
+	internal static TargetIdentityCheck ValidateCurrent(LuaState state, TargetProcessIncarnation expected)
+	{
+		TargetSelectionObservation observed = ObserveCurrent(state);
+		if (!observed.IsQualified)
+		{
+			return CreateUnavailableCheck(observed);
+		}
 
-    private static bool TryObserveIncarnation(int processId, out TargetProcessIncarnation incarnation)
-    {
-        try
-        {
-            using Process process = Process.GetProcessById(processId);
-            var startedAtUtcTicks = process.StartTime.ToUniversalTime().Ticks;
-            if (startedAtUtcTicks <= 0)
-            {
-                incarnation = default;
-                return false;
-            }
+		TargetProcessIncarnation current = observed.Incarnation.GetValueOrDefault();
+		if (current.ProcessId != expected.ProcessId)
+		{
+			return new TargetIdentityCheck(TargetIdentityCheckKind.TargetChanged, observed);
+		}
 
-            incarnation = new TargetProcessIncarnation(processId, startedAtUtcTicks);
-            return true;
-        }
-        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception
-                                         or NotSupportedException or UnauthorizedAccessException)
-        {
-            incarnation = default;
-            return false;
-        }
-    }
+		return current.StartedAtUtcTicks == expected.StartedAtUtcTicks
+			? new TargetIdentityCheck(TargetIdentityCheckKind.Current, observed)
+			: new TargetIdentityCheck(TargetIdentityCheckKind.ProcessReused, observed);
+	}
 
-    private static TargetIdentityCheckKind MapUnavailable(TargetSelectionObservationStatus status)
-    {
-        return status switch
-        {
-            TargetSelectionObservationStatus.NoTargetSelected => TargetIdentityCheckKind.NoTargetSelected,
-            TargetSelectionObservationStatus.CurrentTargetUnqualified => TargetIdentityCheckKind.CurrentTargetUnqualified,
-            TargetSelectionObservationStatus.GlobalUnavailable => TargetIdentityCheckKind.GlobalUnavailable,
-            TargetSelectionObservationStatus.LuaFailure => TargetIdentityCheckKind.LuaFailure,
-            _ => TargetIdentityCheckKind.InvalidResult,
-        };
-    }
+	internal static TargetIdentityCheck CreateUnavailableCheck(TargetSelectionObservation observation)
+	{
+		return new TargetIdentityCheck(MapUnavailable(observation.Status), observation);
+	}
+
+	private static bool TryObserveIncarnation(int processId, out TargetProcessIncarnation incarnation)
+	{
+		try
+		{
+			using Process process = Process.GetProcessById(processId);
+			long startedAtUtcTicks = process.StartTime.ToUniversalTime().Ticks;
+			if (startedAtUtcTicks <= 0)
+			{
+				incarnation = default;
+				return false;
+			}
+
+			incarnation = new TargetProcessIncarnation(processId, startedAtUtcTicks);
+			return true;
+		}
+		catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception
+			                                  or NotSupportedException or UnauthorizedAccessException)
+		{
+			incarnation = default;
+			return false;
+		}
+	}
+
+	private static TargetIdentityCheckKind MapUnavailable(TargetSelectionObservationStatus status)
+	{
+		return status switch
+		{
+			TargetSelectionObservationStatus.NoTargetSelected => TargetIdentityCheckKind.NoTargetSelected,
+			TargetSelectionObservationStatus.CurrentTargetUnqualified => TargetIdentityCheckKind
+				.CurrentTargetUnqualified,
+			TargetSelectionObservationStatus.GlobalUnavailable => TargetIdentityCheckKind.GlobalUnavailable,
+			TargetSelectionObservationStatus.LuaFailure => TargetIdentityCheckKind.LuaFailure,
+			_ => TargetIdentityCheckKind.InvalidResult
+		};
+	}
 }

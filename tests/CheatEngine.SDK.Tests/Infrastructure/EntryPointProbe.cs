@@ -11,35 +11,40 @@ namespace CheatEngine.SDK.Tests.Infrastructure;
 /// </summary>
 internal static class EntryPointProbe
 {
-    // The type name Cheat Engine itself looks up in every plugin assembly. It is not this SDK's name (CheatEngine.SDK).
-    private const string TypeNamespace = "CESDK";
-    private const string TypeName = "CESDK";
-    private const string MethodName = "CEPluginInitialize";
+	// The type name Cheat Engine itself looks up in every plugin assembly. It is not this SDK's name (CheatEngine.SDK).
+	private const string TypeNamespace = "CESDK";
+	private const string TypeName = "CESDK";
+	private const string MethodName = "CEPluginInitialize";
 
-    /// <summary>Whether the <c>CESDK.CESDK</c> type exists, and whether it declares a two-parameter <c>CEPluginInitialize</c>.</summary>
-    public static (bool TypeExists, bool MethodExists) Probe(string assemblyPath)
-    {
-        using var stream = File.OpenRead(assemblyPath);
-        using PEReader peReader = new(stream);
-        var reader = peReader.GetMetadataReader();
+	/// <summary>Whether the <c>CESDK.CESDK</c> type exists, and whether it declares a two-parameter <c>CEPluginInitialize</c>.</summary>
+	public static (bool TypeExists, bool MethodExists) Probe(string assemblyPath)
+	{
+		using FileStream stream = File.OpenRead(assemblyPath);
+		using PEReader peReader = new(stream);
+		MetadataReader reader = peReader.GetMetadataReader();
 
-        foreach (var typeHandle in reader.TypeDefinitions)
-        {
-            var type = reader.GetTypeDefinition(typeHandle);
-            if (!string.Equals(reader.GetString(type.Namespace), TypeNamespace, StringComparison.Ordinal)
-                || !string.Equals(reader.GetString(type.Name), TypeName, StringComparison.Ordinal))
-                continue;
+		foreach (TypeDefinitionHandle typeHandle in reader.TypeDefinitions)
+		{
+			TypeDefinition type = reader.GetTypeDefinition(typeHandle);
+			if (!string.Equals(reader.GetString(type.Namespace), TypeNamespace, StringComparison.Ordinal)
+			    || !string.Equals(reader.GetString(type.Name), TypeName, StringComparison.Ordinal))
+			{
+				continue;
+			}
 
-            foreach (var methodHandle in type.GetMethods())
-            {
-                var method = reader.GetMethodDefinition(methodHandle);
-                if (string.Equals(reader.GetString(method.Name), MethodName, StringComparison.Ordinal) &&
-                    method.GetParameters().Count == 2) return (TypeExists: true, MethodExists: true);
-            }
+			foreach (MethodDefinitionHandle methodHandle in type.GetMethods())
+			{
+				MethodDefinition method = reader.GetMethodDefinition(methodHandle);
+				if (string.Equals(reader.GetString(method.Name), MethodName, StringComparison.Ordinal) &&
+				    method.GetParameters().Count == 2)
+				{
+					return (TypeExists: true, MethodExists: true);
+				}
+			}
 
-            return (TypeExists: true, MethodExists: false);
-        }
+			return (TypeExists: true, MethodExists: false);
+		}
 
-        return (TypeExists: false, MethodExists: false);
-    }
+		return (TypeExists: false, MethodExists: false);
+	}
 }

@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+
 using CheatEngine.SDK.Benchmarks.Support;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Lua.Marshalling;
@@ -18,45 +19,45 @@ namespace CheatEngine.SDK.Benchmarks;
 [BenchmarkCategory("ObjectAccess")]
 public class ObjectPropertyBenchmarks : IDisposable
 {
-    private CEObject _object;
-    private NativeLuaState? _state;
+	private CEObject _object;
+	private NativeLuaState? _state;
 
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        LuaRuntime.Detach();
-        _state?.Dispose();
-        GC.SuppressFinalize(this);
-    }
+	/// <inheritdoc />
+	public void Dispose()
+	{
+		LuaRuntime.Detach();
+		_state?.Dispose();
+		GC.SuppressFinalize(this);
+	}
 
-    /// <summary>Opens a state, attaches the ambient runtime with a pusher and a one-property fake object model.</summary>
-    [GlobalSetup]
-    public void Setup()
-    {
-        NativeLuaLibrary.ThrowIfUnavailable();
-        _state = new NativeLuaState();
-        _ = FakeHostRuntime.Attach(_state, true);
-        _object = new CEObject(0x0010_0000);
-    }
+	/// <summary>Opens a state, attaches the ambient runtime with a pusher and a one-property fake object model.</summary>
+	[GlobalSetup]
+	public void Setup()
+	{
+		NativeLuaLibrary.ThrowIfUnavailable();
+		_state = new NativeLuaState();
+		_ = FakeHostRuntime.Attach(_state, true);
+		_object = new CEObject(0x0010_0000);
+	}
 
-    /// <summary>
-    ///     Detaches the ambient runtime and closes the state. BenchmarkDotNet does not call <see cref="Dispose" />
-    ///     itself; this is what <c>[GlobalCleanup]</c> is for.
-    /// </summary>
-    [GlobalCleanup]
-    public void Cleanup()
-    {
-        Dispose();
-    }
+	/// <summary>
+	///     Detaches the ambient runtime and closes the state. BenchmarkDotNet does not call <see cref="Dispose" />
+	///     itself; this is what <c>[GlobalCleanup]</c> is for.
+	/// </summary>
+	[GlobalCleanup]
+	public void Cleanup()
+	{
+		Dispose();
+	}
 
-    /// <summary>
-    ///     <see cref="CEObject.TryGetProperty{TMarshaller, TValue}(ReadOnlySpan{byte}, out TValue)" />: provider, push
-    ///     the object, protected <c>__index</c>, read, <c>settop</c> (nine transitions with a one-call marshaller).
-    /// </summary>
-    [Benchmark]
-    public int PropertyGet()
-    {
-        _ = _object.TryGetProperty<Int32Marshaller, int>("Count"u8, out var value);
-        return value;
-    }
+	/// <summary>
+	///     <see cref="CEObject.TryGetProperty{TMarshaller, TValue}(ReadOnlySpan{byte}, out TValue)" />: provider, push
+	///     the object, protected <c>__index</c>, read, <c>settop</c> (nine transitions with a one-call marshaller).
+	/// </summary>
+	[Benchmark]
+	public int PropertyGet()
+	{
+		_ = _object.TryGetProperty<Int32Marshaller, int>("Count"u8, out int value);
+		return value;
+	}
 }

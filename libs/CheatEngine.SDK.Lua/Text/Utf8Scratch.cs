@@ -29,68 +29,78 @@ namespace CheatEngine.SDK.Lua.Text;
 /// </remarks>
 internal ref struct Utf8Scratch : IDisposable
 {
-    /// <summary>
-    ///     Size of the stack buffer the callers of this type allocate: room for 170 characters of any kind, or 512
-    ///     ASCII characters. Above that a pooled array is used. Kept under the 1 KiB that the runtime's unsafe-code
-    ///     guidance considers a reasonable <c>stackalloc</c> bound.
-    /// </summary>
-    public const int StackBufferSize = 512;
+	/// <summary>
+	///     Size of the stack buffer the callers of this type allocate: room for 170 characters of any kind, or 512
+	///     ASCII characters. Above that a pooled array is used. Kept under the 1 KiB that the runtime's unsafe-code
+	///     guidance considers a reasonable <c>stackalloc</c> bound.
+	/// </summary>
+	public const int StackBufferSize = 512;
 
-    private byte[]? _rented;
+	private byte[]? _rented;
 
-    private Utf8Scratch(byte[]? rented, ReadOnlySpan<byte> bytes)
-    {
-        _rented = rented;
-        Bytes = bytes;
-    }
+	private Utf8Scratch(byte[]? rented, ReadOnlySpan<byte> bytes)
+	{
+		_rented = rented;
+		Bytes = bytes;
+	}
 
-    /// <summary>Gets the encoded bytes. Valid until <see cref="Dispose" />.</summary>
-    public ReadOnlySpan<byte> Bytes { get; private set; }
+	/// <summary>Gets the encoded bytes. Valid until <see cref="Dispose" />.</summary>
+	public ReadOnlySpan<byte> Bytes
+	{
+		get;
+		private set;
+	}
 
-    /// <summary>Gets a value indicating whether the text did not fit the stack buffer and a pooled array was rented.</summary>
-    public readonly bool IsPooled => _rented is not null;
+	/// <summary>Gets a value indicating whether the text did not fit the stack buffer and a pooled array was rented.</summary>
+	public readonly bool IsPooled => _rented is not null;
 
-    /// <summary>
-    ///     Encodes <paramref name="text" />, into <paramref name="stackBuffer" /> when the worst case fits, else into a
-    ///     pooled array.
-    /// </summary>
-    /// <param name="text">The UTF-16 text; may be empty.</param>
-    /// <param name="stackBuffer">
-    ///     A buffer the caller owns for the duration of the result, usually
-    ///     <c>stackalloc byte[StackBufferSize]</c>.
-    /// </param>
-    /// <returns>The transcoding result; dispose it when the bytes are no longer needed.</returns>
-    public static Utf8Scratch Encode(ReadOnlySpan<char> text, Span<byte> stackBuffer)
-    {
-        if (text.IsEmpty) return new Utf8Scratch(null, ReadOnlySpan<byte>.Empty);
+	/// <summary>
+	///     Encodes <paramref name="text" />, into <paramref name="stackBuffer" /> when the worst case fits, else into a
+	///     pooled array.
+	/// </summary>
+	/// <param name="text">The UTF-16 text; may be empty.</param>
+	/// <param name="stackBuffer">
+	///     A buffer the caller owns for the duration of the result, usually
+	///     <c>stackalloc byte[StackBufferSize]</c>.
+	/// </param>
+	/// <returns>The transcoding result; dispose it when the bytes are no longer needed.</returns>
+	public static Utf8Scratch Encode(ReadOnlySpan<char> text, Span<byte> stackBuffer)
+	{
+		if (text.IsEmpty)
+		{
+			return new Utf8Scratch(null, ReadOnlySpan<byte>.Empty);
+		}
 
-        // The worst case (every char a 3-byte sequence, plus the encoder's slack) is cheap to compute and lets the
-        // common case skip the exact count.
-        var worstCase = Encoding.UTF8.GetMaxByteCount(text.Length);
-        if (worstCase <= stackBuffer.Length)
-        {
-            var written = Encoding.UTF8.GetBytes(text, stackBuffer);
-            return new Utf8Scratch(null, stackBuffer[..written]);
-        }
+		// The worst case (every char a 3-byte sequence, plus the encoder's slack) is cheap to compute and lets the
+		// common case skip the exact count.
+		int worstCase = Encoding.UTF8.GetMaxByteCount(text.Length);
+		if (worstCase <= stackBuffer.Length)
+		{
+			int written = Encoding.UTF8.GetBytes(text, stackBuffer);
+			return new Utf8Scratch(null, stackBuffer[..written]);
+		}
 
-        var exact = Encoding.UTF8.GetByteCount(text);
-        if (exact <= stackBuffer.Length)
-        {
-            var written = Encoding.UTF8.GetBytes(text, stackBuffer);
-            return new Utf8Scratch(null, stackBuffer[..written]);
-        }
+		int exact = Encoding.UTF8.GetByteCount(text);
+		if (exact <= stackBuffer.Length)
+		{
+			int written = Encoding.UTF8.GetBytes(text, stackBuffer);
+			return new Utf8Scratch(null, stackBuffer[..written]);
+		}
 
-        var rented = ArrayPool<byte>.Shared.Rent(exact);
-        var count = Encoding.UTF8.GetBytes(text, rented);
-        return new Utf8Scratch(rented, new ReadOnlySpan<byte>(rented, 0, count));
-    }
+		byte[] rented = ArrayPool<byte>.Shared.Rent(exact);
+		int count = Encoding.UTF8.GetBytes(text, rented);
+		return new Utf8Scratch(rented, new ReadOnlySpan<byte>(rented, 0, count));
+	}
 
-    /// <summary>Returns the pooled array, if any. Idempotent.</summary>
-    public void Dispose()
-    {
-        var rented = _rented;
-        _rented = null;
-        Bytes = ReadOnlySpan<byte>.Empty;
-        if (rented is not null) ArrayPool<byte>.Shared.Return(rented);
-    }
+	/// <summary>Returns the pooled array, if any. Idempotent.</summary>
+	public void Dispose()
+	{
+		byte[]? rented = _rented;
+		_rented = null;
+		Bytes = ReadOnlySpan<byte>.Empty;
+		if (rented is not null)
+		{
+			ArrayPool<byte>.Shared.Return(rented);
+		}
+	}
 }

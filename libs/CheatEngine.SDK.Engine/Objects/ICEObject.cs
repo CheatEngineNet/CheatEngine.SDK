@@ -21,13 +21,16 @@ namespace CheatEngine.SDK.Engine.Objects;
 ///     </para>
 /// </remarks>
 public interface ICEObject<TSelf>
-    where TSelf : struct, ICEObject<TSelf>
+	where TSelf : struct, ICEObject<TSelf>
 {
-    /// <summary>Gets the untyped handle: the native object pointer with the property and method primitives.</summary>
-    public CEObject Handle { get; }
+	/// <summary>Gets the untyped handle: the native object pointer with the property and method primitives.</summary>
+	public CEObject Handle
+	{
+		get;
+	}
 
-    /// <summary>Wraps an untyped handle as <typeparamref name="TSelf" /> without any check.</summary>
-    /// <param name="handle">The handle; may be <see cref="CEObject.IsNull" />, which gives the default value.</param>
-    /// <returns>The typed handle.</returns>
-    public static abstract TSelf FromHandle(CEObject handle);
+	/// <summary>Wraps an untyped handle as <typeparamref name="TSelf" /> without any check.</summary>
+	/// <param name="handle">The handle; may be <see cref="CEObject.IsNull" />, which gives the default value.</param>
+	/// <returns>The typed handle.</returns>
+	public static abstract TSelf FromHandle(CEObject handle);
 }

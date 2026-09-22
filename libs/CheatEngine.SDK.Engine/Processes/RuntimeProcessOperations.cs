@@ -1,7 +1,9 @@
 using System;
+
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Inspection;
 using CheatEngine.SDK.Engine.Runtime;
+using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.CompilerServices;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
@@ -20,207 +22,210 @@ namespace CheatEngine.SDK.Engine.Processes;
 /// </remarks>
 public static class RuntimeProcessOperations
 {
-    private static readonly LuaRef SGetOpenedProcessId = new();
-    private static readonly LuaRef SOpenProcess = new();
-    private static readonly LuaRef STargetIs64Bit = new();
+	private static readonly LuaRef SGetOpenedProcessId = new();
+	private static readonly LuaRef SOpenProcess = new();
+	private static readonly LuaRef STargetIs64Bit = new();
 
-    /// <summary>Observes the current CE target process and its pointer width.</summary>
-    /// <param name="observation">The copied target observation only when the returned status is successful.</param>
-    /// <returns>The factual protected process-observation status.</returns>
-    /// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
-    [RequiresPluginEnabled]
-    public static ProcessOperationStatus ObserveCurrent(out CurrentProcessObservation observation)
-    {
-        using var operation = LuaRuntime.AcquireOperation();
-        return ObserveCurrent(operation.State, out observation);
-    }
+	/// <summary>Observes the current CE target process and its pointer width.</summary>
+	/// <param name="observation">The copied target observation only when the returned status is successful.</param>
+	/// <returns>The factual protected process-observation status.</returns>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
+	[RequiresPluginEnabled]
+	public static ProcessOperationStatus ObserveCurrent(out CurrentProcessObservation observation)
+	{
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		return ObserveCurrent(operation.State, out observation);
+	}
 
-    /// <summary>Selects an explicit process identifier and immediately verifies CE's resulting selection.</summary>
-    /// <param name="processId">The positive process identifier to select.</param>
-    /// <param name="observation">The copied matching target observation only when the returned status is successful.</param>
-    /// <returns>
-    ///     The factual protected selection status. A normal <c>openProcess</c> return is not success by itself: success
-    ///     requires the next <c>getOpenedProcessID</c> observation to equal <paramref name="processId" />.
-    /// </returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="processId" /> is default or otherwise non-positive.</exception>
-    /// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
-    [RequiresPluginEnabled]
-    public static ProcessOperationStatus SelectAndObserve(TargetProcessId processId,
-        out CurrentProcessObservation observation)
-    {
-        ValidateProcessId(processId);
-        using var operation = LuaRuntime.AcquireOperation();
-        var state = operation.State;
-        var top = state.Top;
-        try
-        {
-            var status = TryOpenProcess(state, processId);
-            if (!status.IsSuccess)
-            {
-                observation = default;
-                return status;
-            }
+	/// <summary>Selects an explicit process identifier and immediately verifies CE's resulting selection.</summary>
+	/// <param name="processId">The positive process identifier to select.</param>
+	/// <param name="observation">The copied matching target observation only when the returned status is successful.</param>
+	/// <returns>
+	///     The factual protected selection status. A normal <c>openProcess</c> return is not success by itself: success
+	///     requires the next <c>getOpenedProcessID</c> observation to equal <paramref name="processId" />.
+	/// </returns>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="processId" /> is default or otherwise non-positive.</exception>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
+	[RequiresPluginEnabled]
+	public static ProcessOperationStatus SelectAndObserve(TargetProcessId processId,
+		out CurrentProcessObservation observation)
+	{
+		ValidateProcessId(processId);
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		int top = state.Top;
+		try
+		{
+			ProcessOperationStatus status = TryOpenProcess(state, processId);
+			if (!status.IsSuccess)
+			{
+				observation = default;
+				return status;
+			}
 
-            status = TryGetOpenedProcessId(state, out TargetProcessId? observedProcessId);
-            if (status.Kind == ProcessOperationStatusKind.TargetNotAttached ||
-                (status.IsSuccess && observedProcessId != processId))
-            {
-                observation = default;
-                return ProcessOperationStatus.SelectionNotConfirmed;
-            }
+			status = TryGetOpenedProcessId(state, out TargetProcessId? observedProcessId);
+			if (status.Kind == ProcessOperationStatusKind.TargetNotAttached ||
+			    (status.IsSuccess && observedProcessId != processId))
+			{
+				observation = default;
+				return ProcessOperationStatus.SelectionNotConfirmed;
+			}
 
-            if (!status.IsSuccess)
-            {
-                observation = default;
-                return status;
-            }
+			if (!status.IsSuccess)
+			{
+				observation = default;
+				return status;
+			}
 
-            status = TryGetTargetPointerSize(state, out PointerSize pointerSize);
-            if (!status.IsSuccess)
-            {
-                observation = default;
-                return status;
-            }
+			status = TryGetTargetPointerSize(state, out PointerSize pointerSize);
+			if (!status.IsSuccess)
+			{
+				observation = default;
+				return status;
+			}
 
-            observation = new CurrentProcessObservation(observedProcessId!.Value, pointerSize);
-            return ProcessOperationStatus.Success;
-        }
-        finally
-        {
-            state.SetTop(top);
-        }
-    }
+			observation = new CurrentProcessObservation(observedProcessId!.Value, pointerSize);
+			return ProcessOperationStatus.Success;
+		}
+		finally
+		{
+			state.SetTop(top);
+		}
+	}
 
-    private static ProcessOperationStatus ObserveCurrent(LuaState state, out CurrentProcessObservation observation)
-    {
-        var top = state.Top;
-        try
-        {
-            var status = TryGetOpenedProcessId(state, out TargetProcessId? processId);
-            if (!status.IsSuccess || !processId.HasValue)
-            {
-                observation = default;
-                return status;
-            }
+	private static ProcessOperationStatus ObserveCurrent(LuaState state, out CurrentProcessObservation observation)
+	{
+		int top = state.Top;
+		try
+		{
+			ProcessOperationStatus status = TryGetOpenedProcessId(state, out TargetProcessId? processId);
+			if (!status.IsSuccess || !processId.HasValue)
+			{
+				observation = default;
+				return status;
+			}
 
-            status = TryGetTargetPointerSize(state, out PointerSize pointerSize);
-            if (!status.IsSuccess)
-            {
-                observation = default;
-                return status;
-            }
+			status = TryGetTargetPointerSize(state, out PointerSize pointerSize);
+			if (!status.IsSuccess)
+			{
+				observation = default;
+				return status;
+			}
 
-            observation = new CurrentProcessObservation(processId.Value, pointerSize);
-            return ProcessOperationStatus.Success;
-        }
-        finally
-        {
-            state.SetTop(top);
-        }
-    }
+			observation = new CurrentProcessObservation(processId.Value, pointerSize);
+			return ProcessOperationStatus.Success;
+		}
+		finally
+		{
+			state.SetTop(top);
+		}
+	}
 
-    private static ProcessOperationStatus TryGetOpenedProcessId(LuaState state, out TargetProcessId? processId)
-    {
-        var resolution = LuaGlobalFunctions.TryPushWithOutcome(state, SGetOpenedProcessId, "getOpenedProcessID"u8);
-        if (!resolution.IsSuccess)
-        {
-            processId = default;
-            return FromResolution(resolution);
-        }
+	private static ProcessOperationStatus TryGetOpenedProcessId(LuaState state, out TargetProcessId? processId)
+	{
+		LuaGlobalPushOutcome resolution =
+			LuaGlobalFunctions.TryPushWithOutcome(state, SGetOpenedProcessId, "getOpenedProcessID"u8);
+		if (!resolution.IsSuccess)
+		{
+			processId = default;
+			return FromResolution(resolution);
+		}
 
-        var luaStatus = state.TryCall(0, 1);
-        if (!luaStatus.IsOk)
-        {
-            processId = default;
-            return ProcessOperationStatus.ProtectedLuaFailure(luaStatus);
-        }
+		LuaStatus luaStatus = state.TryCall(0, 1);
+		if (!luaStatus.IsOk)
+		{
+			processId = default;
+			return ProcessOperationStatus.ProtectedLuaFailure(luaStatus);
+		}
 
-        if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out var value) ||
-            value is < 0 or > int.MaxValue)
-        {
-            processId = default;
-            return ProcessOperationStatus.InvalidResult;
-        }
+		if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out long value) ||
+		    value is < 0 or > int.MaxValue)
+		{
+			processId = default;
+			return ProcessOperationStatus.InvalidResult;
+		}
 
-        if (value == 0)
-        {
-            processId = default;
-            return ProcessOperationStatus.TargetNotAttached;
-        }
+		if (value == 0)
+		{
+			processId = default;
+			return ProcessOperationStatus.TargetNotAttached;
+		}
 
-        processId = new TargetProcessId((int)value);
-        return ProcessOperationStatus.Success;
-    }
+		processId = new TargetProcessId((int) value);
+		return ProcessOperationStatus.Success;
+	}
 
-    private static ProcessOperationStatus TryGetTargetPointerSize(LuaState state, out PointerSize pointerSize)
-    {
-        var status = TryCallBoolean(state, STargetIs64Bit, "targetIs64Bit"u8, out var is64Bit);
-        if (!status.IsSuccess)
-        {
-            pointerSize = PointerSize.Unknown;
-            return status;
-        }
+	private static ProcessOperationStatus TryGetTargetPointerSize(LuaState state, out PointerSize pointerSize)
+	{
+		ProcessOperationStatus status = TryCallBoolean(state, STargetIs64Bit, "targetIs64Bit"u8, out bool is64Bit);
+		if (!status.IsSuccess)
+		{
+			pointerSize = PointerSize.Unknown;
+			return status;
+		}
 
-        pointerSize = is64Bit ? PointerSize.Bit64 : PointerSize.Bit32;
-        return ProcessOperationStatus.Success;
-    }
+		pointerSize = is64Bit ? PointerSize.Bit64 : PointerSize.Bit32;
+		return ProcessOperationStatus.Success;
+	}
 
-    private static ProcessOperationStatus TryOpenProcess(LuaState state, TargetProcessId processId)
-    {
-        var resolution = LuaGlobalFunctions.TryPushWithOutcome(state, SOpenProcess, "openProcess"u8);
-        if (!resolution.IsSuccess)
-        {
-            return FromResolution(resolution);
-        }
+	private static ProcessOperationStatus TryOpenProcess(LuaState state, TargetProcessId processId)
+	{
+		LuaGlobalPushOutcome resolution = LuaGlobalFunctions.TryPushWithOutcome(state, SOpenProcess, "openProcess"u8);
+		if (!resolution.IsSuccess)
+		{
+			return FromResolution(resolution);
+		}
 
-        state.PushInteger(processId.Value);
-        var luaStatus = state.TryCall(1, 0);
-        return luaStatus.IsOk
-            ? ProcessOperationStatus.Success
-            : ProcessOperationStatus.ProtectedLuaFailure(luaStatus);
-    }
+		state.PushInteger(processId.Value);
+		LuaStatus luaStatus = state.TryCall(1, 0);
+		return luaStatus.IsOk
+			? ProcessOperationStatus.Success
+			: ProcessOperationStatus.ProtectedLuaFailure(luaStatus);
+	}
 
-    private static ProcessOperationStatus TryCallBoolean(LuaState state, LuaRef cache, ReadOnlySpan<byte> globalName,
-        out bool value)
-    {
-        var resolution = LuaGlobalFunctions.TryPushWithOutcome(state, cache, globalName);
-        if (!resolution.IsSuccess)
-        {
-            value = default;
-            return FromResolution(resolution);
-        }
+	private static ProcessOperationStatus TryCallBoolean(LuaState state, LuaRef cache, ReadOnlySpan<byte> globalName,
+		out bool value)
+	{
+		LuaGlobalPushOutcome resolution = LuaGlobalFunctions.TryPushWithOutcome(state, cache, globalName);
+		if (!resolution.IsSuccess)
+		{
+			value = default;
+			return FromResolution(resolution);
+		}
 
-        var luaStatus = state.TryCall(0, 1);
-        if (!luaStatus.IsOk)
-        {
-            value = default;
-            return ProcessOperationStatus.ProtectedLuaFailure(luaStatus);
-        }
+		LuaStatus luaStatus = state.TryCall(0, 1);
+		if (!luaStatus.IsOk)
+		{
+			value = default;
+			return ProcessOperationStatus.ProtectedLuaFailure(luaStatus);
+		}
 
-        if (state.TypeOf(-1) != LuaType.Boolean)
-        {
-            value = default;
-            return ProcessOperationStatus.InvalidResult;
-        }
+		if (state.TypeOf(-1) != LuaType.Boolean)
+		{
+			value = default;
+			return ProcessOperationStatus.InvalidResult;
+		}
 
-        value = state.ToBoolean(-1);
-        return ProcessOperationStatus.Success;
-    }
+		value = state.ToBoolean(-1);
+		return ProcessOperationStatus.Success;
+	}
 
-    private static ProcessOperationStatus FromResolution(LuaGlobalPushOutcome resolution)
-    {
-        return resolution.Status switch
-        {
-            LuaGlobalPushStatus.Unavailable => ProcessOperationStatus.GlobalUnavailable,
-            LuaGlobalPushStatus.LuaFailure => ProcessOperationStatus.ProtectedLuaFailure(resolution.LuaStatus),
-            _ => ProcessOperationStatus.InvalidResult,
-        };
-    }
+	private static ProcessOperationStatus FromResolution(LuaGlobalPushOutcome resolution)
+	{
+		return resolution.Status switch
+		{
+			LuaGlobalPushStatus.Unavailable => ProcessOperationStatus.GlobalUnavailable,
+			LuaGlobalPushStatus.LuaFailure => ProcessOperationStatus.ProtectedLuaFailure(resolution.LuaStatus),
+			_ => ProcessOperationStatus.InvalidResult
+		};
+	}
 
-    private static void ValidateProcessId(TargetProcessId processId)
-    {
-        if (processId.Value <= 0)
-            throw new ArgumentOutOfRangeException(nameof(processId), processId.Value,
-                "A target process identifier must be positive.");
-    }
+	private static void ValidateProcessId(TargetProcessId processId)
+	{
+		if (processId.Value <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(processId), processId.Value,
+				"A target process identifier must be positive.");
+		}
+	}
 }

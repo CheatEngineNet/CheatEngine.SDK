@@ -7,8 +7,10 @@ classic plugin exports, loads that DLL back through `GetProcAddress`, and emits 
 ## Evidence boundary
 
 The source is deliberately pinned to the upstream revision
-[`ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37`](https://github.com/cheat-engine/cheat-engine/tree/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37):
-[`Cheat Engine/plugin/cepluginsdk.h`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/plugin/cepluginsdk.h).
+[
+`ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37`](https://github.com/cheat-engine/cheat-engine/tree/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37):
+[
+`Cheat Engine/plugin/cepluginsdk.h`](https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/plugin/cepluginsdk.h).
 `ce77_plugin_abi_contract.h` transcribes only the measured declaration subset, with source line ranges in its header;
 it does not vendor the upstream header or any Cheat Engine binary.
 

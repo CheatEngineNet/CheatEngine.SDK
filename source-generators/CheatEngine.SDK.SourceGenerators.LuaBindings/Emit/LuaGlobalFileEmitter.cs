@@ -1,6 +1,7 @@
 using CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 using CheatEngine.SDK.SourceGenerators.Shared;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
+
 using Microsoft.CodeAnalysis.Text;
 
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Emit;
@@ -19,48 +20,48 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Emit;
 /// </remarks>
 internal static class LuaGlobalFileEmitter
 {
-    /// <summary>Suffix of the hint name: <c>Demo.Memory.LuaGlobals.g.cs</c>.</summary>
-    public const string HintSuffix = LuaGlobalTableModel.HintSuffix;
+	/// <summary>Suffix of the hint name: <c>Demo.Memory.LuaGlobals.g.cs</c>.</summary>
+	public const string HintSuffix = LuaGlobalTableModel.HintSuffix;
 
-    // Computed once: reads the assembly name and version of this generator.
-    private static readonly string GeneratedCodeAttribute =
-        GeneratedCodeText.CreateGeneratedCodeAttribute(typeof(LuaGlobalFileEmitter));
+	// Computed once: reads the assembly name and version of this generator.
+	private static readonly string GeneratedCodeAttribute =
+		GeneratedCodeText.CreateGeneratedCodeAttribute(typeof(LuaGlobalFileEmitter));
 
-    /// <summary>
-    ///     The hint name of the file for <paramref name="table" />: resolved once, across the whole pass, by
-    ///     <see cref="LuaGlobalTables.Group" /> (<see cref="LuaGlobalTableModel.HintName" />), so that two types whose
-    ///     names differ only in ASCII case still get distinct files.
-    /// </summary>
-    public static string HintName(LuaGlobalTableModel table)
-    {
-        return table.HintName;
-    }
+	/// <summary>
+	///     The hint name of the file for <paramref name="table" />: resolved once, across the whole pass, by
+	///     <see cref="LuaGlobalTables.Group" /> (<see cref="LuaGlobalTableModel.HintName" />), so that two types whose
+	///     names differ only in ASCII case still get distinct files.
+	/// </summary>
+	public static string HintName(LuaGlobalTableModel table)
+	{
+		return table.HintName;
+	}
 
-    /// <summary>Emits the file for <paramref name="table" />.</summary>
-    public static SourceText Emit(LuaGlobalTableModel table)
-    {
-        SourceWriter writer = new(4096);
-        GeneratedCodeText.WriteFileHeader(writer);
-        TypeScaffoldEmitter.Open(writer, table.ContainingType);
+	/// <summary>Emits the file for <paramref name="table" />.</summary>
+	public static SourceText Emit(LuaGlobalTableModel table)
+	{
+		SourceWriter writer = new(4096);
+		GeneratedCodeText.WriteFileHeader(writer);
+		TypeScaffoldEmitter.Open(writer, table.ContainingType);
 
-        foreach (var global in table.CachedGlobals)
-        {
-            writer.WriteLine(GeneratedCodeAttribute);
-            writer.Write("private static readonly ");
-            writer.Write(LuaApiNames.LuaRef);
-            writer.Write(' ');
-            writer.Write(LuaGlobalCallModel.CacheFieldFor(global));
-            writer.WriteLine(" = new();");
-        }
+		foreach (string global in table.CachedGlobals)
+		{
+			writer.WriteLine(GeneratedCodeAttribute);
+			writer.Write("private static readonly ");
+			writer.Write(LuaApiNames.LuaRef);
+			writer.Write(' ');
+			writer.Write(LuaGlobalCallModel.CacheFieldFor(global));
+			writer.WriteLine(" = new();");
+		}
 
-        foreach (var call in table.Calls)
-        {
-            writer.WriteLine();
-            writer.WriteLine(GeneratedCodeAttribute);
-            LuaGlobalCallEmitter.Emit(writer, call);
-        }
+		foreach (LuaGlobalCallModel call in table.Calls)
+		{
+			writer.WriteLine();
+			writer.WriteLine(GeneratedCodeAttribute);
+			LuaGlobalCallEmitter.Emit(writer, call);
+		}
 
-        TypeScaffoldEmitter.Close(writer, table.ContainingType);
-        return writer.ToSourceText();
-    }
+		TypeScaffoldEmitter.Close(writer, table.ContainingType);
+		return writer.ToSourceText();
+	}
 }

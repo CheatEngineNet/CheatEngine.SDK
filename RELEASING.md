@@ -9,15 +9,15 @@ package manually: nuget.org versions are immutable, and the workflow artifact is
 Create an organization-owned trusted publishing policy under the `CheatEngine` organization at
 <https://www.nuget.org/account/trustedpublishing> with these exact values:
 
-| Field | Value |
-|---|---|
-| Policy owner | `CheatEngine` (organization) |
-| Repository owner | `CheatEngineNet` |
-| Repository | `CheatEngine.SDK` |
-| Workflow file | `release.yml` |
-| Environment | `nuget` |
-| Scope | Push new packages and package versions |
-| Package glob | `CheatEngine.SDK` |
+| Field            | Value                                  |
+|------------------|----------------------------------------|
+| Policy owner     | `CheatEngine` (organization)           |
+| Repository owner | `CheatEngineNet`                       |
+| Repository       | `CheatEngine.SDK`                      |
+| Workflow file    | `release.yml`                          |
+| Environment      | `nuget`                                |
+| Scope            | Push new packages and package versions |
+| Package glob     | `CheatEngine.SDK`                      |
 
 The GitHub `nuget` environment must contain an environment secret named `NUGET_USER`. Its value must be the exact
 nuget.org username of the administrator who created the policy, currently `AriusII`, not the organization name and not

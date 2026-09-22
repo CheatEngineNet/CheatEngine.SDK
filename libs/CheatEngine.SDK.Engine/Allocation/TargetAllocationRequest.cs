@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Engine.Enums;
 using CheatEngine.SDK.Engine.Memory;
 using CheatEngine.SDK.Engine.Values;
@@ -20,35 +21,47 @@ namespace CheatEngine.SDK.Engine.Allocation;
 [StructLayout(LayoutKind.Auto)]
 public readonly record struct TargetAllocationRequest
 {
-    /// <summary>
-    ///     Initializes a request for target-process memory.
-    /// </summary>
-    /// <param name="size">The positive number of requested bytes.</param>
-    /// <param name="preferredBaseAddress">An optional target address near which Cheat Engine should allocate.</param>
-    /// <param name="protection">The optional CE <c>PAGE_*</c> protection supplied at allocation time.</param>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="size" /> is the default, zero, or negative value.</exception>
-    public TargetAllocationRequest(TargetAllocationSize size, Address? preferredBaseAddress = null,
-        MemoryProtection? protection = null)
-    {
-        if (size.Value <= 0)
-            throw new ArgumentOutOfRangeException(nameof(size), size.Value, "An allocation size must be positive.");
-        Size = size;
-        PreferredBaseAddress = preferredBaseAddress;
-        Protection = protection;
-    }
+	/// <summary>
+	///     Initializes a request for target-process memory.
+	/// </summary>
+	/// <param name="size">The positive number of requested bytes.</param>
+	/// <param name="preferredBaseAddress">An optional target address near which Cheat Engine should allocate.</param>
+	/// <param name="protection">The optional CE <c>PAGE_*</c> protection supplied at allocation time.</param>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="size" /> is the default, zero, or negative value.</exception>
+	public TargetAllocationRequest(TargetAllocationSize size, Address? preferredBaseAddress = null,
+		MemoryProtection? protection = null)
+	{
+		if (size.Value <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(size), size.Value, "An allocation size must be positive.");
+		}
 
-    /// <summary>
-    ///     Gets the requested byte count.
-    /// </summary>
-    public TargetAllocationSize Size { get; }
+		Size = size;
+		PreferredBaseAddress = preferredBaseAddress;
+		Protection = protection;
+	}
 
-    /// <summary>
-    ///     Gets the optional target-process base-address preference.
-    /// </summary>
-    public Address? PreferredBaseAddress { get; }
+	/// <summary>
+	///     Gets the requested byte count.
+	/// </summary>
+	public TargetAllocationSize Size
+	{
+		get;
+	}
 
-    /// <summary>
-    ///     Gets the optional initial page protection.
-    /// </summary>
-    public MemoryProtection? Protection { get; }
+	/// <summary>
+	///     Gets the optional target-process base-address preference.
+	/// </summary>
+	public Address? PreferredBaseAddress
+	{
+		get;
+	}
+
+	/// <summary>
+	///     Gets the optional initial page protection.
+	/// </summary>
+	public MemoryProtection? Protection
+	{
+		get;
+	}
 }

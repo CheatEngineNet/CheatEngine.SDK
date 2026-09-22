@@ -12,40 +12,40 @@ namespace CheatEngine.SDK.Engine.Tests.Support;
 /// </summary>
 internal sealed class DebugAssertScope : IDisposable
 {
-    private readonly TraceListener[] _previous;
+	private readonly TraceListener[] _previous;
 
-    public DebugAssertScope()
-    {
-        _previous = new TraceListener[Trace.Listeners.Count];
-        Trace.Listeners.CopyTo(_previous, 0);
-        Trace.Listeners.Clear();
-        Trace.Listeners.Add(new ThrowingListener());
-    }
+	public DebugAssertScope()
+	{
+		_previous = new TraceListener[Trace.Listeners.Count];
+		Trace.Listeners.CopyTo(_previous, 0);
+		Trace.Listeners.Clear();
+		Trace.Listeners.Add(new ThrowingListener());
+	}
 
-    public void Dispose()
-    {
-        Trace.Listeners.Clear();
-        Trace.Listeners.AddRange(_previous);
-    }
+	public void Dispose()
+	{
+		Trace.Listeners.Clear();
+		Trace.Listeners.AddRange(_previous);
+	}
 
-    private sealed class ThrowingListener : TraceListener
-    {
-        public override void Write(string? message)
-        {
-        }
+	private sealed class ThrowingListener : TraceListener
+	{
+		public override void Write(string? message)
+		{
+		}
 
-        public override void WriteLine(string? message)
-        {
-        }
+		public override void WriteLine(string? message)
+		{
+		}
 
-        public override void Fail(string? message)
-        {
-            throw new DebugAssertFailedException(string.IsNullOrEmpty(message) ? "A Debug assertion failed." : message);
-        }
+		public override void Fail(string? message)
+		{
+			throw new DebugAssertFailedException(string.IsNullOrEmpty(message) ? "A Debug assertion failed." : message);
+		}
 
-        public override void Fail(string? message, string? detailMessage)
-        {
-            throw new DebugAssertFailedException(string.IsNullOrEmpty(message) ? "A Debug assertion failed." : message);
-        }
-    }
+		public override void Fail(string? message, string? detailMessage)
+		{
+			throw new DebugAssertFailedException(string.IsNullOrEmpty(message) ? "A Debug assertion failed." : message);
+		}
+	}
 }

@@ -14,9 +14,9 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 /// </param>
 internal readonly record struct CompilationFacts(bool AllowUnsafeBlocks)
 {
-    /// <summary>Reads the facts from <paramref name="compilation" />; a non-C# compilation reads as "unsafe not allowed".</summary>
-    public static CompilationFacts From(Compilation compilation)
-    {
-        return new CompilationFacts(compilation?.Options is CSharpCompilationOptions { AllowUnsafe: true });
-    }
+	/// <summary>Reads the facts from <paramref name="compilation" />; a non-C# compilation reads as "unsafe not allowed".</summary>
+	public static CompilationFacts From(Compilation compilation)
+	{
+		return new CompilationFacts(compilation?.Options is CSharpCompilationOptions { AllowUnsafe: true });
+	}
 }

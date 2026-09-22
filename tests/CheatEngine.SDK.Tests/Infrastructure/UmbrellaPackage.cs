@@ -7,15 +7,18 @@ namespace CheatEngine.SDK.Tests.Infrastructure;
 /// </summary>
 internal static class UmbrellaPackage
 {
-    /// <summary>The <c>PackageId</c> of <c>src/CheatEngine.SDK/CheatEngine.SDK.csproj</c>.</summary>
-    public const string Id = "CheatEngine.SDK";
+	/// <summary>The <c>PackageId</c> of <c>src/CheatEngine.SDK/CheatEngine.SDK.csproj</c>.</summary>
+	public const string Id = "CheatEngine.SDK";
 
-    /// <summary>Repository-relative path, with forward slashes, of the project that packs <see cref="Id" />.</summary>
-    public const string ProjectPath = "src/CheatEngine.SDK/CheatEngine.SDK.csproj";
+	/// <summary>Repository-relative path, with forward slashes, of the project that packs <see cref="Id" />.</summary>
+	public const string ProjectPath = "src/CheatEngine.SDK/CheatEngine.SDK.csproj";
 
-    /// <summary>
-    ///     The folder name NuGet extracts <see cref="Id" /> into inside a global-packages folder
-    ///     (<c>&lt;packages&gt;/cheatengine.sdk/&lt;version&gt;</c>): NuGet lower-cases the id there.
-    /// </summary>
-    public static string ExtractionFolderName { get; } = Id.ToLowerInvariant();
+	/// <summary>
+	///     The folder name NuGet extracts <see cref="Id" /> into inside a global-packages folder
+	///     (<c>&lt;packages&gt;/cheatengine.sdk/&lt;version&gt;</c>): NuGet lower-cases the id there.
+	/// </summary>
+	public static string ExtractionFolderName
+	{
+		get;
+	} = Id.ToLowerInvariant();
 }

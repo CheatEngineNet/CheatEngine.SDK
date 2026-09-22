@@ -10,20 +10,26 @@ namespace CheatEngine.SDK.Engine.Tests.Support;
 /// </summary>
 internal sealed class HostScope : IDisposable
 {
-    public HostScope(NativeLuaState state, bool withPusher = true)
-    {
-        State = EngineTest.View(state);
-        Binding = FakeHost.CreateBinding(state, withPusher);
-        LuaRuntime.Attach(Binding);
-    }
+	public HostScope(NativeLuaState state, bool withPusher = true)
+	{
+		State = EngineTest.View(state);
+		Binding = FakeHost.CreateBinding(state, withPusher);
+		LuaRuntime.Attach(Binding);
+	}
 
-    /// <summary>The fixture state as the SDK sees it.</summary>
-    public LuaState State { get; }
+	/// <summary>The fixture state as the SDK sees it.</summary>
+	public LuaState State
+	{
+		get;
+	}
 
-    public LuaHostBinding Binding { get; }
+	public LuaHostBinding Binding
+	{
+		get;
+	}
 
-    public void Dispose()
-    {
-        LuaRuntime.Detach();
-    }
+	public void Dispose()
+	{
+		LuaRuntime.Detach();
+	}
 }

@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Abi.Native;
 
 namespace CheatEngine.SDK.Abi.Managed;
@@ -35,58 +36,58 @@ namespace CheatEngine.SDK.Abi.Managed;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public unsafe struct PluginInitRecord
 {
-    /// <summary>
-    ///     NUL-terminated plugin name in the process ANSI code page (offset 0).
-    /// </summary>
-    /// <remarks>
-    ///     Ownership: the plugin allocates it and must keep it valid <b>for the lifetime of the process</b>; the host
-    ///     may read through this pointer after the bootstrap call has returned and never frees it. Allocate once in
-    ///     native memory and reuse the same pointer on the second bootstrap call. Evidence: the official bootstrap
-    ///     produces the buffer once with an ANSI string conversion into unmanaged memory and never releases it
-    ///     (<i>verified</i>).
-    /// </remarks>
-    public byte* Name;
+	/// <summary>
+	///     NUL-terminated plugin name in the process ANSI code page (offset 0).
+	/// </summary>
+	/// <remarks>
+	///     Ownership: the plugin allocates it and must keep it valid <b>for the lifetime of the process</b>; the host
+	///     may read through this pointer after the bootstrap call has returned and never frees it. Allocate once in
+	///     native memory and reuse the same pointer on the second bootstrap call. Evidence: the official bootstrap
+	///     produces the buffer once with an ANSI string conversion into unmanaged memory and never releases it
+	///     (<i>verified</i>).
+	/// </remarks>
+	public byte* Name;
 
-    /// <summary>
-    ///     Version query callback (offset 8). Receives a host-owned <see cref="PluginVersion" /> to fill in and the byte
-    ///     size the host reserved for it; returns true on success.
-    /// </summary>
-    /// <remarks>
-    ///     Must point at an <c>[UnmanagedCallersOnly]</c> static method declared with the <c>stdcall</c> convention,
-    ///     which stays valid for the lifetime of the process by construction. The callee must not let an exception
-    ///     escape. Called on Cheat Engine's main thread (<i>inferred</i> from the 7.5 host source).
-    /// </remarks>
-    public delegate* unmanaged[Stdcall]<PluginVersion*, int, Bool32> GetVersion;
+	/// <summary>
+	///     Version query callback (offset 8). Receives a host-owned <see cref="PluginVersion" /> to fill in and the byte
+	///     size the host reserved for it; returns true on success.
+	/// </summary>
+	/// <remarks>
+	///     Must point at an <c>[UnmanagedCallersOnly]</c> static method declared with the <c>stdcall</c> convention,
+	///     which stays valid for the lifetime of the process by construction. The callee must not let an exception
+	///     escape. Called on Cheat Engine's main thread (<i>inferred</i> from the 7.5 host source).
+	/// </remarks>
+	public delegate* unmanaged[Stdcall]<PluginVersion*, int, Bool32> GetVersion;
 
-    /// <summary>
-    ///     Enable callback (offset 16). Receives the address of a <see cref="ManagedExportedFunctions" /> record and
-    ///     the plugin id assigned by the host; returns true when the plugin enabled successfully.
-    /// </summary>
-    /// <remarks>
-    ///     The record lives in a host stack frame: copy it during the call (honouring
-    ///     <see cref="ManagedExportedFunctions.SizeOfExportedFunctions" />) and never keep the pointer. Same function
-    ///     pointer requirements and threading as <see cref="GetVersion" />. The plugin id is declared unsigned by the
-    ///     official bootstrap (<i>verified</i>) and by the 7.5 host (<i>inferred</i> for 7.7).
-    /// </remarks>
-    public delegate* unmanaged[Stdcall]<ManagedExportedFunctions*, uint, Bool32> EnablePlugin;
+	/// <summary>
+	///     Enable callback (offset 16). Receives the address of a <see cref="ManagedExportedFunctions" /> record and
+	///     the plugin id assigned by the host; returns true when the plugin enabled successfully.
+	/// </summary>
+	/// <remarks>
+	///     The record lives in a host stack frame: copy it during the call (honouring
+	///     <see cref="ManagedExportedFunctions.SizeOfExportedFunctions" />) and never keep the pointer. Same function
+	///     pointer requirements and threading as <see cref="GetVersion" />. The plugin id is declared unsigned by the
+	///     official bootstrap (<i>verified</i>) and by the 7.5 host (<i>inferred</i> for 7.7).
+	/// </remarks>
+	public delegate* unmanaged[Stdcall]<ManagedExportedFunctions*, uint, Bool32> EnablePlugin;
 
-    /// <summary>
-    ///     Disable callback (offset 24). No arguments; returns true when the plugin disabled successfully.
-    /// </summary>
-    /// <remarks>
-    ///     The assembly is never unloaded: a later enable calls <see cref="EnablePlugin" /> again in the same loaded
-    ///     assembly, with all static state intact. Same function pointer requirements and threading as
-    ///     <see cref="GetVersion" />.
-    /// </remarks>
-    public delegate* unmanaged[Stdcall]<Bool32> DisablePlugin;
+	/// <summary>
+	///     Disable callback (offset 24). No arguments; returns true when the plugin disabled successfully.
+	/// </summary>
+	/// <remarks>
+	///     The assembly is never unloaded: a later enable calls <see cref="EnablePlugin" /> again in the same loaded
+	///     assembly, with all static state intact. Same function pointer requirements and threading as
+	///     <see cref="GetVersion" />.
+	/// </remarks>
+	public delegate* unmanaged[Stdcall]<Bool32> DisablePlugin;
 
-    /// <summary>
-    ///     SDK version the plugin was built against (offset 32): write <see cref="AbiConstants.SdkVersion" />.
-    /// </summary>
-    /// <remarks>
-    ///     Width 4 bytes (<i>verified</i> in the official bootstrap). Declared unsigned here because the 7.5 host
-    ///     declares it unsigned (<i>inferred</i> for 7.7); the official bootstrap uses a signed 32-bit field, which is
-    ///     the same bits for every valid value.
-    /// </remarks>
-    public uint Version;
+	/// <summary>
+	///     SDK version the plugin was built against (offset 32): write <see cref="AbiConstants.SdkVersion" />.
+	/// </summary>
+	/// <remarks>
+	///     Width 4 bytes (<i>verified</i> in the official bootstrap). Declared unsigned here because the 7.5 host
+	///     declares it unsigned (<i>inferred</i> for 7.7); the official bootstrap uses a signed 32-bit field, which is
+	///     the same bits for every valid value.
+	/// </remarks>
+	public uint Version;
 }

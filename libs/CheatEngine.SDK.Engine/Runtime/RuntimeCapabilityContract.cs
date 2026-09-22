@@ -21,13 +21,13 @@ namespace CheatEngine.SDK.Engine.Runtime;
 /// <param name="ReturnSemantics">The normal return shape, or unknown.</param>
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct RuntimeCapabilityContract(
-    CheatEngineVersion? MinimumCheatEngineVersion,
-    RuntimeArchitectureScope ArchitectureScope,
-    RuntimeArchitectureRequirement ArchitectureRequirement,
-    RuntimeThreadRequirement ThreadRequirement,
-    RuntimeOwnership Ownership,
-    RuntimeReturnSemantics ReturnSemantics)
+	CheatEngineVersion? MinimumCheatEngineVersion,
+	RuntimeArchitectureScope ArchitectureScope,
+	RuntimeArchitectureRequirement ArchitectureRequirement,
+	RuntimeThreadRequirement ThreadRequirement,
+	RuntimeOwnership Ownership,
+	RuntimeReturnSemantics ReturnSemantics)
 {
-    /// <summary>Gets a contract whose evidence fields are all unknown.</summary>
-    public static RuntimeCapabilityContract Unknown => default;
+	/// <summary>Gets a contract whose evidence fields are all unknown.</summary>
+	public static RuntimeCapabilityContract Unknown => default;
 }

@@ -60,7 +60,7 @@ problem, on the method's own location:
 | `UnsupportedResultType`    | Every `out` result is `int`, `long`, `float`, `double`, `bool`, `nuint` or `string`, or a `Span<byte> destination, out int written` copy-out pair.                                                      |
 | `SpanResult`               | No result is `ReadOnlySpan<byte>` (an `out` parameter or the return type): it would point into a Lua string popped before the wrapper returns. Use the copy-out pair or `string`.                       |
 | `UnsupportedReturnType`    | The return type of the throwing form is `void` or one of the same marshalled kinds (`bool` included) other than `ReadOnlySpan<byte>`.                                                                   |
-| `TryFormReturnNotBool`     | A declaration with `out` results returns `bool` or `LuaOperationStatus`: these are the supported non-throwing forms.                                                                                     |
+| `TryFormReturnNotBool`     | A declaration with `out` results returns `bool` or `LuaOperationStatus`: these are the supported non-throwing forms.                                                                                    |
 
 ## Example
 

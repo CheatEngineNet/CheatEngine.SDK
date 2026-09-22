@@ -8,10 +8,10 @@ namespace CheatEngine.SDK.Benchmarks;
 /// </summary>
 internal static class Program
 {
-    private static int Main(string[] args)
-    {
-        // Discovers every benchmark class of this assembly; with no --filter the switcher asks which ones to run.
-        _ = BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
-        return 0;
-    }
+	private static int Main(string[] args)
+	{
+		// Discovers every benchmark class of this assembly; with no --filter the switcher asks which ones to run.
+		_ = BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+		return 0;
+	}
 }

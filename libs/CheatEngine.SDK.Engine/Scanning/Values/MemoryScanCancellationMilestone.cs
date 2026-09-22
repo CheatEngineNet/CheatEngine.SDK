@@ -7,12 +7,12 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 /// </remarks>
 public enum MemoryScanCancellationMilestone : byte
 {
-    /// <summary>No cancellation request was observed by the most recent cancellable session operation.</summary>
-    None = 0,
+	/// <summary>No cancellation request was observed by the most recent cancellable session operation.</summary>
+	None = 0,
 
-    /// <summary>Cancellation was observed before the SDK began its native CE call.</summary>
-    CancelledBeforeNativeCall = 1,
+	/// <summary>Cancellation was observed before the SDK began its native CE call.</summary>
+	CancelledBeforeNativeCall = 1,
 
-    /// <summary>Cancellation was observed only after the synchronous native CE call had returned.</summary>
-    ObservedAfterNativeCall = 2,
+	/// <summary>Cancellation was observed only after the synchronous native CE call had returned.</summary>
+	ObservedAfterNativeCall = 2
 }

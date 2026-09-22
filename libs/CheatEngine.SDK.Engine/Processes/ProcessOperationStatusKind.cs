@@ -22,5 +22,5 @@ public enum ProcessOperationStatusKind
 	ProtectedLuaFailure,
 
 	/// <summary>The host returned a value outside the documented process-observation shape.</summary>
-	InvalidResult,
+	InvalidResult
 }

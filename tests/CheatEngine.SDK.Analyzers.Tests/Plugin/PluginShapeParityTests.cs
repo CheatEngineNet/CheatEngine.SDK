@@ -1,8 +1,10 @@
 using System.Collections.Immutable;
+
 using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.Analyzers.Plugin;
 using CheatEngine.SDK.Analyzers.Tests.Infrastructure;
 using CheatEngine.SDK.SourceGenerators.EntryPoint;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -36,237 +38,256 @@ namespace CheatEngine.SDK.Analyzers.Tests.Plugin;
 /// </remarks>
 public sealed class PluginShapeParityTests
 {
-    private const string Usings = "using CheatEngine.SDK.Annotations.Plugin; using CheatEngine.SDK.Hosting.Plugin;\n";
+	private const string Usings = "using CheatEngine.SDK.Annotations.Plugin; using CheatEngine.SDK.Hosting.Plugin;\n";
 
-    private const string Body = "{ protected override void OnEnable() { } protected override void OnDisable() { } }";
+	private const string Body = "{ protected override void OnEnable() { } protected override void OnDisable() { } }";
 
-    private static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14);
+	private static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14);
 
-    public static TheoryData<string, string, bool> Shapes
-    {
-        get
-        {
-            var data = new TheoryData<string, string, bool>();
-            foreach (var (shape, declaration, expectedValid) in ClassAndConstructorValidShapes())
-                data.Add(shape, declaration, expectedValid);
-            foreach (var (shape, declaration, expectedValid) in AdvancedValidShapes())
-                data.Add(shape, declaration, expectedValid);
-            foreach (var (shape, declaration, expectedValid) in ClassShapeRejections())
-                data.Add(shape, declaration, expectedValid);
-            foreach (var (shape, declaration, expectedValid) in AccessibilityAndBaseRejections())
-                data.Add(shape, declaration, expectedValid);
-            foreach (var (shape, declaration, expectedValid) in ConstructorRejections())
-                data.Add(shape, declaration, expectedValid);
-            foreach (var (shape, declaration, expectedValid) in NameAndEntryPointRejections())
-                data.Add(shape, declaration, expectedValid);
-            return data;
-        }
-    }
+	public static TheoryData<string, string, bool> Shapes
+	{
+		get
+		{
+			TheoryData<string, string, bool> data = new();
+			foreach ((string shape, string declaration, bool expectedValid) in ClassAndConstructorValidShapes())
+			{
+				data.Add(shape, declaration, expectedValid);
+			}
 
-    // Mirrors ValidShapeTests.ValidShapes, plus the required-members and record/primary-constructor cases.
-    private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> ClassAndConstructorValidShapes()
-    {
-        yield return ("sealed class", $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body}",
-            true);
-        yield return ("internal class",
-            $"[CheatEnginePlugin(\"P\")] internal sealed class P : CheatEnginePlugin {Body}", true);
-        yield return ("unsealed class", $"[CheatEnginePlugin(\"P\")] public class P : CheatEnginePlugin {Body}", true);
-        yield return (
-            "internal constructor",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ internal P() {{ }} {Body[1..]}",
-            true);
-        yield return (
-            "protected internal constructor",
-            $"[CheatEnginePlugin(\"P\")] public class P : CheatEnginePlugin {{ protected internal P() {{ }} {Body[1..]}",
-            true);
-        yield return (
-            "extra constructors",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P() {{ }} public P(int value) {{ _ = value; }} {Body[1..]}",
-            true);
-        yield return (
-            "indirect derivation",
-            $"public abstract class Base : CheatEnginePlugin {Body} [CheatEnginePlugin(\"P\")] public sealed class P : Base {{ }}",
-            true);
-    }
+			foreach ((string shape, string declaration, bool expectedValid) in AdvancedValidShapes())
+			{
+				data.Add(shape, declaration, expectedValid);
+			}
 
-    private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> AdvancedValidShapes()
-    {
-        yield return (
-            "primary constructor without parameters",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P() : CheatEnginePlugin {Body}", true);
-        yield return (
-            "obsolete as a warning",
-            $"[CheatEnginePlugin(\"P\")] [System.Obsolete(\"Use the new plugin.\")] public sealed class P : CheatEnginePlugin {Body}",
-            true);
-        yield return (
-            "required members set by the constructor",
-            """
-            [CheatEnginePlugin("P")]
-            public sealed class P : CheatEnginePlugin
-            {
-                [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-                public P() => Value = 1;
+			foreach ((string shape, string declaration, bool expectedValid) in ClassShapeRejections())
+			{
+				data.Add(shape, declaration, expectedValid);
+			}
 
-                public required int Value { get; init; }
+			foreach ((string shape, string declaration, bool expectedValid) in AccessibilityAndBaseRejections())
+			{
+				data.Add(shape, declaration, expectedValid);
+			}
 
-                protected override void OnEnable() { }
-                protected override void OnDisable() { }
-            }
-            """,
-            true);
-    }
+			foreach ((string shape, string declaration, bool expectedValid) in ConstructorRejections())
+			{
+				data.Add(shape, declaration, expectedValid);
+			}
 
-    // Invalid shapes (mirrors NoOutputTests.InvalidShapes, plus the predicate's RequiredMembers and ObsoleteError
-    // checks), split by category so every helper stays comfortably under MA0051's line limit.
-    private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> ClassShapeRejections()
-    {
-        yield return ("abstract class",
-            $"[CheatEnginePlugin(\"P\")] public abstract class P : CheatEnginePlugin {Body}", false);
-        yield return ("static class", "[CheatEnginePlugin(\"P\")] public static class P { }", false);
-        yield return ("generic class",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P<T> : CheatEnginePlugin {Body}", false);
-        yield return (
-            "nested in a generic class",
-            $"public static class Outer<T> {{ [CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body} }}",
-            false);
-    }
+			foreach ((string shape, string declaration, bool expectedValid) in NameAndEntryPointRejections())
+			{
+				data.Add(shape, declaration, expectedValid);
+			}
 
-    private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> AccessibilityAndBaseRejections()
-    {
-        yield return ("not derived from the plugin base", "[CheatEnginePlugin(\"P\")] public sealed class P { }",
-            false);
-        yield return (
-            "derived from a look-alike base",
-            "namespace Other.Hosting { public abstract class CheatEnginePlugin { } } [CheatEnginePlugin(\"P\")] public sealed class P : Other.Hosting.CheatEnginePlugin { }",
-            false);
-        yield return (
-            "private nested class",
-            $"public static class Outer {{ [CheatEnginePlugin(\"P\")] private sealed class P : CheatEnginePlugin {Body} }}",
-            false);
-        yield return (
-            "protected nested class",
-            $"public class Outer {{ [CheatEnginePlugin(\"P\")] protected sealed class P : CheatEnginePlugin {Body} }}",
-            false);
-        yield return (
-            "nested in a private class",
-            $"public static class Outer {{ private static class Hidden {{ [CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body} }} }}",
-            false);
-        yield return ("file-local class", $"[CheatEnginePlugin(\"P\")] file sealed class P : CheatEnginePlugin {Body}",
-            false);
-    }
+			return data;
+		}
+	}
 
-    private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> ConstructorRejections()
-    {
-        yield return (
-            "only optional parameters",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(int value = 0) {{ _ = value; }} {Body[1..]}",
-            false);
-        yield return (
-            "trailing params constructor",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(params int[] xs) {{ _ = xs; }} {Body[1..]}",
-            false);
-        yield return (
-            "no parameterless constructor",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(int value) {{ _ = value; }} {Body[1..]}",
-            false);
-        yield return (
-            "private constructor",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ private P() {{ }} {Body[1..]}",
-            false);
-        yield return (
-            "protected constructor",
-            $"[CheatEnginePlugin(\"P\")] public class P : CheatEnginePlugin {{ protected P() {{ }} {Body[1..]}", false);
-        yield return (
-            "required member without a constructor that sets it",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public required int Value {{ get; init; }} {Body[1..]}",
-            false);
-        yield return (
-            "obsolete as error on the class",
-            $"[System.Obsolete(\"no\", true)] [CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body}",
-            false);
-        yield return (
-            "obsolete as error on the constructor",
-            $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ [System.Obsolete(\"no\", true)] public P() {{ }} {Body[1..]}",
-            false);
-    }
+	// Mirrors ValidShapeTests.ValidShapes, plus the required-members and record/primary-constructor cases.
+	private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> ClassAndConstructorValidShapes()
+	{
+		yield return ("sealed class", $"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body}",
+			true);
+		yield return ("internal class",
+			$"[CheatEnginePlugin(\"P\")] internal sealed class P : CheatEnginePlugin {Body}", true);
+		yield return ("unsealed class", $"[CheatEnginePlugin(\"P\")] public class P : CheatEnginePlugin {Body}", true);
+		yield return (
+			"internal constructor",
+			$"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ internal P() {{ }} {Body[1..]}",
+			true);
+		yield return (
+			"protected internal constructor",
+			$"[CheatEnginePlugin(\"P\")] public class P : CheatEnginePlugin {{ protected internal P() {{ }} {Body[1..]}",
+			true);
+		yield return (
+			"extra constructors",
+			$"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P() {{ }} public P(int value) {{ _ = value; }} {Body[1..]}",
+			true);
+		yield return (
+			"indirect derivation",
+			$"public abstract class Base : CheatEnginePlugin {Body} [CheatEnginePlugin(\"P\")] public sealed class P : Base {{ }}",
+			true);
+	}
 
-    private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> NameAndEntryPointRejections()
-    {
-        yield return ("empty name", $"[CheatEnginePlugin(\"\")] public sealed class P : CheatEnginePlugin {Body}",
-            false);
-        yield return (
-            "white-space name",
-            $"[CheatEnginePlugin(\" \\t\\u00A0\")] public sealed class P : CheatEnginePlugin {Body}", false);
-        yield return ("null name", $"[CheatEnginePlugin(null!)] public sealed class P : CheatEnginePlugin {Body}",
-            false);
-        yield return ("missing name argument", $"[CheatEnginePlugin] public sealed class P : CheatEnginePlugin {Body}",
-            false);
+	private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> AdvancedValidShapes()
+	{
+		yield return (
+			"primary constructor without parameters",
+			$"[CheatEnginePlugin(\"P\")] public sealed class P() : CheatEnginePlugin {Body}", true);
+		yield return (
+			"obsolete as a warning",
+			$"[CheatEnginePlugin(\"P\")] [System.Obsolete(\"Use the new plugin.\")] public sealed class P : CheatEnginePlugin {Body}",
+			true);
+		yield return (
+			"required members set by the constructor",
+			"""
+			[CheatEnginePlugin("P")]
+			public sealed class P : CheatEnginePlugin
+			{
+			    [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+			    public P() => Value = 1;
 
-        // Not "struct": the compiler itself rejects the attribute there (CS0592, AttributeTargets.Class), left
-        // alone on purpose by both sides (see analyzers/docs/CESDK0001.md) - not part of the shared
-        // predicate's contract, so not part of this parity matrix either.
-        yield return ("record class", "[CheatEnginePlugin(\"P\")] public sealed record P;", false);
-        yield return (
-            "named like the entry point",
-            $"namespace CESDK {{ [CheatEnginePlugin(\"P\")] public sealed class CESDK : CheatEnginePlugin {Body} }}",
-            false);
-        yield return (
-            "nested in a type named like the entry point",
-            $"namespace CESDK {{ public static class CESDK {{ [CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body} }} }}",
-            false);
-    }
+			    public required int Value { get; init; }
 
-    [Theory]
-    [MemberData(nameof(Shapes))]
-    public async Task Generator_and_analyzer_agree_on_every_shape(string shape, string declaration, bool expectedValid)
-    {
-        var compilation = CreateCompilation(Usings + declaration);
+			    protected override void OnEnable() { }
+			    protected override void OnDisable() { }
+			}
+			""",
+			true);
+	}
 
-        var generatorEmits = RunGenerator(compilation);
-        var analyzerReportsInvalidPluginClass = await AnalyzerReportsInvalidPluginClassAsync(compilation);
+	// Invalid shapes (mirrors NoOutputTests.InvalidShapes, plus the predicate's RequiredMembers and ObsoleteError
+	// checks), split by category so every helper stays comfortably under MA0051's line limit.
+	private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> ClassShapeRejections()
+	{
+		yield return ("abstract class",
+			$"[CheatEnginePlugin(\"P\")] public abstract class P : CheatEnginePlugin {Body}", false);
+		yield return ("static class", "[CheatEnginePlugin(\"P\")] public static class P { }", false);
+		yield return ("generic class",
+			$"[CheatEnginePlugin(\"P\")] public sealed class P<T> : CheatEnginePlugin {Body}", false);
+		yield return (
+			"nested in a generic class",
+			$"public static class Outer<T> {{ [CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body} }}",
+			false);
+	}
 
-        Assert.True(
-            generatorEmits == expectedValid,
-            $"'{shape}': the generator {(generatorEmits ? "emitted" : "stayed silent")}, expected {(expectedValid ? "an entry point" : "silence")}.");
-        Assert.True(
-            analyzerReportsInvalidPluginClass != expectedValid,
-            $"'{shape}': CESDK0001 {(analyzerReportsInvalidPluginClass ? "reported" : "stayed silent")}, expected it to {(expectedValid ? "stay silent" : "report")}.");
-    }
+	private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> AccessibilityAndBaseRejections()
+	{
+		yield return ("not derived from the plugin base", "[CheatEnginePlugin(\"P\")] public sealed class P { }",
+			false);
+		yield return (
+			"derived from a look-alike base",
+			"namespace Other.Hosting { public abstract class CheatEnginePlugin { } } [CheatEnginePlugin(\"P\")] public sealed class P : Other.Hosting.CheatEnginePlugin { }",
+			false);
+		yield return (
+			"private nested class",
+			$"public static class Outer {{ [CheatEnginePlugin(\"P\")] private sealed class P : CheatEnginePlugin {Body} }}",
+			false);
+		yield return (
+			"protected nested class",
+			$"public class Outer {{ [CheatEnginePlugin(\"P\")] protected sealed class P : CheatEnginePlugin {Body} }}",
+			false);
+		yield return (
+			"nested in a private class",
+			$"public static class Outer {{ private static class Hidden {{ [CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body} }} }}",
+			false);
+		yield return ("file-local class", $"[CheatEnginePlugin(\"P\")] file sealed class P : CheatEnginePlugin {Body}",
+			false);
+	}
 
-    private static CSharpCompilation CreateCompilation(string pluginSource)
-    {
-        return CSharpCompilation.Create(
-            "PluginShapeParityAssembly",
-            [
-                CSharpSyntaxTree.ParseText(TestText.Normalize(pluginSource), ParseOptions, "Plugin.cs",
-                    cancellationToken: TestContext.Current.CancellationToken),
-            ],
-            LocalFrameworkReferences.References.AddRange(ContractStubs.References),
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
-    }
+	private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> ConstructorRejections()
+	{
+		yield return (
+			"only optional parameters",
+			$"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(int value = 0) {{ _ = value; }} {Body[1..]}",
+			false);
+		yield return (
+			"trailing params constructor",
+			$"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(params int[] xs) {{ _ = xs; }} {Body[1..]}",
+			false);
+		yield return (
+			"no parameterless constructor",
+			$"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public P(int value) {{ _ = value; }} {Body[1..]}",
+			false);
+		yield return (
+			"private constructor",
+			$"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ private P() {{ }} {Body[1..]}",
+			false);
+		yield return (
+			"protected constructor",
+			$"[CheatEnginePlugin(\"P\")] public class P : CheatEnginePlugin {{ protected P() {{ }} {Body[1..]}", false);
+		yield return (
+			"required member without a constructor that sets it",
+			$"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ public required int Value {{ get; init; }} {Body[1..]}",
+			false);
+		yield return (
+			"obsolete as error on the class",
+			$"[System.Obsolete(\"no\", true)] [CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body}",
+			false);
+		yield return (
+			"obsolete as error on the constructor",
+			$"[CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {{ [System.Obsolete(\"no\", true)] public P() {{ }} {Body[1..]}",
+			false);
+	}
 
-    // Same driver shape as CheatEngine.SDK.SourceGenerators.EntryPoint.Tests' GeneratorRun/RoslynFixture: "emits" means at
-    // least one generated source, which for this generator only ever happens for exactly one valid plugin class.
-    private static bool RunGenerator(CSharpCompilation compilation)
-    {
-        GeneratorDriver driver = CSharpGeneratorDriver.Create([new EntryPointGenerator().AsSourceGenerator()],
-            [],
-            ParseOptions,
-            DirectPackageAnalyzerConfigOptions.Enabled,
-            new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
-        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _,
-            TestContext.Current.CancellationToken);
-        return !driver.GetRunResult().Results.Single().GeneratedSources.IsEmpty;
-    }
+	private static IEnumerable<(string Shape, string Declaration, bool ExpectedValid)> NameAndEntryPointRejections()
+	{
+		yield return ("empty name", $"[CheatEnginePlugin(\"\")] public sealed class P : CheatEnginePlugin {Body}",
+			false);
+		yield return (
+			"white-space name",
+			$"[CheatEnginePlugin(\" \\t\\u00A0\")] public sealed class P : CheatEnginePlugin {Body}", false);
+		yield return ("null name", $"[CheatEnginePlugin(null!)] public sealed class P : CheatEnginePlugin {Body}",
+			false);
+		yield return ("missing name argument", $"[CheatEnginePlugin] public sealed class P : CheatEnginePlugin {Body}",
+			false);
 
-    private static async Task<bool> AnalyzerReportsInvalidPluginClassAsync(CSharpCompilation compilation)
-    {
-        AnalyzerOptions options = new(ImmutableArray<AdditionalText>.Empty, DirectPackageAnalyzerConfigOptions.Enabled);
-        var withAnalyzers = compilation.WithAnalyzers([new CheatEnginePluginAnalyzer()], options);
-        var diagnostics = await withAnalyzers.GetAnalyzerDiagnosticsAsync(TestContext.Current.CancellationToken)
-            .ConfigureAwait(false);
-        return diagnostics.Any(static diagnostic =>
-            string.Equals(diagnostic.Id, DiagnosticIds.InvalidPluginClass, StringComparison.Ordinal));
-    }
+		// Not "struct": the compiler itself rejects the attribute there (CS0592, AttributeTargets.Class), left
+		// alone on purpose by both sides (see analyzers/docs/CESDK0001.md) - not part of the shared
+		// predicate's contract, so not part of this parity matrix either.
+		yield return ("record class", "[CheatEnginePlugin(\"P\")] public sealed record P;", false);
+		yield return (
+			"named like the entry point",
+			$"namespace CESDK {{ [CheatEnginePlugin(\"P\")] public sealed class CESDK : CheatEnginePlugin {Body} }}",
+			false);
+		yield return (
+			"nested in a type named like the entry point",
+			$"namespace CESDK {{ public static class CESDK {{ [CheatEnginePlugin(\"P\")] public sealed class P : CheatEnginePlugin {Body} }} }}",
+			false);
+	}
+
+	[Theory]
+	[MemberData(nameof(Shapes))]
+	public async Task Generator_and_analyzer_agree_on_every_shape(string shape, string declaration, bool expectedValid)
+	{
+		CSharpCompilation compilation = CreateCompilation(Usings + declaration);
+
+		bool generatorEmits = RunGenerator(compilation);
+		bool analyzerReportsInvalidPluginClass = await AnalyzerReportsInvalidPluginClassAsync(compilation);
+
+		Assert.True(
+			generatorEmits == expectedValid,
+			$"'{shape}': the generator {(generatorEmits ? "emitted" : "stayed silent")}, expected {(expectedValid ? "an entry point" : "silence")}.");
+		Assert.True(
+			analyzerReportsInvalidPluginClass != expectedValid,
+			$"'{shape}': CESDK0001 {(analyzerReportsInvalidPluginClass ? "reported" : "stayed silent")}, expected it to {(expectedValid ? "stay silent" : "report")}.");
+	}
+
+	private static CSharpCompilation CreateCompilation(string pluginSource)
+	{
+		return CSharpCompilation.Create(
+			"PluginShapeParityAssembly",
+			[
+				CSharpSyntaxTree.ParseText(TestText.Normalize(pluginSource), ParseOptions, "Plugin.cs",
+					cancellationToken: TestContext.Current.CancellationToken)
+			],
+			LocalFrameworkReferences.References.AddRange(ContractStubs.References),
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+				nullableContextOptions: NullableContextOptions.Enable));
+	}
+
+	// Same driver shape as CheatEngine.SDK.SourceGenerators.EntryPoint.Tests' GeneratorRun/RoslynFixture: "emits" means at
+	// least one generated source, which for this generator only ever happens for exactly one valid plugin class.
+	private static bool RunGenerator(CSharpCompilation compilation)
+	{
+		GeneratorDriver driver = CSharpGeneratorDriver.Create([new EntryPointGenerator().AsSourceGenerator()],
+			[],
+			ParseOptions,
+			DirectPackageAnalyzerConfigOptions.Enabled,
+			new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, true));
+		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _,
+			TestContext.Current.CancellationToken);
+		return !driver.GetRunResult().Results.Single().GeneratedSources.IsEmpty;
+	}
+
+	private static async Task<bool> AnalyzerReportsInvalidPluginClassAsync(CSharpCompilation compilation)
+	{
+		AnalyzerOptions options = new(ImmutableArray<AdditionalText>.Empty, DirectPackageAnalyzerConfigOptions.Enabled);
+		CompilationWithAnalyzers withAnalyzers = compilation.WithAnalyzers([new CheatEnginePluginAnalyzer()], options);
+		ImmutableArray<Diagnostic> diagnostics = await withAnalyzers
+			.GetAnalyzerDiagnosticsAsync(TestContext.Current.CancellationToken)
+			.ConfigureAwait(false);
+		return diagnostics.Any(static diagnostic =>
+			string.Equals(diagnostic.Id, DiagnosticIds.InvalidPluginClass, StringComparison.Ordinal));
+	}
 }

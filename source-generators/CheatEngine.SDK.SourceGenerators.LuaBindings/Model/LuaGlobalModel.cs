@@ -24,14 +24,14 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Model;
 ///     was unsupported.
 /// </param>
 internal sealed record LuaGlobalModel(
-    ContainingTypeModel ContainingType,
-    ContainingTypeIssues ContainingTypeIssues,
-    LuaGlobalShapeIssues Issues,
-    LuaGlobalCallModel? Call,
-    string SortKey,
-    bool HasGeneratedIdentityCollision = false)
+	ContainingTypeModel ContainingType,
+	ContainingTypeIssues ContainingTypeIssues,
+	LuaGlobalShapeIssues Issues,
+	LuaGlobalCallModel? Call,
+	string SortKey,
+	bool HasGeneratedIdentityCollision = false)
 {
-    /// <summary><see langword="true" /> when a body can be emitted for this method.</summary>
-    public bool IsValid => Issues == LuaGlobalShapeIssues.None && ContainingTypeIssues == ContainingTypeIssues.None &&
-                           Call is not null && !HasGeneratedIdentityCollision;
+	/// <summary><see langword="true" /> when a body can be emitted for this method.</summary>
+	public bool IsValid => Issues == LuaGlobalShapeIssues.None && ContainingTypeIssues == ContainingTypeIssues.None &&
+	                       Call is not null && !HasGeneratedIdentityCollision;
 }

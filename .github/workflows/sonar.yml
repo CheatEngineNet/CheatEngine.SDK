@@ -1,0 +1,214 @@
+name: Sonar
+
+on:
+  workflow_call:
+    inputs:
+      project-key:
+        description: SonarQube Cloud project key.
+        type: string
+        default: CheatEngineNet_CheatEngine.SDK
+      organization:
+        description: SonarQube Cloud organization key.
+        type: string
+        default: cheatenginenet
+      wait-quality-gate:
+        description: Fail the job when the quality gate fails.
+        type: boolean
+        default: true
+    secrets:
+      SONAR_TOKEN:
+        description: SonarQube Cloud token.
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  SONAR_SCANNER_VERSION: 11.3.0
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      SONAR_PROJECT_KEY: ${{ inputs.project-key }}
+      SONAR_ORGANIZATION: ${{ inputs.organization }}
+      SONAR_WAIT_QUALITY_GATE: ${{ inputs.wait-quality-gate }}
+    steps:
+      - name: Require token
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:SONAR_TOKEN)) {
+            throw 'SONAR_TOKEN is required when SONAR_CI_ENABLED is true.'
+          }
+
+      # CI analysis and Automatic Analysis cannot run for the same SonarQube Cloud project. Keep this preflight before
+      # checkout so a PR cannot turn a configuration failure into arbitrary checkout code running in this tokened job.
+      - name: Require CI-based analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $uri = "https://sonarcloud.io/api/settings/values?component=$env:SONAR_PROJECT_KEY&keys=sonar.autoscan.enabled"
+          $response = Invoke-RestMethod -Uri $uri -Headers @{ Authorization = "Bearer $env:SONAR_TOKEN" } -TimeoutSec 30 -MaximumRetryCount 2 -RetryIntervalSec 3
+          if (@($response.settings | Where-Object { $_.key -eq 'sonar.autoscan.enabled' -and $_.value -eq 'true' })) {
+            throw "Automatic Analysis is enabled on $env:SONAR_PROJECT_KEY. Disable it in SonarQube Cloud: Administration > Analysis Method before enabling SONAR_CI_ENABLED."
+          }
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # SonarScanner for .NET uses Java. Pin the same JDK 21 distribution as CheatEngine.Client so scanner behavior is
+      # reproducible across the SDK and its high-level consumer.
+      - name: Set up JDK 21
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: zulu
+          java-version: '21'
+
+      - name: Install pinned .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Use CI-built native bridge
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: lua-protection-bridge
+          path: native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native
+
+      - name: Download coverage
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: coverage-*
+          path: ${{ runner.temp }}/coverage
+
+      # Do not use the checked-out nuget.config to resolve tooling. This job later uses SONAR_TOKEN, so the scanner
+      # package and every restored dependency must come only from nuget.org, not a source a pull request can redirect.
+      - name: Create NuGet.org-only configuration
+        id: nuget-config
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = Join-Path $env:RUNNER_TEMP 'sonar-nuget.config'
+          @'
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+            </packageSources>
+          </configuration>
+          '@ | Set-Content -LiteralPath $path -Encoding utf8NoBOM
+          "path=$path" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      # Restore before scanner begin: the subsequent analysis build is --no-restore, so no PR-supplied source can
+      # participate while scanner credentials are configured.
+      - name: Restore from NuGet.org
+        env:
+          NUGET_CONFIG: ${{ steps.nuget-config.outputs.path }}
+        run: |
+          dotnet restore CheatEngine.SDK.slnx --configfile $env:NUGET_CONFIG
+          if ($LASTEXITCODE -ne 0) {
+            throw "Sonar restore failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Install scanner
+        env:
+          NUGET_CONFIG: ${{ steps.nuget-config.outputs.path }}
+        run: |
+          dotnet tool install dotnet-sonarscanner --tool-path "$env:RUNNER_TEMP/sonar-scanner" --version $env:SONAR_SCANNER_VERSION --configfile $env:NUGET_CONFIG
+          if ($LASTEXITCODE -ne 0) {
+            throw "SonarScanner installation failed with exit code $LASTEXITCODE."
+          }
+
+      # The begin step ignores the SONAR_TOKEN variable, so the token travels in SONARQUBE_SCANNER_PARAMS, which both scanner steps read. It stays off the command line.
+      - name: Begin analysis
+        env:
+          SONARQUBE_SCANNER_PARAMS: '{"sonar.token":"${{ secrets.SONAR_TOKEN }}"}'
+        run: |
+          $coverage = "$env:RUNNER_TEMP/coverage"
+          $reports = @(Get-ChildItem -Path $coverage -Filter *.xml -Recurse -File -ErrorAction SilentlyContinue)
+          if ($reports.Count -eq 0) {
+            Write-Host '::error::No coverage report was downloaded. Call ci.yml with collect-coverage set to true.'
+            exit 1
+          }
+          Write-Host "Coverage reports: $($reports.Count)"
+          # These findings conflict with deliberate repository contracts. Keep them in the scanner configuration so
+          # production and test sources do not need Sonar-only attributes or code changes.
+          $ignoredIssues = @(
+            @{ Key = 'noLinq'; Rule = 'csharpsquid:S3267'; Resource = '**/*.cs' }
+            @{ Key = 'unsafeInterop'; Rule = 'csharpsquid:S6640'; Resource = '**/*.cs' }
+            @{ Key = 'nullableFlow'; Rule = 'csharpsquid:S8970'; Resource = '**/*.cs' }
+            @{ Key = 'luaExportNames'; Rule = 'csharpsquid:S3218'; Resource = 'libs/CheatEngine.SDK.Lua.Interop/Api/**' }
+            @{ Key = 'luaTypeNames'; Rule = 'csharpsquid:S101'; Resource = 'libs/CheatEngine.SDK.Lua.Interop/Types/**' }
+            @{ Key = 'interopShape'; Rule = 'csharpsquid:S107'; Resource = 'libs/CheatEngine.SDK.Lua.Interop/Protected/LuaProtectedExports.cs' }
+            @{ Key = 'callbackDispose'; Rule = 'csharpsquid:S3881'; Resource = 'libs/CheatEngine.SDK.Lua/Callbacks/LuaCallback.cs' }
+            @{ Key = 'memoryProtectionName'; Rule = 'csharpsquid:S2342'; Resource = 'libs/CheatEngine.SDK.Engine/Enums/MemoryProtection.cs' }
+            @{ Key = 'descriptorDispatch'; Rule = 'csharpsquid:S1694'; Resource = 'libs/CheatEngine.SDK.Hosting/Bootstrap/PluginDescriptor.cs' }
+            @{ Key = 'apiOverloadLayout'; Rule = 'csharpsquid:S4136'; Resource = 'libs/**' }
+            @{ Key = 'roslynInstances'; Rule = 'csharpsquid:S2325'; Resource = 'analyzers/**' }
+            @{ Key = 'generatorInstances'; Rule = 'csharpsquid:S2325'; Resource = 'source-generators/**' }
+            @{ Key = 'emittedFragments'; Rule = 'csharpsquid:S1192'; Resource = 'source-generators/CheatEngine.SDK.SourceGenerators.Shared/LuaEmit/LuaGlobalCallEmitter.cs' }
+            @{ Key = 'analyzerComments'; Rule = 'csharpsquid:S125'; Resource = 'analyzers/**' }
+            @{ Key = 'interopComments'; Rule = 'csharpsquid:S125'; Resource = 'libs/CheatEngine.SDK.Lua.Interop/Api/**' }
+            @{ Key = 'testReflection'; Rule = 'csharpsquid:S3011'; Resource = 'tests/**' }
+            @{ Key = 'testLiterals'; Rule = 'csharpsquid:S1192'; Resource = 'tests/**' }
+            @{ Key = 'testGc'; Rule = 'csharpsquid:S1215'; Resource = 'tests/**' }
+            @{ Key = 'testStaticHooks'; Rule = 'csharpsquid:S2696'; Resource = 'tests/**' }
+            @{ Key = 'testDoubleDispose'; Rule = 'csharpsquid:S3966'; Resource = 'tests/**' }
+            @{ Key = 'testBooleanTables'; Rule = 'csharpsquid:S1125'; Resource = 'tests/**' }
+            @{ Key = 'testComplexity'; Rule = 'csharpsquid:S3776'; Resource = 'tests/**' }
+            @{ Key = 'testParameters'; Rule = 'csharpsquid:S107'; Resource = 'tests/**' }
+            @{ Key = 'testMarkerClasses'; Rule = 'csharpsquid:S1118'; Resource = 'tests/**' }
+            @{ Key = 'testDuplicateScenarios'; Rule = 'csharpsquid:S4144'; Resource = 'tests/**' }
+            @{ Key = 'testFixedDoubles'; Rule = 'csharpsquid:S3400'; Resource = 'tests/**' }
+            @{ Key = 'testComments'; Rule = 'csharpsquid:S125'; Resource = 'tests/**' }
+          )
+          $arguments = @(
+            "/k:$env:SONAR_PROJECT_KEY"
+            "/o:$env:SONAR_ORGANIZATION"
+            '/d:sonar.exclusions=artifacts/**,tests/CheatEngine.SDK.Benchmarks/**,tests/CheatEngine.SDK.LivePlugin/**'
+            # CI publishes managed coverage only. Keep build-time tooling and test-only sources out of the product
+            # coverage metric instead of presenting an incomplete report as if it covered those paths.
+            '/d:sonar.coverage.exclusions=tests/**,eng/**'
+            "/d:sonar.issue.ignore.multicriteria=$(($ignoredIssues.Key) -join ',')"
+            "/d:sonar.cs.vscoveragexml.reportsPaths=$coverage/**/*.xml"
+            "/d:sonar.qualitygate.wait=$env:SONAR_WAIT_QUALITY_GATE"
+            '/d:sonar.qualitygate.timeout=300'
+          )
+          foreach ($issue in $ignoredIssues) {
+            $arguments += "/d:sonar.issue.ignore.multicriteria.$($issue.Key).ruleKey=$($issue.Rule)"
+            $arguments += "/d:sonar.issue.ignore.multicriteria.$($issue.Key).resourceKey=$($issue.Resource)"
+          }
+          & "$env:RUNNER_TEMP/sonar-scanner/dotnet-sonarscanner.exe" begin @arguments
+          if ($LASTEXITCODE -ne 0) {
+            throw "SonarScanner begin failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Build
+        run: |
+          dotnet build CheatEngine.SDK.slnx -c Debug --no-restore --no-incremental --disable-build-servers
+          if ($LASTEXITCODE -ne 0) {
+            throw "Sonar analysis build failed with exit code $LASTEXITCODE."
+          }
+
+      - name: End analysis
+        env:
+          SONARQUBE_SCANNER_PARAMS: '{"sonar.token":"${{ secrets.SONAR_TOKEN }}"}'
+        run: |
+          & "$env:RUNNER_TEMP/sonar-scanner/dotnet-sonarscanner.exe" end
+          if ($LASTEXITCODE -ne 0) {
+            throw "SonarScanner end failed with exit code $LASTEXITCODE."
+          }

@@ -16,7 +16,8 @@ under [1.0.0](#100---2026-09-20) before upgrading.
 ## [1.0.0] - 2026-09-20
 
 > [!WARNING]
-> **Major breaking change: 1.0.0 is a new SDK, not an update of `CESDK` 0.2.1.** The new architecture replaces the target
+> **Major breaking change: 1.0.0 is a new SDK, not an update of `CESDK` 0.2.1.** The new architecture replaces the
+target
 > framework, the plugin model and the whole public API, so nothing written against 0.1.0 to 0.2.1 works the same way.
 > There is no compatibility layer and no deprecation period. A plugin has to be rewritten against the new API,
 > starting from the [quick start](README.md#quick-start). A plugin that stays on `CESDK` 0.2.1 keeps building as before.
@@ -50,6 +51,7 @@ under [1.0.0](#100---2026-09-20) before upgrading.
   return `bool` or `LuaStatus`, and `LuaException` reports a failed Lua call.
 - Work that must run on the main thread goes through `MainThread` in `CheatEngine.SDK.Hosting.Threading`, and logging
   goes through the host.
+
 ### Removed
 
 - The earlier static facades, among them `Process`, `MemoryAccess`, `AobScanner`, `MemScan`, `Debugger`, `Dbvm`,

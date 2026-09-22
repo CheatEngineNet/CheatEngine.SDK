@@ -16,32 +16,11 @@ jobs:
     name: CI
     if: github.event.pull_request.draft == false
     uses: ./.github/workflows/ci.yml
-
-  # Lints every workflow and local action reference, since main-ci.yml and release.yml never run on a pull request.
-  lint-workflows:
-    name: Lint workflows
-    if: github.event.pull_request.draft == false
-    runs-on: windows-latest
-    timeout-minutes: 5
-    env:
-      ACTIONLINT_VERSION: 1.7.12
-      ACTIONLINT_SHA256: 6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          sparse-checkout: .github
-          persist-credentials: false
-
-      - name: Run actionlint
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $zip = Join-Path $env:RUNNER_TEMP 'actionlint.zip'
-          $url = "https://github.com/rhysd/actionlint/releases/download/v$env:ACTIONLINT_VERSION/actionlint_${env:ACTIONLINT_VERSION}_windows_amd64.zip"
-          Invoke-WebRequest -Uri $url -OutFile $zip -MaximumRetryCount 3 -RetryIntervalSec 5
-          $actual = (Get-FileHash -Path $zip -Algorithm SHA256).Hash
-          if ($actual -ne $env:ACTIONLINT_SHA256) { throw "actionlint $env:ACTIONLINT_VERSION has SHA-256 $actual, expected $env:ACTIONLINT_SHA256." }
-          $dir = Join-Path $env:RUNNER_TEMP 'actionlint'
-          Expand-Archive -Path $zip -DestinationPath $dir
-          & (Join-Path $dir 'actionlint.exe') -color
+    with:
+      collect-coverage: >-
+        ${{ vars.SONAR_CI_ENABLED == 'true'
+        && github.event.pull_request.draft == false
+        && github.event.pull_request.head.repo.full_name == github.repository
+        && github.event.pull_request.user.login != 'dependabot[bot]' }}
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

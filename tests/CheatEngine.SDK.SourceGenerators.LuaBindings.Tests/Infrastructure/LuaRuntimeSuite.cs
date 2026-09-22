@@ -8,6 +8,6 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
 [CollectionDefinition(Name, DisableParallelization = true)]
 public sealed class LuaRuntimeSuite
 {
-    /// <summary>The collection name.</summary>
-    public const string Name = "Lua runtime";
+	/// <summary>The collection name.</summary>
+	public const string Name = "Lua runtime";
 }

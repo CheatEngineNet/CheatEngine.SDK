@@ -47,73 +47,76 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     <paramref name="ReturnKind" /> selects a built-in marshaller.
 /// </param>
 internal sealed record LuaGlobalCallModel(
-    string GlobalName,
-    string CacheFieldName,
-    string Modifiers,
-    string MethodName,
-    string StateParameterName,
-    EquatableArray<LuaArgumentModel> Arguments,
-    LuaCallForm Form,
-    EquatableArray<LuaResultModel> Results,
-    LuaValueKind? ReturnKind,
-    bool ReturnIsNullable,
-    bool IsExtensionMethod = false,
-    string? CacheFieldAccess = null,
-    LuaCustomMarshallerModel? ReturnMarshaller = null)
+	string GlobalName,
+	string CacheFieldName,
+	string Modifiers,
+	string MethodName,
+	string StateParameterName,
+	EquatableArray<LuaArgumentModel> Arguments,
+	LuaCallForm Form,
+	EquatableArray<LuaResultModel> Results,
+	LuaValueKind? ReturnKind,
+	bool ReturnIsNullable,
+	bool IsExtensionMethod = false,
+	string? CacheFieldAccess = null,
+	LuaCustomMarshallerModel? ReturnMarshaller = null)
 {
-    /// <summary>Initializes a call model with the pre-custom-marshaller binary shape.</summary>
-    public LuaGlobalCallModel(string globalName, string cacheFieldName, string modifiers, string methodName,
-        string stateParameterName, EquatableArray<LuaArgumentModel> arguments, LuaCallForm form,
-        EquatableArray<LuaResultModel> results, LuaValueKind? returnKind, bool returnIsNullable,
-        bool isExtensionMethod, string? cacheFieldAccess)
-        : this(globalName, cacheFieldName, modifiers, methodName, stateParameterName, arguments, form, results,
-            returnKind, returnIsNullable, isExtensionMethod, cacheFieldAccess, null)
-    {
-    }
+	/// <summary>Prefix of the cache field a file emitter declares for a global.</summary>
+	public const string CacheFieldPrefix = "s_luaGlobal_";
 
-    /// <summary>Prefix of the cache field a file emitter declares for a global.</summary>
-    public const string CacheFieldPrefix = "s_luaGlobal_";
+	/// <summary>Initializes a call model with the pre-custom-marshaller binary shape.</summary>
+	public LuaGlobalCallModel(string globalName, string cacheFieldName, string modifiers, string methodName,
+		string stateParameterName, EquatableArray<LuaArgumentModel> arguments, LuaCallForm form,
+		EquatableArray<LuaResultModel> results, LuaValueKind? returnKind, bool returnIsNullable,
+		bool isExtensionMethod, string? cacheFieldAccess)
+		: this(globalName, cacheFieldName, modifiers, methodName, stateParameterName, arguments, form, results,
+			returnKind, returnIsNullable, isExtensionMethod, cacheFieldAccess, null)
+	{
+	}
 
-    /// <summary>Number of results the protected call keeps: the result count of either non-throwing form, 0 or 1 for the throwing form.</summary>
-    public int ResultCount => IsTryLike ? Results.Length : ReturnKind is null && ReturnMarshaller is null ? 0 : 1;
+	/// <summary>
+	///     Number of results the protected call keeps: the result count of either non-throwing form, 0 or 1 for the
+	///     throwing form.
+	/// </summary>
+	public int ResultCount => IsTryLike ? Results.Length : ReturnKind is null && ReturnMarshaller is null ? 0 : 1;
 
-    /// <summary>Gets whether this shape returns its Lua values through <see langword="out" /> parameters.</summary>
-    public bool IsTryLike => Form is LuaCallForm.Try or LuaCallForm.Outcome;
+	/// <summary>Gets whether this shape returns its Lua values through <see langword="out" /> parameters.</summary>
+	public bool IsTryLike => Form is LuaCallForm.Try or LuaCallForm.Outcome;
 
-    /// <summary>Gets whether this is the opt-in detailed non-throwing form.</summary>
-    public bool IsOutcome => Form == LuaCallForm.Outcome;
+	/// <summary>Gets whether this is the opt-in detailed non-throwing form.</summary>
+	public bool IsOutcome => Form == LuaCallForm.Outcome;
 
-    /// <summary>Whether the throwing form returns one Lua value.</summary>
-    public bool HasReturn => ReturnKind is not null || ReturnMarshaller is not null;
+	/// <summary>Whether the throwing form returns one Lua value.</summary>
+	public bool HasReturn => ReturnKind is not null || ReturnMarshaller is not null;
 
-    /// <summary>The concrete static marshaller for the throwing-form return value.</summary>
-    public string ReturnMarshallerTypeName => ReturnMarshaller?.MarshallerTypeName ??
-                                              LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);
+	/// <summary>The concrete static marshaller for the throwing-form return value.</summary>
+	public string ReturnMarshallerTypeName => ReturnMarshaller?.MarshallerTypeName ??
+	                                          LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);
 
-    /// <summary>The C# type spelling for the generated return and result local.</summary>
-    public string ReturnTypeName => ReturnMarshaller?.ValueTypeName ??
-                                    LuaValueKinds.TypeName(ReturnKind!.Value, ReturnIsNullable);
+	/// <summary>The C# type spelling for the generated return and result local.</summary>
+	public string ReturnTypeName => ReturnMarshaller?.ValueTypeName ??
+	                                LuaValueKinds.TypeName(ReturnKind!.Value, ReturnIsNullable);
 
-    /// <summary>The Lua-facing expected type for a throwing-form result failure.</summary>
-    public string ExpectedReturnTypeName => ReturnMarshaller?.ExpectedTypeName ??
-                                             LuaValueKinds.ExpectedResult(ReturnKind!.Value);
+	/// <summary>The Lua-facing expected type for a throwing-form result failure.</summary>
+	public string ExpectedReturnTypeName => ReturnMarshaller?.ExpectedTypeName ??
+	                                        LuaValueKinds.ExpectedResult(ReturnKind!.Value);
 
-    /// <summary>Whether the body reads the state from <see cref="StateParameterName" /> rather than from the runtime.</summary>
-    public bool TakesState => StateParameterName.Length > 0;
+	/// <summary>Whether the body reads the state from <see cref="StateParameterName" /> rather than from the runtime.</summary>
+	public bool TakesState => StateParameterName.Length > 0;
 
-    /// <summary>
-    ///     The expression that accesses <see cref="CacheFieldName" /> from the generated method body. Bindings qualify
-    ///     this with their containing type so a parameter cannot shadow the static cache; spec-generated wrappers keep
-    ///     the unqualified field name.
-    /// </summary>
-    public string CacheFieldReference => CacheFieldAccess ?? CacheFieldName;
+	/// <summary>
+	///     The expression that accesses <see cref="CacheFieldName" /> from the generated method body. Bindings qualify
+	///     this with their containing type so a parameter cannot shadow the static cache; spec-generated wrappers keep
+	///     the unqualified field name.
+	/// </summary>
+	public string CacheFieldReference => CacheFieldAccess ?? CacheFieldName;
 
-    /// <summary>
-    ///     The cache field name for <paramref name="globalName" />: <see cref="CacheFieldPrefix" /> + the name (a Lua
-    ///     name is a C# identifier).
-    /// </summary>
-    public static string CacheFieldFor(string globalName)
-    {
-        return CacheFieldPrefix + globalName;
-    }
+	/// <summary>
+	///     The cache field name for <paramref name="globalName" />: <see cref="CacheFieldPrefix" /> + the name (a Lua
+	///     name is a C# identifier).
+	/// </summary>
+	public static string CacheFieldFor(string globalName)
+	{
+		return CacheFieldPrefix + globalName;
+	}
 }

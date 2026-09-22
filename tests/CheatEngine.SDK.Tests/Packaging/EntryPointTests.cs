@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+
 using CheatEngine.SDK.Tests.Infrastructure;
 
 namespace CheatEngine.SDK.Tests.Packaging;
@@ -16,124 +17,131 @@ namespace CheatEngine.SDK.Tests.Packaging;
 [Collection(PackagedUmbrellaSuite.Name)]
 public sealed class EntryPointTests(PackagedUmbrellaFixture fixture)
 {
-    [Fact]
-    public void Default_consumer_gets_the_generated_entry_point_type()
-    {
-        Assert.True(fixture.DefaultEntryPointTypeExists,
-            "CESDK.CESDK was not found in the default consumer's built assembly.");
-    }
+	[Fact]
+	public void Default_consumer_gets_the_generated_entry_point_type()
+	{
+		Assert.True(fixture.DefaultEntryPointTypeExists,
+			"CESDK.CESDK was not found in the default consumer's built assembly.");
+	}
 
-    [Fact]
-    public void Default_consumer_entry_point_declares_CEPluginInitialize()
-    {
-        Assert.True(fixture.DefaultEntryPointMethodExists,
-            "CESDK.CESDK.CEPluginInitialize(object, object) was not found in the default consumer's built assembly.");
-    }
+	[Fact]
+	public void Default_consumer_entry_point_declares_CEPluginInitialize()
+	{
+		Assert.True(fixture.DefaultEntryPointMethodExists,
+			"CESDK.CESDK.CEPluginInitialize(object, object) was not found in the default consumer's built assembly.");
+	}
 
-    [Fact]
-    public void CheatEngineSdkGenerateEntryPoint_false_accepts_the_manual_bootstrap()
-    {
-        Assert.True(fixture.EntryPointOffTypeExists,
-            "The manual CESDK.CESDK bootstrap was not found in the opted-out consumer.");
-        Assert.True(fixture.EntryPointOffMethodExists,
-            "The manual CESDK.CESDK bootstrap did not declare CEPluginInitialize(System.IntPtr, int).");
-    }
+	[Fact]
+	public void CheatEngineSdkGenerateEntryPoint_false_accepts_the_manual_bootstrap()
+	{
+		Assert.True(fixture.EntryPointOffTypeExists,
+			"The manual CESDK.CESDK bootstrap was not found in the opted-out consumer.");
+		Assert.True(fixture.EntryPointOffMethodExists,
+			"The manual CESDK.CESDK bootstrap did not declare CEPluginInitialize(System.IntPtr, int).");
+	}
 
-    [Fact]
-    public void Default_consumer_gets_a_loadable_native_bridge()
-    {
-        Assert.True(File.Exists(fixture.DefaultNativeBridgePath),
-            $"The bridge was not copied to '{fixture.DefaultNativeBridgePath}'.");
+	[Fact]
+	public void Default_consumer_gets_a_loadable_native_bridge()
+	{
+		Assert.True(File.Exists(fixture.DefaultNativeBridgePath),
+			$"The bridge was not copied to '{fixture.DefaultNativeBridgePath}'.");
 
-        var module = NativeLibrary.Load(fixture.DefaultNativeBridgePath);
-        try
-        {
-            Assert.True(NativeLibrary.TryGetExport(module, "cheatengine_sdk_lua_protected", out _));
-            var versionAddress = NativeLibrary.GetExport(module, "cheatengine_sdk_lua_bridge_abi_version");
-            var version = Marshal.GetDelegateForFunctionPointer<BridgeVersion>(versionAddress);
-            Assert.Equal(1u, version());
-            var fingerprintAddress = NativeLibrary.GetExport(module, "cheatengine_sdk_lua_bridge_source_fingerprint");
-            Assert.False(string.IsNullOrWhiteSpace(Marshal.PtrToStringAnsi(fingerprintAddress)));
-        }
-        finally
-        {
-            NativeLibrary.Free(module);
-        }
-    }
+		IntPtr module = NativeLibrary.Load(fixture.DefaultNativeBridgePath);
+		try
+		{
+			Assert.True(NativeLibrary.TryGetExport(module, "cheatengine_sdk_lua_protected", out _));
+			IntPtr versionAddress = NativeLibrary.GetExport(module, "cheatengine_sdk_lua_bridge_abi_version");
+			BridgeVersion version = Marshal.GetDelegateForFunctionPointer<BridgeVersion>(versionAddress);
+			Assert.Equal(1u, version());
+			IntPtr fingerprintAddress =
+				NativeLibrary.GetExport(module, "cheatengine_sdk_lua_bridge_source_fingerprint");
+			Assert.False(string.IsNullOrWhiteSpace(Marshal.PtrToStringAnsi(fingerprintAddress)));
+		}
+		finally
+		{
+			NativeLibrary.Free(module);
+		}
+	}
 
-    [Fact]
-    public void Published_consumer_keeps_the_native_bridge()
-    {
-        Assert.True(File.Exists(fixture.DefaultPublishedNativeBridgePath),
-            $"The bridge was not published to '{fixture.DefaultPublishedNativeBridgePath}'.");
-        var publishDirectory = Path.GetDirectoryName(fixture.DefaultPublishedNativeBridgePath)!;
-        Assert.Single(Directory.GetFiles(publishDirectory, "cheatengine-sdk-lua-bridge.dll",
-            SearchOption.AllDirectories));
-    }
+	[Fact]
+	public void Published_consumer_keeps_the_native_bridge()
+	{
+		Assert.True(File.Exists(fixture.DefaultPublishedNativeBridgePath),
+			$"The bridge was not published to '{fixture.DefaultPublishedNativeBridgePath}'.");
+		string publishDirectory = Path.GetDirectoryName(fixture.DefaultPublishedNativeBridgePath)!;
+		Assert.Single(Directory.GetFiles(publishDirectory, "cheatengine-sdk-lua-bridge.dll",
+			SearchOption.AllDirectories));
+	}
 
-    [Fact]
-    public void Packed_direct_consumer_executes_bootstrap_with_an_opaque_second_argument()
-    {
-        const int recordSize = 36;
-        const int opaqueArgument = 0x13579BDF;
-        const byte canary = 0xA5;
-        var consumerAssemblyPath = Path.Combine(fixture.DefaultDeploymentDirectory, "DefaultConsumer.dll");
-        var hostingAssemblyPath = Path.Combine(fixture.DefaultDeploymentDirectory, "CheatEngine.SDK.Hosting.dll");
+	[Fact]
+	public void Packed_direct_consumer_executes_bootstrap_with_an_opaque_second_argument()
+	{
+		const int recordSize = 36;
+		const int opaqueArgument = 0x13579BDF;
+		const byte canary = 0xA5;
+		string consumerAssemblyPath = Path.Combine(fixture.DefaultDeploymentDirectory, "DefaultConsumer.dll");
+		string hostingAssemblyPath = Path.Combine(fixture.DefaultDeploymentDirectory, "CheatEngine.SDK.Hosting.dll");
 
-        var context = new PluginAssemblyLoadContext(fixture.DefaultDeploymentDirectory);
-        try
-        {
-            var hostingAssembly = context.LoadFromAssemblyPath(hostingAssemblyPath);
-            var consumerAssembly = context.LoadFromAssemblyPath(consumerAssemblyPath);
-            var entryPointType = consumerAssembly.GetType(name: "CESDK.CESDK", throwOnError: true)!;
-            var initialize = entryPointType.GetMethod("CEPluginInitialize", BindingFlags.Public | BindingFlags.Static)
-                             ?? throw new MissingMethodException("CESDK.CESDK", "CEPluginInitialize");
+		PluginAssemblyLoadContext context = new(fixture.DefaultDeploymentDirectory);
+		try
+		{
+			Assembly hostingAssembly = context.LoadFromAssemblyPath(hostingAssemblyPath);
+			Assembly consumerAssembly = context.LoadFromAssemblyPath(consumerAssemblyPath);
+			Type entryPointType = consumerAssembly.GetType("CESDK.CESDK", true)!;
+			MethodInfo initialize =
+				entryPointType.GetMethod("CEPluginInitialize", BindingFlags.Public | BindingFlags.Static)
+				?? throw new MissingMethodException("CESDK.CESDK", "CEPluginInitialize");
 
-            var record = Marshal.AllocHGlobal(recordSize + sizeof(int));
-            try
-            {
-                var initialBytes = new byte[recordSize + sizeof(int)];
-                Array.Fill(initialBytes, canary);
-                Marshal.Copy(initialBytes, 0, record, initialBytes.Length);
+			IntPtr record = Marshal.AllocHGlobal(recordSize + sizeof(int));
+			try
+			{
+				byte[] initialBytes = new byte[recordSize + sizeof(int)];
+				Array.Fill(initialBytes, canary);
+				Marshal.Copy(initialBytes, 0, record, initialBytes.Length);
 
-                var result = initialize.Invoke(null, [record, opaqueArgument]);
-                Assert.Equal(1, Assert.IsType<int>(result));
+				object? result = initialize.Invoke(null, [record, opaqueArgument]);
+				Assert.Equal(1, Assert.IsType<int>(result));
 
-                var pluginHost = hostingAssembly.GetType(
-                    name: "CheatEngine.SDK.Hosting.Bootstrap.PluginHost", throwOnError: true)!;
-                var lastArgument =
-                    pluginHost.GetProperty("LastInitRecordArgument", BindingFlags.Public | BindingFlags.Static)
-                    ?? throw new MissingMemberException(pluginHost.FullName, "LastInitRecordArgument");
-                Assert.Equal(opaqueArgument, Assert.IsType<int>(lastArgument.GetValue(null)));
+				Type pluginHost = hostingAssembly.GetType(
+					"CheatEngine.SDK.Hosting.Bootstrap.PluginHost", true)!;
+				PropertyInfo lastArgument =
+					pluginHost.GetProperty("LastInitRecordArgument", BindingFlags.Public | BindingFlags.Static)
+					?? throw new MissingMemberException(pluginHost.FullName, "LastInitRecordArgument");
+				Assert.Equal(opaqueArgument, Assert.IsType<int>(lastArgument.GetValue(null)));
 
-                var actualBytes = new byte[recordSize + sizeof(int)];
-                Marshal.Copy(record, actualBytes, 0, actualBytes.Length);
-                Assert.NotEqual(0L, BitConverter.ToInt64(actualBytes, 0));
-                for (var index = recordSize; index < actualBytes.Length; index++)
-                    Assert.Equal(canary, actualBytes[index]);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(record);
-            }
-        }
-        finally
-        {
-            context.Unload();
-        }
-    }
+				byte[] actualBytes = new byte[recordSize + sizeof(int)];
+				Marshal.Copy(record, actualBytes, 0, actualBytes.Length);
+				Assert.NotEqual(0L, BitConverter.ToInt64(actualBytes, 0));
+				for (int index = recordSize; index < actualBytes.Length; index++)
+				{
+					Assert.Equal(canary, actualBytes[index]);
+				}
+			}
+			finally
+			{
+				Marshal.FreeHGlobal(record);
+			}
+		}
+		finally
+		{
+			context.Unload();
+		}
+	}
 
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate uint BridgeVersion();
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+	private delegate uint BridgeVersion();
 
-    private sealed class PluginAssemblyLoadContext(string deploymentDirectory) : AssemblyLoadContext(isCollectible: true)
-    {
-        protected override Assembly? Load(AssemblyName assemblyName)
-        {
-            if (string.IsNullOrEmpty(assemblyName.Name)) return null;
+	private sealed class PluginAssemblyLoadContext(string deploymentDirectory) : AssemblyLoadContext(true)
+	{
+		protected override Assembly? Load(AssemblyName assemblyName)
+		{
+			if (string.IsNullOrEmpty(assemblyName.Name))
+			{
+				return null;
+			}
 
-            var candidatePath = Path.Combine(deploymentDirectory, assemblyName.Name + ".dll");
-            return File.Exists(candidatePath) ? LoadFromAssemblyPath(candidatePath) : null;
-        }
-    }
+			string candidatePath = Path.Combine(deploymentDirectory, assemblyName.Name + ".dll");
+			return File.Exists(candidatePath) ? LoadFromAssemblyPath(candidatePath) : null;
+		}
+	}
 }

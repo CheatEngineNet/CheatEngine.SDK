@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
+
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
@@ -10,350 +12,420 @@ namespace CheatEngine.SDK.Lua.Registration;
 /// <summary>Publishes static Lua functions as one ownership-aware registration transaction.</summary>
 public static class LuaRegistrationSet
 {
-    /// <summary>Publishes every entry and returns the lease that owns exactly the installed effective globals.</summary>
-    /// <param name="state">The current calling thread's state of an attached runtime.</param>
-    /// <param name="entries">The nonempty, uniquely named static registrations to publish.</param>
-    /// <param name="collisionPolicy">The explicit handling for existing effective globals.</param>
-    /// <returns>The factual registration outcome and a lease on success or after a failed compensation that left a residual owner.</returns>
-    /// <exception cref="ArgumentException"><paramref name="state" /> is null, entries are empty, duplicated, or invalid.</exception>
-    public static LuaRegistrationResult Register(LuaState state, ReadOnlySpan<LuaRegistrationEntry> entries,
-        LuaRegistrationCollisionPolicy collisionPolicy = LuaRegistrationCollisionPolicy.RejectExisting)
-    {
-        if (state.IsNull) throw new ArgumentException("A registration set needs a non-null Lua state.", nameof(state));
-        if (entries.IsEmpty) throw new ArgumentException("A registration set needs at least one entry.", nameof(entries));
-        if (collisionPolicy is not LuaRegistrationCollisionPolicy.RejectExisting and not LuaRegistrationCollisionPolicy.ReplaceExisting)
-            throw new ArgumentOutOfRangeException(nameof(collisionPolicy));
+	/// <summary>Publishes every entry and returns the lease that owns exactly the installed effective globals.</summary>
+	/// <param name="state">The current calling thread's state of an attached runtime.</param>
+	/// <param name="entries">The nonempty, uniquely named static registrations to publish.</param>
+	/// <param name="collisionPolicy">The explicit handling for existing effective globals.</param>
+	/// <returns>
+	///     The factual registration outcome and a lease on success or after a failed compensation that left a residual
+	///     owner.
+	/// </returns>
+	/// <exception cref="ArgumentException"><paramref name="state" /> is null, entries are empty, duplicated, or invalid.</exception>
+	public static LuaRegistrationResult Register(LuaState state, ReadOnlySpan<LuaRegistrationEntry> entries,
+		LuaRegistrationCollisionPolicy collisionPolicy = LuaRegistrationCollisionPolicy.RejectExisting)
+	{
+		if (state.IsNull)
+		{
+			throw new ArgumentException("A registration set needs a non-null Lua state.", nameof(state));
+		}
 
-        ValidateEntries(entries);
+		if (entries.IsEmpty)
+		{
+			throw new ArgumentException("A registration set needs at least one entry.", nameof(entries));
+		}
 
-        using var operation = LuaRuntime.AcquireOperation(state);
-        var identity = LuaRuntime.CurrentStateIdentity;
-        var entriesToLease = new LeaseEntry[entries.Length];
-        var preflight = Preflight(state, entries, collisionPolicy, entriesToLease);
-        if (preflight is not null) return preflight.Value;
+		if (collisionPolicy is not LuaRegistrationCollisionPolicy.RejectExisting
+		    and not LuaRegistrationCollisionPolicy.ReplaceExisting)
+		{
+			throw new ArgumentOutOfRangeException(nameof(collisionPolicy));
+		}
 
-        return Publish(state, identity, entries, entriesToLease);
-    }
+		ValidateEntries(entries);
 
-    internal static LuaRegistrationReleaseOutcome Release(LuaState state, LuaStateIdentity identity,
-        LeaseEntry[] entries, bool retainFailures, out LeaseEntry[]? residual)
-    {
-        residual = null;
-        if (!LuaRuntime.IsAttached || identity != LuaRuntime.CurrentStateIdentity)
-        {
-            Forget(entries);
-            return LuaRegistrationReleaseOutcome.Stale(entries.Length);
-        }
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation(state);
+		LuaStateIdentity identity = LuaRuntime.CurrentStateIdentity;
+		LeaseEntry[] entriesToLease = new LeaseEntry[entries.Length];
+		LuaRegistrationResult? preflight = Preflight(state, entries, collisionPolicy, entriesToLease);
+		if (preflight is not null)
+		{
+			return preflight.Value;
+		}
 
-        using var operation = LuaRuntime.AcquireOperation(state);
-        if (!LuaRuntime.IsAttached || identity != LuaRuntime.CurrentStateIdentity)
-        {
-            Forget(entries);
-            return LuaRegistrationReleaseOutcome.Stale(entries.Length);
-        }
+		return Publish(state, identity, entries, entriesToLease);
+	}
 
-        var accumulator = new ReleaseAccumulator(entries.Length, retainFailures);
-        var top = state.Top;
+	internal static LuaRegistrationReleaseOutcome Release(LuaState state, LuaStateIdentity identity,
+		LeaseEntry[] entries, bool retainFailures, out LeaseEntry[]? residual)
+	{
+		residual = null;
+		if (!LuaRuntime.IsAttached || identity != LuaRuntime.CurrentStateIdentity)
+		{
+			Forget(entries);
+			return LuaRegistrationReleaseOutcome.Stale(entries.Length);
+		}
 
-        for (var index = 0; index < entries.Length; index++)
-            ReleaseEntry(state, entries[index], top, accumulator);
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation(state);
+		if (!LuaRuntime.IsAttached || identity != LuaRuntime.CurrentStateIdentity)
+		{
+			Forget(entries);
+			return LuaRegistrationReleaseOutcome.Stale(entries.Length);
+		}
 
-        return accumulator.CreateOutcome(out residual);
-    }
+		ReleaseAccumulator accumulator = new(entries.Length, retainFailures);
+		int top = state.Top;
 
-    private static LuaRegistrationResult? Preflight(LuaState state, ReadOnlySpan<LuaRegistrationEntry> entries,
-        LuaRegistrationCollisionPolicy collisionPolicy, LeaseEntry[] entriesToLease)
-    {
-        var top = state.Top;
-        for (var index = 0; index < entries.Length; index++)
-        {
-            var entry = entries[index];
-            var status = state.TryGetGlobal(entry.Utf8Name);
-            if (!status.IsOk)
-                return PreflightFailed(state, top, entriesToLease, index, entry.Name, status);
+		for (int index = 0; index < entries.Length; index++)
+		{
+			ReleaseEntry(state, entries[index], top, accumulator);
+		}
 
-            var hadPreviousValue = !state.IsNil(-1);
-            if (hadPreviousValue && collisionPolicy == LuaRegistrationCollisionPolicy.RejectExisting)
-            {
-                state.SetTop(top);
-                ReleaseEntries(state, entriesToLease, index);
-                return Collision(entry.Name);
-            }
+		return accumulator.CreateOutcome(out residual);
+	}
 
-            LuaRef? previous = null;
-            if (hadPreviousValue)
-            {
-                state.PushValue(-1);
-                status = state.TryCreateRef(out previous);
-                if (!status.IsOk || previous is null)
-                    return PreflightFailed(state, top, entriesToLease, index, entry.Name, status);
-            }
+	private static LuaRegistrationResult? Preflight(LuaState state, ReadOnlySpan<LuaRegistrationEntry> entries,
+		LuaRegistrationCollisionPolicy collisionPolicy, LeaseEntry[] entriesToLease)
+	{
+		int top = state.Top;
+		for (int index = 0; index < entries.Length; index++)
+		{
+			LuaRegistrationEntry entry = entries[index];
+			LuaStatus status = state.TryGetGlobal(entry.Utf8Name);
+			if (!status.IsOk)
+			{
+				return PreflightFailed(state, top, entriesToLease, index, entry.Name, status);
+			}
 
-            entriesToLease[index] = new LeaseEntry(entry.Name, previous);
-            state.SetTop(top);
-        }
+			bool hadPreviousValue = !state.IsNil(-1);
+			if (hadPreviousValue && collisionPolicy == LuaRegistrationCollisionPolicy.RejectExisting)
+			{
+				state.SetTop(top);
+				ReleaseEntries(state, entriesToLease, index);
+				return Collision(entry.Name);
+			}
 
-        return null;
-    }
+			LuaRef? previous = null;
+			if (hadPreviousValue)
+			{
+				state.PushValue(-1);
+				status = state.TryCreateRef(out previous);
+				if (!status.IsOk || previous is null)
+				{
+					return PreflightFailed(state, top, entriesToLease, index, entry.Name, status);
+				}
+			}
 
-    private static LuaRegistrationResult Publish(LuaState state, LuaStateIdentity identity,
-        ReadOnlySpan<LuaRegistrationEntry> entries, LeaseEntry[] entriesToLease)
-    {
-        var top = state.Top;
-        for (var index = 0; index < entries.Length; index++)
-        {
-            var entry = entries[index];
-            var status = LuaRuntime.TryPushGeneratedFunction(state, entry.Function);
-            if (!status.IsOk) return PublishFailure(state, top, identity, entriesToLease, index, entry.Name, status);
+			entriesToLease[index] = new LeaseEntry(entry.Name, previous);
+			state.SetTop(top);
+		}
 
-            state.PushValue(-1);
-            status = state.TryCreateRef(out var installed);
-            if (!status.IsOk || installed is null)
-                return PublishFailure(state, top, identity, entriesToLease, index, entry.Name, status);
+		return null;
+	}
 
-            entriesToLease[index].Installed = installed;
-            status = state.TrySetGlobal(entry.Utf8Name);
-            if (!status.IsOk)
-                return PublishFailure(state, top, identity, entriesToLease, index + 1, entry.Name, status);
-            state.SetTop(top);
-        }
+	private static LuaRegistrationResult Publish(LuaState state, LuaStateIdentity identity,
+		ReadOnlySpan<LuaRegistrationEntry> entries, LeaseEntry[] entriesToLease)
+	{
+		int top = state.Top;
+		for (int index = 0; index < entries.Length; index++)
+		{
+			LuaRegistrationEntry entry = entries[index];
+			LuaStatus status = LuaRuntime.TryPushGeneratedFunction(state, entry.Function);
+			if (!status.IsOk)
+			{
+				return PublishFailure(state, top, identity, entriesToLease, index, entry.Name, status);
+			}
 
-        return new LuaRegistrationResult(LuaRegistrationResultKind.Succeeded, failure: null,
-            LuaRegistrationReleaseOutcome.NotAttempted(), new LuaRegistrationLease(identity, entriesToLease));
-    }
+			state.PushValue(-1);
+			status = state.TryCreateRef(out LuaRef? installed);
+			if (!status.IsOk || installed is null)
+			{
+				return PublishFailure(state, top, identity, entriesToLease, index, entry.Name, status);
+			}
 
-    private static LuaRegistrationResult PreflightFailed(LuaState state, int top, LeaseEntry[] entries, int count,
-        string name, LuaStatus status)
-    {
-        state.SetTop(top);
-        ReleaseEntries(state, entries, count);
-        return Failed(LuaRegistrationResultKind.PreflightFailed, name, status);
-    }
+			entriesToLease[index].Installed = installed;
+			status = state.TrySetGlobal(entry.Utf8Name);
+			if (!status.IsOk)
+			{
+				return PublishFailure(state, top, identity, entriesToLease, index + 1, entry.Name, status);
+			}
 
-    private static LuaRegistrationResult PublishFailure(LuaState state, int top, LuaStateIdentity identity,
-        LeaseEntry[] entries, int count, string name, LuaStatus status)
-    {
-        state.SetTop(top);
-        return PublishFailed(state, identity, entries, count, name, status);
-    }
+			state.SetTop(top);
+		}
 
-    private static void ReleaseEntry(LuaState state, LeaseEntry entry, int top, ReleaseAccumulator accumulator)
-    {
-        if (entry.Installed is null)
-        {
-            ReleaseReferences(state, entry);
-            return;
-        }
+		return new LuaRegistrationResult(LuaRegistrationResultKind.Succeeded, null,
+			LuaRegistrationReleaseOutcome.NotAttempted(), new LuaRegistrationLease(identity, entriesToLease));
+	}
 
-        var status = state.TryGetGlobal(entry.Utf8Name);
-        if (!status.IsOk)
-        {
-            state.SetTop(top);
-            accumulator.Failed(state, entry, status);
-            return;
-        }
+	private static LuaRegistrationResult PreflightFailed(LuaState state, int top, LeaseEntry[] entries, int count,
+		string name, LuaStatus status)
+	{
+		state.SetTop(top);
+		ReleaseEntries(state, entries, count);
+		return Failed(LuaRegistrationResultKind.PreflightFailed, name, status);
+	}
 
-        if (!state.TryPushRef(entry.Installed))
-        {
-            state.SetTop(top);
-            accumulator.Failed(state, entry, LuaStatus.RuntimeError);
-            return;
-        }
+	private static LuaRegistrationResult PublishFailure(LuaState state, int top, LuaStateIdentity identity,
+		LeaseEntry[] entries, int count, string name, LuaStatus status)
+	{
+		state.SetTop(top);
+		return PublishFailed(state, identity, entries, count, name, status);
+	}
 
-        var ownsCurrentValue = state.RawEquals(-2, -1);
-        state.SetTop(top);
-        if (!ownsCurrentValue)
-        {
-            accumulator.Replaced(state, entry);
-            return;
-        }
+	private static void ReleaseEntry(LuaState state, LeaseEntry entry, int top, ReleaseAccumulator accumulator)
+	{
+		if (entry.Installed is null)
+		{
+			ReleaseReferences(state, entry);
+			return;
+		}
 
-        if (!TryPushPrevious(state, entry))
-        {
-            state.SetTop(top);
-            accumulator.Failed(state, entry, LuaStatus.RuntimeError);
-            return;
-        }
+		LuaStatus status = state.TryGetGlobal(entry.Utf8Name);
+		if (!status.IsOk)
+		{
+			state.SetTop(top);
+			accumulator.Failed(state, entry, status);
+			return;
+		}
 
-        status = state.TrySetGlobal(entry.Utf8Name);
-        state.SetTop(top);
-        if (!status.IsOk)
-        {
-            accumulator.Failed(state, entry, status);
-            return;
-        }
+		if (!state.TryPushRef(entry.Installed))
+		{
+			state.SetTop(top);
+			accumulator.Failed(state, entry, LuaStatus.RuntimeError);
+			return;
+		}
 
-        accumulator.Released(state, entry);
-    }
+		bool ownsCurrentValue = state.RawEquals(-2, -1);
+		state.SetTop(top);
+		if (!ownsCurrentValue)
+		{
+			accumulator.Replaced(state, entry);
+			return;
+		}
 
-    private static bool TryPushPrevious(LuaState state, LeaseEntry entry)
-    {
-        if (entry.Previous is null)
-        {
-            state.PushNil();
-            return true;
-        }
+		if (!TryPushPrevious(state, entry))
+		{
+			state.SetTop(top);
+			accumulator.Failed(state, entry, LuaStatus.RuntimeError);
+			return;
+		}
 
-        return state.TryPushRef(entry.Previous);
-    }
+		status = state.TrySetGlobal(entry.Utf8Name);
+		state.SetTop(top);
+		if (!status.IsOk)
+		{
+			accumulator.Failed(state, entry, status);
+			return;
+		}
 
-    internal static void Forget(LeaseEntry[] entries)
-    {
-        for (var index = 0; index < entries.Length; index++) Forget(entries[index]);
-    }
+		accumulator.Released(state, entry);
+	}
 
-    private static LuaRegistrationResult PublishFailed(LuaState state, LuaStateIdentity identity,
-        LeaseEntry[] entries, int count, string name, LuaStatus status)
-    {
-        var published = new LeaseEntry[count];
-        Array.Copy(entries, published, count);
-        var rollback = Release(state, identity, published, retainFailures: true, out var residual);
-        ReleaseEntries(state, entries, count, entries.Length);
-        LuaRegistrationLease? lease = residual is null ? null : new LuaRegistrationLease(identity, residual);
-        return new LuaRegistrationResult(LuaRegistrationResultKind.PublicationFailed,
-            new LuaRegistrationFailure(name, status), rollback, lease);
-    }
+	private static bool TryPushPrevious(LuaState state, LeaseEntry entry)
+	{
+		if (entry.Previous is null)
+		{
+			state.PushNil();
+			return true;
+		}
 
-    private static LuaRegistrationResult Collision(string name)
-    {
-        return new LuaRegistrationResult(LuaRegistrationResultKind.Collision,
-            new LuaRegistrationFailure(name, LuaStatus.Ok), LuaRegistrationReleaseOutcome.NotAttempted(), lease: null);
-    }
+		return state.TryPushRef(entry.Previous);
+	}
 
-    private static LuaRegistrationResult Failed(LuaRegistrationResultKind kind, string name, LuaStatus status)
-    {
-        return new LuaRegistrationResult(kind, new LuaRegistrationFailure(name, status),
-            LuaRegistrationReleaseOutcome.NotAttempted(), lease: null);
-    }
+	internal static void Forget(LeaseEntry[] entries)
+	{
+		for (int index = 0; index < entries.Length; index++)
+		{
+			Forget(entries[index]);
+		}
+	}
 
-    private static void ReleaseReferences(LuaState state, LeaseEntry entry)
-    {
-        try
-        {
-            entry.Installed?.Release(state);
-        }
-        finally
-        {
-            entry.Previous?.Release(state);
-        }
-    }
+	private static LuaRegistrationResult PublishFailed(LuaState state, LuaStateIdentity identity,
+		LeaseEntry[] entries, int count, string name, LuaStatus status)
+	{
+		LeaseEntry[] published = new LeaseEntry[count];
+		Array.Copy(entries, published, count);
+		LuaRegistrationReleaseOutcome rollback = Release(state, identity, published, true, out LeaseEntry[]? residual);
+		ReleaseEntries(state, entries, count, entries.Length);
+		LuaRegistrationLease? lease = residual is null ? null : new LuaRegistrationLease(identity, residual);
+		return new LuaRegistrationResult(LuaRegistrationResultKind.PublicationFailed,
+			new LuaRegistrationFailure(name, status), rollback, lease);
+	}
 
-    private static void Forget(LeaseEntry entry)
-    {
-        entry.Installed?.Release(default);
-        entry.Previous?.Release(default);
-    }
+	private static LuaRegistrationResult Collision(string name)
+	{
+		return new LuaRegistrationResult(LuaRegistrationResultKind.Collision,
+			new LuaRegistrationFailure(name, LuaStatus.Ok), LuaRegistrationReleaseOutcome.NotAttempted(), null);
+	}
 
-    private static void ReleaseEntries(LuaState state, LeaseEntry[] entries, int count)
-    {
-        ReleaseEntries(state, entries, 0, count);
-    }
+	private static LuaRegistrationResult Failed(LuaRegistrationResultKind kind, string name, LuaStatus status)
+	{
+		return new LuaRegistrationResult(kind, new LuaRegistrationFailure(name, status),
+			LuaRegistrationReleaseOutcome.NotAttempted(), null);
+	}
 
-    private static void ReleaseEntries(LuaState state, LeaseEntry[] entries, int start, int end)
-    {
-        for (var index = start; index < end; index++) ReleaseReferences(state, entries[index]);
-    }
+	private static void ReleaseReferences(LuaState state, LeaseEntry entry)
+	{
+		try
+		{
+			entry.Installed?.Release(state);
+		}
+		finally
+		{
+			entry.Previous?.Release(state);
+		}
+	}
 
-    private static void ValidateEntries(ReadOnlySpan<LuaRegistrationEntry> entries)
-    {
-        var names = new HashSet<string>(StringComparer.Ordinal);
-        for (var index = 0; index < entries.Length; index++)
-        {
-            var entry = entries[index];
-            if (string.IsNullOrEmpty(entry.Name) || entry.Function.IsNull)
-                throw new ArgumentException("Every registration entry needs a nonempty name and non-null thunk.", nameof(entries));
-            if (!names.Add(entry.Name))
-                throw new ArgumentException("A registration set cannot contain duplicate global names.", nameof(entries));
-        }
-    }
+	private static void Forget(LeaseEntry entry)
+	{
+		entry.Installed?.Release(default);
+		entry.Previous?.Release(default);
+	}
 
-    internal sealed class LeaseEntry
-    {
-        internal LeaseEntry(string name, LuaRef? previous)
-        {
-            Name = name;
-            Utf8Name = System.Text.Encoding.UTF8.GetBytes(name);
-            Previous = previous;
-        }
+	private static void ReleaseEntries(LuaState state, LeaseEntry[] entries, int count)
+	{
+		ReleaseEntries(state, entries, 0, count);
+	}
 
-        internal string Name { get; }
+	private static void ReleaseEntries(LuaState state, LeaseEntry[] entries, int start, int end)
+	{
+		for (int index = start; index < end; index++)
+		{
+			ReleaseReferences(state, entries[index]);
+		}
+	}
 
-        internal byte[] Utf8Name { get; }
+	private static void ValidateEntries(ReadOnlySpan<LuaRegistrationEntry> entries)
+	{
+		HashSet<string> names = new(StringComparer.Ordinal);
+		for (int index = 0; index < entries.Length; index++)
+		{
+			LuaRegistrationEntry entry = entries[index];
+			if (string.IsNullOrEmpty(entry.Name) || entry.Function.IsNull)
+			{
+				throw new ArgumentException("Every registration entry needs a nonempty name and non-null thunk.",
+					nameof(entries));
+			}
 
-        internal LuaRef? Installed { get; set; }
+			if (!names.Add(entry.Name))
+			{
+				throw new ArgumentException("A registration set cannot contain duplicate global names.",
+					nameof(entries));
+			}
+		}
+	}
 
-        internal LuaRef? Previous { get; }
-    }
+	internal sealed class LeaseEntry
+	{
+		internal LeaseEntry(string name, LuaRef? previous)
+		{
+			Name = name;
+			Utf8Name = Encoding.UTF8.GetBytes(name);
+			Previous = previous;
+		}
 
-    private sealed class ReleaseAccumulator
-    {
-        private readonly LuaRegistrationReleaseFailure[] _failures;
-        private readonly LeaseEntry[]? _residual;
-        private int _failureCount;
-        private int _removedCount;
-        private int _replacementCount;
-        private int _residualCount;
-        private int _restoredCount;
+		internal string Name
+		{
+			get;
+		}
 
-        internal ReleaseAccumulator(int count, bool retainFailures)
-        {
-            _failures = new LuaRegistrationReleaseFailure[count];
-            _residual = retainFailures ? new LeaseEntry[count] : null;
-        }
+		internal byte[] Utf8Name
+		{
+			get;
+		}
 
-        internal void Failed(LuaState state, LeaseEntry entry, LuaStatus status)
-        {
-            _failures[_failureCount++] = new LuaRegistrationReleaseFailure(entry.Name, status);
-            if (_residual is not null)
-            {
-                _residual[_residualCount++] = entry;
-                return;
-            }
+		internal LuaRef? Installed
+		{
+			get;
+			set;
+		}
 
-            ReleaseReferences(state, entry);
-        }
+		internal LuaRef? Previous
+		{
+			get;
+		}
+	}
 
-        internal void Replaced(LuaState state, LeaseEntry entry)
-        {
-            _replacementCount++;
-            ReleaseReferences(state, entry);
-        }
+	private sealed class ReleaseAccumulator
+	{
+		private readonly LuaRegistrationReleaseFailure[] _failures;
+		private readonly LeaseEntry[]? _residual;
+		private int _failureCount;
+		private int _removedCount;
+		private int _replacementCount;
+		private int _residualCount;
+		private int _restoredCount;
 
-        internal void Released(LuaState state, LeaseEntry entry)
-        {
-            if (entry.Previous is null)
-                _removedCount++;
-            else
-                _restoredCount++;
-            ReleaseReferences(state, entry);
-        }
+		internal ReleaseAccumulator(int count, bool retainFailures)
+		{
+			_failures = new LuaRegistrationReleaseFailure[count];
+			_residual = retainFailures ? new LeaseEntry[count] : null;
+		}
 
-        internal LuaRegistrationReleaseOutcome CreateOutcome(out LeaseEntry[]? residual)
-        {
-            residual = CopyResidual();
-            var failures = CopyFailures();
-            var kind = _failureCount == 0 ? LuaRegistrationReleaseKind.Released : LuaRegistrationReleaseKind.PartiallyReleased;
-            var remainingCount = _residual is null ? _failureCount : _residualCount;
-            return new LuaRegistrationReleaseOutcome(kind, _removedCount, _restoredCount, _replacementCount,
-                remainingCount, failures);
-        }
+		internal void Failed(LuaState state, LeaseEntry entry, LuaStatus status)
+		{
+			_failures[_failureCount++] = new LuaRegistrationReleaseFailure(entry.Name, status);
+			if (_residual is not null)
+			{
+				_residual[_residualCount++] = entry;
+				return;
+			}
 
-        private LuaRegistrationReleaseFailure[] CopyFailures()
-        {
-            if (_failureCount == 0) return Array.Empty<LuaRegistrationReleaseFailure>();
+			ReleaseReferences(state, entry);
+		}
 
-            var copy = new LuaRegistrationReleaseFailure[_failureCount];
-            Array.Copy(_failures, copy, _failureCount);
-            return copy;
-        }
+		internal void Replaced(LuaState state, LeaseEntry entry)
+		{
+			_replacementCount++;
+			ReleaseReferences(state, entry);
+		}
 
-        private LeaseEntry[]? CopyResidual()
-        {
-            if (_residualCount == 0) return null;
+		internal void Released(LuaState state, LeaseEntry entry)
+		{
+			if (entry.Previous is null)
+			{
+				_removedCount++;
+			}
+			else
+			{
+				_restoredCount++;
+			}
 
-            var copy = new LeaseEntry[_residualCount];
-            Array.Copy(_residual!, copy, _residualCount);
-            return copy;
-        }
-    }
+			ReleaseReferences(state, entry);
+		}
+
+		internal LuaRegistrationReleaseOutcome CreateOutcome(out LeaseEntry[]? residual)
+		{
+			residual = CopyResidual();
+			LuaRegistrationReleaseFailure[] failures = CopyFailures();
+			LuaRegistrationReleaseKind kind = _failureCount == 0
+				? LuaRegistrationReleaseKind.Released
+				: LuaRegistrationReleaseKind.PartiallyReleased;
+			int remainingCount = _residual is null ? _failureCount : _residualCount;
+			return new LuaRegistrationReleaseOutcome(kind, _removedCount, _restoredCount, _replacementCount,
+				remainingCount, failures);
+		}
+
+		private LuaRegistrationReleaseFailure[] CopyFailures()
+		{
+			if (_failureCount == 0)
+			{
+				return Array.Empty<LuaRegistrationReleaseFailure>();
+			}
+
+			LuaRegistrationReleaseFailure[] copy = new LuaRegistrationReleaseFailure[_failureCount];
+			Array.Copy(_failures, copy, _failureCount);
+			return copy;
+		}
+
+		private LeaseEntry[]? CopyResidual()
+		{
+			if (_residualCount == 0)
+			{
+				return null;
+			}
+
+			LeaseEntry[] copy = new LeaseEntry[_residualCount];
+			Array.Copy(_residual!, copy, _residualCount);
+			return copy;
+		}
+	}
 }

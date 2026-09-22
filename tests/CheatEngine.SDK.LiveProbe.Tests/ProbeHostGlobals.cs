@@ -1,4 +1,4 @@
-namespace LiveProbe;
+namespace CheatEngine.SDK.LiveProbe.Tests;
 
 // The source-linked LiveProbeState tests inject the PID reader and never call this generated Lua global. Keeping the
 // stub local avoids loading a plugin generator or a Cheat Engine host during unit tests.

@@ -1,16 +1,16 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Abi;
 using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Hosting.Bootstrap;
+using CheatEngine.SDK.Hosting.Context;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Tests.Support;
 using CheatEngine.SDK.Hosting.Threading;
 using CheatEngine.SDK.Lua.Callbacks;
-using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Interop.Api;
-using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
@@ -28,10 +28,10 @@ public sealed unsafe class AdmissionLifecycleTests
 	public void Disable_nested_in_inline_main_thread_work_is_refused_and_the_enable_stands()
 	{
 		HostingTest.RequireNativeLua();
-		var sink = HostingTest.Reset();
+		CapturingLogSink sink = HostingTest.Reset();
 		using NativeLuaState state = new();
 		using HostSimulator host = new();
-		var plugin = HostingTest.Enable(host, state);
+		RecordingPlugin plugin = HostingTest.Enable(host, state);
 		StrongBox<Bool32> nestedResult = new();
 
 		MainThread.Invoke(static state => state.Result.Value = state.Host.CallDisable(),
@@ -54,20 +54,21 @@ public sealed unsafe class AdmissionLifecycleTests
 		using NativeLuaState state = new();
 		using HostSimulator host = new();
 		HostingTest.Enable(host, state, 1);
-		var stale = PluginHost.Context!;
+		PluginContext stale = PluginHost.Context!;
 
 		Assert.True(host.CallDisable().IsTrue);
-		var exports = FakeExports.Create();
+		ManagedExportedFunctions exports = FakeExports.Create();
 		Assert.True(host.CallEnable(&exports, 2).IsTrue);
-		var current = PluginHost.Context!;
+		PluginContext current = PluginHost.Context!;
 
-		var failure = Assert.Throws<InvalidOperationException>(() => PluginHost.AdmitMainThreadWork(stale));
+		InvalidOperationException failure =
+			Assert.Throws<InvalidOperationException>(() => PluginHost.AdmitMainThreadWork(stale));
 
 		Assert.Contains("stopping or disabled", failure.Message, StringComparison.Ordinal);
 		Assert.False(stale.IsCurrent);
 		Assert.True(stale.ShutdownToken.IsCancellationRequested);
 		Assert.True(current.IsCurrent);
-		var currentAdmission = PluginHost.AdmitMainThreadWork(current);
+		PluginHost.MainThreadWorkAdmission currentAdmission = PluginHost.AdmitMainThreadWork(current);
 		Assert.NotNull(currentAdmission);
 		currentAdmission.Dispose();
 	}
@@ -85,7 +86,7 @@ public sealed unsafe class AdmissionLifecycleTests
 		HostingTest.Enable(host, state);
 		StrongBox<Exception?> workerFailure = new();
 		StrongBox<bool> workerCompleted = new();
-		var dispatchAttempts = 0;
+		int dispatchAttempts = 0;
 		MainThreadDispatcher.DispatchOverrideForTests = _ => Interlocked.Increment(ref dispatchAttempts);
 		RecordingPlugin.NestedCallInOnDisable = () => StartAdmissionClosedWorker(
 			workerFailure,
@@ -96,7 +97,7 @@ public sealed unsafe class AdmissionLifecycleTests
 			Assert.True(host.CallDisable().IsTrue);
 
 			Assert.True(workerCompleted.Value);
-			var failure = Assert.IsType<InvalidOperationException>(workerFailure.Value);
+			InvalidOperationException failure = Assert.IsType<InvalidOperationException>(workerFailure.Value);
 			Assert.Contains("no longer accepts new main-thread dispatch", failure.Message, StringComparison.Ordinal);
 			Assert.Equal(0, dispatchAttempts);
 		}
@@ -111,12 +112,12 @@ public sealed unsafe class AdmissionLifecycleTests
 	public void A_throwing_shutdown_registration_is_neutralized_and_cleanup_completes()
 	{
 		HostingTest.RequireNativeLua();
-		var sink = HostingTest.Reset();
+		CapturingLogSink sink = HostingTest.Reset();
 		using NativeLuaState state = new();
 		using HostSimulator host = new();
-		var plugin = HostingTest.Enable(host, state);
-		var context = PluginHost.Context!;
-		using var registration = context.ShutdownToken.Register(static () =>
+		RecordingPlugin plugin = HostingTest.Enable(host, state);
+		PluginContext context = PluginHost.Context!;
+		using CancellationTokenRegistration registration = context.ShutdownToken.Register(static () =>
 			throw new InvalidOperationException("shutdown registration failure requested by the test"));
 
 		Assert.True(host.CallDisable().IsTrue);
@@ -137,14 +138,15 @@ public sealed unsafe class AdmissionLifecycleTests
 		using NativeLuaState state = new();
 		using HostSimulator host = new();
 		HostingTest.Enable(host, state);
-		var L = LuaRuntime.AcquireState();
+		LuaState L = LuaRuntime.AcquireState();
 		CallbackInvocationCounter counter = new();
-		Assert.True(LuaCallback.TryCreate(L, new LuaNativeFunction(&CountInvocation), counter, out var callback).IsOk);
+		Assert.True(LuaCallback.TryCreate(L, new LuaNativeFunction(&CountInvocation), counter,
+			out LuaCallback<CallbackInvocationCounter>? callback).IsOk);
 		Assert.NotNull(callback);
 		Assert.True(callback.TryRegister(L, "staleLifecycleCallback"u8).IsOk);
 
 		Assert.True(host.CallDisable().IsTrue);
-		var exports = FakeExports.Create();
+		ManagedExportedFunctions exports = FakeExports.Create();
 		Assert.True(host.CallEnable(&exports, 2).IsTrue);
 
 		using (LuaFrame frame = new(L))
@@ -165,13 +167,17 @@ public sealed unsafe class AdmissionLifecycleTests
 	{
 		Thread worker = new(() =>
 		{
-			workerFailure.Value = Record.Exception(() => MainThread.Invoke(static _ => { }, 0));
+			workerFailure.Value = Record.Exception(() => MainThread.Invoke(static _ =>
+			{
+			}, 0));
 			workerCompleted.Value = true;
 		});
 
 		worker.Start();
 		if (!worker.Join(TimeSpan.FromSeconds(5)))
+		{
 			throw new TimeoutException("The admission-closed worker did not return.");
+		}
 
 		return Bool32.True;
 	}
@@ -183,7 +189,9 @@ public sealed unsafe class AdmissionLifecycleTests
 		try
 		{
 			if (!LuaThunk.TryGetState(state, out CallbackInvocationCounter? counter))
+			{
 				return LuaThunk.Fail(state, "callback released"u8);
+			}
 
 			counter.InvocationCount++;
 			return 0;
@@ -196,6 +204,10 @@ public sealed unsafe class AdmissionLifecycleTests
 
 	private sealed class CallbackInvocationCounter
 	{
-		public int InvocationCount { get; set; }
+		public int InvocationCount
+		{
+			get;
+			set;
+		}
 	}
 }

@@ -8,13 +8,13 @@ namespace CheatEngine.SDK.Engine.Runtime;
 /// <param name="Contract">The evidence-backed constraints and normal return semantics.</param>
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct RuntimeCapabilityAvailability(
-    RuntimeCapabilityId Capability,
-    RuntimeCapabilityAvailabilityState State,
-    RuntimeCapabilityContract Contract)
+	RuntimeCapabilityId Capability,
+	RuntimeCapabilityAvailabilityState State,
+	RuntimeCapabilityContract Contract)
 {
-    /// <summary>Gets a value indicating whether the capability was explicitly observed as available.</summary>
-    public bool IsAvailable => State == RuntimeCapabilityAvailabilityState.Available;
+	/// <summary>Gets a value indicating whether the capability was explicitly observed as available.</summary>
+	public bool IsAvailable => State == RuntimeCapabilityAvailabilityState.Available;
 
-    /// <summary>Gets a value indicating whether the capability was explicitly observed as either available or unavailable.</summary>
-    public bool IsKnown => State != RuntimeCapabilityAvailabilityState.Unknown;
+	/// <summary>Gets a value indicating whether the capability was explicitly observed as either available or unavailable.</summary>
+	public bool IsKnown => State != RuntimeCapabilityAvailabilityState.Unknown;
 }

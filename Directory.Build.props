@@ -19,8 +19,8 @@
     <!-- CS1591 makes undocumented public API an error, and IDE0005 only fails the build when a documentation file exists. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NuGetAuditMode>all</NuGetAuditMode>
-    <!-- A newly published advisory must not break an unrelated build. -->
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900;NU1901;NU1902;NU1903;NU1904;NU1905</WarningsNotAsErrors>
+    <!-- Feed/audit service availability is non-blocking; reported vulnerabilities remain build errors. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900;NU1905</WarningsNotAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Label="Determinism and symbols">

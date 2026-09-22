@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Lua.State;
 
@@ -21,33 +22,33 @@ namespace CheatEngine.SDK.Lua.Marshalling;
 /// </remarks>
 public readonly struct AddressMarshaller : ILuaMarshaller<nuint>
 {
-    /// <inheritdoc />
-    [LuaStackEffect(1)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Push(LuaState state, nuint value)
-    {
-        state.PushInteger(unchecked((long)value));
-    }
+	/// <inheritdoc />
+	[LuaStackEffect(1)]
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static void Push(LuaState state, nuint value)
+	{
+		state.PushInteger(unchecked((long) value));
+	}
 
-    /// <inheritdoc />
-    [LuaStackEffect(0)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryRead(LuaState state, int index, out nuint value)
-    {
-        if (state.TypeOf(index) != LuaType.Number || !state.TryReadInteger(index, out var bits))
-        {
-            value = 0;
-            return false;
-        }
+	/// <inheritdoc />
+	[LuaStackEffect(0)]
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool TryRead(LuaState state, int index, out nuint value)
+	{
+		if (state.TypeOf(index) != LuaType.Number || !state.TryReadInteger(index, out long bits))
+		{
+			value = 0;
+			return false;
+		}
 
-        var wide = unchecked((ulong)bits);
-        if (nuint.Size == sizeof(uint) && wide > uint.MaxValue)
-        {
-            value = 0;
-            return false;
-        }
+		ulong wide = unchecked((ulong) bits);
+		if (nuint.Size == sizeof(uint) && wide > uint.MaxValue)
+		{
+			value = 0;
+			return false;
+		}
 
-        value = unchecked((nuint)wide);
-        return true;
-    }
+		value = unchecked((nuint) wide);
+		return true;
+	}
 }

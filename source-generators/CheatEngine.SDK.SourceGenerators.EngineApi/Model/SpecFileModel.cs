@@ -40,18 +40,18 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Model;
 /// </param>
 /// <param name="IsSuppressed">Whether a cross-file identity conflict makes the complete file ineligible for emission.</param>
 internal sealed record SpecFileModel(
-    string SourcePath,
-    string Namespace,
-    string TypeName,
-    int TypeLine,
-    int TypeColumn,
-    SpecFileContract? Contract,
-    string HintName,
-    EquatableArray<string> CachedGlobals,
-    EquatableArray<SpecCallModel> Calls,
-    EquatableArray<SpecIssue> Issues,
-    bool IsSuppressed)
+	string SourcePath,
+	string Namespace,
+	string TypeName,
+	int TypeLine,
+	int TypeColumn,
+	SpecFileContract? Contract,
+	string HintName,
+	EquatableArray<string> CachedGlobals,
+	EquatableArray<SpecCallModel> Calls,
+	EquatableArray<SpecIssue> Issues,
+	bool IsSuppressed)
 {
-    /// <summary>Suffix of the hint name: <c>memory-scalars.cheatengine-sdk-api.txt.EngineApi.g.cs</c>.</summary>
-    public const string HintSuffix = ".EngineApi.g.cs";
+	/// <summary>Suffix of the hint name: <c>memory-scalars.cheatengine-sdk-api.txt.EngineApi.g.cs</c>.</summary>
+	public const string HintSuffix = ".EngineApi.g.cs";
 }

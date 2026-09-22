@@ -25,15 +25,15 @@ namespace CheatEngine.SDK.Abi.Native;
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct AutoAssemblerPluginInit
 {
-    /// <summary>
-    ///     Invoked per script line and per phase (offset 0). Arguments: in/out pointer to the ANSI text of the line,
-    ///     the current <see cref="AutoAssemblerPhase" />, and a 32-bit id whose meaning is not documented upstream
-    ///     (presumably it identifies the run, so that state can be kept between phases).
-    /// </summary>
-    /// <remarks>
-    ///     A replacement line written through the first argument stays owned by the plugin and has to outlive the
-    ///     call. Thread affinity is not documented upstream: assume any thread. Must stay valid until the function is
-    ///     unregistered. Must not let an exception escape.
-    /// </remarks>
-    public delegate* unmanaged[Stdcall]<byte**, AutoAssemblerPhase, int, void> Callback;
+	/// <summary>
+	///     Invoked per script line and per phase (offset 0). Arguments: in/out pointer to the ANSI text of the line,
+	///     the current <see cref="AutoAssemblerPhase" />, and a 32-bit id whose meaning is not documented upstream
+	///     (presumably it identifies the run, so that state can be kept between phases).
+	/// </summary>
+	/// <remarks>
+	///     A replacement line written through the first argument stays owned by the plugin and has to outlive the
+	///     call. Thread affinity is not documented upstream: assume any thread. Must stay valid until the function is
+	///     unregistered. Must not let an exception escape.
+	/// </remarks>
+	public delegate* unmanaged[Stdcall]<byte**, AutoAssemblerPhase, int, void> Callback;
 }

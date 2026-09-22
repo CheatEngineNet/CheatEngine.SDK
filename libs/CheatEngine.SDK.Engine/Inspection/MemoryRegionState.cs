@@ -8,12 +8,12 @@ namespace CheatEngine.SDK.Engine.Inspection;
 /// </remarks>
 public enum MemoryRegionState : uint
 {
-    /// <summary>Pages are committed (<c>MEM_COMMIT</c>).</summary>
-    Committed = 0x1000,
+	/// <summary>Pages are committed (<c>MEM_COMMIT</c>).</summary>
+	Committed = 0x1000,
 
-    /// <summary>Pages are reserved (<c>MEM_RESERVE</c>).</summary>
-    Reserved = 0x2000,
+	/// <summary>Pages are reserved (<c>MEM_RESERVE</c>).</summary>
+	Reserved = 0x2000,
 
-    /// <summary>The address range is free (<c>MEM_FREE</c>).</summary>
-    Free = 0x10000,
+	/// <summary>The address range is free (<c>MEM_FREE</c>).</summary>
+	Free = 0x10000
 }

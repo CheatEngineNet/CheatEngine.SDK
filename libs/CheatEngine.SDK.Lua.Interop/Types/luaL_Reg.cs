@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Lua.Interop.Api;
 
 namespace CheatEngine.SDK.Lua.Interop.Types;
@@ -16,9 +17,9 @@ namespace CheatEngine.SDK.Lua.Interop.Types;
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct luaL_Reg
 {
-    /// <summary>NUL-terminated field name, null in the terminating entry.</summary>
-    public byte* name;
+	/// <summary>NUL-terminated field name, null in the terminating entry.</summary>
+	public byte* name;
 
-    /// <summary>The C function, null in the terminating entry.</summary>
-    public lua_CFunction func;
+	/// <summary>The C function, null in the terminating entry.</summary>
+	public lua_CFunction func;
 }

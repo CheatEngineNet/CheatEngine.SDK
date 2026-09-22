@@ -13,11 +13,11 @@ global using size_t = nuint;
 global using unsafe lua_Alloc = delegate* unmanaged[Cdecl]<void*, void*, nuint, nuint, void*>;
 global using unsafe lua_CFunction = delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>;
 global using unsafe lua_Hook =
-    delegate* unmanaged[Cdecl]<
-    CheatEngine.SDK.Lua.Interop.Types.lua_State*, CheatEngine.SDK.Lua.Interop.Types.lua_Debug*, void>;
+	delegate* unmanaged[Cdecl]<
+	CheatEngine.SDK.Lua.Interop.Types.lua_State*, CheatEngine.SDK.Lua.Interop.Types.lua_Debug*, void>;
 global using unsafe lua_KFunction =
-    delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int, nint, int>;
+	delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int, nint, int>;
 global using unsafe lua_Reader =
-    delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, void*, nuint*, byte*>;
+	delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, void*, nuint*, byte*>;
 global using unsafe lua_Writer =
-    delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, void*, nuint, void*, int>;
+	delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, void*, nuint, void*, int>;

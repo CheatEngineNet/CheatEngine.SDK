@@ -27,7 +27,7 @@ balanced, and keeps the hot paths free of allocations.
 | `CheatEngine.SDK.Lua.References`       | `LuaRef`                                                                                                                                                                          | Registry reference stamped with attachment epoch and state generation        |
 | `CheatEngine.SDK.Lua.Callbacks`        | `LuaNativeFunction`, `LuaCallback`, `LuaCallback<TState>`, `LuaThunk`                                                                                                             | Managed functions that Lua can call                                          |
 | `CheatEngine.SDK.Lua.CompilerServices` | `LuaGlobalFunctions`, `LuaCallSupport`                                                                                                                                            | Called by generated code, hidden from IntelliSense                           |
-| `CheatEngine.SDK.Lua.Registration`     | `LuaRegistrationSet`, `LuaRegistrationLease`, `LuaRegistrationResult`                                                                                                               | Ownership-aware generated-global publication and cleanup outcomes             |
+| `CheatEngine.SDK.Lua.Registration`     | `LuaRegistrationSet`, `LuaRegistrationLease`, `LuaRegistrationResult`                                                                                                             | Ownership-aware generated-global publication and cleanup outcomes            |
 
 `LuaState` is a pointer-sized `readonly struct` over a borrowed `lua_State*`. Raw members make one or two C calls and
 never run Lua code. Protected members (`TryCall`, `TryLoad`, `TryExecute`, `TryGetGlobal`, `TryGetField`, `TryLength`,
@@ -142,7 +142,8 @@ static class MemoryReads
 
 Generated bodies restore the stack in `finally`, including a managed exception from a marshaller. A body also handles:
 the global is unresolved, protected global lookup itself failed, the call raised, or the result is `nil` or of the wrong
-type. A `Try*` form returns `false` through `LuaCallSupport.Fail`. A throwing form calls `ThrowUnresolvedGlobal`, `Throw`
+type. A `Try*` form returns `false` through `LuaCallSupport.Fail`. A throwing form calls `ThrowUnresolvedGlobal`,
+`Throw`
 or `ThrowUnexpectedResult`, which restore the stack and throw `LuaException`.
 
 ### String results

@@ -17,11 +17,11 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Model;
 /// </param>
 /// <param name="Issues">Why the class cannot be bootstrapped; <see cref="PluginShapeIssues.None" /> when it can.</param>
 internal sealed record PluginModel(
-    string FullyQualifiedTypeName,
-    string DisplayName,
-    string DeclaredDiagnosticIds,
-    PluginShapeIssues Issues)
+	string FullyQualifiedTypeName,
+	string DisplayName,
+	string DeclaredDiagnosticIds,
+	PluginShapeIssues Issues)
 {
-    /// <summary><see langword="true" /> when the generated factory can construct this class.</summary>
-    public bool IsValid => Issues == PluginShapeIssues.None;
+	/// <summary><see langword="true" /> when the generated factory can construct this class.</summary>
+	public bool IsValid => Issues == PluginShapeIssues.None;
 }

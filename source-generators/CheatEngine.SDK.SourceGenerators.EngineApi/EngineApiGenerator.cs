@@ -1,6 +1,7 @@
 using CheatEngine.SDK.SourceGenerators.EngineApi.Emit;
 using CheatEngine.SDK.SourceGenerators.EngineApi.Model;
 using CheatEngine.SDK.SourceGenerators.EngineApi.Parsing;
+
 using Microsoft.CodeAnalysis;
 
 namespace CheatEngine.SDK.SourceGenerators.EngineApi;
@@ -31,37 +32,39 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi;
 [Generator(LanguageNames.CSharp)]
 public sealed class EngineApiGenerator : IIncrementalGenerator
 {
-    /// <inheritdoc />
-    public void Initialize(IncrementalGeneratorInitializationContext context)
-    {
-        var specTexts = context.AdditionalTextsProvider
-            .Where(static text => SpecFileParser.IsSpecFile(text.Path))
-            .WithTrackingName(EngineApiTrackingNames.SpecTextFile);
+	/// <inheritdoc />
+	public void Initialize(IncrementalGeneratorInitializationContext context)
+	{
+		IncrementalValuesProvider<AdditionalText> specTexts = context.AdditionalTextsProvider
+			.Where(static text => SpecFileParser.IsSpecFile(text.Path))
+			.WithTrackingName(EngineApiTrackingNames.SpecTextFile);
 
-        var parsed = specTexts
-            .Select(static (text, cancellationToken) =>
-                SpecFileParser.Parse(text.Path, text.GetText(cancellationToken)?.ToString()))
-            .WithTrackingName(EngineApiTrackingNames.ParsedSpec);
+		IncrementalValuesProvider<SpecFileModel> parsed = specTexts
+			.Select(static (text, cancellationToken) =>
+				SpecFileParser.Parse(text.Path, text.GetText(cancellationToken)?.ToString()))
+			.WithTrackingName(EngineApiTrackingNames.ParsedSpec);
 
-        var files = parsed
-            .Collect()
-            .WithTrackingName(EngineApiTrackingNames.CollectedSpecs)
-            .Select(static (specs, _) => SpecFiles.AssignHintNames(specs))
-            .WithTrackingName(EngineApiTrackingNames.SpecFiles)
-            .SelectMany(static (specs, _) => specs.AsImmutableArray())
-            .WithTrackingName(EngineApiTrackingNames.SpecFile);
+		IncrementalValuesProvider<SpecFileModel> files = parsed
+			.Collect()
+			.WithTrackingName(EngineApiTrackingNames.CollectedSpecs)
+			.Select(static (specs, _) => SpecFiles.AssignHintNames(specs))
+			.WithTrackingName(EngineApiTrackingNames.SpecFiles)
+			.SelectMany(static (specs, _) => specs.AsImmutableArray())
+			.WithTrackingName(EngineApiTrackingNames.SpecFile);
 
-        context.RegisterSourceOutput(files, static (productionContext, spec) =>
-        {
-            foreach (var issue in spec.Issues)
-                productionContext.ReportDiagnostic(EngineApiDiagnostics.Create(spec, issue));
-        });
+		context.RegisterSourceOutput(files, static (productionContext, spec) =>
+		{
+			foreach (SpecIssue issue in spec.Issues)
+			{
+				productionContext.ReportDiagnostic(EngineApiDiagnostics.Create(spec, issue));
+			}
+		});
 
-        var outputs = files
-            .Where(static spec => spec.Calls.Length > 0 && !spec.IsSuppressed)
-            .WithTrackingName(EngineApiTrackingNames.SpecFileOutput);
+		IncrementalValuesProvider<SpecFileModel> outputs = files
+			.Where(static spec => spec.Calls.Length > 0 && !spec.IsSuppressed)
+			.WithTrackingName(EngineApiTrackingNames.SpecFileOutput);
 
-        context.RegisterSourceOutput(outputs, static (productionContext, spec) =>
-            productionContext.AddSource(EngineApiFileEmitter.HintName(spec), EngineApiFileEmitter.Emit(spec)));
-    }
+		context.RegisterSourceOutput(outputs, static (productionContext, spec) =>
+			productionContext.AddSource(EngineApiFileEmitter.HintName(spec), EngineApiFileEmitter.Emit(spec)));
+	}
 }

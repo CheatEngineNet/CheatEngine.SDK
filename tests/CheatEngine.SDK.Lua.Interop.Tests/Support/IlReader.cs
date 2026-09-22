@@ -11,63 +11,72 @@ namespace CheatEngine.SDK.Lua.Interop.Tests.Support;
 /// </summary>
 internal static class IlReader
 {
-    private const byte TwoBytePrefix = 0xFE;
+	private const byte TwoBytePrefix = 0xFE;
 
-    private static readonly Dictionary<ushort, OpCode> s_opCodes = BuildTable();
+	private static readonly Dictionary<ushort, OpCode> s_opCodes = BuildTable();
 
-    /// <summary>Decodes the body of <paramref name="method" />; operands wider than 32 bits are reported as 0.</summary>
-    public static List<(OpCode Code, int Operand)> Read(MethodBase method)
-    {
-        var il = method.GetMethodBody()?.GetILAsByteArray() ??
-                 throw new InvalidOperationException(method.Name + " has no IL body.");
-        List<(OpCode Code, int Operand)> instructions = [];
+	/// <summary>Decodes the body of <paramref name="method" />; operands wider than 32 bits are reported as 0.</summary>
+	public static List<(OpCode Code, int Operand)> Read(MethodBase method)
+	{
+		byte[] il = method.GetMethodBody()?.GetILAsByteArray() ??
+		            throw new InvalidOperationException(method.Name + " has no IL body.");
+		List<(OpCode Code, int Operand)> instructions = [];
 
-        var offset = 0;
-        while (offset < il.Length)
-        {
-            ushort value = il[offset++];
-            if (value == TwoBytePrefix) value = (ushort)((TwoBytePrefix << 8) | il[offset++]);
+		int offset = 0;
+		while (offset < il.Length)
+		{
+			ushort value = il[offset++];
+			if (value == TwoBytePrefix)
+			{
+				value = (ushort) ((TwoBytePrefix << 8) | il[offset++]);
+			}
 
-            if (!s_opCodes.TryGetValue(value, out var code))
-                throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
-                    $"{method.Name}: unknown opcode 0x{value:X} at offset {offset}."));
+			if (!s_opCodes.TryGetValue(value, out OpCode code))
+			{
+				throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
+					$"{method.Name}: unknown opcode 0x{value:X} at offset {offset}."));
+			}
 
-            var size = OperandSize(code.OperandType, il, offset);
-            var operand = size switch
-            {
-                1 => il[offset],
-                2 => BitConverter.ToUInt16(il, offset),
-                4 => BitConverter.ToInt32(il, offset),
-                _ => 0
-            };
+			int size = OperandSize(code.OperandType, il, offset);
+			int operand = size switch
+			{
+				1 => il[offset],
+				2 => BitConverter.ToUInt16(il, offset),
+				4 => BitConverter.ToInt32(il, offset),
+				_ => 0
+			};
 
-            instructions.Add((code, operand));
-            offset += size;
-        }
+			instructions.Add((code, operand));
+			offset += size;
+		}
 
-        return instructions;
-    }
+		return instructions;
+	}
 
-    private static int OperandSize(OperandType type, byte[] il, int offset)
-    {
-        return type switch
-        {
-            OperandType.InlineNone => 0,
-            OperandType.ShortInlineBrTarget or OperandType.ShortInlineI or OperandType.ShortInlineVar => 1,
-            OperandType.InlineVar => 2,
-            OperandType.InlineI8 or OperandType.InlineR => 8,
-            OperandType.InlineSwitch => 4 + 4 * BitConverter.ToInt32(il, offset),
-            _ => 4
-        };
-    }
+	private static int OperandSize(OperandType type, byte[] il, int offset)
+	{
+		return type switch
+		{
+			OperandType.InlineNone => 0,
+			OperandType.ShortInlineBrTarget or OperandType.ShortInlineI or OperandType.ShortInlineVar => 1,
+			OperandType.InlineVar => 2,
+			OperandType.InlineI8 or OperandType.InlineR => 8,
+			OperandType.InlineSwitch => 4 + 4 * BitConverter.ToInt32(il, offset),
+			_ => 4
+		};
+	}
 
-    private static Dictionary<ushort, OpCode> BuildTable()
-    {
-        Dictionary<ushort, OpCode> table = [];
-        foreach (var field in typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static))
-            if (field.GetValue(null) is OpCode code)
-                table[unchecked((ushort)code.Value)] = code;
+	private static Dictionary<ushort, OpCode> BuildTable()
+	{
+		Dictionary<ushort, OpCode> table = [];
+		foreach (FieldInfo field in typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static))
+		{
+			if (field.GetValue(null) is OpCode code)
+			{
+				table[unchecked((ushort) code.Value)] = code;
+			}
+		}
 
-        return table;
-    }
+		return table;
+	}
 }

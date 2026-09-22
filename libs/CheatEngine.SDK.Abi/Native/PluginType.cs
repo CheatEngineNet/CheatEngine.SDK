@@ -19,51 +19,51 @@ namespace CheatEngine.SDK.Abi.Native;
 /// </remarks>
 public enum PluginType
 {
-    /// <summary>
-    ///     Upstream <c>ptAddressList</c>: context-menu entry of the address list. Record:
-    ///     <see cref="AddressListPluginInit" />.
-    /// </summary>
-    AddressList = 0,
+	/// <summary>
+	///     Upstream <c>ptAddressList</c>: context-menu entry of the address list. Record:
+	///     <see cref="AddressListPluginInit" />.
+	/// </summary>
+	AddressList = 0,
 
-    /// <summary>
-    ///     Upstream <c>ptMemoryView</c>: menu entry of the memory view window. Record:
-    ///     <see cref="MemoryViewPluginInit" />.
-    /// </summary>
-    MemoryView = 1,
+	/// <summary>
+	///     Upstream <c>ptMemoryView</c>: menu entry of the memory view window. Record:
+	///     <see cref="MemoryViewPluginInit" />.
+	/// </summary>
+	MemoryView = 1,
 
-    /// <summary>Upstream <c>ptOnDebugEvent</c>: debug event filter. Record: <see cref="DebugEventPluginInit" />.</summary>
-    OnDebugEvent = 2,
+	/// <summary>Upstream <c>ptOnDebugEvent</c>: debug event filter. Record: <see cref="DebugEventPluginInit" />.</summary>
+	OnDebugEvent = 2,
 
-    /// <summary>
-    ///     Upstream <c>ptProcesswatcherEvent</c>: process creation/termination notification. Record:
-    ///     <see cref="ProcessWatcherPluginInit" />.
-    /// </summary>
-    ProcessWatcherEvent = 3,
+	/// <summary>
+	///     Upstream <c>ptProcesswatcherEvent</c>: process creation/termination notification. Record:
+	///     <see cref="ProcessWatcherPluginInit" />.
+	/// </summary>
+	ProcessWatcherEvent = 3,
 
-    /// <summary>
-    ///     Upstream <c>ptFunctionPointerchange</c>: notification that an API hook slot changed. Record:
-    ///     <see cref="FunctionPointerChangePluginInit" />.
-    /// </summary>
-    FunctionPointerChange = 4,
+	/// <summary>
+	///     Upstream <c>ptFunctionPointerchange</c>: notification that an API hook slot changed. Record:
+	///     <see cref="FunctionPointerChangePluginInit" />.
+	/// </summary>
+	FunctionPointerChange = 4,
 
-    /// <summary>Upstream <c>ptMainMenu</c>: entry in the main window's plugin menu. Record: <see cref="MainMenuPluginInit" />.</summary>
-    MainMenu = 5,
+	/// <summary>Upstream <c>ptMainMenu</c>: entry in the main window's plugin menu. Record: <see cref="MainMenuPluginInit" />.</summary>
+	MainMenu = 5,
 
-    /// <summary>
-    ///     Upstream <c>ptDisassemblerContext</c>: context-menu entry of the disassembler view. Record:
-    ///     <see cref="DisassemblerContextPluginInit" />.
-    /// </summary>
-    DisassemblerContext = 6,
+	/// <summary>
+	///     Upstream <c>ptDisassemblerContext</c>: context-menu entry of the disassembler view. Record:
+	///     <see cref="DisassemblerContextPluginInit" />.
+	/// </summary>
+	DisassemblerContext = 6,
 
-    /// <summary>
-    ///     Upstream <c>ptDisassemblerRenderLine</c>: per-line rendering hook of the disassembler view. Record:
-    ///     <see cref="DisassemblerRenderLinePluginInit" />.
-    /// </summary>
-    DisassemblerRenderLine = 7,
+	/// <summary>
+	///     Upstream <c>ptDisassemblerRenderLine</c>: per-line rendering hook of the disassembler view. Record:
+	///     <see cref="DisassemblerRenderLinePluginInit" />.
+	/// </summary>
+	DisassemblerRenderLine = 7,
 
-    /// <summary>
-    ///     Upstream <c>ptAutoAssembler</c>: auto-assembler line preprocessor. Record:
-    ///     <see cref="AutoAssemblerPluginInit" />.
-    /// </summary>
-    AutoAssembler = 8
+	/// <summary>
+	///     Upstream <c>ptAutoAssembler</c>: auto-assembler line preprocessor. Record:
+	///     <see cref="AutoAssemblerPluginInit" />.
+	/// </summary>
+	AutoAssembler = 8
 }

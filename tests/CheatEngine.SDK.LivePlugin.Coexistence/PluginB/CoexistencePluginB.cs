@@ -1,4 +1,3 @@
-using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Annotations.Plugin;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Plugin;
@@ -12,23 +11,25 @@ namespace LivePlugin.Coexistence.PluginB;
 [CheatEnginePlugin("CheatEngine.SDK Coexistence Plugin B")]
 public sealed class CoexistencePluginB : CheatEnginePlugin
 {
-    /// <inheritdoc />
-    protected override void OnEnable()
-    {
-        CoexistenceDiagnostics.LogEnabled("B", typeof(CoexistencePluginB).Assembly, Context);
+	/// <inheritdoc />
+	protected override void OnEnable()
+	{
+		CoexistenceDiagnostics.LogEnabled("B", typeof(CoexistencePluginB).Assembly, Context);
 
-        var result = CoexistencePluginBFunctions.RegisterLuaFunctions(LuaRuntime.AcquireState());
-        HostLog.Write(result.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
-            "CheatEngine.SDK coexistence B: RegisterLuaFunctions -> " + result + ".");
-        if (!result.IsOk)
-            throw new InvalidOperationException("Plugin B could not register its distinct coexistence Lua functions.");
-    }
+		var result = CoexistencePluginBFunctions.RegisterLuaFunctions(LuaRuntime.AcquireState());
+		HostLog.Write(result.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
+			"CheatEngine.SDK coexistence B: RegisterLuaFunctions -> " + result + ".");
+		if (!result.IsOk)
+		{
+			throw new InvalidOperationException("Plugin B could not register its distinct coexistence Lua functions.");
+		}
+	}
 
-    /// <inheritdoc />
-    protected override void OnDisable()
-    {
-        var result = CoexistencePluginBFunctions.UnregisterLuaFunctions(LuaRuntime.AcquireState());
-        HostLog.Write(result.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
-            "CheatEngine.SDK coexistence B: UnregisterLuaFunctions -> " + result + ".");
-    }
+	/// <inheritdoc />
+	protected override void OnDisable()
+	{
+		var result = CoexistencePluginBFunctions.UnregisterLuaFunctions(LuaRuntime.AcquireState());
+		HostLog.Write(result.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
+			"CheatEngine.SDK coexistence B: UnregisterLuaFunctions -> " + result + ".");
+	}
 }

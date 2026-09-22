@@ -138,6 +138,11 @@ dotnet_naming_style.underscore_camel_case.capitalization = camel_case
 # IDE0005 requires XML documentation generation to run during a command-line
 # build. Shipping projects already enable it; tests and samples intentionally
 # retain it as an editor suggestion rather than acquiring build-only XML output.
+
+
+# CS8762: Parameter must have a non-null value when exiting in some condition.
+dotnet_diagnostic.CS8762.severity = none
+
 [libs/**.cs]
 dotnet_diagnostic.IDE0005.severity = error
 

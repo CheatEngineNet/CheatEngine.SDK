@@ -161,21 +161,22 @@ print(my_plugin_fingerprint("hello"))
 
 ## Good to know
 
-| Topic            | Detail                                                                                                                                                  |
-|------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Nullable results | A `string?` result that is `null` reaches Lua as `nil`, so a failed hash is `nil` and never an empty string                                             |
-| Comparison       | MD5 output is hexadecimal text, so the comparison ignores case                                                                                          |
-| Path             | `md5file` takes a path the way Cheat Engine resolves it. Pass the full path of the executable when the working folder is unclear                        |
-| Memory           | `my_plugin_verify_memory` hashes a range of the target, which detects a patched module that the file on disk does not show                              |
+| Topic            | Detail                                                                                                                                                                             |
+|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Nullable results | A `string?` result that is `null` reaches Lua as `nil`, so a failed hash is `nil` and never an empty string                                                                        |
+| Comparison       | MD5 output is hexadecimal text, so the comparison ignores case                                                                                                                     |
+| Path             | `md5file` takes a path the way Cheat Engine resolves it. Pass the full path of the executable when the working folder is unclear                                                   |
+| Memory           | `my_plugin_verify_memory` hashes a range of the target, which detects a patched module that the file on disk does not show                                                         |
 | Text             | `ansiToUTF8` and `UTF8ToAnsi` exchange Windows-codepage bytes, not managed UTF-8 strings. Keep them as raw byte spans and decode only with the code page your integration selected |
-| Byte tables      | Cheat Engine's byte table converters, such as `dwordToByteTable`, need no binding. In C# use `BitConverter` or `BinaryPrimitives` on a `Span<byte>`     |
-| Whole system     | `dbvm_speedhack_setSpeed` also exists and slows the whole system clock. It is covered in the [DBVM recipe](../dbvm/README.md)                           |
+| Byte tables      | Cheat Engine's byte table converters, such as `dwordToByteTable`, need no binding. In C# use `BitConverter` or `BinaryPrimitives` on a `Span<byte>`                                |
+| Whole system     | `dbvm_speedhack_setSpeed` also exists and slows the whole system clock. It is covered in the [DBVM recipe](../dbvm/README.md)                                                      |
 
 ## Promise
 
 - A Try form returns `false` and leaves `out` results at their defaults when a function is missing, raises or returns
   the wrong kind, so a failed hash is never mistaken for a match.
-- `RestoreSpeed` runs in `OnDisable` before the functions are unregistered and retains its saved speed if the setter throws.
+- `RestoreSpeed` runs in `OnDisable` before the functions are unregistered and retains its saved speed if the setter
+  throws.
 - The generated thunk catches every exception, and the Lua stack returns to its previous height after every call.
 - Hash results come back as `string`, so each hash call allocates one string; byte-span text conversion leaves decoding
   and allocation to the caller's chosen Windows code page.

@@ -41,29 +41,32 @@ namespace CheatEngine.SDK.Annotations.Lua;
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 public sealed class LuaFunctionAttribute : Attribute
 {
-    /// <summary>
-    ///     Initializes the attribute with the name of the Lua global that receives the function.
-    /// </summary>
-    /// <param name="name">
-    ///     The global name, exactly as Lua scripts will spell it (Lua names are case-sensitive). Must not be
-    ///     <see langword="null" /> or empty.
-    /// </param>
-    /// <exception cref="ArgumentNullException"><paramref name="name" /> is <see langword="null" />.</exception>
-    /// <exception cref="ArgumentException"><paramref name="name" /> is empty.</exception>
-    /// <remarks>
-    ///     The constructor only runs when something materialises the attribute through reflection. The compiler stores
-    ///     the argument without executing this check, so <c>[LuaFunction(null!)]</c> and <c>[LuaFunction("")]</c> compile;
-    ///     a generator reads a <see langword="null" /> constant or an empty string and has to validate the name itself.
-    /// </remarks>
-    public LuaFunctionAttribute(string name)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        Name = name;
-    }
+	/// <summary>
+	///     Initializes the attribute with the name of the Lua global that receives the function.
+	/// </summary>
+	/// <param name="name">
+	///     The global name, exactly as Lua scripts will spell it (Lua names are case-sensitive). Must not be
+	///     <see langword="null" /> or empty.
+	/// </param>
+	/// <exception cref="ArgumentNullException"><paramref name="name" /> is <see langword="null" />.</exception>
+	/// <exception cref="ArgumentException"><paramref name="name" /> is empty.</exception>
+	/// <remarks>
+	///     The constructor only runs when something materialises the attribute through reflection. The compiler stores
+	///     the argument without executing this check, so <c>[LuaFunction(null!)]</c> and <c>[LuaFunction("")]</c> compile;
+	///     a generator reads a <see langword="null" /> constant or an empty string and has to validate the name itself.
+	/// </remarks>
+	public LuaFunctionAttribute(string name)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(name);
+		Name = name;
+	}
 
-    /// <summary>
-    ///     Gets the name of the Lua global under which the function is registered. Never <see langword="null" /> or
-    ///     empty.
-    /// </summary>
-    public string Name { get; }
+	/// <summary>
+	///     Gets the name of the Lua global under which the function is registered. Never <see langword="null" /> or
+	///     empty.
+	/// </summary>
+	public string Name
+	{
+		get;
+	}
 }

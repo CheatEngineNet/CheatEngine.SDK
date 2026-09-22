@@ -1,10 +1,14 @@
 using System.Runtime.InteropServices;
+
 using CheatEngine.SDK.Engine.Inspection;
 using CheatEngine.SDK.Engine.Values;
 
 namespace CheatEngine.SDK.Engine.Assembly;
 
-/// <summary>A copied selected target process identifier and instruction profile observed through CE's protected Lua globals.</summary>
+/// <summary>
+///     A copied selected target process identifier and instruction profile observed through CE's protected Lua
+///     globals.
+/// </summary>
 /// <remarks>
 ///     Instances are created only by <see cref="InstructionProfiles.TryObserveCurrent" />. Instruction operations
 ///     re-check the target process identifier before and after their CE call and report
@@ -15,21 +19,31 @@ namespace CheatEngine.SDK.Engine.Assembly;
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct InstructionTargetProfile
 {
-    internal InstructionTargetProfile(TargetProcessId target, InstructionProfile profile)
-    {
-        Target = target;
-        Profile = profile;
-    }
+	internal InstructionTargetProfile(TargetProcessId target, InstructionProfile profile)
+	{
+		Target = target;
+		Profile = profile;
+	}
 
-    /// <summary>Gets the positive CE-selected process identifier observed with the profile; this is not an incarnation.</summary>
-    public TargetProcessId Target { get; }
+	/// <summary>Gets the positive CE-selected process identifier observed with the profile; this is not an incarnation.</summary>
+	public TargetProcessId Target
+	{
+		get;
+	}
 
-    /// <summary>Gets the target instruction architecture and address width observed with <see cref="Target" />.</summary>
-    public InstructionProfile Profile { get; }
+	/// <summary>Gets the target instruction architecture and address width observed with <see cref="Target" />.</summary>
+	public InstructionProfile Profile
+	{
+		get;
+	}
 
-    internal InstructionOperationStatus Validate(Address address)
-    {
-        if (Target.Value <= 0) return InstructionOperationStatus.TargetNotSelected;
-        return Profile.Validate(address);
-    }
+	internal InstructionOperationStatus Validate(Address address)
+	{
+		if (Target.Value <= 0)
+		{
+			return InstructionOperationStatus.TargetNotSelected;
+		}
+
+		return Profile.Validate(address);
+	}
 }

@@ -9,6 +9,6 @@ namespace CheatEngine.SDK.Tests.Infrastructure;
 [CollectionDefinition(Name)]
 public sealed class PackagedUmbrellaSuite : ICollectionFixture<PackagedUmbrellaFixture>
 {
-    /// <summary>The collection name every <c>Packaging/*.cs</c> test class passes to <c>[Collection]</c>.</summary>
-    public const string Name = "Packaged umbrella";
+	/// <summary>The collection name every <c>Packaging/*.cs</c> test class passes to <c>[Collection]</c>.</summary>
+	public const string Name = "Packaged umbrella";
 }

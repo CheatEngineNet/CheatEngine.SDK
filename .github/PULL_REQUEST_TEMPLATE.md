@@ -4,7 +4,8 @@ Closes <!-- link only the issue actually completed by this PR -->
 
 ## Scope and architectural ownership
 
-Describe resulting behavior, affected contracts, and exclusions. SDK owns CE integration; Client owns workflows and policy.
+Describe resulting behavior, affected contracts, and exclusions. SDK owns CE integration; Client owns workflows and
+policy.
 
 ## Dependencies and containing artifacts
 
@@ -12,12 +13,12 @@ Link upstream prerequisites without closing them. Identify the SDK package conta
 
 ## Validation actually performed
 
-| Check | Command / profile | Actual result | Evidence |
-|---|---|---|---|
-| Unit / fixture | | Not executed | |
-| Packed consumer | | Not executed | |
-| Live host | | Not executed | |
-| AOT publication | | Not executed | |
+| Check           | Command / profile | Actual result | Evidence |
+|-----------------|-------------------|---------------|----------|
+| Unit / fixture  |                   | Not executed  |          |
+| Packed consumer |                   | Not executed  |          |
+| Live host       |                   | Not executed  |          |
+| AOT publication |                   | Not executed  |          |
 
 ## Compatibility, lifetime and partial effects
 

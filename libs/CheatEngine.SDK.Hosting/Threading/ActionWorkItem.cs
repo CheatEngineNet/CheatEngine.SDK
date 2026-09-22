@@ -9,17 +9,17 @@ namespace CheatEngine.SDK.Hosting.Threading;
 /// </typeparam>
 internal sealed class ActionWorkItem<TState> : MainThreadWorkItem
 {
-    private readonly Action<TState> _action;
-    private readonly TState _state;
+	private readonly Action<TState> _action;
+	private readonly TState _state;
 
-    internal ActionWorkItem(Action<TState> action, TState state)
-    {
-        _action = action;
-        _state = state;
-    }
+	internal ActionWorkItem(Action<TState> action, TState state)
+	{
+		_action = action;
+		_state = state;
+	}
 
-    protected override void Run()
-    {
-        _action(_state);
-    }
+	protected override void Run()
+	{
+		_action(_state);
+	}
 }

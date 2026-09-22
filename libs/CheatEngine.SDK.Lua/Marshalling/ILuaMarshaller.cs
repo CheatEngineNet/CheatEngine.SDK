@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+
 using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Lua.State;
 
@@ -43,19 +44,19 @@ namespace CheatEngine.SDK.Lua.Marshalling;
 ///     </para>
 /// </remarks>
 public interface ILuaMarshaller<T>
-    where T : allows ref struct
+	where T : allows ref struct
 {
-    /// <summary>Pushes <paramref name="value" /> as one Lua value.</summary>
-    /// <param name="state">The state to push on.</param>
-    /// <param name="value">The value.</param>
-    [LuaStackEffect(1)]
-    public static abstract void Push(LuaState state, T value);
+	/// <summary>Pushes <paramref name="value" /> as one Lua value.</summary>
+	/// <param name="state">The state to push on.</param>
+	/// <param name="value">The value.</param>
+	[LuaStackEffect(1)]
+	public static abstract void Push(LuaState state, T value);
 
-    /// <summary>Reads the value at <paramref name="index" /> as a <typeparamref name="T" /> without changing the stack.</summary>
-    /// <param name="state">The state to read from.</param>
-    /// <param name="index">An acceptable index.</param>
-    /// <param name="value">The read value, or <see langword="default" /> when the Lua value is not of the expected kind.</param>
-    /// <returns><see langword="true" /> when <paramref name="value" /> holds a read value.</returns>
-    [LuaStackEffect(0)]
-    public static abstract bool TryRead(LuaState state, int index, [MaybeNullWhen(false)] out T value);
+	/// <summary>Reads the value at <paramref name="index" /> as a <typeparamref name="T" /> without changing the stack.</summary>
+	/// <param name="state">The state to read from.</param>
+	/// <param name="index">An acceptable index.</param>
+	/// <param name="value">The read value, or <see langword="default" /> when the Lua value is not of the expected kind.</param>
+	/// <returns><see langword="true" /> when <paramref name="value" /> holds a read value.</returns>
+	[LuaStackEffect(0)]
+	public static abstract bool TryRead(LuaState state, int index, [MaybeNullWhen(false)] out T value);
 }

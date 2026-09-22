@@ -20,51 +20,57 @@ namespace CheatEngine.SDK.Lua.Runtime;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct LuaStateIdentity : IEquatable<LuaStateIdentity>
 {
-    internal LuaStateIdentity(int attachEpoch, int stateGeneration)
-    {
-        AttachEpoch = attachEpoch;
-        StateGeneration = stateGeneration;
-    }
+	internal LuaStateIdentity(int attachEpoch, int stateGeneration)
+	{
+		AttachEpoch = attachEpoch;
+		StateGeneration = stateGeneration;
+	}
 
-    /// <summary>Gets the attachment lifetime that established the state.</summary>
-    public int AttachEpoch { get; }
+	/// <summary>Gets the attachment lifetime that established the state.</summary>
+	public int AttachEpoch
+	{
+		get;
+	}
 
-    /// <summary>Gets the state replacement generation within the attachment lifetime.</summary>
-    public int StateGeneration { get; }
+	/// <summary>Gets the state replacement generation within the attachment lifetime.</summary>
+	public int StateGeneration
+	{
+		get;
+	}
 
-    /// <summary>Compares both the attachment epoch and the state generation.</summary>
-    public static bool operator ==(LuaStateIdentity left, LuaStateIdentity right)
-    {
-        return left.Equals(right);
-    }
+	/// <summary>Compares both the attachment epoch and the state generation.</summary>
+	public static bool operator ==(LuaStateIdentity left, LuaStateIdentity right)
+	{
+		return left.Equals(right);
+	}
 
-    /// <summary>Compares both the attachment epoch and the state generation.</summary>
-    public static bool operator !=(LuaStateIdentity left, LuaStateIdentity right)
-    {
-        return !left.Equals(right);
-    }
+	/// <summary>Compares both the attachment epoch and the state generation.</summary>
+	public static bool operator !=(LuaStateIdentity left, LuaStateIdentity right)
+	{
+		return !left.Equals(right);
+	}
 
-    /// <inheritdoc />
-    public bool Equals(LuaStateIdentity other)
-    {
-        return AttachEpoch == other.AttachEpoch && StateGeneration == other.StateGeneration;
-    }
+	/// <inheritdoc />
+	public bool Equals(LuaStateIdentity other)
+	{
+		return AttachEpoch == other.AttachEpoch && StateGeneration == other.StateGeneration;
+	}
 
-    /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return obj is LuaStateIdentity other && Equals(other);
-    }
+	/// <inheritdoc />
+	public override bool Equals(object? obj)
+	{
+		return obj is LuaStateIdentity other && Equals(other);
+	}
 
-    /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(AttachEpoch, StateGeneration);
-    }
+	/// <inheritdoc />
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(AttachEpoch, StateGeneration);
+	}
 
-    /// <summary>Formats the identity for diagnostics only.</summary>
-    public override string ToString()
-    {
-        return $"(attach epoch {AttachEpoch}, state generation {StateGeneration})";
-    }
+	/// <summary>Formats the identity for diagnostics only.</summary>
+	public override string ToString()
+	{
+		return $"(attach epoch {AttachEpoch}, state generation {StateGeneration})";
+	}
 }

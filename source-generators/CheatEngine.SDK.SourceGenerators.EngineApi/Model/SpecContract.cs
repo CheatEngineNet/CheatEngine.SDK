@@ -12,9 +12,9 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Model;
 /// <param name="Ownership">The ownership token for the wrapper's CE/Lua result and parameters.</param>
 /// <param name="NilSemantics">How the CE Lua global represents absence or expected failure.</param>
 internal sealed record SpecContract(
-    string Provenance,
-    string MinimumCheatEngineVersion,
-    string Architecture,
-    string ThreadAffinity,
-    string Ownership,
-    string NilSemantics);
+	string Provenance,
+	string MinimumCheatEngineVersion,
+	string Architecture,
+	string ThreadAffinity,
+	string Ownership,
+	string NilSemantics);

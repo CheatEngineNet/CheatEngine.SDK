@@ -17,7 +17,8 @@ A project reference proves that the source compiles, not that the installed pack
 1. One collection fixture (`PackagedUmbrellaFixture`) packs `src/CheatEngine.SDK/CheatEngine.SDK.csproj` in Release
    into a temporary local feed. The package id, that project path and the lower-cased id NuGet uses as the extraction
    folder name live in one place, `UmbrellaPackage`.
-2. It restores the consumers below and builds them in Release. Every consumer shares the fixture-local package directory,
+2. It restores the consumers below and builds them in Release. Every consumer shares the fixture-local package
+   directory,
    which is isolated from other fixture runs.
 3. The generated `NuGet.Config` maps the exact `CheatEngine.SDK` package id to the freshly packed local feed, never an
    earlier NuGet extraction or another package source. Nuget.org remains available for other package ids. The packed Lua
@@ -25,21 +26,21 @@ A project reference proves that the source compiles, not that the installed pack
 4. A separate duplicate-name diagnostic source is built only to verify its intended compiler diagnostic.
 5. The tests read the `.nupkg` and, per consumer, what the table lists.
 
-| Consumer                                                  | What it sets                                                | What the tests read                                                               |
-|-----------------------------------------------------------|-------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| `DefaultConsumer`                                         | Nothing, so it takes every package default                  | Build properties, entry point, atomic build/publish deployment folder             |
-| `ExplicitUnsafeFalseConsumer`                             | `AllowUnsafeBlocks=false`                                   | `AllowUnsafeBlocks`                                                               |
-| `LuaFunctionOptInConsumer`                                | `[LuaFunction]` + `AllowUnsafeBlocks=true`                  | The documented explicit unsafe opt-in compiles the generated registration thunk   |
-| `LuaFunctionWithoutUnsafeConsumer`                        | `[LuaFunction]`, no unsafe opt-in                           | The package analyzer rejects the project with `CESDK2001`                         |
-| Packed Lua runtime consumer                                | Executable, restored only from the fresh local feed          | Runs generated bindings against the checked-in offline Lua 5.3 fixture: custom and generic marshalling, the generated callback/lease-collision contract, and the factual origin of a failing `LuaStatus` |
-| Duplicate-name diagnostic source                           | Two otherwise valid Lua exports with one name                | The package analyzer rejects the source with `CESDK2005`                          |
-| Package-only AOT publication consumer                      | Temporary executable published trimmed with Native AOT        | The published standalone executable runs; this is not evidence that Cheat Engine can load, host, or unload an AOT plugin |
-| `EntryPointOffConsumer`                                   | `CheatEngineSdkGenerateEntryPoint=false` + manual bootstrap | The author-owned entry point                                                      |
-| `IndirectConsumer`                                        | Only a reference to a temporary relay pkg                   | Direct-only build properties, bootstrap and native bridge stay absent             |
-| `UnsetPlatformTargetConsumer`                             | `PlatformTarget` empty                                      | The direct package target accepts the host-selected x64 architecture              |
-| `AnyCpuPlatformTargetConsumer`                            | `PlatformTarget=AnyCPU`                                     | The direct package target accepts a managed library loadable in the x64 CE host   |
-| `X64PlatformTargetConsumer`                               | `PlatformTarget=x64`                                        | The direct package target accepts the explicit supported architecture             |
-| `X86/Arm/Arm64/Itanium/UnsupportedPlatformTargetConsumer` | Explicit unsupported target                                 | The direct package target rejects every unsupported architecture with `CESDK9101` |
+| Consumer                                                  | What it sets                                                | What the tests read                                                                                                                                                                                      |
+|-----------------------------------------------------------|-------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `DefaultConsumer`                                         | Nothing, so it takes every package default                  | Build properties, entry point, atomic build/publish deployment folder                                                                                                                                    |
+| `ExplicitUnsafeFalseConsumer`                             | `AllowUnsafeBlocks=false`                                   | `AllowUnsafeBlocks`                                                                                                                                                                                      |
+| `LuaFunctionOptInConsumer`                                | `[LuaFunction]` + `AllowUnsafeBlocks=true`                  | The documented explicit unsafe opt-in compiles the generated registration thunk                                                                                                                          |
+| `LuaFunctionWithoutUnsafeConsumer`                        | `[LuaFunction]`, no unsafe opt-in                           | The package analyzer rejects the project with `CESDK2001`                                                                                                                                                |
+| Packed Lua runtime consumer                               | Executable, restored only from the fresh local feed         | Runs generated bindings against the checked-in offline Lua 5.3 fixture: custom and generic marshalling, the generated callback/lease-collision contract, and the factual origin of a failing `LuaStatus` |
+| Duplicate-name diagnostic source                          | Two otherwise valid Lua exports with one name               | The package analyzer rejects the source with `CESDK2005`                                                                                                                                                 |
+| Package-only AOT publication consumer                     | Temporary executable published trimmed with Native AOT      | The published standalone executable runs; this is not evidence that Cheat Engine can load, host, or unload an AOT plugin                                                                                 |
+| `EntryPointOffConsumer`                                   | `CheatEngineSdkGenerateEntryPoint=false` + manual bootstrap | The author-owned entry point                                                                                                                                                                             |
+| `IndirectConsumer`                                        | Only a reference to a temporary relay pkg                   | Direct-only build properties, bootstrap and native bridge stay absent                                                                                                                                    |
+| `UnsetPlatformTargetConsumer`                             | `PlatformTarget` empty                                      | The direct package target accepts the host-selected x64 architecture                                                                                                                                     |
+| `AnyCpuPlatformTargetConsumer`                            | `PlatformTarget=AnyCPU`                                     | The direct package target accepts a managed library loadable in the x64 CE host                                                                                                                          |
+| `X64PlatformTargetConsumer`                               | `PlatformTarget=x64`                                        | The direct package target accepts the explicit supported architecture                                                                                                                                    |
+| `X86/Arm/Arm64/Itanium/UnsupportedPlatformTargetConsumer` | Explicit unsupported target                                 | The direct package target rejects every unsupported architecture with `CESDK9101`                                                                                                                        |
 
 The build consumers are `net10.0` class libraries with one valid plugin class, in a temporary directory outside the
 repository. The packed Lua runtime consumer and package-only AOT publication consumer are temporary executables. The
@@ -85,7 +86,8 @@ dotnet test --project tests/CheatEngine.SDK.Tests
   does not receive the direct package defaults.
 - A temporary real relay package cannot propagate the defaults, generator or native bridge to its own consumer
   (`DirectReferenceIsolationTests`).
-- The packed Lua runtime consumer restores the exact `CheatEngine.SDK` id from this run's local feed into package storage
+- The packed Lua runtime consumer restores the exact `CheatEngine.SDK` id from this run's local feed into package
+  storage
   shared by that fixture's consumers; nuget.org remains available only for other ids. It then executes against the
   checked-in offline Lua 5.3 fixture. It checks generated custom and generic binding marshalling,
   the generated callback/lease-collision contract, and that a failed generated call preserves the factual LuaStatus

@@ -15,67 +15,67 @@ namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.Infrastructure;
 /// </remarks>
 internal static class ContractStubs
 {
-    public const string AnnotationsAssemblyName = "CheatEngine.SDK.Annotations";
+	public const string AnnotationsAssemblyName = "CheatEngine.SDK.Annotations";
 
-    public const string HostingAssemblyName = "CheatEngine.SDK.Hosting";
+	public const string HostingAssemblyName = "CheatEngine.SDK.Hosting";
 
-    public const string AnnotationsSource = """
-                                            #nullable enable
-                                            namespace CheatEngine.SDK.Annotations.Plugin
-                                            {
-                                                [global::System.AttributeUsage(global::System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-                                                public sealed class CheatEnginePluginAttribute : global::System.Attribute
-                                                {
-                                                    public CheatEnginePluginAttribute(string name) => Name = name;
+	public const string AnnotationsSource = """
+	                                        #nullable enable
+	                                        namespace CheatEngine.SDK.Annotations.Plugin
+	                                        {
+	                                            [global::System.AttributeUsage(global::System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+	                                            public sealed class CheatEnginePluginAttribute : global::System.Attribute
+	                                            {
+	                                                public CheatEnginePluginAttribute(string name) => Name = name;
 
-                                                    public string Name { get; }
-                                                }
-                                            }
-                                            """;
+	                                                public string Name { get; }
+	                                            }
+	                                        }
+	                                        """;
 
-    public const string HostingSource = """
-                                        #nullable enable
-                                        namespace CheatEngine.SDK.Hosting.Plugin
-                                        {
-                                            public abstract class CheatEnginePlugin
-                                            {
-                                                protected internal abstract void OnEnable();
+	public const string HostingSource = """
+	                                    #nullable enable
+	                                    namespace CheatEngine.SDK.Hosting.Plugin
+	                                    {
+	                                        public abstract class CheatEnginePlugin
+	                                        {
+	                                            protected internal abstract void OnEnable();
 
-                                                protected internal abstract void OnDisable();
-                                            }
+	                                            protected internal abstract void OnDisable();
+	                                        }
 
-                                            public interface IPluginFactory
-                                            {
-                                                static abstract CheatEnginePlugin Create();
+	                                        public interface IPluginFactory
+	                                        {
+	                                            static abstract CheatEnginePlugin Create();
 
-                                                static abstract global::System.ReadOnlySpan<byte> Utf8Name { get; }
-                                            }
-                                        }
+	                                            static abstract global::System.ReadOnlySpan<byte> Utf8Name { get; }
+	                                        }
+	                                    }
 
-                                        namespace CheatEngine.SDK.Hosting.Bootstrap
-                                        {
-                                            public static class PluginHost
-                                            {
-                                                public static int CallCount;
-                                                public static int LastHostArgument;
-                                                public static byte[]? LastUtf8Name;
-                                                public static global::CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin? LastPlugin;
+	                                    namespace CheatEngine.SDK.Hosting.Bootstrap
+	                                    {
+	                                        public static class PluginHost
+	                                        {
+	                                            public static int CallCount;
+	                                            public static int LastHostArgument;
+	                                            public static byte[]? LastUtf8Name;
+	                                            public static global::CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin? LastPlugin;
 
-                                                public static int InitializeManaged<TFactory>(nint initRecord, int hostArgument)
-                                                    where TFactory : global::CheatEngine.SDK.Hosting.Plugin.IPluginFactory
-                                                {
-                                                    CallCount++;
-                                                    LastHostArgument = hostArgument;
-                                                    if (hostArgument < 0)
-                                                    {
-                                                        throw new global::System.InvalidOperationException("Stub failure requested by the test.");
-                                                    }
+	                                            public static int InitializeManaged<TFactory>(nint initRecord, int hostArgument)
+	                                                where TFactory : global::CheatEngine.SDK.Hosting.Plugin.IPluginFactory
+	                                            {
+	                                                CallCount++;
+	                                                LastHostArgument = hostArgument;
+	                                                if (hostArgument < 0)
+	                                                {
+	                                                    throw new global::System.InvalidOperationException("Stub failure requested by the test.");
+	                                                }
 
-                                                    LastUtf8Name = TFactory.Utf8Name.ToArray();
-                                                    LastPlugin = TFactory.Create();
-                                                    return 1;
-                                                }
-                                            }
-                                        }
-                                        """;
+	                                                LastUtf8Name = TFactory.Utf8Name.ToArray();
+	                                                LastPlugin = TFactory.Create();
+	                                                return 1;
+	                                            }
+	                                        }
+	                                    }
+	                                    """;
 }

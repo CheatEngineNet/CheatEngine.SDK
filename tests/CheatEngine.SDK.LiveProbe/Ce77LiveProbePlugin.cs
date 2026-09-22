@@ -1,4 +1,5 @@
 using System.Globalization;
+
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Plugin;
 
@@ -14,30 +15,30 @@ namespace LiveProbe;
 /// </remarks>
 internal sealed class Ce77LiveProbePlugin : CheatEnginePlugin
 {
-    /// <inheritdoc />
-    protected override void OnEnable()
-    {
-        var state = CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
-        var registration = ProbeConsole.RegisterLuaFunctions(state);
-        HostLog.Write(registration.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
-            string.Create(CultureInfo.InvariantCulture,
-                $"CE 7.7 live probe: console command registration -> {registration}."));
+	/// <inheritdoc />
+	protected override void OnEnable()
+	{
+		var state = CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+		var registration = ProbeConsole.RegisterLuaFunctions(state);
+		HostLog.Write(registration.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
+			string.Create(CultureInfo.InvariantCulture,
+				$"CE 7.7 live probe: console command registration -> {registration}."));
 
-        LiveProbeState.ValidateAfterEnable();
-        HostLog.Write(HostLogLevel.Information, LiveProbeState.GetStatus());
-    }
+		LiveProbeState.ValidateAfterEnable();
+		HostLog.Write(HostLogLevel.Information, LiveProbeState.GetStatus());
+	}
 
-    /// <inheritdoc />
-    protected override void OnDisable()
-    {
-        var state = CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
-        var registration = ProbeConsole.UnregisterLuaFunctions(state);
-        HostLog.Write(registration.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
-            string.Create(CultureInfo.InvariantCulture,
-                $"CE 7.7 live probe: console command unregistration -> {registration}."));
+	/// <inheritdoc />
+	protected override void OnDisable()
+	{
+		var state = CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+		var registration = ProbeConsole.UnregisterLuaFunctions(state);
+		HostLog.Write(registration.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
+			string.Create(CultureInfo.InvariantCulture,
+				$"CE 7.7 live probe: console command unregistration -> {registration}."));
 
-        // Deliberately do not dispose the callback-shutdown probe here. LuaRuntime.Detach, which runs immediately after
-        // OnDisable, is the system under test: it must neutralize the callback before freeing its GCHandle.
-        LiveProbeState.RecordDisable();
-    }
+		// Deliberately do not dispose the callback-shutdown probe here. LuaRuntime.Detach, which runs immediately after
+		// OnDisable, is the system under test: it must neutralize the callback before freeing its GCHandle.
+		LiveProbeState.RecordDisable();
+	}
 }

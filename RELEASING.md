@@ -1,8 +1,14 @@
 # Releasing CheatEngine.SDK
 
-NuGet releases are produced by `.github/workflows/release.yml` from version tags. The workflow verifies, builds, tests,
-packs, attests, and publishes the package before creating the matching GitHub release. Do not upload a locally built
-package manually: nuget.org versions are immutable, and the workflow artifact is the release artifact.
+NuGet releases are produced by `.github/workflows/release.yml` from version tags:
+
+```text
+verify ─► ci (build and test the tag, pack the tested build) ─► publish (manual approval) ─► github-release
+```
+
+The `nuget-package` artifact that the `ci` job builds and tests is the exact file pushed to nuget.org, attested, and
+attached to the GitHub release. Do not upload a locally built package manually: nuget.org versions are immutable, and
+the workflow artifact is the release artifact.
 
 ## One-time trusted publishing setup
 
@@ -23,12 +29,16 @@ The GitHub `nuget` environment must contain an environment secret named `NUGET_U
 nuget.org username of the administrator who created the policy, currently `AriusII`, not the organization name and not
 an email address. Organization membership alone does not make another username valid for that policy; if a different
 administrator recreates it, update `NUGET_USER` to that policy creator. Restrict the environment to deployment tags
-matching `v*.*.*`. The workflow exchanges GitHub's OIDC token for a one-use, short-lived NuGet API key through
-`NuGet/login`; it must not store a long-lived NuGet API key.
+matching `v*.*.*` and add the maintainers who approve publications as required reviewers. The workflow exchanges
+GitHub's OIDC token for a one-use, short-lived NuGet API key through `NuGet/login`; it must not store a long-lived NuGet
+API key. Because the policy names `release.yml` and `nuget`, the login and push steps must stay in the `publish` job of
+that file.
 
 ## Prepare a release
 
-1. Move the completed entries from `Unreleased` to a versioned section in `CHANGELOG.md` and use the release date.
+1. Move the completed entries from `Unreleased` to a `## [X.Y.Z] - YYYY-MM-DD` section in `CHANGELOG.md` and add its
+   link reference. The body of that section becomes the GitHub release notes: a stable tag fails without it. A
+   prerelease tag uses its own `## [X.Y.Z-rc.N]` section when present, otherwise the `[Unreleased]` section.
 2. Update version-specific examples and analyzer release tracking when the public baseline changes.
 3. Set `MinVerMinimumMajorMinor` in `Directory.Build.props` to the release line. The exact version still comes from the
    `v<major>.<minor>.<patch>` tag.
@@ -38,12 +48,17 @@ matching `v*.*.*`. The workflow exchanges GitHub's OIDC token for a one-use, sho
    dotnet restore CheatEngine.SDK.slnx
    dotnet build CheatEngine.SDK.slnx -c Debug --no-restore
    dotnet test --solution CheatEngine.SDK.slnx -c Debug --fail-skips on
-   dotnet test --solution CheatEngine.SDK.slnx -c Release
+   dotnet test --solution CheatEngine.SDK.slnx -c Release --fail-skips on
    dotnet pack src/CheatEngine.SDK -c Release -o artifacts/nuget -p:MinVerVersionOverride=1.0.0 --no-restore
    ```
 
    Replace `1.0.0` only in the local pack command when rehearsing another release. Inspect the resulting `.nupkg` as a
    ZIP archive and confirm its ID, version, README, license, assemblies, analyzers, build assets, and native bridge.
+5. Merge the release pull request (squash) once `CI / Gate` passes.
+
+To rehearse the pipeline without publishing, start `Release` manually from a branch (**Actions → Release → Run
+workflow**, or `gh workflow run release.yml --ref <branch>`). The dry run executes `verify` and the full `ci` job, then
+skips `publish` and `github-release`.
 
 ## Publish
 
@@ -55,9 +70,25 @@ git tag -a v1.0.0 -m "Release 1.0.0"
 git push origin v1.0.0
 ```
 
-The tag starts the `Release` workflow. Confirm that all jobs pass, then verify both the
-[NuGet package](https://www.nuget.org/packages/CheatEngine.SDK) and the generated GitHub release. NuGet validation and
-search indexing can take several minutes.
+The tag starts the `Release` workflow:
+
+1. `verify` checks the SemVer tag, that it points to `main`, that the version is not already on nuget.org, and extracts
+   the release notes from `CHANGELOG.md`.
+2. `ci` builds and tests the tag in Debug and Release and packs `CheatEngine.SDK.<version>.nupkg` from the tested
+   Release build. The Release leg fails if the file name does not match the tag.
+3. `publish` waits for a required reviewer to approve the `nuget` deployment in the run page, then pushes the package
+   and attests its provenance.
+4. `github-release` creates the GitHub release from the extracted notes, attaches the package, and marks prereleases.
+
+Verify both the [NuGet package](https://www.nuget.org/packages/CheatEngine.SDK) and the GitHub release afterwards.
+NuGet validation and search indexing can take several minutes.
 
 After a successful release, raise `MinVerMinimumMajorMinor` to the next development line and commit that change on
 `main`. For example, after `v1.0.0`, use `1.1` so subsequent untagged builds become `1.1.0-alpha.0.N`.
+
+## Re-running a release
+
+Use **Re-run failed jobs** only. Completed jobs are not repeated and the re-run reuses the artifacts of the original
+attempt, so the pushed package, its attestation, and the release asset stay the same file. A push of an existing
+version is skipped as a duplicate, and an existing GitHub release only receives a missing asset. **Re-run all jobs**
+after a successful publish stops in `verify`, because the version is already on nuget.org.

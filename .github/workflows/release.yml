@@ -2,6 +2,9 @@ name: Release
 
 run-name: Release ${{ github.ref_name }}${{ github.event_name == 'workflow_dispatch' && ' (dry run)' || '' }}
 
+# verify ─► ci (build and test the tag, pack the tested build) ─► publish (manual approval) ─► github-release
+# The nuget-package artifact built and tested by ci is the exact file pushed to nuget.org and attached to the release.
+
 on:
   push:
     tags:
@@ -14,6 +17,10 @@ concurrency:
 
 permissions:
   contents: read
+
+defaults:
+  run:
+    shell: pwsh
 
 jobs:
   verify:
@@ -34,7 +41,6 @@ jobs:
       # Only a commit on the first-parent line of main, the merged head, may be released.
       - name: Verify tag
         id: tag
-        shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
 
@@ -65,51 +71,81 @@ jobs:
             exit 1
           }
 
+          # A full re-run after a successful publish would rebuild a different file for an immutable version. Re-run
+          # only the failed jobs of the original run: they reuse its artifacts.
+          try {
+            $index = Invoke-RestMethod -Uri 'https://api.nuget.org/v3-flatcontainer/cheatengine.sdk/index.json' -MaximumRetryCount 3 -RetryIntervalSec 5
+          }
+          catch {
+            Write-Host "::error::Could not read the published CheatEngine.SDK versions from nuget.org: $($_.Exception.Message)"
+            exit 1
+          }
+          if (@($index.versions) -contains $version.ToLowerInvariant()) {
+            Write-Host "::error::CheatEngine.SDK $version is already on nuget.org. Re-run only the failed jobs of the original run, or tag a new version."
+            exit 1
+          }
+
           $prerelease = if ($version.Contains('-')) { 'true' } else { 'false' }
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "prerelease=$prerelease" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
+      # The GitHub release notes are the CHANGELOG section of the version. A prerelease may ship before its entries
+      # leave [Unreleased]; a final release may not.
+      - name: Extract release notes
+        if: steps.tag.outputs.version != ''
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+          PRERELEASE: ${{ steps.tag.outputs.prerelease }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $changelog = Get-Content -LiteralPath CHANGELOG.md -Raw
+          $sections = @($env:VERSION)
+          if ($env:PRERELEASE -eq 'true') { $sections += 'Unreleased' }
+          $notes = ''
+          foreach ($section in $sections) {
+            $pattern = '(?ms)^## \[' + [regex]::Escape($section) + '\][^\r\n]*\r?\n(?<body>.*?)(?=^## \[|^\[[^\]]+\]:|\z)'
+            $match = [regex]::Match($changelog, $pattern)
+            if ($match.Success -and $match.Groups['body'].Value.Trim()) {
+              $notes = $match.Groups['body'].Value.Trim()
+              break
+            }
+          }
+          if (-not $notes) {
+            Write-Host "::error file=CHANGELOG.md::CHANGELOG.md has no non-empty section for $($sections -join ' or '). Move the release entries under '## [$env:VERSION] - <date>' before tagging."
+            exit 1
+          }
+          New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+          @($notes, '', "NuGet package: https://www.nuget.org/packages/CheatEngine.SDK/$env:VERSION") -join "`n" |
+            Set-Content -LiteralPath artifacts/release-notes.md -Encoding utf8NoBOM
+
+      - name: Upload release notes
+        if: steps.tag.outputs.version != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-notes
+          path: artifacts/release-notes.md
+          if-no-files-found: error
+          retention-days: 90
+
+  # Build and test on the tag commit: MinVer stamps the tag version at compile time, so a main build cannot be
+  # promoted. Sonar already analysed this commit on main.
   ci:
     name: CI
     needs: verify
     uses: ./.github/workflows/ci.yml
     with:
-      upload-package: true
-      test-release: true
+      package-version: ${{ needs.verify.outputs.version }}
+      package-retention-days: 90
 
-  package:
-    name: Check package
-    needs: [ verify, ci ]
-    runs-on: windows-latest
-    timeout-minutes: 5
-    steps:
-      - name: Download package
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: nuget-package
-          path: artifacts/nuget
-
-      - name: Check contents
-        shell: pwsh
-        env:
-          VERSION: ${{ needs.verify.outputs.version }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $names = @(Get-ChildItem -Path artifacts/nuget -File | ForEach-Object Name)
-          $expected = if ($env:VERSION) { "CheatEngine.SDK.${env:VERSION}.nupkg" } else { 'CheatEngine.SDK.*.nupkg' }
-          if ($names.Count -ne 1 -or $names[0] -notlike $expected) {
-            Write-Host "::error::The package artifact must contain exactly $expected, but it contains: $($names -join ', ')."
-            exit 1
-          }
-
+  # NuGet trusted publishing is bound to this file and the nuget environment, so login and push stay in this job.
   publish:
     name: Publish to NuGet
-    needs: [ verify, package ]
+    needs: [ verify, ci ]
     if: github.event_name == 'push' && github.ref_type == 'tag' && github.repository == 'CheatEngineNet/CheatEngine.SDK'
     runs-on: windows-latest
     timeout-minutes: 15
     environment:
-      name: nuget
+      name: nuget # required reviewers approve the publication; the environment only admits v*.*.* tags
       url: https://www.nuget.org/packages/CheatEngine.SDK/${{ needs.verify.outputs.version }}
     permissions:
       contents: read
@@ -118,18 +154,13 @@ jobs:
     env:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
-      VERSION: ${{ needs.verify.outputs.version }}
+      PACKAGE: artifacts/nuget/CheatEngine.SDK.${{ needs.verify.outputs.version }}.nupkg
     steps:
       - name: Download package
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: nuget-package
           path: artifacts/nuget
-
-      - name: Attest provenance
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-path: artifacts/nuget/CheatEngine.SDK.${{ env.VERSION }}.nupkg
 
       # The user is the nuget.org profile name that registered the trusted publishing policy, not an email address.
       - name: NuGet login
@@ -140,10 +171,19 @@ jobs:
 
       # A re-run after a partial failure must not fail on a version that is already published.
       - name: Push package
-        shell: pwsh
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
-        run: dotnet nuget push "artifacts/nuget/CheatEngine.SDK.${env:VERSION}.nupkg" --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: |
+          dotnet nuget push $env:PACKAGE --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+          if ($LASTEXITCODE -ne 0) {
+            throw "NuGet push failed with exit code $LASTEXITCODE."
+          }
+
+      # After the push, so a failed push never leaves an attestation for a package that was not published.
+      - name: Attest provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ env.PACKAGE }}
 
   github-release:
     name: Create GitHub release
@@ -165,17 +205,27 @@ jobs:
           name: nuget-package
           path: artifacts/nuget
 
+      - name: Download release notes
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-notes
+          path: artifacts
+
       - name: Create release
-        shell: pwsh
         run: |
-          $name = "CheatEngine.SDK.${env:VERSION}.nupkg"
+          $name = "CheatEngine.SDK.$env:VERSION.nupkg"
+          $package = "artifacts/nuget/$name"
           $attached = gh release view $env:TAG --json assets --jq '.assets[].name' 2>$null
           if ($LASTEXITCODE -ne 0) {
-            $options = @('--verify-tag', '--generate-notes', '--notes', "NuGet package: https://www.nuget.org/packages/CheatEngine.SDK/$env:VERSION")
+            $options = @('--verify-tag', '--title', $env:TAG, '--notes-file', 'artifacts/release-notes.md')
             if ($env:PRERELEASE -eq 'true') { $options += '--prerelease' }
-            gh release create $env:TAG "artifacts/nuget/$name" @options
+            gh release create $env:TAG $package @options
           } elseif ($attached -notcontains $name) {
-            gh release upload $env:TAG "artifacts/nuget/$name"
+            gh release upload $env:TAG $package
           } else {
             Write-Host "::notice::Release $env:TAG already carries $name."
+            exit 0
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "Creating the GitHub release failed with exit code $LASTEXITCODE."
           }

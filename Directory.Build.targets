@@ -45,4 +45,67 @@
            Code="CESDK9004"
            Text="$(MSBuildProjectName) builds with AnalysisLevel '$(AnalysisLevel)', but the repository pins '$(_CheatEngineSdkPinnedAnalysisLevel)'. Remove the override, or raise the pin in Directory.Build.props together with global.json."/>
   </Target>
+
+  <!--
+    NuGet audit policy (Directory.Build.props, "NuGet audit"). Lists are compared as items after splitting on ';', ','
+    and whitespace, so NU19031 never matches NU1903 and 'nu1903' does.
+  -->
+  <Target Name="CheatEngineSdkCheckNuGetAuditPolicy" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <_CheatEngineSdkAuditRequiredErrors>$(_CheatEngineSdkNuGetAuditBlockingCodes)</_CheatEngineSdkAuditRequiredErrors>
+      <_CheatEngineSdkAuditRequiredErrors Condition="'$(AuditPipeline)' == 'true'">$(_CheatEngineSdkNuGetAuditCodes)</_CheatEngineSdkAuditRequiredErrors>
+    </PropertyGroup>
+    <ItemGroup>
+      <_CheatEngineSdkAuditRequiredError Include="$([MSBuild]::Unescape($(_CheatEngineSdkAuditRequiredErrors.ToUpperInvariant())))"/>
+      <_CheatEngineSdkAuditWeakened Include="$([MSBuild]::Unescape($([System.Text.RegularExpressions.Regex]::Replace('$(NoWarn);$(WarningsNotAsErrors)', '[\s,;]+', ';').ToUpperInvariant())))"/>
+      <_CheatEngineSdkAuditAsError Include="$([MSBuild]::Unescape($([System.Text.RegularExpressions.Regex]::Replace('$(WarningsAsErrors)', '[\s,;]+', ';').ToUpperInvariant())))"/>
+      <!-- Intersection: weakened codes that must stay errors. -->
+      <_CheatEngineSdkAuditWeakenedOther Include="@(_CheatEngineSdkAuditWeakened)" Exclude="@(_CheatEngineSdkAuditRequiredError)"/>
+      <_CheatEngineSdkAuditWeakenedRequired Include="@(_CheatEngineSdkAuditWeakened)" Exclude="@(_CheatEngineSdkAuditWeakenedOther)"/>
+      <!-- Difference: codes that must be errors but are missing from WarningsAsErrors. -->
+      <_CheatEngineSdkAuditMissingError Include="@(_CheatEngineSdkAuditRequiredError)" Exclude="@(_CheatEngineSdkAuditAsError)"/>
+    </ItemGroup>
+    <Error Condition="'$(NuGetAudit)' != 'true' or '$(NuGetAuditMode)' != 'all' or '$(NuGetAuditLevel)' != 'low'"
+           Code="CESDK9009"
+           Text="$(MSBuildProjectName) restores with NuGetAudit '$(NuGetAudit)', NuGetAuditMode '$(NuGetAuditMode)' and NuGetAuditLevel '$(NuGetAuditLevel)'. The repository audits every package (direct and transitive) at every severity: true, all, low. See eng/api/README.md#nuget-audit."/>
+    <Error Condition="'@(_CheatEngineSdkAuditWeakenedRequired)' != ''"
+           Code="CESDK9009"
+           Text="$(MSBuildProjectName) lists @(_CheatEngineSdkAuditWeakenedRequired, ', ') in NoWarn or WarningsNotAsErrors. High and critical advisories (and, in the AuditPipeline run, every audit code) must fail the restore: fix or upgrade the package, or add a justified, expiring NuGetAuditSuppress in Directory.Build.props (eng/api/README.md#nuget-audit)."/>
+    <Error Condition="'@(_CheatEngineSdkAuditMissingError)' != ''"
+           Code="CESDK9009"
+           Text="$(MSBuildProjectName) does not list @(_CheatEngineSdkAuditMissingError, ', ') in WarningsAsErrors. Append to WarningsAsErrors instead of replacing it (eng/api/README.md#nuget-audit)."/>
+  </Target>
+
+  <!--
+    Advisory suppressions are reviewed exceptions: declared only in Directory.Build.props, each with a Justification and
+    an Expires date (yyyy-MM-dd). The dedicated audit run fails once a suppression has expired; ordinary builds never
+    fail on the calendar. Runs inside restore, where the suppressions take effect.
+  -->
+  <Target Name="CheatEngineSdkCheckNuGetAuditSuppressions"
+          BeforeTargets="CollectNuGetAuditSuppressions"
+          Condition="'@(NuGetAuditSuppress)' != ''">
+    <PropertyGroup>
+      <_CheatEngineSdkAuditSuppressionsFile>$([MSBuild]::NormalizePath('$(RepoRoot)', 'Directory.Build.props'))</_CheatEngineSdkAuditSuppressionsFile>
+      <_CheatEngineSdkUtcToday>$([System.DateTime]::UtcNow.ToString('yyyyMMdd'))</_CheatEngineSdkUtcToday>
+    </PropertyGroup>
+    <Error Condition="'%(NuGetAuditSuppress.DefiningProjectFullPath)' != '$(_CheatEngineSdkAuditSuppressionsFile)'"
+           Code="CESDK9009"
+           Text="NuGetAuditSuppress '%(NuGetAuditSuppress.Identity)' is declared in '%(NuGetAuditSuppress.DefiningProjectFullPath)'. Declare advisory suppressions only in Directory.Build.props (eng/api/README.md#nuget-audit)."/>
+    <Error Condition="'%(NuGetAuditSuppress.Justification)' == '' or !$([System.Text.RegularExpressions.Regex]::IsMatch('%(NuGetAuditSuppress.Expires)', '^\d{4}-\d{2}-\d{2}$'))"
+           Code="CESDK9009"
+           Text="NuGetAuditSuppress '%(NuGetAuditSuppress.Identity)' needs Justification metadata and Expires metadata in yyyy-MM-dd form (found '%(NuGetAuditSuppress.Expires)') (eng/api/README.md#nuget-audit)."/>
+    <Error Condition="'$(AuditPipeline)' == 'true' and $([System.String]::Copy('%(NuGetAuditSuppress.Expires)').Replace('-', '')) &lt; $(_CheatEngineSdkUtcToday)"
+           Code="CESDK9009"
+           Text="NuGetAuditSuppress '%(NuGetAuditSuppress.Identity)' expired on %(NuGetAuditSuppress.Expires). Re-review the advisory: fix it, or renew the suppression with a new justification and date."/>
+  </Target>
+
+  <!-- The release path never suppresses: a stable (non-prerelease) package version cannot be packed while any suppression exists. -->
+  <Target Name="CheatEngineSdkRefuseAuditSuppressionsOnRelease"
+          BeforeTargets="GenerateNuspec"
+          DependsOnTargets="MinVer"
+          Condition="'$(IsPackable)' == 'true' and '@(NuGetAuditSuppress)' != ''">
+    <Error Condition="!$(PackageVersion.Contains('-'))"
+           Code="CESDK9009"
+           Text="$(MSBuildProjectName) packs the release version $(PackageVersion) while NuGetAuditSuppress items exist (@(NuGetAuditSuppress, ', ')). Remove every suppression before a release (eng/api/README.md#nuget-audit)."/>
+  </Target>
 </Project>

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -98,6 +99,85 @@ public sealed partial class ToolchainPinTests
 			$"Only Directory.Build.props may set AnalysisLevel (CESDK9004 also fails the build): {string.Join(", ", offenders)}");
 	}
 
+	[Fact]
+	public void Nuget_audit_blocks_high_and_critical_advisories_in_every_build()
+	{
+		XDocument props = XDocument.Load(RepositoryFile(DirectoryBuildProps));
+
+		Assert.Equal(["true"], PropertyValues(props, "NuGetAudit"));
+		Assert.Equal(["all"], PropertyValues(props, "NuGetAuditMode"));
+		Assert.Equal(["low"], PropertyValues(props, "NuGetAuditLevel"));
+
+		foreach (string value in PropertyValues(props, "WarningsNotAsErrors"))
+		{
+			HashSet<string> codes = ExpandCodes(props, value);
+			Assert.DoesNotContain("NU1903", codes);
+			Assert.DoesNotContain("NU1904", codes);
+		}
+
+		// Ordinary builds and the dedicated audit run both append the high and critical codes to WarningsAsErrors, so they
+		// block even in a project that turns TreatWarningsAsErrors off.
+		List<string> warningsAsErrors = PropertyValues(props, "WarningsAsErrors");
+		Assert.Equal(2, warningsAsErrors.Count);
+		Assert.All(warningsAsErrors, value =>
+		{
+			Assert.StartsWith("$(WarningsAsErrors);", value, StringComparison.Ordinal);
+			HashSet<string> codes = ExpandCodes(props, value);
+			Assert.Contains("NU1903", codes);
+			Assert.Contains("NU1904", codes);
+		});
+	}
+
+	[Fact]
+	public void Ci_solution_restores_assert_that_nuget_audit_covered_every_project()
+	{
+		// Directory.Solution.targets is imported by the solution metaproject (verified for CheatEngine.SDK.slnx), where
+		// NuGet's Restore target and its RestoreProjectCount / RestoreProjectsAuditedCount / RestoreSkippedCount outputs live.
+		XDocument targets = XDocument.Load(RepositoryFile("Directory.Solution.targets"));
+
+		XElement target = Assert.Single(targets.Descendants("Target"),
+			static t => string.Equals((string?) t.Attribute("AfterTargets"), "Restore", StringComparison.Ordinal));
+		Assert.Contains("'$(CI)' == 'true'", (string?) target.Attribute("Condition") ?? "", StringComparison.Ordinal);
+		XElement error = Assert.Single(target.Elements("Error"));
+		string condition = (string?) error.Attribute("Condition") ?? "";
+		Assert.Contains("$(RestoreProjectCount)", condition, StringComparison.Ordinal);
+		Assert.Contains("$(RestoreProjectsAuditedCount)", condition, StringComparison.Ordinal);
+		Assert.Contains("$(RestoreSkippedCount)", condition, StringComparison.Ordinal);
+		Assert.Equal("CESDK9009", (string?) error.Attribute("Code"));
+	}
+
+	[Fact]
+	public void Nuget_audit_suppressions_live_in_the_root_props_with_a_justification_and_an_expiry()
+	{
+		List<string> misplaced = [];
+		foreach (string pattern in s_msbuildFilePatterns)
+		{
+			foreach (string file in RepositoryRoot.EnumerateSourceFiles(pattern))
+			{
+				XDocument document = XDocument.Load(RepositoryFile(file));
+				foreach (XElement suppression in document.Descendants("NuGetAuditSuppress"))
+				{
+					if (!string.Equals(file, DirectoryBuildProps, StringComparison.Ordinal))
+					{
+						misplaced.Add(file);
+						continue;
+					}
+
+					string advisory = (string?) suppression.Attribute("Include") ?? "";
+					Assert.StartsWith("https://", advisory, StringComparison.Ordinal);
+					Assert.False(string.IsNullOrWhiteSpace(MetadataValue(suppression, "Justification")),
+						$"NuGetAuditSuppress '{advisory}' has no Justification.");
+					Assert.True(DateOnly.TryParseExact(MetadataValue(suppression, "Expires"), "yyyy-MM-dd",
+							CultureInfo.InvariantCulture, DateTimeStyles.None, out _),
+						$"NuGetAuditSuppress '{advisory}' has no Expires date in yyyy-MM-dd form.");
+				}
+			}
+		}
+
+		Assert.True(misplaced.Count == 0,
+			$"Declare NuGetAuditSuppress only in Directory.Build.props (CESDK9009 also fails restore): {string.Join(", ", misplaced)}");
+	}
+
 	internal static string RepositoryFile(string relativePath)
 	{
 		return Path.Combine(RepositoryRoot.Path, relativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -116,6 +196,37 @@ public sealed partial class ToolchainPinTests
 		}
 
 		return values;
+	}
+
+	/// <summary>
+	///     Splits an MSBuild code list on <c>;</c>, <c>,</c> and whitespace, expanding <c>$(Name)</c> references to
+	///     properties defined in the same document (last definition wins); references to anything else stay opaque.
+	/// </summary>
+	private static HashSet<string> ExpandCodes(XDocument document, string value)
+	{
+		HashSet<string> codes = new(StringComparer.OrdinalIgnoreCase);
+		foreach (string token in value.Split([';', ',', ' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+		{
+			if (token.StartsWith("$(", StringComparison.Ordinal) && token.EndsWith(')'))
+			{
+				string name = token[2..^1];
+				List<string> definitions = PropertyValues(document, name);
+				if (definitions.Count != 0 && !definitions[^1].Contains(token, StringComparison.Ordinal))
+				{
+					codes.UnionWith(ExpandCodes(document, definitions[^1]));
+					continue;
+				}
+			}
+
+			codes.Add(token);
+		}
+
+		return codes;
+	}
+
+	private static string? MetadataValue(XElement item, string name)
+	{
+		return (string?) item.Attribute(name) ?? item.Element(name)?.Value;
 	}
 
 	private static JsonElement ReadGlobalJsonSdk()

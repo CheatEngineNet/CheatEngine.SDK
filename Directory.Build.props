@@ -24,10 +24,35 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <!-- CS1591 makes undocumented public API an error, and IDE0005 only fails the build when a documentation file exists. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NuGetAuditMode>all</NuGetAuditMode>
-    <!-- Feed/audit service availability is non-blocking; reported vulnerabilities remain build errors. -->
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900;NU1905</WarningsNotAsErrors>
   </PropertyGroup>
+
+  <!--
+    NuGet audit policy (eng/api/README.md#nuget-audit), the documented "dedicated audit pipeline" pattern:
+    https://learn.microsoft.com/nuget/concepts/auditing-packages#running-nuget-audit-in-ci
+    - Ordinary builds: high (NU1903) and critical (NU1904) advisories fail restore, even where TreatWarningsAsErrors is
+      off. Low (NU1901) and moderate (NU1902) advisories and audit-source trouble (NU1900, NU1905) are reported but do not
+      block, so an advisory published overnight does not turn every required check red without a commit.
+    - Dedicated audit run (restore -p:AuditPipeline=true, the scheduled health workflow): every audit code is an error.
+    CESDK9009 (Directory.Build.targets) fails a project that weakens any of this. Suppressions (NuGetAuditSuppress) are
+    declared only below, each with Justification and Expires metadata.
+  -->
+  <PropertyGroup Label="NuGet audit">
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <_CheatEngineSdkNuGetAuditCodes>NU1900;NU1901;NU1902;NU1903;NU1904;NU1905</_CheatEngineSdkNuGetAuditCodes>
+    <_CheatEngineSdkNuGetAuditBlockingCodes>NU1903;NU1904</_CheatEngineSdkNuGetAuditBlockingCodes>
+    <WarningsAsErrors Condition="'$(AuditPipeline)' != 'true'">$(WarningsAsErrors);$(_CheatEngineSdkNuGetAuditBlockingCodes)</WarningsAsErrors>
+    <WarningsNotAsErrors Condition="'$(AuditPipeline)' != 'true'">$(WarningsNotAsErrors);NU1900;NU1901;NU1902;NU1905</WarningsNotAsErrors>
+    <WarningsAsErrors Condition="'$(AuditPipeline)' == 'true'">$(WarningsAsErrors);$(_CheatEngineSdkNuGetAuditCodes)</WarningsAsErrors>
+  </PropertyGroup>
+  <!--
+    Advisory exclusions: a last resort. One item per advisory URL, with Justification (why it does not apply) and Expires
+    (yyyy-MM-dd, re-review date) metadata. The strict audit run fails once Expires is past, and a stable (release)
+    package version cannot be packed while any suppression exists. Example (never commit it without both metadata):
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-xxxx-xxxx-xxxx" Justification="..." Expires="2026-12-31"/>
+  -->
+  <ItemGroup Label="NuGet audit suppressions"/>
 
   <PropertyGroup Label="Determinism and symbols">
     <!-- Path normalization only in CI: locally it breaks source debugging. -->

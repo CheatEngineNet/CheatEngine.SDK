@@ -1,0 +1,18 @@
+<Project>
+  <!--
+    Solution-level extension point: MSBuild imports it into the solution metaproject, which is where NuGet's Restore
+    target runs (Directory.Build.* are imported by projects, not by the solution). CI restores must audit every project:
+    https://learn.microsoft.com/nuget/concepts/auditing-packages#ensure-restore-audited-projects
+    Projects that a no-op restore skipped keep their last audit result, so they count as audited. The restore task only
+    sets these output properties for a regular (non static-graph) restore.
+  -->
+  <Target Name="CheatEngineSdkAssertRestoreAuditedEveryProject"
+          AfterTargets="Restore"
+          Condition="'$(CI)' == 'true' and '$(RestoreProjectCount)' != ''">
+    <Error Condition="'$(RestoreProjectCount)' != '$([MSBuild]::Add($(RestoreProjectsAuditedCount), $(RestoreSkippedCount)))'"
+           Code="CESDK9009"
+           Text="Restore audited $(RestoreProjectsAuditedCount) and skipped $(RestoreSkippedCount) of $(RestoreProjectCount) projects: NuGet audit did not run for every project in the solution (eng/api/README.md#nuget-audit)."/>
+    <Message Importance="normal"
+             Text="NuGet audit: $(RestoreProjectsAuditedCount) audited + $(RestoreSkippedCount) up to date = $(RestoreProjectCount) projects."/>
+  </Target>
+</Project>

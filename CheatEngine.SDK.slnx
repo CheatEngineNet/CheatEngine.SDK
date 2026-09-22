@@ -23,6 +23,7 @@
     <File Path=".github/workflows/main-ci.yml"/>
     <File Path=".github/workflows/release.yml"/>
     <File Path=".github/workflows/pull-request-ci.yml"/>
+    <File Path=".github/workflows/sonar.yml"/>
   </Folder>
   <Folder Name="/eng/">
     <File Path="eng/BannedSymbols.txt"/>

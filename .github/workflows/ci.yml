@@ -1,24 +1,37 @@
 name: CI
 
+# Reusable pipeline for pull-request-ci.yml, main-ci.yml and release.yml.
+#
+#   native ─► build-test (Debug, Release) ─► sonar ─┐
+#          └► aot ─────────────────────────────────┼─► gate   (the only required check: "CI / Gate")
+#   lint ──────────────────────────────────────────┘
+#
+# Jobs never rebuild what an upstream job produced; they exchange artifacts:
+#   lua-protection-bridge, classic-abi-fixture-facts   native → build-test, aot
+#   coverage                                           build-test (Debug) → sonar
+#   nuget-package                                      build-test (Release) → sonar, release publish, reviewers
+#   test-results-<configuration>                       build-test → humans
+
 on:
   workflow_call:
     inputs:
-      collect-coverage:
-        description: Emit Visual Studio XML coverage from Debug test jobs and upload it as coverage-<project>.
+      sonar:
+        description: Run the SonarQube Cloud analysis. Merge-queue runs, fork pull requests and Dependabot always skip it.
         type: boolean
         default: false
-      upload-package:
-        description: Upload the packed package as the nuget-package artifact.
-        type: boolean
-        default: false
-      test-release:
-        description: Also run every test project against the Release build, which is what ships.
-        type: boolean
-        default: false
-      dependency-review:
-        description: Run dependency-review-action for non-draft pull requests. Enable only after GitHub Dependency graph is enabled for the repository.
-        type: boolean
-        default: false
+      package-version:
+        description: When set, the Release leg must produce exactly CheatEngine.SDK.<package-version>.nupkg.
+        type: string
+        default: ''
+      package-retention-days:
+        description: Days to keep the nuget-package artifact.
+        type: number
+        default: 7
+    secrets:
+      SONAR_TOKEN:
+        description: SonarQube Cloud analysis token. Needed only when sonar is true.
+        required: false
+
 permissions:
   contents: read
 
@@ -27,45 +40,6 @@ defaults:
     shell: pwsh
 
 jobs:
-  discover:
-    name: Discover tests
-    runs-on: windows-latest
-    timeout-minutes: 5
-    outputs:
-      matrix: ${{ steps.projects.outputs.matrix }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          sparse-checkout: tests
-          persist-credentials: false
-
-      - name: Find test projects
-        id: projects
-        env:
-          TEST_RELEASE: ${{ inputs.test-release }}
-        # Mirrors eng/Tests.props: a test project is any tests/**/*.Tests project, so a new one needs no edit here.
-        run: |
-          $projects = @(Get-ChildItem -Path tests -Filter '*.Tests.csproj' -Recurse -File | Sort-Object Name)
-          if ($projects.Count -eq 0) { throw 'No *.Tests.csproj project found under tests.' }
-          $configurations = if ($env:TEST_RELEASE -eq 'true') { 'Debug', 'Release' } else { 'Debug' }
-          $include = foreach ($project in $projects) {
-            foreach ($configuration in $configurations) {
-              $suffix = if ($configuration -eq 'Release') { '-release' } else { '' }
-              [ordered]@{
-                name = $project.BaseName
-                project = [IO.Path]::GetRelativePath($PWD.Path, $project.FullName).Replace('\', '/')
-                configuration = $configuration
-                label = "$($project.BaseName)$(if ($suffix) { ' (Release)' })"
-                artifact = "$($project.BaseName)$suffix"
-              }
-            }
-          }
-          $matrix = ConvertTo-Json -Compress -InputObject ([ordered]@{ include = @($include) })
-          "matrix=$matrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          Write-Host "Found $($projects.Count) test projects."
-          $projects | ForEach-Object { Write-Host "  $($_.BaseName)" }
-
   native:
     name: Build native bridge
     runs-on: windows-latest
@@ -77,7 +51,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup xmake
-        uses: xmake-io/github-action-setup-xmake@3a1a5dddfc7fa625d9a698738334bf55655a861a # v1
+        uses: xmake-io/github-action-setup-xmake@3a1a5dddfc7fa625d9a698738334bf55655a861a # v1.2.5
         with:
           xmake-version: '3.0.9'
 
@@ -168,36 +142,13 @@ jobs:
 
       # This compiles the C++ transcription under MSVC x64 and validates its emitted facts. It proves the checked-in
       # header fixture and managed layout numbers agree; it does not contact or qualify a live Cheat Engine host.
+      # The Debug build-test leg compares these facts with the managed ABI measurements.
       - name: Build and validate classic ABI fixture
         run: |
           $ErrorActionPreference = 'Stop'
           ./tests/native-abi-fixture/build.ps1 -OutputDirectory artifacts/native-abi-fixture
           if ($LASTEXITCODE -ne 0) {
             throw "Classic ABI fixture build failed with exit code $LASTEXITCODE."
-          }
-
-      # The fixture's fixed facts are first schema-validated in its build script. Build the managed ABI test app and
-      # pass that same file to its direct comparer so C++ x64 measurements are checked against managed sizeof, offset,
-      # and alignment measurements in one CI execution. The executable is used deliberately: native MTP currently
-      # discovers this xUnit v3 app reliably through its generated host, while the SDK command only sees its module.
-      - name: Setup .NET for classic ABI fact comparison
-        uses: ./.github/actions/setup-dotnet
-        with:
-          restore: tests/CheatEngine.SDK.Abi.Tests/CheatEngine.SDK.Abi.Tests.csproj
-
-      - name: Compare native fixture facts with managed ABI measurements
-        env:
-          CE77_NATIVE_ABI_FACTS_PATH: ${{ github.workspace }}/artifacts/native-abi-fixture/ce77-native-abi-facts.txt
-          CE77_NATIVE_ABI_REQUIRED: 'true'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          dotnet build tests/CheatEngine.SDK.Abi.Tests/CheatEngine.SDK.Abi.Tests.csproj -c Debug --no-restore --disable-build-servers
-          if ($LASTEXITCODE -ne 0) {
-            throw "Managed ABI fact comparer build failed with exit code $LASTEXITCODE."
-          }
-          & ./artifacts/bin/CheatEngine.SDK.Abi.Tests/debug/CheatEngine.SDK.Abi.Tests.exe --fail-skips on
-          if ($LASTEXITCODE -ne 0) {
-            throw "Managed ABI fact comparer exited with code $LASTEXITCODE."
           }
 
       - name: Upload classic ABI fixture facts
@@ -208,16 +159,23 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  build:
-    name: Build
+  build-test:
+    name: Build and test (${{ matrix.configuration }})
     needs: native
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [ Debug, Release ]
+    env:
+      CONFIGURATION: ${{ matrix.configuration }}
+      RESULTS: artifacts/test-results/${{ matrix.configuration }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0 # MinVer computes the version from tags and history
+          fetch-depth: 0 # MinVer and the packaging tests need tags and full history
           persist-credentials: false
 
       - name: Setup .NET
@@ -231,159 +189,92 @@ jobs:
           name: lua-protection-bridge
           path: native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native
 
-      # Tests run against Debug, where some guards exist only. Release is what ships.
-      - name: Build Debug
-        run: |
-          dotnet build CheatEngine.SDK.slnx --no-restore -c Debug
-          if ($LASTEXITCODE -ne 0) {
-            throw "Debug solution build failed with exit code $LASTEXITCODE."
-          }
-
-      # Do not rely only on the per-project matrix below: native MTP must also discover every test executable when
-      # invoked through the solution. The preceding build is deliberately part of this job, so --no-build cannot
-      # silently exercise stale or incomplete test-host output.
-      - name: Test Debug solution discovery
-        run: |
-          dotnet test --solution CheatEngine.SDK.slnx --no-build --no-restore -c Debug --fail-skips on
-          if ($LASTEXITCODE -ne 0) {
-            throw "Debug solution test discovery failed with exit code $LASTEXITCODE."
-          }
-
-      - name: Build Release
-        run: |
-          dotnet build CheatEngine.SDK.slnx --no-restore -c Release
-          if ($LASTEXITCODE -ne 0) {
-            throw "Release solution build failed with exit code $LASTEXITCODE."
-          }
-
-  test:
-    name: Test ${{ matrix.label }}
-    needs: [ discover, native ]
-    runs-on: windows-latest
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0 # MinVer computes the version from tags and history
-          persist-credentials: false
-
-      - name: Setup .NET
-        uses: ./.github/actions/setup-dotnet
-
-      - name: Use CI-built native bridge
+      - name: Use classic ABI fixture facts
+        if: matrix.configuration == 'Debug'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: lua-protection-bridge
-          path: native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native
+          name: classic-abi-fixture-facts
+          path: artifacts/native-abi-fixture
 
-      # A skipped test fails the Debug job: NativeLua tests skip when the bundled Lua DLL does not bind, and a green check must not hide that.
-      # Release keeps one legitimate skip, a guard that only exists in Debug.
-      - name: Test
-        env:
-          PROJECT: ${{ matrix.project }}
-          CONFIGURATION: ${{ matrix.configuration }}
-          RESULTS: artifacts/test-results/${{ matrix.artifact }}
-          COLLECT_COVERAGE: ${{ inputs.collect-coverage }}
+      - name: Build
         run: |
-          $options = '--project', $env:PROJECT, '-c', $env:CONFIGURATION, '--report-trx', '--results-directory', $env:RESULTS
-          if ($env:CONFIGURATION -eq 'Debug') { $options += '--fail-skips', 'on' }
-          if ($env:CONFIGURATION -eq 'Debug' -and $env:COLLECT_COVERAGE -eq 'true') { $options += '--coverage', '--coverage-output-format', 'xml', '--coverage-output', 'coverage.xml' }
+          dotnet build CheatEngine.SDK.slnx -c $env:CONFIGURATION --no-restore
+          if ($LASTEXITCODE -ne 0) {
+            throw "$env:CONFIGURATION solution build failed with exit code $LASTEXITCODE."
+          }
+
+      # One parallel run over every tests/**/*.Tests project of the solution, which also proves that the solution
+      # discovers every test module. A skip fails both configurations: NativeLua tests skip when the bundled Lua DLL
+      # does not bind, and a green check must not hide that. In Debug, the facts the native job built make the managed
+      # ABI comparison mandatory, and every module writes its own GUID-named coverage report.
+      - name: Test
+        run: |
+          $options = @(
+            '--solution', 'CheatEngine.SDK.slnx', '-c', $env:CONFIGURATION, '--no-build', '--results-directory', $env:RESULTS,
+            '--fail-skips', 'on', '--report-trx', '--report-gh', '--report-gh-groups', 'off'
+          )
+          if ($env:CONFIGURATION -eq 'Debug') {
+            $env:CE77_NATIVE_ABI_FACTS_PATH = Join-Path $env:GITHUB_WORKSPACE 'artifacts/native-abi-fixture/ce77-native-abi-facts.txt'
+            $env:CE77_NATIVE_ABI_REQUIRED = 'true'
+            $options += '--coverage', '--coverage-output-format', 'xml'
+          }
           dotnet test @options
           if ($LASTEXITCODE -ne 0) {
-            throw "Test project '$env:PROJECT' failed with exit code $LASTEXITCODE."
+            throw "$env:CONFIGURATION tests failed with exit code $LASTEXITCODE."
           }
-
-      - name: Summarize results
-        if: ${{ !cancelled() }}
-        env:
-          NAME: ${{ matrix.label }}
-          RESULTS: artifacts/test-results/${{ matrix.artifact }}
-        run: |
-          $files = @(Get-ChildItem -Path $env:RESULTS -Filter *.trx -File -ErrorAction SilentlyContinue)
-          if ($files.Count -eq 0) { Write-Host '::warning::The test run produced no TRX report.'; return }
-          $lines = foreach ($file in $files) {
-            $results = @(([xml](Get-Content -LiteralPath $file.FullName -Raw)).TestRun.Results.UnitTestResult | Where-Object { $_ })
-            $passed = @($results | Where-Object outcome -eq 'Passed').Count
-            $skipped = @($results | Where-Object outcome -eq 'NotExecuted').Count
-            $failed = @($results | Where-Object { $_.outcome -notin 'Passed', 'NotExecuted' })
-            "### $env:NAME"
-            ''
-            '| Total | Passed | Failed | Skipped |'
-            '| ---: | ---: | ---: | ---: |'
-            "| $($results.Count) | $passed | $($failed.Count) | $skipped |"
-            if ($failed.Count -gt 0) {
-              ''
-              $failed | Select-Object -First 20 | ForEach-Object { "- ``$($_.testName)``" }
-              $rest = @($failed | Select-Object -Skip 20).Count
-              if ($rest -gt 0) { "- and $rest more" }
+          if ($env:CONFIGURATION -eq 'Debug') {
+            $modules = @(Get-ChildItem -LiteralPath $env:RESULTS -Filter *.trx -File).Count
+            $reports = @(Get-ChildItem -LiteralPath $env:RESULTS -Filter *.xml -File).Count
+            if ($reports -eq 0 -or $reports -ne $modules) {
+              throw "Expected one coverage report per test module ($modules), found $reports."
             }
           }
-          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
-      - name: Upload test results
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: test-results-${{ matrix.artifact }}
-          path: artifacts/test-results/${{ matrix.artifact }}/*.trx
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Upload coverage
-        if: ${{ inputs.collect-coverage && matrix.configuration == 'Debug' && !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: coverage-${{ matrix.name }}
-          path: artifacts/test-results/${{ matrix.artifact }}/coverage.xml
-          if-no-files-found: error
-          retention-days: 7
-
-  pack:
-    name: Pack
-    needs: native
-    runs-on: windows-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0 # MinVer computes the version from tags and history
-          persist-credentials: false
-
-      - name: Setup .NET
-        uses: ./.github/actions/setup-dotnet
-
-      - name: Use CI-built native bridge
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: lua-protection-bridge
-          path: native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native
-
+      # The shipped package comes from the build the tests just ran against. The pack is incremental: nothing recompiles.
       - name: Pack
+        if: matrix.configuration == 'Release'
+        env:
+          PACKAGE_VERSION: ${{ inputs.package-version }}
         run: |
-          dotnet pack src/CheatEngine.SDK -c Release -o artifacts/nuget
+          dotnet pack src/CheatEngine.SDK -c Release --no-restore -o artifacts/nuget
           if ($LASTEXITCODE -ne 0) {
             throw "SDK package creation failed with exit code $LASTEXITCODE."
           }
-
-      - name: Verify package
-        run: |
           $packages = @(Get-ChildItem -Path artifacts/nuget -Filter *.nupkg -File)
-          if ($packages.Count -ne 1) { throw "Expected one package in artifacts/nuget, found $($packages.Count)." }
-          Write-Host "Packed $($packages[0].Name)."
+          if ($packages.Count -ne 1) {
+            throw "Expected one package in artifacts/nuget, found $($packages.Count)."
+          }
+          if ($env:PACKAGE_VERSION -and $packages[0].Name -ne "CheatEngine.SDK.$env:PACKAGE_VERSION.nupkg") {
+            throw "Packed $($packages[0].Name), but the release requires CheatEngine.SDK.$env:PACKAGE_VERSION.nupkg."
+          }
+          "Packed ``$($packages[0].Name)``." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
       - name: Upload package
-        if: ${{ inputs.upload-package }}
+        if: matrix.configuration == 'Release'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nuget-package
           path: artifacts/nuget/*.nupkg
           if-no-files-found: error
-          retention-days: 90
+          retention-days: ${{ inputs.package-retention-days }}
+
+      - name: Upload coverage
+        if: matrix.configuration == 'Debug'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage
+          path: ${{ env.RESULTS }}/*.xml
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results-${{ matrix.configuration }}
+          path: ${{ env.RESULTS }}/*.trx
+          if-no-files-found: warn
+          retention-days: 7
 
   aot:
     name: Native AOT publication probe
@@ -466,34 +357,29 @@ jobs:
           & $harness --load --acknowledge-process-resident-load
           if ($LASTEXITCODE -ne 0) { throw "Native AOT loader harness load exited with code $LASTEXITCODE." }
 
+  # Secrets never reach fork or Dependabot runs, and a merge-queue branch is analysed again once it lands on main.
+  # Pull requests fail on the quality gate; main only reports it.
   sonar:
     name: Sonar
-    needs: [ native, test ]
-    if: ${{ inputs.collect-coverage }}
+    needs: build-test
+    if: >-
+      inputs.sonar
+      && github.event_name != 'merge_group'
+      && github.actor != 'dependabot[bot]'
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     uses: ./.github/workflows/sonar.yml
     with:
-      wait-quality-gate: true
+      wait-quality-gate: ${{ github.event_name == 'pull_request' }}
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  dependency-review:
-    name: Dependency review
-    if: ${{ inputs.dependency-review && github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - name: Review dependency changes
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-        with:
-          fail-on-severity: high
-  lint-workflows:
+  lint:
     name: Lint workflows
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       ACTIONLINT_VERSION: 1.7.12
-      ACTIONLINT_SHA256: 6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 # linux_amd64, official checksums file
     steps:
       - name: Checkout workflow definitions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -504,61 +390,47 @@ jobs:
       - name: Run actionlint
         run: |
           $ErrorActionPreference = 'Stop'
-          $archive = Join-Path $env:RUNNER_TEMP 'actionlint.zip'
-          $url = "https://github.com/rhysd/actionlint/releases/download/v$env:ACTIONLINT_VERSION/actionlint_$($env:ACTIONLINT_VERSION)_windows_amd64.zip"
+          $archive = Join-Path $env:RUNNER_TEMP 'actionlint.tar.gz'
+          $url = "https://github.com/rhysd/actionlint/releases/download/v$env:ACTIONLINT_VERSION/actionlint_$($env:ACTIONLINT_VERSION)_linux_amd64.tar.gz"
           Invoke-WebRequest -Uri $url -OutFile $archive -MaximumRetryCount 3 -RetryIntervalSec 5
           $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($actual -ne $env:ACTIONLINT_SHA256) {
             throw "actionlint $env:ACTIONLINT_VERSION has SHA-256 $actual, expected $env:ACTIONLINT_SHA256."
           }
-          $destination = Join-Path $env:RUNNER_TEMP 'actionlint'
-          Expand-Archive -LiteralPath $archive -DestinationPath $destination
-          & (Join-Path $destination 'actionlint.exe') -color
+          tar -xzf $archive -C $env:RUNNER_TEMP actionlint
+          if ($LASTEXITCODE -ne 0) {
+            throw "Extracting actionlint failed with exit code $LASTEXITCODE."
+          }
+          & (Join-Path $env:RUNNER_TEMP 'actionlint') -color
           if ($LASTEXITCODE -ne 0) {
             throw "actionlint failed with exit code $LASTEXITCODE."
           }
 
   gate:
     name: Gate
-    if: ${{ always() }}
-    needs: [ discover, native, build, test, pack, aot, sonar, dependency-review, lint-workflows ]
-    runs-on: windows-latest
+    # always(): a failed or cancelled job must turn the required check red instead of skipping it.
+    if: always()
+    needs: [ native, build-test, aot, sonar, lint ]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: { }
     steps:
       - name: Check results
         env:
-          DISCOVER_RESULT: ${{ needs.discover.result }}
-          NATIVE_RESULT: ${{ needs.native.result }}
-          BUILD_RESULT: ${{ needs.build.result }}
-          TEST_RESULT: ${{ needs.test.result }}
-          PACK_RESULT: ${{ needs.pack.result }}
-          AOT_RESULT: ${{ needs.aot.result }}
-          SONAR_RESULT: ${{ needs.sonar.result }}
-          SONAR_REQUIRED: ${{ inputs.collect-coverage }}
-          DEPENDENCY_RESULT: ${{ needs.dependency-review.result }}
-          DEPENDENCY_REQUIRED: ${{ inputs.dependency-review && github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
-          LINT_RESULT: ${{ needs.lint-workflows.result }}
+          NEEDS: ${{ toJSON(needs) }}
         run: |
-          $results = [ordered]@{
-            discover = $env:DISCOVER_RESULT
-            native = $env:NATIVE_RESULT
-            build = $env:BUILD_RESULT
-            test = $env:TEST_RESULT
-            pack = $env:PACK_RESULT
-            aot = $env:AOT_RESULT
-            sonar = $env:SONAR_RESULT
-            'dependency-review' = $env:DEPENDENCY_RESULT
-            'lint-workflows' = $env:LINT_RESULT
+          # Every job must succeed. Only sonar may be skipped: its own condition turns it off for releases, the merge
+          # queue, forks and Dependabot. A sonar skipped because build-test failed is caught by build-test's result.
+          $mayBeSkipped = @('sonar')
+          $needs = $env:NEEDS | ConvertFrom-Json -AsHashtable
+          $failed = [Collections.Generic.List[string]]::new()
+          $rows = foreach ($job in @($needs.Keys | Sort-Object)) {
+            $result = $needs[$job].result
+            $allowed = if ($job -in $mayBeSkipped) { 'success', 'skipped' } else { 'success' }
+            if ($result -notin $allowed) { $failed.Add("$job ($result)") }
+            "| $job | $result |"
           }
-          $rows = $results.GetEnumerator() | ForEach-Object { "| $($_.Key) | $($_.Value) |" }
-          '| Job | Result |', '| --- | --- |', $rows | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          $failed = @($results.GetEnumerator() | Where-Object {
-            $_.Key -in 'discover', 'native', 'build', 'test', 'pack', 'aot' -and $_.Value -ne 'success' -or
-            $_.Key -eq 'sonar' -and $env:SONAR_REQUIRED -eq 'true' -and $_.Value -ne 'success' -or
-            $_.Key -eq 'dependency-review' -and $env:DEPENDENCY_REQUIRED -eq 'true' -and $_.Value -ne 'success' -or
-            $_.Key -eq 'lint-workflows' -and $_.Value -ne 'success'
-          } | ForEach-Object Key)
+          @('| Job | Result |', '| --- | --- |') + $rows | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           if ($failed.Count -gt 0) {
             Write-Host "::error::Not successful: $($failed -join ', ')."
             exit 1

@@ -4,6 +4,7 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened, ready_for_review ]
 
+# A new push supersedes the previous run of the same pull request.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -14,8 +15,10 @@ permissions:
 jobs:
   ci:
     name: CI
-    if: github.event.pull_request.draft == false
+    # Drafts do not run CI. "Ready for review" starts it; until then the required CI / Gate check stays pending.
+    if: ${{ !github.event.pull_request.draft }}
     uses: ./.github/workflows/ci.yml
     with:
-      collect-coverage: true
-      dependency-review: ${{ vars.DEPENDENCY_REVIEW_ENABLED == 'true' }}
+      sonar: true # ci.yml still skips Sonar for fork and Dependabot pull requests, which receive no secrets
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

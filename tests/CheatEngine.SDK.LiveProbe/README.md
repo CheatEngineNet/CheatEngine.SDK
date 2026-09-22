@@ -104,5 +104,4 @@ normal cleanup route.
 - No live test is invoked by `dotnet test`, normal CI, Release validation or packaging. The only automated validation of
   this project is compilation.
 
-Detailed result templates and evidence rules live in [
-`documentations/CheatEngine.SDK/live-probes`](../../documentations/CheatEngine.SDK/live-probes/README.md).
+Result recording and evidence rules: [local qualification protocol](../../docs/qualification/local-protocol.md).

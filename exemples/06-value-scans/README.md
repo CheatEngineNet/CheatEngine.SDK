@@ -110,8 +110,8 @@ state transitions, pre-call cancellation, bounded copying, and stale runtime/tar
 expose a live value-scan capability, the vertical slice still must record an isolated, opt-in CE 7.7 x64 probe covering
 success, failure, ordered cleanup, cancellation while a scan is in progress, disable/re-enable and target changes.
 
-The [capability matrix](../../documentations/CheatEngine.SDK/capability-matrix.md) tracks that proof. Until then, use
-typed target-memory APIs for scalar reads/writes and `AobScanner` for the ownership-proven AOB result list from the
+The [qualification matrix](../../docs/qualification/README.md) (scenarios Q25 and Q26) tracks that proof. Until then,
+use typed target-memory APIs for scalar reads/writes and `AobScanner` for the ownership-proven AOB result list from the
 high-level Client; reserve `MemoryScanSessions.TryCreate` for a deliberately authorized, source-backed SDK experiment.
 
 ## Before you move on

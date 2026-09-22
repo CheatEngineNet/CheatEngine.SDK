@@ -106,6 +106,6 @@ dotnet test --project tests/CheatEngine.SDK.Tests
 - The checked-in C11 Lua protection bridge is parsed as PE/COFF without loading it: it is PE32+ AMD64, exports exactly
   four symbols, imports only its reviewed CRT/Kernel32 contract, has no delay-load table and cannot acquire a Lua
   module. Its build and publish copies are SHA-256-identical to the audited source asset (`NativeBridgePeAuditTests` and
-  `NativeBridgePackagingAuditTests`; the detailed contract is
-  `native/cheatengine-sdk-lua-bridge/AUDIT.md`).
+  `NativeBridgePackagingAuditTests`; the bridge contract is described in the
+  [bridge README](../../native/cheatengine-sdk-lua-bridge/README.md)).
 - Consumers build against the package packed by this run, never an earlier extraction (`RestoreIsolationTests`).

@@ -2,8 +2,10 @@
 
 **Planning baseline: September 21, 2026.** This is an outcome-based plan, not a delivery-date commitment. The initial
 preparation session was denied GitHub writes; this branch is the later reviewable import. The roadmap describes planned
-outcomes, never implementation, package, fixture, or live-host completion. Read the live issue and Project state
-separately from this versioned plan.
+outcomes, never implementation, package, fixture, or live-host completion.
+
+The `SDK-0xx` work-item pages were retired on 2026-09-22 and are not restored; the identifiers below are plain text.
+See [retired documentation](docs/README.md#retired-documentation).
 
 ## Operating boundary
 
@@ -28,81 +30,81 @@ research. Source merged, package shipped, fixture passed and host qualified are 
 
 Maintain the source-indexed execution baseline without inventing audit coverage.
 
-| Work item                                                                                                                   | Priority | Prerequisites                                      |
-|-----------------------------------------------------------------------------------------------------------------------------|----------|----------------------------------------------------|
-| [SDK-001](documentations/engineering/work-items/SDK-001.md) — Establish source, artifact, and capability provenance         | P1       | Refinement and evidence; no declared issue blocker |
-| [SDK-002](documentations/engineering/work-items/SDK-002.md) — Inventory the public CE extension surface and host profiles   | P1       | SDK-001                                            |
-| [SDK-003](documentations/engineering/work-items/SDK-003.md) — Adopt engineering governance and validate the bootstrap graph | P1       | Refinement and evidence; no declared issue blocker |
+| Work item                                                               | Priority | Prerequisites                                      |
+|-------------------------------------------------------------------------|----------|----------------------------------------------------|
+| SDK-001 — Establish source, artifact, and capability provenance         | P1       | Refinement and evidence; no declared issue blocker |
+| SDK-002 — Inventory the public CE extension surface and host profiles   | P1       | SDK-001                                            |
+| SDK-003 — Adopt engineering governance and validate the bootstrap graph | P1       | Refinement and evidence; no declared issue blocker |
 
 ### SDK-E02 — ABI, hosting, and deployment qualification
 
 Qualify exact host contracts and preserve the supported managed deployment.
 
-| Work item                                                                                                                                  | Priority | Prerequisites |
-|--------------------------------------------------------------------------------------------------------------------------------------------|----------|---------------|
-| [SDK-004](documentations/engineering/work-items/SDK-004.md) — Qualify classic ABI layouts and conflicting signatures                       | P1       | SDK-002       |
-| [SDK-005](documentations/engineering/work-items/SDK-005.md) — Qualify activation admission, shutdown, and plugin coexistence               | P1       | SDK-002       |
-| [SDK-006](documentations/engineering/work-items/SDK-006.md) — Decide the NativeAOT plugin loader profile without weakening managed support | P2       | SDK-005       |
+| Work item                                                                              | Priority | Prerequisites |
+|----------------------------------------------------------------------------------------|----------|---------------|
+| SDK-004 — Qualify classic ABI layouts and conflicting signatures                       | P1       | SDK-002       |
+| SDK-005 — Qualify activation admission, shutdown, and plugin coexistence               | P1       | SDK-002       |
+| SDK-006 — Decide the NativeAOT plugin loader profile without weakening managed support | P2       | SDK-005       |
 
 ### SDK-E03 — Authoritative semantic outcomes and Lua registration
 
 Expose reusable CE semantics without depending on Client policy.
 
-| Work item                                                                                                                    | Priority | Prerequisites    |
-|------------------------------------------------------------------------------------------------------------------------------|----------|------------------|
-| [SDK-007](documentations/engineering/work-items/SDK-007.md) — Preserve structured outcomes across Lua and Engine primitives  | P1       | SDK-001          |
-| [SDK-008](documentations/engineering/work-items/SDK-008.md) — Own built-in runtime, process, symbol, and table Lua contracts | P1       | SDK-007, SDK-002 |
-| [SDK-009](documentations/engineering/work-items/SDK-009.md) — Return ownership-aware Lua registration leases                 | P1       | SDK-007, SDK-012 |
+| Work item                                                                | Priority | Prerequisites    |
+|--------------------------------------------------------------------------|----------|------------------|
+| SDK-007 — Preserve structured outcomes across Lua and Engine primitives  | P1       | SDK-001          |
+| SDK-008 — Own built-in runtime, process, symbol, and table Lua contracts | P1       | SDK-007, SDK-002 |
+| SDK-009 — Return ownership-aware Lua registration leases                 | P1       | SDK-007, SDK-012 |
 
 ### SDK-E04 — Runtime identity and resource ownership
 
 Make runtime/target authority and exception-safe cleanup reusable for every SDK consumer.
 
-| Work item                                                                                                                         | Priority | Prerequisites    |
-|-----------------------------------------------------------------------------------------------------------------------------------|----------|------------------|
-| [SDK-010](documentations/engineering/work-items/SDK-010.md) — Establish authoritative target identity for effectful operations    | P1       | SDK-007, SDK-002 |
-| [SDK-011](documentations/engineering/work-items/SDK-011.md) — Make resource ownership handoff and cleanup exception-safe          | P1       | SDK-010, SDK-007 |
-| [SDK-012](documentations/engineering/work-items/SDK-012.md) — Qualify shared Lua state, reset, and protected operation boundaries | P1       | SDK-002, SDK-005 |
+| Work item                                                                     | Priority | Prerequisites    |
+|-------------------------------------------------------------------------------|----------|------------------|
+| SDK-010 — Establish authoritative target identity for effectful operations    | P1       | SDK-007, SDK-002 |
+| SDK-011 — Make resource ownership handoff and cleanup exception-safe          | P1       | SDK-010, SDK-007 |
+| SDK-012 — Qualify shared Lua state, reset, and protected operation boundaries | P1       | SDK-002, SDK-005 |
 
 ### SDK-E05 — Memory and scanning primitives
 
 Provide qualified target reads, AOB outcomes, and scan-session ownership.
 
-| Work item                                                                                                                        | Priority | Prerequisites    |
-|----------------------------------------------------------------------------------------------------------------------------------|----------|------------------|
-| [SDK-013](documentations/engineering/work-items/SDK-013.md) — Qualify target memory, pointer width, and bounded buffer contracts | P1       | SDK-007, SDK-010 |
-| [SDK-014](documentations/engineering/work-items/SDK-014.md) — Separate AOB absence, errors, and execution bounds                 | P1       | SDK-007, SDK-013 |
-| [SDK-015](documentations/engineering/work-items/SDK-015.md) — Qualify the existing value-scan session factory                    | P2       | SDK-011, SDK-013 |
+| Work item                                                                    | Priority | Prerequisites    |
+|------------------------------------------------------------------------------|----------|------------------|
+| SDK-013 — Qualify target memory, pointer width, and bounded buffer contracts | P1       | SDK-007, SDK-010 |
+| SDK-014 — Separate AOB absence, errors, and execution bounds                 | P1       | SDK-007, SDK-013 |
+| SDK-015 — Qualify the existing value-scan session factory                    | P2       | SDK-011, SDK-013 |
 
 ### SDK-E06 — Instruction, patch, and debugger contracts
 
 Separate instruction processing, target mutation and immediate callback decisions.
 
-| Work item                                                                                                                       | Priority | Prerequisites             |
-|---------------------------------------------------------------------------------------------------------------------------------|----------|---------------------------|
-| [SDK-016](documentations/engineering/work-items/SDK-016.md) — Qualify assembly and disassembly contracts by instruction profile | P2       | SDK-004, SDK-013          |
-| [SDK-017](documentations/engineering/work-items/SDK-017.md) — Qualify Auto Assembler patch application and disable ownership    | P1       | SDK-011, SDK-012          |
-| [SDK-018](documentations/engineering/work-items/SDK-018.md) — Define synchronous debugger callback and continuation ownership   | P2       | SDK-004, SDK-005, SDK-010 |
+| Work item                                                                   | Priority | Prerequisites             |
+|-----------------------------------------------------------------------------|----------|---------------------------|
+| SDK-016 — Qualify assembly and disassembly contracts by instruction profile | P2       | SDK-004, SDK-013          |
+| SDK-017 — Qualify Auto Assembler patch application and disable ownership    | P1       | SDK-011, SDK-012          |
+| SDK-018 — Define synchronous debugger callback and continuation ownership   | P2       | SDK-004, SDK-005, SDK-010 |
 
 ### SDK-E07 — Record commands and optional capability families
 
 Deliver exact record semantics early and keep unrelated advanced families independently gated.
 
-| Work item                                                                                                                              | Priority | Prerequisites    |
-|----------------------------------------------------------------------------------------------------------------------------------------|----------|------------------|
-| [SDK-019](documentations/engineering/work-items/SDK-019.md) — Qualify timer and hotkey subscription ownership                          | P2       | SDK-005, SDK-012 |
-| [SDK-020](documentations/engineering/work-items/SDK-020.md) — Partition advanced capability research into independently gated families | P3       | SDK-002, SDK-010 |
-| [SDK-021](documentations/engineering/work-items/SDK-021.md) — Expose typed record and symbol mutation ownership                        | P1       | SDK-007, SDK-012 |
+| Work item                                                                          | Priority | Prerequisites    |
+|------------------------------------------------------------------------------------|----------|------------------|
+| SDK-019 — Qualify timer and hotkey subscription ownership                          | P2       | SDK-005, SDK-012 |
+| SDK-020 — Partition advanced capability research into independently gated families | P3       | SDK-002, SDK-010 |
+| SDK-021 — Expose typed record and symbol mutation ownership                        | P1       | SDK-007, SDK-012 |
 
 ### SDK-E08 — Generation, artifacts, and ecosystem conformance
 
 Make published artifacts and generated consumers match the qualified source contracts.
 
-| Work item                                                                                                                       | Priority | Prerequisites                                        |
-|---------------------------------------------------------------------------------------------------------------------------------|----------|------------------------------------------------------|
-| [SDK-022](documentations/engineering/work-items/SDK-022.md) — Validate generated bindings and marshalling in packed consumers   | P1       | SDK-007, SDK-009                                     |
-| [SDK-023](documentations/engineering/work-items/SDK-023.md) — Publish a traceable minimum contract artifact for Client adoption | P1       | SDK-008, SDK-009, SDK-010, SDK-011, SDK-021, SDK-022 |
-| [SDK-024](documentations/engineering/work-items/SDK-024.md) — Establish release qualification and performance evidence          | P2       | SDK-023, SDK-005                                     |
+| Work item                                                                   | Priority | Prerequisites                                        |
+|-----------------------------------------------------------------------------|----------|------------------------------------------------------|
+| SDK-022 — Validate generated bindings and marshalling in packed consumers   | P1       | SDK-007, SDK-009                                     |
+| SDK-023 — Publish a traceable minimum contract artifact for Client adoption | P1       | SDK-008, SDK-009, SDK-010, SDK-011, SDK-021, SDK-022 |
+| SDK-024 — Establish release qualification and performance evidence          | P2       | SDK-023, SDK-005                                     |
 
 ## Execution notes
 

@@ -24,5 +24,5 @@ artifacts/nativeaot-loader-profile/CheatEngine.SDK.NativeAotLoaderHarness.exe --
 ```
 
 `library.unload=not-attempted` is an intentional result. NativeAOT shared libraries do not support `FreeLibrary`/
-`dlclose` unloading, so process termination is the boundary for this observation. See
-[ADR-006](../../documentations/engineering/ADR-006-nativeaot-plugin-loader-profile.md).
+`dlclose` unloading, so process termination is the boundary for this observation. See the
+[NativeAOT profile restrictions](../../docs/abi/nativeaot-profile.md).

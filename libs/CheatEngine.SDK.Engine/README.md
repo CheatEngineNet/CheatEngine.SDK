@@ -51,9 +51,9 @@ host has the same contract.
 | `Errors`                   | `EngineException` and stable subclasses                                                                                                                       | Separates expected operation failure, global absence, Lua failure, binding violation and marshalling violation instead of exposing a raw Lua stack error as the public Engine contract.                                                                                                         |
 
 The per-capability provenance, minimum CE version, architecture, thread, ownership and return semantics belong to the
-versioned [capability matrix](../../documentations/CheatEngine.SDK/capability-matrix.md). Fixture tests validate
-managed behavior and the pinned Lua fixture; opt-in live evidence is recorded separately and is not implied by these
-wrappers.
+[Lua surface catalogue](../../docs/catalog/README.md); executed host evidence belongs to the
+[qualification matrix](../../docs/qualification/README.md). Fixture tests validate managed behavior and the pinned Lua
+fixture; opt-in live evidence is recorded separately and is not implied by these wrappers.
 
 A `CEObject` is the native object pointer and nothing else. `CEObject.TryRead` decodes it from a full userdata whose
 first pointer-sized field holds the pointer, and `Push` hands it back through the host. A property is `obj.Name`. A

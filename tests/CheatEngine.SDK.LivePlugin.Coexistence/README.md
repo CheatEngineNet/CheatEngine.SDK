@@ -1,7 +1,7 @@
 # CheatEngine.SDK.LivePlugin.Coexistence
 
-An opt-in, manual fixture for the exact-host portion
-of [SDK-005](../../documentations/engineering/work-items/SDK-005.md).
+An opt-in, manual fixture for the exact-host portion of qualification scenarios Q09 and Q10 (see
+[qualification](../../docs/qualification/README.md)).
 It builds two distinct plugin assemblies, `PluginA` and `PluginB`, and records the identities that Cheat Engine actually
 loads. It is not a unit test, it is not part of ordinary CI, and this repository contains **no executed result** for it.
 

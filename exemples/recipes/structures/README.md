@@ -4,7 +4,7 @@
 
 **A deliberately deferred recipe: do not manufacture ownership for Cheat Engine structures.**
 
-**Level** `Advanced` · **Time** `5 min` · **Needs** the Engine capability matrix
+**Level** `Advanced` · **Time** `5 min` · **Needs** the Lua surface catalogue
 
 [Examples index](../../README.md) · [Recipes](../README.md)
 
@@ -50,8 +50,8 @@ the exact CE build:
 | Lifetime  | A factory-issued `Owned<T>` only if deterministic destruction is proven; otherwise a borrowed handle or no API                         |
 | Tests     | Fixture tests for stack/cleanup plus an isolated, opt-in CE 7.7 live probe                                                             |
 
-That work belongs to the evidence and capability process, not to a recipe that guesses from an object pointer. The
-[capability matrix](../../../documentations/CheatEngine.SDK/capability-matrix.md) is the current source of truth.
+That work belongs to the evidence and capability process, not to a recipe that guesses from an object pointer. Its
+disposition belongs to the deferred families of the [Lua surface catalogue](../../../docs/catalog/README.md).
 
 ## Before you move on
 

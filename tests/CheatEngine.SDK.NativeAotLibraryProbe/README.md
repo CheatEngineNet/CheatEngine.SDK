@@ -13,5 +13,5 @@ dotnet publish tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.Nativ
 The adjacent loader harness can inspect its export directory without loading it, then—only with an acknowledgement—map
 the fixed-name output placed beside its own published executable and query the two names. It locks the file while it
 checks and maps it, and intentionally does not call `NativeLibrary.Free`.
-See [ADR-006](../../documentations/engineering/ADR-006-nativeaot-plugin-loader-profile.md) and the harness README for
-the exact boundary.
+See the [NativeAOT profile restrictions](../../docs/abi/nativeaot-profile.md) and the harness README for the exact
+boundary.

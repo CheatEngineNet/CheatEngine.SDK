@@ -5,6 +5,7 @@ using System.Threading;
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Annotations.Threading;
 using CheatEngine.SDK.Engine.Enums;
+using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Values;
@@ -111,6 +112,16 @@ public sealed class MemoryScanSession : IDisposable
 	}
 
 	/// <summary>
+	///     Gets the stable outcome of the one child-before-parent release attempt, or an unspecified outcome before the
+	///     session has been released or abandoned.
+	/// </summary>
+	public MemoryScanReleaseOutcome LastReleaseOutcome
+	{
+		get;
+		private set;
+	}
+
+	/// <summary>
 	///     Gets the scanner as a borrowed handle. Direct raw operations on this value bypass the session's state checks;
 	///     prefer the session members for the scan lifecycle.
 	/// </summary>
@@ -170,71 +181,59 @@ public sealed class MemoryScanSession : IDisposable
 		}
 	}
 
-	/// <summary>
-	///     Releases the readable list when necessary, then destroys the owned found-list child before the owned scanner
-	///     parent. Never retries a destruction and is safe to call more than once.
-	/// </summary>
+	/// <summary>Best-effort, no-throw disposal that consumes both owners and never implicitly retries CE cleanup.</summary>
 	/// <remarks>
-	///     A different runtime identity or target incarnation marks the session <see cref="MemoryScanState.Invalidated" />
-	///     with its <see cref="InvalidationReason" /> before this method throws without releasing either owner. A merely
-	///     unavailable target leaves the current state intact. A caller may retry only while the original context remains
-	///     current; otherwise it must explicitly <see cref="Abandon" /> the managed owners. Once destruction begins, it
-	///     follows <see cref="Owned{T}.Dispose" /> and does not retry a protected CE failure.
+	///     Use <see cref="ReleaseWithOutcome" /> when the factual child and parent outcomes matter. This method is
+	///     idempotent; it performs neither a target-dependent destroy on a worker nor a retry after an uncertain native
+	///     destroy. It records safe refusal or an unconfirmed result in <see cref="LastReleaseOutcome" /> instead.
 	/// </remarks>
-	/// <exception cref="InvalidOperationException">
-	///     The plugin is attached and the caller is not on Cheat Engine's main thread.
-	/// </exception>
-	// Attached-worker cleanup is unsafe. The documented exception preserves both owners so disposal can be retried on
-	// the main thread; making IDisposable.Dispose non-throwing here would either leak them or violate thread affinity.
-#pragma warning disable S3877
 	[MainThreadOnly]
 	public void Dispose()
 	{
+		_ = ReleaseWithOutcome();
+	}
+
+	/// <summary>
+	///     Consumes the found-list child and scanner parent in that order and returns both one-shot cleanup outcomes.
+	/// </summary>
+	/// <returns>
+	///     A stable result that identifies consumed ownership independently from confirmed, refused, unavailable, or
+	///     unconfirmed cleanup. The same result is returned after the session is already disposed.
+	/// </returns>
+	/// <remarks>
+	///     This method never throws and never retries a destroy. If cleanup cannot safely begin (for example, a worker
+	///     thread, detached runtime, changed Lua identity, or changed target), it consumes the managed owners through
+	///     <see cref="Owned{T}.Abandon" /> and reports the refusal or unavailable cleanup rather than routing handles into
+	///     a different CE context. A protected destroy failure consumes the corresponding owner and remains unconfirmed.
+	/// </remarks>
+	public MemoryScanReleaseOutcome ReleaseWithOutcome()
+	{
 		if (State == MemoryScanState.Disposed)
 		{
-			return;
+			return LastReleaseOutcome;
 		}
 
-		// Detached or reattached cleanup cannot prove that this is the original Lua/target context, so context
-		// validation below preserves both owners and requires the explicit Abandon recovery path. An attached worker
-		// thread is different: attempting CE cleanup there is unsafe, so reject it before touching the Lua stack.
-		if (LuaRuntime.IsAttached && !LuaRuntime.IsMainThread)
+		try
 		{
-			throw new InvalidOperationException(
-				"Memory scan disposal must run on Cheat Engine's main thread while the plugin is attached.");
+			if (LuaRuntime.IsAttached && !LuaRuntime.IsMainThread)
+			{
+				return ConsumeWithoutCleanup(TargetReleaseOutcome.NotInvoked(EngineFailureKind.BindingFailure));
+			}
+
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
+			if (context != MemoryScanMaterializationStatus.Success)
+			{
+				return ConsumeWithoutCleanup(CreateRefusedReleaseOutcome(context));
+			}
+
+			return ReleaseWithinCurrentContext(operation.State);
 		}
-
-		// Admit the complete cleanup before publishing any lifetime change. Owned<T> retains an owner when it cannot
-		// begin destroy(), so this session must retain both owners in that case as well.
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		LuaState state = operation.State;
-		EnsureCurrentContext(state, "MemoryScan.Dispose");
-		Owned<FoundList> foundList = _foundList!;
-		Owned<MemScan> scanner = _scanner!;
-
-		if (State == MemoryScanState.ResultsReady)
+		catch (Exception)
 		{
-			using LuaFrame frame = new(state);
-			_ = foundList.Value.Handle.TryCallMethod(state, "deinitialize"u8, 0, 0);
+			return ConsumeWithoutCleanup(TargetReleaseOutcome.NotInvoked(EngineFailureKind.BindingFailure));
 		}
-
-		// Each frame removes a protected-call error before the next destroy. TryDestroy consumes an owner only once its
-		// protected invocation begins; the outer admitted operation keeps the binding stable for both child and parent.
-		using (LuaFrame frame = new(state))
-		{
-			_ = foundList.TryDestroy(state);
-		}
-
-		using (LuaFrame frame = new(state))
-		{
-			_ = scanner.TryDestroy(state);
-		}
-
-		_foundList = null;
-		_scanner = null;
-		State = MemoryScanState.Disposed;
 	}
-#pragma warning restore S3877
 
 	/// <summary>
 	///     Stops managed cleanup without invoking CE and makes this session unusable.
@@ -251,19 +250,7 @@ public sealed class MemoryScanSession : IDisposable
 			return;
 		}
 
-		if (_foundList is not null && !_foundList.IsDisposed)
-		{
-			_ = _foundList.Abandon();
-		}
-
-		if (_scanner is not null && !_scanner.IsDisposed)
-		{
-			_ = _scanner.Abandon();
-		}
-
-		_foundList = null;
-		_scanner = null;
-		State = MemoryScanState.Disposed;
+		_ = ConsumeWithoutCleanup(TargetReleaseOutcome.NotInvoked());
 	}
 
 	/// <summary>
@@ -285,8 +272,15 @@ public sealed class MemoryScanSession : IDisposable
 	{
 		RequireEnabledMainThread();
 		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		MemoryScanSessionContext context = MemoryScanSessionContext.Capture(operation.State);
+		if (!context.TargetObservation.IsQualified)
+		{
+			throw new MemoryScanException(MemoryScanFailureKind.TargetIdentityUnavailable, "MemoryScan.Adopt",
+				"The memory scan session cannot adopt target-dependent owners without a qualified target incarnation.");
+		}
+
 		MemoryScanSession session = AdoptUnbound(scanner, foundList);
-		session.Bind(MemoryScanSessionContext.Capture(operation.State));
+		session.Bind(context);
 		return session;
 	}
 
@@ -623,7 +617,7 @@ public sealed class MemoryScanSession : IDisposable
 		}
 
 		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State, ResultCountOperation);
+		MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
 		if (context != MemoryScanMaterializationStatus.Success)
 		{
 			return context;
@@ -650,30 +644,11 @@ public sealed class MemoryScanSession : IDisposable
 			}
 
 			MemoryScanResult[] snapshot = new MemoryScanResult[(int) totalCount];
-			for (int index = 0; index < snapshot.Length; index++)
+			MemoryScanMaterializationStatus status = TryFillSnapshot(operation.State, foundList, snapshot, 0,
+				cancellationToken);
+			if (status != MemoryScanMaterializationStatus.Success)
 			{
-				if (cancellationToken.IsCancellationRequested)
-				{
-					LastCancellationMilestone = MemoryScanCancellationMilestone.ObservedAfterNativeCall;
-					return MemoryScanMaterializationStatus.Cancelled;
-				}
-
-				string addressText = CallString(operation.State, foundList.Handle, "getAddress"u8,
-					ResultAddressOperation,
-					index);
-				if (!Address.TryParse(addressText, out Address address))
-				{
-					return MemoryScanMaterializationStatus.InvalidResult;
-				}
-
-				string value = CallString(operation.State, foundList.Handle, "getValue"u8, ResultValueOperation, index);
-				snapshot[index] = new MemoryScanResult(address, value);
-			}
-
-			if (cancellationToken.IsCancellationRequested)
-			{
-				LastCancellationMilestone = MemoryScanCancellationMilestone.ObservedAfterNativeCall;
-				return MemoryScanMaterializationStatus.Cancelled;
+				return status;
 			}
 
 			snapshot.AsSpan().CopyTo(destination);
@@ -682,11 +657,240 @@ public sealed class MemoryScanSession : IDisposable
 		}
 		catch (MemoryScanException exception)
 		{
-			return exception.FailureKind switch
+			return ToMaterializationStatus(exception);
+		}
+	}
+
+	/// <summary>
+	///     Copies one caller-bounded page of initialized results without allocating storage for the complete found list.
+	/// </summary>
+	/// <param name="firstResultIndex">The zero-based index of the first row requested for this page.</param>
+	/// <param name="destination">The caller-owned maximum page storage.</param>
+	/// <param name="totalCount">The complete CE row count when it was read successfully; otherwise zero.</param>
+	/// <param name="written">The page row count, zero unless the returned status is successful.</param>
+	/// <returns>A success, empty-result, page-boundary, capacity, cancellation, context, Lua, or malformed-result category.</returns>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="firstResultIndex" /> is negative.</exception>
+	/// <remarks>
+	///     The temporary staging array is limited to this page, never the full count. No page prefix is copied to
+	///     <paramref name="destination" /> if cancellation is observed or any page row is malformed.
+	/// </remarks>
+	[MainThreadOnly]
+	[RequiresPluginEnabled]
+	public MemoryScanMaterializationStatus TryCopyResultsPage(int firstResultIndex, Span<MemoryScanResult> destination,
+		out ulong totalCount, out int written)
+	{
+		return TryCopyResultsPageCancellable(firstResultIndex, destination, out totalCount, out written,
+			CancellationToken.None);
+	}
+
+	/// <summary>
+	///     Copies one caller-bounded result page while observing cancellation between synchronous CE row calls.
+	/// </summary>
+	/// <param name="firstResultIndex">The zero-based index of the first row requested for this page.</param>
+	/// <param name="destination">The caller-owned maximum page storage.</param>
+	/// <param name="totalCount">The complete CE row count when it was read successfully; otherwise zero.</param>
+	/// <param name="written">The page row count, zero unless the returned status is successful.</param>
+	/// <param name="cancellationToken">A cooperative cancellation token; it cannot interrupt a CE row call already begun.</param>
+	/// <returns>A success, empty-result, page-boundary, capacity, cancellation, context, Lua, or malformed-result category.</returns>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="firstResultIndex" /> is negative.</exception>
+	/// <remarks>
+	///     This operation stages at most <paramref name="destination" />.Length rows, then publishes the page only when
+	///     every staged address/value pair is valid and cancellation has not been observed.
+	/// </remarks>
+	[MainThreadOnly]
+	[RequiresPluginEnabled]
+	public MemoryScanMaterializationStatus TryCopyResultsPageCancellable(int firstResultIndex,
+		Span<MemoryScanResult> destination, out ulong totalCount, out int written, CancellationToken cancellationToken)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(firstResultIndex);
+		totalCount = 0;
+		written = 0;
+		LastCancellationMilestone = MemoryScanCancellationMilestone.None;
+		RequireEnabledMainThread();
+		if (State != MemoryScanState.ResultsReady)
+		{
+			ThrowWrongState("TryCopyResultsPage");
+		}
+
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
+		if (context != MemoryScanMaterializationStatus.Success)
+		{
+			return context;
+		}
+
+		if (cancellationToken.IsCancellationRequested)
+		{
+			LastCancellationMilestone = MemoryScanCancellationMilestone.CancelledBeforeNativeCall;
+			return MemoryScanMaterializationStatus.Cancelled;
+		}
+
+		FoundList foundList = RequireResults();
+		try
+		{
+			totalCount = ReadResultCount(operation.State, foundList);
+			if (totalCount == 0)
 			{
-				MemoryScanFailureKind.LuaError => MemoryScanMaterializationStatus.LuaFailure,
-				_ => MemoryScanMaterializationStatus.InvalidResult
-			};
+				return MemoryScanMaterializationStatus.NoResults;
+			}
+
+			if ((ulong) firstResultIndex >= totalCount)
+			{
+				return MemoryScanMaterializationStatus.PageStartOutOfRange;
+			}
+
+			if (destination.IsEmpty)
+			{
+				return MemoryScanMaterializationStatus.DestinationTooSmall;
+			}
+
+			int pageLength = (int) Math.Min((ulong) destination.Length, totalCount - (ulong) firstResultIndex);
+			MemoryScanResult[] snapshot = new MemoryScanResult[pageLength];
+			MemoryScanMaterializationStatus status = TryFillSnapshot(operation.State, foundList, snapshot,
+				firstResultIndex, cancellationToken);
+			if (status != MemoryScanMaterializationStatus.Success)
+			{
+				return status;
+			}
+
+			snapshot.AsSpan().CopyTo(destination);
+			written = snapshot.Length;
+			return MemoryScanMaterializationStatus.Success;
+		}
+		catch (MemoryScanException exception)
+		{
+			return ToMaterializationStatus(exception);
+		}
+	}
+
+	private MemoryScanMaterializationStatus TryFillSnapshot(LuaState state, FoundList foundList,
+		MemoryScanResult[] snapshot, int firstResultIndex, CancellationToken cancellationToken)
+	{
+		for (int offset = 0; offset < snapshot.Length; offset++)
+		{
+			if (cancellationToken.IsCancellationRequested)
+			{
+				LastCancellationMilestone = MemoryScanCancellationMilestone.ObservedAfterNativeCall;
+				return MemoryScanMaterializationStatus.Cancelled;
+			}
+
+			int index = firstResultIndex + offset;
+			string addressText = CallString(state, foundList.Handle, "getAddress"u8, ResultAddressOperation, index);
+			if (cancellationToken.IsCancellationRequested)
+			{
+				LastCancellationMilestone = MemoryScanCancellationMilestone.ObservedAfterNativeCall;
+				return MemoryScanMaterializationStatus.Cancelled;
+			}
+
+			if (!Address.TryParse(addressText, out Address address))
+			{
+				return MemoryScanMaterializationStatus.InvalidResult;
+			}
+
+			string value = CallString(state, foundList.Handle, "getValue"u8, ResultValueOperation, index);
+			snapshot[offset] = new MemoryScanResult(address, value);
+		}
+
+		if (!cancellationToken.IsCancellationRequested)
+		{
+			return MemoryScanMaterializationStatus.Success;
+		}
+
+		LastCancellationMilestone = MemoryScanCancellationMilestone.ObservedAfterNativeCall;
+		return MemoryScanMaterializationStatus.Cancelled;
+	}
+
+	private static MemoryScanMaterializationStatus ToMaterializationStatus(MemoryScanException exception)
+	{
+		return exception.FailureKind == MemoryScanFailureKind.LuaError
+			? MemoryScanMaterializationStatus.LuaFailure
+			: MemoryScanMaterializationStatus.InvalidResult;
+	}
+
+	private MemoryScanReleaseOutcome ReleaseWithinCurrentContext(LuaState state)
+	{
+		Owned<FoundList>? foundList = _foundList;
+		Owned<MemScan>? scanner = _scanner;
+		if (State == MemoryScanState.ResultsReady && foundList is not null && !foundList.IsDisposed)
+		{
+			using LuaFrame frame = new(state);
+			_ = foundList.Value.Handle.TryCallMethod(state, "deinitialize"u8, 0, 0);
+		}
+
+		TargetReleaseOutcome foundListOutcome = ReleaseOwned(state, foundList);
+		TargetReleaseOutcome scannerOutcome = ReleaseOwned(state, scanner);
+		return CompleteRelease(foundListOutcome, scannerOutcome);
+	}
+
+	private MemoryScanReleaseOutcome ConsumeWithoutCleanup(TargetReleaseOutcome outcome)
+	{
+		ConsumeOwner(_foundList);
+		ConsumeOwner(_scanner);
+		return CompleteRelease(outcome, outcome);
+	}
+
+	private MemoryScanReleaseOutcome CompleteRelease(TargetReleaseOutcome foundListOutcome,
+		TargetReleaseOutcome scannerOutcome)
+	{
+		_foundList = null;
+		_scanner = null;
+		State = MemoryScanState.Disposed;
+		LastReleaseOutcome = new MemoryScanReleaseOutcome(foundListOutcome, scannerOutcome, true, true);
+		return LastReleaseOutcome;
+	}
+
+	private TargetReleaseOutcome CreateRefusedReleaseOutcome(MemoryScanMaterializationStatus context)
+	{
+		if (context is MemoryScanMaterializationStatus.TargetIdentityUnavailable or
+			    MemoryScanMaterializationStatus.TargetIdentityMismatch && LastTargetCheck.HasValue)
+		{
+			return TargetReleaseOutcome.Refused(LastTargetCheck.GetValueOrDefault());
+		}
+
+		return TargetReleaseOutcome.NotInvoked(context == MemoryScanMaterializationStatus.RuntimeInvalidated
+			? EngineFailureKind.BindingFailure
+			: EngineFailureKind.TargetIdentityUnavailable);
+	}
+
+	private static TargetReleaseOutcome ReleaseOwned<T>(LuaState state, Owned<T>? owner)
+		where T : struct, ICEObject<T>
+	{
+		if (owner is null || owner.IsDisposed)
+		{
+			return TargetReleaseOutcome.NotInvoked();
+		}
+
+		try
+		{
+			using LuaFrame frame = new(state);
+			LuaStatus status = owner.TryDestroy(state);
+			return status.IsOk
+				? TargetReleaseOutcome.Released()
+				: TargetReleaseOutcome.Unconfirmed(EngineFailureKind.ProtectedLuaFailure);
+		}
+		catch (Exception)
+		{
+			return TargetReleaseOutcome.Unconfirmed(EngineFailureKind.BindingFailure);
+		}
+		finally
+		{
+			ConsumeOwner(owner);
+		}
+	}
+
+	private static void ConsumeOwner<T>(Owned<T>? owner)
+		where T : struct, ICEObject<T>
+	{
+		if (owner is not null && !owner.IsDisposed)
+		{
+			try
+			{
+				_ = owner.Abandon();
+			}
+			catch (Exception)
+			{
+				// The session must not make IDisposable cleanup throw or expose a retry path after taking ownership.
+			}
 		}
 	}
 
@@ -739,10 +943,10 @@ public sealed class MemoryScanSession : IDisposable
 		// A default-initialized request can contain null strings.  These are properties of the
 		// value-type request rather than parameters of this helper, therefore its parameter name
 		// must be the actual public argument ("request") instead of a local alias.
-		ArgumentNullException.ThrowIfNull(request.Input1, nameof(request));
-		ArgumentNullException.ThrowIfNull(request.Input2, nameof(request));
-		ArgumentNullException.ThrowIfNull(request.ProtectionFlags, nameof(request));
-		ArgumentNullException.ThrowIfNull(request.AlignmentParameter, nameof(request));
+		RequireValue(request.Input1, nameof(request));
+		RequireValue(request.Input2, nameof(request));
+		RequireValue(request.ProtectionFlags, nameof(request));
+		RequireValue(request.AlignmentParameter, nameof(request));
 
 		if (request.ScanOption is < ScanOption.UnknownValue or > ScanOption.SmallerThan)
 		{
@@ -771,8 +975,8 @@ public sealed class MemoryScanSession : IDisposable
 
 	private static void ValidateNextRequest(in NextScanRequest request)
 	{
-		ArgumentNullException.ThrowIfNull(request.Input1, nameof(request));
-		ArgumentNullException.ThrowIfNull(request.Input2, nameof(request));
+		RequireValue(request.Input1, nameof(request));
+		RequireValue(request.Input2, nameof(request));
 		if (request.ScanOption is < ScanOption.ExactValue or > ScanOption.Unchanged)
 		{
 			throw new ArgumentException("A next scan only accepts ExactValue through Unchanged, never UnknownValue.",
@@ -782,6 +986,14 @@ public sealed class MemoryScanSession : IDisposable
 		if (request.RoundingType is < RoundingType.Rounded or > RoundingType.Truncated)
 		{
 			throw new ArgumentException("The rounding type is not a CE 7.7 value.", nameof(request));
+		}
+	}
+
+	private static void RequireValue(string? value, string parameterName)
+	{
+		if (value is null)
+		{
+			throw new ArgumentNullException(parameterName);
 		}
 	}
 
@@ -806,7 +1018,7 @@ public sealed class MemoryScanSession : IDisposable
 
 	private void EnsureCurrentContext(LuaState state, string operation)
 	{
-		MemoryScanMaterializationStatus status = TryEnsureCurrentContext(state, operation);
+		MemoryScanMaterializationStatus status = TryEnsureCurrentContext(state);
 		if (status == MemoryScanMaterializationStatus.Success)
 		{
 			return;
@@ -823,7 +1035,7 @@ public sealed class MemoryScanSession : IDisposable
 			"'.");
 	}
 
-	private MemoryScanMaterializationStatus TryEnsureCurrentContext(LuaState state, string operation)
+	private MemoryScanMaterializationStatus TryEnsureCurrentContext(LuaState state)
 	{
 		if (!_isBound || RuntimeIdentity != LuaRuntime.CurrentStateIdentity)
 		{

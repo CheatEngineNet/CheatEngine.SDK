@@ -10,8 +10,8 @@ under [1.0.0](#100---2026-09-20) before upgrading.
 
 ## [Unreleased]
 
-- `AddressResolutionOptions.UseHostSymbolTable` is retained only for source and binary compatibility and is rejected by
-  `EngineInspection.ResolveAddress`; use `EngineInspection.ResolveHostAddress` for host-symbol resolution.
+- Removed the obsolete host-symbol compatibility flag from `AddressResolutionOptions`; use
+  `EngineInspection.ResolveHostAddress` for host-symbol resolution.
 
 ## [1.0.0] - 2026-09-20
 

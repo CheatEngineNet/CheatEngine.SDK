@@ -1,7 +1,9 @@
+using System.Globalization;
 using System.Text;
 
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Scanning.Values;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
@@ -13,17 +15,24 @@ namespace CheatEngine.SDK.Engine.Tests.Scanning;
 public sealed class MemoryScanSessionFactoryTests
 {
 	[Fact]
-	public void TryCreate_when_both_factories_return_host_objects_transfers_ownership_to_the_session()
+	public void TryCreateWithOutcome_when_both_factories_return_host_objects_transfers_ownership_to_the_session()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
+		InstallCurrentTarget(L);
 		CEObject scanner = CreateScanner(L);
 		CEObject foundList = CreateFoundList(L);
 		InstallFactories(L, scanner, foundList);
 
-		Assert.True(MemoryScanSessions.TryCreate(out MemoryScanSession? created));
+		MemoryScanCreationOutcome outcome = MemoryScanSessions.TryCreateWithOutcome(out MemoryScanSession? created);
+
+		Assert.Equal(MemoryScanCreationStatus.Success, outcome.Status);
+		Assert.Equal(TargetSelectionObservationStatus.CurrentTargetQualified, outcome.TargetObservation.Status);
+		Assert.Equal(Environment.ProcessId, outcome.TargetObservation.SelectedProcessId);
+		Assert.True(outcome.TargetObservation.Incarnation.HasValue);
+		Assert.Equal(Environment.ProcessId, outcome.TargetObservation.Incarnation.Value.ProcessId);
 		MemoryScanSession session = Assert.IsType<MemoryScanSession>(created);
 		Assert.Equal(scanner, session.Scanner.Handle);
 		Assert.Equal(0, L.Top);
@@ -43,6 +52,7 @@ public sealed class MemoryScanSessionFactoryTests
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
+		InstallCurrentTarget(L);
 		CEObject scanner = CreateScanner(L);
 		SetGlobalObject(L, "factory_scan"u8, scanner);
 		EngineTest.Run(L,
@@ -64,6 +74,7 @@ public sealed class MemoryScanSessionFactoryTests
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
+		InstallCurrentTarget(L);
 		CEObject scanner = CreateScanner(L);
 		SetGlobalObject(L, "factory_scan"u8, scanner);
 		EngineTest.Run(L, """
@@ -94,6 +105,7 @@ public sealed class MemoryScanSessionFactoryTests
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
+		InstallCurrentTarget(L);
 		CEObject scanner = CreateScanner(L);
 		SetGlobalObject(L, "factory_scan"u8, scanner);
 		EngineTest.Run(L, """
@@ -123,6 +135,7 @@ public sealed class MemoryScanSessionFactoryTests
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
+		InstallCurrentTarget(L);
 		CEObject scanner = CreateScanner(L);
 		SetGlobalObject(L, "factory_scan"u8, scanner);
 		EngineTest.Run(L, """
@@ -175,6 +188,7 @@ public sealed class MemoryScanSessionFactoryTests
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
+		InstallCurrentTarget(L);
 		EngineTest.Run(L, "function createMemScan() return 42 end"u8);
 
 		Assert.Equal(MemoryScanCreationStatus.InvalidScannerResult,
@@ -190,6 +204,7 @@ public sealed class MemoryScanSessionFactoryTests
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
+		InstallCurrentTarget(L);
 		EngineTest.Run(L, "function createMemScan() return nil end"u8);
 
 		MemoryScanCreationStatus status = MemoryScanSessions.TryCreateDetailed(out MemoryScanSession? created);
@@ -271,6 +286,35 @@ public sealed class MemoryScanSessionFactoryTests
 		Assert.Equal(0, L.Top);
 	}
 
+	[Fact]
+	public void TryCreateWithOutcome_refuses_an_unqualified_target_before_either_factory_acquires_an_owner()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		CEObject scanner = CreateScanner(L);
+		CEObject foundList = CreateFoundList(L);
+		SetGlobalObject(L, "factory_scan"u8, scanner);
+		SetGlobalObject(L, "factory_found_list"u8, foundList);
+		EngineTest.Run(L, """
+		                  trace = {}
+		                  function getOpenedProcessID() return 0 end
+		                  function createMemScan() table.insert(trace, 'factory.scan'); return factory_scan end
+		                  function createFoundList(scan) table.insert(trace, 'factory.list'); return factory_found_list end
+		                  """u8);
+
+		MemoryScanCreationOutcome outcome = MemoryScanSessions.TryCreateWithOutcome(out MemoryScanSession? created);
+
+		Assert.Equal(MemoryScanCreationStatus.TargetIdentityUnavailable, outcome.Status);
+		Assert.Equal(TargetSelectionObservationStatus.NoTargetSelected, outcome.TargetObservation.Status);
+		Assert.Null(created);
+		Assert.False(FakeHost.IsDestroyed(L, scanner));
+		Assert.False(FakeHost.IsDestroyed(L, foundList));
+		Assert.Equal(string.Empty, ReadTrace(L));
+		Assert.Equal(0, L.Top);
+	}
+
 	private static CEObject CreateScanner(LuaState state)
 	{
 		return FakeHost.CreateObject(state, "Object", """
@@ -313,6 +357,13 @@ public sealed class MemoryScanSessionFactoryTests
 		                                                 return {{Environment.ProcessId}}
 		                                               end
 		                                               """));
+	}
+
+	private static void InstallCurrentTarget(LuaState state)
+	{
+		EngineTest.Run(state, Encoding.UTF8.GetBytes("function getOpenedProcessID() return " +
+		                                             Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
+		                                             " end"));
 	}
 
 	private static void SetGlobalObject(LuaState state, ReadOnlySpan<byte> name, CEObject value)

@@ -23,98 +23,152 @@ internal static class LiveProbeAuthorization
 		Justification = "Authorization evaluation keeps all fail-closed checks and diagnostics in one auditable sequence.")]
 	internal static AuthorizationDecision Evaluate()
 	{
+		if (!TryAuthorizeManifest(out AuthorizationManifest manifest, out string manifestFailure))
+		{
+			return AuthorizationDecision.Denied(manifestFailure);
+		}
+
+		if (!TryAuthorizeHost(manifest, out string hostPath, out string hostHash, out string hostFailure))
+		{
+			return AuthorizationDecision.Denied(hostFailure);
+		}
+
+		if (!TryAuthorizeTarget(manifest, out string targetPath, out string targetHash, out string targetFailure))
+		{
+			return AuthorizationDecision.Denied(targetFailure);
+		}
+
+		return AuthorizationDecision.Allowed(hostPath, hostHash, manifest.TargetProcessId, targetPath, targetHash,
+			manifest.ExpiresUtc);
+	}
+
+	private static bool TryAuthorizeManifest(out AuthorizationManifest manifest, out string failure)
+	{
+		manifest = default;
+		failure = string.Empty;
 		if (IntPtr.Size != 8)
 		{
-			return AuthorizationDecision.Denied("The current process is not x64.");
+			failure = "The current process is not x64.";
+			return false;
 		}
 
 		string? acknowledgement = Environment.GetEnvironmentVariable(AcknowledgementVariable);
 		if (!string.Equals(acknowledgement, Acknowledgement, StringComparison.Ordinal))
 		{
-			return AuthorizationDecision.Denied("The explicit CE_SDK_LIVE_PROBE_ACKNOWLEDGEMENT phrase is absent.");
+			failure = "The explicit CE_SDK_LIVE_PROBE_ACKNOWLEDGEMENT phrase is absent.";
+			return false;
 		}
 
 		string? manifestPath = Environment.GetEnvironmentVariable(ManifestVariable);
 		if (string.IsNullOrWhiteSpace(manifestPath))
 		{
-			return AuthorizationDecision.Denied("CE_SDK_LIVE_PROBE_AUTHORIZATION_FILE is absent.");
+			failure = "CE_SDK_LIVE_PROBE_AUTHORIZATION_FILE is absent.";
+			return false;
 		}
 
-		if (!TryReadManifest(manifestPath, out AuthorizationManifest manifest, out string manifestFailure))
+		if (!TryReadManifest(manifestPath, out manifest, out failure))
 		{
-			return AuthorizationDecision.Denied(manifestFailure);
+			return false;
 		}
 
 		if (!string.Equals(manifest.Acknowledgement, Acknowledgement, StringComparison.Ordinal))
 		{
-			return AuthorizationDecision.Denied("The authorization manifest has no matching acknowledgement.");
+			failure = "The authorization manifest has no matching acknowledgement.";
+			return false;
 		}
 
 		if (!manifest.Disposable)
 		{
-			return AuthorizationDecision.Denied("The authorization manifest does not mark the target disposable.");
+			failure = "The authorization manifest does not mark the target disposable.";
+			return false;
 		}
 
 		if (manifest.ExpiresUtc <= DateTimeOffset.UtcNow)
 		{
-			return AuthorizationDecision.Denied("The authorization manifest has expired.");
+			failure = "The authorization manifest has expired.";
+			return false;
 		}
 
-		if (!TryGetProcessImage(Environment.ProcessId, out string hostPath, out string hostFailure))
+		return true;
+	}
+
+	private static bool TryAuthorizeHost(AuthorizationManifest manifest, out string hostPath, out string hostHash,
+		out string failure)
+	{
+		hostPath = string.Empty;
+		hostHash = string.Empty;
+		failure = string.Empty;
+		if (!TryGetProcessImage(Environment.ProcessId, out hostPath, out string hostFailure))
 		{
-			return AuthorizationDecision.Denied("The CE host image cannot be inspected: " + hostFailure);
+			failure = "The CE host image cannot be inspected: " + hostFailure;
+			return false;
 		}
 
 		if (!IsAmd64Pe(hostPath, out string hostArchitectureFailure))
 		{
-			return AuthorizationDecision.Denied("The CE host image is not an AMD64 PE: " + hostArchitectureFailure);
+			failure = "The CE host image is not an AMD64 PE: " + hostArchitectureFailure;
+			return false;
 		}
 
-		if (!TryHash(hostPath, out string hostHash, out string hostHashFailure))
+		if (!TryHash(hostPath, out hostHash, out string hostHashFailure))
 		{
-			return AuthorizationDecision.Denied("The CE host image cannot be hashed: " + hostHashFailure);
+			failure = "The CE host image cannot be hashed: " + hostHashFailure;
+			return false;
 		}
 
 		if (!string.Equals(hostHash, ExactCheatEngineSha256, StringComparison.Ordinal))
 		{
-			return AuthorizationDecision.Denied("The host SHA-256 is not the pinned CE 7.7.0.10621 x64 binary.");
+			failure = "The host SHA-256 is not the pinned CE 7.7.0.10621 x64 binary.";
+			return false;
 		}
 
 		if (!string.Equals(manifest.HostSha256, ExactCheatEngineSha256, StringComparison.Ordinal))
 		{
-			return AuthorizationDecision.Denied("The manifest does not pin the CE 7.7.0.10621 x64 SHA-256.");
+			failure = "The manifest does not pin the CE 7.7.0.10621 x64 SHA-256.";
+			return false;
 		}
 
 		string? hostVersion = FileVersionInfo.GetVersionInfo(hostPath).FileVersion;
 		if (!string.Equals(hostVersion, ExactCheatEngineFileVersion, StringComparison.Ordinal))
 		{
-			return AuthorizationDecision.Denied("The pinned CE executable has an unexpected file version: " +
-			                                    hostVersion + ".");
+			failure = "The pinned CE executable has an unexpected file version: " + hostVersion + ".";
+			return false;
 		}
 
+		return true;
+	}
+
+	private static bool TryAuthorizeTarget(AuthorizationManifest manifest, out string targetPath, out string targetHash,
+		out string failure)
+	{
+		targetPath = string.Empty;
+		targetHash = string.Empty;
+		failure = string.Empty;
 		if (manifest.TargetProcessId == Environment.ProcessId)
 		{
-			return AuthorizationDecision.Denied("The declared disposable target is the Cheat Engine host itself.");
+			failure = "The declared disposable target is the Cheat Engine host itself.";
+			return false;
 		}
 
-		if (!TryGetProcessImage(manifest.TargetProcessId, out string targetPath, out string targetFailure))
+		if (!TryGetProcessImage(manifest.TargetProcessId, out targetPath, out string targetFailure))
 		{
-			return AuthorizationDecision.Denied("The declared disposable target cannot be inspected: " + targetFailure);
+			failure = "The declared disposable target cannot be inspected: " + targetFailure;
+			return false;
 		}
 
-		if (!TryHash(targetPath, out string targetHash, out string targetHashFailure))
+		if (!TryHash(targetPath, out targetHash, out string targetHashFailure))
 		{
-			return AuthorizationDecision.Denied("The declared disposable target cannot be hashed: " +
-			                                    targetHashFailure);
+			failure = "The declared disposable target cannot be hashed: " + targetHashFailure;
+			return false;
 		}
 
 		if (!string.Equals(targetHash, manifest.TargetSha256, StringComparison.Ordinal))
 		{
-			return AuthorizationDecision.Denied("The declared target SHA-256 differs from its live process image.");
+			failure = "The declared target SHA-256 differs from its live process image.";
+			return false;
 		}
 
-		return AuthorizationDecision.Allowed(hostPath, hostHash, manifest.TargetProcessId, targetPath, targetHash,
-			manifest.ExpiresUtc);
+		return true;
 	}
 
 	private static bool TryReadManifest(string path, out AuthorizationManifest manifest, out string failure)

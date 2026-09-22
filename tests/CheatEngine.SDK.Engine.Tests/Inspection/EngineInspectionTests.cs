@@ -206,7 +206,7 @@ public sealed class EngineInspectionTests
 		Assert.Equal(top, L.Top);
 
 		status = EngineInspection.ResolveHostAddress(new SymbolExpression("hostSymbol"),
-			new AddressResolutionOptions(Shallow: true), out HostAddress found);
+			new AddressResolutionOptions(true), out HostAddress found);
 
 		Assert.Equal(InspectionStatus.Success, status);
 		Assert.Equal(unchecked((nuint) 0x7FF600001000UL), found.Value);
@@ -243,32 +243,13 @@ public sealed class EngineInspectionTests
 	}
 
 	[Fact]
-	public void Legacy_positional_host_option_is_preserved_but_rejected_by_target_resolution()
-	{
-		AddressResolutionOptions legacy = new(true);
-		legacy.Deconstruct(out bool useHostSymbolTable, out bool shallow);
-
-		Assert.True(useHostSymbolTable);
-		Assert.False(shallow);
-		Assert.Throws<ArgumentException>(() =>
-			EngineInspection.ResolveAddress(new SymbolExpression("hostSymbol"), legacy, out _));
-	}
-
-	[Fact]
-	public void AddressResolutionOptions_preserves_init_and_with_compatibility()
+	public void AddressResolutionOptions_supports_init_and_with()
 	{
 		AddressResolutionOptions options = new() { Shallow = true };
 		AddressResolutionOptions updated = options with { Shallow = false };
 
 		Assert.True(options.Shallow);
 		Assert.False(updated.Shallow);
-
-#pragma warning disable CS0618
-		AddressResolutionOptions legacy = new() { UseHostSymbolTable = true };
-#pragma warning restore CS0618
-#pragma warning disable CS0618
-		Assert.True(legacy.UseHostSymbolTable);
-#pragma warning restore CS0618
 	}
 
 	[Fact]

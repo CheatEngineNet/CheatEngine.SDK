@@ -32,5 +32,10 @@ public enum MemoryScanCreationStatus : byte
 	AliasedFoundList = 7,
 
 	/// <summary>A rollback destroy call began but Cheat Engine did not confirm all required cleanup operations.</summary>
-	RollbackUnconfirmed = 8
+	RollbackUnconfirmed = 8,
+
+	/// <summary>
+	///     The selected target could not be qualified before either target-dependent CE factory was invoked.
+	/// </summary>
+	TargetIdentityUnavailable = 9
 }

@@ -191,11 +191,6 @@ public static class EngineInspection
 		out Address address)
 	{
 		ValidateSymbolExpression(expression);
-		if (options.HostSymbolTableRequested)
-		{
-			throw new ArgumentException(
-				"Host-symbol resolution must use EngineInspection.ResolveHostAddress.", nameof(options));
-		}
 
 		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
 		LuaState state = operation.State;

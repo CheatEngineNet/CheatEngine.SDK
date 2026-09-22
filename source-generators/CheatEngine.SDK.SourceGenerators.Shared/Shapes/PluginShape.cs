@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 using Microsoft.CodeAnalysis;
 
@@ -327,12 +328,10 @@ internal static class PluginShape
 	{
 		for (INamedTypeSymbol? current = type; current is not null; current = current.BaseType)
 		{
-			foreach (ISymbol member in current.GetMembers())
+			if (current.GetMembers().Any(static member =>
+				    member is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true }))
 			{
-				if (member is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true })
-				{
-					return true;
-				}
+				return true;
 			}
 		}
 
@@ -347,16 +346,9 @@ internal static class PluginShape
 			return false;
 		}
 
-		foreach (AttributeData attribute in symbol.GetAttributes())
-		{
-			if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, obsoleteAttribute)
-			    && attribute.ConstructorArguments is [_, { Value: true } _])
-			{
-				return true;
-			}
-		}
-
-		return false;
+		return symbol.GetAttributes().Any(attribute =>
+			SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, obsoleteAttribute)
+			&& attribute.ConstructorArguments is [_, { Value: true } _]);
 	}
 
 	private static bool HasAttribute(ISymbol symbol, INamedTypeSymbol? attributeClass)
@@ -366,15 +358,8 @@ internal static class PluginShape
 			return false;
 		}
 
-		foreach (AttributeData attribute in symbol.GetAttributes())
-		{
-			if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeClass))
-			{
-				return true;
-			}
-		}
-
-		return false;
+		return symbol.GetAttributes().Any(attribute =>
+			SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeClass));
 	}
 
 	// The generated factory is a top-level type of the same assembly with no inheritance relation to the plugin:

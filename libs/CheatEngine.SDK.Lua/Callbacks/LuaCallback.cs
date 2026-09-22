@@ -34,7 +34,7 @@ namespace CheatEngine.SDK.Lua.Callbacks;
 ///         <b>Inside the thunk</b>: <see cref="LuaThunk.TryGetState{TState}" /> reads the state back from the upvalue.
 ///     </para>
 ///     <para>
-///         <b>Release</b> (<see cref="Release" />, <see cref="Dispose" />, or <see cref="LuaRuntime.Detach" /> for
+///         <b>Release</b> (<see cref="Release" />, <see cref="Dispose()" />, or <see cref="LuaRuntime.Detach" /> for
 ///         whatever is
 ///         still alive): the closure's upvalue is set to a null light userdata first, so that a script which kept the
 ///         function and calls it later gets a "callback released" error instead of touching freed memory; only then is the
@@ -56,11 +56,11 @@ public abstract class LuaCallback : IDisposable
 {
 	// Deterministic publication-race seam used only by the SDK's friend test assembly. Callback creation is cold, so
 	// its volatile read is deliberately kept out of callback invocation hot paths.
-	internal static Action? BeforeRegistryAddForTesting;
+	private static Action? s_beforeRegistryAddForTesting;
 
 	// Deterministic disposal-race seam used only by the SDK's friend test assembly. It runs after an atomic admission
 	// refusal is observed, outside the runtime gate, so tests can let a failed transition reopen admission first.
-	internal static Action? DisposeAdmissionRefusedForTesting;
+	private static Action? s_disposeAdmissionRefusedForTesting;
 
 	private readonly LuaRef _closure;
 	private readonly LuaStateIdentity _identity;
@@ -125,6 +125,28 @@ public abstract class LuaCallback : IDisposable
 	/// </summary>
 	public void Dispose()
 	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	internal static void SetBeforeRegistryAddForTesting(Action? callback)
+	{
+		Volatile.Write(ref s_beforeRegistryAddForTesting, callback);
+	}
+
+	internal static void SetDisposeAdmissionRefusedForTesting(Action? callback)
+	{
+		Volatile.Write(ref s_disposeAdmissionRefusedForTesting, callback);
+	}
+
+	/// <summary>Releases the callback's managed and Lua resources.</summary>
+	protected virtual void Dispose(bool disposing)
+	{
+		if (!disposing)
+		{
+			return;
+		}
+
 		LuaRuntime.LuaCallbackDisposeOperationResult result =
 			LuaRuntime.TryAcquireOperationForCallbackDispose(out LuaRuntimeOperation operation);
 		if (result == LuaRuntime.LuaCallbackDisposeOperationResult.Acquired)
@@ -134,7 +156,6 @@ public abstract class LuaCallback : IDisposable
 				Release(operation.State);
 			}
 
-			GC.SuppressFinalize(this);
 			return;
 		}
 
@@ -142,13 +163,11 @@ public abstract class LuaCallback : IDisposable
 		{
 			// This result was observed atomically with the closed gate. A later failed Detach can reopen admission,
 			// but cannot make it safe to abandon the closure before a transition-owned state neutralizes its upvalue.
-			Volatile.Read(ref DisposeAdmissionRefusedForTesting)?.Invoke();
-			GC.SuppressFinalize(this);
+			Volatile.Read(ref s_disposeAdmissionRefusedForTesting)?.Invoke();
 			return;
 		}
 
 		Release(default);
-		GC.SuppressFinalize(this);
 	}
 
 	/// <summary>
@@ -185,7 +204,7 @@ public abstract class LuaCallback : IDisposable
 	}
 
 	private static unsafe LuaStatus TryCreateCore<TState>(LuaState state, LuaNativeFunction thunk, TState stateObject,
-		out LuaCallback<TState>? callback)
+		out LuaCallback<TState>? callback) // NOSONAR: this method is the required Lua C-ABI boundary.
 		where TState : class
 	{
 		callback = null;
@@ -221,7 +240,7 @@ public abstract class LuaCallback : IDisposable
 			}
 
 			LuaCallback<TState> created = new(handle, closure!, wrapped!);
-			Volatile.Read(ref BeforeRegistryAddForTesting)?.Invoke();
+			Volatile.Read(ref s_beforeRegistryAddForTesting)?.Invoke();
 			LuaCallbackRegistry.Add(created);
 			callback = created;
 			transferred = true;
@@ -241,11 +260,9 @@ public abstract class LuaCallback : IDisposable
 		}
 	}
 
-	private static unsafe LuaStatus TryCreateWrappedRef(
-		LuaState state,
-		lua_State* l,
-		int top,
-		out LuaRef? wrapped)
+	private static unsafe LuaStatus
+		TryCreateWrappedRef(LuaState state, lua_State* l, int top,
+			out LuaRef? wrapped) // NOSONAR: native Lua stack access is required here.
 	{
 		wrapped = null;
 		LuaStatus status = LuaHelpers.Push(l, LuaHelper.Wrap);
@@ -319,7 +336,7 @@ public abstract class LuaCallback : IDisposable
 
 	// Private so that Release, which holds the gate, is the only way in: the flag test, GCHandle<T>.Dispose (not thread
 	// safe) and the unlink all depend on it.
-	private unsafe void ReleaseUnderGate(LuaState state)
+	private unsafe void ReleaseUnderGate(LuaState state) // NOSONAR: native Lua stack access is required here.
 	{
 		if (_released)
 		{
@@ -360,12 +377,10 @@ public abstract class LuaCallback : IDisposable
 		}
 	}
 
-	// This is the only unmanaged entry point for stateful LuaCallback instances. The user thunk remains a cdecl
-	// function pointer stored in upvalue 2, while upvalue 1 deliberately retains the historical GCHandle<TState>
-	// contract consumed by LuaThunk.TryGetState. A callback that begins before Detach closes admission keeps a lease;
-	// a callback that begins after that boundary reports an ordinary Lua error and never enters plugin code.
+	// This is the only native entry point for stateful callbacks. The thunk address and managed state handle are kept in
+	// Lua upvalues, so callbacks already admitted before shutdown can finish while later calls fail safely.
 	[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-	private static unsafe int Dispatch(lua_State* pointer)
+	private static unsafe int Dispatch(lua_State* pointer) // NOSONAR: unmanaged callback entry point required by Lua.
 	{
 		LuaState state = new(pointer);
 		try

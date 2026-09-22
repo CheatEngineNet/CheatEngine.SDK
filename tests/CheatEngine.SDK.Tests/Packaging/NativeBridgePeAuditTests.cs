@@ -15,9 +15,10 @@ public sealed class NativeBridgePeAuditTests
 	private const string BridgeRelativePath =
 		"native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll";
 
-	private const string ManifestRelativePath = "native/cheatengine-sdk-lua-bridge/bridge-audit-manifest.json";
 	private const string SourceRelativePath = "native/cheatengine-sdk-lua-bridge/cheatengine_sdk_lua_bridge.c";
 	private const string BuildRelativePath = "native/cheatengine-sdk-lua-bridge/xmake.lua";
+	private const string ContinuousIntegrationWorkflowRelativePath = ".github/workflows/ci.yml";
+	private const string PinnedXmakeVersion = "3.0.9";
 
 	private static readonly string[] ExpectedExports =
 	[
@@ -75,52 +76,61 @@ public sealed class NativeBridgePeAuditTests
 	}
 
 	[Fact]
-	public void Audit_manifest_records_the_pinned_toolchain_flags_and_hashes()
+	public void Checked_in_bridge_exports_the_current_source_and_xmake_fingerprint()
 	{
-		using JsonDocument manifest = ReadManifest();
-		JsonElement root = manifest.RootElement;
-
-		Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
-		Assert.Equal("xmake", root.GetProperty("toolchain").GetProperty("buildSystem").GetProperty("name").GetString());
-		Assert.Equal("3.0.9",
-			root.GetProperty("toolchain").GetProperty("buildSystem").GetProperty("version").GetString());
-		Assert.Equal("MSVC", root.GetProperty("toolchain").GetProperty("compiler").GetProperty("name").GetString());
-		Assert.Equal("C11", root.GetProperty("toolchain").GetProperty("languageStandard").GetString());
-		Assert.Equal("MT", root.GetProperty("toolchain").GetProperty("cRuntime").GetString());
-		AssertJsonStringSet(root.GetProperty("toolchain").GetProperty("compilerFlags"), ["/MT", "allextra", "error"]);
-		AssertJsonStringSet(root.GetProperty("toolchain").GetProperty("linkerFlags"), ["/Brepro"]);
-		Assert.True(root.GetProperty("reproducibility").GetProperty("doubleBuildSha256Comparison").GetBoolean());
-
-		JsonElement nativeAsset = root.GetProperty("nativeAsset");
-		Assert.Equal("PE32+", nativeAsset.GetProperty("pe").GetProperty("format").GetString());
-		Assert.Equal("AMD64", nativeAsset.GetProperty("pe").GetProperty("machine").GetString());
-		Assert.True(nativeAsset.GetProperty("pe").GetProperty("isDll").GetBoolean());
-		AssertJsonStringSet(nativeAsset.GetProperty("exports"), ExpectedExports);
-		AssertJsonStringSet(nativeAsset.GetProperty("delayImports"), []);
-		AssertJsonStringSet(nativeAsset.GetProperty("imports"), s_allowedImportModules);
-
 		string sourceHash = CalculateSha256(RepositoryLayout.PathOf(SourceRelativePath));
 		string buildHash = CalculateSha256(RepositoryLayout.PathOf(BuildRelativePath));
 		string expectedFingerprint = $"{sourceHash}:{buildHash}";
-		Assert.Equal(sourceHash,
-			root.GetProperty("source").GetProperty("hashes").GetProperty("cheatengine_sdk_lua_bridge.c").GetString());
-		Assert.Equal(buildHash, root.GetProperty("source").GetProperty("hashes").GetProperty("xmake.lua").GetString());
-		Assert.Equal(expectedFingerprint, root.GetProperty("source").GetProperty("fingerprint").GetString());
-
-		string bridgeHash = CalculateSha256(BridgePath);
-		Assert.Equal(bridgeHash, nativeAsset.GetProperty("sha256").GetString());
 		Assert.Equal(expectedFingerprint,
 			ReadBridge().ReadExportedAsciiZ("cheatengine_sdk_lua_bridge_source_fingerprint"));
+	}
+
+	[Fact]
+	public void Native_bridge_xmake_configuration_pins_the_required_compilation_contract()
+	{
+		string xmakeConfiguration = ReadRepositoryText(BuildRelativePath);
+
+		Assert.Contains("set_languages(\"c11\")", xmakeConfiguration, StringComparison.Ordinal);
+		Assert.Contains("set_warnings(\"allextra\", \"error\")", xmakeConfiguration, StringComparison.Ordinal);
+		Assert.Contains("set_toolchains(\"msvc\")", xmakeConfiguration, StringComparison.Ordinal);
+		Assert.Contains("set_policy(\"build.c++.msvc.runtime\", \"MT\")", xmakeConfiguration,
+			StringComparison.Ordinal);
+		Assert.Contains("set_runtimes(\"MT\")", xmakeConfiguration, StringComparison.Ordinal);
+		Assert.Contains("add_cflags(\"/MT\", {tools = \"cl\", force = true})", xmakeConfiguration,
+			StringComparison.Ordinal);
+		Assert.Contains("add_shflags(\"/Brepro\", {tools = \"link\", force = true})", xmakeConfiguration,
+			StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Native_bridge_ci_pins_xmake_and_enforces_a_double_build_reproducibility_gate()
+	{
+		string workflow = ReadRepositoryText(ContinuousIntegrationWorkflowRelativePath);
+
+		Assert.Contains("xmake-io/github-action-setup-xmake@", workflow, StringComparison.Ordinal);
+		Assert.Contains($"xmake-version: '{PinnedXmakeVersion}'", workflow, StringComparison.Ordinal);
+		Assert.Contains("$primaryOutput = 'artifacts/native/cheatengine-sdk-lua-bridge'", workflow,
+			StringComparison.Ordinal);
+		Assert.Contains("$reproducibilityOutput = 'artifacts/native/cheatengine-sdk-lua-bridge-repro'", workflow,
+			StringComparison.Ordinal);
+		Assert.Contains("The primary and reproducibility bridge output directories must be distinct.", workflow,
+			StringComparison.Ordinal);
+		Assert.Contains("xmake f -P native/cheatengine-sdk-lua-bridge -o $primaryOutput", workflow,
+			StringComparison.Ordinal);
+		Assert.Contains("xmake f -P native/cheatengine-sdk-lua-bridge -o $reproducibilityOutput", workflow,
+			StringComparison.Ordinal);
+		Assert.Contains("$primaryHash = (Get-FileHash -LiteralPath $primaryBridge -Algorithm SHA256).Hash", workflow,
+			StringComparison.Ordinal);
+		Assert.Contains(
+			"$reproducibilityHash = (Get-FileHash -LiteralPath $reproducibilityBridge -Algorithm SHA256).Hash",
+			workflow, StringComparison.Ordinal);
+		Assert.Contains("$primaryHash, $reproducibilityHash, [StringComparison]::OrdinalIgnoreCase", workflow,
+			StringComparison.Ordinal);
 	}
 
 	private static PortableExecutableInspector ReadBridge()
 	{
 		return PortableExecutableInspector.Read(BridgePath);
-	}
-
-	private static JsonDocument ReadManifest()
-	{
-		return JsonDocument.Parse(File.ReadAllText(RepositoryLayout.PathOf(ManifestRelativePath)));
 	}
 
 	private static List<string> GetExportNames(PortableExecutableInspector image)
@@ -146,21 +156,9 @@ public sealed class NativeBridgePeAuditTests
 		}
 	}
 
-	private static void AssertJsonStringSet(JsonElement array, string[] expected)
+	private static string ReadRepositoryText(string relativePath)
 	{
-		Assert.Equal(JsonValueKind.Array, array.ValueKind);
-		Assert.Equal(expected.Length, array.GetArrayLength());
-		HashSet<string> values = new(StringComparer.Ordinal);
-		foreach (JsonElement entry in array.EnumerateArray())
-		{
-			values.Add(entry.GetString() ?? string.Empty);
-		}
-
-		Assert.Equal(expected.Length, values.Count);
-		for (int index = 0; index < expected.Length; index++)
-		{
-			Assert.Contains(expected[index], values, StringComparer.Ordinal);
-		}
+		return File.ReadAllText(RepositoryLayout.PathOf(relativePath));
 	}
 
 	private static string CalculateSha256(string path)

@@ -54,6 +54,17 @@
   -->
   <ItemGroup Label="NuGet audit suppressions"/>
 
+  <!--
+    Every project restores against a committed packages.lock.json, generated only by eng/Update-LockFiles.ps1 (never by
+    hand or an IDE). Props, not targets: restore must see it. RestoreLockedMode is deliberately NOT set here: the CI
+    entry points pass locked mode themselves, and a global locked mode would break the force-evaluate restores of the
+    lock-files check (NU1005). CESDK9005 (Directory.Build.targets) fails a project that opts out.
+    https://learn.microsoft.com/nuget/consume-packages/package-references-in-project-files#locking-dependencies
+  -->
+  <PropertyGroup Label="Lock files">
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
   <PropertyGroup Label="Determinism and symbols">
     <!-- Path normalization only in CI: locally it breaks source debugging. -->
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>

@@ -35,6 +35,7 @@
     <File Path="eng/RoslynComponent.props"/>
     <File Path="eng/Shipping.props"/>
     <File Path="eng/Tests.props"/>
+    <File Path="eng/Update-LockFiles.ps1"/>
   </Folder>
   <Folder Name="/docs/">
     <File Path="docs/README.md"/>

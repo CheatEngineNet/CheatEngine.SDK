@@ -133,6 +133,35 @@ Raising the SDK is one pull request: update `global.json` (version and error mes
 the major or minor changed, fix the new diagnostics, regenerate the lock files, and update the CI setup that installs
 the SDK. `ToolchainPinTests` keeps the version, error message and pin consistent.
 
+## Lock files
+
+Every project, inside or outside the solution, restores against a committed `packages.lock.json`
+(`RestorePackagesWithLockFile` in `Directory.Build.props`; `CESDK9005` fails a project that opts out of lock files or of
+Central Package Management). The files are written by one script only, on Windows with the pinned SDK:
+
+```powershell
+./eng/Update-LockFiles.ps1           # regenerate every lock file and list the changed ones
+./eng/Update-LockFiles.ps1 -Verify   # regenerate, then fail on any difference or untracked lock file (CI lock-files job)
+```
+
+The script enumerates projects from git (a new project is picked up without editing it), restores the solution and then
+every project outside it with `--force-evaluate`, gives an unchanged lock its committed bytes back, verifies with
+`--locked-mode`, and checks the structure: version 2 for every project, a `net10.0/win-x64` section with
+`runtime.win-x64.Microsoft.DotNet.ILCompiler` for Native AOT projects (otherwise `dotnet publish --no-restore` fails), and
+no `CheatEngine.*` package resolved from a feed. `LockFileTests` mirror these checks offline.
+
+- Never edit a lock file by hand and never let an IDE restore the repository. On a merge conflict, take either side and
+  run the script again.
+- Regenerate after any change to `Directory.Packages.props`, a package reference, a project file or `global.json`: the
+  implicit `Microsoft.NET.ILLink.Tasks` and ILCompiler packages move with the SDK version.
+- CI restores pass `--locked-mode` at their entry points. `RestoreLockedMode` is deliberately not set in MSBuild: it would
+  make every `--force-evaluate` restore, including the `-Verify` run, fail with NU1005.
+- Dependabot updates `Directory.Packages.props` but does not regenerate SDK-implicit entries: check out its branch, run
+  the script, commit and push the lock files. SDK-implicit packages (ILLink, ILCompiler) are not Dependabot updates;
+  they move with `global.json`.
+- The ApiCompat baseline (CheatEngine.SDK 1.0.0) is a `PackageDownload`, which NuGet does not record in lock files; its
+  identity is recorded in [Source versus package](#source-versus-package-100).
+
 ## NuGet audit
 
 Restore audits every package, direct and transitive, at every severity (`NuGetAudit`, `NuGetAuditMode` `all`,
@@ -207,6 +236,7 @@ paths in their PDBs (path mapping only runs in CI, `ContinuousIntegrationBuild`)
 |---|---|---|
 | CESDK9003 | a `libs/` project lacks `PublicAPI.Shipped.txt` or `PublicAPI.Unshipped.txt` | add both files (header `#nullable enable`), then declare the API |
 | CESDK9004 | a project's `AnalysisLevel` differs from the pin | remove the override, or raise the pin together with `global.json` |
+| CESDK9005 | a project builds with `RestorePackagesWithLockFile` or `ManagePackageVersionsCentrally` other than `true` (restore reports NU1005 first when a lock file exists) | remove the override and run `./eng/Update-LockFiles.ps1` |
 | CESDK9006 | package validation is off, has no baseline or runs in strict mode; a CPxxxx or PKVxxx code is in `NoWarn`; or a CI pack regenerates, permits unnecessary, or bypasses suppressions or the baseline | restore the settings; regenerate the suppression file locally (integrator) |
 | CESDK9007 | the suppression file declares baseline breaks but the package major does not exceed the baseline major | raise `MinVerMinimumMajorMinor`, or remove the break |
 | CESDK9008 | a packable project packs without `GenerateSBOM=true` or without the `Microsoft.Sbom.Targets` reference | set `GenerateSBOM` unconditionally and reference the package with `PrivateAssets="all"` |

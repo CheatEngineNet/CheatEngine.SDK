@@ -48,6 +48,16 @@
   </Target>
 
   <!--
+    Version and content are locked for every project (audit ch.21 exit criteria): no project may opt out of its
+    packages.lock.json or of Central Package Management, including projects outside the solution.
+  -->
+  <Target Name="CheatEngineSdkRequireLockedPackages" BeforeTargets="BeforeBuild">
+    <Error Condition="'$(RestorePackagesWithLockFile)' != 'true' or '$(ManagePackageVersionsCentrally)' != 'true'"
+           Code="CESDK9005"
+           Text="$(MSBuildProjectName) builds with RestorePackagesWithLockFile '$(RestorePackagesWithLockFile)' and ManagePackageVersionsCentrally '$(ManagePackageVersionsCentrally)'. Every project restores centrally managed versions against a committed packages.lock.json: remove the override and regenerate with ./eng/Update-LockFiles.ps1 (eng/api/README.md#lock-files)."/>
+  </Target>
+
+  <!--
     The analysis level is pinned next to the exact SDK (global.json rollForward: disable), so the set of CA/IDE rules
     and their severities only changes in a reviewed commit. A project-level or command-line AnalysisLevel would silently
     widen or narrow that set for one project.

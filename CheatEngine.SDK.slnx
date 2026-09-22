@@ -51,6 +51,10 @@
     <File Path="native/cheat-engine/README.md"/>
     <File Path="native/cheat-engine/lua53-64.dll"/>
   </Folder>
+  <Folder Name="/docs/qualification/">
+    <File Path="docs/qualification/support-profile.json"/>
+    <File Path="docs/qualification/support-profile.md"/>
+  </Folder>
   <Folder Name="/docs/qualification/schemas/">
     <File Path="docs/qualification/schemas/qualification-events.v0.schema.json"/>
     <File Path="docs/qualification/schemas/qualification-matrix.v0.schema.json"/>

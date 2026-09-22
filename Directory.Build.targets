@@ -159,6 +159,31 @@
            Text="$(MSBuildProjectName) $(PackageVersion) declares intentional breaks against $(PackageValidationBaselineVersion) in CompatibilitySuppressions.xml: intentional breaks against $(PackageValidationBaselineVersion) require a new major; raise MinVerMinimumMajorMinor (Directory.Build.props) or tag a new major."/>
   </Target>
 
+  <!--
+    Every package embeds an SPDX SBOM (Microsoft.Sbom.Targets, GenerateSBOM), locally and in CI alike, so the release
+    attests the same inventory a developer sees.
+  -->
+  <Target Name="CheatEngineSdkRequireSbom"
+          BeforeTargets="GenerateNuspec"
+          Condition="'$(IsPackable)' == 'true'">
+    <Error Condition="'$(GenerateSBOM)' != 'true' or '@(PackageReference->WithMetadataValue('Identity', 'Microsoft.Sbom.Targets'))' == ''"
+           Code="CESDK9008"
+           Text="$(MSBuildProjectName) packs without an SBOM (GenerateSBOM '$(GenerateSBOM)'). Reference Microsoft.Sbom.Targets with PrivateAssets=&quot;all&quot; and set GenerateSBOM to true unconditionally (eng/api/README.md#sbom)."/>
+  </Target>
+
+  <!--
+    Microsoft.Sbom.Targets defaults SbomGenerationPackageVersion to $(Version) at evaluation, but MinVer sets the version
+    during execution; without this the SBOM would describe version 1.0.0. Runs after MinVer, before the SBOM target.
+  -->
+  <Target Name="CheatEngineSdkAlignSbomPackageVersion"
+          BeforeTargets="GenerateSbomTarget"
+          DependsOnTargets="MinVer"
+          Condition="'$(IsPackable)' == 'true' and '$(GenerateSBOM)' == 'true'">
+    <PropertyGroup>
+      <SbomGenerationPackageVersion>$(PackageVersion)</SbomGenerationPackageVersion>
+    </PropertyGroup>
+  </Target>
+
   <!-- The release path never suppresses: a stable (non-prerelease) package version cannot be packed while any suppression exists. -->
   <Target Name="CheatEngineSdkRefuseAuditSuppressionsOnRelease"
           BeforeTargets="GenerateNuspec"

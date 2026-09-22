@@ -87,6 +87,20 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 		private set;
 	} = [];
 
+	/// <summary>Full path of the packed <c>.nupkg</c> the fixture read.</summary>
+	public string PackagePath
+	{
+		get;
+		private set;
+	} = "";
+
+	/// <summary>The packed <c>.nuspec</c>.</summary>
+	public XDocument Nuspec
+	{
+		get;
+		private set;
+	} = new();
+
 	/// <summary>Whether <c>CESDK.CESDK</c> exists in the default consumer's built assembly.</summary>
 	public bool DefaultEntryPointTypeExists
 	{
@@ -730,6 +744,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 		PackageVersion = fileName[(UmbrellaPackage.Id.Length + 1)..^".nupkg".Length];
 
 		(IReadOnlyList<string> entries, XDocument nuspec) = NupkgInspector.Read(nupkgPaths[0]);
+		PackagePath = nupkgPaths[0];
+		Nuspec = nuspec;
 		PackageEntries = entries;
 		NuspecDependencyIds = NupkgInspector.GetDependencyIds(nuspec);
 	}

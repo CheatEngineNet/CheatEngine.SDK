@@ -163,6 +163,44 @@ An advisory can be excluded only as a last resort, in `Directory.Build.props`, w
 is past, and a stable (release) version cannot be packed while any suppression exists: the release path never
 suppresses.
 
+## SBOM
+
+Every pack, local, in the packaging tests or in CI, embeds an SPDX 2.2 software bill of materials at
+`_manifest/spdx_2.2/manifest.spdx.json`, with its SHA-256 in `manifest.spdx.json.sha256`. It is produced by
+[Microsoft.Sbom.Targets](https://github.com/microsoft/sbom-tool) (version pinned in
+[`Directory.Packages.props`](../../Directory.Packages.props), referenced with `PrivateAssets="all"`, so the nuspec keeps
+no dependency) after `Pack`: the tool unpacks the package, writes the manifest and packs it again. `CESDK9008` fails a
+pack without it, and `GenerateSBOM` is set unconditionally so that the inventory a developer sees is the one the
+release attests (the attestation uses the SPDX 2.2 predicate).
+
+What it lists:
+
+- the package itself: name `CheatEngine.SDK`, version equal to the package version (the tool reads the version at
+  evaluation, before MinVer runs, so `Directory.Build.targets` re-points it after MinVer), supplier `CheatEngineNet`,
+  document namespace under `https://github.com/CheatEngineNet/CheatEngine.SDK`;
+- every file of the package except the manifest itself, with its SHA-256 and SHA-1: the seven `lib/net10.0` assemblies
+  and their XML documentation, the five Roslyn components, the native bridge, the build assets, the README and the
+  package metadata files;
+- no component. The build-component scan is limited to `src/CheatEngine.SDK`, which holds no package manifest, and the
+  package has no NuGet dependency, so the tool reports "There were no packages detected" (printed as a `##[warning]`
+  line, not an MSBuild warning). Build-only tools (MinVer, Meziantou.Analyzer, BannedApiAnalyzers,
+  PublicApiAnalyzers, Microsoft.Sbom.Targets) are not shipped and are not listed. PolySharp generates polyfill source
+  that is compiled into the Roslyn components; it is source, not a package dependency, and is not listed either.
+
+The package is therefore **not byte-reproducible**: the SPDX `documentNamespace` ends with a random part,
+`creationInfo.created` is the pack time, and the package is re-zipped. Reproducibility is promised for what the SBOM
+hashes: the embedded assemblies (deterministic, with `ContinuousIntegrationBuild` in CI) and the native bridge.
+`SupplyChainPackageTests` checks the manifest against the actual package entries.
+
+## Repository metadata and Source Link
+
+`src/CheatEngine.SDK` sets `PublishRepositoryUrl`, so the nuspec carries
+`<repository type="git" url="https://github.com/CheatEngineNet/CheatEngine.SDK" commit="<40-hex>"/>`, as the 1.0.0
+package already did, and the embedded Portable PDB of every `lib/net10.0` assembly maps its sources to
+`https://raw.githubusercontent.com/CheatEngineNet/CheatEngine.SDK/<same commit>/`
+([Source Link](https://learn.microsoft.com/dotnet/standard/library-guidance/sourcelink)). Local packs contain local
+paths in their PDBs (path mapping only runs in CI, `ContinuousIntegrationBuild`), so no test asserts their absence.
+
 ## Repository guards
 
 | Id | Fails when | Fix |
@@ -171,4 +209,5 @@ suppresses.
 | CESDK9004 | a project's `AnalysisLevel` differs from the pin | remove the override, or raise the pin together with `global.json` |
 | CESDK9006 | package validation is off, has no baseline or runs in strict mode; a CPxxxx or PKVxxx code is in `NoWarn`; or a CI pack regenerates, permits unnecessary, or bypasses suppressions or the baseline | restore the settings; regenerate the suppression file locally (integrator) |
 | CESDK9007 | the suppression file declares baseline breaks but the package major does not exceed the baseline major | raise `MinVerMinimumMajorMinor`, or remove the break |
+| CESDK9008 | a packable project packs without `GenerateSBOM=true` or without the `Microsoft.Sbom.Targets` reference | set `GenerateSBOM` unconditionally and reference the package with `PrivateAssets="all"` |
 | CESDK9009 | the NuGet audit policy is weakened, a suppression is misplaced, incomplete or expired (strict run), a release is packed with a suppression, or a CI solution restore did not audit every project | restore the policy; fix or upgrade the package; complete or remove the suppression |

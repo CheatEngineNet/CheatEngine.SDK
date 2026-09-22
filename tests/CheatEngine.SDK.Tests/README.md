@@ -109,3 +109,16 @@ dotnet test --project tests/CheatEngine.SDK.Tests
   `NativeBridgePackagingAuditTests`; the bridge contract is described in the
   [bridge README](../../native/cheatengine-sdk-lua-bridge/README.md)).
 - Consumers build against the package packed by this run, never an earlier extraction (`RestoreIsolationTests`).
+- The packed `.nupkg` embeds an SPDX 2.2 SBOM at `_manifest/spdx_2.2/manifest.spdx.json` that describes this package id
+  and version and lists every other entry of the package with its SHA-256, including the seven libraries, the five
+  Roslyn components and the native bridge (`Package_embeds_an_spdx_2_2_sbom_describing_itself`,
+  `Sbom_lists_every_shipped_assembly_and_the_native_bridge_with_its_sha256`,
+  `Sbom_file_inventory_equals_the_package_entries`).
+- The nuspec names the repository and the exact 40-hex commit, and the embedded PDB of every `lib/net10.0` assembly maps
+  its sources to that commit through Source Link (`Nuspec_names_the_repository_and_the_exact_commit`,
+  `Embedded_libraries_carry_source_link_to_the_repository_commit`).
+- The package version is on the `MinVerMinimumMajorMinor` line or later, every `lib/net10.0` assembly carries
+  `<major>.0.0.0` as its assembly version, and no repository contract file (`CompatibilitySuppressions.xml`, PublicAPI
+  files, lock files) is packed (`Package_version_is_on_the_minver_minimum_line_or_later`,
+  `Embedded_assemblies_carry_the_package_major_as_assembly_version`, `Package_carries_no_repository_contract_file`).
+  The pack itself also runs package validation against the published 1.0.0 baseline, so it needs nuget.org once.

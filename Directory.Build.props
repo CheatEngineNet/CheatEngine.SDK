@@ -14,7 +14,13 @@
 
   <PropertyGroup Label="Quality gates">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!--
+      Pinned so a newer SDK band cannot add CA/IDE errors; raise together with global.json. 'latest' would follow the
+      SDK's own notion of the newest level, which is exactly what rollForward: disable is meant to freeze. CESDK9004
+      (Directory.Build.targets) fails a project or command line that overrides the pin.
+    -->
+    <_CheatEngineSdkPinnedAnalysisLevel>10.0-recommended</_CheatEngineSdkPinnedAnalysisLevel>
+    <AnalysisLevel>$(_CheatEngineSdkPinnedAnalysisLevel)</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <!-- CS1591 makes undocumented public API an error, and IDE0005 only fails the build when a documentation file exists. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

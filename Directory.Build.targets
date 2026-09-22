@@ -34,4 +34,15 @@
            Code="CESDK9002"
            Text="Directory.Packages.props pins Microsoft.CodeAnalysis.CSharp '$(_CheatEngineSdkRoslynPin)' and Workspaces '$(_CheatEngineSdkWorkspacesPin)', expected '$(RoslynComponentFloor)'. Restore the pin, or raise it together with RoslynComponentFloor in eng/RoslynComponent.props."/>
   </Target>
+
+  <!--
+    The analysis level is pinned next to the exact SDK (global.json rollForward: disable), so the set of CA/IDE rules
+    and their severities only changes in a reviewed commit. A project-level or command-line AnalysisLevel would silently
+    widen or narrow that set for one project.
+  -->
+  <Target Name="CheatEngineSdkCheckAnalysisLevelPin" BeforeTargets="BeforeBuild">
+    <Error Condition="'$(AnalysisLevel)' != '$(_CheatEngineSdkPinnedAnalysisLevel)'"
+           Code="CESDK9004"
+           Text="$(MSBuildProjectName) builds with AnalysisLevel '$(AnalysisLevel)', but the repository pins '$(_CheatEngineSdkPinnedAnalysisLevel)'. Remove the override, or raise the pin in Directory.Build.props together with global.json."/>
+  </Target>
 </Project>

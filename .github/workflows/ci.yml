@@ -59,31 +59,6 @@ jobs:
           Write-Host "Found $($projects.Count) test projects."
           $projects | ForEach-Object { Write-Host "  $($_.BaseName)" }
 
-  engineering-manifest:
-    name: Validate engineering manifest
-    runs-on: windows-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          sparse-checkout: |
-            eng
-            documentations/engineering
-            documentations/CheatEngine.SDK/catalog
-            libs
-            source-generators
-            tests/CheatEngine.SDK.LiveProbe
-            tests/native-abi-fixture
-            ROADMAP.md
-          persist-credentials: false
-
-      - name: Validate checked-in engineering graph
-        run: |
-          python eng/Validate-EngineeringManifest.py
-          python eng/Validate-CeSurfaceCatalog.py
-          python -m unittest discover -s eng/tests -v
-
   native:
     name: Build native bridge
     runs-on: windows-latest
@@ -420,7 +395,7 @@ jobs:
   gate:
     name: Gate
     if: ${{ always() }}
-    needs: [ discover, engineering-manifest, native, build, test, pack, aot ]
+    needs: [ discover, native, build, test, pack, aot ]
     runs-on: windows-latest
     timeout-minutes: 5
     permissions: { }

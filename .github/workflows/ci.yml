@@ -19,11 +19,6 @@ on:
         description: Run dependency-review-action for non-draft pull requests. Enable only after GitHub Dependency graph is enabled for the repository.
         type: boolean
         default: false
-    secrets:
-      SONAR_TOKEN:
-        description: SonarQube Cloud token for protected same-repository analysis.
-        required: false
-
 permissions:
   contents: read
 
@@ -478,8 +473,6 @@ jobs:
     uses: ./.github/workflows/sonar.yml
     with:
       wait-quality-gate: true
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   dependency-review:
     name: Dependency review

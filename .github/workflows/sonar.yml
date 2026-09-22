@@ -15,11 +15,6 @@ on:
         description: Fail the job when the quality gate fails.
         type: boolean
         default: true
-    secrets:
-      SONAR_TOKEN:
-        description: SonarQube Cloud token.
-        required: true
-
 permissions:
   contents: read
 
@@ -42,28 +37,6 @@ jobs:
       SONAR_ORGANIZATION: ${{ inputs.organization }}
       SONAR_WAIT_QUALITY_GATE: ${{ inputs.wait-quality-gate }}
     steps:
-      - name: Require token
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          if ([string]::IsNullOrWhiteSpace($env:SONAR_TOKEN)) {
-            throw 'SONAR_TOKEN is required when SONAR_CI_ENABLED is true.'
-          }
-
-      # CI analysis and Automatic Analysis cannot run for the same SonarQube Cloud project. Keep this preflight before
-      # checkout so a PR cannot turn a configuration failure into arbitrary checkout code running in this tokened job.
-      - name: Require CI-based analysis
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $uri = "https://sonarcloud.io/api/settings/values?component=$env:SONAR_PROJECT_KEY&keys=sonar.autoscan.enabled"
-          $response = Invoke-RestMethod -Uri $uri -Headers @{ Authorization = "Bearer $env:SONAR_TOKEN" } -TimeoutSec 30 -MaximumRetryCount 2 -RetryIntervalSec 3
-          if (@($response.settings | Where-Object { $_.key -eq 'sonar.autoscan.enabled' -and $_.value -eq 'true' })) {
-            throw "Automatic Analysis is enabled on $env:SONAR_PROJECT_KEY. Disable it in SonarQube Cloud: Administration > Analysis Method before enabling SONAR_CI_ENABLED."
-          }
-
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -95,8 +68,8 @@ jobs:
           pattern: coverage-*
           path: ${{ runner.temp }}/coverage
 
-      # Do not use the checked-out nuget.config to resolve tooling. This job later uses SONAR_TOKEN, so the scanner
-      # package and every restored dependency must come only from nuget.org, not a source a pull request can redirect.
+      # Do not use the checked-out nuget.config to resolve tooling. The scanner package and every restored dependency
+      # must come only from nuget.org, not a source a pull request can redirect.
       - name: Create NuGet.org-only configuration
         id: nuget-config
         run: |
@@ -133,10 +106,7 @@ jobs:
             throw "SonarScanner installation failed with exit code $LASTEXITCODE."
           }
 
-      # The begin step ignores the SONAR_TOKEN variable, so the token travels in SONARQUBE_SCANNER_PARAMS, which both scanner steps read. It stays off the command line.
       - name: Begin analysis
-        env:
-          SONARQUBE_SCANNER_PARAMS: '{"sonar.token":"${{ secrets.SONAR_TOKEN }}"}'
         run: |
           $coverage = "$env:RUNNER_TEMP/coverage"
           $reports = @(Get-ChildItem -Path $coverage -Filter *.xml -Recurse -File -ErrorAction SilentlyContinue)
@@ -205,8 +175,6 @@ jobs:
           }
 
       - name: End analysis
-        env:
-          SONARQUBE_SCANNER_PARAMS: '{"sonar.token":"${{ secrets.SONAR_TOKEN }}"}'
         run: |
           & "$env:RUNNER_TEMP/sonar-scanner/dotnet-sonarscanner.exe" end
           if ($LASTEXITCODE -ne 0) {

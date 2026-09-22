@@ -10,6 +10,8 @@ indent_size = 4
 tab_width = 4
 max_line_length = 120
 trim_trailing_whitespace = true
+# Matches .gitattributes (eol=crlf): dotnet format and the IDE0055 build check agree on CRLF.
+end_of_line = crlf
 
 [*.{csproj,props,targets,slnx,config,json,yml,yaml}]
 # YAML cannot use tabs for indentation. Keep project and configuration files
@@ -146,3 +148,7 @@ dotnet_diagnostic.IDE0005.severity = error
 
 [src/**.cs]
 dotnet_diagnostic.IDE0005.severity = error
+
+# The native bridge embeds the SHA-256 of these two files; .gitattributes pins them to LF.
+[native/cheatengine-sdk-lua-bridge/{cheatengine_sdk_lua_bridge.c,xmake.lua}]
+end_of_line = lf

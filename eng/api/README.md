@@ -146,7 +146,7 @@ Central Package Management). The files are written by one script only, on Window
 
 The script enumerates projects from git (a new project is picked up without editing it), restores the solution and then
 every project outside it with `--force-evaluate`, gives an unchanged lock its committed bytes back, verifies with
-`--locked-mode`, and checks the structure: version 2 for every project, a `net10.0/win-x64` section with
+`--locked-mode --force` (without `--force` a no-op restore would compare nothing), and checks the structure: version 2 for every project, a `net10.0/win-x64` section with
 `runtime.win-x64.Microsoft.DotNet.ILCompiler` for Native AOT projects (otherwise `dotnet publish --no-restore` fails), and
 no `CheatEngine.*` package resolved from a feed. `LockFileTests` mirror these checks offline.
 

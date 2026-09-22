@@ -16,7 +16,8 @@
       3. `dotnet restore CheatEngine.SDK.slnx --force-evaluate`, then each project outside the solution the same way.
       4. A lock whose JSON did not change gets its committed bytes back, so line endings never produce a diff; a
          changed lock keeps NuGet's JSON with the committed final-newline state.
-      5. Verification restores with `--locked-mode` (never combined with --force-evaluate, which fails with NU1005).
+      5. Verification restores with `--locked-mode --force` (--force defeats NuGet's no-op check; locked mode is never
+         combined with --force-evaluate, which fails with NU1005).
       6. Structural checks: a lock per project; format version 2 for Central Package Management projects; no
          CentralTransitive entry in a version 1 lock; a <tfm>/<rid> section for every evaluated runtime identifier, with
          runtime.<rid>.Microsoft.DotNet.ILCompiler when PublishAot is true; no CheatEngine.* package resolved from a
@@ -306,11 +307,13 @@ try {
 		}
 	}
 
-	Write-Information "Verifying: dotnet restore $solutionFile --locked-mode"
-	Invoke-Dotnet -Arguments @('restore', $solutionFile, '--locked-mode')
+	# --force bypasses NuGet's no-op check: right after the regeneration every project is "up to date", and a no-op
+	# restore would not compare the lock files with the project inputs at all.
+	Write-Information "Verifying: dotnet restore $solutionFile --locked-mode --force"
+	Invoke-Dotnet -Arguments @('restore', $solutionFile, '--locked-mode', '--force')
 	foreach ($project in $outOfSolution) {
-		Write-Information "Verifying: dotnet restore $project --locked-mode"
-		Invoke-Dotnet -Arguments @('restore', $project, '--locked-mode')
+		Write-Information "Verifying: dotnet restore $project --locked-mode --force"
+		Invoke-Dotnet -Arguments @('restore', $project, '--locked-mode', '--force')
 	}
 }
 finally {

@@ -1,0 +1,259 @@
+#nullable enable
+CheatEngine.SDK.Lua.Interop.Api.LuaApi
+CheatEngine.SDK.Lua.Interop.Loading.LuaModule
+CheatEngine.SDK.Lua.Interop.Types.luaL_Reg
+CheatEngine.SDK.Lua.Interop.Types.luaL_Reg.func -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+CheatEngine.SDK.Lua.Interop.Types.luaL_Reg.luaL_Reg() -> void
+CheatEngine.SDK.Lua.Interop.Types.luaL_Reg.name -> byte*
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.currentline -> int
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.event -> int
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.i_ci -> void*
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.istailcall -> sbyte
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.isvararg -> sbyte
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.lastlinedefined -> int
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.linedefined -> int
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.lua_Debug() -> void
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.name -> byte*
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.namewhat -> byte*
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.nparams -> byte
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.nups -> byte
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.short_src -> byte*
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.source -> byte*
+CheatEngine.SDK.Lua.Interop.Types.lua_Debug.what -> byte*
+CheatEngine.SDK.Lua.Interop.Types.lua_State
+CheatEngine.SDK.Lua.Interop.Types.lua_State.lua_State() -> void
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUAI_FIRSTPSEUDOIDX = -1001000 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUAI_MAXSTACK = 1000000 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUAL_NUMSIZES = 136 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_ERRERR = 6 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_ERRFILE = 7 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_ERRGCMM = 5 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_ERRMEM = 4 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_ERRRUN = 2 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_ERRSYNTAX = 3 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_GCCOLLECT = 2 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_GCCOUNT = 3 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_GCCOUNTB = 4 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_GCISRUNNING = 9 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_GCRESTART = 1 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_GCSETPAUSE = 6 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_GCSETSTEPMUL = 7 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_GCSTEP = 5 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_GCSTOP = 0 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_HOOKCALL = 0 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_HOOKCOUNT = 3 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_HOOKLINE = 2 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_HOOKRET = 1 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_HOOKTAILCALL = 4 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_IDSIZE = 60 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_MASKCALL = 1 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_MASKCOUNT = 8 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_MASKLINE = 4 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_MASKRET = 2 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_MAXINTEGER = 9223372036854775807 -> long
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_MININTEGER = -9223372036854775808 -> long
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_MINSTACK = 20 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_MULTRET = -1 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_NOREF = -2 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_NUMTAGS = 9 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OK = 0 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPADD = 0 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPBAND = 7 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPBNOT = 13 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPBOR = 8 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPBXOR = 9 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPDIV = 5 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPEQ = 0 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPIDIV = 6 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPLE = 2 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPLT = 1 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPMOD = 3 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPMUL = 2 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPPOW = 4 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPSHL = 10 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPSHR = 11 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPSUB = 1 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OPUNM = 12 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_REFNIL = -1 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_REGISTRYINDEX = -1001000 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_RIDX_GLOBALS = 2 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_RIDX_LAST = 2 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_RIDX_MAINTHREAD = 1 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TBOOLEAN = 1 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TFUNCTION = 6 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TLIGHTUSERDATA = 2 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TNIL = 0 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TNONE = -1 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TNUMBER = 3 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TSTRING = 4 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TTABLE = 5 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TTHREAD = 8 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TUSERDATA = 7 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_VERSION_NUM = 503 -> int
+const CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_YIELD = 1 -> int
+const CheatEngine.SDK.Lua.Interop.Loading.LuaModule.CheatEngine64ModuleName = "lua53-64.dll" -> string!
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.GetMissingExports(nint moduleHandle) -> System.Collections.Generic.IReadOnlyList<string!>!
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.Initialize(nint moduleHandle) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.IsInitialized.get -> bool
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_COLIBNAME.get -> System.ReadOnlySpan<byte>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_DBLIBNAME.get -> System.ReadOnlySpan<byte>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_EXTRASPACE.get -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_IOLIBNAME.get -> System.ReadOnlySpan<byte>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_LOADLIBNAME.get -> System.ReadOnlySpan<byte>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_MATHLIBNAME.get -> System.ReadOnlySpan<byte>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_OSLIBNAME.get -> System.ReadOnlySpan<byte>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_SIGNATURE.get -> System.ReadOnlySpan<byte>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_STRLIBNAME.get -> System.ReadOnlySpan<byte>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_TABLIBNAME.get -> System.ReadOnlySpan<byte>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.LUA_UTF8LIBNAME.get -> System.ReadOnlySpan<byte>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.ModuleHandle.get -> nint
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.TryInitialize(nint moduleHandle, out string? failure) -> bool
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_callmeta(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int obj, byte* e) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_dofile(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* fn) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_dostring(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* s) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_getmetafield(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int obj, byte* e) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_getmetatable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* n) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_getsubtable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx, byte* fname) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_len(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> long
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_loadbuffer(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* s, nuint sz, byte* n) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_loadbufferx(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* buff, nuint sz, byte* name, byte* mode) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_loadfile(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* f) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_loadfilex(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* filename, byte* mode) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_loadstring(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* s) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_newmetatable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* tname) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_newstate() -> CheatEngine.SDK.Lua.Interop.Types.lua_State*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_openlibs(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_ref(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int t) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_requiref(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* modname, delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int> openf, int glb) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_setfuncs(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, CheatEngine.SDK.Lua.Interop.Types.luaL_Reg* l, int nup) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_setmetatable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* tname) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_testudata(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int ud, byte* tname) -> void*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_tolstring(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx, nuint* len) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_traceback(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, CheatEngine.SDK.Lua.Interop.Types.lua_State* L1, byte* msg, int level) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_typename(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int i) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaL_unref(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int t, int ref) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_absindex(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_arith(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int op) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_atpanic(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int> panicf) -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_call(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n, int r) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_callk(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int nargs, int nresults, nint ctx, delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int, nint, int> k) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_checkstack(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int n) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_close(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_compare(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx1, int idx2, int op) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_concat(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_copy(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int fromidx, int toidx) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_createtable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int narr, int nrec) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_dump(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, void*, nuint, void*, int> writer, void* data, int strip) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_error(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_gc(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int what, int data) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_getallocf(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, void** ud) -> delegate* unmanaged[Cdecl]<void*, void*, nuint, nuint, void*>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_getextraspace(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> void*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_getfield(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx, byte* k) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_getglobal(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* name) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_gethook(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, CheatEngine.SDK.Lua.Interop.Types.lua_Debug*, void>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_gethookcount(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_gethookmask(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_geti(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx, long n) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_getinfo(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* what, CheatEngine.SDK.Lua.Interop.Types.lua_Debug* ar) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_getlocal(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, CheatEngine.SDK.Lua.Interop.Types.lua_Debug* ar, int n) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_getmetatable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int objindex) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_getstack(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int level, CheatEngine.SDK.Lua.Interop.Types.lua_Debug* ar) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_gettable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_gettop(CheatEngine.SDK.Lua.Interop.Types.lua_State* l) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_getupvalue(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int funcindex, int n) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_getuservalue(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_insert(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isboolean(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n) -> bool
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_iscfunction(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isfunction(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n) -> bool
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isinteger(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_islightuserdata(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n) -> bool
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isnil(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n) -> bool
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isnone(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n) -> bool
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isnoneornil(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n) -> bool
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isnumber(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isstring(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_istable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n) -> bool
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isthread(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n) -> bool
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isuserdata(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_isyieldable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_len(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_load(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, void*, nuint*, byte*> reader, void* dt, byte* chunkname, byte* mode) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_newstate(delegate* unmanaged[Cdecl]<void*, void*, nuint, nuint, void*> f, void* ud) -> CheatEngine.SDK.Lua.Interop.Types.lua_State*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_newtable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_newthread(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> CheatEngine.SDK.Lua.Interop.Types.lua_State*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_newuserdata(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, nuint sz) -> void*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_next(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pcall(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n, int r, int f) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pcallk(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int nargs, int nresults, int errfunc, nint ctx, delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int, nint, int> k) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pop(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int n) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushboolean(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int b) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushcclosure(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int> fn, int n) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushcfunction(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int> f) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushglobaltable(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushinteger(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, long n) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushlightuserdata(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, void* p) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushliteral(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, System.ReadOnlySpan<byte> s) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushlstring(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* s, nuint len) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushnil(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushnumber(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, double n) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushstring(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* s) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushthread(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_pushvalue(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawequal(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx1, int idx2) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawget(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawgeti(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx, long n) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawgetp(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx, void* p) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawlen(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> nuint
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawset(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawseti(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx, long n) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rawsetp(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx, void* p) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_register(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* n, delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int> f) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_remove(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_replace(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_resume(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, CheatEngine.SDK.Lua.Interop.Types.lua_State* from, int narg) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_rotate(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx, int n) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_setallocf(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, delegate* unmanaged[Cdecl]<void*, void*, nuint, nuint, void*> f, void* ud) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_setfield(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx, byte* k) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_setglobal(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, byte* name) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_sethook(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, CheatEngine.SDK.Lua.Interop.Types.lua_Debug*, void> func, int mask, int count) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_seti(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx, long n) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_setlocal(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, CheatEngine.SDK.Lua.Interop.Types.lua_Debug* ar, int n) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_setmetatable(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int objindex) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_settable(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_settop(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_setupvalue(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int funcindex, int n) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_setuservalue(CheatEngine.SDK.Lua.Interop.Types.lua_State* l, int idx) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_status(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_stringtonumber(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, byte* s) -> nuint
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_toboolean(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_tocfunction(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_tointeger(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int i) -> long
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_tointegerx(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx, int* isnum) -> long
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_tolstring(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx, nuint* len) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_tonumber(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int i) -> double
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_tonumberx(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx, int* isnum) -> double
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_topointer(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> void*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_tostring(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int i) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_tothread(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> CheatEngine.SDK.Lua.Interop.Types.lua_State*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_touserdata(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> void*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_type(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int idx) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_typename(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int tp) -> byte*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_upvalueid(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int fidx, int n) -> void*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_upvalueindex(int i) -> int
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_upvaluejoin(CheatEngine.SDK.Lua.Interop.Types.lua_State* L, int fidx1, int n1, int fidx2, int n2) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_version(CheatEngine.SDK.Lua.Interop.Types.lua_State* L) -> double*
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.lua_xmove(CheatEngine.SDK.Lua.Interop.Types.lua_State* from, CheatEngine.SDK.Lua.Interop.Types.lua_State* to, int n) -> void
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaopen_base.get -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaopen_coroutine.get -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaopen_debug.get -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaopen_io.get -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaopen_math.get -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaopen_os.get -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaopen_package.get -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaopen_string.get -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaopen_table.get -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Api.LuaApi.luaopen_utf8.get -> delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>
+static CheatEngine.SDK.Lua.Interop.Loading.LuaModule.TryGetLoaded(out nint moduleHandle) -> bool
+static CheatEngine.SDK.Lua.Interop.Loading.LuaModule.TryGetLoaded(string! moduleName, out nint moduleHandle) -> bool

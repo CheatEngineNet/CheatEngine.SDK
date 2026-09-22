@@ -1,0 +1,126 @@
+#nullable enable
+CheatEngine.SDK.Abi.AbiArchitecture
+CheatEngine.SDK.Abi.AbiConstants
+CheatEngine.SDK.Abi.Bool32
+CheatEngine.SDK.Abi.Bool32.Bool32() -> void
+CheatEngine.SDK.Abi.Bool32.Bool32(int rawValue) -> void
+CheatEngine.SDK.Abi.Bool32.Equals(CheatEngine.SDK.Abi.Bool32 other) -> bool
+CheatEngine.SDK.Abi.Bool32.IsTrue.get -> bool
+CheatEngine.SDK.Abi.Bool32.RawValue.get -> int
+CheatEngine.SDK.Abi.Bool32.ToBoolean() -> bool
+CheatEngine.SDK.Abi.Bool8
+CheatEngine.SDK.Abi.Bool8.Bool8() -> void
+CheatEngine.SDK.Abi.Bool8.Bool8(byte rawValue) -> void
+CheatEngine.SDK.Abi.Bool8.Equals(CheatEngine.SDK.Abi.Bool8 other) -> bool
+CheatEngine.SDK.Abi.Bool8.IsTrue.get -> bool
+CheatEngine.SDK.Abi.Bool8.RawValue.get -> byte
+CheatEngine.SDK.Abi.Bool8.ToBoolean() -> bool
+CheatEngine.SDK.Abi.Managed.ManagedEntryPoint
+CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions
+CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions.CheckSynchronize -> delegate* unmanaged[Stdcall]<int, CheatEngine.SDK.Abi.Bool8>
+CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions.GetLuaState -> delegate* unmanaged[Stdcall]<void*>
+CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions.LuaPushClassInstance -> delegate* unmanaged[Stdcall]<void*, void*, void>
+CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions.LuaRegister -> void*
+CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions.ManagedExportedFunctions() -> void
+CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions.ProcessMessages -> delegate* unmanaged[Stdcall]<void>
+CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions.SizeOfExportedFunctions -> int
+CheatEngine.SDK.Abi.Managed.PluginInitRecord
+CheatEngine.SDK.Abi.Managed.PluginInitRecord.DisablePlugin -> delegate* unmanaged[Stdcall]<CheatEngine.SDK.Abi.Bool32>
+CheatEngine.SDK.Abi.Managed.PluginInitRecord.EnablePlugin -> delegate* unmanaged[Stdcall]<CheatEngine.SDK.Abi.Managed.ManagedExportedFunctions*, uint, CheatEngine.SDK.Abi.Bool32>
+CheatEngine.SDK.Abi.Managed.PluginInitRecord.GetVersion -> delegate* unmanaged[Stdcall]<CheatEngine.SDK.Abi.Native.PluginVersion*, int, CheatEngine.SDK.Abi.Bool32>
+CheatEngine.SDK.Abi.Managed.PluginInitRecord.Name -> byte*
+CheatEngine.SDK.Abi.Managed.PluginInitRecord.PluginInitRecord() -> void
+CheatEngine.SDK.Abi.Managed.PluginInitRecord.Version -> uint
+CheatEngine.SDK.Abi.Native.AddressListPluginInit
+CheatEngine.SDK.Abi.Native.AddressListPluginInit.AddressListPluginInit() -> void
+CheatEngine.SDK.Abi.Native.AddressListPluginInit.Callback -> delegate* unmanaged[Stdcall]<void*, CheatEngine.SDK.Abi.Bool32>
+CheatEngine.SDK.Abi.Native.AddressListPluginInit.Name -> byte*
+CheatEngine.SDK.Abi.Native.AutoAssemblerPhase
+CheatEngine.SDK.Abi.Native.AutoAssemblerPhase.Finalize = 3 -> CheatEngine.SDK.Abi.Native.AutoAssemblerPhase
+CheatEngine.SDK.Abi.Native.AutoAssemblerPhase.Initialize = 0 -> CheatEngine.SDK.Abi.Native.AutoAssemblerPhase
+CheatEngine.SDK.Abi.Native.AutoAssemblerPhase.Phase1 = 1 -> CheatEngine.SDK.Abi.Native.AutoAssemblerPhase
+CheatEngine.SDK.Abi.Native.AutoAssemblerPhase.Phase2 = 2 -> CheatEngine.SDK.Abi.Native.AutoAssemblerPhase
+CheatEngine.SDK.Abi.Native.AutoAssemblerPluginInit
+CheatEngine.SDK.Abi.Native.AutoAssemblerPluginInit.AutoAssemblerPluginInit() -> void
+CheatEngine.SDK.Abi.Native.AutoAssemblerPluginInit.Callback -> delegate* unmanaged[Stdcall]<byte**, CheatEngine.SDK.Abi.Native.AutoAssemblerPhase, int, void>
+CheatEngine.SDK.Abi.Native.DebugEventPluginInit
+CheatEngine.SDK.Abi.Native.DebugEventPluginInit.Callback -> delegate* unmanaged[Stdcall]<void*, int>
+CheatEngine.SDK.Abi.Native.DebugEventPluginInit.DebugEventPluginInit() -> void
+CheatEngine.SDK.Abi.Native.DisassemblerContextPluginInit
+CheatEngine.SDK.Abi.Native.DisassemblerContextPluginInit.Callback -> delegate* unmanaged[Stdcall]<nuint*, CheatEngine.SDK.Abi.Bool32>
+CheatEngine.SDK.Abi.Native.DisassemblerContextPluginInit.CallbackOnPopup -> void*
+CheatEngine.SDK.Abi.Native.DisassemblerContextPluginInit.DisassemblerContextPluginInit() -> void
+CheatEngine.SDK.Abi.Native.DisassemblerContextPluginInit.Name -> byte*
+CheatEngine.SDK.Abi.Native.DisassemblerContextPluginInit.Shortcut -> byte*
+CheatEngine.SDK.Abi.Native.DisassemblerRenderLinePluginInit
+CheatEngine.SDK.Abi.Native.DisassemblerRenderLinePluginInit.Callback -> delegate* unmanaged[Stdcall]<nuint, byte**, byte**, byte**, byte**, uint*, void>
+CheatEngine.SDK.Abi.Native.DisassemblerRenderLinePluginInit.DisassemblerRenderLinePluginInit() -> void
+CheatEngine.SDK.Abi.Native.FunctionPointerChangePluginInit
+CheatEngine.SDK.Abi.Native.FunctionPointerChangePluginInit.Callback -> void*
+CheatEngine.SDK.Abi.Native.FunctionPointerChangePluginInit.FunctionPointerChangePluginInit() -> void
+CheatEngine.SDK.Abi.Native.MainMenuPluginInit
+CheatEngine.SDK.Abi.Native.MainMenuPluginInit.Callback -> delegate* unmanaged[Stdcall]<void>
+CheatEngine.SDK.Abi.Native.MainMenuPluginInit.MainMenuPluginInit() -> void
+CheatEngine.SDK.Abi.Native.MainMenuPluginInit.Name -> byte*
+CheatEngine.SDK.Abi.Native.MainMenuPluginInit.Shortcut -> byte*
+CheatEngine.SDK.Abi.Native.MemoryViewPluginInit
+CheatEngine.SDK.Abi.Native.MemoryViewPluginInit.Callback -> delegate* unmanaged[Stdcall]<nuint*, nuint*, nuint*, CheatEngine.SDK.Abi.Bool32>
+CheatEngine.SDK.Abi.Native.MemoryViewPluginInit.MemoryViewPluginInit() -> void
+CheatEngine.SDK.Abi.Native.MemoryViewPluginInit.Name -> byte*
+CheatEngine.SDK.Abi.Native.MemoryViewPluginInit.Shortcut -> byte*
+CheatEngine.SDK.Abi.Native.NativeExportNames
+CheatEngine.SDK.Abi.Native.PluginType
+CheatEngine.SDK.Abi.Native.PluginType.AddressList = 0 -> CheatEngine.SDK.Abi.Native.PluginType
+CheatEngine.SDK.Abi.Native.PluginType.AutoAssembler = 8 -> CheatEngine.SDK.Abi.Native.PluginType
+CheatEngine.SDK.Abi.Native.PluginType.DisassemblerContext = 6 -> CheatEngine.SDK.Abi.Native.PluginType
+CheatEngine.SDK.Abi.Native.PluginType.DisassemblerRenderLine = 7 -> CheatEngine.SDK.Abi.Native.PluginType
+CheatEngine.SDK.Abi.Native.PluginType.FunctionPointerChange = 4 -> CheatEngine.SDK.Abi.Native.PluginType
+CheatEngine.SDK.Abi.Native.PluginType.MainMenu = 5 -> CheatEngine.SDK.Abi.Native.PluginType
+CheatEngine.SDK.Abi.Native.PluginType.MemoryView = 1 -> CheatEngine.SDK.Abi.Native.PluginType
+CheatEngine.SDK.Abi.Native.PluginType.OnDebugEvent = 2 -> CheatEngine.SDK.Abi.Native.PluginType
+CheatEngine.SDK.Abi.Native.PluginType.ProcessWatcherEvent = 3 -> CheatEngine.SDK.Abi.Native.PluginType
+CheatEngine.SDK.Abi.Native.PluginVersion
+CheatEngine.SDK.Abi.Native.PluginVersion.PluginName -> byte*
+CheatEngine.SDK.Abi.Native.PluginVersion.PluginVersion() -> void
+CheatEngine.SDK.Abi.Native.PluginVersion.Version -> uint
+CheatEngine.SDK.Abi.Native.ProcessWatcherPluginInit
+CheatEngine.SDK.Abi.Native.ProcessWatcherPluginInit.Callback -> void*
+CheatEngine.SDK.Abi.Native.ProcessWatcherPluginInit.ProcessWatcherPluginInit() -> void
+const CheatEngine.SDK.Abi.AbiConstants.SdkVersion = 6 -> int
+const CheatEngine.SDK.Abi.Managed.ManagedEntryPoint.Failure = 0 -> int
+const CheatEngine.SDK.Abi.Managed.ManagedEntryPoint.FullTypeName = "CESDK.CESDK" -> string!
+const CheatEngine.SDK.Abi.Managed.ManagedEntryPoint.MethodName = "CEPluginInitialize" -> string!
+const CheatEngine.SDK.Abi.Managed.ManagedEntryPoint.Namespace = "CESDK" -> string!
+const CheatEngine.SDK.Abi.Managed.ManagedEntryPoint.Success = 1 -> int
+const CheatEngine.SDK.Abi.Managed.ManagedEntryPoint.TypeName = "CESDK" -> string!
+const CheatEngine.SDK.Abi.Native.NativeExportNames.DisablePlugin = "CEPlugin_DisablePlugin" -> string!
+const CheatEngine.SDK.Abi.Native.NativeExportNames.GetVersion = "CEPlugin_GetVersion" -> string!
+const CheatEngine.SDK.Abi.Native.NativeExportNames.InitializePlugin = "CEPlugin_InitializePlugin" -> string!
+override CheatEngine.SDK.Abi.Bool32.Equals(object? obj) -> bool
+override CheatEngine.SDK.Abi.Bool32.GetHashCode() -> int
+override CheatEngine.SDK.Abi.Bool32.ToString() -> string!
+override CheatEngine.SDK.Abi.Bool8.Equals(object? obj) -> bool
+override CheatEngine.SDK.Abi.Bool8.GetHashCode() -> int
+override CheatEngine.SDK.Abi.Bool8.ToString() -> string!
+static CheatEngine.SDK.Abi.AbiArchitecture.IsSupported.get -> bool
+static CheatEngine.SDK.Abi.AbiArchitecture.ThrowIfUnsupported() -> void
+static CheatEngine.SDK.Abi.Bool32.False.get -> CheatEngine.SDK.Abi.Bool32
+static CheatEngine.SDK.Abi.Bool32.FromBoolean(bool value) -> CheatEngine.SDK.Abi.Bool32
+static CheatEngine.SDK.Abi.Bool32.True.get -> CheatEngine.SDK.Abi.Bool32
+static CheatEngine.SDK.Abi.Bool32.explicit operator bool(CheatEngine.SDK.Abi.Bool32 value) -> bool
+static CheatEngine.SDK.Abi.Bool32.implicit operator CheatEngine.SDK.Abi.Bool32(bool value) -> CheatEngine.SDK.Abi.Bool32
+static CheatEngine.SDK.Abi.Bool32.operator !(CheatEngine.SDK.Abi.Bool32 value) -> bool
+static CheatEngine.SDK.Abi.Bool32.operator !=(CheatEngine.SDK.Abi.Bool32 left, CheatEngine.SDK.Abi.Bool32 right) -> bool
+static CheatEngine.SDK.Abi.Bool32.operator ==(CheatEngine.SDK.Abi.Bool32 left, CheatEngine.SDK.Abi.Bool32 right) -> bool
+static CheatEngine.SDK.Abi.Bool32.operator false(CheatEngine.SDK.Abi.Bool32 value) -> bool
+static CheatEngine.SDK.Abi.Bool32.operator true(CheatEngine.SDK.Abi.Bool32 value) -> bool
+static CheatEngine.SDK.Abi.Bool8.False.get -> CheatEngine.SDK.Abi.Bool8
+static CheatEngine.SDK.Abi.Bool8.FromBoolean(bool value) -> CheatEngine.SDK.Abi.Bool8
+static CheatEngine.SDK.Abi.Bool8.True.get -> CheatEngine.SDK.Abi.Bool8
+static CheatEngine.SDK.Abi.Bool8.explicit operator bool(CheatEngine.SDK.Abi.Bool8 value) -> bool
+static CheatEngine.SDK.Abi.Bool8.implicit operator CheatEngine.SDK.Abi.Bool8(bool value) -> CheatEngine.SDK.Abi.Bool8
+static CheatEngine.SDK.Abi.Bool8.operator !(CheatEngine.SDK.Abi.Bool8 value) -> bool
+static CheatEngine.SDK.Abi.Bool8.operator !=(CheatEngine.SDK.Abi.Bool8 left, CheatEngine.SDK.Abi.Bool8 right) -> bool
+static CheatEngine.SDK.Abi.Bool8.operator ==(CheatEngine.SDK.Abi.Bool8 left, CheatEngine.SDK.Abi.Bool8 right) -> bool
+static CheatEngine.SDK.Abi.Bool8.operator false(CheatEngine.SDK.Abi.Bool8 value) -> bool
+static CheatEngine.SDK.Abi.Bool8.operator true(CheatEngine.SDK.Abi.Bool8 value) -> bool

@@ -1,0 +1,56 @@
+#nullable enable
+CheatEngine.SDK.Hosting.Bootstrap.PluginHost
+CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase
+CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase.Disabling = 4 -> CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase
+CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase.Enabled = 3 -> CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase
+CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase.Enabling = 2 -> CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase
+CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase.Registered = 1 -> CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase
+CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase.Uninitialized = 0 -> CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase
+CheatEngine.SDK.Hosting.Context.PluginContext
+CheatEngine.SDK.Hosting.Context.PluginContext.Epoch.get -> int
+CheatEngine.SDK.Hosting.Context.PluginContext.HasCheckSynchronize.get -> bool
+CheatEngine.SDK.Hosting.Context.PluginContext.HasProcessMessages.get -> bool
+CheatEngine.SDK.Hosting.Context.PluginContext.IsCurrent.get -> bool
+CheatEngine.SDK.Hosting.Context.PluginContext.IsMainThread.get -> bool
+CheatEngine.SDK.Hosting.Context.PluginContext.MainThreadId.get -> int
+CheatEngine.SDK.Hosting.Context.PluginContext.PluginId.get -> uint
+CheatEngine.SDK.Hosting.Context.PluginContext.ReportedExportsSize.get -> int
+CheatEngine.SDK.Hosting.Context.PluginContext.ShutdownToken.get -> System.Threading.CancellationToken
+CheatEngine.SDK.Hosting.Diagnostics.DebugOutputLogSink
+CheatEngine.SDK.Hosting.Diagnostics.DebugOutputLogSink.Write(CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel level, string! message, System.Exception? exception) -> void
+CheatEngine.SDK.Hosting.Diagnostics.HostLog
+CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel
+CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel.Error = 3 -> CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel
+CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel.Information = 1 -> CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel
+CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel.Trace = 0 -> CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel
+CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel.Warning = 2 -> CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel
+CheatEngine.SDK.Hosting.Diagnostics.IHostLogSink
+CheatEngine.SDK.Hosting.Diagnostics.IHostLogSink.Write(CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel level, string! message, System.Exception? exception) -> void
+CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin
+CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin.CheatEnginePlugin() -> void
+CheatEngine.SDK.Hosting.Plugin.IPluginFactory
+CheatEngine.SDK.Hosting.Plugin.IPluginFactory.Create() -> CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin!
+CheatEngine.SDK.Hosting.Plugin.IPluginFactory.Utf8Name.get -> System.ReadOnlySpan<byte>
+CheatEngine.SDK.Hosting.Threading.MainThread
+abstract CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin.OnDisable() -> void
+abstract CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin.OnEnable() -> void
+static CheatEngine.SDK.Hosting.Bootstrap.PluginHost.Context.get -> CheatEngine.SDK.Hosting.Context.PluginContext?
+static CheatEngine.SDK.Hosting.Bootstrap.PluginHost.InitializeManaged<TFactory>(nint initRecord, int hostArgument) -> int
+static CheatEngine.SDK.Hosting.Bootstrap.PluginHost.IsEnabled.get -> bool
+static CheatEngine.SDK.Hosting.Bootstrap.PluginHost.IsInitialized.get -> bool
+static CheatEngine.SDK.Hosting.Bootstrap.PluginHost.LastInitRecordArgument.get -> int
+static CheatEngine.SDK.Hosting.Bootstrap.PluginHost.LastVersionRecordSize.get -> int
+static CheatEngine.SDK.Hosting.Bootstrap.PluginHost.Phase.get -> CheatEngine.SDK.Hosting.Bootstrap.PluginHostLifecyclePhase
+static CheatEngine.SDK.Hosting.Diagnostics.DebugOutputLogSink.Instance.get -> CheatEngine.SDK.Hosting.Diagnostics.DebugOutputLogSink!
+static CheatEngine.SDK.Hosting.Diagnostics.HostLog.IsEnabled(CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel level) -> bool
+static CheatEngine.SDK.Hosting.Diagnostics.HostLog.MinimumLevel.get -> CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel
+static CheatEngine.SDK.Hosting.Diagnostics.HostLog.MinimumLevel.set -> void
+static CheatEngine.SDK.Hosting.Diagnostics.HostLog.Sink.get -> CheatEngine.SDK.Hosting.Diagnostics.IHostLogSink!
+static CheatEngine.SDK.Hosting.Diagnostics.HostLog.Sink.set -> void
+static CheatEngine.SDK.Hosting.Diagnostics.HostLog.Write(CheatEngine.SDK.Hosting.Diagnostics.HostLogLevel level, string? message, System.Exception? exception = null) -> void
+static CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin.Context.get -> CheatEngine.SDK.Hosting.Context.PluginContext!
+static CheatEngine.SDK.Hosting.Threading.MainThread.CheckSynchronize(int timeoutMilliseconds) -> bool
+static CheatEngine.SDK.Hosting.Threading.MainThread.Invoke<TState, TResult>(System.Func<TState, TResult>! function, TState state) -> TResult
+static CheatEngine.SDK.Hosting.Threading.MainThread.Invoke<TState>(System.Action<TState>! action, TState state) -> void
+static CheatEngine.SDK.Hosting.Threading.MainThread.IsMainThread.get -> bool
+static CheatEngine.SDK.Hosting.Threading.MainThread.ProcessMessages() -> void

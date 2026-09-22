@@ -1,0 +1,128 @@
+#nullable enable
+CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Lua.Calls.LuaOperationStatus.Equals(CheatEngine.SDK.Lua.Calls.LuaOperationStatus other) -> bool
+CheatEngine.SDK.Lua.Calls.LuaOperationStatus.IsSuccess.get -> bool
+CheatEngine.SDK.Lua.Calls.LuaOperationStatus.Kind.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatus.LuaOperationStatus() -> void
+CheatEngine.SDK.Lua.Calls.LuaOperationStatus.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.GlobalUnavailable = 1 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.InvalidResult = 4 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.LuaFailure = 2 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.NilResult = 3 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.StackUnavailable = 5 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.Success = 0 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.IsSuccess.get -> bool
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.LuaGlobalPushOutcome() -> void
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.Status.get -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.ToOperationStatus() -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.LuaFailure = 2 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.Success = 0 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.Unavailable = 1 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy
+CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy.RejectExisting = 0 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy
+CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy.ReplaceExisting = 1 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy
+CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry
+CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry.Function.get -> CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction
+CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry.LuaRegistrationEntry() -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry.LuaRegistrationEntry(string! name, CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction function) -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry.Name.get -> string!
+CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure
+CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.Deconstruct(out string! Name, out CheatEngine.SDK.Lua.Calls.LuaStatus LuaStatus) -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.Equals(CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure other) -> bool
+CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.LuaRegistrationFailure() -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.LuaRegistrationFailure(string! Name, CheatEngine.SDK.Lua.Calls.LuaStatus LuaStatus) -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.LuaStatus.init -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.Name.get -> string!
+CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.Name.init -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationLease
+CheatEngine.SDK.Lua.Registration.LuaRegistrationLease.Dispose() -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationLease.Identity.get -> CheatEngine.SDK.Lua.Runtime.LuaStateIdentity
+CheatEngine.SDK.Lua.Registration.LuaRegistrationLease.IsDisposed.get -> bool
+CheatEngine.SDK.Lua.Registration.LuaRegistrationLease.LastReleaseOutcome.get -> CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome
+CheatEngine.SDK.Lua.Registration.LuaRegistrationLease.ReleaseWithOutcome() -> CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome
+CheatEngine.SDK.Lua.Registration.LuaRegistrationLease.ReleaseWithOutcome(CheatEngine.SDK.Lua.State.LuaState state) -> CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.Deconstruct(out string! Name, out CheatEngine.SDK.Lua.Calls.LuaStatus LuaStatus) -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.Equals(CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure other) -> bool
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.LuaRegistrationReleaseFailure() -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.LuaRegistrationReleaseFailure(string! Name, CheatEngine.SDK.Lua.Calls.LuaStatus LuaStatus) -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.LuaStatus.init -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.Name.get -> string!
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.Name.init -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind.AlreadyReleased = 4 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind.NotAttempted = 0 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind.PartiallyReleased = 2 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind.Released = 1 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind.Stale = 3 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.Equals(CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome other) -> bool
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.Failures.get -> System.Collections.Generic.IReadOnlyList<CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure>!
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.IsComplete.get -> bool
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.Kind.get -> CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.LuaRegistrationReleaseOutcome() -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.RemainingCount.get -> int
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.RemovedCount.get -> int
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.ReplacementCount.get -> int
+CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.RestoredCount.get -> int
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResult
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.Equals(CheatEngine.SDK.Lua.Registration.LuaRegistrationResult other) -> bool
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.Failure.get -> CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure?
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.IsSuccess.get -> bool
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.Kind.get -> CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.Lease.get -> CheatEngine.SDK.Lua.Registration.LuaRegistrationLease?
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.LuaRegistrationResult() -> void
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.Rollback.get -> CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind.Collision = 2 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind.PreflightFailed = 3 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind.PublicationFailed = 4 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind.Succeeded = 1 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind.Unspecified = 0 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind
+CheatEngine.SDK.Lua.Registration.LuaRegistrationSet
+CheatEngine.SDK.Lua.State.LuaState.TryPushGeneratedFunction(CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction thunk, CheatEngine.SDK.Lua.Runtime.LuaStateIdentity identity, bool requiresAttachedRuntime) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+override CheatEngine.SDK.Lua.Calls.LuaOperationStatus.Equals(object? obj) -> bool
+override CheatEngine.SDK.Lua.Calls.LuaOperationStatus.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.GetHashCode() -> int
+static CheatEngine.SDK.Lua.Calls.LuaOperationStatus.GlobalUnavailable.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Lua.Calls.LuaOperationStatus.InvalidResult.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Lua.Calls.LuaOperationStatus.LuaFailure(CheatEngine.SDK.Lua.Calls.LuaStatus luaStatus) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Lua.Calls.LuaOperationStatus.NilResult.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Lua.Calls.LuaOperationStatus.StackUnavailable.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Lua.Calls.LuaOperationStatus.Success.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Lua.Calls.LuaOperationStatus.operator !=(CheatEngine.SDK.Lua.Calls.LuaOperationStatus left, CheatEngine.SDK.Lua.Calls.LuaOperationStatus right) -> bool
+static CheatEngine.SDK.Lua.Calls.LuaOperationStatus.operator ==(CheatEngine.SDK.Lua.Calls.LuaOperationStatus left, CheatEngine.SDK.Lua.Calls.LuaOperationStatus right) -> bool
+static CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(CheatEngine.SDK.Lua.State.LuaState state, int top, CheatEngine.SDK.Lua.Calls.LuaOperationStatus status) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail<TResult>(CheatEngine.SDK.Lua.State.LuaState state, int top, CheatEngine.SDK.Lua.Calls.LuaOperationStatus status, out TResult result) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Lua.CompilerServices.LuaGlobalFunctions.TryPushWithOutcome(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Lua.References.LuaRef! cache, System.ReadOnlySpan<byte> name) -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome
+static CheatEngine.SDK.Lua.CompilerServices.LuaGlobalFunctions.TryPushWithStatus(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Lua.References.LuaRef! cache, System.ReadOnlySpan<byte> name) -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+static CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.LuaFailure(CheatEngine.SDK.Lua.Calls.LuaStatus luaStatus) -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome
+static CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.Success.get -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome
+static CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.Unavailable.get -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome
+static CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.operator !=(CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure left, CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure right) -> bool
+static CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.operator ==(CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure left, CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure right) -> bool
+static CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.operator !=(CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure left, CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure right) -> bool
+static CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.operator ==(CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure left, CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure right) -> bool
+static CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.operator !=(CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome left, CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome right) -> bool
+static CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.operator ==(CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome left, CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome right) -> bool
+static CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.operator !=(CheatEngine.SDK.Lua.Registration.LuaRegistrationResult left, CheatEngine.SDK.Lua.Registration.LuaRegistrationResult right) -> bool
+static CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.operator ==(CheatEngine.SDK.Lua.Registration.LuaRegistrationResult left, CheatEngine.SDK.Lua.Registration.LuaRegistrationResult right) -> bool
+static CheatEngine.SDK.Lua.Registration.LuaRegistrationSet.Register(CheatEngine.SDK.Lua.State.LuaState state, System.ReadOnlySpan<CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry> entries, CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy collisionPolicy = CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy.RejectExisting) -> CheatEngine.SDK.Lua.Registration.LuaRegistrationResult
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.TryPushGeneratedFunction(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction thunk) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+~override CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.Equals(object obj) -> bool
+~override CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.ToString() -> string
+~override CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.Equals(object obj) -> bool
+~override CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.ToString() -> string
+~override CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.Equals(object obj) -> bool
+~override CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.ToString() -> string
+~override CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.Equals(object obj) -> bool
+~override CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.ToString() -> string

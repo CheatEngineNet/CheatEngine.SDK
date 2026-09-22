@@ -36,6 +36,18 @@
   </Target>
 
   <!--
+    PublicApiAnalyzers only tracks a project whose PublicAPI files exist; without them RS0016/RS0017 never fire and a
+    public change goes unnoticed. Every shipping library therefore carries both files (eng/Shipping.props).
+  -->
+  <Target Name="CheatEngineSdkRequirePublicApiFiles"
+          BeforeTargets="BeforeBuild"
+          Condition="$(_CheatEngineSdkFolder.StartsWith('libs/'))">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt') or !Exists('$(MSBuildProjectDirectory)/PublicAPI.Unshipped.txt')"
+           Code="CESDK9003"
+           Text="$(MSBuildProjectName) needs PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt next to its project file: every shipping library tracks its public API; see eng/api/README.md."/>
+  </Target>
+
+  <!--
     The analysis level is pinned next to the exact SDK (global.json rollForward: disable), so the set of CA/IDE rules
     and their severities only changes in a reviewed commit. A project-level or command-line AnalysisLevel would silently
     widen or narrow that set for one project.

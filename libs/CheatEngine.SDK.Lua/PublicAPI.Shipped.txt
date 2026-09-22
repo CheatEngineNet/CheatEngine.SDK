@@ -1,0 +1,276 @@
+#nullable enable
+CheatEngine.SDK.Lua.Callbacks.LuaCallback
+CheatEngine.SDK.Lua.Callbacks.LuaCallback.Dispose() -> void
+CheatEngine.SDK.Lua.Callbacks.LuaCallback.IsCurrent.get -> bool
+CheatEngine.SDK.Lua.Callbacks.LuaCallback.IsReleased.get -> bool
+CheatEngine.SDK.Lua.Callbacks.LuaCallback.Release(CheatEngine.SDK.Lua.State.LuaState state) -> void
+CheatEngine.SDK.Lua.Callbacks.LuaCallback.StateObject.get -> object?
+CheatEngine.SDK.Lua.Callbacks.LuaCallback.TryPush(CheatEngine.SDK.Lua.State.LuaState state) -> bool
+CheatEngine.SDK.Lua.Callbacks.LuaCallback.TryRegister(CheatEngine.SDK.Lua.State.LuaState state, System.ReadOnlySpan<byte> globalName) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.Callbacks.LuaCallback<TState>
+CheatEngine.SDK.Lua.Callbacks.LuaCallback<TState>.State.get -> TState?
+CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction
+CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.Address.get -> nint
+CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.Equals(CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction other) -> bool
+CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.IsNull.get -> bool
+CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.LuaNativeFunction() -> void
+CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.LuaNativeFunction(delegate* unmanaged[Cdecl]<nint, int> function) -> void
+CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.LuaNativeFunction(nint address) -> void
+CheatEngine.SDK.Lua.Callbacks.LuaThunk
+CheatEngine.SDK.Lua.Calls.LuaComparison
+CheatEngine.SDK.Lua.Calls.LuaComparison.Equal = 0 -> CheatEngine.SDK.Lua.Calls.LuaComparison
+CheatEngine.SDK.Lua.Calls.LuaComparison.Less = 1 -> CheatEngine.SDK.Lua.Calls.LuaComparison
+CheatEngine.SDK.Lua.Calls.LuaComparison.LessOrEqual = 2 -> CheatEngine.SDK.Lua.Calls.LuaComparison
+CheatEngine.SDK.Lua.Calls.LuaError
+CheatEngine.SDK.Lua.Calls.LuaError.Equals(CheatEngine.SDK.Lua.Calls.LuaError other) -> bool
+CheatEngine.SDK.Lua.Calls.LuaError.LuaError() -> void
+CheatEngine.SDK.Lua.Calls.LuaError.LuaError(CheatEngine.SDK.Lua.Calls.LuaStatus status, string! message) -> void
+CheatEngine.SDK.Lua.Calls.LuaError.Message.get -> string!
+CheatEngine.SDK.Lua.Calls.LuaError.Status.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.Calls.LuaException
+CheatEngine.SDK.Lua.Calls.LuaException.LuaException(CheatEngine.SDK.Lua.Calls.LuaError error) -> void
+CheatEngine.SDK.Lua.Calls.LuaException.LuaException(string! message) -> void
+CheatEngine.SDK.Lua.Calls.LuaException.LuaException(string! message, System.Exception! innerException) -> void
+CheatEngine.SDK.Lua.Calls.LuaException.Status.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.Calls.LuaStatus.Code.get -> int
+CheatEngine.SDK.Lua.Calls.LuaStatus.Equals(CheatEngine.SDK.Lua.Calls.LuaStatus other) -> bool
+CheatEngine.SDK.Lua.Calls.LuaStatus.IsOk.get -> bool
+CheatEngine.SDK.Lua.Calls.LuaStatus.LuaStatus() -> void
+CheatEngine.SDK.Lua.Calls.LuaStatus.LuaStatus(int code) -> void
+CheatEngine.SDK.Lua.Calls.LuaStatus.ThrowIfFailed(CheatEngine.SDK.Lua.State.LuaState state) -> void
+CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalFunctions
+CheatEngine.SDK.Lua.Marshalling.AddressMarshaller
+CheatEngine.SDK.Lua.Marshalling.AddressMarshaller.AddressMarshaller() -> void
+CheatEngine.SDK.Lua.Marshalling.BooleanMarshaller
+CheatEngine.SDK.Lua.Marshalling.BooleanMarshaller.BooleanMarshaller() -> void
+CheatEngine.SDK.Lua.Marshalling.DoubleMarshaller
+CheatEngine.SDK.Lua.Marshalling.DoubleMarshaller.DoubleMarshaller() -> void
+CheatEngine.SDK.Lua.Marshalling.ILuaMarshaller<T>
+CheatEngine.SDK.Lua.Marshalling.ILuaMarshaller<T>.Push(CheatEngine.SDK.Lua.State.LuaState state, T value) -> void
+CheatEngine.SDK.Lua.Marshalling.ILuaMarshaller<T>.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out T value) -> bool
+CheatEngine.SDK.Lua.Marshalling.Int32Marshaller
+CheatEngine.SDK.Lua.Marshalling.Int32Marshaller.Int32Marshaller() -> void
+CheatEngine.SDK.Lua.Marshalling.Int64Marshaller
+CheatEngine.SDK.Lua.Marshalling.Int64Marshaller.Int64Marshaller() -> void
+CheatEngine.SDK.Lua.Marshalling.SingleMarshaller
+CheatEngine.SDK.Lua.Marshalling.SingleMarshaller.SingleMarshaller() -> void
+CheatEngine.SDK.Lua.Marshalling.StringMarshaller
+CheatEngine.SDK.Lua.Marshalling.StringMarshaller.StringMarshaller() -> void
+CheatEngine.SDK.Lua.Marshalling.Utf8Marshaller
+CheatEngine.SDK.Lua.Marshalling.Utf8Marshaller.Utf8Marshaller() -> void
+CheatEngine.SDK.Lua.References.LuaRef
+CheatEngine.SDK.Lua.References.LuaRef.Dispose() -> void
+CheatEngine.SDK.Lua.References.LuaRef.Epoch.get -> int
+CheatEngine.SDK.Lua.References.LuaRef.Identity.get -> CheatEngine.SDK.Lua.Runtime.LuaStateIdentity
+CheatEngine.SDK.Lua.References.LuaRef.IsCurrent.get -> bool
+CheatEngine.SDK.Lua.References.LuaRef.IsResolved.get -> bool
+CheatEngine.SDK.Lua.References.LuaRef.LuaRef() -> void
+CheatEngine.SDK.Lua.References.LuaRef.Reference.get -> int
+CheatEngine.SDK.Lua.References.LuaRef.Release(CheatEngine.SDK.Lua.State.LuaState state) -> void
+CheatEngine.SDK.Lua.References.LuaRef.StateGeneration.get -> int
+CheatEngine.SDK.Lua.Runtime.LuaHostBinding
+CheatEngine.SDK.Lua.Runtime.LuaHostBinding.Equals(CheatEngine.SDK.Lua.Runtime.LuaHostBinding other) -> bool
+CheatEngine.SDK.Lua.Runtime.LuaHostBinding.HostObjectPusher.get -> nint
+CheatEngine.SDK.Lua.Runtime.LuaHostBinding.IsValid.get -> bool
+CheatEngine.SDK.Lua.Runtime.LuaHostBinding.LuaHostBinding() -> void
+CheatEngine.SDK.Lua.Runtime.LuaHostBinding.LuaHostBinding(delegate* unmanaged[Stdcall]<void*> stateProvider, delegate* unmanaged[Stdcall]<void*, void*, void> hostObjectPusher, int mainThreadId) -> void
+CheatEngine.SDK.Lua.Runtime.LuaHostBinding.LuaHostBinding(nint stateProvider, nint hostObjectPusher, int mainThreadId) -> void
+CheatEngine.SDK.Lua.Runtime.LuaHostBinding.MainThreadId.get -> int
+CheatEngine.SDK.Lua.Runtime.LuaHostBinding.StateProvider.get -> nint
+CheatEngine.SDK.Lua.Runtime.LuaRuntime
+CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation
+CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation.Dispose() -> void
+CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation.LuaRuntimeOperation() -> void
+CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation.State.get -> CheatEngine.SDK.Lua.State.LuaState
+CheatEngine.SDK.Lua.Runtime.LuaStateIdentity
+CheatEngine.SDK.Lua.Runtime.LuaStateIdentity.AttachEpoch.get -> int
+CheatEngine.SDK.Lua.Runtime.LuaStateIdentity.Equals(CheatEngine.SDK.Lua.Runtime.LuaStateIdentity other) -> bool
+CheatEngine.SDK.Lua.Runtime.LuaStateIdentity.LuaStateIdentity() -> void
+CheatEngine.SDK.Lua.Runtime.LuaStateIdentity.StateGeneration.get -> int
+CheatEngine.SDK.Lua.State.LuaFrame
+CheatEngine.SDK.Lua.State.LuaFrame.AssertBalanced() -> void
+CheatEngine.SDK.Lua.State.LuaFrame.Count.get -> int
+CheatEngine.SDK.Lua.State.LuaFrame.Dispose() -> void
+CheatEngine.SDK.Lua.State.LuaFrame.LuaFrame() -> void
+CheatEngine.SDK.Lua.State.LuaFrame.LuaFrame(CheatEngine.SDK.Lua.State.LuaState state) -> void
+CheatEngine.SDK.Lua.State.LuaFrame.State.get -> CheatEngine.SDK.Lua.State.LuaState
+CheatEngine.SDK.Lua.State.LuaFrame.Top.get -> int
+CheatEngine.SDK.Lua.State.LuaState
+CheatEngine.SDK.Lua.State.LuaState.AbsoluteIndex(int index) -> int
+CheatEngine.SDK.Lua.State.LuaState.Copy(int fromIndex, int toIndex) -> void
+CheatEngine.SDK.Lua.State.LuaState.CreateRef() -> CheatEngine.SDK.Lua.References.LuaRef!
+CheatEngine.SDK.Lua.State.LuaState.CreateTable(int arraySlots = 0, int recordSlots = 0) -> void
+CheatEngine.SDK.Lua.State.LuaState.Equals(CheatEngine.SDK.Lua.State.LuaState other) -> bool
+CheatEngine.SDK.Lua.State.LuaState.Handle.get -> nint
+CheatEngine.SDK.Lua.State.LuaState.Insert(int index) -> void
+CheatEngine.SDK.Lua.State.LuaState.IsFunction(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.IsInteger(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.IsLightUserdata(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.IsNil(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.IsNone(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.IsNoneOrNil(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.IsNull.get -> bool
+CheatEngine.SDK.Lua.State.LuaState.IsNumberConvertible(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.IsTable(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.IsUserdata(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.LuaState() -> void
+CheatEngine.SDK.Lua.State.LuaState.LuaState(nint handle) -> void
+CheatEngine.SDK.Lua.State.LuaState.NewUserdata(nuint size) -> nint
+CheatEngine.SDK.Lua.State.LuaState.Pop(int count) -> void
+CheatEngine.SDK.Lua.State.LuaState.PushBoolean(bool value) -> void
+CheatEngine.SDK.Lua.State.LuaState.PushByteTable(System.ReadOnlySpan<byte> bytes) -> void
+CheatEngine.SDK.Lua.State.LuaState.PushGlobalTable() -> void
+CheatEngine.SDK.Lua.State.LuaState.PushInteger(long value) -> void
+CheatEngine.SDK.Lua.State.LuaState.PushLightUserdata(nint address) -> void
+CheatEngine.SDK.Lua.State.LuaState.PushNil() -> void
+CheatEngine.SDK.Lua.State.LuaState.PushNumber(double value) -> void
+CheatEngine.SDK.Lua.State.LuaState.PushString(System.ReadOnlySpan<byte> utf8) -> void
+CheatEngine.SDK.Lua.State.LuaState.PushString(System.ReadOnlySpan<char> text) -> void
+CheatEngine.SDK.Lua.State.LuaState.PushUncheckedFunction(CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction thunk) -> void
+CheatEngine.SDK.Lua.State.LuaState.PushValue(int index) -> void
+CheatEngine.SDK.Lua.State.LuaState.RawEquals(int index1, int index2) -> bool
+CheatEngine.SDK.Lua.State.LuaState.RawGet(int tableIndex) -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaState.RawGetIndex(int tableIndex, long key) -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaState.RawGetPointer(int tableIndex, nint key) -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaState.RawLength(int index) -> nuint
+CheatEngine.SDK.Lua.State.LuaState.RawSetIndex(int tableIndex, long key) -> void
+CheatEngine.SDK.Lua.State.LuaState.RawSetPointer(int tableIndex, nint key) -> void
+CheatEngine.SDK.Lua.State.LuaState.Remove(int index) -> void
+CheatEngine.SDK.Lua.State.LuaState.Replace(int index) -> void
+CheatEngine.SDK.Lua.State.LuaState.Rotate(int index, int count) -> void
+CheatEngine.SDK.Lua.State.LuaState.SetMetatable(int index) -> void
+CheatEngine.SDK.Lua.State.LuaState.SetTop(int index) -> void
+CheatEngine.SDK.Lua.State.LuaState.ToBoolean(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.ToPointer(int index) -> nint
+CheatEngine.SDK.Lua.State.LuaState.ToUserdata(int index) -> nint
+CheatEngine.SDK.Lua.State.LuaState.Top.get -> int
+CheatEngine.SDK.Lua.State.LuaState.TryCall(int argumentCount, int resultCount) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryCall(int argumentCount, int resultCount, int messageHandlerIndex) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryCompare(int index1, int index2, CheatEngine.SDK.Lua.Calls.LuaComparison comparison, out bool result) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryCopyUtf8(int index, System.Span<byte> destination, out int written) -> bool
+CheatEngine.SDK.Lua.State.LuaState.TryEnsureStack(int extraSlots) -> bool
+CheatEngine.SDK.Lua.State.LuaState.TryExecute(System.ReadOnlySpan<byte> source, int resultCount, System.ReadOnlySpan<byte> chunkName = default(System.ReadOnlySpan<byte>)) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryGetField(int index, System.ReadOnlySpan<byte> key) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryGetGlobal(System.ReadOnlySpan<byte> name) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryGetIndex(int index, long key) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryGetMetatable(int index) -> bool
+CheatEngine.SDK.Lua.State.LuaState.TryGetTable(int index) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryLength(int index) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryLoad(System.ReadOnlySpan<byte> source, System.ReadOnlySpan<byte> chunkName = default(System.ReadOnlySpan<byte>)) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryNext(int index, out bool hasNext) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryPushFunction(CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction thunk) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryPushRef(CheatEngine.SDK.Lua.References.LuaRef! reference) -> bool
+CheatEngine.SDK.Lua.State.LuaState.TryPushString(System.ReadOnlySpan<byte> utf8) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryRawSet(int tableIndex) -> bool
+CheatEngine.SDK.Lua.State.LuaState.TryReadInteger(int index, out long value) -> bool
+CheatEngine.SDK.Lua.State.LuaState.TryReadNumber(int index, out double value) -> bool
+CheatEngine.SDK.Lua.State.LuaState.TryReadString(int index, out string? value) -> bool
+CheatEngine.SDK.Lua.State.LuaState.TryReadUtf8(int index, out System.ReadOnlySpan<byte> utf8) -> bool
+CheatEngine.SDK.Lua.State.LuaState.TrySetField(int index, System.ReadOnlySpan<byte> key) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TrySetGlobal(System.ReadOnlySpan<byte> name) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TrySetIndex(int index, long key) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TrySetTable(int index) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TryToString(int index) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Lua.State.LuaState.TypeName(CheatEngine.SDK.Lua.State.LuaType type) -> System.ReadOnlySpan<byte>
+CheatEngine.SDK.Lua.State.LuaState.TypeName(int index) -> System.ReadOnlySpan<byte>
+CheatEngine.SDK.Lua.State.LuaState.TypeOf(int index) -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType.Boolean = 1 -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType.Function = 6 -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType.LightUserdata = 2 -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType.Nil = 0 -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType.None = -1 -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType.Number = 3 -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType.String = 4 -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType.Table = 5 -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType.Thread = 8 -> CheatEngine.SDK.Lua.State.LuaType
+CheatEngine.SDK.Lua.State.LuaType.Userdata = 7 -> CheatEngine.SDK.Lua.State.LuaType
+const CheatEngine.SDK.Lua.Callbacks.LuaThunk.FailureResultCount = 2 -> int
+const CheatEngine.SDK.Lua.State.LuaState.MinimumFreeSlots = 20 -> int
+const CheatEngine.SDK.Lua.State.LuaState.MultipleResults = -1 -> int
+const CheatEngine.SDK.Lua.State.LuaState.RegistryIndex = -1001000 -> int
+override CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.Equals(object? obj) -> bool
+override CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.ToString() -> string!
+override CheatEngine.SDK.Lua.Calls.LuaError.Equals(object? obj) -> bool
+override CheatEngine.SDK.Lua.Calls.LuaError.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Calls.LuaError.ToString() -> string!
+override CheatEngine.SDK.Lua.Calls.LuaStatus.Equals(object? obj) -> bool
+override CheatEngine.SDK.Lua.Calls.LuaStatus.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Calls.LuaStatus.ToString() -> string!
+override CheatEngine.SDK.Lua.References.LuaRef.ToString() -> string!
+override CheatEngine.SDK.Lua.Runtime.LuaHostBinding.Equals(object? obj) -> bool
+override CheatEngine.SDK.Lua.Runtime.LuaHostBinding.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Runtime.LuaStateIdentity.Equals(object? obj) -> bool
+override CheatEngine.SDK.Lua.Runtime.LuaStateIdentity.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Runtime.LuaStateIdentity.ToString() -> string!
+override CheatEngine.SDK.Lua.State.LuaState.Equals(object? obj) -> bool
+override CheatEngine.SDK.Lua.State.LuaState.GetHashCode() -> int
+override CheatEngine.SDK.Lua.State.LuaState.ToString() -> string!
+static CheatEngine.SDK.Lua.Callbacks.LuaCallback.TryCreate<TState>(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction thunk, TState! stateObject, out CheatEngine.SDK.Lua.Callbacks.LuaCallback<TState!>? callback) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+static CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.operator !=(CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction left, CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction right) -> bool
+static CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction.operator ==(CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction left, CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction right) -> bool
+static CheatEngine.SDK.Lua.Callbacks.LuaThunk.Fail(CheatEngine.SDK.Lua.State.LuaState state, System.Exception? exception) -> int
+static CheatEngine.SDK.Lua.Callbacks.LuaThunk.Fail(CheatEngine.SDK.Lua.State.LuaState state, System.ReadOnlySpan<byte> message) -> int
+static CheatEngine.SDK.Lua.Callbacks.LuaThunk.Fail(CheatEngine.SDK.Lua.State.LuaState state, System.ReadOnlySpan<char> message) -> int
+static CheatEngine.SDK.Lua.Callbacks.LuaThunk.FailBadArgument(CheatEngine.SDK.Lua.State.LuaState state, int argument, System.ReadOnlySpan<byte> expected) -> int
+static CheatEngine.SDK.Lua.Callbacks.LuaThunk.TryGetState<TState>(CheatEngine.SDK.Lua.State.LuaState state, out TState? value) -> bool
+static CheatEngine.SDK.Lua.Calls.LuaError.FromStack(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Lua.Calls.LuaStatus status) -> CheatEngine.SDK.Lua.Calls.LuaError
+static CheatEngine.SDK.Lua.Calls.LuaError.operator !=(CheatEngine.SDK.Lua.Calls.LuaError left, CheatEngine.SDK.Lua.Calls.LuaError right) -> bool
+static CheatEngine.SDK.Lua.Calls.LuaError.operator ==(CheatEngine.SDK.Lua.Calls.LuaError left, CheatEngine.SDK.Lua.Calls.LuaError right) -> bool
+static CheatEngine.SDK.Lua.Calls.LuaException.Throw(CheatEngine.SDK.Lua.Calls.LuaError error) -> void
+static CheatEngine.SDK.Lua.Calls.LuaException.ThrowFromStack(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Lua.Calls.LuaStatus status) -> void
+static CheatEngine.SDK.Lua.Calls.LuaStatus.FileError.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+static CheatEngine.SDK.Lua.Calls.LuaStatus.GcMetamethodError.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+static CheatEngine.SDK.Lua.Calls.LuaStatus.MemoryError.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+static CheatEngine.SDK.Lua.Calls.LuaStatus.MessageHandlerError.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+static CheatEngine.SDK.Lua.Calls.LuaStatus.Ok.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+static CheatEngine.SDK.Lua.Calls.LuaStatus.RuntimeError.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+static CheatEngine.SDK.Lua.Calls.LuaStatus.SyntaxError.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+static CheatEngine.SDK.Lua.Calls.LuaStatus.Yield.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+static CheatEngine.SDK.Lua.Calls.LuaStatus.operator !=(CheatEngine.SDK.Lua.Calls.LuaStatus left, CheatEngine.SDK.Lua.Calls.LuaStatus right) -> bool
+static CheatEngine.SDK.Lua.Calls.LuaStatus.operator ==(CheatEngine.SDK.Lua.Calls.LuaStatus left, CheatEngine.SDK.Lua.Calls.LuaStatus right) -> bool
+static CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(CheatEngine.SDK.Lua.State.LuaState state, int top) -> bool
+static CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail<TResult>(CheatEngine.SDK.Lua.State.LuaState state, int top, out TResult result) -> bool
+static CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Throw(CheatEngine.SDK.Lua.State.LuaState state, int top, CheatEngine.SDK.Lua.Calls.LuaStatus status) -> void
+static CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.ThrowUnexpectedResult(CheatEngine.SDK.Lua.State.LuaState state, int top, int index, string! globalName, string! expected) -> void
+static CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.ThrowUnresolvedGlobal(CheatEngine.SDK.Lua.State.LuaState state, int top, string! globalName) -> void
+static CheatEngine.SDK.Lua.CompilerServices.LuaGlobalFunctions.TryPush(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Lua.References.LuaRef! cache, System.ReadOnlySpan<byte> name) -> bool
+static CheatEngine.SDK.Lua.Marshalling.AddressMarshaller.Push(CheatEngine.SDK.Lua.State.LuaState state, nuint value) -> void
+static CheatEngine.SDK.Lua.Marshalling.AddressMarshaller.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out nuint value) -> bool
+static CheatEngine.SDK.Lua.Marshalling.BooleanMarshaller.Push(CheatEngine.SDK.Lua.State.LuaState state, bool value) -> void
+static CheatEngine.SDK.Lua.Marshalling.BooleanMarshaller.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out bool value) -> bool
+static CheatEngine.SDK.Lua.Marshalling.DoubleMarshaller.Push(CheatEngine.SDK.Lua.State.LuaState state, double value) -> void
+static CheatEngine.SDK.Lua.Marshalling.DoubleMarshaller.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out double value) -> bool
+static CheatEngine.SDK.Lua.Marshalling.Int32Marshaller.Push(CheatEngine.SDK.Lua.State.LuaState state, int value) -> void
+static CheatEngine.SDK.Lua.Marshalling.Int32Marshaller.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out int value) -> bool
+static CheatEngine.SDK.Lua.Marshalling.Int64Marshaller.Push(CheatEngine.SDK.Lua.State.LuaState state, long value) -> void
+static CheatEngine.SDK.Lua.Marshalling.Int64Marshaller.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out long value) -> bool
+static CheatEngine.SDK.Lua.Marshalling.SingleMarshaller.Push(CheatEngine.SDK.Lua.State.LuaState state, float value) -> void
+static CheatEngine.SDK.Lua.Marshalling.SingleMarshaller.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out float value) -> bool
+static CheatEngine.SDK.Lua.Marshalling.StringMarshaller.Push(CheatEngine.SDK.Lua.State.LuaState state, string? value) -> void
+static CheatEngine.SDK.Lua.Marshalling.StringMarshaller.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out string! value) -> bool
+static CheatEngine.SDK.Lua.Marshalling.Utf8Marshaller.Push(CheatEngine.SDK.Lua.State.LuaState state, System.ReadOnlySpan<byte> value) -> void
+static CheatEngine.SDK.Lua.Marshalling.Utf8Marshaller.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out System.ReadOnlySpan<byte> value) -> bool
+static CheatEngine.SDK.Lua.Runtime.LuaHostBinding.operator !=(CheatEngine.SDK.Lua.Runtime.LuaHostBinding left, CheatEngine.SDK.Lua.Runtime.LuaHostBinding right) -> bool
+static CheatEngine.SDK.Lua.Runtime.LuaHostBinding.operator ==(CheatEngine.SDK.Lua.Runtime.LuaHostBinding left, CheatEngine.SDK.Lua.Runtime.LuaHostBinding right) -> bool
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation() -> CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireOperation(CheatEngine.SDK.Lua.State.LuaState state) -> CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState() -> CheatEngine.SDK.Lua.State.LuaState
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.Attach(in CheatEngine.SDK.Lua.Runtime.LuaHostBinding binding) -> void
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.CurrentBinding.get -> CheatEngine.SDK.Lua.Runtime.LuaHostBinding
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.CurrentStateIdentity.get -> CheatEngine.SDK.Lua.Runtime.LuaStateIdentity
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.Detach() -> void
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.Epoch.get -> int
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.IsAttached.get -> bool
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.IsMainThread.get -> bool
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.PushHostObject(CheatEngine.SDK.Lua.State.LuaState state, nint nativeObject) -> void
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.StateGeneration.get -> int
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.TryAcquireOperation(out CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation operation) -> bool
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.TryAcquireState(out CheatEngine.SDK.Lua.State.LuaState state) -> bool
+static CheatEngine.SDK.Lua.Runtime.LuaStateIdentity.operator !=(CheatEngine.SDK.Lua.Runtime.LuaStateIdentity left, CheatEngine.SDK.Lua.Runtime.LuaStateIdentity right) -> bool
+static CheatEngine.SDK.Lua.Runtime.LuaStateIdentity.operator ==(CheatEngine.SDK.Lua.Runtime.LuaStateIdentity left, CheatEngine.SDK.Lua.Runtime.LuaStateIdentity right) -> bool
+static CheatEngine.SDK.Lua.State.LuaState.operator !=(CheatEngine.SDK.Lua.State.LuaState left, CheatEngine.SDK.Lua.State.LuaState right) -> bool
+static CheatEngine.SDK.Lua.State.LuaState.operator ==(CheatEngine.SDK.Lua.State.LuaState left, CheatEngine.SDK.Lua.State.LuaState right) -> bool

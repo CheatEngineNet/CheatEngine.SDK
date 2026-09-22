@@ -1,0 +1,4 @@
+#nullable enable
+CheatEngine.SDK.Annotations.Lua.LuaMarshallerAttribute
+CheatEngine.SDK.Annotations.Lua.LuaMarshallerAttribute.LuaMarshallerAttribute(System.Type! marshallerType) -> void
+CheatEngine.SDK.Annotations.Lua.LuaMarshallerAttribute.MarshallerType.get -> System.Type!

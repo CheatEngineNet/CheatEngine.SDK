@@ -19,6 +19,7 @@ this project only reads committed files. It never builds, packs, restores or sta
 | `Solution/`       | `SolutionInventoryTests` compares the projects on disk with the projects listed in the solution.   |
 | `Documentation/`  | `DocumentationIntegrityTests` checks every Markdown file: links, anchors, paths, `docs/` pages.    |
 | `Toolchain/` | `ToolchainPinTests` reads `global.json`, `Directory.Build.props` and `Directory.Solution.targets`: exact SDK, analysis-level pin, NuGet audit policy. |
+| `LockFiles/` | `LockFileTests` mirror the structural checks of `eng/Update-LockFiles.ps1` over the committed `packages.lock.json` files. |
 | `PublicApi/` | PublicAPI files, `CompatibilitySuppressions.xml` and the `eng/api/*.txt` lists: file shape, declared breaks, Client-induced breaks, enum contracts. |
 
 Later work adds one folder per contract (for example `Documentation/`, `Workflows/`, `Qualification/`).
@@ -82,6 +83,12 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   only shrink (`Enums_mirroring_cheat_engine_constants_or_client_signatures_keep_their_1_0_0_members`,
   `Every_enum_added_after_1_0_0_is_classified`, `Status_and_outcome_enums_added_after_1_0_0_do_not_default_to_success`,
   `Pending_zero_value_fixes_are_still_needed`).
+- Every project, inside or outside the solution, has a lock file in NuGet's version 2 format, ending as NuGet writes it;
+  Native AOT projects lock their runtime-specific ILCompiler package; no lock resolves a CheatEngine.* package from a feed
+  (`Every_project_has_a_committed_lock_file`, `Lock_files_parse_and_declare_a_supported_format_version`,
+  `Every_lock_file_is_version_2_because_every_project_uses_central_package_management`,
+  `Version_1_lock_files_hold_no_central_transitive_entries`, `Native_aot_projects_lock_the_win_x64_ilcompiler_packages`,
+  `No_lock_file_resolves_a_cheatengine_package`, `Lock_files_end_without_a_final_newline_as_nuget_writes_them`).
 
 ## Run the tests
 

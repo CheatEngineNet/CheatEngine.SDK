@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "Meziantou.Analyzer": {
+        "type": "Direct",
+        "requested": "[3.0.270, )",
+        "resolved": "3.0.270",
+        "contentHash": "E2OnRZmSZ3ZLhhFj0q/En47RhWrmLEVtsRsNZIW12ecQLT9y4Wimo+A8x/kuhtzLlePJ9yPp7aPiSQx8a8H5mw=="
+      },
+      "MinVer": {
+        "type": "Direct",
+        "requested": "[8.0.0, )",
+        "resolved": "8.0.0",
+        "contentHash": "AJy/KVjXgUbgjf6HiI8wAk4DSSq0SCmvXQF8aU6IB+pnIQq+YJvofvMczug2hqO8yEvnQY557ryew66KPpyCsA=="
+      },
+      "cheatengine.sdk.annotations": {
+        "type": "Project"
+      },
+      "cheatengine.sdk.lua": {
+        "type": "Project",
+        "dependencies": {
+          "CheatEngine.SDK.Annotations": "[1.0.0, )",
+          "CheatEngine.SDK.Lua.Interop": "[1.0.0, )"
+        }
+      },
+      "cheatengine.sdk.lua.interop": {
+        "type": "Project"
+      }
+    }
+  }
+}

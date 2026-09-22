@@ -37,6 +37,7 @@ internal static unsafe class Layout
 	private struct AlignmentProbe<T>
 		where T : unmanaged
 	{
+		public byte Prefix;
 		public T Value;
 	}
 }

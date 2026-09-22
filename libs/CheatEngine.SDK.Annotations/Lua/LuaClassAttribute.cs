@@ -20,11 +20,10 @@ namespace CheatEngine.SDK.Annotations.Lua;
 ///         Cheat Engine class. Instances are immutable and may be used from any thread.
 ///     </para>
 ///     <para>
-///         <b>Usage.</b> <see cref="AttributeUsageAttribute.Inherited" /> is <see langword="false" />: a derived wrapper
-///         stands for a different, more derived Cheat Engine class and has to name it; inheriting the attribute would make
-///         it claim the name of its base. <see cref="AttributeUsageAttribute.AllowMultiple" /> is <see langword="false" />
-///         :
-///         a wrapper type stands for exactly one Cheat Engine class.
+///         <b>Usage.</b> The attribute uses the framework default for
+///         <see cref="AttributeUsageAttribute.Inherited" /> so metadata consumers can observe it through an inherited
+///         wrapper when appropriate. <see cref="AttributeUsageAttribute.AllowMultiple" /> is
+///         <see langword="false" />: a wrapper type stands for exactly one Cheat Engine class.
 ///     </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Struct)]

@@ -4,8 +4,9 @@ language: en-US
 early_access: false
 
 reviews:
-  # Keep automated review useful for real defects without turning the App into a second formatter or approval process.
-  profile: chill
+  # Assertive and advisory: CodeRabbit reviews thoroughly but never approves, requests changes or sets a required
+  # status. The only merge requirement is the CI / Gate check.
+  profile: assertive
   request_changes_workflow: false
   review_details: false
   review_progress: true
@@ -13,7 +14,8 @@ reviews:
   fail_commit_status: false
   high_level_summary: true
   high_level_summary_instructions: >-
-    Summarize only material SDK contract, native ABI, generator, test, packaging, or CI/CD effects. Keep it concise.
+    Summarize only material SDK contract, native ABI, Lua stack, generator, analyzer, test, packaging, or CI/CD
+    effects. Keep it concise.
   collapse_walkthrough: true
   changed_files_summary: false
   sequence_diagrams: false
@@ -31,16 +33,67 @@ reviews:
   abort_on_close: true
   slop_detection:
     enabled: false
-  # This repository uses the GitHub App for review, not a CodeRabbit coding agent or autonomous follow-up changes.
   pre_merge_checks:
+    # Every check is a warning: none of them can block a merge.
     title:
-      mode: 'off'
+      mode: warning
+      requirements: >-
+        Pull requests are squash-merged and the title becomes the commit subject: a short imperative sentence such as
+        "Fix CI validation findings", at most 72 characters, no trailing period.
     description:
-      mode: 'off'
+      mode: warning
     issue_assessment:
-      mode: 'off'
+      mode: 'off' # issues are disabled on this repository
     docstrings:
-      mode: 'off'
+      mode: 'off' # CS1591 already fails the build for undocumented public APIs
+    custom_checks:
+      - name: Native ABI evidence
+        mode: warning
+        instructions: >-
+          Applies only when the pull request changes files under libs/CheatEngine.SDK.Abi/, native/ or
+          tests/native-abi-fixture/, or changes a StructLayout, FieldOffset, function-pointer signature,
+          UnmanagedCallersOnly or LibraryImport declaration anywhere; otherwise pass. Pass when the description or the
+          changed documentation names the upstream Cheat Engine source (file and symbol, pinned to a commit or tested
+          release), the Cheat Engine version, the x64 architecture and the calling convention, and the change adds or
+          updates size, offset or export tests in tests/CheatEngine.SDK.Abi.Tests or tests/native-abi-fixture. Fail
+          when a layout, export or signature changes without that evidence, or when fixture evidence is presented as
+          live Cheat Engine host qualification.
+      - name: Lua stack balance tests
+        mode: warning
+        instructions: >-
+          Applies only when the pull request changes code that pushes, pops, calls or references values on a Lua stack
+          in libs/CheatEngine.SDK.Lua/, libs/CheatEngine.SDK.Lua.Interop/,
+          source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/ or native/cheatengine-sdk-lua-bridge/;
+          otherwise pass. Pass when tests assert that the stack top is restored on success and on every touched failure
+          path (conversion failure, callback exception, protected-call error) and that registry references and
+          callbacks are released. Fail when such code changes without those assertions, or when a raw Lua call that
+          can raise is added outside a protected boundary.
+      - name: Public API documentation and changelog
+        mode: warning
+        instructions: >-
+          Applies when public or protected API in libs/, src/, analyzers/ or source-generators/ is added, removed or
+          changes signature or behavior, or when an analyzer diagnostic identifier or message changes; otherwise pass.
+          Pass when every new public member has XML documentation, the owning project's sibling README.md is updated
+          where it documents the contract, CHANGELOG.md has a matching entry under [Unreleased] (removals and behavior
+          changes marked as breaking), and diagnostic changes also update analyzers/docs and analyzer release tracking.
+          Fail otherwise.
+      - name: Dependency direction
+        mode: warning
+        instructions: >-
+          Fail when any project, source file or package reference references CheatEngine.Client, CheatEngine.Mcp or
+          their namespaces or packages, when Client-level policy (fluent APIs, dependency-injection registration,
+          application workflows) is added to this SDK, or when a shipping project under src/ or libs/ gains a new
+          PackageReference without a reason stated in the description. Otherwise pass.
+      - name: Workflow hygiene
+        mode: warning
+        instructions: >-
+          Applies only to changes under .github/; otherwise pass. Fail when an action is referenced by tag or branch
+          instead of a full 40-character commit SHA with a version comment; pull_request_target is used;
+          actions/checkout omits persist-credentials: false; a permission is widened without a comment giving the
+          reason; a PowerShell step runs a native command (dotnet, xmake, git, gh, tar, actionlint) without checking
+          $LASTEXITCODE; SONAR_TOKEN or NUGET_USER can reach fork or Dependabot runs; a job added to ci.yml is missing
+          from the Gate's needs; or NuGet/login moves out of the release.yml publish job that uses environment nuget.
+          Otherwise pass.
   finishing_touches:
     docstrings:
       enabled: false
@@ -57,6 +110,7 @@ reviews:
     auto_incremental_review: true
     drafts: false
     base_branches: [ main ]
+    ignore_usernames: [ 'dependabot[bot]' ]
   # Exclude only generated outputs and non-reviewable binary payloads. Source, specifications, tests, CI and docs stay in scope.
   path_filters:
     - '!artifacts/**'
@@ -102,19 +156,30 @@ reviews:
         and binary compatibility. Fluent developer workflows and application policy belong in CheatEngine.Client.
     - path: 'tests/**'
       instructions: >-
-        Tests use xUnit v3 with Microsoft.Testing.Platform. Debug CI rejects skipped tests. Distinguish fixture,
-        package and NativeAOT probes from actual live Cheat Engine host qualification.
+        Tests use xUnit v3 with Microsoft.Testing.Platform. CI runs the whole solution once in Debug and once in
+        Release with --fail-skips on, so a skipped test fails both. Distinguish fixture, package and NativeAOT probes
+        from actual live Cheat Engine host qualification.
+    - path: 'CHANGELOG.md'
+      instructions: >-
+        Keep a Changelog 1.1.0. The release workflow publishes the body of the "## [X.Y.Z]" section (or [Unreleased]
+        for a prerelease) as the GitHub release notes, so keep version headings exact and link references at the end.
     - path: '.github/**'
       instructions: >-
-        Preserve the discover/native/build/test/pack/AOT/gate DAG and its bridge, coverage and NuGet artifact flows.
-        Require least-privilege permissions and pinned action SHAs. actionlint already runs in pull-request CI; do not
-        ask for a duplicate CodeRabbit actionlint run. Never use pull_request_target to check out or execute code from
-        forks. Sonar secrets must remain unavailable to forks.
+        pull-request-ci.yml, main-ci.yml and release.yml are thin callers of the reusable ci.yml (native, build-test
+        matrix Debug/Release, aot, sonar through sonar.yml, lint, gate) and must stay thin. Jobs exchange artifacts
+        instead of redoing work: lua-protection-bridge and classic-abi-fixture-facts from native; nuget-package,
+        coverage and test-results-<configuration> from build-test; release-notes from the release verify job. Do not
+        reintroduce per-project test matrices, a second test run of the same configuration, or rebuilds of what an
+        upstream job produced. NativeBridgePeAuditTests asserts the native job text. The Gate evaluates toJSON(needs)
+        and only sonar may be skipped. NuGet/login stays in release.yml with environment nuget (trusted publishing
+        binding). Require SHA-pinned actions, least privilege, persist-credentials: false and $LASTEXITCODE checks.
+        actionlint already runs in CI; do not ask for a duplicate CodeRabbit actionlint run. Never use
+        pull_request_target. Sonar secrets must stay unavailable to forks and Dependabot.
   tools:
     # CodeRabbit is used as the GitHub App; pipeline failures are surfaced through its GitHub Checks integration.
     github-checks:
       enabled: true
-    # pull-request-ci.yml is the deterministic actionlint owner.
+    # The ci.yml lint job is the deterministic actionlint owner.
     actionlint:
       enabled: false
 
@@ -122,6 +187,10 @@ chat:
   auto_reply: true
 
 knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - CONTRIBUTING.md
   automatic_linking_mode: disabled
   linked_repositories:
     - repository: CheatEngineNet/CheatEngine.Client

@@ -164,6 +164,21 @@ public sealed class SupportProfileTests
 	}
 
 	[Fact]
+	public void Not_executed_section_equals_the_matrix()
+	{
+		QualificationMatrix matrix =
+			QualificationMatrix.Read(QualificationDocuments.LoadJson(QualificationDocuments.MatrixPath));
+		string expected = QualificationMarkdown.NotExecuted(matrix);
+
+		string? actual = QualificationMarkdown.GeneratedBlock(
+			QualificationDocuments.ReadNormalizedText(QualificationDocuments.SupportProfileMarkdownPath),
+			QualificationMarkdown.NotExecutedMarker);
+
+		Assert.True(string.Equals(expected, actual, StringComparison.Ordinal),
+			$"Replace the {QualificationMarkdown.NotExecutedMarker} block of {QualificationDocuments.SupportProfileMarkdownPath} with:{Environment.NewLine}{expected}");
+	}
+
+	[Fact]
 	public void Qualification_documents_contain_no_absolute_local_path_or_global_percentage()
 	{
 		List<string> problems = [];

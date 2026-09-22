@@ -151,6 +151,37 @@ internal static class QualificationDocuments
 		return logs;
 	}
 
+	/// <summary>The projects listed in <c>CheatEngine.SDK.slnx</c>, repository-relative with forward slashes.</summary>
+	internal static IReadOnlySet<string> SolutionProjects()
+	{
+		HashSet<string> projects = new(StringComparer.Ordinal);
+		foreach (XElement project in XDocument.Load(RepositoryRoot.SolutionPath).Descendants("Project"))
+		{
+			string? path = (string?) project.Attribute("Path");
+			if (path is not null)
+			{
+				projects.Add(path.Replace('\\', '/'));
+			}
+		}
+
+		return projects;
+	}
+
+	/// <summary>The <c>Platform Project</c> mapping of a solution project, or <see langword="null" />.</summary>
+	internal static string? SolutionPlatform(string projectPath)
+	{
+		foreach (XElement project in XDocument.Load(RepositoryRoot.SolutionPath).Descendants("Project"))
+		{
+			if (string.Equals(((string?) project.Attribute("Path"))?.Replace('\\', '/'), projectPath,
+					StringComparison.Ordinal))
+			{
+				return (string?) project.Element("Platform")?.Attribute("Project");
+			}
+		}
+
+		return null;
+	}
+
 	internal static bool Exists(string repositoryRelativePath)
 	{
 		return File.Exists(Absolute(repositoryRelativePath));

@@ -176,7 +176,7 @@ internal static class QualificationRules
 	///     level, status and profile, and was produced from the cell's tree and package unless the cell carries a
 	///     transferJustification.
 	/// </summary>
-	internal static IReadOnlyList<string> Receipts(QualificationMatrix matrix, Func<string, JsonElement?> loadReceipt)
+	internal static IReadOnlyList<string> Receipts(QualificationMatrix matrix, Func<string, CommittedReceipt?> loadReceipt)
 	{
 		List<string> errors = [];
 		foreach ((QualificationMatrix.Row row, QualificationMatrix.Cell cell) in matrix.Cells())
@@ -291,8 +291,16 @@ internal static class QualificationRules
 		}
 	}
 
+	/// <summary>Reads a committed receipt and its LF-normalized SHA-256, or returns <see langword="null" />.</summary>
+	internal static CommittedReceipt? LoadCommittedReceipt(string path)
+	{
+		return QualificationDocuments.Exists(path)
+			? new CommittedReceipt(QualificationDocuments.LoadJson(path), QualificationDocuments.CommittedJsonSha256(path))
+			: null;
+	}
+
 	private static void CheckReceiptEvidence(QualificationMatrix.Row row, QualificationMatrix.Cell cell,
-		QualificationMatrix.Evidence evidence, Func<string, JsonElement?> loadReceipt, List<string> errors)
+		QualificationMatrix.Evidence evidence, Func<string, CommittedReceipt?> loadReceipt, List<string> errors)
 	{
 		string at = At(row, cell) + " receipt " + evidence.ReceiptId;
 		string expectedPath = QualificationDocuments.ReceiptDirectory + "/" + row.Id + "/" + evidence.ReceiptId + ".json";
@@ -302,15 +310,14 @@ internal static class QualificationRules
 			return;
 		}
 
-		JsonElement? loaded = loadReceipt(expectedPath);
-		if (loaded is not { } receipt)
+		if (loadReceipt(expectedPath) is not { } committed)
 		{
 			errors.Add($"{at}: {expectedPath} is not committed.");
 			return;
 		}
 
-		if (!string.Equals(QualificationDocuments.CommittedJsonSha256(expectedPath), evidence.Sha256,
-				StringComparison.Ordinal))
+		JsonElement receipt = committed.Receipt;
+		if (!string.Equals(committed.Sha256, evidence.Sha256, StringComparison.Ordinal))
 		{
 			errors.Add($"{at}: the cited sha256 is not the LF-normalized SHA-256 of {expectedPath}.");
 		}
@@ -396,4 +403,7 @@ internal static class QualificationRules
 	{
 		return string.Create(CultureInfo.InvariantCulture, $"{row.Id} {cell.Level}");
 	}
+
+	/// <summary>A receipt document with the LF-normalized SHA-256 of its committed text.</summary>
+	internal sealed record CommittedReceipt(JsonElement Receipt, string Sha256);
 }

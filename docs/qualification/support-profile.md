@@ -152,4 +152,57 @@ The list of missing evidence (audit Checkpoint A deliverable): every matrix row 
 `SupportProfileTests.Not_executed_section_equals_the_matrix`.
 
 <!-- BEGIN GENERATED: not-executed -->
+| Row | Scenario | Owner | Not executed at |
+|-----|----------|-------|-----------------|
+| Q02 | Compact bootstrap record between guard bytes | SDK | C3 |
+| Q03 | Reduced managed exports table or missing pointer | SDK | C3 |
+| Q04 | Observation of the second bootstrap integer | SDK | C3 |
+| Q05 | Name before enable, then enable, disable and enable | SDK | C3 |
+| Q05.a | Non-ASCII plugin name | SDK | C3 |
+| Q06 | Exception during construction or enable | SDK | C3 |
+| Q07 | Re-entrant disable from a running callback | SDK | C3 |
+| Q08 | Partial cleanup, then diagnosis | SDK | C3 |
+| Q08.a | Plugin disabled between an allocation and its publication | SDK | C3 |
+| Q09 | Two plugins sharing or not sharing the SDK assemblies | Both | C4 |
+| Q09.a | Coexistence with one shared SDK assemblies folder | Both | C4 |
+| Q09.b | Coexistence with separate plugin folders | Both | C4 |
+| Q10 | Two package versions in separate folders | Both | C4 |
+| Q13 | Failure of string, table, userdata or reference creation | SDK | C2 |
+| Q14 | Managed callback that throws | SDK | C3 |
+| Q15 | Callback kept after disable | SDK | C3 |
+| Q16 | Global collision, replacement, then third-party replacement | Both | C4 |
+| Q17 | Controlled Lua state replacement | SDK | C3 |
+| Q18 | Use of a reference after an external reset | SDK | C3 |
+| Q19 | First calls from two workers | SDK | C3, C4 |
+| Q20 | Bytes with NUL and multibyte strings | Both | C1, C2, C3 |
+| Q21 | Signed and unsigned 32-bit values and 64-bit boundaries | Both | C1, C2, C3 |
+| Q22 | nil, false, zero, zero results and Lua error | SDK | C2, C3 |
+| Q23 | CE object, light userdata and foreign userdata | SDK | C2, C3 |
+| Q24 | Bound method and 0-based indexers | SDK | C2, C3 |
+| Q25 | Scanner created, then list creation or publication fails | SDK | C1, C3 |
+| Q26 | FirstScan, NextScan, results and destruction | SDK | C3 |
+| Q27 | AOB scan: empty, error and malformed result | Both | C1, C3 |
+| Q28 | AOB scan in a module with matches outside the module | Both | C1, C3 |
+| Q29 | Result limit and cancellation during copy | Both | C1, C3 |
+| Q30 | Reused PID and target switch | Both | C3, C4 |
+| Q30.a | Targets A and B and a reused PID | Both | C3, C4 |
+| Q30.b | Cleanup after a target switch | Both | C3, C4 |
+| Q30.c | File opened as a process | Both | C1 |
+| Q30.d | CEServer target | Both | C1 |
+| Q30.e | Reuse of an old allocation address | Both | C1, C3 |
+| Q31 | Overridden Cheat Engine pointer size | Both | C3 |
+| Q31.a | Configured pointer size smaller than the process width | Both | C1, C3 |
+| Q32 | x86, x64, ARM or unknown host and target backends | Both | C1, C3 |
+| Q32.a | x64 target | Both | C1, C3 |
+| Q32.b | x86 target | Both | C1, C3 |
+| Q32.d | ARM or unknown backend | Both | C1 |
+| Q34 | Record destroyed or table reloaded | Both | C3 |
+| Q35 | Script activation, then incomplete rollback | SDK | C3 |
+| Q36 | One-shot timer finished before Dispose | SDK | C3 |
+| Q37 | Hotkey callback during module shutdown | SDK | C3 |
+| Q40 | Clean installation from the package | Both | C3 |
+| Q41 | NativeAOT publish and export inspection | SDK | C0, C2 |
+| Q46 | Logs containing user data or expressions | Both | C1, C3 |
+| Q47 | Inherited property or method and public alias | SDK | C2, C3 |
+| Q48 | SDK package updated without adapting the Client | Both | C1, C3 |
 <!-- END GENERATED: not-executed -->

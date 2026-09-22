@@ -54,6 +54,8 @@
   <Folder Name="/docs/qualification/">
     <File Path="docs/qualification/support-profile.json"/>
     <File Path="docs/qualification/support-profile.md"/>
+    <File Path="docs/qualification/README.md"/>
+    <File Path="docs/qualification/matrix.json"/>
   </Folder>
   <Folder Name="/docs/qualification/schemas/">
     <File Path="docs/qualification/schemas/qualification-events.v0.schema.json"/>

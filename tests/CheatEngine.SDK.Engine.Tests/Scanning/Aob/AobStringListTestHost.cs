@@ -58,7 +58,11 @@ internal static class AobStringListTestHost
 		                                             """);
 	}
 
-	/// <summary>Creates the CE-shaped empty StringList result used to prove that an empty scan remains successful.</summary>
+	/// <summary>
+	///     Creates an empty StringList result. CE 7.7.0.10621 was never observed to return one for <c>AOBScan</c>
+	///     (spike D1: zero matches return no value); it models the documented "valid empty list" branch that
+	///     <c>NoMatches</c> stays reserved for on the global route.
+	/// </summary>
 	public static CEObject CreateEmptyList(LuaState state)
 	{
 		return FakeHost.CreateObject(state, "Probe", "o.props.Count = 0");
@@ -78,7 +82,15 @@ internal static class AobStringListTestHost
 		Assert.True(state.TrySetGlobal(name).IsOk);
 	}
 
-	/// <summary>Installs a string-form AOBScan stand-in that records every optional argument and returns the given list.</summary>
+	/// <summary>
+	///     Installs a string-form AOBScan stand-in that records every optional argument and returns the given list.
+	///     The pattern selects a result shape: <c>zero-values</c> returns no value at all, which is what CE 7.7.0.10621
+	///     does on zero matches (spike D1); <c>nil-result</c> returns one explicit <c>nil</c>; <c>raise</c> and
+	///     <c>raise-text</c> raise (the latter with the Lua value of the global <c>aob_error_payload</c>, so a test can
+	///     vary the error text or type); <c>invalid-result</c> returns a number; <c>malformed-result</c> returns the
+	///     global <c>aob_malformed</c>; <c>retarget</c> sets <c>opened_process_id</c> to <c>aob_retarget_pid</c> and
+	///     returns the list; any other pattern returns the list.
+	/// </summary>
 	public static void InstallAobScan(LuaState state, CEObject results)
 	{
 		SetGlobalObject(state, "aob_results"u8, results);
@@ -89,10 +101,14 @@ internal static class AobStringListTestHost
 		                        aob_protection = select(2, ...)
 		                        aob_alignment = select(3, ...)
 		                        aob_alignment_parameter = select(4, ...)
+		                        aob_calls = (aob_calls or 0) + 1
+		                        if aob_pattern == 'zero-values' then return end
 		                        if aob_pattern == 'nil-result' then return nil end
 		                        if aob_pattern == 'raise' then error('AOBScan stand-in raised') end
+		                        if aob_pattern == 'raise-text' then error(aob_error_payload) end
 		                        if aob_pattern == 'invalid-result' then return 42 end
 		                        if aob_pattern == 'malformed-result' then return aob_malformed end
+		                        if aob_pattern == 'retarget' then opened_process_id = aob_retarget_pid end
 		                        return aob_results
 		                      end
 		                      """u8);

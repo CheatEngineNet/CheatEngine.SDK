@@ -23,7 +23,7 @@ namespace CheatEngine.SDK.Engine.Scanning.Aob;
 ///     </para>
 ///     <para>
 ///         <see cref="TryScanDetailed(string, out Owned{StringList}?)" /> preserves the distinct outcomes of an
-///         unresolved global, protected Lua failure, CE <c>nil</c>, and a malformed non-nil result.
+///         unresolved global, protected Lua failure, CE <c>nil</c> (or no value), and a malformed non-nil result.
 ///         <see cref="TryScanOutcome(string, out Owned{StringList}?)" /> further distinguishes a validated empty
 ///         StringList from those failures without assigning no-match meaning to raw <c>nil</c>. The boolean
 ///         <c>TryScan</c> overloads retain their existing convenience contract by returning <see langword="false" /> for
@@ -31,6 +31,15 @@ namespace CheatEngine.SDK.Engine.Scanning.Aob;
 ///         <see cref="InvalidOperationException" />. CE's documentation does not state AOB scan thread affinity, so this
 ///         method makes no unverified main-thread claim and uses the calling thread's host Lua state. The owner it
 ///         returns follows <see cref="Owned{T}" />'s existing main-thread destruction contract.
+///     </para>
+///     <para>
+///         On the pinned profile <c>ce-7.7.0.10621-x64-managed-hostfxr</c>, zero matches are reported as
+///         <see cref="AobScanStatus.NoResult" /> / <see cref="AobScanOutcomeKind.NoResult" />: <c>AOBScan</c> returns no
+///         value, and an empty <c>StringList</c> was never observed (host observation, spike 2026-09-22; the Q27 C3
+///         receipt is still pending). <see cref="AobScanOutcomeKind.NoMatches" /> on this global route stays reserved for
+///         a valid empty list and is unreachable on that profile. The SDK keeps <c>NoResult</c> raw because a host
+///         failure can produce the same shape; outcome categories come from the result's Lua type and arity, never from
+///         Lua error text.
 ///     </para>
 ///     <para>
 ///         The CE primitive is synchronous and this SDK exposes no range/module restriction, result limit, early-stop,
@@ -111,8 +120,10 @@ public static class AobScanner
 	/// </param>
 	/// <returns>
 	///     A factual outcome that classifies no matches only from a valid StringList with count zero. Raw Lua
-	///     <c>nil</c>, unavailable globals, protected Lua failures, malformed return values, and unreadable counts remain
-	///     distinct.
+	///     <c>nil</c> (or no value), unavailable globals, protected Lua failures, malformed return values, and unreadable
+	///     counts remain distinct. On the pinned CE 7.7.0.10621 x64 profile, a scan with zero matches returns no value and
+	///     is therefore reported as <see cref="AobScanOutcomeKind.NoResult" />, never
+	///     <see cref="AobScanOutcomeKind.NoMatches" /> (host observation, spike 2026-09-22; Q27 C3 pending).
 	/// </returns>
 	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
 	[RequiresPluginEnabled]

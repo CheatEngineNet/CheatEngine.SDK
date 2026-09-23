@@ -1,3 +1,5 @@
+using System.Text;
+
 using CheatEngine.SDK.Engine.Enums;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Scanning.Aob;
@@ -318,6 +320,7 @@ public sealed class AobScannerTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q27")]
 	public void TryScanOutcome_releases_a_valid_host_object_when_its_count_is_unreadable()
 	{
 		EngineTest.RequireNativeLua();
@@ -356,6 +359,248 @@ public sealed class AobScannerTests
 		LuaRuntime.Detach();
 
 		Assert.Throws<InvalidOperationException>(() => AobScanner.TryScan("90", out _));
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q27")]
+	public void TryScanOutcome_zero_values_as_CE_7_7_reports_zero_matches_is_no_result_never_no_matches()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+		long destroyedBefore = FakeHost.DestroyedCount(L);
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("zero-values", out Owned<StringList>? results);
+
+		Assert.Equal(AobScanOutcomeKind.NoResult, outcome.Kind);
+		Assert.NotEqual(AobScanOutcomeKind.NoMatches, outcome.Kind);
+		Assert.False(outcome.IsSuccess);
+		Assert.False(outcome.HasResultCount);
+		Assert.Equal(LuaStatus.Ok, outcome.LuaStatus);
+		Assert.Null(results);
+		Assert.Equal(destroyedBefore, FakeHost.DestroyedCount(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q27")]
+	public void TryScanDetailed_zero_values_and_an_explicit_nil_yield_the_same_status_and_restore_the_stack()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+		long destroyedBefore = FakeHost.DestroyedCount(L);
+
+		AobScanStatus zeroValues = AobScanner.TryScanDetailed("zero-values", out Owned<StringList>? zeroResults);
+		Assert.Equal(0, L.Top);
+		AobScanStatus explicitNil = AobScanner.TryScanDetailed("nil-result", out Owned<StringList>? nilResults);
+		Assert.Equal(0, L.Top);
+
+		Assert.Equal(AobScanStatus.NoResult, zeroValues);
+		Assert.Equal(zeroValues, explicitNil);
+		Assert.Null(zeroResults);
+		Assert.Null(nilResults);
+		Assert.Equal(destroyedBefore, FakeHost.DestroyedCount(L));
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q27")]
+	public void TryScan_zero_values_returns_false_without_an_owner()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+		long destroyedBefore = FakeHost.DestroyedCount(L);
+
+		Assert.False(AobScanner.TryScan("zero-values", out Owned<StringList>? results));
+
+		Assert.Null(results);
+		Assert.Equal(destroyedBefore, FakeHost.DestroyedCount(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q27")]
+	public void TryScanOutcome_missing_global_is_global_unavailable()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("48 8B", out Owned<StringList>? results);
+
+		Assert.Equal(AobScanOutcomeKind.GlobalUnavailable, outcome.Kind);
+		Assert.Equal(LuaStatus.Ok, outcome.LuaStatus);
+		Assert.False(outcome.IsSuccess);
+		Assert.Null(results);
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q27")]
+	public void TryScanOutcome_nil_result_is_no_result()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("nil-result", out Owned<StringList>? results);
+
+		Assert.Equal(AobScanOutcomeKind.NoResult, outcome.Kind);
+		Assert.Equal(LuaStatus.Ok, outcome.LuaStatus);
+		Assert.False(outcome.IsSuccess);
+		Assert.Null(results);
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q27")]
+	public void TryScanOutcome_protected_call_error_is_protected_lua_failure_with_its_status()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+		long destroyedBefore = FakeHost.DestroyedCount(L);
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("raise", out Owned<StringList>? results);
+
+		Assert.Equal(AobScanOutcomeKind.ProtectedLuaFailure, outcome.Kind);
+		Assert.Equal(LuaStatus.RuntimeError, outcome.LuaStatus);
+		Assert.False(outcome.IsSuccess);
+		Assert.Null(results);
+		Assert.Equal(destroyedBefore, FakeHost.DestroyedCount(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q27")]
+	public void TryScanOutcome_protected_global_lookup_error_is_protected_lua_failure()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		EngineTest.Run(L, """
+		                  setmetatable(_G, {
+		                    __index = function(_, name)
+		                      if name == 'AOBScan' then error('AOBScan lookup failed') end
+		                    end
+		                  })
+		                  """u8);
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("48 8B", out Owned<StringList>? results);
+
+		Assert.Equal(AobScanOutcomeKind.ProtectedLuaFailure, outcome.Kind);
+		Assert.Equal(LuaStatus.RuntimeError, outcome.LuaStatus);
+		Assert.Null(results);
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q27")]
+	public void TryScanOutcome_malformed_userdata_is_invalid_result()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+		_ = L.NewUserdata(1);
+		Assert.True(L.TrySetGlobal("aob_malformed"u8).IsOk);
+		long destroyedBefore = FakeHost.DestroyedCount(L);
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("malformed-result", out Owned<StringList>? results);
+
+		Assert.Equal(AobScanOutcomeKind.InvalidResult, outcome.Kind);
+		Assert.Equal(LuaStatus.Ok, outcome.LuaStatus);
+		Assert.False(outcome.IsSuccess);
+		Assert.Null(results);
+		Assert.Equal(destroyedBefore, FakeHost.DestroyedCount(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q27")]
+	public void TryScanOutcome_valid_empty_list_is_no_matches_with_a_live_owner()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		CEObject handle = AobStringListTestHost.CreateEmptyList(L);
+		AobStringListTestHost.InstallAobScan(L, handle);
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("48 8B", out Owned<StringList>? results);
+
+		Assert.Equal(AobScanOutcomeKind.NoMatches, outcome.Kind);
+		Assert.Equal(0, outcome.ResultCount);
+		Owned<StringList> owned = Assert.IsType<Owned<StringList>>(results);
+		Assert.False(owned.IsDisposed);
+		Assert.False(FakeHost.IsDestroyed(L, handle));
+		Assert.Equal(0, L.Top);
+
+		owned.Dispose();
+
+		Assert.True(FakeHost.IsDestroyed(L, handle));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Theory]
+	[Trait("Qualification", "Q27")]
+	[InlineData("'AOBScan failed'")]
+	[InlineData("'Échec de l’analyse — mémoire illisible'")]
+	[InlineData("''")]
+	[InlineData("{ code = 1 }")]
+	[InlineData("nil")]
+	[InlineData("42")]
+	public void TryScanOutcome_category_does_not_depend_on_the_lua_error_text(string payload)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+		EngineTest.Run(L, Encoding.UTF8.GetBytes("aob_error_payload = " + payload));
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("raise-text", out Owned<StringList>? results);
+
+		Assert.Equal(AobScanOutcome.ProtectedLuaFailure(LuaStatus.RuntimeError), outcome);
+		Assert.Null(results);
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q27")]
+	public void TryScanOutcome_next_call_on_the_same_state_succeeds_after_a_protected_failure()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		CEObject handle = AobStringListTestHost.CreateList(L);
+		AobStringListTestHost.InstallAobScan(L, handle);
+
+		AobScanOutcome failed = AobScanner.TryScanOutcome("raise", out Owned<StringList>? failedResults);
+		AobScanOutcome next = AobScanner.TryScanOutcome("48 8B", out Owned<StringList>? results);
+
+		Assert.Equal(AobScanOutcomeKind.ProtectedLuaFailure, failed.Kind);
+		Assert.Null(failedResults);
+		Assert.Equal(AobScanOutcome.Matches(2), next);
+		using Owned<StringList> owned = Assert.IsType<Owned<StringList>>(results);
+		Assert.True(owned.Value.TryGetItem(0, out string? first));
+		Assert.Equal("00401000", first);
+		Assert.Equal(0, L.Top);
 	}
 
 	[Theory]

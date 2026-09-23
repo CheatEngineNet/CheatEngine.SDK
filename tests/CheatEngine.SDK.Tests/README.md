@@ -155,8 +155,8 @@ the TRX report names the file the facts are about.
   package origin (`Direct_consumer_bridges_are_byte_identical_to_the_packed_build_native_entry`).
 - The checked-in C11 Lua protection bridge is parsed as PE/COFF without loading it: it is PE32+ AMD64, exports exactly
   four symbols, imports only its reviewed CRT/Kernel32 contract, has no delay-load table and cannot acquire a Lua
-  module. Its build and publish copies are SHA-256-identical to the audited source asset (`NativeBridgePeAuditTests` and
-  `NativeBridgePackagingAuditTests`; the bridge contract is described in the
+  module. Its build and publish copies are SHA-256-identical to the checked-in source asset (`NativeBridgePeAuditTests`
+  and `NativeBridgePackagingAuditTests`; the bridge contract is described in the
   [bridge README](../../native/cheatengine-sdk-lua-bridge/README.md)). Its `bridge-audit-manifest.json` records the
   committed bridge, and `BridgeAuditManifestTests` compare it with the committed blob read through `git cat-file`,
   never with the working-tree DLL that CI replaces with its own build: source hashes and fingerprint, DLL SHA-256, PE

@@ -2,7 +2,7 @@
 
 `LuaDirectApiBoundaryGuardTests` is a repository build gate, not a consumer-facing Roslyn diagnostic. It scans the
 SDK production layers for calls to raw `CheatEngine.SDK.Lua.Interop.Api.LuaApi` members classified in
-[`protected-operations.json`](../../eng/lua-bridge/protected-operations.json) as requiring the native bridge.
+[`protected-operations.json`](../../libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json) as requiring the native bridge.
 
 The test resolves direct member access, `using static` imports, and aliases of the exact `LuaApi` type. It reports the
 source file and line in its assertion message. The raw API facade itself remains exempt because it is the declaration

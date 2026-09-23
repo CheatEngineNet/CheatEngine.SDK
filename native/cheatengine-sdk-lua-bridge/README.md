@@ -21,7 +21,7 @@ protected operation. That contract has a magic value, major/minor version, contr
 `lua_Integer` and `size_t` widths, plus the exact supported-operation bitmap. Managed code checks it with
 `Unsafe.SizeOf` and also checks the fixed native export list. If the exported surface or operation contract changes,
 update `cheatengine_sdk_lua_bridge.c`, the versioned
-[`protected-operations.json`](../../eng/lua-bridge/protected-operations.json) catalogue, the generated managed
+[`protected-operations.json`](../../libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json) catalogue, the generated managed
 projection from `source-generators/CheatEngine.SDK.SourceGenerators.LuaBridgeContract` and its
 `tests/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Tests` contract tests, and the managed adapter as
 applicable; then rebuild the DLL and commit the matching assets together. The C11 bridge remains the owner of its

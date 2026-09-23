@@ -17,7 +17,7 @@ namespace CheatEngine.SDK.Analyzers.Tests.Architecture;
 public sealed class LuaDirectApiBoundaryGuardTests
 {
 	private const string LuaApiQualifiedName = "CheatEngine.SDK.Lua.Interop.Api.LuaApi";
-	private const string CataloguePath = "eng/lua-bridge/protected-operations.json";
+	private const string CataloguePath = "libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json";
 	private const string LibrariesPath = "libs";
 	private const string RawApiPath = "libs/CheatEngine.SDK.Lua.Interop/Api/";
 	private const string LightCFunctionFastPathSourcePath = "libs/CheatEngine.SDK.Lua/State/LuaState.Callbacks.cs";

@@ -5,7 +5,7 @@ Repository-only incremental Roslyn generator for the managed operation selector 
 
 ## Objective
 
-`eng/lua-bridge/protected-operations.json` is passed explicitly as an `AdditionalFile` to
+`libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json` is passed explicitly as an `AdditionalFile` to
 `CheatEngine.SDK.Lua.Interop`. This component validates the bridge-relevant parts of that catalogue and emits the
 internal `LuaProtectedOperation` enum plus `LuaProtectedOperationContract.Count`, `RequiredBitmap` and `IsDefined`.
 The enum is ordered by numeric opcode, never by JSON-array position; the bitmap is independently derived and must

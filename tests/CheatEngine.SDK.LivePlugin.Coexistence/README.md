@@ -42,8 +42,11 @@ DLL, record:
 - the timestamp, operator and complete DebugView transcript; and
 - the Plugin A/B identity lines, every Lua command result, and any loader/enable failure.
 
-Leaving any field unknown means the result is an unqualified manual observation. Qualification scenarios Q09 and Q10
-remain not executed, as do the related scenarios Q19 and Q30.
+A qualification run records these fields in a receipt, as the
+[local qualification protocol](../../docs/qualification/local-protocol.md) and the
+[receipt schema](../../docs/qualification/schemas/qualification-receipt.v0.schema.json) describe. Leaving any field
+unknown means the result is an unqualified manual observation. Qualification scenarios Q09 and Q10 remain not executed,
+as do the related scenarios Q19 and Q30.
 
 ## Build and run
 

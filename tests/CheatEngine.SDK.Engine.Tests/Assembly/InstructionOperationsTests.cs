@@ -18,6 +18,7 @@ namespace CheatEngine.SDK.Engine.Tests.Assembly;
 public sealed class InstructionOperationsTests
 {
 	[Fact]
+	[Trait("Qualification", "Q32.a")]
 	public void observe_current_maps_the_ce_x86_family_with_64_bit_to_x64()
 	{
 		EngineTest.RequireNativeLua();
@@ -37,6 +38,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.b")]
 	public void observe_current_maps_the_ce_x86_family_without_64_bit_to_x86()
 	{
 		EngineTest.RequireNativeLua();
@@ -55,6 +57,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Theory]
+	[Trait("Qualification", "Q32.d")]
 	[InlineData(true)]
 	[InlineData(false)]
 	public void observe_current_rejects_x86_and_arm_reported_together(bool is64Bit)
@@ -76,6 +79,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Theory]
+	[Trait("Qualification", "Q32.d")]
 	[InlineData(true)]
 	[InlineData(false)]
 	public void observe_current_rejects_a_target_reported_in_neither_family(bool is64Bit)
@@ -97,8 +101,8 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
-	public void
-		observe_current_without_a_selected_target_reports_target_not_selected_although_the_probes_look_like_x64()
+	[Trait("Qualification", "Q32")]
+	public void observe_current_without_a_selected_target_reports_target_not_selected_although_the_probes_look_like_x64()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -120,6 +124,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.c")]
 	public void observe_current_reports_a_file_as_process_selection_as_an_unsupported_target_backend()
 	{
 		EngineTest.RequireNativeLua();
@@ -142,6 +147,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Theory]
+	[Trait("Qualification", "Q32.d")]
 	[InlineData("targetIsX86")]
 	[InlineData("targetIsArm")]
 	[InlineData("targetIs64Bit")]
@@ -206,6 +212,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32")]
 	public void observe_current_reports_a_selection_change_between_the_bracketing_pid_reads_as_target_changed()
 	{
 		EngineTest.RequireNativeLua();
@@ -245,6 +252,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.d")]
 	public void observe_current_maps_the_arm_family_to_arm32_or_arm64_by_the_64_bit_flag_without_the_host_width()
 	{
 		EngineTest.RequireNativeLua();
@@ -270,6 +278,8 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.a")]
+	[Trait("Qualification", "Q32.b")]
 	public void x64_and_x86_profiles_carry_their_own_address_width()
 	{
 		Assert.Equal(CheatEngineArchitecture.X64, InstructionProfile.X64.Architecture);
@@ -283,6 +293,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.a")]
 	public void assemble_on_an_x64_profile_accepts_an_address_above_4_gib()
 	{
 		EngineTest.RequireNativeLua();
@@ -370,6 +381,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.b")]
 	public void assemble_on_an_x86_profile_refuses_an_address_above_4_gib_before_entering_lua()
 	{
 		EngineTest.RequireNativeLua();
@@ -392,6 +404,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32")]
 	public void assemble_reports_a_target_change_after_the_effect_without_copying_bytes()
 	{
 		EngineTest.RequireNativeLua();

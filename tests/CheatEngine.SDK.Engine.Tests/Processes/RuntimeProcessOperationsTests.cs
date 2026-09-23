@@ -292,6 +292,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q31.a")]
 	public void observe_target_architecture_reports_x64_bitness_and_a_narrower_configured_pointer_size_separately()
 	{
 		EngineTest.RequireNativeLua();
@@ -314,6 +315,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.a")]
 	public void observe_target_architecture_with_the_spike_x64_facts_reports_x64_and_eight_byte_pointers()
 	{
 		EngineTest.RequireNativeLua();
@@ -341,6 +343,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.b")]
 	public void observe_target_architecture_with_the_spike_x86_facts_reports_x86_and_four_byte_pointers()
 	{
 		EngineTest.RequireNativeLua();
@@ -360,6 +363,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Theory]
+	[Trait("Qualification", "Q32.d")]
 	[InlineData(false, true, false, CheatEngineArchitecture.Arm32)]
 	[InlineData(false, true, true, CheatEngineArchitecture.Arm64)]
 	[InlineData(true, true, true, CheatEngineArchitecture.Unknown)]
@@ -387,6 +391,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.d")]
 	public void observe_target_architecture_keeps_absent_isa_android_abi_and_pointer_probes_unknown_instead_of_false()
 	{
 		EngineTest.RequireNativeLua();
@@ -434,6 +439,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32")]
 	public void observe_target_architecture_without_a_selected_target_reads_no_fact()
 	{
 		EngineTest.RequireNativeLua();
@@ -451,6 +457,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Theory]
+	[Trait("Qualification", "Q32")]
 	[InlineData("rt_process_id = 5151")]
 	[InlineData("rt_process_id = 0")]
 	[InlineData("rt_process_id = 4294967295")]
@@ -498,6 +505,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.d")]
 	public void observe_target_architecture_on_a_ceserver_connection_keeps_the_facts_and_names_the_backend()
 	{
 		EngineTest.RequireNativeLua();
@@ -517,6 +525,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.c")]
 	public void observe_target_architecture_reports_the_file_as_process_sentinel_without_reading_facts()
 	{
 		EngineTest.RequireNativeLua();
@@ -637,6 +646,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Theory]
+	[Trait("Qualification", "Q31")]
 	[InlineData("2", 2)]
 	[InlineData("0", 0)]
 	[InlineData("-1", -1)]
@@ -664,6 +674,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q31")]
 	public void configured_pointer_size_is_not_read_without_a_selected_target()
 	{
 		EngineTest.RequireNativeLua();
@@ -683,6 +694,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q31")]
 	public void configured_pointer_size_comes_from_get_pointer_size_not_from_the_plugin_process_width()
 	{
 		EngineTest.RequireNativeLua();
@@ -747,6 +759,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.c")]
 	public void observe_current_reports_the_file_as_process_sentinel_distinctly_from_a_malformed_pid()
 	{
 		EngineTest.RequireNativeLua();
@@ -770,6 +783,7 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q31.a")]
 	public void observe_current_keeps_bitness_as_its_pointer_size_while_the_configured_size_differs()
 	{
 		EngineTest.RequireNativeLua();

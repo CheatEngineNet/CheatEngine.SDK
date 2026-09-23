@@ -79,6 +79,7 @@ public sealed class RuntimeContractsTests
 	}
 
 	[Theory]
+	[Trait("Qualification", "Q32")]
 	[InlineData(true, false, true, true, CheatEngineArchitecture.X64)]
 	[InlineData(true, false, false, true, CheatEngineArchitecture.X86)]
 	[InlineData(false, true, true, true, CheatEngineArchitecture.Arm64)]
@@ -98,6 +99,7 @@ public sealed class RuntimeContractsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.a")]
 	public void try_derive_target_architecture_maps_the_x86_family_with_64_bit_to_x64()
 	{
 		// Spike C3 D2 (CE 7.7.0.10621, x64 Tutorial target): targetIsX86 = true, targetIs64Bit = true, targetIsArm = false.
@@ -106,6 +108,7 @@ public sealed class RuntimeContractsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.b")]
 	public void try_derive_target_architecture_maps_the_x86_family_without_64_bit_to_x86()
 	{
 		// Spike C3 D2 (CE 7.7.0.10621, i386 tutorial target): targetIsX86 = true, targetIs64Bit = false.
@@ -114,6 +117,7 @@ public sealed class RuntimeContractsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.d")]
 	public void try_derive_target_architecture_keeps_arm_and_contradictory_families_apart_from_the_64_bit_flag()
 	{
 		Assert.True(RuntimeInfo.TryDeriveTargetArchitecture(false, true, false, out CheatEngineArchitecture arm32));
@@ -168,6 +172,7 @@ public sealed class RuntimeContractsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.d")]
 	public void target_architecture_observation_computed_members_never_infer_missing_facts()
 	{
 		TargetProcessId pid = new(4242);
@@ -412,6 +417,7 @@ public sealed class RuntimeContractsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q31.a")]
 	public void runtime_info_created_from_observations_uses_the_configured_pointer_size_and_keeps_unknowns()
 	{
 		CheatEngineHostObservation host = new(CheatEngineVersion.Ce77010621, CheatEngineArchitecture.X64, true,
@@ -468,6 +474,7 @@ public sealed class RuntimeContractsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32.c")]
 	public void system_architecture_i386_is_reported_as_a_host_fact_and_never_changes_target_facts()
 	{
 		// An i386 Cheat Engine host (getSystemArchitecture() == 0) is an unsupported route of the x64-only SDK; the fact

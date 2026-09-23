@@ -175,6 +175,7 @@ public sealed class TargetSelectionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.d")]
 	public void target_selection_emits_no_local_start_time_evidence_when_connected_to_ceserver()
 	{
 		EngineTest.RequireNativeLua();
@@ -197,6 +198,7 @@ public sealed class TargetSelectionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.d")]
 	public void target_selection_emits_no_local_start_time_evidence_when_the_ceserver_probe_is_unavailable()
 	{
 		EngineTest.RequireNativeLua();
@@ -221,6 +223,7 @@ public sealed class TargetSelectionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.d")]
 	public void ceserver_target_yields_no_local_incarnation_proof_and_validate_current_refuses_it()
 	{
 		EngineTest.RequireNativeLua();
@@ -250,6 +253,7 @@ public sealed class TargetSelectionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.c")]
 	public void file_as_process_target_is_refused_without_a_bcl_process_lookup()
 	{
 		EngineTest.RequireNativeLua();

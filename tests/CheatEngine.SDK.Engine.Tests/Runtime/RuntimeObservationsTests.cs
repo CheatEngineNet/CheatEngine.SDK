@@ -20,6 +20,7 @@ namespace CheatEngine.SDK.Engine.Tests.Runtime;
 public sealed class RuntimeObservationsTests
 {
 	[Fact]
+	[Trait("Qualification", "Q32.a")]
 	public void try_observe_runtime_info_with_the_spike_x64_facts_produces_a_complete_snapshot()
 	{
 		EngineTest.RequireNativeLua();
@@ -75,8 +76,8 @@ public sealed class RuntimeObservationsTests
 	}
 
 	[Fact]
-	public void
-		try_observe_runtime_info_with_a_configured_pointer_size_of_four_on_x64_reports_it_as_the_pointer_size_and_keeps_bitness()
+	[Trait("Qualification", "Q31.a")]
+	public void try_observe_runtime_info_with_a_configured_pointer_size_of_four_on_x64_reports_it_as_the_pointer_size_and_keeps_bitness()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -97,6 +98,7 @@ public sealed class RuntimeObservationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q32")]
 	public void try_observe_runtime_info_without_a_target_keeps_host_facts_and_no_target_facts()
 	{
 		EngineTest.RequireNativeLua();
@@ -130,6 +132,7 @@ public sealed class RuntimeObservationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.c")]
 	public void try_observe_runtime_info_on_a_file_as_process_target_returns_no_snapshot()
 	{
 		EngineTest.RequireNativeLua();
@@ -254,6 +257,7 @@ public sealed class RuntimeObservationsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q45")]
 	public void runtime_probes_never_call_dbk_dbvm_open_process_or_setters()
 	{
 		EngineTest.RequireNativeLua();

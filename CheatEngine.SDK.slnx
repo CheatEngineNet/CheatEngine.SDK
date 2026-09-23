@@ -56,10 +56,6 @@
   <Folder Name="/docs/catalog/">
     <File Path="docs/catalog/README.md"/>
   </Folder>
-  <Folder Name="/native/cheat-engine/">
-    <File Path="native/cheat-engine/README.md"/>
-    <File Path="native/cheat-engine/lua53-64.dll"/>
-  </Folder>
   <Folder Name="/docs/qualification/">
     <File Path="docs/qualification/support-profile.json"/>
     <File Path="docs/qualification/support-profile.md"/>
@@ -72,6 +68,10 @@
     <File Path="docs/qualification/schemas/qualification-matrix.v0.schema.json"/>
     <File Path="docs/qualification/schemas/qualification-receipt.v0.schema.json"/>
     <File Path="docs/qualification/schemas/support-profile.v0.schema.json"/>
+  </Folder>
+  <Folder Name="/native/cheat-engine/">
+    <File Path="native/cheat-engine/README.md"/>
+    <File Path="native/cheat-engine/lua53-64.dll"/>
   </Folder>
   <Folder Name="/analyzers/">
     <Project Path="analyzers/CheatEngine.SDK.Analyzers.CodeFixes/CheatEngine.SDK.Analyzers.CodeFixes.csproj"/>

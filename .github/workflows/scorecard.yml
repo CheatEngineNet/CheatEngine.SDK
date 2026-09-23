@@ -1,0 +1,52 @@
+# Advisory OpenSSF Scorecard (audit register PR-CQ-24; https://github.com/ossf/scorecard-action). Not part of CI / Gate,
+# no score target. With publish_results: true the Scorecard API verifies this file and rejects: workflow-level `env`
+# or `defaults`, workflow-level write permissions, `id-token` in any other job, job-level `env` or `defaults`,
+# containers and services, any step without `uses:` (so no `run:` step), actions outside its allowlist, and runners
+# other than ubuntu-latest or ubuntu-NN.NN (NN.NN >= 22.04). This file therefore deliberately does NOT follow the
+# repository's `defaults: run: shell: pwsh` convention.
+# Publication works from the default branch only: the first run happens after merge. Expected low checks, explained
+# rather than chased: Binary-Artifacts (the Lua fixture and the bridge, see SECURITY.md), Code-Review (single
+# maintainer), Branch-Protection (until eng/github/Set-RepositorySettings.ps1 is applied).
+name: Scorecard
+
+on:
+  branch_protection_rule:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '23 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # upload the SARIF results to code scanning
+      id-token: write # publish_results: sign the upload to the OpenSSF Scorecard API
+      actions: read # the Scorecard checks read workflow runs
+      issues: read # the Scorecard checks read issues
+      pull-requests: read # the Code-Review check reads pull requests
+      checks: read # the CI-Tests check reads check runs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No repo_token: the default token reads the rulesets of a public repository.
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          sarif_file: results.sarif

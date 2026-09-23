@@ -12,6 +12,8 @@ namespace CheatEngine.SDK.Repository.Tests.Governance;
 /// </summary>
 public sealed partial class GovernanceWorkflowTests
 {
+	private const string ZizmorVersion = "1.30.1";
+
 	private static readonly string[] s_runnerLabels = ["windows-2025", "ubuntu-24.04"];
 
 	/// <summary>Artifact names the governance workflows may upload (requested for shared-contracts §1.9).</summary>
@@ -306,6 +308,122 @@ public sealed partial class GovernanceWorkflowTests
 		{
 			Assert.Equal("${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}",
 				YamlDocument.Scalar(job.Value, "if"));
+		}
+	}
+
+	[Fact]
+	public void Scorecard_workflow_has_no_defaults_env_or_run_steps()
+	{
+		// The Scorecard API refuses to publish results of a workflow that breaks these rules, silently for the repository.
+		YamlDocument workflow = YamlDocument.Load(GovernanceWorkflows.Scorecard);
+		Assert.Null(YamlDocument.Child(workflow.Root, "defaults"));
+		Assert.Null(YamlDocument.Child(workflow.Root, "env"));
+
+		KeyValuePair<string, YamlMappingNode> job = Assert.Single(workflow.Jobs);
+		Assert.Equal("analysis", job.Key);
+		foreach (string key in (string[]) ["defaults", "env", "container", "services"])
+		{
+			Assert.True(YamlDocument.Child(job.Value, key) is null, $"The Scorecard job must not set '{key}'.");
+		}
+
+		foreach (YamlMappingNode step in YamlDocument.Steps(job.Value))
+		{
+			Assert.Null(YamlDocument.Child(step, "run"));
+			Assert.NotNull(YamlDocument.Uses(step));
+		}
+
+		Assert.Equal("ubuntu-24.04", YamlDocument.Scalar(job.Value, "runs-on"));
+		Assert.Equal(["branch_protection_rule", "push", "schedule"], workflow.Triggers);
+		Assert.Equal(["main"], YamlDocument.Scalars(workflow.Trigger("push"), "branches"));
+		Assert.Equal("true", YamlDocument.Scalar(WithOf(job.Value, "ossf/scorecard-action"), "publish_results"));
+	}
+
+	[Fact]
+	public void Scorecard_steps_use_only_the_actions_the_verifier_allows()
+	{
+		string[] allowed =
+		[
+			"actions/checkout", "actions/create-github-app-token", "ossf/scorecard-action", "actions/upload-artifact",
+			"github/codeql-action/upload-sarif", "step-security/harden-runner"
+		];
+		foreach (YamlMappingNode step in YamlDocument.Steps(YamlDocument.Load(GovernanceWorkflows.Scorecard).Job("analysis")))
+		{
+			string uses = YamlDocument.Uses(step) ?? "";
+			string action = uses.Split('@')[0];
+			Assert.True(Array.IndexOf(allowed, action) >= 0, $"The Scorecard verifier rejects the step '{uses}'.");
+		}
+	}
+
+	[Fact]
+	public void Only_the_scorecard_job_requests_an_id_token()
+	{
+		// An OIDC token is a publication credential: the Scorecard upload among the governance workflows, and the release
+		// chain (NuGet trusted publishing, attestations) among the others. Never at workflow level.
+		List<string> holders = [];
+		foreach (string path in GovernanceWorkflows.AllWorkflowPaths())
+		{
+			YamlDocument workflow = YamlDocument.Load(path);
+			Assert.False(YamlDocument.Permissions(workflow.Root)?.ContainsKey("id-token") ?? false,
+				$"{path} requests id-token at workflow level.");
+			foreach (KeyValuePair<string, YamlMappingNode> job in workflow.Jobs)
+			{
+				if (YamlDocument.Permissions(job.Value)?.ContainsKey("id-token") ?? false)
+				{
+					holders.Add($"{path}#{job.Key}");
+				}
+			}
+		}
+
+		foreach (string holder in holders)
+		{
+			Assert.True(string.Equals(holder, GovernanceWorkflows.Scorecard + "#analysis", StringComparison.Ordinal)
+						|| holder.StartsWith(".github/workflows/release.yml#", StringComparison.Ordinal),
+				$"{holder} requests an id-token; only the Scorecard analysis job and the release workflow may.");
+		}
+
+		Assert.Contains(GovernanceWorkflows.Scorecard + "#analysis", holders, StringComparer.Ordinal);
+	}
+
+	[Fact]
+	public void Zizmor_online_pins_the_tool_version_and_enables_online_audits()
+	{
+		YamlDocument workflow = YamlDocument.Load(GovernanceWorkflows.ZizmorOnline);
+		YamlMappingNode job = workflow.Job("zizmor");
+
+		YamlNode? with = WithOf(job, "zizmorcore/zizmor-action");
+		Assert.Equal(ZizmorVersion, YamlDocument.Scalar(with, "version"));
+		Assert.Equal("true", YamlDocument.Scalar(with, "online-audits"));
+		Assert.Equal("true", YamlDocument.Scalar(with, "advanced-security"));
+		Assert.Equal("regular", YamlDocument.Scalar(with, "persona"));
+		// zizmor discovers .github/zizmor.yml itself; an explicit path would break before that file exists.
+		Assert.Null(YamlDocument.Child(with, "config"));
+		Assert.Equal("write", YamlDocument.Permissions(job)!["security-events"]);
+
+		// Fork pull requests cannot upload SARIF, and drafts wait.
+		string condition = YamlDocument.NormalizeWhitespace(YamlDocument.Scalar(job, "if") ?? "");
+		Assert.Contains("github.event.pull_request.head.repo.full_name == github.repository", condition, StringComparison.Ordinal);
+		Assert.Contains("!github.event.pull_request.draft", condition, StringComparison.Ordinal);
+		Assert.Equal(["push", "pull_request", "schedule", "workflow_dispatch"], workflow.Triggers);
+	}
+
+	[Fact]
+	public void Online_and_gate_zizmor_runs_pin_the_same_version()
+	{
+		// The blocking offline run of ci.yml and this advisory run must judge the same rules.
+		foreach (string path in GovernanceWorkflows.AllWorkflowPaths())
+		{
+			foreach (KeyValuePair<string, YamlMappingNode> job in YamlDocument.Load(path).Jobs)
+			{
+				foreach (YamlMappingNode step in YamlDocument.Steps(job.Value))
+				{
+					if (YamlDocument.UsesAction(step, "zizmorcore/zizmor-action"))
+					{
+						Assert.True(string.Equals(YamlDocument.Scalar(YamlDocument.Child(step, "with"), "version"), ZizmorVersion,
+								StringComparison.Ordinal),
+							$"{path} job {job.Key} must pin zizmor {ZizmorVersion} like {GovernanceWorkflows.ZizmorOnline}.");
+					}
+				}
+			}
 		}
 	}
 

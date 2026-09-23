@@ -35,9 +35,11 @@
     <File Path=".github/workflows/codeql.yml"/>
     <File Path=".github/workflows/main-ci.yml"/>
     <File Path=".github/workflows/release.yml"/>
+    <File Path=".github/workflows/scorecard.yml"/>
     <File Path=".github/workflows/pull-request-ci.yml"/>
     <File Path=".github/workflows/pr-policy.yml"/>
     <File Path=".github/workflows/sonar.yml"/>
+    <File Path=".github/workflows/zizmor-online.yml"/>
   </Folder>
   <Folder Name="/eng/">
     <File Path="eng/api/apicompat-invisible-changes.txt"/>

@@ -204,6 +204,12 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   a weekly schedule and dispatch (`GovernanceWorkflowTests`: `Codeql_analyzes_csharp_cpp_and_actions_with_literal_runner_labels`,
   `Codeql_csharp_job_builds_the_product_graph_manually_without_shared_compilation`,
   `Codeql_workflow_never_enables_a_package_cache`, `Codeql_runs_on_pull_requests_main_a_weekly_schedule_and_dispatch`).
+- Scorecard keeps the shape its publication verifier accepts (no `defaults`, `env` or `run` steps, allowlisted actions,
+  an Ubuntu runner), only its analysis job and the release workflow request an OIDC token, and the online zizmor run
+  pins the tool version the Gate uses, enables the online audits and skips forks and drafts (`GovernanceWorkflowTests`:
+  `Scorecard_workflow_has_no_defaults_env_or_run_steps`, `Scorecard_steps_use_only_the_actions_the_verifier_allows`,
+  `Only_the_scorecard_job_requests_an_id_token`, `Zizmor_online_pins_the_tool_version_and_enables_online_audits`,
+  `Online_and_gate_zizmor_runs_pin_the_same_version`).
 
 ## Run the tests
 

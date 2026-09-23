@@ -165,7 +165,9 @@ public sealed class PullRequestPolicyScriptTests(PullRequestPolicyFixture fixtur
 		PwshResult run = await PwshScript.RunFileAsync(EntryScript, ["-ChangedFilesPath", changed], environment);
 
 		Assert.True(run.ExitCode == 0, run.Transcript);
-		Assert.Contains("Dependabot pull request: title and changelog rules exempt.", run.StandardOutput, StringComparison.Ordinal);
+		Assert.Contains("::notice title=PR policy::Dependabot pull request: title and changelog rules exempt.", run.StandardOutput,
+			StringComparison.Ordinal);
+		Assert.Empty(Annotations(run.StandardOutput));
 		Assert.DoesNotContain(Sentinel, run.StandardOutput + run.StandardError, StringComparison.Ordinal);
 	}
 

@@ -52,6 +52,7 @@ $ImperativeFirstWords = @(
 )
 $MaximumListedPaths = 10
 $RegexTimeout = [TimeSpan]::FromSeconds(1)
+$ExemptionMessage = 'Dependabot pull request: title and changelog rules exempt.'
 
 # The waiver marker alone on a line, after at most three spaces (four would make an indented code block).
 $ChangelogWaiverLinePattern = '^ {0,3}' + $ChangelogWaiverPattern + '[ \t]*$'
@@ -280,9 +281,10 @@ function Test-PullRequestPolicy {
 
     $rules = @('TitleLength', 'TitleNoTrailingPeriod', 'TitleNoConventionalPrefix', 'TitleStartsUppercase', 'TitleImperative',
         'ChangelogEntry')
-    if ([string]::Equals($Author, $DependabotLogin, [StringComparison]::Ordinal)) {
+    $exemption = Get-PullRequestPolicyExemption -Author $Author
+    if ($exemption) {
         foreach ($rule in $rules) {
-            ConvertTo-RuleResult -Rule $rule -Passed $true -Message 'Dependabot pull request: title and changelog rules exempt.'
+            ConvertTo-RuleResult -Rule $rule -Passed $true -Message $exemption
         }
 
         return
@@ -293,4 +295,23 @@ function Test-PullRequestPolicy {
     Test-ChangelogEntry -Body ([string] $Body) -ChangedFile $files
 }
 
-Export-ModuleMember -Function Test-PullRequestPolicy
+<#
+.SYNOPSIS
+    Returns why a pull request of this author is exempt from every rule (Dependabot, compared with the exact login), or
+    $null when it is not.
+#>
+function Get-PullRequestPolicyExemption {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [AllowEmptyString()] [AllowNull()] [string] $Author = ''
+    )
+
+    if ([string]::Equals($Author, $DependabotLogin, [StringComparison]::Ordinal)) {
+        return $ExemptionMessage
+    }
+
+    return $null
+}
+
+Export-ModuleMember -Function Test-PullRequestPolicy, Get-PullRequestPolicyExemption

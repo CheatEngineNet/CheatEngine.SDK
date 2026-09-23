@@ -162,7 +162,7 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   `Specific_nuget_groups_come_before_the_catch_all_group`).
 - The `PR policy` required check evaluates the title (at most 72 characters, no trailing period, no type or area prefix,
   uppercase start, imperative first word) and the CHANGELOG entry for `libs/`, `src/`, `analyzers/`, `source-generators/`
-  and `native/` changes (lock files excluded, Dependabot exempt), against vectors that include real pull
+  and `native/` changes (lock files excluded, Dependabot exempt with a notice), against vectors that include real pull
   request titles. The waiver marker counts only on a line of its own outside fenced code and other comments, so a
   quoted marker (code span, code block, sentence) never waives the rule, and no committed pull request template waives
   it by itself; the entry script annotates each failed rule, writes the summary table and never prints the description

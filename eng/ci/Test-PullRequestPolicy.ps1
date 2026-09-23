@@ -11,7 +11,8 @@
     from -ChangedFilesPath, one path per line, which the repository tests and local runs use.
 
     The script writes a rule table to the job summary when GITHUB_STEP_SUMMARY is set, emits one `::error` annotation per
-    failed rule, and exits 1 when any rule failed. It never prints the pull request body.
+    failed rule (a `::notice` for an exempt Dependabot pull request), and exits 1 when any rule failed. It never prints
+    the pull request body.
 
 .PARAMETER Title
     Pull request title. Defaults to $env:PR_TITLE.
@@ -114,6 +115,12 @@ foreach ($result in $results) {
     $state = if ($result.Passed) { 'pass' } else { 'FAIL' }
     # Messages can quote paths; a raw line break in a path must not start a workflow command on its own line.
     Write-Host "[$state] $(ConvertTo-WorkflowCommandData -Text "$($result.Rule): $($result.Message)")"
+}
+
+# The exemption is announced as a notice (shared-contracts 1.11: Dependabot pull requests are exempt "with notice").
+$exemption = Get-PullRequestPolicyExemption -Author $Author
+if ($exemption) {
+    Write-Host "::notice title=PR policy::$(ConvertTo-WorkflowCommandData -Text $exemption)"
 }
 
 foreach ($failure in $failures) {

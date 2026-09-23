@@ -466,6 +466,7 @@ static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.ObserveCurrent(
 static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.SelectAndObserve(CheatEngine.SDK.Engine.Inspection.TargetProcessId processId, out CheatEngine.SDK.Engine.Processes.CurrentProcessObservation observation) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.CurrentProcess.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
 static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.ProcessSelection.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeInfo.TryDeriveTargetArchitecture(bool isX86Family, bool isArmFamily, bool is64Bit, out CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture architecture) -> bool
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.GlobalUnavailable.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.InvalidResult.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.Matches(int resultCount) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome

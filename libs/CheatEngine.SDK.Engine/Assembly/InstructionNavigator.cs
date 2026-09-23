@@ -115,13 +115,13 @@ public static class InstructionNavigator
 				return targetStatus;
 			}
 
-			LuaGlobalPushStatus global = LuaGlobalFunctions.TryPushWithStatus(state, cache, name);
-			if (global == LuaGlobalPushStatus.Unavailable)
+			LuaGlobalPushOutcome global = LuaGlobalFunctions.TryPushWithOutcome(state, cache, name);
+			if (global.Status == LuaGlobalPushStatus.Unavailable)
 			{
 				return InstructionOperationStatus.GlobalUnavailable;
 			}
 
-			if (global != LuaGlobalPushStatus.Success)
+			if (!global.IsSuccess)
 			{
 				return InstructionOperationStatus.LuaFailure;
 			}

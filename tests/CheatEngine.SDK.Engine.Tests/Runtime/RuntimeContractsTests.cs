@@ -75,6 +75,55 @@ public sealed class RuntimeContractsTests
 		Assert.Equal(TargetAbi.Unknown, abi);
 	}
 
+	[Theory]
+	[InlineData(true, false, true, true, CheatEngineArchitecture.X64)]
+	[InlineData(true, false, false, true, CheatEngineArchitecture.X86)]
+	[InlineData(false, true, true, true, CheatEngineArchitecture.Arm64)]
+	[InlineData(false, true, false, true, CheatEngineArchitecture.Arm32)]
+	[InlineData(true, true, true, false, CheatEngineArchitecture.Unknown)]
+	[InlineData(true, true, false, false, CheatEngineArchitecture.Unknown)]
+	[InlineData(false, false, true, false, CheatEngineArchitecture.Unknown)]
+	[InlineData(false, false, false, false, CheatEngineArchitecture.Unknown)]
+	public void try_derive_target_architecture_follows_the_ce_family_table(bool isX86Family, bool isArmFamily,
+		bool is64Bit, bool expectedResult, CheatEngineArchitecture expected)
+	{
+		bool derived = RuntimeInfo.TryDeriveTargetArchitecture(isX86Family, isArmFamily, is64Bit,
+			out CheatEngineArchitecture architecture);
+
+		Assert.Equal(expectedResult, derived);
+		Assert.Equal(expected, architecture);
+	}
+
+	[Fact]
+	public void try_derive_target_architecture_maps_the_x86_family_with_64_bit_to_x64()
+	{
+		// Spike C3 D2 (CE 7.7.0.10621, x64 Tutorial target): targetIsX86 = true, targetIs64Bit = true, targetIsArm = false.
+		Assert.True(RuntimeInfo.TryDeriveTargetArchitecture(true, false, true, out CheatEngineArchitecture x64));
+		Assert.Equal(CheatEngineArchitecture.X64, x64);
+	}
+
+	[Fact]
+	public void try_derive_target_architecture_maps_the_x86_family_without_64_bit_to_x86()
+	{
+		// Spike C3 D2 (CE 7.7.0.10621, i386 tutorial target): targetIsX86 = true, targetIs64Bit = false.
+		Assert.True(RuntimeInfo.TryDeriveTargetArchitecture(true, false, false, out CheatEngineArchitecture x86));
+		Assert.Equal(CheatEngineArchitecture.X86, x86);
+	}
+
+	[Fact]
+	public void try_derive_target_architecture_keeps_arm_and_contradictory_families_apart_from_the_64_bit_flag()
+	{
+		Assert.True(RuntimeInfo.TryDeriveTargetArchitecture(false, true, false, out CheatEngineArchitecture arm32));
+		Assert.True(RuntimeInfo.TryDeriveTargetArchitecture(false, true, true, out CheatEngineArchitecture arm64));
+		Assert.False(RuntimeInfo.TryDeriveTargetArchitecture(true, true, true, out CheatEngineArchitecture both));
+		Assert.False(RuntimeInfo.TryDeriveTargetArchitecture(false, false, true, out CheatEngineArchitecture neither));
+
+		Assert.Equal(CheatEngineArchitecture.Arm32, arm32);
+		Assert.Equal(CheatEngineArchitecture.Arm64, arm64);
+		Assert.Equal(CheatEngineArchitecture.Unknown, both);
+		Assert.Equal(CheatEngineArchitecture.Unknown, neither);
+	}
+
 	[Fact]
 	public void PointerSize_known_widths_expose_bits_and_reject_other_widths()
 	{

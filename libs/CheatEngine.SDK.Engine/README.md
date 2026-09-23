@@ -129,8 +129,13 @@ with a following ambient-target Lua effect, so an external selection transition 
 A→B→A sequence, remains unqualified.
 
 `InstructionProfiles.TryObserveCurrent` has a narrower purpose than process qualification: it reads CE's selected PID,
-the documented target ISA probes, and the PID again to construct an `InstructionTargetProfile`. It refuses
-contradictory or unknown ISA facts instead of using the managed host width. `InstructionAssembler` always sends its
+the documented target ISA probes, and the PID again to construct an `InstructionTargetProfile`. On Cheat Engine an x64
+target is the x86 family plus the 64-bit flag (`targetIsX86() == true` and `targetIs64Bit() == true`), so the profile
+follows `RuntimeInfo.TryDeriveTargetArchitecture` (see [Runtime facts and target backends](#runtime-facts-and-target-backends)):
+x86 family gives X64 or X86, ARM family gives Arm64 or Arm32, and both families or neither is `InvalidProfile`. It never
+uses the managed host width or CE's configured pointer size. With no target selected CE reports x64-like facts, so a
+zero PID is `TargetNotSelected` before any probe; the file-as-process sentinel PID is `UnsupportedTargetBackend`.
+`InstructionAssembler` always sends its
 explicit `Address` to CE as the relative-operand origin, validates the complete returned byte table, and copies no
 prefix on a malformed result, short destination, or observed target change. `InstructionDisassembler` bounds and copies
 the raw UTF-8 display line before resolving the split helper, bounds all four raw split fields before decoding them,
@@ -238,6 +243,28 @@ The library references [`CheatEngine.SDK.Lua`](../CheatEngine.SDK.Lua/README.md)
 `CheatEngine.SDK.Annotations`, and not [`CheatEngine.SDK.Hosting`](../CheatEngine.SDK.Hosting/README.md). It reaches
 Cheat Engine through `LuaRuntime`, which `CheatEngine.SDK.Hosting` attaches when the plugin is enabled. The assembly
 ships in the `CheatEngine.SDK` package under `lib/net10.0`.
+
+### Runtime facts and target backends
+
+Cheat Engine reports a target's ISA family (`targetIsX86`, `targetIsArm`) separately from its 64-bit process flag
+(`targetIs64Bit`). The SDK keeps them separate and derives an architecture only from both families plus the flag,
+through the pure `RuntimeInfo.TryDeriveTargetArchitecture`:
+
+| `targetIsX86` | `targetIsArm` | Architecture                            |
+|---------------|---------------|-----------------------------------------|
+| true          | false         | `targetIs64Bit` ? `X64` : `X86`         |
+| false         | true          | `targetIs64Bit` ? `Arm64` : `Arm32`     |
+| true          | true          | `Unknown` (instruction profile refused) |
+| false         | false         | `Unknown` (instruction profile refused) |
+| absent        | any           | `Unknown` (instruction profile refused) |
+
+Evidence: CE 7.7.0.10621 x64 reported `targetIsX86() == true` and `targetIs64Bit() == true` for an x64 target and
+`targetIsX86() == true`, `targetIs64Bit() == false` for an x86 target (spike C3 D2: a Lua-only host observation used as
+a design input, not a qualification). The public CE source at `ec45d5f` agrees (`ProcessHandlerUnit.pas:24`,
+`:115-138`). With no target selected CE also reports the x86 family, the 64-bit flag and an 8-byte pointer size, so
+every SDK observation reads `getOpenedProcessID` first and reads no fact when it is 0. These mappings are proven by
+fixture tests (C1/C2) only; host-level evidence belongs to the [qualification matrix](../../docs/qualification/README.md)
+(Q32).
 
 ## Promise
 

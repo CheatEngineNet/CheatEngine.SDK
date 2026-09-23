@@ -75,13 +75,13 @@ public static class InstructionAssembler
 				return targetStatus;
 			}
 
-			LuaGlobalPushStatus global = LuaGlobalFunctions.TryPushWithStatus(state, SAssemble, "assemble"u8);
-			if (global == LuaGlobalPushStatus.Unavailable)
+			LuaGlobalPushOutcome global = LuaGlobalFunctions.TryPushWithOutcome(state, SAssemble, "assemble"u8);
+			if (global.Status == LuaGlobalPushStatus.Unavailable)
 			{
 				return InstructionOperationStatus.GlobalUnavailable;
 			}
 
-			if (global != LuaGlobalPushStatus.Success)
+			if (!global.IsSuccess)
 			{
 				return InstructionOperationStatus.LuaFailure;
 			}

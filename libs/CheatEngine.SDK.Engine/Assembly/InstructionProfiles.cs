@@ -1,10 +1,8 @@
-using System;
-
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Inspection;
+using CheatEngine.SDK.Engine.Processes;
+using CheatEngine.SDK.Engine.Runtime;
 using CheatEngine.SDK.Lua.Calls;
-using CheatEngine.SDK.Lua.CompilerServices;
-using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 
@@ -14,29 +12,37 @@ namespace CheatEngine.SDK.Engine.Assembly;
 /// <remarks>
 ///     <para>
 ///         The observation calls <c>getOpenedProcessID</c>, <c>targetIs64Bit</c>, <c>targetIsX86</c>, and
-///         <c>targetIsArm</c> under one Lua runtime admission, then checks the process identifier a second time. It
-///         rejects contradictory architecture facts rather than inferring an ISA from a pointer width or from the
-///         managed host.
+///         <c>targetIsArm</c> under one Lua runtime admission, then checks the process identifier a second time. The
+///         profile follows <see cref="RuntimeInfo.TryDeriveTargetArchitecture" />: on Cheat Engine, x86-64 is the x86
+///         family plus the 64-bit flag (<c>targetIsX86() == true</c> and <c>targetIs64Bit() == true</c>), the 64-bit
+///         flag alone never selects a family, and "contradictory" means both families or neither. The profile width is
+///         Cheat Engine's 64-bit process flag (<c>targetIs64Bit</c>), never <c>getPointerSize</c>, the managed host
+///         width, or <c>PointerSize.FromArchitecture</c>.
+///     </para>
+///     <para>
+///         With no target selected Cheat Engine reports exactly the facts of an x64 target (spike C3 D2, ObservedHost,
+///         Lua-only, 2026-09-22), so the process identifier is read first and a zero identifier returns
+///         <see cref="InstructionOperationStatus.TargetNotSelected" /> before any ISA probe runs. The file-as-process
+///         sentinel identifier 4294967295 returns <see cref="InstructionOperationStatus.UnsupportedTargetBackend" />,
+///         also before any probe. Cheat Engine's "assembly mode" is the same 64-bit process flag
+///         (<c>setAssemblerMode</c> writes it); the SDK reads it through <c>targetIs64Bit</c> and never calls
+///         <c>setAssemblerMode</c>.
 ///     </para>
 ///     <para>
 ///         CE exposes ambient target state rather than a target-selection lock. The repeated identifier makes a
-///         selection transition observable during this operation, but it does not identify a process incarnation or
-///         prove that a later assembler or disassembler call runs against the same target. Consumers must retain
-///         the resulting <see cref="InstructionTargetProfile" /> and pass it to an instruction operation, which
-///         performs the same
-///         before-and-after coherence check.
+///         selection transition observable during this operation, but it is an observation, not a lock: it does not
+///         identify a process incarnation or prove that a later assembler or disassembler call runs against the same
+///         target. Consumers must retain the resulting <see cref="InstructionTargetProfile" /> and pass it to an
+///         instruction operation, which performs the same before-and-after coherence check and reports an observed
+///         change after the effect as <see cref="InstructionOperationStatus.TargetChanged" /> without promising any
+///         rollback.
 ///     </para>
 /// </remarks>
 public static class InstructionProfiles
 {
-	private static readonly LuaRef SGetOpenedProcessId = new();
-	private static readonly LuaRef STargetIs64Bit = new();
-	private static readonly LuaRef STargetIsX86 = new();
-	private static readonly LuaRef STargetIsArm = new();
-
 	/// <summary>Observes the current CE target and returns a profile only when its selected PID and ISA probes agree.</summary>
 	/// <param name="targetProfile">The copied profile and selected PID only when the returned status is success.</param>
-	/// <returns>A target, availability, protected-Lua, or profile-consistency outcome.</returns>
+	/// <returns>A target, backend, availability, protected-Lua, or profile-consistency outcome.</returns>
 	/// <exception cref="global::System.InvalidOperationException">
 	///     The plugin is not enabled or the calling thread has no Lua
 	///     state.
@@ -50,47 +56,22 @@ public static class InstructionProfiles
 		int top = state.Top;
 		try
 		{
-			InstructionOperationStatus status = TryGetCurrentTarget(state, out TargetProcessId firstTarget);
-			if (status != InstructionOperationStatus.Success)
+			TargetProbeResult probe = TargetArchitectureProbe.Observe(state, TargetProbeFacts.InstructionSet,
+				TargetProbeFacts.InstructionSet);
+			if (probe.Status != TargetProbeStatus.Success)
 			{
-				return status;
+				return FromProbe(probe.Status);
 			}
 
-			status = TryCallBoolean(state, STargetIs64Bit, "targetIs64Bit"u8, out bool is64Bit);
-			if (status != InstructionOperationStatus.Success)
-			{
-				return status;
-			}
-
-			status = TryCallBoolean(state, STargetIsX86, "targetIsX86"u8, out bool isX86);
-			if (status != InstructionOperationStatus.Success)
-			{
-				return status;
-			}
-
-			status = TryCallBoolean(state, STargetIsArm, "targetIsArm"u8, out bool isArm);
-			if (status != InstructionOperationStatus.Success)
-			{
-				return status;
-			}
-
-			if (!TryCreateProfile(is64Bit, isX86, isArm, out InstructionProfile profile))
+			if (!RuntimeInfo.TryDeriveTargetArchitecture(probe.IsX86Family.GetValueOrDefault(),
+					probe.IsArmFamily.GetValueOrDefault(), probe.Is64Bit.GetValueOrDefault(),
+					out CheatEngineArchitecture architecture))
 			{
 				return InstructionOperationStatus.InvalidProfile;
 			}
 
-			status = TryGetCurrentTarget(state, out TargetProcessId finalTarget);
-			if (status != InstructionOperationStatus.Success)
-			{
-				return status;
-			}
-
-			if (firstTarget != finalTarget)
-			{
-				return InstructionOperationStatus.TargetChanged;
-			}
-
-			targetProfile = new InstructionTargetProfile(firstTarget, profile);
+			targetProfile = new InstructionTargetProfile(new TargetProcessId(probe.ProcessId),
+				ToProfile(architecture));
 			return InstructionOperationStatus.Success;
 		}
 		catch (LuaException)
@@ -106,102 +87,43 @@ public static class InstructionProfiles
 
 	internal static InstructionOperationStatus TryVerifyCurrent(LuaState state, TargetProcessId expectedTarget)
 	{
-		InstructionOperationStatus status = TryGetCurrentTarget(state, out TargetProcessId actualTarget);
-		return status == InstructionOperationStatus.Success && actualTarget != expectedTarget
-			? InstructionOperationStatus.TargetChanged
-			: status;
-	}
-
-	private static InstructionOperationStatus TryGetCurrentTarget(LuaState state, out TargetProcessId target)
-	{
-		target = default;
-		InstructionOperationStatus status = TryPushGlobal(state, SGetOpenedProcessId, "getOpenedProcessID"u8);
-		if (status != InstructionOperationStatus.Success)
+		TargetProbeStatus status = TargetArchitectureProbe.ReadProcessId(state, out int actualTarget, out _);
+		return status switch
 		{
-			return status;
-		}
-
-		if (!state.TryCall(0, 1).IsOk)
-		{
-			return InstructionOperationStatus.LuaFailure;
-		}
-
-		if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out long value) ||
-			value is < 0 or > int.MaxValue)
-		{
-			return InstructionOperationStatus.InvalidResult;
-		}
-
-		if (value == 0)
-		{
-			return InstructionOperationStatus.TargetNotSelected;
-		}
-
-		target = new TargetProcessId((int) value);
-		return InstructionOperationStatus.Success;
-	}
-
-	private static InstructionOperationStatus TryCallBoolean(LuaState state, LuaRef cache, ReadOnlySpan<byte> name,
-		out bool value)
-	{
-		value = default;
-		InstructionOperationStatus status = TryPushGlobal(state, cache, name);
-		if (status != InstructionOperationStatus.Success)
-		{
-			return status;
-		}
-
-		if (!state.TryCall(0, 1).IsOk)
-		{
-			return InstructionOperationStatus.LuaFailure;
-		}
-
-		if (state.TypeOf(-1) != LuaType.Boolean)
-		{
-			return InstructionOperationStatus.InvalidResult;
-		}
-
-		value = state.ToBoolean(-1);
-		return InstructionOperationStatus.Success;
-	}
-
-	private static InstructionOperationStatus TryPushGlobal(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
-	{
-		return LuaGlobalFunctions.TryPushWithStatus(state, cache, name) switch
-		{
-			LuaGlobalPushStatus.Success => InstructionOperationStatus.Success,
-			LuaGlobalPushStatus.Unavailable => InstructionOperationStatus.GlobalUnavailable,
-			_ => InstructionOperationStatus.LuaFailure
+			TargetProbeStatus.Success => actualTarget == expectedTarget.Value
+				? InstructionOperationStatus.Success
+				: InstructionOperationStatus.TargetChanged,
+			// A file-as-process selection is a different selection than the profiled operating-system process.
+			TargetProbeStatus.FileAsProcess => InstructionOperationStatus.TargetChanged,
+			_ => FromProbe(status)
 		};
 	}
 
-	private static bool TryCreateProfile(bool is64Bit, bool isX86, bool isArm, out InstructionProfile profile)
+	private static InstructionOperationStatus FromProbe(TargetProbeStatus status)
 	{
-		if (isX86 && isArm)
+		return status switch
 		{
-			profile = default;
-			return false;
-		}
+			TargetProbeStatus.Success => InstructionOperationStatus.Success,
+			TargetProbeStatus.NoTargetSelected => InstructionOperationStatus.TargetNotSelected,
+			TargetProbeStatus.FileAsProcess => InstructionOperationStatus.UnsupportedTargetBackend,
+			TargetProbeStatus.TargetChanged => InstructionOperationStatus.TargetChanged,
+			TargetProbeStatus.GlobalUnavailable => InstructionOperationStatus.GlobalUnavailable,
+			TargetProbeStatus.LuaFailure => InstructionOperationStatus.LuaFailure,
+			TargetProbeStatus.InvalidProcessId or TargetProbeStatus.InvalidResult => InstructionOperationStatus
+				.InvalidResult,
+			_ => InstructionOperationStatus.Unknown
+		};
+	}
 
-		if (isX86)
+	private static InstructionProfile ToProfile(CheatEngineArchitecture architecture)
+	{
+		return architecture switch
 		{
-			profile = is64Bit ? default : InstructionProfile.X86;
-			return !is64Bit;
-		}
-
-		if (isArm)
-		{
-			profile = is64Bit ? InstructionProfile.Arm64 : InstructionProfile.Arm32;
-			return true;
-		}
-
-		if (is64Bit)
-		{
-			profile = InstructionProfile.X64;
-			return true;
-		}
-
-		profile = default;
-		return false;
+			CheatEngineArchitecture.X86 => InstructionProfile.X86,
+			CheatEngineArchitecture.X64 => InstructionProfile.X64,
+			CheatEngineArchitecture.Arm32 => InstructionProfile.Arm32,
+			CheatEngineArchitecture.Arm64 => InstructionProfile.Arm64,
+			_ => default
+		};
 	}
 }

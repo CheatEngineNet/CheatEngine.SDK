@@ -166,11 +166,14 @@ public static class InstructionDisassembler
 
 	private static InstructionOperationStatus PushGlobal(LuaState state, LuaRef cache, ReadOnlySpan<byte> name)
 	{
-		return LuaGlobalFunctions.TryPushWithStatus(state, cache, name) switch
+		LuaGlobalPushOutcome global = LuaGlobalFunctions.TryPushWithOutcome(state, cache, name);
+		if (global.IsSuccess)
 		{
-			LuaGlobalPushStatus.Success => InstructionOperationStatus.Success,
-			LuaGlobalPushStatus.Unavailable => InstructionOperationStatus.GlobalUnavailable,
-			_ => InstructionOperationStatus.LuaFailure
-		};
+			return InstructionOperationStatus.Success;
+		}
+
+		return global.Status == LuaGlobalPushStatus.Unavailable
+			? InstructionOperationStatus.GlobalUnavailable
+			: InstructionOperationStatus.LuaFailure;
 	}
 }

@@ -146,8 +146,7 @@ That dispatcher verifies, in its callback thunk, that the host runs work on the 
 host that violates that check and it does not expose a fire-and-forget `queue(function, ...)` route. The CE 7.7 live
 probe still has to establish the host's real `synchronize` scheduling, errors, returns, and re-entrance behavior; see
 [09 · The main thread](../09-main-thread/README.md). Treat a disabled or stopping plugin as an expected failure
-boundary,
-not as an opportunity to retain a borrowed record.
+boundary, not as an opportunity to retain a borrowed record.
 
 ## Evidence and scope
 

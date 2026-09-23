@@ -264,6 +264,24 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q20")]
+	public void String_argument_with_embedded_nul_keeps_its_length()
+	{
+		LuaTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		LuaState L = LuaTest.View(state);
+		using RuntimeScope scope = new(state);
+		Register(LoadSuite(roslyn), L);
+
+		// 'echo' takes ReadOnlySpan<byte> and 'greet' takes string: both keep the bytes after a NUL.
+		Assert.Equal(3, LuaTest.RunForInteger(L, "return #echo('a\\0b')"u8));
+		Assert.Equal("a\0b", LuaTest.RunForString(L, "return echo('a\\0b')"u8));
+		Assert.Equal(10, LuaTest.RunForInteger(L, "return #greet('a\\0b')"u8));
+		Assert.Equal("hello, a\0b\u00E9", LuaTest.RunForString(L, "return greet('a\\0b\\u{E9}')"u8));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
 	public void Calling_a_thunk_from_lua_allocates_nothing_on_the_managed_side()
 	{
 		LuaTest.RequireNativeLua();

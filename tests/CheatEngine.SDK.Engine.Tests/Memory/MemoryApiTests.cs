@@ -143,6 +143,7 @@ public sealed class MemoryApiTests
 	                                                 """u8;
 
 	[Fact]
+	[Trait("Qualification", "Q21")]
 	public void Target_scalars_preserve_signedness_widths_pointer_bits_and_floating_point_values()
 	{
 		EngineTest.RequireNativeLua();
@@ -190,6 +191,7 @@ public sealed class MemoryApiTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q20")]
 	public void Target_buffers_and_strings_keep_their_order_and_never_return_a_dangling_lua_span()
 	{
 		EngineTest.RequireNativeLua();

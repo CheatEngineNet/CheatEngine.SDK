@@ -53,18 +53,18 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 
 		Assert.Equal(ClassicSlotRegistryContract.Kind, root.GetProperty("schema").GetString());
 		Assert.All(root.GetProperty("sources").EnumerateArray(), source =>
-			Assert.Contains(source.GetProperty("role").GetString(), ClassicSlotRegistryContract.SourceRoles));
+			Assert.Contains(source.GetProperty("role").GetString(), ClassicSlotRegistryContract.SourceRoles, StringComparer.Ordinal));
 		Assert.All(Slots, slot =>
 		{
-			Assert.Contains(slot.GetProperty("section").GetString(), ClassicSlotRegistryContract.Sections);
-			Assert.Contains(slot.GetProperty("hostAssignment").GetProperty("kind").GetString(), ClassicSlotRegistryContract.AssignmentKinds);
-			Assert.Contains(slot.GetProperty("nature").GetString(), ClassicSlotRegistryContract.Natures);
-			Assert.Contains(slot.GetProperty("callingConvention").GetString(), ClassicSlotRegistryContract.CallingConventions);
-			Assert.Contains(slot.GetProperty("nullability").GetString(), ClassicSlotRegistryContract.Nullabilities);
-			Assert.Contains(slot.GetProperty("sdkExposure").GetString(), ClassicSlotRegistryContract.SdkExposures);
-			Assert.Contains(slot.GetProperty("facadeStatus").GetString(), ClassicSlotRegistryContract.FacadeStatuses);
-			Assert.Contains(slot.GetProperty("ownership").GetString(), ClassicSlotRegistryContract.Ownerships);
-			Assert.Contains(slot.GetProperty("evidenceKind").GetString(), ClassicSlotRegistryContract.SlotEvidenceKinds);
+			Assert.Contains(slot.GetProperty("section").GetString(), ClassicSlotRegistryContract.Sections, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("hostAssignment").GetProperty("kind").GetString(), ClassicSlotRegistryContract.AssignmentKinds, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("nature").GetString(), ClassicSlotRegistryContract.Natures, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("callingConvention").GetString(), ClassicSlotRegistryContract.CallingConventions, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("nullability").GetString(), ClassicSlotRegistryContract.Nullabilities, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("sdkExposure").GetString(), ClassicSlotRegistryContract.SdkExposures, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("facadeStatus").GetString(), ClassicSlotRegistryContract.FacadeStatuses, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("ownership").GetString(), ClassicSlotRegistryContract.Ownerships, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("evidenceKind").GetString(), ClassicSlotRegistryContract.SlotEvidenceKinds, StringComparer.Ordinal);
 		});
 	}
 
@@ -423,7 +423,7 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 		string[] actual = [.. obj.EnumerateObject().Select(static property => property.Name)];
 		foreach (string name in expected)
 		{
-			Assert.Contains(name, actual);
+			Assert.Contains(name, actual, StringComparer.Ordinal);
 		}
 	}
 

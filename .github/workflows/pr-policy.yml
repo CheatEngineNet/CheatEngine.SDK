@@ -1,0 +1,50 @@
+# Second required check, context "PR policy" (next to "CI / Gate"). Never rename the job, never add path filters,
+# never move it into ci.yml, never switch to pull_request_target. It runs again on every title or description edit,
+# so it stays cheap: Ubuntu, no .NET. The rules live in eng/ci/PullRequestPolicy.psm1 (tested by
+# tests/CheatEngine.SDK.Repository.Tests/Governance); Dependabot pull requests are exempt.
+# Drafts run it too: the check must exist before a pull request is marked ready for review.
+name: PR policy
+
+on:
+  pull_request:
+    types: [ opened, edited, synchronize, reopened, ready_for_review ]
+
+# An edit or a push supersedes the previous evaluation of the same pull request.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  policy:
+    name: PR policy # the required check context; never rename
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the changelog rule diffs base...head, which needs the merge base
+          persist-credentials: false
+
+      # Pull-request values reach the script only through the environment, never through template expansion in run:.
+      # The author is compared inside the script (not with github.actor), so a maintainer's push to a Dependabot branch
+      # is still exempt and nothing here is a bot-identity condition.
+      - name: Check the title and the CHANGELOG entry
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          ./eng/ci/Test-PullRequestPolicy.ps1
+          if ($LASTEXITCODE -ne 0) {
+            throw "The pull request policy failed with exit code $LASTEXITCODE; the annotations and the job summary name each rule."
+          }

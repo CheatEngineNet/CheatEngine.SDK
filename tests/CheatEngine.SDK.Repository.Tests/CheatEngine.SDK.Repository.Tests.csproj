@@ -2,8 +2,9 @@
 
   <!--
     Repository policy tests. They only read committed files (solution, Markdown, workflows, qualification and catalogue
-    documents), never build, pack or start a process, so every change can run them in seconds. Deliberately no
-    ProjectReference.
+    documents) and never build, pack or restore, so every change can run them in seconds. Deliberately no
+    ProjectReference. The one exception is Governance/: it starts pwsh to run the repository's PowerShell policy code
+    (pull request policy, health-check rules, repository-settings plan) against test vectors, offline.
   -->
 
   <ItemGroup>

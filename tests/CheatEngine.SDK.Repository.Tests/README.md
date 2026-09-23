@@ -9,7 +9,9 @@ qualification-matrix and catalogue contracts added by the audit remediation work
 
 Several of these rules used to live in scripts that CI stopped running, so they silently rotted (dead
 `documentations/` links, orphaned validators). Repository rules are enforced by C# tests instead, and they stay fast:
-this project only reads committed files. It never builds, packs, restores or starts a process.
+this project only reads committed files. It never builds, packs or restores. The one exception is `Governance/`: it
+starts `pwsh` to run the repository's PowerShell policy code (the pull request policy module and entry script, the
+health-check rules, the repository-settings plan) against test vectors, offline.
 
 ## How it works
 
@@ -158,6 +160,20 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   `Roslyn_ignores_cover_every_package_pinned_to_the_roslyn_floor`, `Dotnet_sdk_ecosystem_ignores_major_updates`,
   `Github_actions_updates_cover_the_composite_action_directories`, `No_ecosystem_sets_a_commit_message_prefix`,
   `Specific_nuget_groups_come_before_the_catch_all_group`).
+- The `PR policy` required check evaluates the title (at most 72 characters, no trailing period, no type or area prefix,
+  uppercase start, imperative first word) and the CHANGELOG entry for `libs/`, `src/`, `analyzers/`, `source-generators/`
+  and `native/` changes (lock files excluded, waiver marker, Dependabot exempt), against vectors that include real pull
+  request titles; the entry script annotates each failed rule, writes the summary table and never prints the description
+  (`PullRequestPolicyScriptTests`: `Policy_verdict_matches_the_expected_rules`, `Every_rule_is_exercised_by_a_failing_vector`,
+  `Dependabot_authored_pull_requests_are_exempt_from_every_rule`, `Changelog_failure_names_the_paths_and_both_remedies`,
+  `Entry_script_exits_non_zero_and_annotates_each_failed_rule`, `Entry_script_writes_a_rule_table_to_the_step_summary`,
+  `Entry_script_exempts_dependabot_and_never_prints_the_description`,
+  `Entry_script_refuses_commit_ids_that_are_not_full_hashes`).
+- `pr-policy.yml` runs on every title edit without path filter or condition, as the job `PR policy` on `ubuntu-24.04`,
+  and pull-request text reaches scripts only through `env:` in every workflow (`PullRequestPolicyWorkflowTests`:
+  `Pr_policy_triggers_on_edited_and_has_no_path_filter`, `Pr_policy_job_is_named_PR_policy_and_runs_on_ubuntu_24_04`,
+  `Pull_request_title_body_and_author_reach_the_script_only_through_env`,
+  `Changelog_path_pattern_matches_the_shared_contract`, `Every_consumer_visible_root_of_the_changelog_rule_exists`).
 
 ## Run the tests
 

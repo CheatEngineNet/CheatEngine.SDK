@@ -25,13 +25,13 @@
   },
   "source": {
     "hashes": {
-      "cheatengine_sdk_lua_bridge.c": "8a63e00c7dd941212e7ef8c13d8c97f73142c5154bfbe5dbc5459e7131bb789b",
+      "cheatengine_sdk_lua_bridge.c": "3342be23f88976d9209a24bc0d8b9db512482a24d8db90381a836ea4f5595a56",
       "xmake.lua": "2871368515be4c6fd235e49e793d5557e7c50229fcc8fbfd903efd39f9b754a8"
     },
-    "fingerprint": "8a63e00c7dd941212e7ef8c13d8c97f73142c5154bfbe5dbc5459e7131bb789b:2871368515be4c6fd235e49e793d5557e7c50229fcc8fbfd903efd39f9b754a8"
+    "fingerprint": "3342be23f88976d9209a24bc0d8b9db512482a24d8db90381a836ea4f5595a56:2871368515be4c6fd235e49e793d5557e7c50229fcc8fbfd903efd39f9b754a8"
   },
   "nativeAsset": {
-    "sha256": "da08c2ba03019da3a8c432ef061d5d6133fd2169ba3a6a8e9ac903353856d994",
+    "sha256": "889dc4c231d182f9b7baa9e29880555aad949f42023dde232fe327542c3c5387",
     "pe": {
       "format": "PE32+",
       "machine": "AMD64",
@@ -44,7 +44,9 @@
       "cheatengine_sdk_lua_protected"
     ],
     "delayImports": [],
-    "imports": ["KERNEL32.dll"]
+    "imports": [
+      "KERNEL32.dll"
+    ]
   },
   "reproducibility": {
     "doubleBuildSha256Comparison": true,

@@ -151,7 +151,11 @@ the TRX report names the file the facts are about.
   four symbols, imports only its reviewed CRT/Kernel32 contract, has no delay-load table and cannot acquire a Lua
   module. Its build and publish copies are SHA-256-identical to the audited source asset (`NativeBridgePeAuditTests` and
   `NativeBridgePackagingAuditTests`; the bridge contract is described in the
-  [bridge README](../../native/cheatengine-sdk-lua-bridge/README.md)).
+  [bridge README](../../native/cheatengine-sdk-lua-bridge/README.md)). Its `bridge-audit-manifest.json` records the
+  committed bridge, and `BridgeAuditManifestTests` compare it with the committed blob read through `git cat-file`,
+  never with the working-tree DLL that CI replaces with its own build: source hashes and fingerprint, DLL SHA-256, PE
+  facts, embedded fingerprint, pinned xmake version and exact-case asset path. They carry no trait, so both CI legs run
+  them, and a failure prints the complete expected manifest.
 - Consumers build against the package packed by this run, never an earlier extraction (`RestoreIsolationTests`).
 - With `CESDK_PACKAGED_UMBRELLA_NUPKG` set, every packaging fact is about exactly that file: the feed copy is
   byte-identical to it and the fixture never packs; without it, only a run outside CI may pack, and a CI run fails

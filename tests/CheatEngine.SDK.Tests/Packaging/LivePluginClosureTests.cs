@@ -33,13 +33,14 @@ public sealed class LivePluginClosureTests
 	/// <summary>
 	///     Bundles built without the Cheat Engine entry point. The entry-point generator emits <c>CESDK.CESDK</c> only when
 	///     <c>CheatEngineSdkGenerateEntryPoint</c> is compiler-visible and true, which the package's
-	///     <c>build/CheatEngine.SDK.props</c> gives a direct consumer; these fixtures reference the libraries and the
-	///     generator as projects and set neither, so Cheat Engine finds no entry point in them. The list only shrinks: a
-	///     bundle that gains the entry point fails until it is removed from here.
+	///     <c>build/CheatEngine.SDK.props</c> gives a direct consumer. <c>CheatEngine.SDK.LivePlugin</c> references the
+	///     libraries and the generator as projects and sets neither, so Cheat Engine finds no entry point in it. The
+	///     coexistence fixtures set both directly in their own <c>CoexistencePlugin.props</c>, so they are no longer
+	///     pending. The list only shrinks: a bundle that gains the entry point fails until it is removed from here.
 	/// </summary>
 	private static readonly HashSet<string> s_pendingEntryPoint = new(StringComparer.Ordinal)
 	{
-		"CheatEngine.SDK.LivePlugin", "CheatEngine.SDK.LivePlugin.Coexistence.PluginA", "CheatEngine.SDK.LivePlugin.Coexistence.PluginB"
+		"CheatEngine.SDK.LivePlugin"
 	};
 
 	[Theory]

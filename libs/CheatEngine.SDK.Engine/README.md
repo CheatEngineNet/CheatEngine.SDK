@@ -280,7 +280,11 @@ and `RuntimeProcessOperations.SelectAndObserve` reads it once, after `openProces
 | CE's configured pointer size         | `getPointerSize`            | `RuntimeProcessOperations.TryGetConfiguredPointerSize`, `TargetArchitectureObservation.ConfiguredPointerSize`, `RuntimeInfo.PointerSize` | absent global, or any value other than 4 or 8 (kept raw) |
 
 `RuntimeObservations.TryObserveRuntimeInfo` reads all of them in one admission and produces a `RuntimeInfo`;
-`RuntimeCapabilityProbes` (generated from the `ce77` runtime spec) exposes the raw values for callers that need them. None
+`RuntimeCapabilityProbes` (generated from the `ce77` runtime spec) exposes the raw values for callers that need them.
+Both are projections of the same globals. Their integer policies differ: a generated `int32` result goes through the
+EngineApi marshaller, which also converts an integral float or an integer numeral string, while the members above
+require the Lua integer that Cheat Engine pushes and report any other value as `InvalidResult`
+(`generated_int32_probe_converts_an_integral_float_or_numeral_string_that_the_structured_api_refuses`). None
 of these calls `setPointerSize`, `setAssemblerMode`, `openProcess`, `openFileAsProcess` or a `dbk_*`/`dbvm_*` global: a
 runtime query loads no driver and changes no target (audit A17-18, Q45).
 

@@ -1,7 +1,10 @@
 # Cheat Engine 7.7 raw runtime capability probes, generated into CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.
 #
 # These wrappers return Cheat Engine's raw facts, one global per method, and raise LuaException when a call fails or
-# returns another type. The structured, outcome-returning API is RuntimeHostOperations, RuntimeProcessOperations and
+# returns a value the result marshaller cannot read. They read results with the EngineApi marshallers, so an int32
+# result also accepts what lua_tointegerx converts (an integral float such as 4.0, or an integer numeral string such as
+# '4'), whereas the structured API requires the Lua integer subtype Cheat Engine pushes and reports anything else as
+# InvalidResult. The structured, outcome-returning API is RuntimeHostOperations, RuntimeProcessOperations and
 # RuntimeObservations (CheatEngine.SDK.Engine.Processes); prefer it. In particular, with no target selected Cheat Engine
 # reports x64-like target facts (x86 family, 64-bit, pointer size 8; spike C3 D2), so read getOpenedProcessID first and
 # ignore every target fact while it is 0.

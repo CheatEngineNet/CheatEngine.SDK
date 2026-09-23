@@ -1,6 +1,8 @@
 using System.Text;
 
 using CheatEngine.SDK.Engine.Generated;
+using CheatEngine.SDK.Engine.Processes;
+using CheatEngine.SDK.Engine.Runtime;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Runtime;
@@ -92,6 +94,32 @@ public sealed class RuntimeCapabilityProbesTests
 		Assert.Equal(0, scope.State.Top);
 		// The next generated call on the same state still works.
 		Assert.True(RuntimeCapabilityProbes.IsTarget64Bit());
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Theory]
+	[InlineData("4.0")]
+	[InlineData("'4'")]
+	public void generated_int32_probe_converts_an_integral_float_or_numeral_string_that_the_structured_api_refuses(
+		string luaValue)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		FakeHost.InstallCe77X64TargetFacts(scope.State, 45052);
+		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes("rt_pointer_size = " + luaValue));
+
+		// The generated int32 wrapper reads through Int32Marshaller (lua_tointegerx), which converts an integral float
+		// or an integer numeral string; the spec header documents that policy.
+		Assert.Equal(4, RuntimeCapabilityProbes.GetConfiguredPointerSizeBytes());
+		Assert.Equal(0, scope.State.Top);
+
+		// The structured API requires the Lua integer subtype that Cheat Engine pushes and refuses the same value.
+		ProcessOperationStatus status =
+			RuntimeProcessOperations.TryGetConfiguredPointerSize(out int rawBytes, out PointerSize pointerSize);
+		Assert.Equal(ProcessOperationStatusKind.InvalidResult, status.Kind);
+		Assert.Equal(0, rawBytes);
+		Assert.Equal(PointerSize.Unknown, pointerSize);
 		Assert.Equal(0, scope.State.Top);
 	}
 

@@ -157,9 +157,7 @@ jobs:
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
         with:
-          restore: |
-            CheatEngine.SDK.slnx
-            tests/CheatEngine.SDK.LiveProbe/CheatEngine.SDK.LiveProbe.csproj
+          restore: CheatEngine.SDK.slnx
 
       - name: Use CI-built native bridge
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -180,17 +178,6 @@ jobs:
           dotnet build CheatEngine.SDK.slnx -c $env:CONFIGURATION --no-restore "-bl:artifacts/logs/build-test-$env:CONFIGURATION.binlog"
           if ($LASTEXITCODE -ne 0) {
             throw "$env:CONFIGURATION solution build failed with exit code $LASTEXITCODE."
-          }
-
-      # C0 evidence only: the CE 7.7 live probe must keep compiling, but CI never loads or runs it and uploads nothing it
-      # produces. This step exists until the probe joins CheatEngine.SDK.slnx; WorkflowContractTests then requires its
-      # removal, because the solution build compiles the probe in both legs.
-      - name: Compile live probe
-        if: matrix.configuration == 'Release'
-        run: |
-          dotnet build tests/CheatEngine.SDK.LiveProbe/CheatEngine.SDK.LiveProbe.csproj -c Release --no-restore -bl:artifacts/logs/build-test-live-probe.binlog
-          if ($LASTEXITCODE -ne 0) {
-            throw "The live probe no longer compiles (exit code $LASTEXITCODE)."
           }
 
       # Pack before testing: the packaging tests below consume this exact file, which is then uploaded unchanged. The

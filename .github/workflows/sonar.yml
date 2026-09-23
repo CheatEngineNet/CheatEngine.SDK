@@ -217,3 +217,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "SonarScanner end failed with exit code $LASTEXITCODE."
           }
+
+      # Also after a failed quality gate: the summary links the analysis of this pull request or branch.
+      - name: Link the analysis
+        if: ${{ !cancelled() }}
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          $scope = if ($env:PULL_REQUEST) { "pullRequest=$env:PULL_REQUEST" } else { "branch=$([Uri]::EscapeDataString($env:BRANCH))" }
+          $link = "https://sonarcloud.io/summary/new_code?id=$([Uri]::EscapeDataString($env:SONAR_PROJECT_KEY))&$scope"
+          @('### Sonar', '', "[SonarQube Cloud analysis of $env:SONAR_PROJECT_KEY]($link)") |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

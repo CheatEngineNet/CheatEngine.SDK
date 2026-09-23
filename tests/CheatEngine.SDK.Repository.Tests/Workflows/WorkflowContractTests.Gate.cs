@@ -183,6 +183,12 @@ public sealed partial class WorkflowContractTests
 		Assert.Equal("${{ inputs.wait-quality-gate }}", WorkflowFile.Scalar(env, "SONAR_WAIT_QUALITY_GATE"));
 		Assert.Contains("/d:sonar.qualitygate.wait=$env:SONAR_WAIT_QUALITY_GATE",
 			WorkflowFile.Scalar(analyze.Step("Begin analysis"), "run"), StringComparison.Ordinal);
+
+		// A failed quality gate stays one click away: the summary links the analysis even when End analysis fails.
+		YamlMappingNode link = analyze.Step("Link the analysis");
+		Assert.True(analyze.StepIndex("End analysis") < analyze.StepIndex("Link the analysis"));
+		Assert.Equal("${{ !cancelled() }}", WorkflowFile.Scalar(link, "if"));
+		Assert.Contains("Out-File -FilePath $env:GITHUB_STEP_SUMMARY", WorkflowFile.Scalar(link, "run"), StringComparison.Ordinal);
 	}
 
 	[Fact]

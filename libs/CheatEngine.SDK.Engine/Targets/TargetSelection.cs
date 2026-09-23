@@ -59,8 +59,8 @@ namespace CheatEngine.SDK.Engine.Targets;
 ///         </item>
 ///     </list>
 ///     <para>
-///         Only the local backend is qualified by the support profile (<c>qualifiedBackends: ["LocalProcess"]</c>), and
-///         these behaviours are fixture-tested (C1); they are not host-qualified.
+///         Only the local backend (<see cref="TargetBackend.LocalProcess" />) is a qualified backend, and these
+///         behaviours are fixture-tested (C1); they are not host-qualified.
 ///     </para>
 /// </remarks>
 public static class TargetSelection

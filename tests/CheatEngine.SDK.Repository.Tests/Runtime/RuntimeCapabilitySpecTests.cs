@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using CheatEngine.SDK.Repository.Tests.Infrastructure;
@@ -7,8 +6,8 @@ namespace CheatEngine.SDK.Repository.Tests.Runtime;
 
 /// <summary>
 ///     Text contracts of the runtime facts: the <c>runtime-capabilities</c> EngineApi spec is a wired, read-only
-///     <c>contract: ce77</c> spec, and the <c>TargetBackend</c> vocabulary of the Engine equals the backend vocabulary of
-///     the qualification support profile (audit A12-03, A17-18).
+///     <c>contract: ce77</c> spec, and the <c>TargetBackend</c> members are exactly the rows of the Engine README backend
+///     table, where <c>LocalProcess</c> is the only qualified backend (audit A12-03, A17-18).
 /// </summary>
 public sealed partial class RuntimeCapabilitySpecTests
 {
@@ -18,6 +17,8 @@ public sealed partial class RuntimeCapabilitySpecTests
 	private const string EngineProjectPath = "libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj";
 
 	private const string TargetBackendPath = "libs/CheatEngine.SDK.Engine/Runtime/TargetBackend.cs";
+
+	private const string EngineReadmePath = "libs/CheatEngine.SDK.Engine/README.md";
 
 	/// <summary>
 	///     The read-only globals the runtime observations may call (the allowlist of
@@ -101,7 +102,7 @@ public sealed partial class RuntimeCapabilitySpecTests
 	}
 
 	[Fact]
-	public void support_profile_qualified_backends_name_target_backend_members()
+	public void target_backend_members_are_the_readme_backend_rows_and_only_local_process_is_qualified()
 	{
 		string source = File.ReadAllText(Path.Combine(RepositoryRoot.Path, TargetBackendPath));
 		SortedSet<string> members = new(StringComparer.Ordinal);
@@ -110,36 +111,67 @@ public sealed partial class RuntimeCapabilitySpecTests
 			members.Add(member.Groups["name"].Value);
 		}
 
-		using JsonDocument profile = JsonDocument.Parse(File.ReadAllText(
-			Path.Combine(RepositoryRoot.Path, "docs", "qualification", "support-profile.json")));
-		using JsonDocument schema = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepositoryRoot.Path, "docs",
-			"qualification", "schemas", "support-profile.v0.schema.json")));
-		SortedSet<string> vocabulary = new(StringComparer.Ordinal);
-		foreach (JsonElement backend in schema.RootElement.GetProperty("$defs").GetProperty("profile")
-					 .GetProperty("properties").GetProperty("qualifiedBackends").GetProperty("items").GetProperty("enum")
-					 .EnumerateArray())
-		{
-			vocabulary.Add(backend.GetString()!);
-		}
-
+		SortedSet<string> rows = new(StringComparer.Ordinal);
 		List<string> qualified = [];
-		foreach (JsonElement entry in profile.RootElement.GetProperty("profiles").EnumerateArray())
+		foreach (string[] cells in BackendTableRows(File.ReadAllLines(Path.Combine(RepositoryRoot.Path, EngineReadmePath))))
 		{
-			if (entry.TryGetProperty("qualifiedBackends", out JsonElement backends))
+			string backend = cells[0].Trim('`');
+			Assert.True(rows.Add(backend), $"Duplicate backend row {backend}.");
+			string verdict = cells[^1];
+			Assert.True(string.Equals(verdict, "no", StringComparison.Ordinal) || verdict.StartsWith("yes, ", StringComparison.Ordinal),
+				$"The qualified cell of {backend} is neither 'no' nor 'yes, <profile>': {verdict}");
+			if (verdict.StartsWith("yes", StringComparison.Ordinal))
 			{
-				foreach (JsonElement backend in backends.EnumerateArray())
-				{
-					qualified.Add(backend.GetString()!);
-				}
+				qualified.Add(backend);
 			}
 		}
 
 		Assert.Equal(["CEServer", "FileAsProcess", "LocalProcess", "Unknown"], members);
-		SortedSet<string> known = new(members, StringComparer.Ordinal);
-		known.Remove("Unknown");
-		Assert.Equal(known, vocabulary);
+		Assert.Equal(members, rows);
 		Assert.Equal(["LocalProcess"], qualified);
-		Assert.Subset(members, new HashSet<string>(qualified, StringComparer.Ordinal));
+	}
+
+	// The rows of the README table whose first header cell is "Backend" and last header cell is "Qualified backend", as
+	// trimmed cells without the outer pipes; the separator row is skipped and the table ends at the first non-table line.
+	private static List<string[]> BackendTableRows(string[] lines)
+	{
+		List<string[]> rows = [];
+		int header = -1;
+		for (int index = 0; index < lines.Length; index++)
+		{
+			if (!lines[index].StartsWith('|'))
+			{
+				continue;
+			}
+
+			string[] cells = Cells(lines[index]);
+			if (string.Equals(cells[0], "Backend", StringComparison.Ordinal)
+				&& string.Equals(cells[^1], "Qualified backend", StringComparison.Ordinal))
+			{
+				Assert.Equal(-1, header);
+				header = index;
+			}
+		}
+
+		Assert.True(header >= 0, $"{EngineReadmePath} has no backend table with a 'Qualified backend' column.");
+		for (int index = header + 2; index < lines.Length && lines[index].StartsWith('|'); index++)
+		{
+			rows.Add(Cells(lines[index]));
+		}
+
+		Assert.NotEmpty(rows);
+		return rows;
+	}
+
+	private static string[] Cells(string line)
+	{
+		string[] cells = line.Trim().Trim('|').Split('|');
+		for (int cell = 0; cell < cells.Length; cell++)
+		{
+			cells[cell] = cells[cell].Trim();
+		}
+
+		return cells;
 	}
 
 	[GeneratedRegex(@"^\t(?<name>[A-Z][A-Za-z]*) = \d+,?\r?$", RegexOptions.Multiline | RegexOptions.CultureInvariant,

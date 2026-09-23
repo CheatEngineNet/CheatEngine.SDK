@@ -3,9 +3,10 @@ namespace CheatEngine.SDK.Engine.Runtime;
 /// <summary>How Cheat Engine reaches its selected target: a local process, a file opened as a process, or CEServer.</summary>
 /// <remarks>
 ///     <para>
-///         The backends produce different evidence and are separate profiles (audit ADR-11, A12-03). Only
-///         <see cref="LocalProcess" /> is qualified by the support profile <c>ce-7.7.0.10621-x64-managed-hostfxr</c>
-///         (<c>qualifiedBackends</c>); the member names equal that vocabulary. The SDK recognises the backend as follows:
+///         The backends produce different evidence and are separate profiles (audit ADR-11, A12-03).
+///         <see cref="LocalProcess" /> is the only qualified backend, the one of the Cheat Engine profile
+///         <c>ce-7.7.0.10621-x64-managed-hostfxr</c>; the other backends are unqualified. The SDK recognises the backend
+///         as follows:
 ///     </para>
 ///     <list type="table">
 ///         <item>

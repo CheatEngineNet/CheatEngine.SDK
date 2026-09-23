@@ -311,20 +311,20 @@ general Cheat Engine fact (audit A12-04).
 
 Target backends produce different evidence and are separate profiles (audit A12-03, ADR-11):
 
-| Backend         | How the SDK recognises it                                                        | Incarnation evidence  | Qualified in the support profile                   |
-|-----------------|----------------------------------------------------------------------------------|-----------------------|----------------------------------------------------|
-| `LocalProcess`  | `isConnectedToCEServer() == false` and a PID in (0, `int.MaxValue`]               | PID + local StartTime | yes, `ce-7.7.0.10621-x64-managed-hostfxr`          |
-| `FileAsProcess` | sentinel PID 4294967295 (CE source `ec45d5f`, ObservedSource; ToQualify on 7.7)  | none                  | no                                                 |
-| `CEServer`      | `isConnectedToCEServer() == true`                                                | none                  | no                                                 |
-| `Unknown`       | `isConnectedToCEServer` absent                                                   | none                  | no                                                 |
+| Backend         | How the SDK recognises it                                                        | Incarnation evidence  | Qualified backend                                     |
+|-----------------|----------------------------------------------------------------------------------|-----------------------|-------------------------------------------------------|
+| `LocalProcess`  | `isConnectedToCEServer() == false` and a PID in (0, `int.MaxValue`]               | PID + local StartTime | yes, profile `ce-7.7.0.10621-x64-managed-hostfxr`     |
+| `FileAsProcess` | sentinel PID 4294967295 (CE source `ec45d5f`, ObservedSource; ToQualify on 7.7)  | none                  | no                                                    |
+| `CEServer`      | `isConnectedToCEServer() == true`                                                | none                  | no                                                    |
+| `Unknown`       | `isConnectedToCEServer` absent                                                   | none                  | no                                                    |
 
 A file opened as a process has no operating-system process: the SDK refuses it and never searches for a Windows process
 (A12-07). A local BCL PID and creation time do not describe a PID served remotely by CEServer (A12-05). Cheat Engine's
 target stays ambient: the user, another plugin or a script can switch it at any time, and the SDK's before-and-after
 checks reduce that risk without making an operation a transaction or a lock (A12-01).
 
-These behaviours are proven by fixture tests (C1/C2) only; host-level evidence belongs to the
-[qualification matrix](../../docs/qualification/README.md) (Q30, Q31, Q32, Q45).
+These behaviours are proven by fixture tests (C1/C2) only, never by a run on a Cheat Engine host (audit ADR-04): the
+host-level (C3/C4) scenarios Q30, Q31, Q32 and Q45 are not executed.
 
 ## Promise
 

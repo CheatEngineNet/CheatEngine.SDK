@@ -18,7 +18,10 @@ internal enum TargetProbeStatus : byte
 	/// </summary>
 	FileAsProcess = 3,
 
-	/// <summary><c>getOpenedProcessID</c> returned a value that is not a Lua number in the supported identifier range.</summary>
+	/// <summary>
+	///     <c>getOpenedProcessID</c> returned a value that is not a Lua integer (a float, even an integral one, is refused)
+	///     or an integer outside the supported identifier range.
+	/// </summary>
 	InvalidProcessId = 4,
 
 	/// <summary>A required global was absent or not callable.</summary>

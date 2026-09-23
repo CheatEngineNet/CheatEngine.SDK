@@ -249,7 +249,10 @@ public sealed class RuntimeInfo
 	/// </summary>
 	/// <param name="packed">The non-negative packed Lua integer, for example <c>0x700070000297D</c> for 7.7.0.10621.</param>
 	/// <param name="version">The four components, or the default value when <paramref name="packed" /> is negative.</param>
-	/// <returns><see langword="false" /> for a negative value, which no 16-bit major component can produce.</returns>
+	/// <returns>
+	///     <see langword="false" /> for a negative value: a major component above <c>0x7FFF</c> sets the sign bit of the
+	///     packed Lua integer, and such a version is refused rather than read back from a negative number.
+	/// </returns>
 	/// <remarks>
 	///     The layout (<c>major shl 48 or minor shl 32 or release shl 16 or build</c>) was observed on CE 7.7.0.10621 x64
 	///     (spike C3 D5, Lua-only, ObservedHost design input) and matches <c>lua_getFileVersion</c> in the public source

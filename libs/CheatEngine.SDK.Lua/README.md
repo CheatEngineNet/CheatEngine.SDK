@@ -85,12 +85,46 @@ coroutine through lua_newthread and roots it in the main registry. That coroutin
 shares the main virtual machine, heap and registry. A different worker pointer therefore does not establish an
 independent Lua heap or a safe concurrent-execution policy.
 
-Cheat Engine's `resetLuaState` must not be called outside the SDK-owned reset protocol. An external, unnotified reset is
-unsupported: the SDK cannot safely infer whether the old registry, callbacks, CE userdata or thread-local state still
-exist, so it deliberately does not attempt best-effort cleanup against a potentially replacement state. The
-deterministic
-fixture tests below prove the managed invalidation ordering only; CE 7.7 reset/thread/userdata behavior remains subject
-to the opt-in live probe.
+### Threading and admission (ADR-07)
+
+`LuaRuntime`'s lifecycle admission (`AcquireOperation()` and its family) is not a process-wide Lua mutex and never the
+shared Lua heap: it serializes only this SDK copy's own attach/reset/detach transitions. Two plugins, or two SDK
+copies, are never serialized against each other by this SDK. The 2.0 default (`LuaThreadAdmission.MainThreadOnly`)
+therefore refuses a worker thread's `AcquireOperation()`-family call — with `LuaAdmissionStatus.ThreadNotAdmitted` —
+**before** the host's state provider runs, unless the calling thread is the captured main thread, the call is nested
+inside an already-admitted operation or host-invoked callback, or it is the single documented default exception, the
+worker-side `synchronize` hand-off behind `MainThreadDispatcher`/`MainThread.Invoke`. `LuaRuntime.AdmitWorkerThreads()`
+(`[Experimental("CESDK5001")]`) opts a worker thread in until the next `Attach`/`Detach`; it is unqualified until Q19
+passes at C3 **and** C4 — no local Cheat Engine qualification is currently available for either level. See
+[`CheatEngine.SDK.Hosting`'s README](../CheatEngine.SDK.Hosting/README.md#threading-and-lua-concurrency-contract-adr-07)
+for the complete written contract (pluginCS, `processMessages` re-entrancy, the "not qualified" list).
+
+### Lua state replacement (2.0 decision)
+
+There is no public SDK reset API in 2.0: `BeginStateReset`/`CompleteStateReset` stay internal, because an SDK-owned
+reset triggered by one plugin cannot neutralize another plugin's, or another SDK copy's, owners of the same shared Lua
+universe. A supported replacement still goes only through that internal protocol: it closes admission, drains every
+`LuaRuntimeOperation`, neutralizes rooted callbacks while the old state is reachable, then advances only the state
+generation.
+
+Calling Cheat Engine's `resetLuaState` outside that protocol remains unsupported, but it is now **detected** instead of
+silently accepted. Every attachment stamps a private-registry marker (a light userdata keyed by a type-associated
+address unique to this SDK copy) on the first admitted provider acquisition, and re-checks that raw, allocation-free
+stamp on every later one. A mismatch or absence is deterministic detection of an external reset:
+`LuaRuntime.ExternalStateResetDetected` becomes `true`, a `LuaStateReplacedExternally:` diagnostic is reported once,
+the state generation advances so every `LuaRef` and generated global cache from before the reset reads as stale, and
+**every** admission path (provider acquisition, a supplied-state operation, callback admission, the `synchronize`
+hand-off) refuses with `LuaAdmissionStatus.ExternalStateReset` until the next `Attach`. `Detach` re-checks the stamp on
+the state it would otherwise use, and — when a reset is detected — abandons every live callback and host subscription
+instead of unregistering into the replacement registry: nothing is ever released by number into a registry this SDK
+copy never created (A08-22). The managed state of an abandoned callback or subscription is kept alive, which leaks but
+cannot crash.
+
+This is deterministic detection, never a guess at whether an old registry slot or callback closure remains valid: the
+SDK does not attempt best-effort cleanup against a state it did not stamp. C1/C2 fixture tests below prove the managed
+invalidation and abandonment ordering only; CE 7.7's own `resetLuaState` behavior (whether the main thread's
+`GetLuaState` keeps returning the old state after a reset, for example) is unqualified pending a future host-based
+validation run — no local Cheat Engine qualification is currently available.
 
 SDK-012 exercises this ordering with a deterministic native fixture: a worker first has no provider state, then receives
 a rooted coroutine with a pointer distinct from the main state; it can read the shared global and private-registry
@@ -225,6 +259,12 @@ binding parameter or result is evaluated only once per method symbol at generati
   (`Helpers_survive_a_script_that_redefines_error_and_tostring`).
 - A detached or transitioning runtime fails cleanly: `AcquireOperation` refuses to hand out a state, and the transition
   waits for admitted work before it invalidates the old Lua universe (`LuaRuntimeTests`).
+- A worker thread is refused before the state provider ever runs, under the 2.0 conservative default; the opt-in
+  `[Experimental("CESDK5001")]` `AdmitWorkerThreads()` and a host-invoked nested callback are the only ways past it,
+  and the admission check itself allocates nothing (`LuaThreadAdmissionTests`, `ZeroAllocationTests`).
+- An external Lua-state reset is detected deterministically: the stamp check is raw and allocation-free, old owners are
+  refused, nothing is released into the replacement registry, and the diagnostic is reported exactly once per
+  attachment (`LuaExternalResetDetectionTests`).
 
 ## Run the tests
 

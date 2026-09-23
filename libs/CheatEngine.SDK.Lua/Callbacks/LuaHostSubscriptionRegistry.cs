@@ -130,6 +130,25 @@ internal static class LuaHostSubscriptionRegistry
 		}
 	}
 
+	/// <summary>
+	///     Closes admission and marks every owner released without unregistering it: used only after an external Lua
+	///     state reset was detected, when the provider would hand out the replacement VM's state and any unregister
+	///     attempt would touch a registry this SDK copy never created (A08-22). Managed state is kept alive; nothing
+	///     ever runs on the replacement state.
+	/// </summary>
+	internal static void AbandonAll()
+	{
+		lock (Gate)
+		{
+			s_acceptRegistrations = false;
+		}
+
+		while (TryTakeHead(out LuaHostSubscription subscription))
+		{
+			subscription.Abandon();
+		}
+	}
+
 	internal static void OpenRegistrationAdmission()
 	{
 		lock (Gate)

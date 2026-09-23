@@ -99,7 +99,19 @@ CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind.PublicationFailed = 4
 CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind.Succeeded = 1 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind
 CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind.Unspecified = 0 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind
 CheatEngine.SDK.Lua.Registration.LuaRegistrationSet
+CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus
+CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus.Admitted = 1 -> CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus
+CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus.Detached = 2 -> CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus
+CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus.ExternalStateReset = 6 -> CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus
+CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus.NoStateForThread = 4 -> CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus
+CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus.ThreadNotAdmitted = 5 -> CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus
+CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus.TransitionInProgress = 3 -> CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus
+CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus.Unknown = 0 -> CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus
+CheatEngine.SDK.Lua.Runtime.LuaThreadAdmission
+CheatEngine.SDK.Lua.Runtime.LuaThreadAdmission.MainThreadOnly = 0 -> CheatEngine.SDK.Lua.Runtime.LuaThreadAdmission
+CheatEngine.SDK.Lua.Runtime.LuaThreadAdmission.WorkerThreads = 1 -> CheatEngine.SDK.Lua.Runtime.LuaThreadAdmission
 CheatEngine.SDK.Lua.State.LuaState.TryPushGeneratedFunction(CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction thunk, CheatEngine.SDK.Lua.Runtime.LuaStateIdentity identity, bool requiresAttachedRuntime) -> CheatEngine.SDK.Lua.Calls.LuaStatus
+[CESDK5001]static CheatEngine.SDK.Lua.Runtime.LuaRuntime.AdmitWorkerThreads() -> void
 override CheatEngine.SDK.Lua.Calls.LuaOperationStatus.Equals(object? obj) -> bool
 override CheatEngine.SDK.Lua.Calls.LuaOperationStatus.GetHashCode() -> int
 override CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.Equals(object? obj) -> bool
@@ -143,6 +155,10 @@ static CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.operator =
 static CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.operator !=(CheatEngine.SDK.Lua.Registration.LuaRegistrationResult left, CheatEngine.SDK.Lua.Registration.LuaRegistrationResult right) -> bool
 static CheatEngine.SDK.Lua.Registration.LuaRegistrationResult.operator ==(CheatEngine.SDK.Lua.Registration.LuaRegistrationResult left, CheatEngine.SDK.Lua.Registration.LuaRegistrationResult right) -> bool
 static CheatEngine.SDK.Lua.Registration.LuaRegistrationSet.Register(CheatEngine.SDK.Lua.State.LuaState state, System.ReadOnlySpan<CheatEngine.SDK.Lua.Registration.LuaRegistrationEntry> entries, CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy collisionPolicy = CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy.RejectExisting) -> CheatEngine.SDK.Lua.Registration.LuaRegistrationResult
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.AdmitMainThreadOnly() -> void
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.ExternalStateResetDetected.get -> bool
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.ThreadAdmission.get -> CheatEngine.SDK.Lua.Runtime.LuaThreadAdmission
+static CheatEngine.SDK.Lua.Runtime.LuaRuntime.TryAcquireOperationWithOutcome(out CheatEngine.SDK.Lua.Runtime.LuaRuntimeOperation operation) -> CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus
 static CheatEngine.SDK.Lua.Runtime.LuaRuntime.TryPushGeneratedFunction(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction thunk) -> CheatEngine.SDK.Lua.Calls.LuaStatus
 ~override CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.Equals(object obj) -> bool
 ~override CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.ToString() -> string

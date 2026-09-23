@@ -119,9 +119,74 @@ AOT plugin. Microsoft documents that Native AOT libraries cannot be unloaded thr
 plugin mode needs an explicit resident-core/adapter design and separate exact-host qualification. See
 [Native AOT libraries](https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries).
 
+## Threading and Lua concurrency contract (ADR-07)
+
+**Unqualified pending a future host-based validation run: no local Cheat Engine qualification is currently
+available.** This section states the SDK 2.0 default and its rationale; it is not a claim that Cheat Engine's own
+scheduling has been observed.
+
+1. **The 2.0 default admission rule.** `CheatEngine.SDK.Lua.Runtime.LuaRuntime` starts no Lua work on a thread the host
+   is not already running Lua on. Concretely: a new `LuaRuntime.AcquireOperation()`-family call is refused with
+   `LuaAdmissionStatus.ThreadNotAdmitted` — as an exception from the throwing overloads, as `false` from the `Try*`
+   overloads, or as that enum value from `TryAcquireOperationWithOutcome` — **before** the host's Lua state provider
+   (`GetLuaState`) ever runs, so refusing a worker never creates a coroutine of the shared heap. This holds unless the
+   calling thread is the host's captured main thread, the call is nested inside a Lua operation or callback the host
+   already admitted on that thread, or it is the single documented default exception below.
+2. **Admission protects this SDK copy's transitions, not the shared heap.** Distinct `lua_State*` pointers Cheat Engine
+   hands out per OS thread can be coroutines of one shared Lua universe. Two plugins, or two SDK copies in the same
+   process, are never serialized by this SDK (A05-07, A08-05, F04); admission only makes attach, detach and state
+   replacement exclusive for this loaded `CheatEngine.SDK.Lua` assembly instance.
+3. **Never store a `LuaState`.** `LuaRuntimeOperation` is a `ref struct` and cannot cross `await`
+   (`typeof(LuaRuntimeOperation).IsByRefLike` is `true`). A captured `LuaState` outlives its admission and is not a
+   substitute for one.
+4. **pluginCS.** Cheat Engine holds its plugin critical section on callback paths, so a blocking callback that waits
+   for the GUI thread can deadlock it. Adding a C# lock around Lua work is not a fix (A02-12): it adds contention
+   without removing the native section CE already holds.
+5. **`processMessages` re-enters.** `MainThread.ProcessMessages()` pumps the host's message loop, which can run queued
+   work that calls back into the plugin. It is not a synchronization primitive (A16-20): never assume it drains
+   exactly what you just queued and nothing else.
+6. **CE object lifetime and GUI work stay host-affine.** Creation, destruction and property access on a Cheat Engine
+   object happen on the thread the host expects; workers compute on managed copies only. `Task.Run` never authorizes
+   driving the GUI. `[MainThreadOnly]` is applied only where the SDK has evidence for it (A16-18, A16-21).
+7. **A `[LuaFunction]` invoked by the host on any thread runs under the host's admission for that thread.** The
+   generated thunk's nested `AcquireOperation()` call succeeds because `t_operationDepth` is already non-zero on that
+   thread, whichever thread CE chose to run the callback on.
+8. **The single documented default exception: the worker-side `synchronize` hand-off.** `MainThread.Invoke` from a
+   worker performs exactly one Lua global read, one closure and one protected call on the worker's own coroutine,
+   through `LuaRuntime.AcquireOperationForMainThreadDispatch()`. This is Cheat Engine's designed cross-thread
+   primitive, fixed and SDK-owned — never arbitrary plugin Lua — and the only route a worker has to the GUI thread
+   (see [`exemples/09-main-thread`](../../exemples/09-main-thread/README.md)). It stays admitted under the
+   conservative default; making it experimental would break the shipped 1.0.0 `MainThread.Invoke` contract. Its heap
+   safety is in the Q19 C3/C4 evidence scope, not its admission.
+9. **The experimental worker-thread opt-in.** `LuaRuntime.AdmitWorkerThreads()`, marked
+   `[Experimental("CESDK5001")]` (see [`analyzers/docs/CESDK5001.md`](../../analyzers/docs/CESDK5001.md)), admits
+   worker-thread `AcquireOperation()`-family calls that are not already nested in admitted work, until the next
+   `LuaRuntime.Attach`/`Detach`. It does not serialize the shared heap and does not by itself make concurrent Lua
+   calls from two threads safe. It stays gated until Q19 passes at **both** C3 (exact host, one plugin) **and** C4
+   (exact host, two SDK copies) — no local qualification run is currently available for either level.
+10. **Not qualified (A22-14).** The following remain open regardless of the conservative default:
+    - Q19 at C4 (two simultaneous SDK copies, both opted in);
+    - the worker `synchronize` hand-off's heap safety under real concurrent Lua traffic;
+    - multi-plugin concurrency (see "Plugin identity and coexistence" above);
+    - detection of an external Lua-state reset under live host conditions beyond the C1/C2 evidence in
+      [`CheatEngine.SDK.Lua`](../CheatEngine.SDK.Lua/README.md#lua-state-replacement-20-decision) (Q17/Q18);
+    - Q10.
+
+`LuaRuntime` reports two one-shot diagnostics through `HostLog`, each at most once per attachment: a stable
+`LuaWorkerThreadRefused:` warning naming the refused managed thread id, and a stable `LuaStateReplacedExternally:`
+error when an external reset is detected (see the Lua README). Neither category token depends on Cheat Engine's UI
+language.
+
 `HostLog` receives every failure that a callback turns into `FALSE` or 0. The default sink writes to
 `OutputDebugStringW`, so a debugger attached to Cheat Engine or DebugView shows the entries. Set `HostLog.Sink` to route
 entries elsewhere and `HostLog.MinimumLevel` (default `Information`) to filter. `Trace` adds every lifecycle call.
+
+A sink must not block (`HostLog.Write` can run from inside a native callback). It may throw: `HostLog` swallows a
+sink exception so a logging failure never escapes to native code. It must not re-enter `HostLog.Write` from its own
+`Write`, directly or through a path that logs: a re-entrant write on the same thread is dropped and counted instead
+of recursing towards an uncatchable `StackOverflowException` (A24-21, SRC02-06). It must not re-enter a lifecycle
+callback (`EnablePlugin`/`DisablePlugin`) or acquire a Lua operation while a lifecycle transition owns admission:
+both are refused immediately, without waiting for the sink.
 
 ```csharp
 using System;
@@ -169,6 +234,12 @@ from a simulated host record.
    (`MainThreadTests`).
 8. The native boundary uses no delegate marshalling, structure marshalling or reflection activation:
    `eng/BannedSymbols.txt` makes each a build error.
+9. `MainThread.Invoke` from a worker keeps working, unopted-in, under the 2.0 conservative default; a worker calling
+   `LuaRuntime.AcquireOperation()` directly is refused before the state provider runs (`MainThreadTests`).
+10. An external Lua-state reset is logged once as `LuaStateReplacedExternally:` and does not survive into the next
+    enable (`ExternalResetLifecycleTests`).
+11. A throwing or re-entrant `HostLog` sink is contained during every native callback, and a second-factory
+    rejection is logged outside the registration lock (`HostLogContainmentTests`).
 
 ## Run the tests
 

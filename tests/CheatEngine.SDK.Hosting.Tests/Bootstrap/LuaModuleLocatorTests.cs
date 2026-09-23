@@ -77,6 +77,33 @@ public sealed class LuaModuleLocatorTests
 		Assert.Equal(NativeLuaLibrary.Handle, LuaApi.ModuleHandle);
 	}
 
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void Repeated_enable_releases_exactly_the_reference_each_lookup_added()
+	{
+		HostingTest.RequireNativeLua();
+		Assert.SkipUnless(OperatingSystem.IsWindows(), "The loaded-module lookup is implemented for Windows only.");
+		LuaModuleLocator.ResetFreedReferenceCountForTests();
+
+		// The first bind here may already observe the table bound to this same handle from an earlier test (static,
+		// process-wide state); ignore its effect on the counter. Every bind after that one is guaranteed to see the
+		// table already bound to this handle, so each must release exactly the one loader reference its own lookup
+		// added -- never more (a double free), never fewer (an accumulated reference; A05-01).
+		Assert.True(LuaModule.TryGetLoaded(NativeLuaLibrary.LibraryPath!, out IntPtr firstHandle));
+		Assert.True(LuaModuleLocator.BindLocated(firstHandle, true, out _));
+		long baseline = LuaModuleLocator.FreedReferenceCountForTests;
+
+		for (int i = 0; i < 2; i++)
+		{
+			Assert.True(LuaModule.TryGetLoaded(NativeLuaLibrary.LibraryPath!, out IntPtr handle));
+			Assert.Equal(NativeLuaLibrary.Handle, handle);
+			Assert.True(LuaModuleLocator.BindLocated(handle, true, out _));
+		}
+
+		Assert.Equal(baseline + 2, LuaModuleLocator.FreedReferenceCountForTests);
+		Assert.Equal(NativeLuaLibrary.Handle, LuaApi.ModuleHandle);
+	}
+
 	private static string FindUnmappedSystemDll()
 	{
 		string? found = null;

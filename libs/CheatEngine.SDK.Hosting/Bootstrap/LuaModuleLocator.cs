@@ -21,6 +21,7 @@ internal static unsafe class LuaModuleLocator
 {
 	// The function pointer is stored as an integer so that it can be read and written with volatile semantics.
 	private static nint s_resolver;
+	private static long s_freedReferenceCount;
 
 	/// <summary>
 	///     Gets or sets the test seam: a static method returning the module handle to bind, or zero when there is none.
@@ -31,6 +32,18 @@ internal static unsafe class LuaModuleLocator
 	{
 		get => (delegate*<nint>) Volatile.Read(ref s_resolver);
 		set => Volatile.Write(ref s_resolver, (nint) value);
+	}
+
+	/// <summary>
+	///     Count of loader references <see cref="BindLocated" /> released back through <see cref="NativeLibrary.Free" />
+	///     (A05-01: an already-bound or refused lookup never accumulates a reference). Test seam only.
+	/// </summary>
+	internal static long FreedReferenceCountForTests => Interlocked.Read(ref s_freedReferenceCount);
+
+	/// <summary>Resets <see cref="FreedReferenceCountForTests" /> to zero. Test seam only.</summary>
+	internal static void ResetFreedReferenceCountForTests()
+	{
+		Interlocked.Exchange(ref s_freedReferenceCount, 0);
 	}
 
 	/// <summary>Locates the module and binds the API table to it, all or nothing.</summary>
@@ -74,6 +87,7 @@ internal static unsafe class LuaModuleLocator
 		if (counted && (boundBefore || !bound))
 		{
 			NativeLibrary.Free(handle);
+			Interlocked.Increment(ref s_freedReferenceCount);
 		}
 
 		if (!bound)

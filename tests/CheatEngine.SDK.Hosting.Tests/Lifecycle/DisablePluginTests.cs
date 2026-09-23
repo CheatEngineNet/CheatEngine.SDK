@@ -10,6 +10,7 @@ using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Tests.Support;
 using CheatEngine.SDK.Hosting.Threading;
 using CheatEngine.SDK.Lua.Callbacks;
+using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
@@ -133,6 +134,7 @@ public sealed unsafe class DisablePluginTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q07")]
 	[SuppressMessage("Meziantou.Analyzer", "MA0051",
 		Justification =
 			"This test deliberately covers the complete close-drain-detach sequence in one deterministic scenario.")]
@@ -208,6 +210,155 @@ public sealed unsafe class DisablePluginTests
 		Assert.False(PluginHost.IsEnabled);
 		Assert.False(LuaRuntime.IsAttached);
 		Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q07")]
+	public void Disable_while_a_worker_waits_in_a_Lua_synchronize_dispatch_pumps_it_before_detach()
+	{
+		HostingTest.RequireNativeLua();
+		HostingTest.Reset();
+		using NativeLuaState state = new();
+		using HostSimulator host = new();
+		HostingTest.Enable(host, state);
+		LuaState main = new(state.Pointer);
+		using RealSynchronizeStandIn standIn = RealSynchronizeStandIn.Install(main);
+		FakeExports.CheckSynchronizeHandlerForTests = RealSynchronizeStandIn.TryPumpQueuedCall;
+		int mainThreadId = Environment.CurrentManagedThreadId;
+		int[] executedThreadId = new int[1];
+
+		// A05-01/A08-28: unlike Disable_on_the_GUI_thread_pumps_admitted_worker_work_before_detaching, which
+		// intercepts MainThreadDispatcher.Dispatch directly, this worker goes through the real Lua `synchronize`
+		// global. Disable's CheckSynchronize drain (PluginHost.DrainAdmittedMainThreadWork) must busy-poll that real
+		// Lua call to completion before it detaches, exactly as it would while Cheat Engine's GUI thread waits for a
+		// plugin worker that is blocked inside the host's own synchronize.
+		Task<Exception?> worker = Task.Factory.StartNew(
+			() => Record.Exception(() => MainThread.Invoke(
+				static box => box[0] = Environment.CurrentManagedThreadId, executedThreadId)),
+			TestContext.Current.CancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+		Assert.True(RealSynchronizeStandIn.WaitUntilQueued(TimeSpan.FromSeconds(5)),
+			"The worker never reached the real Lua synchronize call.");
+		Assert.True(host.CallDisable().IsTrue);
+		Exception? workerFailure = AwaitWorker(worker);
+
+		Assert.Null(workerFailure);
+		Assert.True(RealSynchronizeStandIn.Pumped, "The drain never ran the worker's queued Lua call.");
+		Assert.Equal(mainThreadId, executedThreadId[0]);
+		Assert.True(FakeExports.CheckSynchronizeCalls > 0);
+		Assert.False(PluginHost.IsEnabled);
+		Assert.False(LuaRuntime.IsAttached);
+		Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
+		Assert.Equal(0, LuaApi.lua_gettop(state.L));
+	}
+
+	// A plain (non-test, non-unsafe-context) helper: xUnit1031 targets [Fact]/[Theory] methods specifically, so the
+	// bounded blocking wait lives here instead of in the test method itself.
+	private static Exception? AwaitWorker(Task<Exception?> worker)
+	{
+		return worker.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken).GetAwaiter()
+			.GetResult();
+	}
+
+	// A native `synchronize` stand-in that genuinely hops to the real calling (main) thread, unlike
+	// MainThreadDispatcher.DispatchOverrideForTests: the worker blocks inside an actual Lua call while Disable's
+	// CheckSynchronize drain busy-polls TryPumpQueuedCall from the main thread until the queued call has been
+	// pushed, run exactly once, and released (A08-28). A call before anything is queued, or after the one queued
+	// call already ran, is a harmless no-op: the drain loop calls it repeatedly while it spins.
+	private sealed unsafe class RealSynchronizeStandIn : IDisposable
+	{
+		private static ManualResetEventSlim? s_queued;
+		private static ManualResetEventSlim? s_completed;
+		private static LuaRef? s_pendingRef;
+		private static LuaStatus s_pumpedCallStatus;
+		private static int s_pumped;
+
+		private RealSynchronizeStandIn()
+		{
+		}
+
+		public static bool Pumped => Volatile.Read(ref s_pumped) != 0;
+
+		/// <summary>Waits until the worker's <c>synchronize</c> call has actually queued a pending call.</summary>
+		public static bool WaitUntilQueued(TimeSpan timeout)
+		{
+			return s_queued!.Wait(timeout);
+		}
+
+		public static RealSynchronizeStandIn Install(LuaState main)
+		{
+			s_queued = new ManualResetEventSlim(false);
+			s_completed = new ManualResetEventSlim(false);
+			s_pendingRef = null;
+			s_pumped = 0;
+			Assert.True(main.TryPushFunction(new LuaNativeFunction(&SynchronizeThunk)).IsOk);
+			Assert.True(main.TrySetGlobal("synchronize"u8).IsOk);
+			return new RealSynchronizeStandIn();
+		}
+
+		public static void TryPumpQueuedCall()
+		{
+			if (!s_queued!.Wait(0))
+			{
+				return;
+			}
+
+			LuaRef? pendingRef = Interlocked.Exchange(ref s_pendingRef, null);
+			if (pendingRef is null)
+			{
+				return;
+			}
+
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			LuaState state = operation.State;
+			Assert.True(state.TryPushRef(pendingRef));
+			s_pumpedCallStatus = state.TryCall(0, 0);
+			pendingRef.Release(state);
+			Interlocked.Exchange(ref s_pumped, 1);
+			s_completed!.Set();
+		}
+
+		public void Dispose()
+		{
+			if (Pumped)
+			{
+				Assert.True(s_pumpedCallStatus.IsOk, "The pumped call failed.");
+			}
+
+			s_queued?.Dispose();
+			s_completed?.Dispose();
+			s_queued = null;
+			s_completed = null;
+			s_pendingRef = null;
+		}
+
+		[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+		private static int SynchronizeThunk(nint pointer)
+		{
+			LuaState state = new(pointer);
+			try
+			{
+				if (!state.IsFunction(1))
+				{
+					return LuaThunk.Fail(state, "the real stand-in expects a function argument"u8);
+				}
+
+				state.PushValue(1);
+				s_pendingRef = state.CreateRef();
+				s_queued!.Set();
+				if (!s_completed!.Wait(TimeSpan.FromSeconds(5)))
+				{
+					return LuaThunk.Fail(state, "the main-thread drain never ran the queued call"u8);
+				}
+
+				return 0;
+			}
+			catch (Exception exception)
+			{
+				return LuaThunk.Fail(state, exception);
+			}
+		}
 	}
 
 	[Fact]

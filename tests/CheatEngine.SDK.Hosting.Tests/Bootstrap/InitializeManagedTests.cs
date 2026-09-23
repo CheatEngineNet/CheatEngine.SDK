@@ -147,6 +147,34 @@ public sealed unsafe class InitializeManagedTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q04")]
+	public void The_bootstrap_argument_is_never_used_as_a_size_or_precondition()
+	{
+		// The Name pointer (offset 0-7) is a fresh native allocation every time HostingTest.Reset() clears the
+		// previous one, so its address legitimately differs run to run: that is not what this test is about. The
+		// remaining 28 bytes (GetVersion, EnablePlugin, DisablePlugin, Version) are addresses of static native
+		// thunks and a compile-time constant, so they are the part that must never move because of hostArgument.
+		int[] hostArguments = [int.MinValue, -1, 0, 1, 36, int.MaxValue];
+		const int NameFieldSize = sizeof(long);
+		byte[]? reference = null;
+
+		foreach (int hostArgument in hostArguments)
+		{
+			HostingTest.Reset();
+			using HostSimulator host = new();
+
+			Assert.Equal(1, host.Initialize<RecordingPluginFactory>(hostArgument));
+
+			Assert.True(host.GuardIntact, $"hostArgument={hostArgument} overran the record.");
+			ReadOnlySpan<byte> stable = host.RecordBytes[NameFieldSize..];
+			reference ??= stable.ToArray();
+			Assert.True(stable.SequenceEqual(reference),
+				$"hostArgument={hostArgument} changed the 36-byte record write.");
+			Assert.Equal(hostArgument, PluginHost.LastInitRecordArgument);
+		}
+	}
+
+	[Fact]
 	public void A_second_factory_type_is_rejected_deterministically_and_the_first_keeps_working()
 	{
 		CapturingLogSink sink = HostingTest.Reset();

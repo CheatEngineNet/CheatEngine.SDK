@@ -365,17 +365,21 @@ CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.Kind.get -> CheatEngine.SDK.E
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.Observed.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.TargetIdentityCheck() -> void
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.BackendUnknown = 11 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.Current = 1 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.CurrentTargetUnqualified = 3 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.FileAsProcess = 10 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.GlobalUnavailable = 6 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.InvalidResult = 8 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.LuaFailure = 7 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.NoTargetSelected = 2 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.ProcessReused = 5 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.RemoteBackend = 9 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.TargetChanged = 4 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.Unspecified = 0 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
 CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
 CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence.CheatEngineSelectedProcessId = 1 -> CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
+CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence.LocalBackendConfirmed = 4 -> CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
 CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence.LocalProcessStartTime = 2 -> CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
 CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence.None = 0 -> CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
 CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation
@@ -401,6 +405,7 @@ CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.UnconfirmedAfterInvocation = 
 CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.Unspecified = 0 -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
 CheatEngine.SDK.Engine.Targets.TargetSelection
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Backend.get -> CheatEngine.SDK.Engine.Runtime.TargetBackend
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Equals(CheatEngine.SDK.Engine.Targets.TargetSelectionObservation other) -> bool
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Evidence.get -> CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Incarnation.get -> CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation?
@@ -409,7 +414,10 @@ CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.SelectedProcessId.get 
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Status.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.TargetSelectionObservation() -> void
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.CurrentTargetBackendUnknown = 9 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.CurrentTargetFileAsProcess = 8 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.CurrentTargetQualified = 1 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.CurrentTargetRemoteBackend = 7 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.CurrentTargetUnqualified = 3 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.GlobalUnavailable = 4 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.InvalidResult = 6 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus

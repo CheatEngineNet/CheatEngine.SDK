@@ -6,8 +6,10 @@ namespace CheatEngine.SDK.Engine.Targets;
 /// <summary>A copied local-process incarnation identified by its PID and observed UTC creation time.</summary>
 /// <remarks>
 ///     A PID alone can be reused. This value is created only by the SDK after it has combined Cheat Engine's selected
-///     PID with a local process creation-time observation. It is not a process handle and never grants a caller a
-///     right to select, open, or release a target process.
+///     PID with a local process creation-time observation, and only when Cheat Engine reported, in the same operation,
+///     that it is not connected to CEServer. A local creation time does not describe a PID served remotely by CEServer
+///     or a file opened as a process, so neither yields an incarnation. It is not a process handle and never grants a
+///     caller a right to select, open, or release a target process.
 /// </remarks>
 [StructLayout(LayoutKind.Auto)]
 public readonly struct TargetProcessIncarnation : IEquatable<TargetProcessIncarnation>

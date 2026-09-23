@@ -71,6 +71,10 @@ public readonly record struct TargetReleaseOutcome
 			TargetIdentityCheckKind.NoTargetSelected => TargetReleaseStatus.RefusedNoTarget,
 			TargetIdentityCheckKind.TargetChanged => TargetReleaseStatus.RefusedTargetChanged,
 			TargetIdentityCheckKind.ProcessReused => TargetReleaseStatus.RefusedProcessReused,
+			// A CEServer, file-as-process or unknown backend has no local incarnation to compare, so the identity that
+			// cleanup needs is unavailable; the check itself keeps the specific kind.
+			TargetIdentityCheckKind.RemoteBackend or TargetIdentityCheckKind.FileAsProcess
+				or TargetIdentityCheckKind.BackendUnknown => TargetReleaseStatus.RefusedIdentityUnavailable,
 			_ => TargetReleaseStatus.RefusedIdentityUnavailable
 		};
 	}

@@ -10,17 +10,58 @@ under [1.0.0](#100---2026-09-20) before upgrading.
 
 ## [Unreleased]
 
-- Removed the obsolete host-symbol compatibility flag from `AddressResolutionOptions`; use
-  `EngineInspection.ResolveHostAddress` for host-symbol resolution.
+The next release line is 2.0.0. Every pack is validated against the published 1.0.0 package, and each intentional break
+is declared in `src/CheatEngine.SDK/CompatibilitySuppressions.xml` and marked **Breaking** below.
+
+### Added
+
+- The package embeds an SPDX 2.2 software bill of materials at `_manifest/spdx_2.2/manifest.spdx.json`, and its nuspec
+  keeps the repository URL and commit.
+- Qualification support profiles, the Q01–Q48 qualification matrix with v0 schemas and C# validation, a local
+  exact-host qualification runner and a deterministic x64/x86 qualification target, under `docs/qualification/` and
+  `eng/qualification/`. No exact-host scenario has been executed yet.
+- A security policy with private vulnerability reporting, and a compatibility issue form that captures the exact
+  package, bridge, Cheat Engine and runtime tuple.
+
+### Changed
+
+- Untagged builds are versioned `2.0.0-alpha.0.N` with `AssemblyVersion` 2.0.0.0, so the `[GeneratedCode]` attribute
+  that the generators emit carries 2.0.0.0.
+- Building this repository requires .NET SDK 10.0.401 exactly (`global.json` `rollForward: disable`), and every
+  project restores against a committed NuGet lock file. Plugin projects that consume the package are not affected.
+- The packaged native Lua protection bridge is built by CI with a pinned MSVC toolset (14.44) and Windows SDK
+  (10.0.26100.0), and a second build and a build from a copy in another directory must produce the same bytes; the
+  toolchain facts are published with every CI run.
+- `native/cheatengine-sdk-lua-bridge/bridge-audit-manifest.json` now describes the committed bridge DLL and its sources,
+  and a test checks it against the committed file.
+- Releases are created as drafts with the SPDX 2.2 SBOM, provenance and SBOM attestations, `SHA256SUMS`, sigstore
+  bundles and a release tuple, and are verified on nuget.org before they are published; the packaging tests run
+  against the exact package that is published.
+- Documentation no longer links to the retired `documentations/` tree; links point to the new `docs/` index, and a
+  repository test rejects dead links, local paths and relative links in the packed README.
+- The CE 7.7 live probe is now compiled with the solution.
+- **Breaking:** the `Callback` fields of `AddressListPluginInit` and `DisassemblerContextPluginInit` changed from a
+  typed function pointer to `void*`.
+- **Breaking:** `MemoryAccessFailure.DestinationTooSmall`, `WriteFailed` and `InvalidResult` were renumbered from 4, 5
+  and 6 to 5, 8 and 9.
+- **Breaking, not reported by ApiCompat:** `LuaClassAttribute` and `LuaPropertyAttribute` no longer set
+  `Inherited = false`, and `MemoryScanSession.Scanner` and `MemoryScanSession.Results` are now marked
+  `[RequiresPluginEnabled]`, so calling them from plugin startup code reports `CESDK1001`.
+
+### Removed
+
+- **Breaking:** removed the obsolete host-symbol compatibility flag `UseHostSymbolTable` from `AddressResolutionOptions`
+  (its constructor, property accessors and `Deconstruct` change); use `EngineInspection.ResolveHostAddress` for
+  host-symbol resolution.
 
 ## [1.0.0] - 2026-09-20
 
 > [!WARNING]
 > **Major breaking change: 1.0.0 is a new SDK, not an update of `CESDK` 0.2.1.** The new architecture replaces the
-target
-> framework, the plugin model and the whole public API, so nothing written against 0.1.0 to 0.2.1 works the same way.
-> There is no compatibility layer and no deprecation period. A plugin has to be rewritten against the new API,
-> starting from the [quick start](README.md#quick-start). A plugin that stays on `CESDK` 0.2.1 keeps building as before.
+> target framework, the plugin model and the whole public API, so nothing written against 0.1.0 to 0.2.1 works the
+> same way. There is no compatibility layer and no deprecation period. A plugin has to be rewritten against the new
+> API, starting from the [quick start](README.md#quick-start). A plugin that stays on `CESDK` 0.2.1 keeps building as
+> before.
 
 ### Added
 

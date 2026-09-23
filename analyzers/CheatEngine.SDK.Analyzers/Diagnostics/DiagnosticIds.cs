@@ -41,6 +41,9 @@ public static class DiagnosticIds
 	/// <summary>An <c>OnEnable</c> or <c>OnDisable</c> implementation is <c>async void</c>.</summary>
 	public const string AsyncPluginLifecycle = "CESDK1005";
 
+	/// <summary>A <c>PointerSize</c> is built from the plugin process width instead of a Cheat Engine observation.</summary>
+	public const string HostWidthPointerSize = "CESDK1020";
+
 	/// <summary>A <c>[LuaFunction]</c> or <c>[LuaGlobal]</c> binding exists but the compilation does not allow unsafe code.</summary>
 	public const string UnsafeBlocksRequired = "CESDK2001";
 

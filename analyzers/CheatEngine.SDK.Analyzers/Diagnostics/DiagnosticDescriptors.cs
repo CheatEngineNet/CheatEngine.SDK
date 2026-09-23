@@ -137,6 +137,20 @@ internal static class DiagnosticDescriptors
 		+ "host-owned, explicitly tracked operation only when the API actually supports asynchronous waiting.",
 		HelpLinkBase + DiagnosticIds.AsyncPluginLifecycle + ".md");
 
+	/// <summary>CESDK1020. Message argument: the host-width expression.</summary>
+	public static readonly DiagnosticDescriptor HostWidthPointerSize = new(
+		DiagnosticIds.HostWidthPointerSize,
+		"PointerSize built from the plugin process width",
+		"This PointerSize comes from '{0}', the width of the plugin process, not of the Cheat Engine target",
+		DiagnosticCategories.Usage,
+		DiagnosticSeverity.Warning,
+		true,
+		"A plugin always runs inside the 64-bit Cheat Engine process, so IntPtr.Size, nint.Size, sizeof(nint), Unsafe.SizeOf<nint>(), "
+		+ "Marshal.SizeOf<IntPtr>() and Environment.Is64BitProcess describe the plugin, never the target: an x86 target has 4-byte pointers, "
+		+ "and Cheat Engine's configured pointer size is a separate setting. Read the target bitness or the configured pointer size from "
+		+ "Cheat Engine instead (TargetArchitectureObservation.Bitness or ConfiguredPointerSize).",
+		HelpLinkBase + DiagnosticIds.HostWidthPointerSize + ".md");
+
 	/// <summary>CESDK2001. Message argument: the member name.</summary>
 	public static readonly DiagnosticDescriptor UnsafeBlocksRequired = new(
 		DiagnosticIds.UnsafeBlocksRequired,

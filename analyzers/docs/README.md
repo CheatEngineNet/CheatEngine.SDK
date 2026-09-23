@@ -22,6 +22,7 @@ separate EngineApi generator owns
 | [CESDK1003](CESDK1003.md) | A Cheat Engine-owned value is being destroyed                    | Error    | Keep it borrowed or use an explicit `Owned<T>` transfer                                      |
 | [CESDK1004](CESDK1004.md) | Exception can escape an [UnmanagedCallersOnly] method            | Warning  | Wrap the body in try/catch                                                                   |
 | [CESDK1005](CESDK1005.md) | Plugin lifecycle callback must not be `async void`               | Error    | Keep `OnEnable`/`OnDisable` synchronous                                                      |
+| [CESDK1020](CESDK1020.md) | PointerSize built from the plugin process width                  | Warning  | None; read the target bitness or configured pointer size from Cheat Engine                   |
 | [CESDK2001](CESDK2001.md) | Lua binding needs AllowUnsafeBlocks                              | Error    | None                                                                                         |
 | [CESDK2002](CESDK2002.md) | Type cannot receive a generated Lua binding part                 | Error    | None                                                                                         |
 | [CESDK2003](CESDK2003.md) | [LuaFunction] method cannot be exported by a generated thunk     | Error    | None                                                                                         |

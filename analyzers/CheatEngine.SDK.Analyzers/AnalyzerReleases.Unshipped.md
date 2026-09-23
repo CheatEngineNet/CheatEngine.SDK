@@ -10,6 +10,7 @@
  CESDK1001 | CheatEngine.SDK.Usage      | Error    | PluginLifecycleAndOwnershipAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK1001.md)
  CESDK1003 | CheatEngine.SDK.Usage      | Error    | PluginLifecycleAndOwnershipAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK1003.md)
  CESDK1005 | CheatEngine.SDK.Usage      | Error    | PluginLifecycleAndOwnershipAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK1005.md)
+ CESDK1020 | CheatEngine.SDK.Usage      | Warning  | HostWidthPointerSizeAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK1020.md)
  CESDK2005 | CheatEngine.SDK.Generation | Error    | LuaBindingAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK2005.md)
  CESDK2006 | CheatEngine.SDK.Generation | Error    | LuaBindingAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK2006.md)
  CESDK2007 | CheatEngine.SDK.Generation | Error    | LuaBindingAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK2007.md)

@@ -58,6 +58,5 @@ Handle `Found`, `NotFound` and the indeterminate `FoundOutsideBounds` separately
 
 ## When the gate is removed
 
-When a Q29 C3 receipt, produced by the local qualification runner on the pinned profile, records this member's call
-sequence and its no-match path (tracked in the [qualification matrix](../../docs/qualification/README.md)). Even then
-the semantics stay "first found, order unspecified". The identifier is then retired, never reused.
+A Q29 C3 receipt on the pinned profile that records this member's call sequence and its no-match path retires this
+identifier; it is never reused. Even then the semantics stay "first found, order unspecified".

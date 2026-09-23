@@ -19,8 +19,10 @@ public enum MemoryScanInvalidationReason : byte
 	TargetProcessReused = 4,
 
 	/// <summary>
-	///     A cooperative stop of the running scan was requested; its results are never exposed. Whether the stop was
-	///     confirmed is reported by the termination status that the request returned.
+	///     The caller asked the session to stop its running scan; the scan's results are never exposed. The termination
+	///     status that the request returned tells whether CE was asked at all
+	///     (<see cref="MemoryScanTerminationStatus.NotInvoked" /> when the session's context was refused and no CE call was
+	///     made) and whether a cooperative stop was confirmed.
 	/// </summary>
 	ScanTerminated = 5
 }

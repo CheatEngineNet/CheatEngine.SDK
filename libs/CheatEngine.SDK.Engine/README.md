@@ -483,7 +483,7 @@ matches lay in the module, both were comparable (68–73 ms against 75–86 ms),
 `getAddress`) dominated. This is why the copy is bounded by the destination and reads addresses only. The fixture tests
 count CE calls as a C1 cost proxy (`AobBoundedScanTests`); host timings are C3 work: the Q28 receipts must re-measure on
 `tests/CheatEngine.SDK.QualificationTarget` without concurrent build load, and benchmarks of the fixture paths belong to
-the performance lot. Both remain not executed in the [qualification matrix](../../docs/qualification/README.md).
+the performance lot. Both remain not executed at C3.
 
 ## Promise
 

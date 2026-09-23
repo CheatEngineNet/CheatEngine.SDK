@@ -66,6 +66,5 @@ released or abandoned).
 
 ## When the gate is removed
 
-When a Q29 C3 receipt, produced by the local qualification runner on the pinned profile, records a deadline that
-returned `TimedOut` and a termination that returned `Confirmed` (tracked in the
-[qualification matrix](../../docs/qualification/README.md)). The identifier is then retired, never reused.
+A Q29 C3 receipt on the pinned profile that records a deadline returning `TimedOut` and a termination returning
+`Confirmed` retires this identifier; it is never reused.

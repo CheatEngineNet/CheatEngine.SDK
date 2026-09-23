@@ -158,8 +158,11 @@ public sealed class SupportProfileTests
 	[Fact]
 	public void Markdown_tuple_section_names_the_checked_in_bridge_hash_and_fingerprint()
 	{
-		string bridge = QualificationDocuments.RawSha256(BridgeDirectory +
-														 "/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll");
+		// CI replaces the working-tree DLL with the bridge it just built, so its bytes are not the committed ones. The
+		// committed bytes are pinned by bridge-audit-manifest.json, which BridgeAuditManifestTests checks against the
+		// committed blob (git cat-file); this test only proves that the support profile names that same hash.
+		string bridge = QualificationDocuments.LoadJson(BridgeDirectory + "/bridge-audit-manifest.json")
+			.GetProperty("nativeAsset").GetProperty("sha256").GetString()!;
 		string fingerprint = QualificationDocuments.RawSha256(BridgeDirectory + "/cheatengine_sdk_lua_bridge.c") + ":" +
 							 QualificationDocuments.RawSha256(BridgeDirectory + "/xmake.lua");
 		string tuples = Section(QualificationDocuments.ReadNormalizedText(QualificationDocuments.SupportProfileMarkdownPath),

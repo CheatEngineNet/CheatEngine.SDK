@@ -22,6 +22,7 @@ this project only reads committed files. It never builds, packs, restores or sta
 | `LockFiles/` | `LockFileTests` mirror the structural checks of `eng/Update-LockFiles.ps1` over the committed `packages.lock.json` files. |
 | `PublicApi/` | PublicAPI files, `CompatibilitySuppressions.xml` and the `eng/api/*.txt` lists: file shape, declared breaks, Client-induced breaks, enum contracts. |
 | `Workflows/` | `WorkflowContractTests` parse `.github/workflows/*.yml` and the composite actions with YamlDotNet and freeze the CI contract; `CoverageBaselineTests`, `BuildInfoSchemaTests` and `ClientCanaryScriptTests` check the files and scripts of `eng/ci/` that CI runs. |
+| `Governance/` | Pull request policy script and workflow, CodeQL/Scorecard/zizmor/dependency-submission/scheduled-health workflow invariants, Dependabot, CODEOWNERS, SECURITY.md, issue forms and repository-settings payloads. |
 
 Later work adds one folder per contract (for example `Documentation/`, `Workflows/`, `Qualification/`).
 
@@ -150,6 +151,13 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
 - The advisory client canary writes the fields of its report schema, isolates the branch package and never fails the
   run because the Client breaks (`Client_canary_report_schema_requires_exactly_the_fields_the_script_writes`,
   `Client_canary_isolates_its_packages_and_never_gates`).
+- Every Dependabot ecosystem waits at least seven days before proposing a release, the Roslyn pin and the SDK-implicit
+  packages never move on their own, the `dotnet-sdk` ecosystem ignores new majors, the composite action is updated with
+  the workflows, and no ecosystem sets a commit prefix (`DependabotConfigurationTests`:
+  `Every_ecosystem_has_a_cooldown_of_at_least_seven_days`, `Roslyn_pins_and_sdk_implicit_packages_are_ignored`,
+  `Roslyn_ignores_cover_every_package_pinned_to_the_roslyn_floor`, `Dotnet_sdk_ecosystem_ignores_major_updates`,
+  `Github_actions_updates_cover_the_composite_action_directories`, `No_ecosystem_sets_a_commit_message_prefix`,
+  `Specific_nuget_groups_come_before_the_catch_all_group`).
 
 ## Run the tests
 

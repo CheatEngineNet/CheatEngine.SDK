@@ -11,7 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Workflows/: parses .github/workflows/*.yml and the composite actions. -->
+    <!--
+      Workflows/: parses .github/workflows/*.yml and the composite actions.
+      Governance/ reads workflows, the Dependabot configuration and issue forms with the representation model.
+    -->
     <PackageReference Include="YamlDotNet"/>
   </ItemGroup>
 

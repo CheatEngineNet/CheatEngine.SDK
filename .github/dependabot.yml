@@ -1,16 +1,69 @@
+# Dependabot version updates (security updates are enabled in the repository settings and ignore every limit below).
+# Options: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+# - No commit-message prefix: a prefix produces "deps: ..." titles, which the PR policy title rule rejects.
+#   Dependabot pull requests are exempt from the title and CHANGELOG rules anyway (eng/ci/PullRequestPolicy.psm1).
+# - Every ecosystem waits at least 7 days after a release (zizmor dependabot-cooldown; a cooldown never delays a
+#   security update).
+# - Dependabot does not regenerate the SDK-implicit entries of packages.lock.json: check out its branch, run
+#   ./eng/Update-LockFiles.ps1 and push the result (eng/api/README.md#lock-files).
+# - A dependency joins the first group it matches, so the specific groups come before the catch-all.
 version: 2
 updates:
   - package-ecosystem: nuget
     directory: /
     schedule:
       interval: monthly
+    open-pull-requests-limit: 5
+    labels: [ dependencies, .NET ]
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 7
     groups:
+      security-updates:
+        applies-to: security-updates
+        patterns: [ '*' ]
+      test-infrastructure:
+        patterns:
+          - 'xunit.v3*'
+          - 'Microsoft.Testing.*'
+          - 'Microsoft.CodeAnalysis.*.Testing'
+          - 'BenchmarkDotNet'
+          - 'YamlDotNet'
+        update-types: [ minor, patch ]
+      analyzers:
+        patterns:
+          - 'Meziantou.Analyzer'
+          - 'Microsoft.CodeAnalysis.BannedApiAnalyzers'
+          - 'Microsoft.CodeAnalysis.PublicApiAnalyzers'
+        update-types: [ minor, patch ]
       minor-and-patch:
+        patterns: [ '*' ]
         update-types: [ minor, patch ]
     ignore:
-      # The Roslyn pin moves together with RoslynComponentFloor (build error CESDK9002).
+      # The Roslyn pin moves together with RoslynComponentFloor (build error CESDK9002) and the SDK-bundled compiler:
+      # a component built against a newer Roslyn does not load in an older consumer compiler (CS9057).
       - dependency-name: Microsoft.CodeAnalysis.CSharp
       - dependency-name: Microsoft.CodeAnalysis.CSharp.Workspaces
+      - dependency-name: Microsoft.CodeAnalysis.Analyzers
+      # SDK-implicit packages recorded in the lock files move only with global.json (eng/api/README.md#lock-files).
+      - dependency-name: Microsoft.NET.ILLink.Tasks
+      - dependency-name: Microsoft.DotNet.ILCompiler
+      - dependency-name: 'runtime.*.Microsoft.DotNet.ILCompiler'
+
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [ dependencies, .NET ]
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    ignore:
+      # A new .NET major is a deliberate migration (TargetFramework, AnalysisLevel pin, lock files), not a bump.
+      - dependency-name: '*'
+        update-types: [ 'version-update:semver-major' ]
 
   - package-ecosystem: github-actions
     directories:
@@ -18,6 +71,10 @@ updates:
       - /.github/actions/*
     schedule:
       interval: monthly
+    labels: [ dependencies, ci ]
+    cooldown:
+      # GitHub Actions supports default-days only (no SemVer-bump days).
+      default-days: 7
     groups:
       actions:
         update-types: [ minor, patch ]

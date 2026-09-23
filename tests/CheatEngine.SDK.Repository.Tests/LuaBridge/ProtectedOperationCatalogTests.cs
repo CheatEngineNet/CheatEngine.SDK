@@ -2,16 +2,18 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-using CheatEngine.SDK.Repository.Tests.Qualification.Validation;
+using CheatEngine.SDK.Repository.Tests.Abi;
+using CheatEngine.SDK.Repository.Tests.SourceScanning;
 
 namespace CheatEngine.SDK.Repository.Tests.LuaBridge;
 
 /// <summary>
-///     <c>libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json</c>, the catalogue of the C11 Lua protection bridge: every rule of the
-///     retired <c>Test-ProtectedOperationCatalog.ps1</c> (schema, uniqueness, derived bitmap, native enum and switch,
-///     direct-call policy) plus the failure evidence of every operation that can raise (audit A20-Q13, CI-SDK-ENG-1).
-///     The LuaBridgeContract generator reads the same file: it requires <c>schemaVersion</c> 1 and ignores properties it
-///     does not know, such as <c>failureEvidence</c>.
+///     <c>libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json</c>, the catalogue of the C11 Lua
+///     protection bridge: every rule of the retired <c>Test-ProtectedOperationCatalog.ps1</c> that still applies
+///     (uniqueness, derived bitmap, native enum and switch, direct-call policy — the schema-file part of that script
+///     is gone with it, since the repository keeps no JSON Schema infrastructure) plus the failure evidence of every
+///     operation that can raise (audit A20-Q13, CI-SDK-ENG-1). The LuaBridgeContract generator reads the same file: it
+///     requires <c>schemaVersion</c> 1 and ignores properties it does not know, such as <c>failureEvidence</c>.
 /// </summary>
 public sealed partial class ProtectedOperationCatalogTests
 {
@@ -21,41 +23,10 @@ public sealed partial class ProtectedOperationCatalogTests
 	private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
 
 	[Fact]
-	public void Catalog_matches_its_schema()
+	public void Catalog_has_its_schema_version_and_identity()
 	{
-		JsonSchemaSubset schema = LuaBridgeDocuments.CatalogueSchema;
-		JsonElement catalogue = LuaBridgeDocuments.Catalogue;
-
-		IReadOnlyList<string> errors = schema.Validate(catalogue);
-
-		Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
-		Assert.Contains(schema.Validate(LuaBridgeDocuments.Mutate(catalogue,
-				static root => root["operations"]![0]!["failureEvidence"]![0]!["kind"] = "Screenshot")),
-			static error => error.Contains("/operations/0/failureEvidence/0", StringComparison.Ordinal));
-		Assert.Contains(schema.Validate(LuaBridgeDocuments.Mutate(catalogue,
-				static root => root["operations"]![0]!["opcode"] = -1)),
-			static error => error.Contains("/operations/0/opcode", StringComparison.Ordinal));
-		Assert.Contains(schema.Validate(LuaBridgeDocuments.Mutate(catalogue,
-				static root => root["operations"]![0]!["hostOperation"] = " ")),
-			static error => error.Contains("/operations/0/hostOperation", StringComparison.Ordinal));
-		Assert.Contains(schema.Validate(LuaBridgeDocuments.Mutate(catalogue,
-				static root => root["directApiPolicy"]![0]!["provenance"]![0]!["source"] = "http://example.invalid")),
-			static error => error.Contains("/directApiPolicy/0/provenance/0/source", StringComparison.Ordinal));
-	}
-
-	[Fact]
-	public void Catalog_schema_has_the_repository_id_and_uses_only_the_validator_keywords()
-	{
-		JsonSchemaSubset schema = LuaBridgeDocuments.CatalogueSchema;
-
-		Assert.Equal(LuaBridgeDocuments.Draft202012, schema.Root.GetProperty("$schema").GetString());
-		Assert.Equal(LuaBridgeDocuments.SchemaIdPrefix + LuaBridgeDocuments.CatalogueSchemaPath,
-			schema.Root.GetProperty("$id").GetString());
-		List<string> problems = LuaBridgeDocuments.SchemaShapeProblems(schema);
-		Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
 		Assert.Equal(1, LuaBridgeDocuments.Catalogue.GetProperty("schemaVersion").GetInt32());
-		Assert.Equal("cheatengine-sdk-lua-protected-operations",
-			LuaBridgeDocuments.Catalogue.GetProperty("catalogId").GetString());
+		Assert.Equal("cheatengine-sdk-lua-protected-operations", LuaBridgeDocuments.Catalogue.GetProperty("catalogId").GetString());
 	}
 
 	[Fact]
@@ -92,7 +63,7 @@ public sealed partial class ProtectedOperationCatalogTests
 	[Fact]
 	public void Every_operation_has_its_native_enum_value_and_switch_case_in_the_lf_pinned_bridge_source()
 	{
-		string source = File.ReadAllText(QualificationDocuments.Absolute(LuaBridgeDocuments.BridgeSourcePath));
+		string source = File.ReadAllText(RepositoryDocument.Absolute(LuaBridgeDocuments.BridgeSourcePath));
 		Assert.DoesNotContain('\r', source);
 		Match nativeEnum = NativeOperationEnum().Match(source);
 		Assert.True(nativeEnum.Success, "The C11 protected-operation enum was not found.");
@@ -187,9 +158,9 @@ public sealed partial class ProtectedOperationCatalogTests
 			string project = test.GetProperty("project").GetString()!;
 			string file = test.GetProperty("file").GetString()!;
 			string[] name = test.GetProperty("test").GetString()!.Split('.');
-			Assert.True(QualificationDocuments.Exists(project), $"The evidence project {project} does not exist.");
+			Assert.True(RepositoryDocument.Exists(project), $"The evidence project {project} does not exist.");
 			Assert.StartsWith(project[..(project.LastIndexOf('/') + 1)], file, StringComparison.Ordinal);
-			IReadOnlyList<string>? traits = TestSourceIndex.TraitsOfMethod(file, name[0], name[1]);
+			IReadOnlyList<string>? traits = TestMethodTraits.Of(file, name[1]);
 			Assert.True(traits is not null, $"{file} declares no {name[0]}.{name[1]}.");
 			Assert.Contains("Q13", traits, StringComparer.Ordinal);
 		}
@@ -198,7 +169,7 @@ public sealed partial class ProtectedOperationCatalogTests
 	[Fact]
 	public void Probe_marker_evidence_is_emitted_by_the_failure_probe_source()
 	{
-		string probe = QualificationDocuments.ReadNormalizedText(LuaBridgeDocuments.FailureProbePath);
+		string probe = RepositoryDocument.ReadNormalizedText(LuaBridgeDocuments.FailureProbePath);
 		string[] markers = [.. Evidence(ProbeMarkerKind).Select(static item => item.GetProperty("marker").GetString()!)];
 
 		Assert.NotEmpty(markers);
@@ -213,26 +184,25 @@ public sealed partial class ProtectedOperationCatalogTests
 		string[] retired = ["P0-" + "LIVE-", "Test-Protected" + "OperationCatalog"];
 		string[] documents =
 		[
-			LuaBridgeDocuments.CataloguePath, LuaBridgeDocuments.CatalogueSchemaPath, LuaBridgeDocuments.MatrixPath,
-			LuaBridgeDocuments.MatrixSchemaPath, LuaBridgeDocuments.CatalogueReadmePath, LuaBridgeDocuments.AuditPagePath,
+			LuaBridgeDocuments.CataloguePath, LuaBridgeDocuments.MatrixPath, LuaBridgeDocuments.FailureProbePath,
 			"native/cheatengine-sdk-lua-bridge/README.md", "libs/CheatEngine.SDK.Lua.Interop/README.md",
 			"analyzers/docs/internal-lua-direct-api-boundary.md"
 		];
 
-		Assert.False(QualificationDocuments.Exists("eng/lua-bridge/" + retired[1] + ".ps1"),
-			"The PowerShell catalogue check was replaced by these tests.");
+		// The whole eng/lua-bridge/** tree (including the retired PowerShell catalogue check) is gone: no bespoke
+		// governance script survives under eng/, per the maintainer's no-custom-scripting pivot.
+		Assert.False(RepositoryDocument.DirectoryExists("eng/lua-bridge"), "eng/lua-bridge/** must not be recreated.");
 		foreach (string document in documents)
 		{
-			string text = QualificationDocuments.ReadNormalizedText(document);
+			string text = RepositoryDocument.ReadNormalizedText(document);
 			Assert.All(retired, id => Assert.DoesNotContain(id, text, StringComparison.Ordinal));
 		}
 
 		JsonElement pusher = Assert.Single(LuaBridgeDocuments.Operations,
 			static operation => string.Equals(operation.GetProperty("id").GetString(), "PushHostObject", StringComparison.Ordinal));
 		Assert.Contains("Q23", pusher.GetProperty("provenance")[0].GetProperty("verification").GetString(), StringComparison.Ordinal);
-		Assert.Contains("Q23", QualificationDocuments.ReadNormalizedText(LuaBridgeDocuments.CatalogueReadmePath),
+		Assert.Contains("Q23", RepositoryDocument.ReadNormalizedText("libs/CheatEngine.SDK.Lua.Interop/README.md"),
 			StringComparison.Ordinal);
-		Assert.NotNull(QualificationMatrix.Read(QualificationDocuments.LoadJson(QualificationDocuments.MatrixPath)).Find("Q23"));
 	}
 
 	private static IEnumerable<JsonElement> Evidence(string kind)

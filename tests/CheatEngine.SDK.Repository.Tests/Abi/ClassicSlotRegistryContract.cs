@@ -1,15 +1,13 @@
 namespace CheatEngine.SDK.Repository.Tests.Abi;
 
 /// <summary>
-///     The vocabulary of <c>docs/abi/classic-slot-registry.v0.schema.json</c> as the C# checks use it. A test proves
-///     that the schema's <c>required</c> and <c>enum</c> lists equal these constants, so schema and checks cannot drift.
+///     The vocabulary of the committed classic slot registry, as the C# checks in this folder use it. There is no JSON
+///     Schema file: the registry is test-owned data (never a top-level <c>docs/</c> folder), so every shape rule these
+///     constants describe is enforced directly by <see cref="ClassicSlotRegistryDocumentTests" />.
 /// </summary>
 internal static class ClassicSlotRegistryContract
 {
 	internal const string RegistryPath = "tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json";
-	internal const string SchemaPath = "docs/abi/classic-slot-registry.v0.schema.json";
-	internal const string MarkdownPath = "docs/abi/classic-slot-registry.md";
-	internal const string SchemaId = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/" + SchemaPath;
 	internal const string Kind = "cheatengine-classic-slot-registry/v0";
 	internal const string UpstreamCommit = "ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37";
 	internal const string QualifiableProfile = "ce-7.7.0.10621-x64-managed-hostfxr";

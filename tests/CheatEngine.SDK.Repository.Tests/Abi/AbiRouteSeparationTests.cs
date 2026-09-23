@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 using CheatEngine.SDK.Repository.Tests.Infrastructure;
-using CheatEngine.SDK.Repository.Tests.Qualification.Validation;
 using CheatEngine.SDK.Repository.Tests.SourceScanning;
 
 namespace CheatEngine.SDK.Repository.Tests.Abi;
@@ -58,7 +57,7 @@ public sealed partial class AbiRouteSeparationTests
 
 		Assert.All(consumers, file => Assert.Contains(file, PrefixConsumers, StringComparer.Ordinal));
 		Assert.Contains("libs/CheatEngine.SDK.Abi/Native/ClassicDebugEventDispatcher.cs", consumers, StringComparer.Ordinal);
-		Assert.All(PrefixConsumers, file => Assert.True(QualificationDocuments.Exists(file), $"{file} no longer exists."));
+		Assert.All(PrefixConsumers, file => Assert.True(RepositoryDocument.Exists(file), $"{file} no longer exists."));
 		Assert.DoesNotContain(consumers, static file => file.StartsWith("libs/CheatEngine.SDK.Hosting/", StringComparison.Ordinal));
 	}
 
@@ -85,7 +84,7 @@ public sealed partial class AbiRouteSeparationTests
 			.Where(static file => file.StartsWith("libs/", StringComparison.Ordinal))
 			.Order(StringComparer.Ordinal)
 			.Select(static file => (file, CSharpCode.BlankCommentsAndLiterals(
-				File.ReadAllText(QualificationDocuments.Absolute(file), Encoding.UTF8))));
+				File.ReadAllText(RepositoryDocument.Absolute(file), Encoding.UTF8))));
 	}
 
 	private static Regex Identifier(string name)

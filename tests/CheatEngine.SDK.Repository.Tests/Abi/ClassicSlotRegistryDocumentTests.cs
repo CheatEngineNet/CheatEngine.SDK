@@ -1,22 +1,20 @@
-using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-using CheatEngine.SDK.Repository.Tests.Qualification.Validation;
+using CheatEngine.SDK.Repository.Tests.SourceScanning;
 
 namespace CheatEngine.SDK.Repository.Tests.Abi;
 
 /// <summary>
-///     <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>: the 159-slot contract of the classic <c>ExportedFunctions</c> table,
-///     whose authority is the pinned <c>plugin.pas</c> (audit annex 04), with the C and Pascal mirrors as secondary
-///     columns and the divergence register of annex 05 (audit F09, A23-F09-1, AX04-*, AX05-*). These tests read only the
-///     committed document, never the Cheat Engine sources or an installation; the schema stays inside the keyword subset
-///     of <see cref="JsonSchemaSubset" /> and the rules it cannot express are checked here.
+///     The committed classic slot registry (test-owned data, never a top-level <c>docs/</c> folder): the 159-slot
+///     contract of the classic <c>ExportedFunctions</c> table, whose authority is the pinned <c>plugin.pas</c> (audit
+///     annex 04), with the C and Pascal mirrors as secondary columns and the divergence register of annex 05 (audit
+///     F09, A23-F09-1, AX04-*, AX05-*). These tests read only the committed document, never the Cheat Engine sources or
+///     an installation, and enforce its shape with plain C# assertions (there is no JSON Schema infrastructure left in
+///     this repository).
 /// </summary>
 public sealed partial class ClassicSlotRegistryDocumentTests
 {
-	private const string Draft202012 = "https://json-schema.org/draft/2020-12/schema";
-
 	private const string ShapeTestsPath = "tests/CheatEngine.SDK.Abi.Tests/Native/PluginCallbackShapeTests.cs";
 
 	/// <summary>Host nil assignments of TPluginHandler.create (audit annex 04 and brief appendix A).</summary>
@@ -30,90 +28,44 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 
 	private static readonly string[] AuditDivergences = ["D01", "D02", "D03", "D04", "D05", "D06", "D07", "D08", "D09", "D10"];
 
-	private static JsonElement Registry => QualificationDocuments.LoadJson(ClassicSlotRegistryContract.RegistryPath);
-
-	private static JsonSchemaSubset Schema => JsonSchemaSubset.Parse(
-		QualificationDocuments.ReadNormalizedText(ClassicSlotRegistryContract.SchemaPath),
-		Path.GetFileName(ClassicSlotRegistryContract.SchemaPath));
+	private static JsonElement Registry => RepositoryDocument.LoadJson(ClassicSlotRegistryContract.RegistryPath);
 
 	private static JsonElement[] Slots => [.. Registry.GetProperty("slots").EnumerateArray()];
 
 	[Fact]
-	public void Registry_matches_its_v0_schema()
+	public void Registry_top_level_and_nested_objects_have_the_expected_required_properties()
 	{
-		IReadOnlyList<string> errors = Schema.Validate(Registry);
+		JsonElement root = Registry;
+		AssertProperties(ClassicSlotRegistryContract.TopLevelRequired, root);
+		AssertProperties(ClassicSlotRegistryContract.SourceRequired, root.GetProperty("sources")[0]);
+		AssertProperties(ClassicSlotRegistryContract.ContractRequired, root.GetProperty("contract"));
+		AssertProperties(ClassicSlotRegistryContract.SlotRequired, Slots[0]);
+		AssertProperties(ClassicSlotRegistryContract.DivergenceRequired, root.GetProperty("divergences")[0]);
+		AssertProperties(ClassicSlotRegistryContract.CallbackCategoryRequired, root.GetProperty("callbackCategories")[0]);
 
-		Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
-		Assert.Equal(ClassicSlotRegistryContract.Kind, Registry.GetProperty("schema").GetString());
+		Assert.All(root.GetProperty("sources").EnumerateArray(),
+			source => AssertProperties(ClassicSlotRegistryContract.SourceRequired, source));
+		Assert.All(Slots, slot => AssertProperties(ClassicSlotRegistryContract.SlotRequired, slot));
+		Assert.All(root.GetProperty("divergences").EnumerateArray(),
+			divergence => AssertProperties(ClassicSlotRegistryContract.DivergenceRequired, divergence));
+		Assert.All(root.GetProperty("callbackCategories").EnumerateArray(),
+			category => AssertProperties(ClassicSlotRegistryContract.CallbackCategoryRequired, category));
 
-		JsonElement mutated = Mutate(static root => root["slots"]![3]!["qualification"] = "Passed");
-		Assert.Contains(Schema.Validate(mutated), static error => error.Contains("/slots/3/qualification", StringComparison.Ordinal));
-		JsonElement extra = Mutate(static root => root["slots"]![0]!["callable"] = true);
-		Assert.Contains(Schema.Validate(extra), static error => error.Contains("unexpected property 'callable'", StringComparison.Ordinal));
-	}
-
-	[Fact]
-	public void Registry_schema_is_closed_draft_2020_12_with_the_repository_id_and_validator_keywords()
-	{
-		JsonElement root = Schema.Root;
-		Assert.Equal(Draft202012, root.GetProperty("$schema").GetString());
-		Assert.Equal(ClassicSlotRegistryContract.SchemaId, root.GetProperty("$id").GetString());
-		Assert.Contains("CRLF is normalized to LF", root.GetProperty("description").GetString(), StringComparison.Ordinal);
-
-		List<string> problems = [];
-		foreach ((string pointer, JsonElement node) in Schema.EnumerateSchemaObjects())
+		Assert.Equal(ClassicSlotRegistryContract.Kind, root.GetProperty("schema").GetString());
+		Assert.All(root.GetProperty("sources").EnumerateArray(), source =>
+			Assert.Contains(source.GetProperty("role").GetString(), ClassicSlotRegistryContract.SourceRoles));
+		Assert.All(Slots, slot =>
 		{
-			foreach (JsonProperty keyword in node.EnumerateObject())
-			{
-				if (!JsonSchemaSubset.SupportedKeywords.Contains(keyword.Name))
-				{
-					problems.Add($"{pointer}: '{keyword.Name}' is not implemented by JsonSchemaSubset.");
-				}
-			}
-
-			bool isObject = node.TryGetProperty("type", out JsonElement type) &&
-							type.GetRawText().Contains("\"object\"", StringComparison.Ordinal);
-			if (isObject && (!node.TryGetProperty("additionalProperties", out JsonElement additional) ||
-							 additional.ValueKind != JsonValueKind.False))
-			{
-				problems.Add($"{pointer}: an object schema must set \"additionalProperties\": false.");
-			}
-		}
-
-		Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
-	}
-
-	[Fact]
-	public void Registry_schema_required_and_enum_lists_equal_the_validator_constants()
-	{
-		JsonElement root = Schema.Root;
-		JsonElement defs = root.GetProperty("$defs");
-
-		AssertStrings(ClassicSlotRegistryContract.TopLevelRequired, root.GetProperty("required"));
-		AssertStrings(ClassicSlotRegistryContract.SourceRequired, defs.GetProperty("source").GetProperty("required"));
-		AssertStrings(ClassicSlotRegistryContract.ContractRequired, defs.GetProperty("contract").GetProperty("required"));
-		AssertStrings(ClassicSlotRegistryContract.SlotRequired, defs.GetProperty("slot").GetProperty("required"));
-		AssertStrings(ClassicSlotRegistryContract.DivergenceRequired, defs.GetProperty("divergence").GetProperty("required"));
-		AssertStrings(ClassicSlotRegistryContract.CallbackCategoryRequired,
-			defs.GetProperty("callbackCategory").GetProperty("required"));
-
-		JsonElement slot = defs.GetProperty("slot").GetProperty("properties");
-		AssertStrings(ClassicSlotRegistryContract.SourceIds, defs.GetProperty("sourceId").GetProperty("enum"));
-		AssertStrings(ClassicSlotRegistryContract.SourceRoles, Enum(defs, "source", "role"));
-		AssertStrings(ClassicSlotRegistryContract.InstalledRelations, Enum(defs, "installed", "relation"));
-		AssertStrings(ClassicSlotRegistryContract.EvidenceKinds, defs.GetProperty("evidenceKind").GetProperty("enum"));
-		AssertStrings(ClassicSlotRegistryContract.Sections, slot.GetProperty("section").GetProperty("enum"));
-		AssertStrings(ClassicSlotRegistryContract.AssignmentKinds, Enum(defs, "hostAssignment", "kind"));
-		AssertStrings(ClassicSlotRegistryContract.Natures, slot.GetProperty("nature").GetProperty("enum"));
-		AssertStrings(ClassicSlotRegistryContract.CallingConventions, slot.GetProperty("callingConvention").GetProperty("enum"));
-		AssertStrings(ClassicSlotRegistryContract.Nullabilities, slot.GetProperty("nullability").GetProperty("enum"));
-		AssertStrings(ClassicSlotRegistryContract.SdkExposures, slot.GetProperty("sdkExposure").GetProperty("enum"));
-		AssertStrings(ClassicSlotRegistryContract.FacadeStatuses, slot.GetProperty("facadeStatus").GetProperty("enum"));
-		AssertStrings(ClassicSlotRegistryContract.Ownerships, slot.GetProperty("ownership").GetProperty("enum"));
-		AssertStrings(ClassicSlotRegistryContract.SlotEvidenceKinds, slot.GetProperty("evidenceKind").GetProperty("enum"));
-		AssertStrings(ClassicSlotRegistryContract.ProfileStatuses, Enum(defs, "profileStatus", "status"));
-		AssertStrings(ClassicSlotRegistryContract.DivergenceOrigins, Enum(defs, "divergence", "origin"));
-		AssertStrings(ClassicSlotRegistryContract.CallbackContexts, Enum(defs, "callbackCategory", "context"));
+			Assert.Contains(slot.GetProperty("section").GetString(), ClassicSlotRegistryContract.Sections);
+			Assert.Contains(slot.GetProperty("hostAssignment").GetProperty("kind").GetString(), ClassicSlotRegistryContract.AssignmentKinds);
+			Assert.Contains(slot.GetProperty("nature").GetString(), ClassicSlotRegistryContract.Natures);
+			Assert.Contains(slot.GetProperty("callingConvention").GetString(), ClassicSlotRegistryContract.CallingConventions);
+			Assert.Contains(slot.GetProperty("nullability").GetString(), ClassicSlotRegistryContract.Nullabilities);
+			Assert.Contains(slot.GetProperty("sdkExposure").GetString(), ClassicSlotRegistryContract.SdkExposures);
+			Assert.Contains(slot.GetProperty("facadeStatus").GetString(), ClassicSlotRegistryContract.FacadeStatuses);
+			Assert.Contains(slot.GetProperty("ownership").GetString(), ClassicSlotRegistryContract.Ownerships);
+			Assert.Contains(slot.GetProperty("evidenceKind").GetString(), ClassicSlotRegistryContract.SlotEvidenceKinds);
+		});
 	}
 
 	[Fact]
@@ -394,10 +346,6 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 			Assert.Equal("Deduced", slot.GetProperty("layoutEvidenceKind").GetString());
 			Assert.NotEqual("ObservedHost", slot.GetProperty("evidenceKind").GetString(), StringComparer.Ordinal);
 		});
-
-		// The schema itself refuses a qualified slot, so the rule survives a hand edit.
-		Assert.NotEmpty(Schema.Validate(Mutate(static root => root["slots"]![17]!["qualification"] = "Passed")));
-		Assert.NotEmpty(Schema.Validate(Mutate(static root => root["slots"]![17]!["evidenceKind"] = "ObservedHost")));
 	}
 
 	[Fact]
@@ -419,7 +367,7 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 	[Fact]
 	public void Registry_uses_lowercase_hashes_and_no_absolute_local_path()
 	{
-		string text = QualificationDocuments.ReadNormalizedText(ClassicSlotRegistryContract.RegistryPath);
+		string text = RepositoryDocument.ReadNormalizedText(ClassicSlotRegistryContract.RegistryPath);
 
 		Assert.DoesNotMatch(AbsoluteLocalPath(), text);
 		foreach (Match hash in HexHash().Matches(text))
@@ -433,67 +381,11 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 	[Fact]
 	public void Registry_is_canonically_formatted()
 	{
-		string text = QualificationDocuments.ReadNormalizedText(ClassicSlotRegistryContract.RegistryPath);
+		string text = RepositoryDocument.ReadNormalizedText(ClassicSlotRegistryContract.RegistryPath);
 
-		Assert.Equal(QualificationDocuments.Canonical(QualificationDocuments.ParseJson(text)), text);
+		Assert.Equal(RepositoryDocument.Canonical(RepositoryDocument.ParseJson(text)), text);
 		Assert.EndsWith("}\n", text, StringComparison.Ordinal);
 		Assert.False(text.EndsWith("\n\n", StringComparison.Ordinal));
-	}
-
-	[Fact]
-	public void Registry_markdown_tables_equal_the_json()
-	{
-		string page = QualificationDocuments.ReadNormalizedText(ClassicSlotRegistryContract.MarkdownPath);
-
-		List<string[]> slotRows = TableRows(page, "slot-table");
-		Assert.Equal(159, slotRows.Count);
-		for (int index = 0; index < slotRows.Count; index++)
-		{
-			string[] cells = slotRows[index];
-			JsonElement slot = Slots[index];
-			JsonElement assignment = slot.GetProperty("hostAssignment");
-			string expectedAssignment = $"{assignment.GetProperty("kind").GetString()} `{assignment.GetProperty("expression").GetString()}`" +
-										(assignment.GetProperty("condition").ValueKind == JsonValueKind.Null
-											? string.Empty
-											: $" ({assignment.GetProperty("condition").GetString()})");
-			string expectedLua = slot.GetProperty("luaEquivalent").ValueKind == JsonValueKind.Null
-				? string.Empty
-				: $"`{slot.GetProperty("luaEquivalent").GetProperty("name").GetString()}`";
-			string[] expected =
-			[
-				Text(slot.GetProperty("slot").GetInt32()), Text(slot.GetProperty("x64Offset").GetInt32()),
-				Text(slot.GetProperty("minDeclaredSize").GetInt32()), slot.GetProperty("section").GetString()!,
-				$"`{HostName(slot)}`", expectedAssignment, slot.GetProperty("nature").GetString()!,
-				slot.GetProperty("callingConvention").GetString()!, slot.GetProperty("sdkExposure").GetString()!,
-				string.Join(", ", slot.GetProperty("divergenceRefs").EnumerateArray().Select(static id => id.GetString())),
-				expectedLua
-			];
-			Assert.Equal(expected, cells, StringComparer.Ordinal);
-		}
-
-		JsonElement[] divergences = [.. Registry.GetProperty("divergences").EnumerateArray()];
-		List<string[]> divergenceRows = TableRows(page, "divergence-table");
-		Assert.Equal(divergences.Length, divergenceRows.Count);
-		for (int index = 0; index < divergences.Length; index++)
-		{
-			JsonElement row = divergences[index];
-			Assert.Equal(row.GetProperty("id").GetString(), divergenceRows[index][0]);
-			Assert.Equal(row.GetProperty("subject").GetString(), divergenceRows[index][1]);
-			Assert.Equal(string.Join(", ", Ints(row, "slots")), divergenceRows[index][2]);
-			Assert.Equal(row.GetProperty("origin").GetString(), divergenceRows[index][5]);
-		}
-
-		JsonElement[] categories = [.. Registry.GetProperty("callbackCategories").EnumerateArray()];
-		List<string[]> callbackRows = TableRows(page, "callback-table");
-		Assert.Equal(categories.Length, callbackRows.Count);
-		for (int index = 0; index < categories.Length; index++)
-		{
-			JsonElement row = categories[index];
-			Assert.Equal(Text(row.GetProperty("pluginType").GetInt32()), callbackRows[index][0]);
-			Assert.Equal($"`{row.GetProperty("name").GetString()}`", callbackRows[index][1]);
-			Assert.Equal(row.GetProperty("context").GetString(), callbackRows[index][2]);
-			Assert.Equal($"`{row.GetProperty("sdkRecord").GetString()}`", callbackRows[index][5]);
-		}
 	}
 
 	[Fact]
@@ -520,47 +412,19 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 		foreach (JsonElement row in categories)
 		{
 			string[] test = row.GetProperty("shapeTest").GetString()!.Split('.');
-			IReadOnlyList<string>? traits = TestSourceIndex.TraitsOfMethod(ShapeTestsPath, test[0], test[1]);
+			IReadOnlyList<string>? traits = TestMethodTraits.Of(ShapeTestsPath, test[1]);
 			Assert.True(traits is not null, $"{ShapeTestsPath} declares no {test[0]}.{test[1]}.");
 			Assert.DoesNotContain("Q38", traits, StringComparer.Ordinal);
 		}
 	}
 
-	private static List<string[]> TableRows(string page, string block)
+	private static void AssertProperties(string[] expected, JsonElement obj)
 	{
-		string begin = $"<!-- BEGIN GENERATED: {block} -->";
-		string end = $"<!-- END GENERATED: {block} -->";
-		int from = page.IndexOf(begin, StringComparison.Ordinal);
-		int to = page.IndexOf(end, StringComparison.Ordinal);
-		Assert.True(from >= 0 && to > from, $"The page lacks the {block} markers.");
-		string[] lines = page[(from + begin.Length)..to].Split('\n', StringSplitOptions.RemoveEmptyEntries);
-		Assert.True(lines.Length >= 2, $"The {block} block has no table.");
-		List<string[]> rows = [];
-		foreach (string line in lines[2..])
+		string[] actual = [.. obj.EnumerateObject().Select(static property => property.Name)];
+		foreach (string name in expected)
 		{
-			string inner = line.Trim();
-			Assert.StartsWith("|", inner, StringComparison.Ordinal);
-			rows.Add([.. inner[1..^1].Split('|').Select(static cell => cell.Trim())]);
+			Assert.Contains(name, actual);
 		}
-
-		return rows;
-	}
-
-	private static JsonElement Mutate(Action<System.Text.Json.Nodes.JsonNode> change)
-	{
-		System.Text.Json.Nodes.JsonNode root = System.Text.Json.Nodes.JsonNode.Parse(Registry.GetRawText())!;
-		change(root);
-		return QualificationDocuments.ParseJson(root.ToJsonString());
-	}
-
-	private static JsonElement Enum(JsonElement defs, string definition, string property)
-	{
-		return defs.GetProperty(definition).GetProperty("properties").GetProperty(property).GetProperty("enum");
-	}
-
-	private static void AssertStrings(string[] expected, JsonElement array)
-	{
-		Assert.Equal(expected, array.EnumerateArray().Select(static item => item.GetString()!), StringComparer.Ordinal);
 	}
 
 	private static int[] SlotsWhere(Func<JsonElement, bool> predicate)
@@ -601,11 +465,6 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 	private static bool InRange(JsonElement[] ranges, int line)
 	{
 		return ranges.Any(range => line >= range.GetProperty("start").GetInt32() && line <= range.GetProperty("end").GetInt32());
-	}
-
-	private static string Text(int value)
-	{
-		return value.ToString(CultureInfo.InvariantCulture);
 	}
 
 	[GeneratedRegex(@"(?<![A-Za-z])[A-Za-z]:(\\|/)|file://|\\Users\\", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, 1000)]

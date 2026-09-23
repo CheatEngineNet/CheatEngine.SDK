@@ -52,6 +52,11 @@ behavior.
   memory-record handles remain CE-borrowed and are never implicitly owned.
 - Address-list and memory-record wrappers also omit `MainThreadOnly` metadata until the CE 7.7 dispatcher probe turns
   their GUI affinity inference into an enforceable contract (`AddressListValueTests`).
+- Memory text keeps embedded NULs and raw invalid UTF-8 in the byte forms, `maximumLength` and the wide flag reach CE
+  unchanged, and a partial byte read reports its prefix (`MemoryTextFidelityTests`, qualification Q20). The generated
+  `MemoryScalars` read a signed -1, pass an address above 4 GiB as an exact Lua integer and keep `nil`, `false` and a
+  raise apart from 0 (`MemoryScalarsFidelityTests`, Q21 and Q22). `Address`, `HostAddress` and `CEObject` expose no
+  conversion to each other or to a floating-point type (`AddressTypeSeparationTests`, Q21).
 
 ## Run the tests
 

@@ -57,3 +57,5 @@ dotnet test --project tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests --
   when the host or the plugin constructor throws (`BootstrapExecutionTests`).
 - Same-named annotation/base symbols from a foreign reference do not generate a bootstrap (`ContractIdentityTests`).
 - Unchanged input recomputes nothing (`IncrementalityTests`).
+- The bootstrap constructs the plugin with `new`, never through reflection, and `CEPluginInitialize` is one `try` whose
+  only, unfiltered `catch (System.Exception)` returns 0 (`NominalOutputTests`).

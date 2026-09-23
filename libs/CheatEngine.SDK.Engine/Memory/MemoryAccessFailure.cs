@@ -25,12 +25,16 @@ public enum MemoryAccessFailure
 	/// <summary>The protected Lua call raised, including an allocation failure reported by the Lua protection bridge.</summary>
 	LuaError,
 
-	/// <summary>Cheat Engine returned <see langword="nil" /> or an incomplete byte table for a read operation.</summary>
+	/// <summary>
+	///     Cheat Engine returned <see langword="nil" /> for a read operation, or an incomplete byte table to an overload that
+	///     reports no copied count (nothing is copied then).
+	/// </summary>
 	ReadFailed,
 
 	/// <summary>
 	///     Cheat Engine returned a contiguous byte-table prefix that was shorter than the requested destination. This is
-	///     reported only by the overload that returns a copied byte count.
+	///     reported only by the overload that returns a copied byte count, which then holds the length of that prefix and
+	///     is never zero.
 	/// </summary>
 	PartialRead,
 

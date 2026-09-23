@@ -18,6 +18,19 @@ namespace CheatEngine.SDK.Engine.Memory;
 ///         specify main-thread affinity for these globals, so no unsupported affinity claim is made here. This class has
 ///         no object ownership: all returned values and caller-provided buffers remain managed values.
 ///     </para>
+///     <para>
+///         <b>Host, not target.</b> These methods address Cheat Engine's own process. The attached target process is
+///         <see cref="TargetMemory" /> with <c>CheatEngine.SDK.Engine.Values.Address</c>; neither address type converts to
+///         the other.
+///     </para>
+///     <para>
+///         <b>Text and bytes.</b> <c>maximumLength</c> is passed unchanged to CE's local string primitive. Its unit for a
+///         wide read (characters or bytes), and the terminator CE reads or writes for a wide string, are not qualified on
+///         the pinned CE profile (qualification Q20, level C3). The byte forms keep the exact bytes, embedded NULs and
+///         invalid UTF-8 included; <see cref="TryReadString" /> decodes invalid UTF-8 to U+FFFD. The
+///         <see cref="TryReadBytes(HostAddress, Span{byte}, out int, out MemoryAccessFailure)" /> overload reports a
+///         confirmed contiguous prefix with <see cref="MemoryAccessFailure.PartialRead" />.
+///     </para>
 /// </remarks>
 [RequiresPluginEnabled]
 public static class HostMemory
@@ -331,7 +344,10 @@ public static class HostMemory
 
 	/// <summary>Reads local UTF-8 text and reports the exact capacity required by the returned value.</summary>
 	/// <param name="address">The CE-host address to read.</param>
-	/// <param name="maximumLength">The maximum character count passed to CE's documented string primitive.</param>
+	/// <param name="maximumLength">
+	///     The maximum length passed unchanged to CE's documented string primitive; its unit for a wide read is not
+	///     qualified (see the class remarks). Must not be negative.
+	/// </param>
 	/// <param name="destination">The caller-owned UTF-8 storage; it is unchanged when it is too small.</param>
 	/// <param name="wideCharacter">Whether CE should read a wide-character string.</param>
 	/// <param name="written">The copied byte count, which is zero on failure.</param>

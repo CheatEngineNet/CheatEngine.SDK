@@ -24,6 +24,7 @@ workflow's own "submit" step text against a mocked `gh`, offline.
 | `Workflows/`       | `WorkflowContractTests` parse `.github/workflows/*.yml` and the composite actions with YamlDotNet and freeze the CI contract (job ids, the Gate, lint, format, restore, supply-chain jobs). |
 | `Release/`         | `ReleaseWorkflowContractTests` reads `.github/workflows/release.yml`: the draft-first job chain, tag guards, write scopes, trusted publishing placement and the reserved artifact names. |
 | `Governance/`      | `GovernanceWorkflowTests` freeze CodeQL, Scorecard, the online zizmor run and dependency submission; `DependabotConfigurationTests` checks `.github/dependabot.yml`; `GovernanceDocumentTests` checks `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS` and the issue forms. |
+| `Generation/`      | `GeneratorInventoryTests` pins the reviewed source generator projects, keeps the extended analyzer rules on every Roslyn component and refuses a local Cheat Engine path in their sources. |
 
 ## Promise
 
@@ -149,6 +150,9 @@ workflow's own "submit" step text against a mocked `gh`, offline.
   known maintainers and existing paths; the compatibility issue form requires the complete support tuple, never
   presents a profile as supported or qualified, and no form tells users to edit `ce.runtimeconfig.json`
   (`GovernanceDocumentTests`).
+- The source generator projects are exactly the reviewed set, every analyzer and generator keeps
+  `EnforceExtendedAnalyzerRules`, and no component source names `Program Files`, a drive-rooted path or
+  `celua.txt` (`GeneratorInventoryTests`).
 
 ## Run the tests
 

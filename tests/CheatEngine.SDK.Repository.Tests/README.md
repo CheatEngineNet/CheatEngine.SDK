@@ -9,9 +9,10 @@ qualification-matrix and catalogue contracts added by the audit remediation work
 
 Several of these rules used to live in scripts that CI stopped running, so they silently rotted (dead
 `documentations/` links, orphaned validators). Repository rules are enforced by C# tests instead, and they stay fast:
-this project only reads committed files. It never builds, packs or restores. The one exception is `Governance/`: it
-starts `pwsh` to run the repository's PowerShell policy code (the pull request policy module and entry script, the
-health-check rules, the repository-settings plan) against test vectors, offline.
+this project only reads committed files. It never builds, packs, restores or starts Cheat Engine. The only process it
+starts is `pwsh`, to run the repository's PowerShell code against test vectors, offline: the pull request policy module
+and entry script, the health-check rules and the repository-settings plan (`Governance/`), and the local qualification
+runner (`Qualification/`).
 
 ## How it works
 
@@ -26,8 +27,9 @@ health-check rules, the repository-settings plan) against test vectors, offline.
 | `Workflows/` | `WorkflowContractTests` parse `.github/workflows/*.yml` and the composite actions with YamlDotNet and freeze the CI contract; `CoverageBaselineTests`, `BuildInfoSchemaTests` and `ClientCanaryScriptTests` check the files and scripts of `eng/ci/` that CI runs. |
 | `Governance/` | Pull request policy script and workflow, CodeQL/Scorecard/zizmor/dependency-submission/scheduled-health workflow invariants, Dependabot, CODEOWNERS, SECURITY.md, issue forms and repository-settings payloads. |
 | `Release/` | `ReleaseWorkflowContractTests` reads `.github/workflows/release.yml`: the draft-first job chain, tag guards, write scopes, trusted publishing placement and the reserved artifact names. |
+| `Qualification/` | `QualificationSchemaTests`, `SupportProfileTests`, `QualificationMatrixTests` and `QualificationReceiptTests` check `docs/qualification/` with the C# JSON Schema subset of `Validation/`; `QualificationProjectShapeTests` and `LocalQualificationRunnerTests` check the qualification harness projects and `eng/qualification/`. |
 
-Later work adds one folder per contract (for example `Documentation/`, `Workflows/`, `Qualification/`).
+Later work adds one folder per contract (for example `Catalog/`).
 
 ## Promise
 
@@ -294,6 +296,74 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   copy of the nupkg), and install the pinned SDK without a package cache where they run `dotnet`
   (`Release_jobs_have_a_timeout_and_a_pinned_runner`, `Release_uploads_only_reserved_artifact_names`,
   `Release_jobs_that_run_dotnet_install_the_pinned_sdk_and_never_cache_packages`).
+- The qualification schemas are draft 2020-12 documents with closed objects that use only the keywords the C#
+  validator implements, and the validator reports every kind of violation (`QualificationSchemaTests`:
+  `Every_schema_is_draft_2020_12_with_a_repository_id_and_closed_objects`,
+  `Schemas_use_only_the_keywords_the_validator_implements`, `Schema_required_and_enum_lists_equal_the_validator_constants`,
+  `Each_schema_pins_its_document_kind_identifier`,
+  `The_validator_reports_unknown_properties_missing_fields_wrong_types_and_failed_conditions`).
+- The support profile matches its schema; the public-source profile is documentary and never qualifiable; the
+  qualifiable profile names the managed hostfxr route and the local runtime-configuration modification, and its hashes
+  equal the committed Lua DLL, the LiveProbe authorization constants and the audit's `celua.txt`; the qualification
+  documents hold no absolute local path or global percentage (`SupportProfileTests`:
+  `Support_profile_matches_its_v0_schema`, `Public_source_profile_is_documentary_and_never_qualifiable`,
+  `Qualifiable_profile_names_the_managed_hostfxr_route_and_the_local_runtimeconfig_modification`,
+  `Profile_lua_hash_equals_the_committed_fixture_dll`, `Profile_host_hash_and_version_equal_the_LiveProbe_authorization_constants`,
+  `Measurement_locators_name_repository_lines_that_declare_the_measured_hash`, `Profile_celua_hash_is_the_audit_reference`,
+  `Markdown_tuple_section_names_the_checked_in_bridge_hash_and_fingerprint`, `Checkpoint_A_decisions_appear_in_json_and_markdown`,
+  `Unsupported_routes_include_nativeaot_x86_host_and_sse4_variant`, `Not_executed_section_equals_the_matrix`,
+  `Qualification_documents_contain_no_absolute_local_path_or_global_percentage`, `Json_documents_are_in_canonical_form`).
+- The matrix lists Q01 to Q48 once each with the audit's required levels; a cell passes only with a pass kind, a host
+  cell cites only the qualifiable profile and committed receipts, C1 or C2 evidence never fills a host cell, every cited
+  test is a traited method of a CI test module and every `Qualification` trait is cited, parents aggregate their
+  sub-rows, and the README summary equals the matrix (`QualificationMatrixTests`: `Matrix_matches_its_v0_schema`,
+  `Matrix_lists_Q01_to_Q48_exactly_once_with_the_audit_required_levels`, `Every_required_level_has_a_cell`,
+  `Every_row_declares_a_scenario_with_an_expected_category`, `Not_applicable_cells_carry_a_justification`,
+  `Pass_kind_is_present_exactly_when_the_cell_passed`, `Host_level_cells_cite_the_qualifiable_profile_only`,
+  `Public_source_profile_is_refused_for_any_passed_or_failed_cell`,
+  `Host_level_passed_or_failed_cells_cite_committed_receipts_with_matching_hashes`,
+  `C1_or_C2_evidence_is_never_accepted_for_a_host_level_cell`,
+  `Automated_evidence_resolves_to_a_traited_method_in_a_CI_test_module`,
+  `Every_Qualification_trait_in_the_tests_appears_in_the_matrix_and_vice_versa`,
+  `Class_level_Qualification_traits_apply_to_every_test_method_of_the_class`, `Parent_rows_aggregate_their_sub_rows`,
+  `Evidence_kind_follows_status_and_level`, `Cells_citing_another_tree_or_package_carry_a_transfer_justification`,
+  `Not_executed_cells_never_carry_evidence_or_a_date`,
+  `Client_owned_rows_are_not_applicable_in_the_SDK_matrix_and_point_to_the_Client_matrix`,
+  `Findings_link_the_rows_the_audit_register_names`, `Matrix_summary_in_the_readme_equals_the_matrix`).
+- A receipt is accepted only for the exact host, with its tree and package identity, a CI-built package, a pass kind
+  when it passed and no local path; every committed receipt is valid, hashed, redacted and cited by the cell it
+  qualifies (`QualificationReceiptTests`: `A_complete_sample_receipt_is_accepted`,
+  `A_receipt_citing_the_public_source_profile_is_refused`, `A_receipt_with_an_absolute_local_path_is_refused`,
+  `A_passed_receipt_without_a_pass_kind_is_refused`, `A_host_level_receipt_without_tree_and_package_identity_is_refused`,
+  `A_receipt_whose_package_source_is_a_local_pack_is_refused`, `Receipt_id_encodes_its_time_and_qualification_id`,
+  `A_fixture_level_receipt_is_refused`, `A_run_on_another_host_is_accepted_only_as_a_justified_not_applicable_receipt`,
+  `Every_committed_receipt_is_valid_and_its_event_log_hash_matches`,
+  `Committed_event_logs_contain_no_user_path_or_raw_debug_output`,
+  `Every_committed_receipt_is_referenced_by_the_matrix_cell_it_qualifies`).
+- The live probe and the qualification target are solution projects that never pack and are not test modules; the
+  target publishes Native AOT for x64 and x86 and references no SDK project (`QualificationProjectShapeTests`:
+  `LiveProbe_is_in_the_solution_as_an_x64_dynamic_loading_plugin_that_never_packs`,
+  `QualificationTarget_is_in_the_solution_and_publishes_native_aot_for_x64_and_x86`,
+  `Qualification_harnesses_are_not_test_modules_and_never_pack`, `QualificationTarget_references_no_SDK_project`).
+- The local qualification runner refuses CI before any side effect, starts with its guard in strict mode, never writes
+  to the Cheat Engine installation, redacts user paths, restores the registry only after a change and never next to
+  another Cheat Engine instance, checks the plugin bundle closure, applies the scenario pass rules, and records the
+  lock-file content hash; no workflow references it (`LocalQualificationRunnerTests`:
+  `Runner_refuses_to_run_under_CI_before_any_side_effect`, `No_workflow_references_the_local_qualification_runner`,
+  `Runner_guard_is_the_first_statement_and_the_script_runs_in_strict_mode`,
+  `Runner_never_writes_to_the_Cheat_Engine_source_directory`,
+  `Receipt_builder_produces_a_schema_valid_receipt_from_a_recorded_event_log`,
+  `Redaction_removes_user_paths_and_keeps_scenario_values`, `Registry_diff_reports_value_names_only`,
+  `Bundle_closure_check_rejects_a_missing_bridge_or_a_workspace_project_entry`,
+  `Bundle_closure_check_accepts_a_package_consumer_bundle_with_the_generated_internal_entry_point`,
+  `Work_root_is_refused_when_it_overlaps_Cheat_Engine_holds_non_ASCII_or_sees_the_workspace`,
+  `Pass_rules_require_the_observed_removal_of_plugin_A_and_a_plugin_still_enabled_after_the_refused_disable`,
+  `A_load_step_passes_only_with_the_non_negative_index_loadPlugin_returns_on_success`,
+  `Only_Cheat_Engine_executables_count_as_another_instance`,
+  `Registry_is_restored_only_after_a_change_and_never_next_to_another_Cheat_Engine_instance`,
+  `Stage_12_counts_Cheat_Engine_instances_in_strict_mode_with_none_one_or_several_running`,
+  `Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash`,
+  `Every_Checkpoint_B_scenario_exists_and_cites_harness_commands_that_exist`, `Driver_templates_are_valid_Lua`).
 
 ## Run the tests
 

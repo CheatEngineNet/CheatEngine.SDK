@@ -73,13 +73,21 @@ public sealed class LiveProbeStatusTests
 	[Fact]
 	public void Status_json_reports_the_fault_switch_decision_and_the_assembly_identities()
 	{
-		LiveProbeHostFacts host = Facts(0, 48, 1, 1);
+		// A pinned decision, not the process-wide LiveProbeFaultInjection state the report would otherwise echo.
+		LiveProbeFaultDecision decision = new(LiveProbeFaultStage.OnDisable,
+			"Fault switch selects OnDisable (liveprobe.fault.json, schema ce77-live-probe-fault-v1).", true);
+		LiveProbeStatusSnapshot snapshot = new(Facts(0, 48, 1, 1), 1, 0, false, 0, 0, null, true, "allowed", true,
+			"allowed", decision, ["OnEnable@1", "OnDisable@2"], 0, "none", "none", "none", "not prepared");
 
-		using JsonDocument json = JsonDocument.Parse(LiveProbeState.GetStatusJson(host));
+		using JsonDocument json = JsonDocument.Parse(LiveProbeStatusReport.ToJson(snapshot));
 
 		JsonElement fault = json.RootElement.GetProperty("faultInjection");
-		Assert.Equal(LiveProbeFaultInjection.Current.Stage.ToString(), fault.GetProperty("stage").GetString());
-		Assert.Equal(JsonValueKind.Array, fault.GetProperty("injected").ValueKind);
+		Assert.Equal("OnDisable", fault.GetProperty("stage").GetString());
+		Assert.Equal(decision.Reason, fault.GetProperty("reason").GetString());
+		Assert.True(fault.GetProperty("fileFound").GetBoolean());
+		Assert.Equal(["OnEnable@1", "OnDisable@2"],
+			fault.GetProperty("injected").EnumerateArray().Select(static stage => stage.GetString()!),
+			StringComparer.Ordinal);
 		JsonElement identity = json.RootElement.GetProperty("identity");
 		Assert.Equal("plugin.dll", identity.GetProperty("pluginAssemblyLocation").GetString());
 		Assert.Equal("hosting.dll", identity.GetProperty("hostingAssemblyLocation").GetString());

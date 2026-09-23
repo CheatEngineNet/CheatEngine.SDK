@@ -22,7 +22,8 @@ CI never loads or runs it.
 
 ## Safety boundary
 
-The probe is deliberately inert unless all of these are true:
+The probe is deliberately inert unless all of these are true (the one exception is the two status commands below, which
+only report process-local facts the probe already holds and act on nothing):
 
 1. The process is x64 and its main executable is exactly CE `7.7.0.10621` x64, SHA-256
    `9727076DA50924E4A097B49A02155E4B34759269C3017FF31375364B8826EB4D`.
@@ -145,6 +146,11 @@ disposable target through its normal cleanup route. Do not force-unload assembli
   (`LiveProbeStatusTests.Status_reports_the_exports_size_and_the_raw_second_bootstrap_integer_without_interpretation`).
 - Without authorization the exception and pump hooks are inert, and the pump refuses a duration outside 1–60 seconds
   before any host call (`LiveProbeStatusTests`).
+- The two status commands are deliberately not gated: they serialize process-local facts (bootstrap record, `PluginHost`
+  state, gate results, fault decisions, assembly identities), touch no target and make no Lua call of their own; an absent context is
+  reported as absent, never as zero values
+  (`LiveProbeStatusTests.Status_without_an_enabled_context_reports_none_instead_of_zero_values`,
+  `LiveProbeStatusTests.Status_json_reports_the_fault_switch_decision_and_the_assembly_identities`).
 - The fault switch is never read without authorization, selects exactly the requested stage, and ignores and reports an
   absent, unreadable or unknown switch (`LiveProbeFaultInjectionTests`).
 - Missing, locked or vanishing identity files are reported as typed outcomes, never as a crash

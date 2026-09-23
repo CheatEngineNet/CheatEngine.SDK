@@ -107,17 +107,19 @@ CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Utf8ByteLength.get -> int
 CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Utf8ByteLength.init -> void
 CheatEngine.SDK.Engine.Assembly.InstructionNavigator
 CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.AddressExceedsProfileWidth = 2 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.DestinationTooSmall = 5 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.GlobalUnavailable = 8 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.InstructionRejected = 7 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.InvalidProfile = 1 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.InvalidResult = 10 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.LuaFailure = 9 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.OutputTooLong = 6 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.Success = 0 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.TargetChanged = 4 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
-CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.TargetNotSelected = 3 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.AddressExceedsProfileWidth = 3 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.DestinationTooSmall = 6 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.GlobalUnavailable = 9 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.InstructionRejected = 8 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.InvalidProfile = 2 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.InvalidResult = 11 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.LuaFailure = 10 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.OutputTooLong = 7 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.Success = 1 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.TargetChanged = 5 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.TargetNotSelected = 4 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.UnsupportedTargetBackend = 12 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
 CheatEngine.SDK.Engine.Assembly.InstructionProfile
 CheatEngine.SDK.Engine.Assembly.InstructionProfile.AddressWidth.get -> CheatEngine.SDK.Engine.Runtime.PointerSize
 CheatEngine.SDK.Engine.Assembly.InstructionProfile.Architecture.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture
@@ -202,12 +204,15 @@ CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.Kind.get -> CheatEngine.
 CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
 CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.ProcessOperationStatus() -> void
 CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
-CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.GlobalUnavailable = 3 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
-CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.InvalidResult = 5 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
-CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.ProtectedLuaFailure = 4 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
-CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.SelectionNotConfirmed = 2 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
-CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.Success = 0 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
-CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.TargetNotAttached = 1 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.FileAsProcessTarget = 8 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.GlobalUnavailable = 4 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.InvalidResult = 6 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.ProtectedLuaFailure = 5 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.SelectionNotConfirmed = 3 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.Success = 1 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.TargetChanged = 7 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.TargetNotAttached = 2 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.Unknown = 0 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
 CheatEngine.SDK.Engine.Processes.RuntimeHostOperations
 CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations
 CheatEngine.SDK.Engine.Runtime.PointerSize.TryReadLittleEndian(System.ReadOnlySpan<byte> source, out ulong value) -> bool
@@ -444,11 +449,13 @@ static CheatEngine.SDK.Engine.Memory.TargetMemory.TryWriteBytes(CheatEngine.SDK.
 static CheatEngine.SDK.Engine.Memory.TargetMemory.TryWritePointer(CheatEngine.SDK.Engine.Values.Address address, CheatEngine.SDK.Engine.Values.Address value, CheatEngine.SDK.Engine.Runtime.PointerSize pointerSize, out CheatEngine.SDK.Engine.Memory.MemoryAccessFailure failure) -> bool
 static CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.operator !=(CheatEngine.SDK.Engine.Processes.CurrentProcessObservation left, CheatEngine.SDK.Engine.Processes.CurrentProcessObservation right) -> bool
 static CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.operator ==(CheatEngine.SDK.Engine.Processes.CurrentProcessObservation left, CheatEngine.SDK.Engine.Processes.CurrentProcessObservation right) -> bool
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.FileAsProcessTarget.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.GlobalUnavailable.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.InvalidResult.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.ProtectedLuaFailure(CheatEngine.SDK.Lua.Calls.LuaStatus luaStatus) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.SelectionNotConfirmed.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.Success.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.TargetChanged.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.TargetNotAttached.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.operator !=(CheatEngine.SDK.Engine.Processes.ProcessOperationStatus left, CheatEngine.SDK.Engine.Processes.ProcessOperationStatus right) -> bool
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.operator ==(CheatEngine.SDK.Engine.Processes.ProcessOperationStatus left, CheatEngine.SDK.Engine.Processes.ProcessOperationStatus right) -> bool

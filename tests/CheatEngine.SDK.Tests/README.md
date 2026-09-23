@@ -211,3 +211,12 @@ the TRX report names the file the facts are about.
   the released tree or are waived under `### Qualification waivers` in its release notes: a not-executed row, a C3 pass
   on another tree without a transfer justification, an unjustified `NotApplicable`, a C1 cell standing in for C3 and a
   missing matrix all fail it, and a prerelease only reports them (`ReleaseQualificationGateTests`).
+- The live plugin folders the solution builds (`CheatEngine.SDK.LivePlugin` and the two coexistence plugins, in the
+  configuration of the test run) are deployable on their own: every file their `.deps.json` promises is present, the
+  bootstrap assemblies are listed, no unlisted SDK assembly is deployed, the runtime policy is `net10.0` on
+  `Microsoft.NETCore.App`, no Lua runtime is copied, and the bridge is byte-identical to the workspace bridge
+  (`Live_plugin_output_closure_matches_the_workspace_bridge`). These folders are built from source, so this is C1
+  evidence only, and they need a solution build first. They do not contain the `CESDK.CESDK` entry point today: the
+  entry-point generator runs only with the package's `CheatEngineSdkGenerateEntryPoint` build property, which these
+  project-reference fixtures never set; a shrink-only pending list records that gap until the fixtures are fixed
+  (`Live_plugin_entry_point_is_present_unless_listed_as_a_pending_fix`).

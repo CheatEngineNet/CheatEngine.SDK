@@ -485,6 +485,27 @@ public sealed class MemoryScanSessionDeadlineTests
 		session.Abandon();
 	}
 
+	[Fact]
+	[Trait("Qualification", "Q29")]
+	public void A_disposed_session_refuses_the_deadline_termination_and_error_text_members_without_a_CE_call()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		MemoryScanSession session = StartScanning(L);
+		session.Dispose();
+		MemScanTestHost.ClearTrace(L);
+
+		Assert.Throws<ObjectDisposedException>(() => session.TryWaitForCompletion(Deadline));
+		Assert.Throws<ObjectDisposedException>(() => session.TryTerminateScan(Deadline));
+		Assert.Throws<ObjectDisposedException>(() => session.TryGetHostErrorText(out _, out _));
+
+		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.Equal(string.Empty, MemScanTestHost.ReadTrace(L));
+		Assert.Equal(0, L.Top);
+	}
+
 	private static MemoryScanSession StartScanning(LuaState state)
 	{
 		MemoryScanSession session = MemScanTestHost.CreateSession(state);

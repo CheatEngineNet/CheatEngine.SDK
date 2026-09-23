@@ -8,7 +8,6 @@ using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Calls;
-using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 

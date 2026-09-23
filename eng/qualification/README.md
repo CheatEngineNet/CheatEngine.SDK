@@ -16,7 +16,7 @@ operator's Cheat Engine settings changed.
 | File                                          | Content                                                                                                                                                  |
 |-----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Invoke-LocalQualification.ps1`               | The runner: guard, preflight, mutex, sandbox, bundles, targets, registry, Cheat Engine session, receipts.                                                |
-| `QualificationRunner.psm1`                    | Pure helpers the runner and the tests share: hashing with the LF rule, registry parsing and name-only diff, redaction, event log bounding, receipt id and assembly, Lua literals, bundle closure, restored content hash, pass-rule evaluation. |
+| `QualificationRunner.psm1`                    | Pure helpers the runner and the tests share: hashing with the LF rule, registry parsing, name-only diff and restore decision, redaction, event log bounding, receipt id and assembly, Lua literals, bundle closure, restored content hash, pass-rule evaluation. |
 | `driver/zz_cesdk_qualification.template.lua`  | The autorun Lua driver template: runs one scenario step per timer tick under `pcall`, appends one JSON event per line, resumes after a Lua state reset. |
 | `scenarios.json`                              | The Checkpoint B plan: harnesses, target, steps (Lua or Operator), observed values and a declarative pass rule per scenario.                           |
 
@@ -59,9 +59,12 @@ operator's Cheat Engine settings changed.
     `resetLuaState()`) resumes at the pending operator step; the runner keeps the first answer and does not ask twice.
 11. **Cleanup** (always): stops the target and stray sandbox processes, removes the driver, the manifest, the fault
     switch and the environment variables. A failing cleanup step is reported (exit 6) and never skips stage 12.
-12. **HKCU after.** Exports, compares by value names, restores only a non-empty difference with no other Cheat Engine
-    running, and verifies the restore. Any failure of this stage, including a failing `reg export`, is exit 7 with the
-    manual command and the backup path, never the generic exit 6.
+12. **HKCU after.** Exports, compares by value names, then `Resolve-RegistryRestoreAction` decides: an unchanged key is
+    left alone; a changed key is restored and the restore verified when no other Cheat Engine runs; a changed key next
+    to another Cheat Engine instance is refused (exit 7), because every copy shares the key and a restore would erase
+    that instance's writes. Guided scenarios that tick or untick plugins change the key (`Plugins64`), so the restore
+    is the normal path of a Checkpoint B run. Any failure of this stage, including a failing `reg export`, is exit 7
+    with the manual command and the backup path, never the generic exit 6.
 13. **Redaction and receipt.** Replaces the work root, sandbox, bundles, repository, installation, user and machine
     names with placeholders, bounds the event log, evaluates the pass rule and writes `<receiptId>.json` and
     `<receiptId>.events.json` (receipt id `R-<start UTC>-<Qid>-<first 8 hex of the package SHA-256>`).
@@ -131,6 +134,11 @@ authorization manifest contain private data and must never be committed.
   lock-file value (`Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash`); only Cheat
   Engine's own executables count as another instance, never a process such as a `CheatEngine.*` test host
   (`Only_Cheat_Engine_executables_count_as_another_instance`).
+- HKCU is restored after a session only when the key changed and no other Cheat Engine runs, is refused with exit 7
+  when another instance runs, and is left alone when unchanged
+  (`Registry_is_restored_only_after_a_change_and_never_next_to_another_Cheat_Engine_instance`); stage 12 counts the
+  running instances correctly in strict mode with none, one or several of them
+  (`Stage_12_counts_Cheat_Engine_instances_in_strict_mode_with_none_one_or_several_running`).
 - Every Checkpoint B scenario names a matrix cell and only Lua functions its harnesses declare
   (`Every_Checkpoint_B_scenario_exists_and_cites_harness_commands_that_exist`), and every generated driver compiles
   with Cheat Engine's Lua 5.3 module (`Driver_templates_are_valid_Lua`).

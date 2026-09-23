@@ -341,6 +341,7 @@ public sealed class LocalQualificationRunnerTests
 			Directory.Delete(root, true);
 		}
 	}
+
 	[Fact]
 	public void Work_root_is_refused_when_it_overlaps_Cheat_Engine_holds_non_ASCII_or_sees_the_workspace()
 	{
@@ -431,6 +432,71 @@ public sealed class LocalQualificationRunnerTests
 		{
 			Assert.True(name.Value.GetBoolean() == cheatEngine.Contains(name.Name, StringComparer.Ordinal), name.Name);
 		}
+	}
+
+	[Theory]
+	[InlineData(1, 0, 0, 0, "Restore")]
+	[InlineData(0, 2, 1, 1, "Refuse")]
+	[InlineData(0, 0, 1, 3, "Refuse")]
+	[InlineData(0, 0, 0, 0, "None")]
+	[InlineData(0, 0, 0, 2, "None")]
+	public void Registry_is_restored_only_after_a_change_and_never_next_to_another_Cheat_Engine_instance(int added,
+		int removed, int changed, int otherInstances, string expected)
+	{
+		// Every Cheat Engine copy shares HKCU\Software\Cheat Engine: a restore next to another instance would erase its
+		// writes (Refuse = exit 7, restored by hand), and an unchanged key is never touched.
+		JsonElement action = RunJson(ModuleImport + $$"""
+			$diff = [ordered]@{ added = {{added}}; removed = {{removed}}; changed = {{changed}}; valueNames = @('Plugins64\0') }
+			ConvertTo-Json -Compress -InputObject (Resolve-RegistryRestoreAction -Diff $diff -OtherInstanceCount {{otherInstances}})
+			""");
+
+		Assert.Equal(expected, action.GetString());
+	}
+
+	[Fact]
+	public void Stage_12_counts_Cheat_Engine_instances_in_strict_mode_with_none_one_or_several_running()
+	{
+		// Executes the runner's own Get-CheatEngineProcess and its stage 12 count expression, under the runner's strict
+		// mode, against a fake process list. Fake processes are class instances, not PSCustomObject, so an unwrapped
+		// (Get-CheatEngineProcess).Count throws for zero and for one process exactly as with real Process objects.
+		JsonElement result = RunJson(ModuleImport + $$"""
+			Set-StrictMode -Version Latest
+			$ErrorActionPreference = 'Stop'
+			class FakeProcess { [string] $ProcessName }
+			$errors = $null
+			$ast = [System.Management.Automation.Language.Parser]::ParseFile({{PowerShellProcess.Quote(QualificationDocuments.Absolute(RunnerScript))}}, [ref] $null, [ref] $errors)
+			$function = $ast.Find({ $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $args[0].Name -eq 'Get-CheatEngineProcess' }, $true)
+			$assignments = @($ast.FindAll({ $args[0] -is [System.Management.Automation.Language.AssignmentStatementAst] -and $args[0].Left.Extent.Text -eq '$otherInstanceCount' }, $true))
+			$queries = @($ast.FindAll({ $args[0] -is [System.Management.Automation.Language.CommandAst] -and $args[0].GetCommandName() -eq 'Get-CheatEngineProcess' }, $true))
+			$unwrapped = @($queries | Where-Object { -not ($_.Parent -is [System.Management.Automation.Language.PipelineAst] -and $_.Parent.Parent -is [System.Management.Automation.Language.StatementBlockAst] -and $_.Parent.Parent.Parent -is [System.Management.Automation.Language.ArrayExpressionAst]) } | ForEach-Object { "line $($_.Extent.StartLineNumber)" })
+			$decisions = @($ast.FindAll({ $args[0] -is [System.Management.Automation.Language.CommandAst] -and $args[0].GetCommandName() -eq 'Resolve-RegistryRestoreAction' }, $true) | ForEach-Object { $_.Extent.Text })
+			. ([scriptblock]::Create($function.Extent.Text))
+			$count = [scriptblock]::Create($assignments[0].Right.Extent.Text)
+			$counts = [ordered]@{}
+			foreach ($case in @(
+				[ordered]@{ name = 'none'; processes = @() }
+				[ordered]@{ name = 'one'; processes = @('cheatengine-x86_64') }
+				[ordered]@{ name = 'two'; processes = @('cheatengine-x86_64-SSE4-AVX2', 'Cheat Engine') }
+				[ordered]@{ name = 'onlyOthers'; processes = @('CheatEngine.SDK.QualificationTarget', 'pwsh') })) {
+				$script:fakeNames = @($case.processes)
+				function Get-Process { foreach ($name in $script:fakeNames) { [FakeProcess] @{ ProcessName = $name } } }
+				$counts[$case.name] = & $count
+			}
+			[ordered]@{ parseErrors = @($errors).Count; assignments = $assignments.Count; queries = $queries.Count; unwrapped = $unwrapped; decisions = $decisions; counts = $counts } | ConvertTo-Json -Compress -Depth 4
+			""");
+
+		Assert.Equal(0, result.GetProperty("parseErrors").GetInt32());
+		Assert.Equal(1, result.GetProperty("assignments").GetInt32());
+		Assert.True(result.GetProperty("queries").GetInt32() >= 2, "The preflight and stage 12 both query Cheat Engine processes.");
+		Assert.True(result.GetProperty("unwrapped").GetArrayLength() == 0,
+			"Wrap every Get-CheatEngineProcess call in @(): " + result.GetProperty("unwrapped").GetRawText());
+		string decision = Assert.Single(result.GetProperty("decisions").EnumerateArray()).GetString()!;
+		Assert.Contains("-OtherInstanceCount $otherInstanceCount", decision, StringComparison.Ordinal);
+		JsonElement counts = result.GetProperty("counts");
+		Assert.Equal(0, counts.GetProperty("none").GetInt32());
+		Assert.Equal(1, counts.GetProperty("one").GetInt32());
+		Assert.Equal(2, counts.GetProperty("two").GetInt32());
+		Assert.Equal(0, counts.GetProperty("onlyOthers").GetInt32());
 	}
 
 	[Fact]

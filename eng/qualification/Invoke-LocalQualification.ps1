@@ -155,11 +155,17 @@ function Get-PeMachine {
 }
 
 function Get-CheatEngineProcess {
+    <#
+    .SYNOPSIS
+        The running Cheat Engine processes. The output is enumerated like any function output: zero processes arrive as
+        $null and one as a single Process, and .Count on either throws under strict mode, so every caller wraps the
+        call in @() (LocalQualificationRunnerTests checks it).
+    #>
     [CmdletBinding()]
-    [OutputType([System.Diagnostics.Process[]])]
+    [OutputType([System.Diagnostics.Process])]
     param()
 
-    return @(Get-Process | Where-Object { Test-CheatEngineProcessName -Name $_.ProcessName })
+    Get-Process | Where-Object { Test-CheatEngineProcessName -Name $_.ProcessName }
 }
 
 function Invoke-Preflight {
@@ -861,19 +867,21 @@ try {
                 Remove-Item Env:CE_SDK_LIVE_PROBE_AUTHORIZATION_FILE -ErrorAction SilentlyContinue
             }
 
-            # Stage 12, HKCU after, compare, restore only a non-empty difference. Skipped when Cheat Engine never
-            # started (no export before). Any failure here is the critical exit 7 with the manual restore command,
-            # never the generic exit 6 of the script trap.
+            # Stage 12, HKCU after, compare, restore only a non-empty difference with no other Cheat Engine running
+            # (Resolve-RegistryRestoreAction). Skipped when Cheat Engine never started (no export before). Any failure
+            # here is the critical exit 7 with the manual restore command, never the generic exit 6 of the script trap.
             if ($registryCaptured) {
                 $manualRestore = "Backup: $registryBefore; command: reg delete `"$RegistryKey`" /f; reg import `"$registryBefore`""
-                $otherInstances = $false
+                $restoreAction = 'None'
                 try {
                     $existsAfter = Export-CheatEngineRegistry -Path $registryAfter
                     if (-not $existsAfter) { [System.IO.File]::WriteAllText($registryAfter, '', [System.Text.Encoding]::Unicode) }
                     $diff = Compare-RegistrySnapshot -Before (Read-RegistryExport -Path $registryBefore) -After (Read-RegistryExport -Path $registryAfter) -RootKey 'HKEY_CURRENT_USER\Software\Cheat Engine'
                     $registry = [ordered]@{ key = $RegistryKey; exportBeforeSha256 = Get-QualificationFileSha256 -Path $registryBefore; exportAfterSha256 = Get-QualificationFileSha256 -Path $registryAfter; restored = $false; diff = $diff }
-                    $otherInstances = ($diff.added + $diff.removed + $diff.changed) -gt 0 -and (Get-CheatEngineProcess).Count -gt 0
-                    if (-not $otherInstances -and ($diff.added + $diff.removed + $diff.changed) -gt 0) {
+                    # @(): with zero or one Cheat Engine process the function output is not an array (see Get-CheatEngineProcess).
+                    $otherInstanceCount = @(Get-CheatEngineProcess).Count
+                    $restoreAction = Resolve-RegistryRestoreAction -Diff $diff -OtherInstanceCount $otherInstanceCount
+                    if ($restoreAction -eq 'Restore') {
                         $registry.restored = Restore-CheatEngineRegistry -Before $registryBefore -ExistedBefore $existedBefore -Verify (Join-Path $sessionDirectory 'hkcu-restored.reg')
                     }
                 }
@@ -881,10 +889,10 @@ try {
                     Exit-Qualification -Code 7 -Reason "HKCU could not be compared or restored after $($definition.id) ($($_.Exception.Message)). $manualRestore"
                 }
 
-                if ($otherInstances) {
+                if ($restoreAction -eq 'Refuse') {
                     Exit-Qualification -Code 7 -Reason "HKCU changed ($($diff.valueNames -join ', ')) while another Cheat Engine instance runs; restore it by hand after closing it. $manualRestore"
                 }
-                if (($diff.added + $diff.removed + $diff.changed) -gt 0 -and -not $registry.restored) { Exit-Qualification -Code 7 -Reason "HKCU restore could not be verified. $manualRestore" }
+                if ($restoreAction -eq 'Restore' -and -not $registry.restored) { Exit-Qualification -Code 7 -Reason "HKCU restore could not be verified. $manualRestore" }
             }
         }
 

@@ -597,6 +597,32 @@ function Test-CheatEngineProcessName {
     return $Name -match '^(?:cheatengine-(?:x86_64|i386)(?:-SSE4-AVX2)?|Cheat Engine)$'
 }
 
+function Resolve-RegistryRestoreAction {
+    <#
+    .SYNOPSIS
+        Stage 12 decision on HKCU\Software\Cheat Engine after a session: None, Restore or Refuse.
+    .DESCRIPTION
+        None when the session left the key unchanged (nothing to restore, whoever else runs). Restore when it changed the
+        key and no other Cheat Engine instance runs. Refuse (exit 7, the operator restores by hand) when it changed the
+        key while another instance runs: every Cheat Engine copy shares the key, so a reg delete + reg import would also
+        erase that instance's own writes.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)] [System.Collections.IDictionary] $Diff,
+        [Parameter(Mandatory)] [ValidateRange('NonNegative')] [int] $OtherInstanceCount
+    )
+
+    foreach ($name in 'added', 'removed', 'changed') {
+        if (-not $Diff.Contains($name)) { throw "The registry difference has no '$name' count." }
+    }
+
+    if (([long] $Diff['added'] + [long] $Diff['removed'] + [long] $Diff['changed']) -eq 0) { return 'None' }
+    if ($OtherInstanceCount -gt 0) { return 'Refuse' }
+    return 'Restore'
+}
+
 function Get-RestoredPackageContentHash {
     <#
     .SYNOPSIS
@@ -1000,6 +1026,7 @@ Export-ModuleMember -Function @(
     'Get-DepsJsonProblem'
     'Test-QualificationBundleClosure'
     'Test-CheatEngineProcessName'
+    'Resolve-RegistryRestoreAction'
     'Get-RestoredPackageContentHash'
     'Test-QualificationWorkRoot'
     'Get-CiEnvironmentVariable'

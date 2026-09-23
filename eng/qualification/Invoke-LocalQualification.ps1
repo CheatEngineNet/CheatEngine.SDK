@@ -685,7 +685,8 @@ $workRootProblem = Test-QualificationWorkRoot -WorkRoot $WorkRoot -RepositoryRoo
 if ($workRootProblem) { Exit-Qualification -Code 5 -Reason $workRootProblem }
 
 $selected = [System.Collections.Generic.List[object]]::new()
-foreach ($id in $Scenario) {
+# pwsh -File passes "-Scenario Q04,Q14" as one string; split it so both invocation styles select the same scenarios.
+foreach ($id in @($Scenario | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
     if ($id -eq 'CheckpointB') {
         foreach ($definition in $plan.scenarios) { if ($definition.support -notin 'Manual', 'NotApplicable') { $selected.Add($definition) } }
         continue

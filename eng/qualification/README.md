@@ -63,7 +63,7 @@ operator's Cheat Engine settings changed.
 
 | Parameter                          | Meaning                                                                                                   |
 |------------------------------------|-----------------------------------------------------------------------------------------------------------|
-| `-Scenario <string[]>`             | Scenario ids of `scenarios.json` (`Q04`, `Q09.a`, …) or `CheckpointB` (default) for every runnable one.   |
+| `-Scenario <string[]>`             | Scenario ids of `scenarios.json` (`Q04`, `Q09.a`, …) or `CheckpointB` (default) for every runnable one; a comma-separated string (`pwsh -File … -Scenario Q04,Q14`) is split. |
 | `-PackagePath <path>`              | The exact `CheatEngine.SDK` `.nupkg`. Required unless `-PreflightOnly`.                                    |
 | `-PackageSource CiArtifact\|NuGetOrg` | Where the package came from (default `CiArtifact`).                                                    |
 | `-CiRunUrl <url>`                  | The CI run that produced the artifact; required for `CiArtifact` receipts.                                |

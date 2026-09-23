@@ -59,6 +59,7 @@ jobs:
           SNAPSHOT_JOB_ID: ${{ github.run_id }}
           SNAPSHOT_JOB_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          $ErrorActionPreference = 'Stop'
           ./eng/ci/New-DependencySnapshot.ps1 -OutputPath artifacts/dependency-snapshot/snapshot.json
           if ($LASTEXITCODE -ne 0) {
             throw "Dependency detection failed with exit code $LASTEXITCODE."

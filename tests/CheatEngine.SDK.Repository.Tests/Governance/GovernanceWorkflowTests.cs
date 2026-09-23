@@ -116,6 +116,31 @@ public sealed partial class GovernanceWorkflowTests
 	}
 
 	[Fact]
+	public void Governance_multi_line_scripts_stop_on_the_first_error()
+	{
+		// shared.md 7: a multi-line pwsh step starts with $ErrorActionPreference = 'Stop', so a failing cmdlet stops the
+		// step in the script itself rather than relying on the wrapper GitHub prepends today.
+		List<string> offenders = [];
+		foreach (string path in GovernanceWorkflows.Existing())
+		{
+			foreach (KeyValuePair<string, YamlMappingNode> job in YamlDocument.Load(path).Jobs)
+			{
+				foreach (YamlMappingNode step in YamlDocument.Steps(job.Value))
+				{
+					string[] lines = (YamlDocument.Scalar(step, "run") ?? "").ReplaceLineEndings("\n").Trim().Split('\n');
+					if (lines.Length > 1 && !string.Equals(lines[0].Trim(), "$ErrorActionPreference = 'Stop'", StringComparison.Ordinal))
+					{
+						offenders.Add($"{path} job {job.Key} step '{YamlDocument.Scalar(step, "name")}'");
+					}
+				}
+			}
+		}
+
+		Assert.True(offenders.Count == 0,
+			$"Start every multi-line run script with $ErrorActionPreference = 'Stop': {string.Join("; ", offenders)}");
+	}
+
+	[Fact]
 	public void Governance_scripts_check_the_exit_code_of_every_native_command()
 	{
 		// A failing native command (or repository script) in the middle of a multi-line pwsh step does not stop the step:

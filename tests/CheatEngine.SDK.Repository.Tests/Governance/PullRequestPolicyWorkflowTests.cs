@@ -61,8 +61,9 @@ public sealed partial class PullRequestPolicyWorkflowTests
 
 		// The script's exit code fails the step explicitly (the repository rule for every native command in a workflow).
 		string[] script = (YamlDocument.Scalar(step, "run") ?? "").ReplaceLineEndings("\n").Trim().Split('\n');
-		Assert.Equal("./eng/ci/Test-PullRequestPolicy.ps1", script[0]);
-		Assert.StartsWith("if ($LASTEXITCODE -ne 0)", script[1], StringComparison.Ordinal);
+		Assert.Equal("$ErrorActionPreference = 'Stop'", script[0]);
+		Assert.Equal("./eng/ci/Test-PullRequestPolicy.ps1", script[1]);
+		Assert.StartsWith("if ($LASTEXITCODE -ne 0)", script[2], StringComparison.Ordinal);
 		YamlNode? env = YamlDocument.Child(step, "env");
 		Assert.Equal("${{ github.event.pull_request.title }}", YamlDocument.Scalar(env, "PR_TITLE"));
 		Assert.Equal("${{ github.event.pull_request.body }}", YamlDocument.Scalar(env, "PR_BODY"));

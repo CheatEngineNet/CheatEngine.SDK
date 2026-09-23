@@ -196,11 +196,13 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   `Issue_forms_never_instruct_editing_the_cheat_engine_runtime_configuration`).
 - Every governance workflow pins its actions by full SHA with a version comment, uses literal `windows-2025` or
   `ubuntu-24.04` runners with timeouts, starts from `contents: read` and comments every job-level elevation, never
-  persists checkout credentials, checks the exit code of every native command and script it runs, never uses
-  `pull_request_target`, `merge_group` or a package cache, and uploads only its reserved artifact names
+  persists checkout credentials, starts every multi-line script with `$ErrorActionPreference = 'Stop'`, checks the exit
+  code of every native command and script it runs, never uses `pull_request_target`, `merge_group` or a package cache,
+  and uploads only its reserved artifact names
   (`GovernanceWorkflowTests`: `Governance_workflows_pin_every_action_by_full_sha_with_a_version_comment`,
   `Governance_jobs_use_literal_runner_labels_and_timeouts`, `Governance_workflows_start_read_only_and_comment_every_job_elevation`,
-  `Governance_checkouts_never_persist_credentials`, `Governance_scripts_check_the_exit_code_of_every_native_command`,
+  `Governance_checkouts_never_persist_credentials`, `Governance_multi_line_scripts_stop_on_the_first_error`,
+  `Governance_scripts_check_the_exit_code_of_every_native_command`,
   `Advisory_workflows_never_use_pull_request_target_or_merge_group`, `Governance_workflows_never_enable_a_package_cache`,
   `Governance_workflows_upload_only_their_reserved_artifact_names`).
 - CodeQL analyses C# from a manual, traced, non-incremental Release build of the shipped product graph without the

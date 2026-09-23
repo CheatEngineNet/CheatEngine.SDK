@@ -44,6 +44,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
+          $ErrorActionPreference = 'Stop'
           ./eng/ci/Test-PullRequestPolicy.ps1
           if ($LASTEXITCODE -ne 0) {
             throw "The pull request policy failed with exit code $LASTEXITCODE; the annotations and the job summary name each rule."

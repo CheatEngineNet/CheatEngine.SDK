@@ -432,8 +432,9 @@ no finalizer ever repairs a forgotten cleanup. Effects use one vocabulary, `Engi
 
 An external `resetLuaState` that bypasses the SDK's controlled replacement is not detected today: the state generation
 does not advance, so this policy does not trigger; detection is a Lua runtime concern. Every row is a fixture contract
-(managed doubles and the bundled Lua), not host qualification; the host-level scenarios stay in the
-[qualification matrix](../../docs/qualification/README.md).
+(managed doubles and the bundled Lua), not host qualification: the host-level scenarios (Q08.a, Q17, Q30.a, Q30.b,
+Q30.e, Q34, Q35) are tracked by the `Qualification` trait on the tests named in the promise rows below, and their C3/C4
+evidence is future work against the exact Cheat Engine host (Wave 4).
 
 ## Promise
 

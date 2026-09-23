@@ -472,8 +472,9 @@ A scan has four distinct limits, named the same way in the types and XML docs:
 
 The global `AOBScan` route has none of these: its native cost is a scan of the whole address space, whatever the caller
 filters or caps afterwards. The bounded route bounds the CE work, and its copy reads one `getAddress` per needed row and
-never `getValue`. `AobBoundedScanResult` reports `HostScanElapsed` (from just before `firstScan` to the end of the wait),
-`CopyElapsed` (count, error text and rows) and `TotalElapsed` (session creation to release) separately.
+never `getValue`. `AobBoundedScanResult` reports `HostScanElapsed` (from just before the SDK's first-scan call to the end of
+the wait, so it also contains the SDK's two target-identity checks and `FoundList.initialize`), `CopyElapsed` (count,
+error text and rows) and `TotalElapsed` (session creation to release) separately.
 
 Indicative host figures, from the Lua-only C3 spike of 2026-09-22 on the pinned profile under about 41 % concurrent CPU
 load (not a receipt, not SDK code): when 1 of 100 291 global matches lay in the scanned module, the range route took about

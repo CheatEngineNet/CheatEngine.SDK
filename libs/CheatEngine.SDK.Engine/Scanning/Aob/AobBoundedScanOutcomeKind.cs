@@ -15,8 +15,10 @@ public enum AobBoundedScanOutcomeKind
 	Matches = 1,
 
 	/// <summary>
-	///     The scan completed, CE reported no error text, and no returned row lies in the bounds: a factual zero, unlike
-	///     the global <c>AOBScan</c> route on the pinned profile.
+	///     The scan completed and no returned row lies in the bounds. When CE's error text was read and empty, this is a
+	///     factual zero, unlike the global <c>AOBScan</c> route on the pinned profile. When the error text could not be
+	///     read, <see cref="AobBoundedScanResult.IsHostErrorTextUnreadable" /> is <see langword="true" /> and a host error
+	///     cannot be excluded: check that flag before treating this outcome as "not found".
 	/// </summary>
 	NoMatches = 2,
 

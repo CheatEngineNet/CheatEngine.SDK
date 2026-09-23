@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 using CheatEngine.SDK.Engine.Scanning.Aob;
 using CheatEngine.SDK.Engine.Scanning.Values;
@@ -105,7 +106,7 @@ public sealed class AobFirstFoundScanTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		_ = MemScanTestHost.Install(L);
-		MemScanTestHost.Run(L, "only_result_mode = 'value'; only_result_value = " + reported);
+		MemScanTestHost.Run(L, "only_result_mode = 'value'; only_result_value = " + reported.ToString(CultureInfo.InvariantCulture));
 
 		AobFirstFoundResult result = Find(Bounds(0x1_0000_1000, 0x1_0036_7000));
 
@@ -261,7 +262,7 @@ public sealed class AobFirstFoundScanTests
 		_ = MemScanTestHost.Install(L);
 		MemScanTestHost.Run(L, "only_result_mode = 'value'; only_result_value = 0x100000000; " +
 							   "scan_first_hook = function() opened_process_id = " +
-							   MemScanTestHost.FindOtherQualifiedProcessId() + " end");
+							   MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture) + " end");
 
 		AobFirstFoundResult result = Find(ModuleBounds);
 

@@ -106,7 +106,7 @@ using CheatEngine.SDK.Engine.Values;
 
 namespace SignatureTools;
 
-internal enum SignatureScan { Matches, NoResultList, Failed }
+internal enum SignatureScan { Matches, NoMatches, NoResultList, Failed }
 
 internal static class Signatures
 {
@@ -115,7 +115,7 @@ internal static class Signatures
         var outcome = AobScanner.TryScanOutcome(pattern, options, out var owner);
         switch (outcome.Kind)
         {
-            case AobScanOutcomeKind.Matches or AobScanOutcomeKind.NoMatches when owner is not null:
+            case AobScanOutcomeKind.Matches when owner is not null:
                 using (owner)
                 {
                     var list = owner.Value;
@@ -127,6 +127,11 @@ internal static class Signatures
                 }
 
                 return SignatureScan.Matches;
+
+            case AobScanOutcomeKind.NoMatches:
+                // A valid empty list: never returned on the pinned CE 7.7 profile, which reports NoResult instead.
+                owner?.Dispose();
+                return SignatureScan.NoMatches;
 
             case AobScanOutcomeKind.NoResult:
                 // Zero matches on the pinned CE 7.7 profile, or a host failure that also returned no list.
@@ -163,7 +168,7 @@ internal static class ModuleSignatures
         return result.Kind switch
         {
             AobBoundedScanOutcomeKind.Matches => destination[..result.Written],
-            AobBoundedScanOutcomeKind.NoMatches => [],
+            AobBoundedScanOutcomeKind.NoMatches when !result.IsHostErrorTextUnreadable => [],
             _ => throw new InvalidOperationException($"The bounded AOB scan ended with {result.Kind}.")
         };
     }
@@ -193,7 +198,7 @@ flowchart LR
 | `StringList.TryGetItem(i)`       | Uses Cheat Engine's zero-based index and copies one address string                                                              |
 | `Address.TryParse`               | Decodes CE's hexadecimal address text into the target-address type                                                              |
 | `using (owner)`                  | Releases the list before it can escape as a stale native handle                                                                 |
-| `AobScanner.TryScanWithinBounds` | Bounds CE's own work to `[Start, Stop)`, stays exhaustive, and reports a factual `NoMatches`                                    |
+| `AobScanner.TryScanWithinBounds` | Bounds CE's own work to `[Start, Stop)`, stays exhaustive, and reports `NoMatches` (a factual zero once its error text is read) |
 
 ### 4. Export it and patch with it
 

@@ -157,7 +157,11 @@ public readonly record struct AobBoundedScanResult
 		get;
 	}
 
-	/// <summary>Gets the time from just before <c>firstScan</c> to the end of the successful wait: CE's scan cost.</summary>
+	/// <summary>
+	///     Gets the time from just before the SDK's first-scan call to the end of the successful wait: CE's scan cost,
+	///     plus a small SDK overhead that this span also contains (two target-identity checks, each one
+	///     <c>getOpenedProcessID</c> call and one process start-time read, and the <c>FoundList.initialize</c> call).
+	/// </summary>
 	public TimeSpan HostScanElapsed
 	{
 		get;

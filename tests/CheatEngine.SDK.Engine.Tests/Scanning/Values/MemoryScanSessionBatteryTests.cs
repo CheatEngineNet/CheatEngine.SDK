@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 using CheatEngine.SDK.Engine.Enums;
@@ -31,7 +32,7 @@ public sealed class MemoryScanSessionBatteryTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
-		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId());
+		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 
 		MemoryScanException failure = Assert.Throws<MemoryScanException>(session.WaitForCompletion);
 

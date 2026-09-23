@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 using CheatEngine.SDK.Engine.Enums;
@@ -630,24 +631,26 @@ public sealed class AobScannerTests
 	[Fact]
 	public void TryScanOutcome_with_target_context_reports_a_target_change_without_reclassifying_the_scan()
 	{
-		const int OtherProcessId = 2_147_483_644;
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
+		int otherProcessId = MemScanTestHost.FindOtherQualifiedProcessId();
 		AobStringListTestHost.InstallTarget(L, Environment.ProcessId);
 		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
-		EngineTest.Run(L, "aob_retarget_pid = 2147483644"u8);
+		MemScanTestHost.Run(L, "aob_retarget_pid = " + otherProcessId.ToString(CultureInfo.InvariantCulture));
 
 		AobScanOutcome outcome = AobScanner.TryScanOutcome("retarget", AobScanOptions.Default,
 			out Owned<StringList>? results, out AobScanTargetContext context);
 
+		// Both observations are qualified, but of two different process incarnations.
 		using Owned<StringList> owned = Assert.IsType<Owned<StringList>>(results);
 		Assert.Equal(AobScanOutcome.Matches(2), outcome);
 		Assert.True(context.Before.IsQualified);
-		Assert.Equal(Environment.ProcessId, context.Before.SelectedProcessId);
-		Assert.Equal(OtherProcessId, context.After.SelectedProcessId);
-		Assert.False(context.After.IsQualified);
+		Assert.True(context.After.IsQualified);
+		Assert.Equal(Environment.ProcessId, context.Before.Incarnation!.Value.ProcessId);
+		Assert.Equal(otherProcessId, context.After.Incarnation!.Value.ProcessId);
+		Assert.NotEqual(context.Before.Incarnation, context.After.Incarnation);
 		Assert.False(context.IsSameQualifiedIncarnation);
 		Assert.Equal(0, L.Top);
 	}
@@ -670,9 +673,8 @@ public sealed class AobScannerTests
 		Assert.Equal(TargetSelectionObservationStatus.NoTargetSelected, context.Before.Status);
 		Assert.Equal(TargetSelectionObservationStatus.NoTargetSelected, context.After.Status);
 		Assert.False(context.IsSameQualifiedIncarnation);
-		EngineTest.Run(L, "return aob_calls"u8, 1);
-		Assert.Equal(1, EngineTest.ReadInteger(L, -1));
-		L.SetTop(0);
+		Assert.Equal(0, L.Top);
+		Assert.Equal(1L, MemScanTestHost.ReadInteger(L, "aob_calls"));
 	}
 
 	[Theory]

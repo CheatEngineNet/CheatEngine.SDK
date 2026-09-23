@@ -107,20 +107,20 @@ public sealed class SymbolListRegistrationLease : IDisposable
 			if (_terminalOutcome.HasValue || _list is null)
 			{
 				return new SymbolListRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.AlreadyReleased,
-					default, default);
+					null, default);
 			}
 
 			Owned<SymbolList> list = _list;
 			if (!LuaRuntime.IsAttached || !EngineResourceOrigin.IsCurrent(Origin.Runtime))
 			{
-				return Terminal(SymbolRegistrationReleaseKind.StaleRuntime, default, list.ReleaseWithOutcome());
+				return Terminal(SymbolRegistrationReleaseKind.StaleRuntime, null, list.ReleaseWithOutcome());
 			}
 
 			if (!LuaRuntime.TryAcquireOperation(out LuaRuntimeOperation operation))
 			{
 				// Attached, but no operation could be admitted (a transition, or no state for this thread): no call.
 				return new SymbolListRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupUnavailable,
-					default, default);
+					null, default);
 			}
 
 			LuaOperationStatus status;
@@ -151,7 +151,7 @@ public sealed class SymbolListRegistrationLease : IDisposable
 	}
 
 	private SymbolListRegistrationReleaseOutcome Terminal(SymbolRegistrationReleaseKind kind,
-		LuaOperationStatus status, TargetReleaseOutcome listRelease)
+		LuaOperationStatus? status, TargetReleaseOutcome listRelease)
 	{
 		SymbolListRegistrationReleaseOutcome outcome = new(kind, status, listRelease);
 		_terminalOutcome = outcome;

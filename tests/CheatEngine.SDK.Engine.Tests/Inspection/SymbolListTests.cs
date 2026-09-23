@@ -152,12 +152,14 @@ public sealed class SymbolListTests
 		SymbolListRegistrationReleaseOutcome outcome = registration.Release();
 
 		Assert.Equal(SymbolRegistrationReleaseKind.Released, outcome.UnregisterKind);
-		Assert.True(outcome.UnregisterStatus.IsSuccess);
+		Assert.True(outcome.UnregisterStatus!.Value.IsSuccess);
 		Assert.Equal(TargetReleaseStatus.Released, outcome.ListRelease.Status);
 		Assert.True(outcome.IsTerminal);
 		Assert.True(registration.IsTerminal);
 		Assert.Throws<ObjectDisposedException>(() => registration.List);
-		Assert.Equal(SymbolRegistrationReleaseKind.AlreadyReleased, registration.Release().UnregisterKind);
+		SymbolListRegistrationReleaseOutcome alreadyReleased = registration.Release();
+		Assert.Equal(SymbolRegistrationReleaseKind.AlreadyReleased, alreadyReleased.UnregisterKind);
+		Assert.Null(alreadyReleased.UnregisterStatus);
 		fixture.Execute("assert(symbol_list_unregister_calls == 1 and symbol_list_destroyed_while_registered == 0)");
 		FakeHost.RunOnObject(fixture.State, handle, "assert(o.unregister_args == 0 and o.destroyed == true)");
 		Assert.Equal(1, FakeHost.DestroyedCount(fixture.State));
@@ -176,7 +178,7 @@ public sealed class SymbolListTests
 		lease.Dispose();
 
 		Assert.Equal(SymbolRegistrationReleaseKind.CleanupIndeterminate, outcome.UnregisterKind);
-		Assert.Equal(LuaOperationStatusKind.LuaFailure, outcome.UnregisterStatus.Kind);
+		Assert.Equal(LuaOperationStatusKind.LuaFailure, outcome.UnregisterStatus!.Value.Kind);
 		Assert.Equal(TargetReleaseStatus.NotInvoked, outcome.ListRelease.Status);
 		Assert.True(outcome.IsTerminal);
 		Assert.False(FakeHost.IsDestroyed(fixture.State, handle));
@@ -198,7 +200,7 @@ public sealed class SymbolListTests
 		SymbolListRegistrationReleaseOutcome released = lease.Release();
 
 		Assert.Equal(SymbolRegistrationReleaseKind.CleanupUnavailable, unavailable.UnregisterKind);
-		Assert.Equal(LuaOperationStatusKind.GlobalUnavailable, unavailable.UnregisterStatus.Kind);
+		Assert.Equal(LuaOperationStatusKind.GlobalUnavailable, unavailable.UnregisterStatus!.Value.Kind);
 		Assert.False(unavailable.IsTerminal);
 		Assert.Equal(SymbolRegistrationReleaseKind.Released, released.UnregisterKind);
 		Assert.Equal(TargetReleaseStatus.Released, released.ListRelease.Status);
@@ -218,7 +220,7 @@ public sealed class SymbolListTests
 		SymbolListRegistrationReleaseOutcome outcome = lease!.Release();
 
 		Assert.Equal(SymbolRegistrationReleaseKind.StaleRuntime, outcome.UnregisterKind);
-		Assert.Equal(default(LuaOperationStatus), outcome.UnregisterStatus);
+		Assert.Null(outcome.UnregisterStatus);
 		Assert.Equal(TargetReleaseStatus.RefusedRuntimeChanged, outcome.ListRelease.Status);
 		Assert.True(outcome.IsTerminal);
 		fixture.Execute("assert(symbol_list_unregister_calls == 0)");

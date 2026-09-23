@@ -165,6 +165,32 @@ public sealed class SymbolRegistryTests
 	}
 
 	[Fact]
+	public void Release_outcomes_that_made_no_host_call_never_report_a_status_that_reads_as_success()
+	{
+		// A08-26: Superseded, AlreadyReleased and StaleRuntime never send a CE call, so Status must be null rather
+		// than default(LuaOperationStatus): a numeric default that happened to equal LuaOperationStatusKind.Success
+		// would otherwise make IsSuccess read true for a release that never touched Cheat Engine.
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		EngineTest.Run(L, SymbolHandler);
+		SymbolName name = new("Player.Health");
+
+		SymbolRegistrationAcquireOutcome first = SymbolRegistry.TryRegisterOwned(name, 0x140001000UL);
+		SymbolRegistrationAcquireOutcome second = SymbolRegistry.TryRegisterOwned(name, 0x140002000UL);
+		SymbolRegistrationReleaseOutcome superseded = first.Lease!.Release();
+		SymbolRegistrationReleaseOutcome alreadyReleased = first.Lease.Release();
+
+		Assert.Equal(SymbolRegistrationReleaseKind.Superseded, superseded.Kind);
+		Assert.Null(superseded.Status);
+		Assert.Equal(SymbolRegistrationReleaseKind.AlreadyReleased, alreadyReleased.Kind);
+		Assert.Null(alreadyReleased.Status);
+		_ = second.Lease!.Release();
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
 	public void Owned_registration_factory_failure_compensates_once_and_preserves_the_primary_cause()
 	{
 		EngineTest.RequireNativeLua();
@@ -181,7 +207,7 @@ public sealed class SymbolRegistryTests
 
 		Assert.Same(cause, exception.InnerException);
 		Assert.Equal(SymbolRegistrationReleaseKind.Released, exception.CleanupOutcome.Kind);
-		Assert.True(exception.CleanupOutcome.Status.IsSuccess);
+		Assert.True(exception.CleanupOutcome.Status!.Value.IsSuccess);
 		EngineTest.Run(L, "assert(registrations == 1 and removals == 1)"u8);
 		Assert.Equal(0, L.Top);
 	}
@@ -203,7 +229,7 @@ public sealed class SymbolRegistryTests
 
 		Assert.Same(cause, exception.InnerException);
 		Assert.Equal(SymbolRegistrationReleaseKind.Released, exception.CleanupOutcome.Kind);
-		Assert.True(exception.CleanupOutcome.Status.IsSuccess);
+		Assert.True(exception.CleanupOutcome.Status!.Value.IsSuccess);
 		EngineTest.Run(L, "assert(registrations == 1 and removals == 1)"u8);
 		Assert.Equal(0, L.Top);
 	}
@@ -238,7 +264,7 @@ public sealed class SymbolRegistryTests
 
 		Assert.Same(cause, exception.InnerException);
 		Assert.Equal(SymbolRegistrationReleaseKind.StaleRuntime, exception.CleanupOutcome.Kind);
-		Assert.Equal(default(LuaOperationStatus), exception.CleanupOutcome.Status);
+		Assert.Null(exception.CleanupOutcome.Status);
 		Assert.True(exception.CleanupOutcome.IsTerminal);
 		EngineTest.Run(L, "assert(registrations == 1 and removals == 0)"u8);
 		Assert.Equal(0, L.Top);
@@ -262,7 +288,7 @@ public sealed class SymbolRegistryTests
 
 		Assert.Same(cause, exception.InnerException);
 		Assert.Equal(SymbolRegistrationReleaseKind.CleanupUnavailable, exception.CleanupOutcome.Kind);
-		Assert.Equal(LuaOperationStatusKind.GlobalUnavailable, exception.CleanupOutcome.Status.Kind);
+		Assert.Equal(LuaOperationStatusKind.GlobalUnavailable, exception.CleanupOutcome.Status!.Value.Kind);
 		Assert.False(exception.CleanupOutcome.IsTerminal);
 		EngineTest.Run(L, "assert(registrations == 1)"u8);
 		Assert.Equal(0, L.Top);
@@ -291,7 +317,7 @@ public sealed class SymbolRegistryTests
 
 		Assert.Same(cause, exception.InnerException);
 		Assert.Equal(SymbolRegistrationReleaseKind.CleanupIndeterminate, exception.CleanupOutcome.Kind);
-		Assert.Equal(LuaOperationStatusKind.LuaFailure, exception.CleanupOutcome.Status.Kind);
+		Assert.Equal(LuaOperationStatusKind.LuaFailure, exception.CleanupOutcome.Status!.Value.Kind);
 		Assert.True(exception.CleanupOutcome.IsTerminal);
 		EngineTest.Run(L, "assert(registrations == 1 and removals == 1)"u8);
 		Assert.Equal(0, L.Top);
@@ -365,7 +391,7 @@ public sealed class SymbolRegistryTests
 		SymbolRegistrationReleaseOutcome release = lease.Release();
 
 		Assert.Equal(SymbolRegistrationReleaseKind.StaleRuntime, release.Kind);
-		Assert.Equal(default(LuaOperationStatus), release.Status);
+		Assert.Null(release.Status);
 		Assert.True(lease.IsTerminal);
 	}
 
@@ -431,7 +457,7 @@ public sealed class SymbolRegistryTests
 
 		Assert.Equal(SymbolRegistrationReleaseKind.CleanupIndeterminate, indeterminate.Kind);
 		Assert.True(indeterminate.IsTerminal);
-		Assert.False(indeterminate.Status.IsSuccess);
+		Assert.False(indeterminate.Status!.Value.IsSuccess);
 		Assert.True(failed.Lease.IsTerminal);
 		Assert.Equal(SymbolRegistrationReleaseKind.AlreadyReleased, failed.Lease.Release().Kind);
 		failed.Lease.Dispose();

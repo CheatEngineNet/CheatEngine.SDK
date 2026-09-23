@@ -41,10 +41,13 @@ public static partial class SymbolRegistry
 	private static readonly Dictionary<SymbolName, SymbolRegistrationLease> SOwnedRegistrations = new();
 
 	/// <summary>
-	///     The status of a release that made no Lua call: <see langword="default" />, which reads as an unknown binding
-	///     outcome once <see cref="LuaOperationStatusKind" /> starts at an unknown zero value.
+	///     Gets the status to report for a release step that made no Lua call at all: <see langword="null" />. A no-call
+	///     outcome is never represented by <see langword="default" />(<see cref="LuaOperationStatus" />), because
+	///     <see cref="LuaOperationStatusKind" /> currently numbers <see cref="LuaOperationStatusKind.Success" /> as its
+	///     zero value, which would make <see cref="LuaOperationStatus.IsSuccess" /> read <see langword="true" /> for a
+	///     release that never called Cheat Engine (A08-26).
 	/// </summary>
-	private static LuaOperationStatus NoBindingCall => default;
+	private static LuaOperationStatus? NoBindingCall => null;
 
 	/// <summary>Gets CE's formatted name for a target-process address with CE's default name sources.</summary>
 	/// <param name="address">The target-process address passed to CE as the sole argument.</param>
@@ -275,7 +278,7 @@ public static partial class SymbolRegistry
 	}
 
 	private static SymbolRegistrationReleaseOutcome MarkStaleRuntime(SymbolRegistrationLease lease,
-		LuaOperationStatus status)
+		LuaOperationStatus? status)
 	{
 		RemoveCurrentLease(lease);
 		lease.MarkTerminalAndObserve(SymbolRegistrationReleaseKind.StaleRuntime);
@@ -417,5 +420,5 @@ public static partial class SymbolRegistry
 
 	/// <summary>The result of the pre-unregister name lookup.</summary>
 	[StructLayout(LayoutKind.Auto)]
-	private readonly record struct ReplacementCheck(SymbolRegistrationReleaseKind Kind, LuaOperationStatus Status);
+	private readonly record struct ReplacementCheck(SymbolRegistrationReleaseKind Kind, LuaOperationStatus? Status);
 }

@@ -26,7 +26,7 @@ public sealed class SymbolLeaseReplacementTests
 		SymbolRegistrationReleaseOutcome released = acquired.Lease!.Release();
 
 		Assert.Equal(SymbolRegistrationReleaseKind.Released, released.Kind);
-		Assert.True(released.Status.IsSuccess);
+		Assert.True(released.Status!.Value.IsSuccess);
 		Assert.True(released.IsTerminal);
 		fixture.Execute("assert(removals == 1 and registered_symbols['Player.Health'] == nil)");
 		fixture.Execute("assert(lookups == 1)");
@@ -44,7 +44,7 @@ public sealed class SymbolLeaseReplacementTests
 		SymbolRegistrationReleaseOutcome outcome = acquired.Lease!.Release();
 
 		Assert.Equal(SymbolRegistrationReleaseKind.Replaced, outcome.Kind);
-		Assert.True(outcome.Status.IsSuccess);
+		Assert.True(outcome.Status!.Value.IsSuccess);
 		Assert.True(outcome.IsTerminal);
 		Assert.True(acquired.Lease.IsTerminal);
 		Assert.Equal(SymbolRegistrationReleaseKind.AlreadyReleased, acquired.Lease.Release().Kind);
@@ -62,7 +62,7 @@ public sealed class SymbolLeaseReplacementTests
 		SymbolRegistrationReleaseOutcome outcome = acquired.Lease!.Release();
 
 		Assert.Equal(SymbolRegistrationReleaseKind.ExternallyRemoved, outcome.Kind);
-		Assert.Equal(LuaOperationStatusKind.NilResult, outcome.Status.Kind);
+		Assert.Equal(LuaOperationStatusKind.NilResult, outcome.Status!.Value.Kind);
 		Assert.True(outcome.IsTerminal);
 		fixture.Execute("assert(removals == 0)");
 		Assert.Equal(0, fixture.State.Top);
@@ -82,10 +82,10 @@ public sealed class SymbolLeaseReplacementTests
 		SymbolRegistrationReleaseOutcome released = acquired.Lease.Release();
 
 		Assert.Equal(SymbolRegistrationReleaseKind.CleanupUnavailable, failed.Kind);
-		Assert.Equal(LuaOperationStatusKind.LuaFailure, failed.Status.Kind);
+		Assert.Equal(LuaOperationStatusKind.LuaFailure, failed.Status!.Value.Kind);
 		Assert.False(failed.IsTerminal);
 		Assert.Equal(SymbolRegistrationReleaseKind.CleanupUnavailable, malformed.Kind);
-		Assert.Equal(LuaOperationStatusKind.InvalidResult, malformed.Status.Kind);
+		Assert.Equal(LuaOperationStatusKind.InvalidResult, malformed.Status!.Value.Kind);
 		Assert.False(malformed.IsTerminal);
 		Assert.Equal(SymbolRegistrationReleaseKind.Released, released.Kind);
 		fixture.Execute("assert(removals == 1 and lookups == 3)");
@@ -102,7 +102,7 @@ public sealed class SymbolLeaseReplacementTests
 		SymbolRegistrationReleaseOutcome outcome = acquired.Lease!.Release();
 
 		Assert.Equal(SymbolRegistrationReleaseKind.CleanupUnavailable, outcome.Kind);
-		Assert.Equal(LuaOperationStatusKind.GlobalUnavailable, outcome.Status.Kind);
+		Assert.Equal(LuaOperationStatusKind.GlobalUnavailable, outcome.Status!.Value.Kind);
 		Assert.False(outcome.IsTerminal);
 		Assert.False(acquired.Lease.IsTerminal);
 		fixture.Execute("assert(removals == 0)");

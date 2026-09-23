@@ -319,7 +319,7 @@ CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.IsTermina
 CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.ListRelease.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
 CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.SymbolListRegistrationReleaseOutcome() -> void
 CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.UnregisterKind.get -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
-CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.UnregisterStatus.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.UnregisterStatus.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus?
 CheatEngine.SDK.Engine.Inspection.SymbolLists
 CheatEngine.SDK.Engine.Inspection.SymbolName
 CheatEngine.SDK.Engine.Inspection.SymbolName.Equals(CheatEngine.SDK.Engine.Inspection.SymbolName other) -> bool
@@ -368,7 +368,7 @@ CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind.Unknown = 0 -> C
 CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome
 CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome.IsTerminal.get -> bool
 CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome.Kind.get -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
-CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome.Status.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome.Status.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus?
 CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome.SymbolRegistrationReleaseOutcome() -> void
 CheatEngine.SDK.Engine.Inspection.SymbolRegistry
 CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.DestinationTooSmall = 5 -> CheatEngine.SDK.Engine.Memory.MemoryAccessFailure

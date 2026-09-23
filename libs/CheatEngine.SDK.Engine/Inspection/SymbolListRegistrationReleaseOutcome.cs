@@ -10,7 +10,7 @@ namespace CheatEngine.SDK.Engine.Inspection;
 public readonly struct SymbolListRegistrationReleaseOutcome
 {
 	internal SymbolListRegistrationReleaseOutcome(SymbolRegistrationReleaseKind unregisterKind,
-		LuaOperationStatus unregisterStatus, TargetReleaseOutcome listRelease)
+		LuaOperationStatus? unregisterStatus, TargetReleaseOutcome listRelease)
 	{
 		UnregisterKind = unregisterKind;
 		UnregisterStatus = unregisterStatus;
@@ -28,8 +28,13 @@ public readonly struct SymbolListRegistrationReleaseOutcome
 		get;
 	}
 
-	/// <summary>Gets the status of the <c>unregister()</c> call; <see langword="default" /> when it was not called.</summary>
-	public LuaOperationStatus UnregisterStatus
+	/// <summary>
+	///     Gets the status of the <c>unregister()</c> call; <see langword="null" /> when it was never called (the lease
+	///     was already terminal, the runtime is stale, or no operation could be admitted). This is a nullable value
+	///     rather than <see langword="default" />(<see cref="LuaOperationStatus" />) so a no-call outcome can never read
+	///     as <see cref="LuaOperationStatus.Success" /> (A08-26).
+	/// </summary>
+	public LuaOperationStatus? UnregisterStatus
 	{
 		get;
 	}

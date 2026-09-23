@@ -46,6 +46,15 @@ behavior.
 - Enum values and Cheat Engine names are pinned by literals.
 - `RuntimeInfo`/`RuntimeCapabilities` retain explicit unknown facts. `TargetMemory` and `HostMemory` keep their address
   types separate, preserve byte ordering through span calls, and distinguish expected read/write failures.
+- Runtime and target facts (ISA family, bitness, configured pointer size, ABI, Android, host bitness, OS, file version,
+  backend) are read separately, PID first, with the spike C3 values in `Support/FakeHost.Rt.cs`; absent globals stay
+  unknown, raising and malformed probes keep distinct statuses, and the probes touch only a read-only allowlist of
+  globals (`RuntimeProcessOperationsTests`, `RuntimeHostOperationsTests`, `RuntimeObservationsTests`,
+  `InstructionOperationsTests`, `InstructionAssemblerTests`, `RuntimeCapabilityProbesTests`).
+- `TargetSelection` emits local creation-time evidence only when `isConnectedToCEServer()` returned `false`; CEServer,
+  unknown-backend and file-as-process selections are refused without a process lookup (`TargetSelectionTests`). Every
+  fixture that models a qualified local target therefore defines `isConnectedToCEServer` (use
+  `FakeHost.LocalTargetBackendChunk`).
 - Inspection snapshots distinguish documented `nil` from malformed results. Allocation ownership is consumed exactly
   once even when the underlying release fails. AOB and StringList results are explicit `Owned<T>` values.
 - A scan session enforces its state machine and destroys its owned `FoundList` before its `MemScan`. Address-list and

@@ -24,7 +24,7 @@ Cheat Engine. This library encodes each rule once, in a type.
 | `CheatEngine.SDK.Engine.Values`      | `Address`                                                                                                                                      | An address read from a Lua integer or hexadecimal text; its own Lua marshaller                                                                                       |
 | `CheatEngine.SDK.Engine.Values`      | `IndexBase`, `LuaSequence`                                                                                                                     | Zero-based indices over Cheat Engine objects and Lua sequences                                                                                                       |
 | `CheatEngine.SDK.Engine.Enums`       | Enums, `CEEnumNames`, `EnumMarshaller<TEnum>`                                                                                                  | Numeric constants, their Cheat Engine names, and Lua integer marshalling                                                                                             |
-| `CheatEngine.SDK.Engine.Runtime`     | `RuntimeInfo`, `RuntimeCapabilities`                                                                                                           | Explicit runtime observations and evidence metadata; never inferred host facts                                                                                       |
+| `CheatEngine.SDK.Engine.Runtime`     | `RuntimeInfo` (SDK-produced or caller-supplied), `RuntimeCapabilities`, `CheatEngineHostObservation`, `TargetArchitectureObservation`, `CheatEngineOperatingSystem`, `TargetBackend` | Separate host, target ISA family, bitness, configured pointer size, ABI, OS, Android and backend facts; never inferred from one another |
 | `CheatEngine.SDK.Engine.Memory`      | `TargetMemory`, `HostMemory`, `HostAddress`                                                                                                    | Separate target/CE-host scalar, bounded span, target-width pointer, string and byte-table access                                                                     |
 | `CheatEngine.SDK.Engine.Inspection`  | `EngineInspection`                                                                                                                             | Copied modules, sections, symbols, address resolution and memory-region snapshots                                                                                    |
 | `CheatEngine.SDK.Engine.Allocation`  | `TargetMemoryAllocator`, `AllocatedRegion`                                                                                                     | Explicit ownership for target allocation, via a reviewed binding seam                                                                                                |
@@ -32,7 +32,7 @@ Cheat Engine. This library encodes each rule once, in a type.
 | `CheatEngine.SDK.Engine.Scanning`    | `AobScanner`, `StringList`, `MemoryScanSession`                                                                                                | AOB result ownership and conservative MemScan/FoundList state transitions                                                                                            |
 | `CheatEngine.SDK.Engine.AddressList` | `AddressListMutations`, `MemoryRecordId`                                                                                                       | ID-addressed record commands; borrowed GUI views never become managed owners                                                                                         |
 | `CheatEngine.SDK.Engine.Errors`      | `EngineException` hierarchy, `EngineResourceHandoffException`                                                                                  | Stable distinction between expected CE, unavailable global, Lua, binding and marshalling failures; post-effect ownership publication reports its one cleanup attempt |
-| `CheatEngine.SDK.Engine.Generated`   | `MemoryScalars`                                                                                                                                | Existing generated scalar wrappers for the earlier memory contract                                                                                                   |
+| `CheatEngine.SDK.Engine.Generated`   | `MemoryScalars`, `RuntimeCapabilityProbes`                                                                                                     | Generated wrappers: the earlier scalar memory contract, and raw read-only CE 7.7 runtime facts (ce77 spec)                                                          |
 
 The CE 7.7 vertical slices add the following public domains. They use the same protected Lua boundary, but their
 evidence and availability are intentionally separate: a catalogued Lua name is not a guarantee that every later CE
@@ -40,14 +40,14 @@ host has the same contract.
 
 | Namespace                  | Public surface                                                                                                                                                | Boundary and result contract                                                                                                                                                                                                                                                                    |
 |----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Runtime`                  | `RuntimeInfo`, `RuntimeCapabilities`, and `RuntimeCapabilityContract`                                                                                         | An immutable snapshot of explicitly observed version, architecture, pointer-width and availability facts. Unknown remains unknown; an available global does not fill an unobserved ownership, thread or return field.                                                                           |
+| `Runtime`                  | `RuntimeInfo`, `RuntimeCapabilities`, `RuntimeCapabilityContract`, `CheatEngineHostObservation`, `TargetArchitectureObservation`, `TargetBackend`; produced by `Processes.RuntimeObservations` | An immutable snapshot of explicitly observed version, architecture, configured pointer size, backend and availability facts. Unknown remains unknown; an available global does not fill an unobserved ownership, thread or return field, and no fact is derived from another (see [Runtime facts and target backends](#runtime-facts-and-target-backends)). |
 | `Memory`                   | `TargetMemory`, `HostMemory`, `Address`, `HostAddress`, `PointerSize`, `MemoryAccessFailure`                                                                  | Keeps attached-target addresses distinct from CE-host addresses. Target-width pointer, scalar, bounded-span, and string calls report expected CE/binding/Lua/result failures through `Try*` results; they do not claim a universal GUI-thread rule.                                             |
 | `Inspection`               | `EngineInspection` and module, section, symbol and region value types                                                                                         | Returns copied managed snapshots. `NotFound` is used only where the CE 7.7 Lua contract documents `nil`; malformed data and Lua failures remain distinct status values.                                                                                                                         |
 | `Allocation`               | `TargetMemoryAllocator`, `AllocatedRegion`                                                                                                                    | Models one target allocation as an explicit, single-use owner. It does not infer a GUI-thread requirement from an unspecific CE global, and reports a failed post-effect owner handoff with its one compensation outcome.                                                                       |
 | `Objects` / `Scanning.Aob` | `StringList`, `StringLists`, `AobScanner`                                                                                                                     | `StringLists.TryCreate` and a successful `AobScanner.TryScan` out value yield `Owned<StringList>` only after a host object is returned. A list borrowed from CE must never be wrapped or destroyed by plugin code.                                                                              |
 | `Scanning.Values`          | `MemScan`, `FoundList`, `MemoryScanSessions`, `MemoryScanSession`, scan requests and states                                                                   | The factory creates and owns the scanner/child pair, retains rollback authority through publication, and the session serializes documented state transitions and releases the child before the parent. It is explicitly main-thread-only; the generic `Owned<T>` wrapper is not.                |
 | `AddressList`              | `AddressListAccess`, `AddressList`, `MemoryRecord`, `MemoryRecordId`, `AddressListMutations`                                                                  | The current GUI list and records are borrowed CE-owned handles. Mutations resolve IDs inside one protected command and report completed, not-started, or indeterminate effect; they do not promise historic record identity or a runtime-enforceable GUI-thread guard.                          |
-| `Assembly`                 | `InstructionTargetProfile`, `InstructionAssembler`, `InstructionDisassembler`, `InstructionNavigator`, `InstructionDisassembly`, `InstructionOperationStatus` | `InstructionProfiles` observes PID/probe/PID under one Lua admission. Each instruction call validates target width and rechecks that PID before and after CE's ambient operation; its result is copied and bounded, but that coherence check is not a target lock or a live-host qualification. |
+| `Assembly`                 | `InstructionTargetProfile`, `InstructionAssembler`, `InstructionAssembly`, `AssemblePreference`, `InstructionDisassembler`, `InstructionNavigator`, `InstructionDisassembly`, `InstructionOperationStatus` | `InstructionProfiles` observes PID/probe/PID under one Lua admission and maps CE's x86 family plus 64-bit flag to x64. Each instruction call validates target width and rechecks that PID before and after CE's ambient operation; its result is copied and bounded, and the detailed assembler overload echoes the origin, jump preference and range-check option it sent. That coherence check is not a target lock or a live-host qualification. |
 | `Errors`                   | `EngineException` and stable subclasses                                                                                                                       | Separates expected operation failure, global absence, Lua failure, binding violation and marshalling violation instead of exposing a raw Lua stack error as the public Engine contract.                                                                                                         |
 
 The per-capability provenance, minimum CE version, architecture, thread, ownership and return semantics are tracked
@@ -98,10 +98,14 @@ The Engine extensions are anchored to the workspace's versioned CE 7.7 evidence 
 against CE 7.7.0.10621 x64, not a claim that arbitrary CE builds have identical behavior. No normal test starts Cheat
 Engine or attaches another process.
 
-`RuntimeInfo` is an immutable snapshot supplied by an integration layer. It deliberately does not turn a legacy
-floating-point `getCEVersion` result into a complete file version and does not infer target architecture, pointer
-width, ABI, ownership, return semantics or thread affinity. `RuntimeCapabilities` records each observed capability as
-available, unavailable or unknown with the evidence fields that are actually known.
+`RuntimeInfo` is an immutable snapshot, produced by `RuntimeObservations.TryObserveRuntimeInfo` or supplied by an
+integration layer through its legacy constructor. The SDK-produced snapshot carries a `CheatEngineHostObservation` and,
+when a target is selected, a `TargetArchitectureObservation`; its `PointerSize` is Cheat Engine's configured pointer size
+(`getPointerSize`), not the target bitness. It deliberately does not turn a legacy floating-point `getCEVersion` result
+into a complete file version (it reads `getCheatEngineFileVersion` instead) and does not infer target architecture,
+pointer width, ABI, ownership, return semantics or thread affinity. `RuntimeCapabilities` records each probed capability
+as available or unavailable with the evidence fields that are actually known; a capability that was not probed stays
+unknown.
 
 `TargetMemory` accepts only target `Address` values; `HostMemory` accepts only `HostAddress`. Neither type converts
 implicitly to the other. Both expose signed and unsigned 8/16/32/64-bit scalars, pointers, `float`/`double`, ordered
@@ -122,11 +126,13 @@ invalid result separate. The CE 7.7 catalog does not establish affinity for thes
 dispatch nor carry a main-thread assertion.
 
 `TargetSelection` keeps a Cheat Engine selection observation separate from a process incarnation. A qualified
-incarnation combines the selected PID read from `getOpenedProcessID` with the local process creation time; missing,
-malformed, inaccessible and no-target facts remain explicit observations instead of fabricated identities. It neither
-opens nor selects a process. It can only compare observations: no inspected CE primitive makes an observation atomic
-with a following ambient-target Lua effect, so an external selection transition in that interval, including an unseen
-A→B→A sequence, remains unqualified.
+incarnation combines the selected PID read from `getOpenedProcessID` with the local process creation time, and only
+when `isConnectedToCEServer()` returned `false` in the same operation; missing, malformed, inaccessible and no-target
+facts remain explicit observations instead of fabricated identities. A CEServer connection, an absent backend probe
+and the file-as-process sentinel PID are refused with their own statuses and never produce local creation-time evidence,
+so target-bound owners refuse them (see the backend table below). It neither opens nor selects a process. It can only
+compare observations: no inspected CE primitive makes an observation atomic with a following ambient-target Lua
+effect, so an external selection transition in that interval, including an unseen A→B→A sequence, remains unqualified.
 
 `InstructionProfiles.TryObserveCurrent` has a narrower purpose than process qualification: it reads CE's selected PID,
 the documented target ISA probes, and the PID again to construct an `InstructionTargetProfile`. On Cheat Engine an x64
@@ -137,13 +143,17 @@ uses the managed host width or CE's configured pointer size. With no target sele
 zero PID is `TargetNotSelected` before any probe; the file-as-process sentinel PID is `UnsupportedTargetBackend`.
 `InstructionAssembler` always sends its
 explicit `Address` to CE as the relative-operand origin, validates the complete returned byte table, and copies no
-prefix on a malformed result, short destination, or observed target change. `InstructionDisassembler` bounds and copies
+prefix on a malformed result, short destination, or observed target change. Its detailed overload also sends an
+`AssemblePreference` (CE's `apNone`/`apShort`/`apLong`/`apFar`) and the `skipRangeCheck` option, always as four
+arguments, and returns an `InstructionAssembly` echo of the target, profile, origin, preference and option; the legacy
+overload still sends exactly two arguments. `nil` with or without a message is `InstructionRejected` and the message
+is never read. `InstructionDisassembler` bounds and copies
 the raw UTF-8 display line before resolving the split helper, bounds all four raw split fields before decoding them,
 then returns managed strings; consumers never need to parse that UI text. `InstructionNavigator.TryGetPrevious` retains
 CE's documented estimate semantics. These mappings use protected Lua globals only. The historical classic `Assembler`,
 `Disassembler`, `disassembleEx`, `previousOpcode`,
 and `nextOpcode` slots remain unprojected because their reviewed ABI and output-capacity evidence is conflicting or
-insufficient. Fixture tests verify these managed contracts; no test in this repository qualifies a live CE target,
+insufficient; their buffer-based forms are not applicable to the managed-hostfxr profile (audit A15-19). Fixture tests verify these managed contracts; no test in this repository qualifies a live CE target,
 target architecture, selection lock, relocation backend, or plugin Native AOT loading.
 
 `TargetMemoryAllocator` uses `LuaTargetMemoryAllocationOperations` by default and retains
@@ -246,9 +256,31 @@ ships in the `CheatEngine.SDK` package under `lib/net10.0`.
 
 ### Runtime facts and target backends
 
-Cheat Engine reports a target's ISA family (`targetIsX86`, `targetIsArm`) separately from its 64-bit process flag
-(`targetIs64Bit`). The SDK keeps them separate and derives an architecture only from both families plus the flag,
-through the pure `RuntimeInfo.TryDeriveTargetArchitecture`:
+Cheat Engine reports each runtime fact through its own Lua global. The SDK reads each one separately, keeps an absent
+global as `null` or `Unknown` (never `false`), and never derives one fact from another. Every observation of a target
+reads `getOpenedProcessID` first and last, and reads no target fact when it is 0.
+
+| Fact                                 | CE global                   | SDK member                                                                                           | When unknown                                  |
+|--------------------------------------|-----------------------------|------------------------------------------------------------------------------------------------------|-----------------------------------------------|
+| CE file version                      | `getCheatEngineFileVersion` | `RuntimeHostOperations.TryGetCheatEngineFileVersion`, `CheatEngineHostObservation.FileVersion`       | absent global or no value returned            |
+| CE host architecture                 | `getSystemArchitecture`     | `RuntimeHostOperations.TryGetSystemArchitecture`, `CheatEngineHostObservation.SystemArchitecture`   | absent global                                 |
+| CE is 64-bit                         | `cheatEngineIs64Bit`        | `RuntimeHostOperations.TryIsCheatEngine64Bit`, `CheatEngineHostObservation.CheatEngineIs64Bit`       | absent global; never taken from the host arch |
+| CE operating system                  | `getOperatingSystem`        | `RuntimeHostOperations.TryGetOperatingSystem`, `CheatEngineHostObservation.OperatingSystem`         | absent global                                 |
+| Selected process                     | `getOpenedProcessID`        | `TargetArchitectureObservation.ProcessId`                                                            | 0: no target, no fact is read                 |
+| Target backend                       | `isConnectedToCEServer`     | `TargetArchitectureObservation.Backend`, `TargetSelectionObservation.Backend`                        | absent global: `Unknown`                      |
+| Target bitness (CE's 64-bit flag)    | `targetIs64Bit`             | `TargetArchitectureObservation.Bitness`, `CurrentProcessObservation.PointerSize`                     | required by the target observation            |
+| Target ISA family                    | `targetIsX86`, `targetIsArm` | `TargetArchitectureObservation.IsX86Family`, `.IsArmFamily`, `.Architecture`                        | absent global: `null`, architecture `Unknown` |
+| Android target                       | `targetIsAndroid`           | `TargetArchitectureObservation.IsAndroid`                                                            | absent global: `null`                         |
+| Target ABI                           | `getABI`                    | `TargetArchitectureObservation.AbiCode`, `.Abi`                                                      | absent global, or an undocumented code (kept raw) |
+| CE's configured pointer size         | `getPointerSize`            | `RuntimeProcessOperations.TryGetConfiguredPointerSize`, `TargetArchitectureObservation.ConfiguredPointerSize`, `RuntimeInfo.PointerSize` | absent global, or any value other than 4 or 8 (kept raw) |
+
+`RuntimeObservations.TryObserveRuntimeInfo` reads all of them in one admission and produces a `RuntimeInfo`;
+`RuntimeCapabilityProbes` (generated from the `ce77` runtime spec) exposes the raw values for callers that need them. None
+of these calls `setPointerSize`, `setAssemblerMode`, `openProcess`, `openFileAsProcess` or a `dbk_*`/`dbvm_*` global: a
+runtime query loads no driver and changes no target (audit A17-18, Q45).
+
+The ISA family is reported separately from the 64-bit flag, and the SDK derives an architecture only from both
+families plus the flag, through the pure `RuntimeInfo.TryDeriveTargetArchitecture`:
 
 | `targetIsX86` | `targetIsArm` | Architecture                            |
 |---------------|---------------|-----------------------------------------|
@@ -261,10 +293,33 @@ through the pure `RuntimeInfo.TryDeriveTargetArchitecture`:
 Evidence: CE 7.7.0.10621 x64 reported `targetIsX86() == true` and `targetIs64Bit() == true` for an x64 target and
 `targetIsX86() == true`, `targetIs64Bit() == false` for an x86 target (spike C3 D2: a Lua-only host observation used as
 a design input, not a qualification). The public CE source at `ec45d5f` agrees (`ProcessHandlerUnit.pas:24`,
-`:115-138`). With no target selected CE also reports the x86 family, the 64-bit flag and an 8-byte pointer size, so
-every SDK observation reads `getOpenedProcessID` first and reads no fact when it is 0. These mappings are proven by
-fixture tests (C1/C2) only; host-level evidence belongs to the [qualification matrix](../../docs/qualification/README.md)
-(Q32).
+`:115-138`). With no target selected CE also reports the x86 family, the 64-bit flag and an 8-byte pointer size, which
+is why the process identifier comes first.
+
+The configured pointer size is not the bitness. On the same host, `setPointerSize(4)` on an x64 target made
+`getPointerSize()` return 4 while `targetIs64Bit()` stayed true and `readPointer` kept reading 8 bytes;
+`setPointerSize(2)` was accepted, and selecting the target again reset the value (spike C3 D3). The SDK therefore reports
+both, keeps any raw configured value, never calls `setPointerSize`, and never takes a target width from `IntPtr.Size`.
+`PointerSize.FromArchitecture` is obsolete ([CESDK7001](../../analyzers/docs/CESDK7001.md)). The little-endian pointer
+encoding of `PointerSize.TryReadLittleEndian`/`TryWriteLittleEndian` is an assumption of the local x86/x64 profile, not a
+general Cheat Engine fact (audit A12-04).
+
+Target backends produce different evidence and are separate profiles (audit A12-03, ADR-11):
+
+| Backend         | How the SDK recognises it                                                        | Incarnation evidence  | Qualified in the support profile                   |
+|-----------------|----------------------------------------------------------------------------------|-----------------------|----------------------------------------------------|
+| `LocalProcess`  | `isConnectedToCEServer() == false` and a PID in (0, `int.MaxValue`]               | PID + local StartTime | yes, `ce-7.7.0.10621-x64-managed-hostfxr`          |
+| `FileAsProcess` | sentinel PID 4294967295 (CE source `ec45d5f`, ObservedSource; ToQualify on 7.7)  | none                  | no                                                 |
+| `CEServer`      | `isConnectedToCEServer() == true`                                                | none                  | no                                                 |
+| `Unknown`       | `isConnectedToCEServer` absent                                                   | none                  | no                                                 |
+
+A file opened as a process has no operating-system process: the SDK refuses it and never searches for a Windows process
+(A12-07). A local BCL PID and creation time do not describe a PID served remotely by CEServer (A12-05). Cheat Engine's
+target stays ambient: the user, another plugin or a script can switch it at any time, and the SDK's before-and-after
+checks reduce that risk without making an operation a transaction or a lock (A12-01).
+
+These behaviours are proven by fixture tests (C1/C2) only; host-level evidence belongs to the
+[qualification matrix](../../docs/qualification/README.md) (Q30, Q31, Q32, Q45).
 
 ## Promise
 
@@ -286,8 +341,10 @@ The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine
    `CEEnumNamesTests`).
 9. `CheatEngine.SDK.Engine.dll` and its XML documentation ship in the package, and the EngineApi generator never does
    (`PackageContentsTests`). Warnings are errors, so every public member is documented.
-10. Runtime facts remain explicit and unknown fields stay unknown; capability observations are immutable copies
-    (`RuntimeContractsTests`).
+10. Runtime facts remain explicit and unknown fields stay unknown; capability observations are immutable copies; the
+    ISA family, bitness, configured pointer size, ABI, Android, host and backend facts are read separately and never
+    derived from one another (`RuntimeContractsTests`, `RuntimeProcessOperationsTests`, `RuntimeHostOperationsTests`,
+    `RuntimeObservationsTests`, `RuntimeCapabilityProbesTests`).
 11. Target and host memory cannot cross address spaces implicitly; scalar, span, text and failure paths keep order and
     restore their Lua stack (`MemoryApiTests`).
 12. Inspection publishes complete snapshots only, and distinguishes `nil`, malformed result, unavailable global and Lua
@@ -298,8 +355,10 @@ The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine
 14. Address-list and memory-record wrappers remain borrowed and intentionally do not assert an unproven main-thread
     contract; ID-addressed mutations validate hierarchy and preserve indeterminate host effects
     (`AddressListValueTests`, `AddressListLuaTests`, `AddressListMutationsTests`).
-15. Runtime metadata preserves unknown fields; target and host address spaces cannot be mixed; expected memory failures
-    do not become exceptions (`RuntimeContractsTests`, `MemoryApiTests`).
+15. Runtime metadata preserves unknown fields; an SDK-produced `RuntimeInfo` reports CE's configured pointer size and
+    lists only probed capabilities; runtime probes call only read-only globals; target and host address spaces cannot be
+    mixed; expected memory failures do not become exceptions (`RuntimeContractsTests`, `RuntimeObservationsTests`,
+    `MemoryApiTests`).
 16. Module, section, symbol and region calls distinguish documented `nil` from Lua/binding/malformed-result failures
     and never publish a partial copied destination (`EngineInspectionTests`).
 17. Allocation, AOB, StringList, scan-session and address-list tests exercise ownership transfer, zero-based access,
@@ -307,6 +366,12 @@ The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine
     cleanup (`AllocatedRegionTests`, `AobScannerTests`, `StringListTests`, `MemoryScanSessionTests`,
     `AddressListLuaTests`, `AddressListMutationsTests`, `SymbolRegistryTests`). These are fixture contracts,
     not a substitute for a controlled CE 7.7 live run.
+18. Instruction profiles map CE's x86 family plus 64-bit flag to x64 and refuse contradictory, absent, no-target and
+    file-as-process facts; the assembler echoes the origin, preference and range-check option it sent; target selection
+    refuses local incarnation evidence for CEServer, unknown-backend and file-as-process targets
+    (`InstructionOperationsTests`, `InstructionAssemblerTests`, `RuntimeProcessOperationsTests`,
+    `RuntimeObservationsTests`, `TargetSelectionTests`, `RuntimeCapabilityProbesTests`). These are C1/C2 fixture
+    contracts, not host qualification.
 
 ## Run the tests
 

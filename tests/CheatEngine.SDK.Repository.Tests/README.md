@@ -21,6 +21,9 @@ workflow's own "submit" step text against a mocked `gh`, offline.
 | `Toolchain/`       | `ToolchainPinTests` reads `global.json`, `Directory.Build.props` and `Directory.Solution.targets`: exact SDK, analysis-level pin, NuGet audit policy. |
 | `LockFiles/`       | `LockFileTests` mirror the structural checks a locked restore relies on, over the committed `packages.lock.json` files. |
 | `PublicApi/`       | `PublicApiFileTests` and `EnumContractTests` check the shape of every shipping library's PublicAPI files and the classification of enums added since 1.0.0. |
+| `Abi/`             | `ClassicSlotRegistryDocumentTests` checks the committed classic slot registry `Abi/TestData/classic-slot-registry.json` (test-owned data, never a top-level `docs/` folder); `NativeAotProfileDocumentTests` checks the NativeAOT restrictions published in `libs/CheatEngine.SDK.Abi/README.md`; `AbiRouteSeparationTests` keeps the managed and classic exported-function tables apart in `libs/**`. |
+| `SourceScanning/`  | `CSharpCode` blanks the comments and literals of C# source read as text, and `TestMethodTraits` reads the `[Trait("Qualification", …)]` attributes above a named test method, both for the rules in `Abi/` and `LuaBridge/`. |
+| `LuaBridge/`       | `ProtectedOperationCatalogTests` checks `libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json` against the LF-pinned C bridge source and the failure probe; `LuaInteropPrimitiveMatrixDocumentTests` checks the committed primitive matrix `LuaBridge/TestData/lua-interop-primitives.json` and the raw `LuaApi` uses of `libs/**`. |
 | `Workflows/`       | `WorkflowContractTests` parse `.github/workflows/*.yml` and the composite actions with YamlDotNet and freeze the CI contract (job ids, the Gate, lint, format, restore, supply-chain jobs). |
 | `Release/`         | `ReleaseWorkflowContractTests` reads `.github/workflows/release.yml`: the draft-first job chain, tag guards, write scopes, trusted publishing placement and the reserved artifact names. |
 | `Governance/`      | `GovernanceWorkflowTests` freeze CodeQL, Scorecard, the online zizmor run and dependency submission; `DependabotConfigurationTests` checks `.github/dependabot.yml`; `GovernanceDocumentTests` checks `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS` and the issue forms. |
@@ -159,6 +162,24 @@ workflow's own "submit" step text against a mocked `gh`, offline.
   operator (`OwnershipPolicyTests`: `No_shipping_library_declares_a_finalizer`,
   `No_shipping_library_binds_delete_all_registered_symbols`,
   `Finalizer_scan_finds_a_destructor_and_ignores_comments_and_operators`).
+- The committed classic slot registry lists all 159 slots with contiguous x64 offsets, the ten audit divergences and
+  the nine callback categories, cites `plugin.pas` as authority with the mirrors' hashes, marks no slot qualified, and
+  is canonically formatted with lowercase hashes and no absolute local path (`ClassicSlotRegistryDocumentTests`).
+- The NativeAOT restrictions are published in `libs/CheatEngine.SDK.Abi/README.md` and the packed SDK README before any
+  support claim, `NativeExportNames` and `PluginType` carry the `FreeLibrary` caveat, and the loader harness never frees
+  a mapped NativeAOT module (`NativeAotProfileDocumentTests`).
+- No production source converts the managed exports table into the classic prefix, casts to
+  `ExportedFunctionsPrefix*`, or consumes the prefix outside the classic dispatcher and readers
+  (`AbiRouteSeparationTests`).
+- The protected-operation catalogue keeps every rule of the retired PowerShell check that survives the maintainer's
+  no-custom-scripting pivot: unique ids, opcodes, enums and constants, the bitmap derived from the opcodes, one native
+  enum value, switch case and mask entry per operation in the LF-pinned bridge source, exclusive direct-call routes;
+  every operation that can raise names failure evidence, which resolves to a probe marker in the failure probe source
+  or a Q13-traited test (`ProtectedOperationCatalogTests`).
+- The primitive matrix has one sorted row per `LuaApi` member whose decision agrees with its error class, bridge
+  operation and manual marker; every raw `LuaApi` use in `libs/**` is `DirectAllowed`, `Lifecycle` or a listed
+  production exception, and that list only shrinks; the pinned Lua fixture and bridge source hashes are the committed
+  ones (`LuaInteropPrimitiveMatrixDocumentTests`).
 
 ## Run the tests
 

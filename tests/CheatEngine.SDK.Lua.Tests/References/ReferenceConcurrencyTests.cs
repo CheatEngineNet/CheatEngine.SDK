@@ -23,7 +23,10 @@ public sealed class ReferenceConcurrencyTests
 		CancellationToken cancellationToken = TestContext.Current.CancellationToken;
 		using NativeLuaState state = new(false);
 		LuaState main = LuaTest.View(state);
-		using RuntimeScope scope = new(state);
+		// xUnit v3 resumes the async continuation below on whatever thread pool thread is available (pitfall 4):
+		// the `using RootedThread` values are disposed after `await Task.WhenAll(...).WaitAsync(...)`, and their
+		// Dispose calls LuaRuntime.AcquireState(), possibly from a thread other than the one that attached.
+		using RuntimeScope scope = new(state, admitWorkerThreads: true);
 		using RootedThread first = RootedThread.Create(main);
 		using RootedThread second = RootedThread.Create(main);
 		using RootedThread host = RootedThread.Create(main);

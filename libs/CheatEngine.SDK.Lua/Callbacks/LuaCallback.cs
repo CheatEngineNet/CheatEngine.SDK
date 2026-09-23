@@ -159,10 +159,13 @@ public abstract class LuaCallback : IDisposable
 			return;
 		}
 
-		if (result == LuaRuntime.LuaCallbackDisposeOperationResult.AdmissionClosed)
+		if (result is LuaRuntime.LuaCallbackDisposeOperationResult.AdmissionClosed
+			or LuaRuntime.LuaCallbackDisposeOperationResult.ThreadNotAdmitted
+			or LuaRuntime.LuaCallbackDisposeOperationResult.ExternalStateReset)
 		{
-			// This result was observed atomically with the closed gate. A later failed Detach can reopen admission,
-			// but cannot make it safe to abandon the closure before a transition-owned state neutralizes its upvalue.
+			// This result was observed atomically with the closed gate, the thread-admission refusal or the detected
+			// external reset. A later failed Detach can reopen admission, but cannot make it safe to abandon the
+			// closure before a transition-owned state neutralizes its upvalue: defer to that transition in every case.
 			Volatile.Read(ref s_disposeAdmissionRefusedForTesting)?.Invoke();
 			return;
 		}

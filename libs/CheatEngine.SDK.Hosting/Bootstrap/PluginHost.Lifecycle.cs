@@ -296,6 +296,9 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		runtimeAttached = false;
 		shutdown = null;
 
+		// Set before Attach so a worker refusal or an external-reset detection raised during this very enable is
+		// still observed; cleared by CleanupFailedEnable/CleanupDisable.
+		LuaRuntime.DiagnosticObserver = HandleLuaRuntimeDiagnostic;
 		LuaRuntime.Attach(in binding);
 		runtimeAttached = true;
 		shutdown = CreateShutdownSource();
@@ -351,6 +354,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 			return;
 		}
 
+		LuaRuntime.DiagnosticObserver = null;
 		Volatile.Write(ref s_context, null);
 		Volatile.Write(ref s_incompleteEnableCleanup, 0);
 		Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
@@ -637,6 +641,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 			// The operation gate has already shut out every admitted Lua caller before callback neutralization.
 			LuaRuntime.CloseOperationAdmissionAndDrain();
 			LuaRuntime.Detach();
+			LuaRuntime.DiagnosticObserver = null;
 
 			Volatile.Write(ref s_context, null);
 			Volatile.Write(ref s_incompleteEnableCleanup, 0);
@@ -650,6 +655,28 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 				"DisablePlugin: Lua detach threw; shutdown remains incomplete and the lifecycle stays Disabling.",
 				exception);
 			return false;
+		}
+	}
+
+	// The sole subscriber of LuaRuntime.DiagnosticObserver: turns a one-shot runtime fact into one stable-category
+	// HostLog entry (A24 l.36: the category token never depends on CE's UI language). Invoked synchronously on the
+	// thread that raised the fact, outside every LuaRuntime lock.
+	private static void HandleLuaRuntimeDiagnostic(LuaRuntimeDiagnostic diagnostic)
+	{
+		switch (diagnostic)
+		{
+			case LuaRuntimeDiagnostic.WorkerThreadRefused:
+				HostLog.Warning(
+					string.Create(CultureInfo.InvariantCulture,
+						$"LuaWorkerThreadRefused: a worker thread (managed thread id {Environment.CurrentManagedThreadId}) was refused Lua admission")
+					+ " by the 2.0 conservative default (ADR-07). Use MainThread.Invoke, or opt in from OnEnable with "
+					+ "the unqualified LuaRuntime.AdmitWorkerThreads() [Experimental(\"CESDK5001\")].");
+				break;
+			case LuaRuntimeDiagnostic.ExternalStateReset:
+				HostLog.Error(
+					"LuaStateReplacedExternally: the host replaced its Lua state outside this SDK's controlled reset " +
+					"path. Every owner from before the replacement is refused; disable and re-enable the plugin.");
+				break;
 		}
 	}
 

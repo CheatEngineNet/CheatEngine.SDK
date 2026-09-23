@@ -79,7 +79,8 @@ public sealed class LuaRuntimeTests
 			Assert.Equal(state.Pointer, first.Handle);
 			Assert.Equal(first, second);
 			Assert.Equal(first, third);
-			Assert.Equal(3, HostDouble.ProviderCalls);
+			// 1: Attach's own eager universe-stamp attempt; 2-4: the three acquisitions above.
+			Assert.Equal(4, HostDouble.ProviderCalls);
 
 			first.PushInteger(11);
 			Assert.Equal(1, LuaTest.View(state).Top);
@@ -191,7 +192,10 @@ public sealed class LuaRuntimeTests
 		LuaTest.RequireNativeLua();
 		CancellationToken cancellationToken = TestContext.Current.CancellationToken;
 		using NativeLuaState state = new(false);
-		using RuntimeScope scope = new(state);
+		// The worker task below calls LuaRuntime.AcquireOperation() on a real background thread, which the 2.0
+		// conservative default (ADR-07) would otherwise refuse before this scenario ever reaches its reset race.
+		// This test exercises the reset-drain behavior, not the default admission policy, so it opts in.
+		using RuntimeScope scope = new(state, admitWorkerThreads: true);
 		using ManualResetEventSlim workerAdmitted = new(false);
 		using ManualResetEventSlim releaseWorker = new(false);
 		using ManualResetEventSlim admissionClosed = new(false);

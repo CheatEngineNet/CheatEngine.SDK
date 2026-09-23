@@ -94,7 +94,9 @@ internal static unsafe class MainThreadDispatcher
 			return;
 		}
 
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		// The single documented default exception to the 2.0 conservative admission policy (ADR-07): this worker's
+		// own half of the synchronize hand-off is always admitted, whatever LuaRuntime.ThreadAdmission is set to.
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperationForMainThreadDispatch();
 		LuaState l = operation.State;
 		using LuaFrame frame = new(l);
 

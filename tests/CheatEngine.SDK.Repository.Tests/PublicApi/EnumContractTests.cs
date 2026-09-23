@@ -70,7 +70,9 @@ public sealed class EnumContractTests
 		["CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy"] = EnumCategory.Policy,
 		["CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseKind"] = EnumCategory.StatusOrOutcome,
-		["CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind"] = EnumCategory.StatusOrOutcome
+		["CheatEngine.SDK.Lua.Registration.LuaRegistrationResultKind"] = EnumCategory.StatusOrOutcome,
+		["CheatEngine.SDK.Lua.Runtime.LuaAdmissionStatus"] = EnumCategory.StatusOrOutcome,
+		["CheatEngine.SDK.Lua.Runtime.LuaThreadAdmission"] = EnumCategory.Policy
 	};
 
 	/// <summary>

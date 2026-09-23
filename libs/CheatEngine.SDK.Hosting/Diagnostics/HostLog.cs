@@ -24,11 +24,32 @@ namespace CheatEngine.SDK.Hosting.Diagnostics;
 ///         delivered (guarded by <see cref="IsEnabled" />); its <see cref="HostLogLevel.Warning" /> and
 ///         <see cref="HostLogLevel.Error" /> entries sit on failure paths and are built unconditionally.
 ///     </para>
+///     <para>
+///         <b>Reentrancy containment (A24-21, SRC02-06).</b> A per-thread guard drops, and counts, a write that a sink
+///         makes back into <see cref="Write" /> from inside its own <see cref="IHostLogSink.Write" /> on the same
+///         thread: a re-entrant recursive write can otherwise reach an uncatchable <see cref="StackOverflowException" />
+///         that takes the host process down with it. Writes from other threads are never affected. See
+///         <see cref="IHostLogSink" /> for the sink's complete containment contract.
+///     </para>
 /// </remarks>
 public static class HostLog
 {
 	private static IHostLogSink s_sink = DebugOutputLogSink.Instance;
 	private static int s_minimumLevel = (int) HostLogLevel.Information;
+
+	// Per-thread reentrancy guard (A24-21, SRC02-06): a sink that writes back into HostLog.Write from inside its own
+	// Write, directly or through a path that logs, would otherwise recurse until StackOverflowException, which
+	// cannot be caught and would take Cheat Engine down with it. Other threads are unaffected: a sink already
+	// running on thread A never blocks a write from thread B.
+	[ThreadStatic] private static bool t_writing;
+
+	private static long s_droppedReentrantEntries;
+
+	/// <summary>
+	///     Count of entries dropped because a sink re-entered <see cref="Write" /> on the same thread while its own
+	///     sink call was still running. For tests and diagnostics only.
+	/// </summary>
+	internal static long DroppedReentrantEntries => Interlocked.Read(ref s_droppedReentrantEntries);
 
 	/// <summary>Gets or sets the sink. Setting <see langword="null" /> restores <see cref="DebugOutputLogSink" />.</summary>
 	public static IHostLogSink Sink
@@ -66,6 +87,16 @@ public static class HostLog
 			return;
 		}
 
+		if (t_writing)
+		{
+			// A sink calling back into HostLog.Write from its own Write, directly or through a path that logs, is
+			// dropped and counted instead of recursing: an uncatchable StackOverflowException would otherwise take
+			// the host process down with it.
+			Interlocked.Increment(ref s_droppedReentrantEntries);
+			return;
+		}
+
+		t_writing = true;
 		try
 		{
 			Volatile.Read(ref s_sink).Write(level, message ?? string.Empty, exception);
@@ -73,6 +104,10 @@ public static class HostLog
 		catch (Exception)
 		{
 			// A sink that throws must not turn a logged failure into an exception at the native boundary.
+		}
+		finally
+		{
+			t_writing = false;
 		}
 	}
 
@@ -96,10 +131,12 @@ public static class HostLog
 		Write(HostLogLevel.Trace, message);
 	}
 
-	/// <summary>Resets the sink and level to their defaults. For tests.</summary>
+	/// <summary>Resets the sink, level and reentrancy counter to their defaults. For tests.</summary>
 	internal static void ResetForTests()
 	{
 		Sink = DebugOutputLogSink.Instance;
 		MinimumLevel = HostLogLevel.Information;
+		Volatile.Write(ref s_droppedReentrantEntries, 0);
+		t_writing = false;
 	}
 }

@@ -108,10 +108,13 @@ internal sealed class LuaHostSubscription : IDisposable
 			return;
 		}
 
-		if (result == LuaRuntime.LuaCallbackDisposeOperationResult.AdmissionClosed)
+		if (result is LuaRuntime.LuaCallbackDisposeOperationResult.AdmissionClosed
+			or LuaRuntime.LuaCallbackDisposeOperationResult.ThreadNotAdmitted
+			or LuaRuntime.LuaCallbackDisposeOperationResult.ExternalStateReset)
 		{
 			// The lifecycle transition still owns the linked registration and has the only state allowed to unregister
-			// it. In particular, do not consume the action here: a failed transition can reopen the old binding.
+			// it. In particular, do not consume the action here: a failed transition can reopen the old binding, and a
+			// detected external reset must never unregister into the replacement registry (A08-22).
 			return;
 		}
 
@@ -186,6 +189,17 @@ internal sealed class LuaHostSubscription : IDisposable
 	internal void ReleaseFromLifecycle(LuaState state)
 	{
 		ReleaseWithState(state);
+	}
+
+	/// <summary>
+	///     Called only by <see cref="LuaHostSubscriptionRegistry.AbandonAll" /> after an external reset was detected:
+	///     marks this owner released and keeps its managed state alive, without calling the host's unregister action.
+	///     Unregistering it would touch the replacement Lua universe's registry, which this SDK copy never created
+	///     (A08-22); leaking the managed state instead is the safe failure.
+	/// </summary>
+	internal void Abandon()
+	{
+		AbandonWithoutState();
 	}
 
 	private void Dispatch()

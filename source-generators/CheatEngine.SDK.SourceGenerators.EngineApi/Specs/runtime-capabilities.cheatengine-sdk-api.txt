@@ -103,7 +103,7 @@ doc: Gets Cheat Engine's raw operating-system code; RuntimeHostOperations.TryGet
 
 # isConnectedToCEServer(), celua.txt:4415.
 global: isConnectedToCEServer
-method: IsConnectedToCeServer
+method: IsConnectedToCEServer
 form: throwing
 return: boolean
 nil: none

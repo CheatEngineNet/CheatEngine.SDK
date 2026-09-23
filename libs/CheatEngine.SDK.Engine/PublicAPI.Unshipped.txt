@@ -516,7 +516,7 @@ static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetOperatingSyst
 static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetSystemArchitectureCode() -> int
 static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetTargetAbiCode() -> int
 static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsCheatEngine64Bit() -> bool
-static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsConnectedToCeServer() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsConnectedToCEServer() -> bool
 static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTarget64Bit() -> bool
 static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTargetAndroid() -> bool
 static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTargetArm() -> bool

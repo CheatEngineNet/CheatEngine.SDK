@@ -36,7 +36,7 @@ public sealed class RuntimeCapabilityProbesTests
 		Assert.False(RuntimeCapabilityProbes.IsTargetAndroid());
 		Assert.Equal(8, RuntimeCapabilityProbes.GetConfiguredPointerSizeBytes());
 		Assert.Equal(0, RuntimeCapabilityProbes.GetOperatingSystemCode());
-		Assert.False(RuntimeCapabilityProbes.IsConnectedToCeServer());
+		Assert.False(RuntimeCapabilityProbes.IsConnectedToCEServer());
 		Assert.Equal(0, scope.State.Top);
 	}
 
@@ -101,7 +101,7 @@ public sealed class RuntimeCapabilityProbesTests
 		LuaRuntime.Detach();
 
 		Assert.Throws<InvalidOperationException>(() => RuntimeCapabilityProbes.GetConfiguredPointerSizeBytes());
-		Assert.Throws<InvalidOperationException>(() => RuntimeCapabilityProbes.IsConnectedToCeServer());
+		Assert.Throws<InvalidOperationException>(() => RuntimeCapabilityProbes.IsConnectedToCEServer());
 	}
 
 	private static object Call(string global)
@@ -109,7 +109,7 @@ public sealed class RuntimeCapabilityProbesTests
 		return global switch
 		{
 			"getPointerSize" => RuntimeCapabilityProbes.GetConfiguredPointerSizeBytes(),
-			"isConnectedToCEServer" => RuntimeCapabilityProbes.IsConnectedToCeServer(),
+			"isConnectedToCEServer" => RuntimeCapabilityProbes.IsConnectedToCEServer(),
 			"targetIsAndroid" => RuntimeCapabilityProbes.IsTargetAndroid(),
 			"getOperatingSystem" => RuntimeCapabilityProbes.GetOperatingSystemCode(),
 			_ => throw new ArgumentOutOfRangeException(nameof(global), global, "No generated probe for this global.")

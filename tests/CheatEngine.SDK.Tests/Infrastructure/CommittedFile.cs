@@ -58,10 +58,10 @@ internal static class CommittedFile
 			error = await errorRead.ConfigureAwait(false);
 			await process.WaitForExitAsync(cancellation.Token).ConfigureAwait(false);
 		}
-		catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+		catch (OperationCanceledException exception) when (cancellation.IsCancellationRequested)
 		{
 			process.Kill(true);
-			throw new TimeoutException($"'git cat-file blob HEAD:{repoRelativePath}' did not exit within {Timeout}.");
+			throw new TimeoutException($"'git cat-file blob HEAD:{repoRelativePath}' did not exit within {Timeout}.", exception);
 		}
 
 		if (process.ExitCode != 0)

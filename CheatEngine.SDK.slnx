@@ -38,106 +38,16 @@
     <File Path=".github/workflows/dependency-submission.yml" />
     <File Path=".github/workflows/main-ci.yml" />
     <File Path=".github/workflows/release.yml" />
-    <File Path=".github/workflows/scheduled-health.yml" />
     <File Path=".github/workflows/scorecard.yml" />
     <File Path=".github/workflows/pull-request-ci.yml" />
-    <File Path=".github/workflows/pr-policy.yml" />
     <File Path=".github/workflows/sonar.yml" />
     <File Path=".github/workflows/zizmor-online.yml" />
   </Folder>
   <Folder Name="/eng/">
-    <File Path="eng/api/apicompat-invisible-changes.txt" />
-    <File Path="eng/api/client-consumed-sdk-types.txt" />
-    <File Path="eng/api/client-induced-breaks.txt" />
-    <File Path="eng/api/README.md" />
+    <File Path="eng/BannedSymbols.txt" />
     <File Path="eng/RoslynComponent.props" />
     <File Path="eng/Shipping.props" />
     <File Path="eng/Tests.props" />
-  </Folder>
-  <Folder Name="/eng/qualification/">
-    <File Path="eng/qualification/Invoke-LocalQualification.ps1" />
-    <File Path="eng/qualification/QualificationRunner.psm1" />
-    <File Path="eng/qualification/scenarios.json" />
-    <File Path="eng/qualification/README.md" />
-  </Folder>
-  <Folder Name="/eng/qualification/driver/">
-    <File Path="eng/qualification/driver/zz_cesdk_qualification.template.lua" />
-  </Folder>
-  <Folder Name="/eng/ci/">
-    <File Path="eng/ci/build-info.v0.schema.json" />
-    <File Path="eng/ci/Build-NativeBridge.ps1" />
-    <File Path="eng/ci/client-canary-report.v0.schema.json" />
-    <File Path="eng/ci/Invoke-ClientCanary.ps1" />
-    <File Path="eng/ci/Invoke-ScriptAnalysis.ps1" />
-    <File Path="eng/ci/New-BuildInfo.ps1" />
-    <File Path="eng/ci/New-DependencySnapshot.ps1" />
-    <File Path="eng/ci/PullRequestPolicy.psm1" />
-    <File Path="eng/ci/README.md" />
-    <File Path="eng/ci/Test-CoverageBaseline.ps1" />
-    <File Path="eng/ci/Test-PullRequestPolicy.ps1" />
-    <File Path="eng/ci/Test-SdkPackage.ps1" />
-    <File Path="eng/ci/Test-TestModuleInventory.ps1" />
-  </Folder>
-  <Folder Name="/eng/ci/health/">
-    <File Path="eng/ci/health/HealthCheck.psm1" />
-    <File Path="eng/ci/health/HealthCommand.psm1" />
-    <File Path="eng/ci/health/Invoke-BridgeDriftCheck.ps1" />
-    <File Path="eng/ci/health/Invoke-SdkCanary.ps1" />
-    <File Path="eng/ci/health/Invoke-TestRepeat.ps1" />
-    <File Path="eng/ci/health/Invoke-VulnerabilityAudit.ps1" />
-    <File Path="eng/ci/health/Publish-HealthIssue.ps1" />
-    <File Path="eng/ci/health/README.md" />
-    <File Path="eng/ci/health/Set-CanarySdkVersion.ps1" />
-    <File Path="eng/ci/health/Test-ExternalLink.ps1" />
-  </Folder>
-  <Folder Name="/eng/github/">
-    <File Path="eng/github/actions-permissions.json" />
-    <File Path="eng/github/actions-workflow-permissions.json" />
-    <File Path="eng/github/labels.json" />
-    <File Path="eng/github/README.md" />
-    <File Path="eng/github/repository.json" />
-    <File Path="eng/github/RepositorySettings.psm1" />
-    <File Path="eng/github/Set-RepositorySettings.ps1" />
-  </Folder>
-  <Folder Name="/eng/github/environments/">
-    <File Path="eng/github/environments/nuget.json" />
-  </Folder>
-  <Folder Name="/eng/github/rulesets/">
-    <File Path="eng/github/rulesets/protect-main.json" />
-    <File Path="eng/github/rulesets/protect-release-tags.json" />
-  </Folder>
-  <Folder Name="/eng/release/">
-    <File Path="eng/release/Export-PackageSbom.ps1" />
-    <File Path="eng/release/New-ReleaseTuple.ps1" />
-    <File Path="eng/release/New-Sha256Sums.ps1" />
-    <File Path="eng/release/README.md" />
-    <File Path="eng/release/release-tuple.v0.schema.json" />
-    <File Path="eng/release/ReleaseTools.psm1" />
-    <File Path="eng/release/Test-PublishedPackage.ps1" />
-    <File Path="eng/release/Test-ReleaseQualification.ps1" />
-  </Folder>
-  <Folder Name="/docs/">
-    <File Path="docs/README.md" />
-  </Folder>
-  <Folder Name="/docs/abi/">
-    <File Path="docs/abi/README.md" />
-    <File Path="docs/abi/nativeaot-profile.md" />
-  </Folder>
-  <Folder Name="/docs/catalog/">
-    <File Path="docs/catalog/README.md" />
-  </Folder>
-  <Folder Name="/docs/qualification/">
-    <File Path="docs/qualification/support-profile.json" />
-    <File Path="docs/qualification/support-profile.md" />
-    <File Path="docs/qualification/README.md" />
-    <File Path="docs/qualification/matrix.json" />
-    <File Path="docs/qualification/local-protocol.md" />
-  </Folder>
-  <Folder Name="/docs/qualification/schemas/">
-    <File Path="docs/qualification/schemas/qualification-events.v0.schema.json" />
-    <File Path="docs/qualification/schemas/qualification-matrix.v0.schema.json" />
-    <File Path="docs/qualification/schemas/qualification-receipt.v0.schema.json" />
-    <File Path="docs/qualification/schemas/support-profile.v0.schema.json" />
   </Folder>
   <Folder Name="/native/" />
   <Folder Name="/native/cheat-engine/">

@@ -85,6 +85,12 @@ public static class InstructionProfiles
 		}
 	}
 
+	/// <summary>
+	///     Re-checks, before or after an instruction call, that CE still selects the profiled process. Any other valid
+	///     selection (another identifier, no target, or the file-as-process sentinel) differs from the profile and is
+	///     <see cref="InstructionOperationStatus.TargetChanged" />, which after the effect is the uncertainty status of
+	///     audit A15-06; a failed or malformed read keeps its own status.
+	/// </summary>
 	internal static InstructionOperationStatus TryVerifyCurrent(LuaState state, TargetProcessId expectedTarget)
 	{
 		TargetProbeStatus status = TargetArchitectureProbe.ReadProcessId(state, out int actualTarget, out _);
@@ -93,8 +99,8 @@ public static class InstructionProfiles
 			TargetProbeStatus.Success => actualTarget == expectedTarget.Value
 				? InstructionOperationStatus.Success
 				: InstructionOperationStatus.TargetChanged,
-			// A file-as-process selection is a different selection than the profiled operating-system process.
-			TargetProbeStatus.FileAsProcess => InstructionOperationStatus.TargetChanged,
+			TargetProbeStatus.NoTargetSelected or TargetProbeStatus.FileAsProcess => InstructionOperationStatus
+				.TargetChanged,
 			_ => FromProbe(status)
 		};
 	}

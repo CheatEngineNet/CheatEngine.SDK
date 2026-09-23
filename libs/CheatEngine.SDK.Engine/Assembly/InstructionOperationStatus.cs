@@ -31,12 +31,18 @@ public enum InstructionOperationStatus
 	/// <summary>The input or returned address has bits outside the caller-declared profile width.</summary>
 	AddressExceedsProfileWidth = 3,
 
-	/// <summary>Cheat Engine did not report a positive selected target process identifier.</summary>
+	/// <summary>
+	///     Cheat Engine did not report a positive selected target process identifier when the profile was observed, or
+	///     the supplied profile names no target. An operation whose re-check finds no target reports
+	///     <see cref="TargetChanged" /> instead.
+	/// </summary>
 	TargetNotSelected = 4,
 
 	/// <summary>
-	///     Cheat Engine reported a different selected target before and after an instruction profile observation or
-	///     operation.
+	///     Cheat Engine reported a different selected target before and after an instruction profile observation, or an
+	///     operation's re-check found a selection other than the profiled process: another identifier, no target, or the
+	///     file-as-process sentinel. After the host call this is an uncertainty status: the call ran, but its result is
+	///     not attributed to the profiled target and nothing is copied.
 	/// </summary>
 	TargetChanged = 5,
 

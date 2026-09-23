@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 using CheatEngine.SDK.Engine.Assembly;
@@ -403,16 +404,21 @@ public sealed class InstructionOperationsTests
 		Assert.Equal(0, scope.State.Top);
 	}
 
-	[Fact]
+	[Theory]
 	[Trait("Qualification", "Q32")]
-	public void assemble_reports_a_target_change_after_the_effect_without_copying_bytes()
+	[InlineData(7777L)]
+	[InlineData(0L)]
+	[InlineData(4294967295L)]
+	public void assemble_reports_a_target_change_after_the_effect_without_copying_bytes(long selectionAfterEffect)
 	{
+		// Another process, no target and the file-as-process sentinel all differ from the profiled selection.
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		InstallInstructionGlobals(scope.State);
 		InstructionTargetProfile targetProfile = Observe(scope.State);
-		EngineTest.Run(scope.State, "instruction_assemble_behavior = \"target-change\""u8);
+		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes("instruction_assemble_behavior = \"target-change\"\n" +
+			"instruction_assemble_next_process_id = " + selectionAfterEffect.ToString(CultureInfo.InvariantCulture)));
 		Span<byte> destination = stackalloc byte[1];
 		destination[0] = 0xA5;
 
@@ -423,6 +429,32 @@ public sealed class InstructionOperationsTests
 		Assert.Equal(0, written);
 		Assert.Equal(0, requiredLength);
 		Assert.Equal(0xA5, destination[0]);
+		Assert.Equal(1, ReadInteger(scope.State, "instruction_assemble_calls"));
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Theory]
+	[InlineData(0L)]
+	[InlineData(4294967295L)]
+	public void assemble_reports_a_selection_that_differs_before_the_call_as_target_changed_without_calling_assemble(
+		long selectionBeforeCall)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		InstructionTargetProfile targetProfile = Observe(scope.State);
+		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes(
+			"instruction_target_process_id = " + selectionBeforeCall.ToString(CultureInfo.InvariantCulture)));
+		Span<byte> destination = stackalloc byte[8];
+
+		InstructionOperationStatus status = InstructionAssembler.TryAssemble(targetProfile, "nop", 0x140001000UL,
+			destination, out int written, out int requiredLength);
+
+		Assert.Equal(InstructionOperationStatus.TargetChanged, status);
+		Assert.Equal(0, written);
+		Assert.Equal(0, requiredLength);
+		Assert.Equal(0, ReadInteger(scope.State, "instruction_assemble_calls"));
 		Assert.Equal(0, scope.State.Top);
 	}
 
@@ -598,13 +630,14 @@ public sealed class InstructionOperationsTests
 		                      instruction_assemble_origin = 0
 		                      instruction_assemble_origin_type = "none"
 		                      instruction_assemble_behavior = "normal"
+		                      instruction_assemble_next_process_id = 7777
 
 		                      assemble = function(line, address)
 		                        instruction_assemble_calls = instruction_assemble_calls + 1
 		                        instruction_assemble_origin = address
 		                        instruction_assemble_origin_type = math.type(address)
 		                        if instruction_assemble_behavior == "target-change" then
-		                          instruction_target_process_id = 7777
+		                          instruction_target_process_id = instruction_assemble_next_process_id
 		                          return { 0x90 }, nil
 		                        end
 		                        if line == "reject" then return nil, "instruction rejected" end

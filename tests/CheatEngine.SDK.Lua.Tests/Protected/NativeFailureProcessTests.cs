@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json;
 
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
@@ -67,6 +68,7 @@ public sealed class NativeFailureProcessTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q13")]
 	public async Task Allocation_failures_return_through_the_native_boundary()
 	{
 		Assert.SkipUnless(NativeLuaLibrary.IsAvailable, NativeLuaLibrary.UnavailableReason);
@@ -122,5 +124,103 @@ public sealed class NativeFailureProcessTests
 		Assert.Contains("PASS native protected allocation, finalizer, and host-object longjmp boundaries",
 			standardOutput,
 			StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	///     Data-driven from <c>libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json</c>: every operation that can raise names its
+	///     failure evidence, and every probe marker it names is printed by one run of the failure probe. The probe prints a
+	///     marker only after the failure returned a status and the Lua stack was restored, so a missing marker is a
+	///     failure path that no longer recovers. Adding a raising operation without evidence fails here.
+	/// </summary>
+	[Fact]
+	[Trait("Qualification", "Q13")]
+	public async Task Every_catalogued_raising_operation_reports_its_failure_marker()
+	{
+		Assert.SkipUnless(NativeLuaLibrary.IsAvailable, NativeLuaLibrary.UnavailableReason);
+		List<string> markers = [];
+		using (JsonDocument catalogue = LoadCatalogue())
+		{
+			foreach (JsonElement operation in catalogue.RootElement.GetProperty("operations").EnumerateArray())
+			{
+				string id = operation.GetProperty("id").GetString()!;
+				if (string.Equals(operation.GetProperty("raises").GetString(), "never", StringComparison.Ordinal))
+				{
+					continue;
+				}
+
+				Assert.True(operation.TryGetProperty("failureEvidence", out JsonElement evidence) &&
+							evidence.GetArrayLength() > 0,
+					$"Protected operation {id} can raise but names no failure evidence.");
+				foreach (JsonElement item in evidence.EnumerateArray())
+				{
+					if (string.Equals(item.GetProperty("kind").GetString(), "FailureProbeMarker", StringComparison.Ordinal))
+					{
+						markers.Add(item.GetProperty("marker").GetString()!);
+					}
+				}
+			}
+		}
+
+		Assert.NotEmpty(markers);
+		string standardOutput = await RunFailureProbeAsync();
+
+		string[] missing = [.. markers.Where(marker => !standardOutput.Contains(marker, StringComparison.Ordinal))];
+		Assert.True(missing.Length == 0,
+			$"The failure probe did not print: {string.Join(" | ", missing)}{Environment.NewLine}stdout:{Environment.NewLine}{standardOutput}");
+	}
+
+	private static JsonDocument LoadCatalogue()
+	{
+		const string ResourceName = "CheatEngine.SDK.Lua.Tests.ProtectedOperations.json";
+		using Stream stream = typeof(NativeFailureProcessTests).Assembly.GetManifestResourceStream(ResourceName)
+							  ?? throw new InvalidOperationException($"The embedded resource {ResourceName} is missing.");
+		return JsonDocument.Parse(stream);
+	}
+
+	/// <summary>Runs the failure probe's default battery in a child process and returns its standard output.</summary>
+	private static async Task<string> RunFailureProbeAsync()
+	{
+		string baseDirectory = AppContext.BaseDirectory;
+		string probe = Path.Combine(baseDirectory, "CheatEngine.SDK.Lua.FailureProbe.dll");
+		Assert.True(File.Exists(probe), $"Failure probe was not copied to '{probe}'.");
+
+		ProcessStartInfo start = new("dotnet")
+		{
+			UseShellExecute = false,
+			RedirectStandardOutput = true,
+			RedirectStandardError = true,
+			CreateNoWindow = true
+		};
+		start.ArgumentList.Add("exec");
+		start.ArgumentList.Add("--runtimeconfig");
+		start.ArgumentList.Add(Path.Combine(baseDirectory, "CheatEngine.SDK.Lua.Tests.runtimeconfig.json"));
+		start.ArgumentList.Add("--depsfile");
+		start.ArgumentList.Add(Path.Combine(baseDirectory, "CheatEngine.SDK.Lua.Tests.deps.json"));
+		start.ArgumentList.Add(probe);
+		start.ArgumentList.Add(NativeLuaLibrary.LibraryPath!);
+
+		using Process? process = Process.Start(start);
+		Assert.NotNull(process);
+		CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+		Task<string> output = process.StandardOutput.ReadToEndAsync(cancellationToken);
+		Task<string> error = process.StandardError.ReadToEndAsync(cancellationToken);
+		using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+		timeout.CancelAfter(TimeSpan.FromSeconds(30));
+		try
+		{
+			await process.WaitForExitAsync(timeout.Token);
+		}
+		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+		{
+			process.Kill(true);
+			Assert.Fail("The native failure probe did not exit within 30 seconds.");
+		}
+
+		string standardOutput = await output;
+		string standardError = await error;
+		Assert.True(process.ExitCode == 0,
+			string.Create(CultureInfo.InvariantCulture,
+				$"Probe exit code: {process.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{standardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{standardError}"));
+		return standardOutput;
 	}
 }

@@ -12,35 +12,47 @@ namespace CheatEngine.SDK.Abi.Tests;
 ///     Assembly-wide gates. They exist so that a structure or enumeration added to <c>CheatEngine.SDK.Abi</c> without a
 ///     row in the expected-size table, or with a shape the ABI does not allow (see <see cref="AbiShape" />: forbidden
 ///     field types at any depth, function pointers that are managed, not <c>Stdcall</c>, or carry a forbidden type in
-///     their signature), fails the test run instead of slipping through.
+///     their signature), fails the test run instead of slipping through. The per-field offset and width of every one of
+///     these structures is gated by <c>FieldLayout.FieldLayoutContractTests</c>.
 /// </summary>
 /// <remarks>
 ///     What reflection cannot see, and therefore stays a review rule: whether <c>[StructLayout]</c> was written out
-///     (C# structures are sequential by default, the metadata is identical) and whether a new structure also got its
-///     per-field offset test.
+///     (C# structures are sequential by default, the metadata is identical).
 /// </remarks>
 public sealed class AssemblyConformanceTests
 {
-	private static readonly Assembly AbiAssembly = typeof(PluginInitRecord).Assembly;
+	private const string Abi = "CheatEngine.SDK.Abi.";
+	private const string Managed = Abi + "Managed.";
+	private const string Native = Abi + "Native.";
 
-	/// <summary>Every public structure of the assembly with its 64-bit size. Adding a structure means adding a row.</summary>
+	private static readonly Assembly AbiAssembly = AbiStructures.AbiAssembly;
+
+	/// <summary>
+	///     Every structure of the assembly (public, internal and nested private) with its 64-bit size, keyed by full name.
+	///     Adding a structure means adding a row here and its field rows in <see cref="FieldLayoutExpectations" />.
+	/// </summary>
 	private static readonly Dictionary<string, int> ExpectedSizesOn64Bit = new(StringComparer.Ordinal)
 	{
-		[nameof(Bool32)] = 4,
-		[nameof(Bool8)] = 1,
-		[nameof(PluginInitRecord)] = 36,
-		[nameof(ManagedExportedFunctions)] = 48,
-		[nameof(PluginVersion)] = 16,
-		[nameof(AddressListPluginInit)] = 16,
-		[nameof(MemoryViewPluginInit)] = 24,
-		[nameof(DebugEventPluginInit)] = 8,
-		[nameof(DebugEventObservation)] = 24,
-		[nameof(ProcessWatcherPluginInit)] = 8,
-		[nameof(FunctionPointerChangePluginInit)] = 8,
-		[nameof(MainMenuPluginInit)] = 24,
-		[nameof(DisassemblerContextPluginInit)] = 32,
-		[nameof(DisassemblerRenderLinePluginInit)] = 8,
-		[nameof(AutoAssemblerPluginInit)] = 8
+		[Abi + nameof(Bool32)] = 4,
+		[Abi + nameof(Bool8)] = 1,
+		[Managed + nameof(PluginInitRecord)] = 36,
+		[Managed + nameof(ManagedExportedFunctions)] = 48,
+		[Native + nameof(PluginVersion)] = 16,
+		[Native + nameof(AddressListPluginInit)] = 16,
+		[Native + nameof(MemoryViewPluginInit)] = 24,
+		[Native + nameof(DebugEventPluginInit)] = 8,
+		[Native + nameof(DebugEventObservation)] = 24,
+		[Native + nameof(ProcessWatcherPluginInit)] = 8,
+		[Native + nameof(FunctionPointerChangePluginInit)] = 8,
+		[Native + nameof(MainMenuPluginInit)] = 24,
+		[Native + nameof(DisassemblerContextPluginInit)] = 32,
+		[Native + nameof(DisassemblerRenderLinePluginInit)] = 8,
+		[Native + nameof(AutoAssemblerPluginInit)] = 8,
+		[Native + nameof(ExportedFunctionsPrefix)] = 144,
+		[Native + nameof(PluginType0Record)] = 48,
+		[Native + nameof(RegisterModificationInfo)] = 264,
+		[Native + nameof(ClassicSlotObservation)] = 16,
+		[Native + nameof(ClassicDebugEventDispatcher) + "+DebugEventHeader"] = 12
 	};
 
 	[Fact]
@@ -61,33 +73,40 @@ public sealed class AssemblyConformanceTests
 	}
 
 	[Fact]
-	public void Every_public_structure_is_listed_in_the_expected_size_table()
+	public void Every_structure_is_listed_in_the_expected_size_table()
 	{
-		string[] actual = PublicStructures().Select(static type => type.Name).Order(StringComparer.Ordinal).ToArray();
+		string[] actual = AbiStructures.All().Select(static type => type.FullName!).Order(StringComparer.Ordinal).ToArray();
 		string[] expected = ExpectedSizesOn64Bit.Keys.Order(StringComparer.Ordinal).ToArray();
 
 		Assert.Equal(expected, actual);
 	}
 
 	[Fact]
-	public void Every_public_structure_on_64_bit_has_the_expected_size()
+	public void Every_structure_including_internal_and_nested_ones_has_the_expected_size()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
 
 		Assert.All(
-			PublicStructures(),
+			AbiStructures.All(),
 			static type =>
 			{
-				Assert.True(ExpectedSizesOn64Bit.TryGetValue(type.Name, out int expected),
-					$"No expected size for {type.Name}.");
+				Assert.True(ExpectedSizesOn64Bit.TryGetValue(type.FullName!, out int expected),
+					$"No expected size for {type.FullName}.");
 				Assert.Equal(expected, RuntimeHelpers.SizeOf(type.TypeHandle));
 			});
 	}
 
 	[Fact]
+	public void Public_structures_are_a_subset_of_the_gated_structures()
+	{
+		Assert.All(PublicStructures(),
+			static type => Assert.True(ExpectedSizesOn64Bit.ContainsKey(type.FullName!), $"{type.FullName} is not gated."));
+	}
+
+	[Fact]
 	public void Every_structure_is_sequential_and_blittable_at_any_depth()
 	{
-		Type[] structures = AllStructures().ToArray();
+		Type[] structures = AbiStructures.All().ToArray();
 
 		Assert.NotEmpty(structures);
 		Assert.All(structures, static type => Assert.Null(AbiShape.FindViolation(type, AbiAssembly)));
@@ -97,7 +116,7 @@ public sealed class AssemblyConformanceTests
 	public void Only_the_init_record_overrides_the_default_packing()
 	{
 		Assert.All(
-			AllStructures(),
+			AbiStructures.All(),
 			static type =>
 			{
 				// Reflection reports the default either as 0 or as the runtime's default of 8.
@@ -126,28 +145,5 @@ public sealed class AssemblyConformanceTests
 	private static IEnumerable<Type> PublicStructures()
 	{
 		return AbiAssembly.GetExportedTypes().Where(static type => type.IsValueType && !type.IsEnum);
-	}
-
-	/// <summary>
-	///     Public and non-public structures alike: an internal helper structure is as much part of a layout as the
-	///     public structure that embeds it. Compiler-generated types (static data blobs) are not ours to judge.
-	/// </summary>
-	private static IEnumerable<Type> AllStructures()
-	{
-		return AbiAssembly.GetTypes()
-			.Where(static type => type.IsValueType && !type.IsEnum && !IsCompilerGenerated(type));
-	}
-
-	private static bool IsCompilerGenerated(Type type)
-	{
-		for (Type? current = type; current is not null; current = current.DeclaringType)
-		{
-			if (current.Name.StartsWith('<') || current.IsDefined(typeof(CompilerGeneratedAttribute), false))
-			{
-				return true;
-			}
-		}
-
-		return false;
 	}
 }

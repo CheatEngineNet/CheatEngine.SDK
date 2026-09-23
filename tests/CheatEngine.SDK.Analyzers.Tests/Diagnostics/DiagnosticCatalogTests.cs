@@ -38,6 +38,7 @@ public sealed class DiagnosticCatalogTests
 			DiagnosticIds.InvalidManualBootstrap,
 			DiagnosticIds.ReservedNamespace,
 			DiagnosticIds.GeneratedEntryPointCollision,
+			DiagnosticIds.ClassicNativePluginExport,
 			DiagnosticIds.RequiresPluginEnabledTooEarly,
 			DiagnosticIds.DisposeBorrowedValue,
 			DiagnosticIds.UnguardedUnmanagedCallersOnly,
@@ -59,9 +60,9 @@ public sealed class DiagnosticCatalogTests
 		Assert.Equal(expected, SortedIds(AllDescriptors()), StringComparer.Ordinal);
 		Assert.Equal(
 			[
-				"CESDK0001", "CESDK0002", "CESDK0003", "CESDK0004", "CESDK0005", "CESDK1001", "CESDK1003", "CESDK1004",
-				"CESDK1005", "CESDK1020", "CESDK2001", "CESDK2002", "CESDK2003", "CESDK2004", "CESDK2005", "CESDK2006",
-				"CESDK2007", "CESDK2010", "CESDK2011", "CESDK2012", "CESDK2013"
+				"CESDK0001", "CESDK0002", "CESDK0003", "CESDK0004", "CESDK0005", "CESDK0006", "CESDK1001", "CESDK1003",
+				"CESDK1004", "CESDK1005", "CESDK1020", "CESDK2001", "CESDK2002", "CESDK2003", "CESDK2004", "CESDK2005",
+				"CESDK2006", "CESDK2007", "CESDK2010", "CESDK2011", "CESDK2012", "CESDK2013"
 			],
 			expected,
 			StringComparer.Ordinal);
@@ -170,6 +171,7 @@ public sealed class DiagnosticCatalogTests
 	[InlineData(DiagnosticIds.InvalidManualBootstrap, true)]
 	[InlineData(DiagnosticIds.ReservedNamespace, true)]
 	[InlineData(DiagnosticIds.GeneratedEntryPointCollision, true)]
+	[InlineData(DiagnosticIds.ClassicNativePluginExport, false)]
 	[InlineData(DiagnosticIds.RequiresPluginEnabledTooEarly, false)]
 	[InlineData(DiagnosticIds.DisposeBorrowedValue, false)]
 	[InlineData(DiagnosticIds.UnguardedUnmanagedCallersOnly, false)]
@@ -198,6 +200,7 @@ public sealed class DiagnosticCatalogTests
 		DiagnosticAnalyzer[] analyzers =
 		[
 			new CheatEnginePluginAnalyzer(),
+			new ClassicNativeExportAnalyzer(),
 			new UnmanagedCallersOnlyGuardAnalyzer(),
 			new LuaBindingAnalyzer(),
 			new PluginLifecycleAndOwnershipAnalyzer(),

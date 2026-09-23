@@ -5,13 +5,16 @@ using CheatEngine.SDK.NativeAotLibraryProbe;
 
 namespace CheatEngine.SDK.NativeAotLoaderHarness;
 
-/// <summary>Runs bounded file analysis or process-resident name queries for the SDK-006 NativeAOT library fixture.</summary>
+/// <summary>
+///     Runs bounded file analysis or process-resident name queries for the SDK-006 NativeAOT library fixture. Both modes
+///     first require the exact export surface of <see cref="LibraryProbeContract" /> (no <c>CEPlugin_*</c> export, every
+///     probe export, nothing unexpected) and print <c>contract=passed</c>; any drift is a non-zero exit.
+/// </summary>
 internal static class Program
 {
 	private const string AnalyzeMode = "--analyze";
 	private const string LoadMode = "--load";
 	private const string AcknowledgeProcessResidentLoad = "--acknowledge-process-resident-load";
-	private const string NativePluginPrefix = "CEPlugin_";
 	private const string FixtureFileName = "CheatEngine.SDK.NativeAotLibraryProbe.dll";
 
 	/// <summary>Runs the requested bounded observation.</summary>
@@ -65,6 +68,14 @@ internal static class Program
 		{
 			Console.WriteLine($"export.name.{exportName}=present");
 		}
+
+		foreach (string exportName in inspection.RuntimeExports)
+		{
+			Console.WriteLine($"export.runtime.{exportName}=present");
+		}
+
+		Console.WriteLine("export.unexpected=none");
+		Console.WriteLine("contract=passed");
 	}
 
 	private static void LoadAndQueryNames()
@@ -96,6 +107,8 @@ internal static class Program
 		}
 
 		// NativeAOT shared-library unload is unsupported. This dedicated process exits after the observation instead.
+		Console.WriteLine("export.unexpected=none");
+		Console.WriteLine("contract=passed");
 		Console.WriteLine("library.unload=not-attempted");
 	}
 
@@ -130,8 +143,7 @@ internal static class Program
 		try
 		{
 			exportNames = PortableExecutableExportReader.ReadExportNames(bytes);
-			EnsureNoNativePluginExports(exportNames);
-			EnsureExpectedExports(exportNames);
+			LibraryProbeContract.Validate(exportNames);
 		}
 		catch
 		{
@@ -139,46 +151,11 @@ internal static class Program
 			throw;
 		}
 
-		return new LibraryInspection(fullPath, sha256, fileLock);
+		return new LibraryInspection(fullPath, sha256, LibraryProbeContract.RuntimeExportsIn(exportNames), fileLock);
 	}
 
-	private static void EnsureNoNativePluginExports(IReadOnlyList<string> exportNames)
-	{
-		foreach (string exportName in exportNames)
-		{
-			if (exportName.StartsWith(NativePluginPrefix, StringComparison.Ordinal))
-			{
-				throw new InvalidOperationException(
-					"The harness refuses a DLL that exposes a Cheat Engine native-plugin entry point.");
-			}
-		}
-	}
-
-	private static void EnsureExpectedExports(IReadOnlyList<string> exportNames)
-	{
-		foreach (string requiredName in NativeAotLibraryProbeExportNames.Required)
-		{
-			bool found = false;
-			foreach (string exportName in exportNames)
-			{
-				if (!string.Equals(exportName, requiredName, StringComparison.Ordinal))
-				{
-					continue;
-				}
-
-				found = true;
-				break;
-			}
-
-			if (!found)
-			{
-				throw new InvalidOperationException(
-					$"The file does not expose required fixture export '{requiredName}'.");
-			}
-		}
-	}
-
-	private sealed class LibraryInspection(string path, string sha256, FileStream fileLock) : IDisposable
+	private sealed class LibraryInspection(string path, string sha256, IReadOnlyList<string> runtimeExports,
+		FileStream fileLock) : IDisposable
 	{
 		public string Path
 		{
@@ -189,6 +166,11 @@ internal static class Program
 		{
 			get;
 		} = sha256;
+
+		public IReadOnlyList<string> RuntimeExports
+		{
+			get;
+		} = runtimeExports;
 
 		public void Dispose()
 		{

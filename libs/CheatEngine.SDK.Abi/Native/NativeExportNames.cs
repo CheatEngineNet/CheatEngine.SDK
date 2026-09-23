@@ -1,10 +1,18 @@
 namespace CheatEngine.SDK.Abi.Native;
 
 /// <summary>
-///     The names of the three functions a <b>native</b> plugin DLL exports (the path a Native AOT build of a plugin
-///     would take, because such a DLL has no CLR header and Cheat Engine therefore treats it as native).
+///     The names of the three functions a <b>classic native</b> plugin DLL exports. Classic native load path only: a
+///     NativeAOT DLL exposing them is not a supported CheatEngine.SDK profile, because Cheat Engine unloads plugins with
+///     <c>FreeLibrary</c>, which .NET does not support for NativeAOT libraries; see <c>libs/CheatEngine.SDK.Abi/README.md</c>.
 /// </summary>
 /// <remarks>
+///     <para>
+///         <b>Not a replacement for the managed bootstrap.</b> Exporting these three names instead of the generated
+///         <c>CESDK.CESDK.CEPluginInitialize</c> changes the load profile, the table the plugin receives (the classic
+///         159-slot table instead of <see cref="Managed.ManagedExportedFunctions" />) and the unload contract at once.
+///         Analyzer <c>CESDK0006</c> reports an <c>[UnmanagedCallersOnly]</c> export of any <c>CEPlugin_</c> name, and
+///         the packaged build target reports <c>PublishAot</c> on a plugin library with <c>CESDK9102</c>.
+///     </para>
 ///     <para>
 ///         All three are <c>stdcall</c> and return a 4-byte boolean (<see cref="Bool32" />):
 ///     </para>
@@ -28,7 +36,9 @@ namespace CheatEngine.SDK.Abi.Native;
 ///     </list>
 ///     <para>
 ///         <b>Evidence (verified):</b> the three prototypes at the end of <c>cepluginsdk.h</c> and the module-definition
-///         file of the official C sample plugin (CE 7.7.0.10621). The Native AOT load path as a whole is untested.
+///         file of the official C sample plugin (CE 7.7.0.10621). The classic native load path is not qualified on any
+///         profile, and a NativeAOT plugin DLL is not supported (unload restriction:
+///         https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries).
 ///     </para>
 ///     <para>
 ///         Compile-time constants, so they can be used as <c>[UnmanagedCallersOnly(EntryPoint = ...)]</c> arguments.

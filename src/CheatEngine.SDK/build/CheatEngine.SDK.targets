@@ -10,4 +10,22 @@
     <Error Code="CESDK9101"
            Text="$(MSBuildProjectName) targets PlatformTarget=$(PlatformTarget). Cheat Engine and the packaged Lua protection bridge support Windows x64 only: set &lt;PlatformTarget&gt;x64&lt;/PlatformTarget&gt;, set &lt;PlatformTarget&gt;AnyCPU&lt;/PlatformTarget&gt;, or leave PlatformTarget unset."/>
   </Target>
+
+  <!--
+    A NativeAOT plugin DLL is not a supported CheatEngine.SDK profile (audit F02): Cheat Engine unloads plugins with
+    FreeLibrary, and .NET does not support unloading a NativeAOT library
+    (https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries). CheatEngine.SDK plugins load through the
+    managed hostfxr profile, as a framework-dependent plugin folder. A direct consumer library that sets PublishAot
+    (with or without NativeLib) therefore gets a warning at build time, before anything is published. An executable
+    (Exe or WinExe) is a different artefact and is not warned: publishing an AOT-compatible tool is fine. The warning is
+    suppressible with NoWarn (MSBuild demotes it to a message); see
+    https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/libs/CheatEngine.SDK.Abi/README.md.
+  -->
+  <Target Name="CheatEngineSdkWarnNativeAotPluginProfile"
+          BeforeTargets="BeforeBuild"
+          Condition="'$(PublishAot)' == 'true' and '$(OutputType)' != 'Exe' and '$(OutputType)' != 'WinExe'">
+    <Warning Code="CESDK9102"
+             HelpLink="https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK9102.md"
+             Text="$(MSBuildProjectName) sets PublishAot=true (NativeLib=$(NativeLib)) on a library that references CheatEngine.SDK directly. Cheat Engine unloads plugins with FreeLibrary, which .NET does not support for NativeAOT libraries; CheatEngine.SDK plugins load through the managed hostfxr profile only, as a framework-dependent plugin folder. Remove PublishAot from the plugin, or add CESDK9102 to NoWarn if this library is not a Cheat Engine plugin."/>
+  </Target>
 </Project>

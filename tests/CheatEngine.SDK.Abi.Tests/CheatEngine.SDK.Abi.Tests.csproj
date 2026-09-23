@@ -8,4 +8,11 @@
     <ProjectReference Include="../../libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The committed classic slot registry (test-owned data, never a top-level docs/ folder) is embedded, so the
+         prefix tests never need a workspace path. -->
+    <EmbeddedResource Include="../CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json"
+                      LogicalName="CheatEngine.SDK.Abi.Tests.ClassicSlotRegistry.json"/>
+  </ItemGroup>
+
 </Project>

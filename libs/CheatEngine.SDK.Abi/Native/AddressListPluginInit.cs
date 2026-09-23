@@ -14,10 +14,13 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         that transcription; it does not qualify a live callback boundary.
 ///     </para>
 ///     <para>
-///         <b>Not mapped: the selection record the callback receives.</b> The header declares its address field
-///         pointer-sized, the Pascal unit's callback record declares it 32-bit (and the unit carries a second variant with
-///         a 1-byte pointer flag). The two layouts differ on 64-bit from the second field on and it is not established
-///         which one the host follows, so the parameter stays <c>void*</c>.
+///         <b>The selection record the callback receives.</b> Its oracle is the host type
+///         <c>TPlugin0_SelectedRecord</c> of the pinned <c>plugin.pas</c> (lines 726-735, <c>address: ptrUint</c>,
+///         <c>ispointer: BOOL</c>), which agrees with the C header and is mirrored by the internal
+///         <c>PluginType0Record</c>. The Pascal kit unit's two variants (<c>address: dword</c>, and a one-byte
+///         <c>ispointer: boolean</c>) are known-wrong for x64 (see <c>libs/CheatEngine.SDK.Abi/README.md</c>). What the CE 7.7.0.10621
+///         binary passes is still <b>not observed</b> (no managed-hostfxr route registers a type-0 function), so the
+///         callback stays <c>void*</c>: no callable signature is published.
 ///     </para>
 ///     <para>
 ///         Passed by address to the <c>RegisterFunction</c> slot of the classic table; the record itself only has to

@@ -49,8 +49,17 @@ dotnet test --project tests/CheatEngine.SDK.Lua.Interop.Tests --filter-trait "Ca
 - `lua_Debug` and `luaL_Reg` have the C layout on x64, and the native `lua_Debug` record fits the managed struct
   (`NativeStructLayoutTests`, `CallbackTests`).
 - A failed bind leaves the table untouched, and a second Lua module is refused (`LuaApiInitializationTests`,
-  `LuaApiBoundTableTests`).
+  `LuaApiBoundTableTests`). A copy of the fixture that lacks one export is refused with exactly that export named,
+  and the bound table keeps working (`LuaApiPartialModuleTests`).
+- A bridge contract whose bitmap lacks any single required operation is incompatible, whatever extra bits it sets
+  (`LuaBridgeContractOperationBitTests`).
+- A protected operation started from a host pusher while another one runs, including one that fails, returns to the
+  outer operation intact, and the next operation succeeds (`NestedProtectedCallTests`).
 - The C11 bridge accepts a forward-compatible minor contract and additive operation bits, while its three generated
   imports are explicitly cdecl and retain GC transitions (`LuaProtectedApiTests`). Native fixture checks additionally
   prove that an incomplete export table, negative input count, and input count above Lua's top return the bridge's
   no-error sentinel without changing the Lua stack (`LuaBridgeContractBoundaryTests`).
+- The primitive matrix `tests/CheatEngine.SDK.Repository.Tests/LuaBridge/TestData/lua-interop-primitives.json` has exactly one row per public static `LuaApi`
+  member, its error class and stack effect equal the member's `Raises:` and `Stack:` remarks, its native symbols are
+  exactly the exports the table binds, and the catalogue's direct-call policy agrees with it
+  (`LuaInteropPrimitiveMatrixTests`).

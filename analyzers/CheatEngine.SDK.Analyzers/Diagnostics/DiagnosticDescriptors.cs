@@ -84,6 +84,21 @@ internal static class DiagnosticDescriptors
 		HelpLinkBase + DiagnosticIds.GeneratedEntryPointCollision + ".md",
 		WellKnownDiagnosticTags.CompilationEnd);
 
+	/// <summary>CESDK0006. Message arguments: the method name, then the exported entry-point name.</summary>
+	public static readonly DiagnosticDescriptor ClassicNativePluginExport = new(
+		DiagnosticIds.ClassicNativePluginExport,
+		"Method exports a classic Cheat Engine native plugin entry point",
+		"'{0}' exports '{1}', a classic Cheat Engine native plugin entry point; CheatEngine.SDK supports only the managed hostfxr profile and a NativeAOT plugin DLL cannot be unloaded by Cheat Engine",
+		DiagnosticCategories.Plugin,
+		DiagnosticSeverity.Warning,
+		true,
+		"An [UnmanagedCallersOnly] method whose EntryPoint starts with 'CEPlugin_' becomes a native export of the assembly when it is published with NativeAOT, "
+		+ "which is how a classic native Cheat Engine plugin DLL is recognised. That is not a supported CheatEngine.SDK profile: Cheat Engine unloads plugins with FreeLibrary, "
+		+ "and .NET does not support unloading a NativeAOT library, so no residence model exists for such a plugin. CheatEngine.SDK plugins are framework-dependent assemblies "
+		+ "loaded through the managed hostfxr profile with the generated CESDK.CESDK.CEPluginInitialize entry point. Remove the export, "
+		+ "or suppress the rule only if the assembly is deliberately not a CheatEngine.SDK plugin.",
+		HelpLinkBase + DiagnosticIds.ClassicNativePluginExport + ".md");
+
 	/// <summary>CESDK1001. Message argument: the enabled-only member called too early.</summary>
 	public static readonly DiagnosticDescriptor RequiresPluginEnabledTooEarly = new(
 		DiagnosticIds.RequiresPluginEnabledTooEarly,

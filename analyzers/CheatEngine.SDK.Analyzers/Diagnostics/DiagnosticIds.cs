@@ -29,6 +29,12 @@ public static class DiagnosticIds
 	/// <summary>A source declaration collides with the <c>CESDK.CESDK</c> type generated for an enabled plugin.</summary>
 	public const string GeneratedEntryPointCollision = "CESDK0005";
 
+	/// <summary>
+	///     A method's <c>[UnmanagedCallersOnly]</c> attribute exports a classic Cheat Engine native plugin entry point
+	///     (<c>CEPlugin_*</c>), the NativeAOT plugin DLL route CheatEngine.SDK does not support.
+	/// </summary>
+	public const string ClassicNativePluginExport = "CESDK0006";
+
 	/// <summary>A plugin constructor or initializer directly calls an API which requires an enabled plugin.</summary>
 	public const string RequiresPluginEnabledTooEarly = "CESDK1001";
 

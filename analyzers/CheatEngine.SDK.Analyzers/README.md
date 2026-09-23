@@ -18,13 +18,14 @@ diagnostic that names the cause and links to a page with the fix.
 
 The assembly ships inside the `CheatEngine.SDK` package under `analyzers/dotnet/cs`, never as a package of its own. Its
 public
-surface is the `DiagnosticIds` constants (`CheatEngine.SDK.Analyzers.Diagnostics`) and five analyzers. Everything else
+surface is the `DiagnosticIds` constants (`CheatEngine.SDK.Analyzers.Diagnostics`) and six analyzers. Everything else
 is
 internal.
 
 | Analyzer                                                              | Rules                                         | Subject                                                                                              |
 |-----------------------------------------------------------------------|-----------------------------------------------|------------------------------------------------------------------------------------------------------|
 | `CheatEngine.SDK.Analyzers.Plugin.CheatEnginePluginAnalyzer`          | `CESDK0001`–`CESDK0005` except unassigned IDs | Generated or explicitly manual bootstrap shape and identity                                          |
+| `CheatEngine.SDK.Analyzers.Plugin.ClassicNativeExportAnalyzer`        | `CESDK0006`                                   | `[UnmanagedCallersOnly]` exports named `CEPlugin_*` (unsupported NativeAOT plugin DLL profile)       |
 | `CheatEngine.SDK.Analyzers.Usage.UnmanagedCallersOnlyGuardAnalyzer`   | `CESDK1004`                                   | Methods and local functions marked `[UnmanagedCallersOnly]`                                          |
 | `CheatEngine.SDK.Analyzers.Usage.PluginLifecycleAndOwnershipAnalyzer` | `CESDK1001`, `CESDK1003`, `CESDK1005`         | Enabled-only startup calls, direct disposal of borrowed values, and `async void` lifecycle callbacks |
 | `CheatEngine.SDK.Analyzers.Generation.LuaBindingAnalyzer`             | `CESDK2001`–`CESDK2005`                       | `[LuaFunction]` and `[LuaGlobal]` method forms and duplicate export names                            |

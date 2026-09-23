@@ -51,6 +51,11 @@ dotnet test --project tests/CheatEngine.SDK.Lua.Tests --filter-trait "Category=N
 - The stack is balanced on every path of a frame (`LuaFrameTests`, `ProtectedOperationTests`).
 - No Lua error unwinds a managed frame, including a host-object pusher's non-local exit, and no managed exception
   escapes a thunk (`ProtectedOperationTests`, `LuaCallbackTests`, `NativeFailureProcessTests`).
+- Every protected operation that can raise recovers from its failure: the failure probe prints the marker the
+  catalogue names for it only after the status came back and the stack was restored
+  (`NativeFailureProcessTests.Every_catalogued_raising_operation_reports_its_failure_marker`).
+- A managed message handler that fails while an error is in flight yields one `MessageHandlerError` status with the
+  stack as documented, and the state keeps working (`ErrorInFlightTests`).
 - A stale reference is detected by its epoch (`LuaRefEpochTests`, `LuaRefTests`).
 - `LuaRuntime.Detach` neutralizes every callback the plugin forgot and waits for an admitted callback while rejecting a
   later callback invocation (`LuaCallbackTests`, `CallbackLifetimeConcurrencyTests`).

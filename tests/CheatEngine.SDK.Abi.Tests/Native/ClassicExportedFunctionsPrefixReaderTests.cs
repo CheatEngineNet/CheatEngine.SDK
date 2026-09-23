@@ -93,6 +93,66 @@ public sealed unsafe class ClassicExportedFunctionsPrefixReaderTests
 		Assert.Equal(0x55AA, (nint) actual.GetAddressFromPointer);
 	}
 
+	/// <summary>
+	///     For every slot N of the prefix, a table whose declared size stops one byte short of slot N's end
+	///     (<c>8 * (N + 1) - 1</c>; slot 0 is 4 bytes wide, so 7 covers it) is refused as a whole: the prefix is never
+	///     partially copied.
+	/// </summary>
+	[Theory]
+	[InlineData(0)]
+	[InlineData(1)]
+	[InlineData(2)]
+	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	[InlineData(7)]
+	[InlineData(8)]
+	[InlineData(9)]
+	[InlineData(10)]
+	[InlineData(11)]
+	[InlineData(12)]
+	[InlineData(13)]
+	[InlineData(14)]
+	[InlineData(15)]
+	[InlineData(16)]
+	[InlineData(17)]
+	[Trait("Qualification", "Q39")]
+	public void TryCopy_rejects_every_declared_size_below_each_prefix_slot_boundary(int slot)
+	{
+		Span<byte> table = stackalloc byte[ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount];
+		table.Fill(0xA5);
+		WriteDeclaredSize(table, (8 * (slot + 1)) - 1);
+
+		bool copied = ClassicExportedFunctionsPrefixReader.TryCopy(table, out ExportedFunctionsPrefix prefix);
+
+		Assert.False(copied);
+		Assert.Equal(default, prefix);
+	}
+
+	/// <summary>
+	///     A table that declares 64 bytes covers slots 0-7 exactly, yet the prefix reader copies nothing: it is all or
+	///     nothing by design, and per-slot reads go through <c>ClassicExportedFunctionsSlotReader</c>.
+	/// </summary>
+	[Theory]
+	[InlineData(64)]
+	[InlineData(136)]
+	[InlineData(143)]
+	[Trait("Qualification", "Q39")]
+	public void TryCopy_is_all_or_nothing_between_slot_boundaries(int declaredSize)
+	{
+		Span<byte> table = stackalloc byte[ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount];
+		table.Fill(0x5A);
+		WriteDeclaredSize(table, declaredSize);
+
+		bool copied = ClassicExportedFunctionsPrefixReader.TryCopy(table, out ExportedFunctionsPrefix prefix);
+
+		Assert.False(copied);
+		Assert.Equal(default, prefix);
+		Assert.Equal(0, (nint) prefix.ShowMessage);
+		Assert.Equal(0, prefix.SizeOfExportedFunctions);
+	}
+
 	[Fact]
 	public void Prefix_distinguishes_direct_function_slots_value_cells_and_opaque_null_slots_without_invocation()
 	{

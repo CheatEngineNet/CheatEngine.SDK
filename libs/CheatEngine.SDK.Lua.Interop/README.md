@@ -55,6 +55,10 @@ when the operands are plain. `memory` also covers a failing `__gc` finalizer tha
 bound but forbidden. The `luaL_check*` functions, `lua_yieldk`, the `luaL_Buffer` family and the C varargs functions are
 not bound. They unwind with `longjmp` or cannot be blittable pointers.
 
+Memory corruption and invalid native pointers are never recoverable through `pcall`: the protected boundary contains
+Lua errors, not undefined behaviour. The [Lua interop audit](../../libs/CheatEngine.SDK.Lua.Interop/README.md) classifies every
+public member and the route SDK code may take to it.
+
 `LuaModule.TryGetLoaded` calls `GetModuleHandleExW`, which answers from the loader's module list. It never loads a
 library, unlike a bare-name `LoadLibrary`, which loads whatever file its search path finds first. It returns `false` off
 Windows.

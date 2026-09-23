@@ -74,6 +74,12 @@
           "verifiedOn": "2026-09-20",
           "verification": "The manual annotation is [-0,+1,m]; m means a memory error may be raised."
         }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK PushBytes protected failure recovered"
+        }
       ]
     },
     {
@@ -116,6 +122,12 @@
           "verifiedOn": "2026-09-20",
           "verification": "The manual annotation is [-0,+1,m]."
         }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK CreateTable protected failure recovered"
+        }
       ]
     },
     {
@@ -157,6 +169,12 @@
           "source": "https://www.lua.org/manual/5.3/manual.html#lua_newuserdata",
           "verifiedOn": "2026-09-20",
           "verification": "The manual annotation is [-0,+1,m]."
+        }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK NewUserdata protected failure recovered"
         }
       ]
     },
@@ -201,6 +219,16 @@
           "verifiedOn": "2026-09-20",
           "verification": "The general manual annotation is [-n,+1,m]; the Lua 5.3.6 source has a distinct n == 0 light-C-function fast path."
         }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK TryPushGeneratedFunction PushClosure status, stack, and ownership recovered"
+        },
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK PushClosure protected failure recovered"
+        }
       ]
     },
     {
@@ -242,6 +270,12 @@
           "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawset",
           "verifiedOn": "2026-09-20",
           "verification": "The manual annotation is [-2,+0,m]; raw access disables metamethods but not allocation failure."
+        }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK RawSet protected failure recovered"
         }
       ]
     },
@@ -285,6 +319,12 @@
           "verifiedOn": "2026-09-20",
           "verification": "The manual annotation is [-1,+0,m]."
         }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK RawSetIndex protected failure recovered"
+        }
       ]
     },
     {
@@ -326,6 +366,12 @@
           "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawsetp",
           "verifiedOn": "2026-09-20",
           "verification": "The manual annotation is [-1,+0,m]."
+        }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK RawSetPointer protected failure recovered"
         }
       ]
     },
@@ -369,6 +415,12 @@
           "source": "https://www.lua.org/manual/5.3/manual.html#luaL_ref",
           "verifiedOn": "2026-09-20",
           "verification": "luaL_ref is annotated [-1,+0,m]; the lazy private-table path also calls lua_createtable and lua_rawset, both m."
+        }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK CreateReference protected failure recovered"
         }
       ]
     },
@@ -421,6 +473,14 @@
           "verifiedOn": "2026-09-20",
           "verification": "The normal raw-get path has no error annotation; the current absent-table branch intentionally raises through lua_error after allocating its message."
         }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "ManagedTest",
+          "project": "tests/CheatEngine.SDK.Lua.Interop.Tests/CheatEngine.SDK.Lua.Interop.Tests.csproj",
+          "file": "tests/CheatEngine.SDK.Lua.Interop.Tests/Protected/LuaProtectedApiTests.cs",
+          "test": "LuaProtectedApiTests.Push_private_reference_without_its_table_returns_an_error_and_preserves_the_caller_stack"
+        }
       ]
     },
     {
@@ -471,6 +531,12 @@
           "verifiedOn": "2026-09-20",
           "verification": "Lua 5.3.6 source shows luaL_unref calling lua_rawseti twice; the current absent-table branch intentionally raises with lua_error."
         }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK LuaRef.Release protected allocator boundary recovered"
+        }
       ]
     },
     {
@@ -512,8 +578,14 @@
           "status": "PinnedUpstream",
           "source": "https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/LuaClass.pas",
           "verifiedOn": "2026-09-20",
-          "verification": "The pusher delegates to userdata and metatable creation; its exact CE 7.7 failure behavior remains a P0-LIVE-005 probe.",
+          "verification": "The pusher delegates to userdata and metatable creation; its exact CE 7.7 failure behavior is qualification scenario Q23, not yet executed on the host.",
           "note": "Host behavior beyond the pinned implementation is Unknown until live verification."
+        }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK PushHostObject native pusher longjmp observed"
         }
       ]
     },
@@ -557,6 +629,12 @@
           "source": "https://www.lua.org/manual/5.3/manual.html#lua_createtable",
           "verifiedOn": "2026-09-20",
           "verification": "lua_createtable is annotated [-0,+1,m] and lua_rawseti is annotated [-1,+0,m], so the whole table construction remains under one native lua_pcallk boundary."
+        }
+      ],
+      "failureEvidence": [
+        {
+          "kind": "FailureProbeMarker",
+          "marker": "MARK PushByteTable protected allocator boundary recovered"
         }
       ]
     }

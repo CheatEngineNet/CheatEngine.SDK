@@ -18,6 +18,7 @@ separate EngineApi generator owns
 | [CESDK0003](CESDK0003.md) | Manual Cheat Engine bootstrap is missing or malformed            | Error    | Add the exact `CESDK.CESDK.CEPluginInitialize(IntPtr, int)` contract                         |
 | [CESDK0004](CESDK0004.md) | Plugin assembly declares a namespace under 'CESDK'               | Warning  | None                                                                                         |
 | [CESDK0005](CESDK0005.md) | Source type collides with the generated Cheat Engine entry point | Error    | Rename it, or explicitly own the complete manual bootstrap                                   |
+| [CESDK0006](CESDK0006.md) | Method exports a classic Cheat Engine native plugin entry point  | Warning  | None                                                                                         |
 | [CESDK1001](CESDK1001.md) | Plugin startup code calls an enabled-only API                    | Error    | Move the call to `OnEnable`                                                                  |
 | [CESDK1003](CESDK1003.md) | A Cheat Engine-owned value is being destroyed                    | Error    | Keep it borrowed or use an explicit `Owned<T>` transfer                                      |
 | [CESDK1004](CESDK1004.md) | Exception can escape an [UnmanagedCallersOnly] method            | Warning  | Wrap the body in try/catch                                                                   |
@@ -42,6 +43,7 @@ separate EngineApi generator owns
 | [CESDK5010](CESDK5010.md) | Scan deadline and cooperative termination are experimental       | Error (compiler) | None                                                                                         |
 | [CESDK5011](CESDK5011.md) | First-found AOB scan is experimental                             | Error (compiler) | None                                                                                         |
 | [CESDK7001](CESDK7001.md) | PointerSize.FromArchitecture is obsolete                         | Warning  | None; use `TargetArchitectureObservation.ConfiguredPointerSize` or `Bitness`                 |
+| [CESDK9102](CESDK9102.md) | A CheatEngine.SDK plugin library sets PublishAot (MSBuild, packaged build target) | Warning  | None                                                                            |
 
 Configure a rule like any other analyzer diagnostic:
 

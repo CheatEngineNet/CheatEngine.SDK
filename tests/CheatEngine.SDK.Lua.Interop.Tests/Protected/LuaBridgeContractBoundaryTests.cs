@@ -68,6 +68,7 @@ public sealed unsafe class LuaBridgeContractBoundaryTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q13")]
 	public void Native_bridge_rejects_invalid_preconditions_without_mutating_the_Lua_stack()
 	{
 		LuaTest.RequireNativeLua();

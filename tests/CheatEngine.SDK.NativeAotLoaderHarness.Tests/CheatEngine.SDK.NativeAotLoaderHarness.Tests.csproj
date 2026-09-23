@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Unit tests of the NativeAOT loader harness contract (Q41). The harness and the probe are RID-specific NativeAOT
+    projects, so there is deliberately no ProjectReference: their pure sources are compiled in here as links.
+  -->
+
+  <ItemGroup>
+    <Compile Include="../CheatEngine.SDK.NativeAotLoaderHarness/PortableExecutableExportReader.cs"
+             Link="Linked/PortableExecutableExportReader.cs"/>
+    <Compile Include="../CheatEngine.SDK.NativeAotLoaderHarness/LibraryProbeContract.cs"
+             Link="Linked/LibraryProbeContract.cs"/>
+    <Compile Include="../CheatEngine.SDK.NativeAotLibraryProbe/NativeAotLibraryProbeExportNames.cs"
+             Link="Linked/NativeAotLibraryProbeExportNames.cs"/>
+    <Compile Include="../CheatEngine.SDK.NativeAotLibraryProbe/NativeAotLibraryProbeExports.cs"
+             Link="Linked/NativeAotLibraryProbeExports.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- A real PE32+ AMD64 DLL with four named exports; tests patch copies in memory and never map or load one. -->
+    <EmbeddedResource Include="../../native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll"
+                      LogicalName="CheatEngine.SDK.NativeAotLoaderHarness.Tests.Bridge.dll"/>
+  </ItemGroup>
+
+</Project>

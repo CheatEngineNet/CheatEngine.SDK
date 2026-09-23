@@ -58,6 +58,7 @@
     <File Path="eng/ci/Invoke-ClientCanary.ps1"/>
     <File Path="eng/ci/Invoke-ScriptAnalysis.ps1"/>
     <File Path="eng/ci/New-BuildInfo.ps1"/>
+    <File Path="eng/ci/README.md"/>
     <File Path="eng/ci/Test-CoverageBaseline.ps1"/>
     <File Path="eng/ci/Test-SdkPackage.ps1"/>
     <File Path="eng/ci/Test-TestModuleInventory.ps1"/>

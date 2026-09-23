@@ -21,6 +21,7 @@ this project only reads committed files. It never builds, packs, restores or sta
 | `Toolchain/` | `ToolchainPinTests` reads `global.json`, `Directory.Build.props` and `Directory.Solution.targets`: exact SDK, analysis-level pin, NuGet audit policy. |
 | `LockFiles/` | `LockFileTests` mirror the structural checks of `eng/Update-LockFiles.ps1` over the committed `packages.lock.json` files. |
 | `PublicApi/` | PublicAPI files, `CompatibilitySuppressions.xml` and the `eng/api/*.txt` lists: file shape, declared breaks, Client-induced breaks, enum contracts. |
+| `Workflows/` | `WorkflowContractTests` parse `.github/workflows/*.yml` and the composite actions with YamlDotNet and freeze the CI contract; `CoverageBaselineTests`, `BuildInfoSchemaTests` and `ClientCanaryScriptTests` check the files and scripts of `eng/ci/` that CI runs. |
 
 Later work adds one folder per contract (for example `Documentation/`, `Workflows/`, `Qualification/`).
 
@@ -89,6 +90,66 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   `Every_lock_file_is_version_2_because_every_project_uses_central_package_management`,
   `Version_1_lock_files_hold_no_central_transitive_entries`, `Native_aot_projects_lock_the_win_x64_ilcompiler_packages`,
   `No_lock_file_resolves_a_cheatengine_package`, `Lock_files_end_without_a_final_newline_as_nuget_writes_them`).
+- The required check `CI / Gate` keeps its shape: the three callers call `ci.yml` through job `ci` named `CI`, the gate
+  job `gate` named `Gate` runs `always()` with no permissions, needs every other job except the advisory allowlist, and
+  decides from a required result per job; the `ci.yml` jobs, inputs and secret are exactly the contract's
+  (`Callers_invoke_ci_through_job_ci_named_CI`, `Gate_job_is_named_Gate_runs_always_and_has_no_permissions`,
+  `Gate_needs_every_other_ci_job_except_the_advisory_allowlist`, `Ci_jobs_match_the_frozen_contract_ids_and_names`,
+  `Ci_declares_exactly_the_contract_inputs_and_secret`).
+- Sonar is required exactly when `SONAR_EXPECTED` says so: the job condition and the gate expression are the same text,
+  the quality gate is awaited outside push events, and non-product trees are excluded
+  (`Sonar_condition_equals_the_gate_sonar_expected_expression`, `Sonar_waits_for_the_quality_gate_outside_push_events`,
+  `Sonar_excludes_non_product_trees_from_analysis_and_coverage`,
+  `Pull_request_and_main_callers_request_sonar_and_the_release_run_never_does`).
+- No workflow listens to `pull_request_target` or `merge_group`, the pull-request and policy workflows filter no path,
+  main keeps every run and pull requests cancel superseded ones
+  (`No_workflow_uses_pull_request_target_or_a_merge_group_trigger`, `Pull_request_and_policy_workflows_have_no_path_filters`,
+  `Main_ci_runs_every_push_to_main_without_a_concurrency_group`, `Pull_request_ci_skips_drafts_and_cancels_superseded_runs`).
+- Every job runs on `windows-2025` or `ubuntu-24.04` with a timeout, workflows grant read permissions only at the top
+  level and the pipeline never elevates, every remote action is pinned to a commit with its version, every checkout drops
+  its credentials, every native command checks its exit code, no run script interpolates an expression, and the
+  pipeline scripts run in `pwsh` (`Every_job_has_a_timeout_and_a_pinned_runner_label`,
+  `Workflows_grant_only_read_permissions_at_the_top_level`, `Pipeline_jobs_never_elevate_permissions`,
+  `Every_remote_action_is_pinned_to_a_full_sha_with_a_version_comment`, `Every_checkout_disables_credential_persistence`,
+  `Every_native_command_in_a_workflow_script_checks_its_exit_code`, `No_run_script_interpolates_an_expression`,
+  `Pipeline_workflows_and_composite_actions_run_scripts_in_pwsh`).
+- Every dotnet job installs the pinned SDK through the composite action, every restore is locked, and no job reachable
+  from a release, Sonar or CodeQL run uses a package cache (`Every_dotnet_job_uses_the_composite_setup_action`,
+  `Composite_setup_restores_in_locked_mode`, `Every_restore_in_the_pipeline_is_locked`,
+  `Release_reachable_workflows_never_enable_a_package_cache`, `Sonar_restores_locked_from_nuget_org_before_the_scanner_begins`).
+- The Release leg packs before it tests and hands the exact nupkg to the packaging tests; the Debug leg excludes them
+  by trait, never by skip; every module runs once with hang and crash dumps well inside the job timeout and is checked by
+  the inventory (`Release_leg_packs_before_testing_and_exports_the_exact_nupkg`,
+  `Debug_leg_excludes_packaging_tests_by_trait_never_by_skip`, `Test_step_runs_every_module_once_with_the_contract_options`,
+  `Every_test_module_references_the_extensions_the_test_step_uses`,
+  `Hang_dump_timeout_is_well_below_the_build_test_job_timeout`, `Test_module_inventory_runs_in_both_legs`,
+  `Build_test_runs_both_configurations_without_fail_fast`).
+- Artifacts use the reserved names and retentions only, binary logs and dumps are uploaded on failure only and never
+  from Sonar or release runs, jobs that version a package fetch full history, the Native AOT probes are published, and
+  the live probe is compiled exactly once and never shipped (`Every_uploaded_artifact_name_is_reserved`,
+  `Binlogs_are_uploaded_only_on_failure_and_never_from_sonar_or_release`, `Jobs_that_pack_or_test_fetch_full_history`,
+  `Aot_job_publishes_the_native_aot_probes`, `Live_probe_is_compiled_by_the_ci_solution_build`).
+- actionlint, zizmor and PSScriptAnalyzer are pinned by version and checksum, every zizmor exception carries its reason,
+  and the format job verifies whitespace without a restore (`Lint_job_checks_out_the_repository_and_runs_every_linter`,
+  `Zizmor_and_actionlint_are_pinned_by_version_and_checksum`, `Every_zizmor_exception_carries_a_justification_comment`,
+  `Script_analysis_uses_a_pinned_hash_verified_psscriptanalyzer`, `Format_job_verifies_whitespace_without_restore`).
+- The dependency review never skips and reviews pull requests only, and the lock-file job verifies the committed locks
+  on Windows (`Dependency_review_job_always_runs_and_reviews_only_pull_requests`,
+  `Dependency_review_configuration_blocks_advisories_and_unreviewed_licenses`,
+  `Lock_file_job_runs_the_verification_script_on_windows`).
+- No workflow runs the local qualification runner or generates ApiCompat suppressions
+  (`No_workflow_references_the_local_qualification_runner`, `No_workflow_passes_ApiCompatGenerateSuppressionFile`).
+- The coverage floors cover exactly the shipping assemblies, are percentages with an explicit tolerance, use the
+  pinned merge tool, and CI never writes them (`Coverage_baseline_lists_exactly_the_shipping_assemblies`,
+  `Coverage_floors_are_percentages_and_the_tolerance_is_explicit`, `Coverage_tool_is_pinned_in_the_local_tool_manifest`,
+  `Debug_leg_checks_the_coverage_floors_and_never_writes_the_baseline`).
+- `build-info.json` has exactly the contract fields, rejects any other, is written in full from the native job's
+  outputs and uploaded by the Release leg (`Build_info_schema_requires_exactly_the_contract_fields`,
+  `Build_info_schema_rejects_additional_properties`, `Build_info_writer_emits_every_required_field`,
+  `Release_leg_writes_and_uploads_build_info_from_the_native_job_outputs`).
+- The advisory client canary writes the fields of its report schema, isolates the branch package and never fails the
+  run because the Client breaks (`Client_canary_report_schema_requires_exactly_the_fields_the_script_writes`,
+  `Client_canary_isolates_its_packages_and_never_gates`).
 
 ## Run the tests
 

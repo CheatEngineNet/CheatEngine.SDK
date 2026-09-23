@@ -15,6 +15,8 @@ public sealed class NativeBridgePackagingAuditTests(PackagedUmbrellaFixture fixt
 	private const string BridgeRelativePath =
 		"native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll";
 
+	private const string PackedBridgeEntry = "build/native/cheatengine-sdk-lua-bridge.dll";
+
 	[Fact]
 	public void Direct_consumer_build_and_publish_copy_the_exact_audited_bridge_asset()
 	{
@@ -26,6 +28,20 @@ public sealed class NativeBridgePackagingAuditTests(PackagedUmbrellaFixture fixt
 			"The direct consumer publish output did not receive the bridge.");
 		Assert.Equal(auditedHash, CalculateSha256(fixture.DefaultNativeBridgePath));
 		Assert.Equal(auditedHash, CalculateSha256(fixture.DefaultPublishedNativeBridgePath));
+	}
+
+	/// <summary>
+	///     The workspace comparison above holds only when the package was packed from this workspace. This one holds for
+	///     every origin, including the exact CI package: what a direct consumer deploys is the bridge the package carries.
+	/// </summary>
+	[Fact]
+	public void Direct_consumer_bridges_are_byte_identical_to_the_packed_build_native_entry()
+	{
+		string packedHash = Convert.ToHexString(SHA256.HashData(
+			NupkgInspector.ReadEntryBytes(fixture.PackagePath, PackedBridgeEntry))).ToLowerInvariant();
+
+		Assert.Equal(packedHash, CalculateSha256(fixture.DefaultNativeBridgePath));
+		Assert.Equal(packedHash, CalculateSha256(fixture.DefaultPublishedNativeBridgePath));
 	}
 
 	private static string CalculateSha256(string path)

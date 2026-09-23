@@ -42,6 +42,7 @@ public sealed class PackagedUmbrellaTraitTests
 		Assert.Contains(typeof(RestoreIsolationTests), members);
 		Assert.Contains(typeof(SupplyChainPackageTests), members);
 		Assert.Contains(typeof(PackageProvenanceTests), members);
+		Assert.Contains(typeof(CleanConsumerIsolationTests), members);
 		Assert.Empty(offenders);
 	}
 

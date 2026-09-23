@@ -137,6 +137,16 @@ the TRX report names the file the facts are about.
   `CESDK9101` by the packaged build target (`PlatformTargetTests`).
 - The direct consumer remains deployable after clean/rebuild: its output folder contains the plugin, all SDK runtime
   assemblies, `.deps.json`, `.runtimeconfig.json` and the native bridge (`DeploymentLayoutTests`).
+- A clean consumer takes nothing from the development tree (qualification scenario Q40, C1/C2 evidence only): in the
+  build and publish folders of the default consumer, `.deps.json` resolves `CheatEngine.SDK` as a `package` library at
+  `cheatengine.sdk/<version>` whose `sha512` is the hash of the package under test, and no `CheatEngine.SDK*` library
+  is `project`-typed; neither `.deps.json` nor `.runtimeconfig.json` names the repository root (in any separator form)
+  or `additionalProbingPaths`, and no `*.runtimeconfig.dev.json` exists; every `lib/net10.0` assembly of the package is
+  deployed byte for byte; no `lua*.dll` is deployed (`CleanConsumerIsolationTests`). Each rule is shown to fail on the
+  leak it exists for with synthetic manifests (`ConsumerManifestRuleTests`). The relay carrier maps `CheatEngine.SDK` to
+  the fixture feed only, like every consumer, so a version already on nuget.org can never be restored in its place.
+- A direct consumer's build and publish bridges are byte-identical to the package's `build/native` entry, whatever the
+  package origin (`Direct_consumer_bridges_are_byte_identical_to_the_packed_build_native_entry`).
 - The checked-in C11 Lua protection bridge is parsed as PE/COFF without loading it: it is PE32+ AMD64, exports exactly
   four symbols, imports only its reviewed CRT/Kernel32 contract, has no delay-load table and cannot acquire a Lua
   module. Its build and publish copies are SHA-256-identical to the audited source asset (`NativeBridgePeAuditTests` and

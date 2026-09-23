@@ -57,6 +57,8 @@ internal sealed class ThrowawayPackageCarrier
 		                                                                 {
 		                                                                 }
 		                                                                 """);
+		// Same mapping as the consumers' NuGet.Config: without it, once a version is on nuget.org, a re-run could restore
+		// the repository-signed nuget.org copy of CheatEngine.SDK instead of the file under test.
 		File.WriteAllText(Path.Combine(directory, "NuGet.Config"), $"""
 		                                                            <?xml version="1.0" encoding="utf-8"?>
 		                                                            <configuration>
@@ -65,6 +67,15 @@ internal sealed class ThrowawayPackageCarrier
 		                                                                <add key="cheatengine-sdk-local" value="{localFeedDirectory}" />
 		                                                                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
 		                                                              </packageSources>
+		                                                              <packageSourceMapping>
+		                                                                <clear />
+		                                                                <packageSource key="cheatengine-sdk-local">
+		                                                                  <package pattern="{UmbrellaPackage.Id}" />
+		                                                                </packageSource>
+		                                                                <packageSource key="nuget.org">
+		                                                                  <package pattern="*" />
+		                                                                </packageSource>
+		                                                              </packageSourceMapping>
 		                                                            </configuration>
 		                                                            """);
 		return new ThrowawayPackageCarrier(directory, projectPath);

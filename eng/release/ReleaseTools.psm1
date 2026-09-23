@@ -13,6 +13,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $script:SignatureEntry = '.signature.p7s'
 $script:FingerprintPattern = '[0-9a-f]{64}:[0-9a-f]{64}'
 $script:AbsoluteLocalPathPattern = '[A-Za-z]:\\|\\Users\\|/home/|/Users/|file://'
+$script:GatingQualificationIds = @('Q02', 'Q03', 'Q04', 'Q05', 'Q06', 'Q07', 'Q08', 'Q09', 'Q10', 'Q40', 'Q41')
 
 function Get-Sha256Hex {
   <# .SYNOPSIS SHA-256 of a file or a byte array, as 64 lowercase hex digits. #>
@@ -415,9 +416,105 @@ function Select-ReleasePullRequest {
   }
 }
 
+function Get-ReleaseQualificationReport {
+  <#
+  .SYNOPSIS
+  Evaluates the Checkpoint F qualification gate (Q02-Q10, Q40, Q41) on a parsed qualification matrix. A parent row
+  passes when every required level is Passed, or NotApplicable with a justification, and every Passed C3/C4 cell names
+  -TreeHash or carries a transfer justification. A row that does not pass is waived when the release notes list it
+  under '### Qualification waivers' as '- Qxx: <reason>'.
+  .PARAMETER Matrix
+  The parsed docs/qualification/matrix.json, or $null when the file is absent (every gating row is then open).
+  #>
+  [CmdletBinding()]
+  [OutputType([pscustomobject[]])]
+  param(
+    [Parameter(Mandatory)] [AllowNull()] [object] $Matrix,
+    [Parameter(Mandatory)] [AllowEmptyString()] [string] $TreeHash,
+    [AllowEmptyString()] [string] $ReleaseNotes = ''
+  )
+  $waivers = Get-QualificationWaiver -ReleaseNotes $ReleaseNotes
+  $rows = @{}
+  if ($null -ne $Matrix) {
+    foreach ($row in @(Get-JsonValue -InputObject $Matrix -Name 'rows')) {
+      if ($null -eq $row) { continue }
+      $rowId = [string](Get-JsonValue -InputObject $row -Name 'id')
+      if ($null -eq (Get-JsonValue -InputObject $row -Name 'parent') -and $rowId) { $rows[$rowId] = $row }
+    }
+  }
+
+  $report = [Collections.Generic.List[pscustomobject]]::new()
+  foreach ($id in $script:GatingQualificationIds) {
+    $reason = if ($null -eq $Matrix) { 'docs/qualification/matrix.json is absent' }
+    elseif (-not $rows.ContainsKey($id)) { "the matrix has no $id row" }
+    else { Get-QualificationRowGap -Row $rows[$id] -TreeHash $TreeHash }
+
+    $state = if (-not $reason) { 'Passed' } elseif ($waivers.Contains($id)) { 'Waived' } else { 'Open' }
+    $detail = if ($state -eq 'Waived') { "waived: $($waivers[$id]) ($reason)" } elseif ($reason) { $reason } else { 'every required level qualifies' }
+    $report.Add([pscustomobject]@{ Id = $id; State = $state; Reason = $detail })
+  }
+  return , $report.ToArray()
+}
+
+function Get-QualificationRowGap {
+  <# .SYNOPSIS Why a matrix row does not pass the release gate, or '' when it does. #>
+  [CmdletBinding()]
+  [OutputType([string])]
+  param(
+    [Parameter(Mandatory)] [object] $Row,
+    [Parameter(Mandatory)] [AllowEmptyString()] [string] $TreeHash
+  )
+  $gaps = [Collections.Generic.List[string]]::new()
+  $levels = Get-JsonValue -InputObject $Row -Name 'levels'
+  $required = @(Get-JsonValue -InputObject $Row -Name 'requiredLevels' | Where-Object { $null -ne $_ })
+  if ($required.Count -eq 0) { return 'the row declares no required level' }
+  foreach ($level in $required) {
+    $cell = Get-JsonValue -InputObject $levels -Name ([string]$level)
+    if ($null -eq $cell) { $gaps.Add("$level has no cell"); continue }
+    $status = [string](Get-JsonValue -InputObject $cell -Name 'status')
+    if ($status -ceq 'NotApplicable') {
+      if (-not [string](Get-JsonValue -InputObject $cell -Name 'justification')) { $gaps.Add("$level is NotApplicable without a justification") }
+      continue
+    }
+    if ($status -cne 'Passed') { $gaps.Add("$level is $status"); continue }
+    if ($level -in @('C3', 'C4')) {
+      # Host evidence is valid for the tree it names; committing its receipt already changes the tree, so a transfer
+      # justification is the normal way a C3/C4 result reaches a release (shared contract 2.2).
+      $cellTree = [string](Get-JsonValue -InputObject $cell -Name 'treeHash')
+      $transfer = [string](Get-JsonValue -InputObject $cell -Name 'transferJustification')
+      $sameTree = ($cellTree -cmatch '^[0-9a-f]{40}$') -and ($cellTree -ceq $TreeHash)
+      if (-not $sameTree -and -not $transfer) {
+        $named = if ($cellTree) { "tree $cellTree" } else { 'no tree' }
+        $gaps.Add("$level passed on $named, not on the release tree, without a transfer justification")
+      }
+    }
+  }
+  return ($gaps -join '; ')
+}
+
+function Get-QualificationWaiver {
+  <# .SYNOPSIS The '- Qxx: <reason>' lines under a '### Qualification waivers' heading, as Qxx -> reason. #>
+  [CmdletBinding()]
+  [OutputType([hashtable])]
+  param([AllowEmptyString()] [string] $ReleaseNotes = '')
+  $waivers = @{}
+  $inSection = $false
+  foreach ($line in ($ReleaseNotes -split "`r?`n")) {
+    if ($line -match '^#{1,6}\s') {
+      $inSection = $line -cmatch '^###\s+Qualification waivers\s*$'
+      continue
+    }
+    if (-not $inSection) { continue }
+    $match = [regex]::Match($line, '^\s*[-*]\s+(?<id>Q(?:0[1-9]|[1-3][0-9]|4[0-8])):\s*(?<reason>\S.*)$')
+    if ($match.Success) { $waivers[$match.Groups['id'].Value] = $match.Groups['reason'].Value.Trim() }
+  }
+  return $waivers
+}
+
 Export-ModuleMember -Function @(
   'Get-Sha256Hex', 'Get-Sha512Base64', 'Get-NormalizedTextSha256', 'Get-ZipEntryName', 'Read-ZipEntry',
   'Get-NuspecIdentity', 'Get-BridgeSourceFingerprint', 'Get-JsonValue', 'ConvertTo-ReleaseJson', 'Write-Utf8File',
   'Test-AbsoluteLocalPath', 'ConvertTo-Sha256SumsText', 'ConvertFrom-Sha256SumsText', 'Compare-SignedPackageContent',
-  'Test-VerifyOutputContainsContentHash', 'Get-ReleaseAssetPlan', 'Select-ReleasePullRequest'
+  'Test-VerifyOutputContainsContentHash', 'Get-ReleaseAssetPlan', 'Select-ReleasePullRequest',
+  'Get-ReleaseQualificationReport', 'Get-QualificationWaiver'
 )

@@ -207,3 +207,7 @@ the TRX report names the file the facts are about.
   uploads to a published release or past a differing asset (`ReleaseAssetPlanTests`).
 - The tuple names the pull request squash-merged as the released commit, or on a dry run the single pull request that
   commit heads, and records none when the answer is absent, ambiguous or unrelated (`ReleasePullRequestSelectionTests`).
+- The Checkpoint F gate passes a stable release only when rows Q02-Q10, Q40 and Q41 pass at every required level for
+  the released tree or are waived under `### Qualification waivers` in its release notes: a not-executed row, a C3 pass
+  on another tree without a transfer justification, an unjustified `NotApplicable`, a C1 cell standing in for C3 and a
+  missing matrix all fail it, and a prerelease only reports them (`ReleaseQualificationGateTests`).

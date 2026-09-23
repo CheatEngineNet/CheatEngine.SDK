@@ -278,6 +278,8 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   with the tag version, a 90-day retention and no Sonar (`Release_jobs_form_the_draft_first_chain`,
   `Release_runs_for_version_tags_and_manual_dry_runs_without_cancelling`,
   `Release_calls_ci_with_the_tag_version_ninety_day_retention_and_no_sonar`).
+- `verify` runs the Checkpoint F qualification gate on the released tree after extracting the release notes it reads:
+  `Enforce` for a stable version, `Report` otherwise (`Stable_tags_are_gated_on_the_qualification_matrix_before_anything_is_built`).
 - Publication jobs and every attestation step run only for tags of this repository; the attest job attests the package
   provenance and its SPDX 2.2 SBOM; only `publish` uses the `nuget` environment, with the NuGet login right before the
   push; `id-token`, `attestations` and `contents` write scopes are limited to the jobs that need them

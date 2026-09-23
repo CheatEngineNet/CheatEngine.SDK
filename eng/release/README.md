@@ -10,11 +10,12 @@ synthetic inputs and on the package under test.
 
 | File | What it does | Runs in `release.yml` |
 |------|--------------|-----------------------|
-| `ReleaseTools.psm1` | Pure functions shared by the scripts and the workflow: hashes, zip entries, nuspec identity, bridge fingerprint, `SHA256SUMS` text, JSON writing, the signed-copy comparison, the draft-release asset plan and the pull request lookup. No environment, network or step-summary access. | every job below |
+| `ReleaseTools.psm1` | Pure functions shared by the scripts and the workflow: hashes, zip entries, nuspec identity, bridge fingerprint, `SHA256SUMS` text, JSON writing, the signed-copy comparison, the draft-release asset plan, the pull request lookup and the qualification gate. No environment, network or step-summary access. | every job below |
 | `Export-PackageSbom.ps1` | Extracts `_manifest/spdx_2.2/manifest.spdx.json` from the nupkg byte for byte. Fails when it is absent, is not `SPDX-2.2`, or disagrees with the `.sha256` file the SBOM tool writes next to it. | `attest` |
 | `New-Sha256Sums.ps1` | Writes `SHA256SUMS`: `<sha256>  <name>` per asset, ordinal order, LF, final newline, UTF-8 without BOM, the format `sha256sum -c` reads. | `attest` |
 | `New-ReleaseTuple.ps1` | Writes `CheatEngine.SDK.<version>.tuple.json` (schema [`release-tuple.v0.schema.json`](release-tuple.v0.schema.json)), `PrePublish` or `Published`. | `attest` (`PrePublish`), `finalize-release` (`Published`) |
 | `Test-PublishedPackage.ps1` | Polls the nuget.org flat container (resolved from the service index) until the version is listed, downloads the repository-signed file, runs `dotnet nuget verify --all` on it, checks that it reports the content hash of the attested package and a nuget.org repository signature, and that the signed copy is the attested package plus `.signature.p7s`, every other entry byte-identical. Writes the signed SHA-256 and SHA-512. | `verify-publication` |
+| `Test-ReleaseQualification.ps1` | The Checkpoint F gate: rows Q02-Q10, Q40 and Q41 of `docs/qualification/matrix.json` must pass at every required level for the released tree (a C3/C4 pass names that tree or carries a transfer justification), or be listed under `### Qualification waivers` in the release notes. `Enforce` fails on an open row, `Report` lists them in a notice. | `verify` (`Enforce` for a stable tag, `Report` for a prerelease or a dry run) |
 | `release-tuple.v0.schema.json` | JSON Schema (draft 2020-12) of the tuple. `ReleaseTupleSchemaTests` keeps it equal to the C# validator the tests use. | — |
 
 Every script fails with a single `::error::` line, which is also an annotation on the workflow run, and writes no
@@ -26,6 +27,7 @@ unsigned CI package: an unsigned package has no signature to verify
 
 | Job | Reads | Produces |
 |-----|-------|----------|
+| `verify` | the tag, `CHANGELOG.md`, `docs/qualification/matrix.json` | `release-notes`; the qualification gate verdict |
 | `ci` (`ci.yml`) | the tag | `nuget-package` (the one nupkg the Release leg packed and tested), `build-info` |
 | `attest` | `nuget-package`, `build-info`, the checkout | the SBOM, the two attestation bundles (tag runs only), `SHA256SUMS` and the `PrePublish` tuple, uploaded as `attestation-bundles` (never a second copy of the nupkg) |
 | `draft-release` | `nuget-package`, `attestation-bundles`, `release-notes` | the draft release with every asset; on a re-run, only the missing assets (only the tuple may be replaced) |

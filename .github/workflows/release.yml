@@ -135,6 +135,25 @@ jobs:
           @($notes, '', "NuGet package: https://www.nuget.org/packages/CheatEngine.SDK/$env:VERSION") -join "`n" |
             Set-Content -LiteralPath artifacts/release-notes.md -Encoding utf8NoBOM
 
+      # Checkpoint F (RELEASING.md): a stable tag needs Q02-Q10, Q40 and Q41 qualified for the released tree, or waived
+      # under '### Qualification waivers' in its release notes. Prereleases and dry runs only report the open rows.
+      - name: Check the qualification gate
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+          PRERELEASE: ${{ steps.tag.outputs.prerelease }}
+          TREE: ${{ steps.tag.outputs.tree }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $gate = @{ MatrixPath = 'docs/qualification/matrix.json'; TreeHash = $env:TREE; Mode = 'Report' }
+          if ($env:VERSION) {
+            $gate.ReleaseNotesPath = 'artifacts/release-notes.md'
+            if ($env:PRERELEASE -eq 'false') { $gate.Mode = 'Enforce' }
+          }
+          ./eng/release/Test-ReleaseQualification.ps1 @gate
+          if ($LASTEXITCODE -ne 0) {
+            throw "The qualification gate refused the release with exit code $LASTEXITCODE."
+          }
+
       - name: Upload release notes
         if: steps.tag.outputs.version != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

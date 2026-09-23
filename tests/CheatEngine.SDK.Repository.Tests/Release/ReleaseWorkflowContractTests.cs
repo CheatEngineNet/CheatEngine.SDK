@@ -102,6 +102,31 @@ public sealed class ReleaseWorkflowContractTests
 	}
 
 	[Fact]
+	public void Stable_tags_are_gated_on_the_qualification_matrix_before_anything_is_built()
+	{
+		YamlMappingNode verify = ReleaseWorkflow.Load().Job("verify");
+		List<YamlMappingNode> steps = ReleaseWorkflow.Steps(verify);
+
+		// Checkpoint F (AR-06): Enforce for a stable version, Report for a prerelease or a dry run, on the released tree.
+		YamlMappingNode gate = Assert.Single(steps,
+			static step => (ReleaseWorkflow.Scalar(step, "run") ?? "").Contains("./eng/release/Test-ReleaseQualification.ps1", StringComparison.Ordinal));
+		Assert.Null(ReleaseWorkflow.Scalar(gate, "if"));
+		string run = ReleaseWorkflow.Scalar(gate, "run")!;
+		Assert.Contains("MatrixPath = 'docs/qualification/matrix.json'", run, StringComparison.Ordinal);
+		Assert.Contains("if ($env:PRERELEASE -eq 'false') { $gate.Mode = 'Enforce' }", run, StringComparison.Ordinal);
+		Assert.Contains("$gate.ReleaseNotesPath = 'artifacts/release-notes.md'", run, StringComparison.Ordinal);
+		YamlMappingNode env = ReleaseWorkflow.Mapping(gate, "env")!;
+		Assert.Equal("${{ steps.tag.outputs.tree }}", ReleaseWorkflow.Scalar(env, "TREE"));
+		Assert.Equal("${{ steps.tag.outputs.prerelease }}", ReleaseWorkflow.Scalar(env, "PRERELEASE"));
+
+		// The notes it reads are the ones the draft carries: extracted before the gate, uploaded after it.
+		int extract = steps.FindIndex(static step => string.Equals(ReleaseWorkflow.Scalar(step, "name"), "Extract release notes", StringComparison.Ordinal));
+		int upload = steps.FindIndex(static step => string.Equals(ReleaseWorkflow.Scalar(step, "name"), "Upload release notes", StringComparison.Ordinal));
+		Assert.True(extract >= 0 && extract < steps.IndexOf(gate) && steps.IndexOf(gate) < upload,
+			"The qualification gate must run after the release notes are extracted and before they are uploaded.");
+	}
+
+	[Fact]
 	public void Attest_job_attests_the_package_provenance_and_its_spdx_2_2_sbom()
 	{
 		YamlMappingNode attest = ReleaseWorkflow.Load().Job("attest");

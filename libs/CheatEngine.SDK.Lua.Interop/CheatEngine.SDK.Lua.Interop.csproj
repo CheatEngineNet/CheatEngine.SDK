@@ -17,12 +17,14 @@
 
   <ItemGroup>
     <!-- The repository-owned catalogue is the only source of generated managed operation numbers and bitmap. -->
-    <AdditionalFiles Include="../../eng/lua-bridge/protected-operations.json"
-                     Link="eng/lua-bridge/protected-operations.json"/>
     <!-- Repo-only build input: this component is not packed and never reaches an SDK consumer. -->
-    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBridgeContract/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.LuaBridgeContract/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="..\..\eng\">
+      <Link>eng</Link>
+    </Folder>
   </ItemGroup>
 
 </Project>

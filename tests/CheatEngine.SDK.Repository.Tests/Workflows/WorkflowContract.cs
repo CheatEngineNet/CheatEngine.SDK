@@ -86,9 +86,9 @@ internal static class WorkflowContract
 	};
 
 	/// <summary>
-	///     Every artifact name a workflow may upload (contract 1.9 with the orchestrator's <c>attestation-bundles</c> and
-	///     <c>dependency-snapshot</c>), with its retention in days, or null where the contract leaves it to the producer.
-	///     <c>{configuration}</c> is Debug or
+	///     Every artifact name a workflow may upload (contract 1.9, the orchestrator's <c>attestation-bundles</c>, and the
+	///     names of the advisory governance workflows), with its retention in days, or null where the contract leaves it
+	///     to the producer. <c>{configuration}</c> is Debug or
 	///     Release; <c>binlogs-*</c> names are checked by pattern with <see cref="BinlogRetention" />.
 	/// </summary>
 	public static readonly Dictionary<string, string?> ReservedArtifacts = new(StringComparer.Ordinal)
@@ -106,8 +106,12 @@ internal static class WorkflowContract
 		["lua-surface-report"] = "30",
 		["client-canary-report"] = "14",
 		["attestation-bundles"] = null,
-		// The advisory dependency-submission.yml hands its snapshot from the detect job to the submit job.
-		["dependency-snapshot"] = "5"
+		// Advisory workflows outside the gate: dependency-submission.yml hands its snapshot from the detect job to the
+		// submit job, and scheduled-health.yml keeps its canary, repeated-test and bridge-drift reports.
+		["dependency-snapshot"] = "5",
+		["health-sdk-canary"] = "14",
+		["health-test-repeat"] = "14",
+		["health-bridge-drift"] = "30"
 	};
 
 	/// <summary>

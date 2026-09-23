@@ -32,6 +32,7 @@
   </Folder>
   <Folder Name="/.github/workflows/">
     <File Path=".github/workflows/ci.yml"/>
+    <File Path=".github/workflows/codeql.yml"/>
     <File Path=".github/workflows/main-ci.yml"/>
     <File Path=".github/workflows/release.yml"/>
     <File Path=".github/workflows/pull-request-ci.yml"/>

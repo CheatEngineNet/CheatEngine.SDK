@@ -33,7 +33,9 @@ internal static partial class TestMethodTraits
 
 	private static Regex MethodDeclaration(string methodName)
 	{
-		return new Regex($@"\bvoid\s+{Regex.Escape(methodName)}\s*\(", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+		// Test methods return void, Task or ValueTask (async or not).
+		return new Regex($@"\b(?:void|Task|ValueTask)\s+{Regex.Escape(methodName)}\s*\(", RegexOptions.CultureInvariant,
+			TimeSpan.FromSeconds(1));
 	}
 
 	[GeneratedRegex(@"Trait\(\s*""Qualification""\s*,\s*""(?<id>[^""]+)""\s*\)", RegexOptions.CultureInvariant, 1000)]

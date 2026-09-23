@@ -392,6 +392,81 @@ public sealed class RuntimeContractsTests
 	}
 
 	[Fact]
+	public void runtime_info_created_from_observations_uses_the_configured_pointer_size_and_keeps_unknowns()
+	{
+		CheatEngineHostObservation host = new(CheatEngineVersion.Ce77010621, CheatEngineArchitecture.X64, true,
+			CheatEngineOperatingSystem.Windows);
+		TargetArchitectureObservation narrowed = new(new TargetProcessId(4242), TargetBackend.LocalProcess,
+			PointerSize.Bit64, true, false, false, 0, 4);
+		TargetArchitectureObservation odd = narrowed with
+		{
+		};
+		TargetArchitectureObservation unknownFamilies = new(new TargetProcessId(4242), TargetBackend.Unknown,
+			PointerSize.Bit64, null, null, null, 9, 2);
+
+		RuntimeInfo info = new(host, narrowed, RuntimeCapabilities.Empty);
+		RuntimeInfo withoutTarget = new(host with
+		{
+			FileVersion = null
+		}, null, RuntimeCapabilities.Empty);
+		RuntimeInfo unknown = new(host, unknownFamilies, RuntimeCapabilities.Empty);
+
+		Assert.Equal(host, info.Host);
+		Assert.Equal(narrowed, info.Target);
+		Assert.Equal(odd, info.Target);
+		Assert.Equal(CheatEngineVersion.Ce77010621, info.Version);
+		Assert.Equal(CheatEngineArchitecture.X64, info.SystemArchitecture);
+		Assert.Equal(CheatEngineArchitecture.X64, info.TargetArchitecture);
+		Assert.Equal(PointerSize.Bit32, info.PointerSize);
+		Assert.Equal(PointerSize.Bit64, info.Target?.Bitness);
+		Assert.Equal(TargetAbi.Windows, info.TargetAbi);
+
+		Assert.Null(withoutTarget.Target);
+		Assert.Equal(default, withoutTarget.Version);
+		Assert.Equal(CheatEngineArchitecture.Unknown, withoutTarget.TargetArchitecture);
+		Assert.Equal(PointerSize.Unknown, withoutTarget.PointerSize);
+		Assert.Equal(TargetAbi.Unknown, withoutTarget.TargetAbi);
+
+		Assert.Equal(CheatEngineArchitecture.Unknown, unknown.TargetArchitecture);
+		Assert.Equal(PointerSize.Unknown, unknown.PointerSize);
+		Assert.Equal(TargetAbi.Unknown, unknown.TargetAbi);
+		Assert.Throws<ArgumentNullException>(() => new RuntimeInfo(host, null, null!));
+	}
+
+	[Fact]
+	public void legacy_runtime_info_constructor_keeps_caller_supplied_facts()
+	{
+		RuntimeInfo info = new(new CheatEngineVersion(7, 5, 0, 0), CheatEngineArchitecture.X64,
+			CheatEngineArchitecture.Arm64, PointerSize.Bit64, TargetAbi.Unix, RuntimeCapabilities.Empty);
+
+		Assert.Null(info.Host);
+		Assert.Null(info.Target);
+		Assert.Equal(new CheatEngineVersion(7, 5, 0, 0), info.Version);
+		Assert.Equal(CheatEngineArchitecture.Arm64, info.TargetArchitecture);
+		Assert.Equal(PointerSize.Bit64, info.PointerSize);
+		Assert.Equal(TargetAbi.Unix, info.TargetAbi);
+	}
+
+	[Fact]
+	public void system_architecture_i386_is_reported_as_a_host_fact_and_never_changes_target_facts()
+	{
+		// An i386 Cheat Engine host (getSystemArchitecture() == 0) is an unsupported route of the x64-only SDK; the fact
+		// is still reported as-is and never rewrites the target facts or the CE bitness fact.
+		Assert.True(RuntimeInfo.TryDecodeSystemArchitecture(0, out CheatEngineArchitecture i386));
+		CheatEngineHostObservation host = new(null, i386, null, CheatEngineOperatingSystem.Windows);
+		TargetArchitectureObservation x64Target = new(new TargetProcessId(4242), TargetBackend.LocalProcess,
+			PointerSize.Bit64, true, false, false, 0, 8);
+
+		RuntimeInfo info = new(host, x64Target, RuntimeCapabilities.Empty);
+
+		Assert.Equal(CheatEngineArchitecture.X86, info.SystemArchitecture);
+		Assert.Null(info.Host?.CheatEngineIs64Bit);
+		Assert.Equal(CheatEngineArchitecture.X64, info.TargetArchitecture);
+		Assert.Equal(PointerSize.Bit64, info.PointerSize);
+		Assert.Equal(PointerSize.Bit64, info.Target?.Bitness);
+	}
+
+	[Fact]
 	public void RuntimeInfo_constructor_preserves_explicit_runtime_facts_without_normalization()
 	{
 		RuntimeCapabilities capabilities = RuntimeCapabilities.Create(

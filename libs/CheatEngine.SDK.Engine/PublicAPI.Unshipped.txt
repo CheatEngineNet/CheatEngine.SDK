@@ -214,6 +214,7 @@ CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.TargetChanged = 7 ->
 CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.TargetNotAttached = 2 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
 CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.Unknown = 0 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
 CheatEngine.SDK.Engine.Processes.RuntimeHostOperations
+CheatEngine.SDK.Engine.Processes.RuntimeObservations
 CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations
 CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation
 CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.CheatEngineHostObservation() -> void
@@ -235,6 +236,9 @@ CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem.Unknown = 0 -> CheatEn
 CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem.Windows = 1 -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
 CheatEngine.SDK.Engine.Runtime.PointerSize.TryReadLittleEndian(System.ReadOnlySpan<byte> source, out ulong value) -> bool
 CheatEngine.SDK.Engine.Runtime.PointerSize.TryWriteLittleEndian(ulong value, System.Span<byte> destination) -> bool
+CheatEngine.SDK.Engine.Runtime.RuntimeInfo.Host.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation?
+CheatEngine.SDK.Engine.Runtime.RuntimeInfo.RuntimeInfo(CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation host, CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation? target, CheatEngine.SDK.Engine.Runtime.RuntimeCapabilities! capabilities) -> void
+CheatEngine.SDK.Engine.Runtime.RuntimeInfo.Target.get -> CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation?
 CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation
 CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Abi.get -> CheatEngine.SDK.Engine.Runtime.TargetAbi
 CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.AbiCode.get -> int?
@@ -507,6 +511,7 @@ static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetOperatingSys
 static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetSystemArchitecture(out CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture architecture) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
 static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetTargetAbi(out CheatEngine.SDK.Engine.Runtime.TargetAbi abi) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
 static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryIsCheatEngine64Bit(out bool is64Bit) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeObservations.TryObserveRuntimeInfo(out CheatEngine.SDK.Engine.Runtime.RuntimeInfo? info) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.ObserveCurrent(out CheatEngine.SDK.Engine.Processes.CurrentProcessObservation observation) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.ObserveTargetArchitecture(out CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation observation) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.SelectAndObserve(CheatEngine.SDK.Engine.Inspection.TargetProcessId processId, out CheatEngine.SDK.Engine.Processes.CurrentProcessObservation observation) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus

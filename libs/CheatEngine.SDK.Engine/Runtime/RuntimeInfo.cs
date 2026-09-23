@@ -3,24 +3,37 @@ using System;
 namespace CheatEngine.SDK.Engine.Runtime;
 
 /// <summary>
-///     An immutable, caller-supplied Cheat Engine runtime snapshot: complete version, CE host and target architecture,
+///     An immutable Cheat Engine runtime snapshot: complete version, CE host and target architecture, CE's configured
 ///     pointer size, target ABI, and optional capability observations.
 /// </summary>
 /// <remarks>
-///     This type makes no runtime call and does not infer one fact from another. In particular,
-///     <see cref="TargetArchitecture" /> stays <see cref="CheatEngineArchitecture.Unknown" /> until target probes
-///     establish it, and <see cref="Capabilities" /> may contain unknown availability or contract fields.
+///     <para>
+///         The SDK produces a snapshot with <c>CheatEngine.SDK.Engine.Processes.RuntimeObservations.TryObserveRuntimeInfo</c>,
+///         which fills <see cref="Host" /> and, when a target is selected, <see cref="Target" />; the legacy properties are
+///         then derived from those observations without inference. A snapshot can also carry caller-supplied facts
+///         through the legacy constructor, in which case <see cref="Host" /> and <see cref="Target" /> are
+///         <see langword="null" />.
+///     </para>
+///     <para>
+///         This type makes no runtime call and does not infer one fact from another. In particular,
+///         <see cref="TargetArchitecture" /> stays <see cref="CheatEngineArchitecture.Unknown" /> until target probes
+///         establish it, and <see cref="Capabilities" /> may contain unknown availability or contract fields.
+///     </para>
 /// </remarks>
 public sealed class RuntimeInfo
 {
-	/// <summary>Initializes a runtime snapshot from explicit observations.</summary>
+	/// <summary>Initializes a runtime snapshot from explicit, caller-supplied facts.</summary>
 	/// <param name="version">The complete Cheat Engine file version.</param>
 	/// <param name="systemArchitecture">The CE host architecture reported by <c>getSystemArchitecture</c>.</param>
 	/// <param name="targetArchitecture">The architecture established by target probes, or unknown.</param>
-	/// <param name="pointerSize">The observed pointer width for the applicable process context, or unknown.</param>
+	/// <param name="pointerSize">
+	///     The pointer size the caller attributes to this snapshot, or unknown. An SDK-produced snapshot uses Cheat
+	///     Engine's configured pointer size (<c>getPointerSize</c>) here.
+	/// </param>
 	/// <param name="targetAbi">The ABI family reported by <c>getABI</c>, or unknown.</param>
 	/// <param name="capabilities">The immutable optional-capability observations for this snapshot.</param>
 	/// <exception cref="System.ArgumentNullException"><paramref name="capabilities" /> is <see langword="null" />.</exception>
+	/// <remarks>This constructor records caller-supplied facts as-is; <see cref="Host" /> and <see cref="Target" /> stay <see langword="null" />.</remarks>
 	public RuntimeInfo(
 		CheatEngineVersion version,
 		CheatEngineArchitecture systemArchitecture,
@@ -37,7 +50,52 @@ public sealed class RuntimeInfo
 		Capabilities = capabilities ?? throw new ArgumentNullException(nameof(capabilities));
 	}
 
-	/// <summary>Gets the complete CE file version supplied for this snapshot.</summary>
+	/// <summary>Initializes a runtime snapshot from separate host and target observations.</summary>
+	/// <param name="host">The Cheat Engine host facts.</param>
+	/// <param name="target">The selected target's facts, or <see langword="null" /> when no target facts were observed.</param>
+	/// <param name="capabilities">The immutable optional-capability observations for this snapshot.</param>
+	/// <exception cref="System.ArgumentNullException"><paramref name="capabilities" /> is <see langword="null" />.</exception>
+	/// <remarks>
+	///     The legacy properties are derived without inference: <see cref="Version" /> is the observed file version or
+	///     the default value when it was not observed, <see cref="TargetArchitecture" /> is
+	///     <see cref="TargetArchitectureObservation.Architecture" />, <see cref="PointerSize" /> is Cheat Engine's
+	///     configured pointer size (<see cref="TargetArchitectureObservation.ConfiguredPointerSize" />, not the target
+	///     bitness), and <see cref="TargetAbi" /> is <see cref="TargetArchitectureObservation.Abi" />; each is unknown
+	///     without a target.
+	/// </remarks>
+	public RuntimeInfo(CheatEngineHostObservation host, TargetArchitectureObservation? target,
+		RuntimeCapabilities capabilities)
+	{
+		Host = host;
+		Target = target;
+		Version = host.FileVersion ?? default;
+		SystemArchitecture = host.SystemArchitecture;
+		TargetArchitecture = target?.Architecture ?? CheatEngineArchitecture.Unknown;
+		PointerSize = target?.ConfiguredPointerSize ?? PointerSize.Unknown;
+		TargetAbi = target?.Abi ?? TargetAbi.Unknown;
+		Capabilities = capabilities ?? throw new ArgumentNullException(nameof(capabilities));
+	}
+
+	/// <summary>Gets the Cheat Engine host observation of an SDK-produced snapshot, or <see langword="null" /> for caller-supplied facts.</summary>
+	public CheatEngineHostObservation? Host
+	{
+		get;
+	}
+
+	/// <summary>
+	///     Gets the selected target's observation of an SDK-produced snapshot, or <see langword="null" /> when no target
+	///     was selected, its facts could not be read, or the snapshot holds caller-supplied facts.
+	/// </summary>
+	/// <remarks>The target bitness is <see cref="TargetArchitectureObservation.Bitness" />; it is not <see cref="PointerSize" />.</remarks>
+	public TargetArchitectureObservation? Target
+	{
+		get;
+	}
+
+	/// <summary>
+	///     Gets the complete CE file version of this snapshot; the default value means it was not observed (for an
+	///     SDK-produced snapshot, <c>getCheatEngineFileVersion</c> was absent or returned no value).
+	/// </summary>
 	public CheatEngineVersion Version
 	{
 		get;
@@ -55,7 +113,15 @@ public sealed class RuntimeInfo
 		get;
 	}
 
-	/// <summary>Gets the observed pointer width for the applicable process context, or unknown.</summary>
+	/// <summary>
+	///     Gets Cheat Engine's configured pointer size (<c>getPointerSize</c>) when the SDK produced this snapshot, or the
+	///     caller-supplied width; unknown when it was not observed or is not 4 or 8 bytes.
+	/// </summary>
+	/// <remarks>
+	///     This is not the target bitness: Cheat Engine keeps the configured size separately, <c>setPointerSize</c> can
+	///     change it, and <c>readPointer</c> follows the bitness instead (spike C3 D3). Read the bitness from
+	///     <see cref="TargetArchitectureObservation.Bitness" /> through <see cref="Target" />.
+	/// </remarks>
 	public PointerSize PointerSize
 	{
 		get;

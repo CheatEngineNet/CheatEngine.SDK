@@ -6,7 +6,8 @@ using CheatEngine.SDK.Engine.Values;
 namespace CheatEngine.SDK.Engine.Scanning.Aob;
 
 /// <summary>
-///     A non-empty, half-open target-address range <c>[Start, Stop)</c>: the CE work limit of the bounded AOB route.
+///     A non-empty, half-open target-address range <c>[Start, Stop)</c>: the CE work limit of
+///     <see cref="AobScanner.TryScanWithinBounds(string, AobScanBounds, AobScanOptions, System.Span{Address}, System.Threading.CancellationToken)" />.
 /// </summary>
 /// <remarks>
 ///     <para>

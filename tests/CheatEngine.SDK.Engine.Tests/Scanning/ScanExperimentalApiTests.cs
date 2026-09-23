@@ -20,6 +20,7 @@ public sealed class ScanExperimentalApiTests
 	{
 		SortedSet<string> expected = new(StringComparer.Ordinal)
 		{
+			"CESDK5010 AobScanner.TryScanWithinBounds(String, AobScanBounds, AobScanOptions, TimeSpan, Span<Address>, CancellationToken)",
 			"CESDK5010 MemoryScanSession.TryTerminateScan(TimeSpan)",
 			"CESDK5010 MemoryScanSession.TryWaitForCompletion(TimeSpan)"
 		};

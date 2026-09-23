@@ -12,8 +12,8 @@ namespace CheatEngine.SDK.Engine.Tests.Scanning;
 /// </summary>
 public sealed class ScanStatusContractTests
 {
-	/// <summary>Every pinned member of every SDK-owned scan status/outcome enum, as (type, name, value).</summary>
-	public static TheoryData<Type, string, long> PinnedMembers => new()
+	/// <summary>The AOB status and outcome enums, as (type, name, value).</summary>
+	public static TheoryData<Type, string, long> AobPins => new()
 	{
 		{ typeof(AobScanStatus), "Unknown", 0 },
 		{ typeof(AobScanStatus), "Success", 1 },
@@ -21,6 +21,24 @@ public sealed class ScanStatusContractTests
 		{ typeof(AobScanStatus), "LuaFailure", 3 },
 		{ typeof(AobScanStatus), "NoResult", 4 },
 		{ typeof(AobScanStatus), "InvalidResult", 5 },
+		{ typeof(AobBoundedScanOutcomeKind), "Unknown", 0 },
+		{ typeof(AobBoundedScanOutcomeKind), "Matches", 1 },
+		{ typeof(AobBoundedScanOutcomeKind), "NoMatches", 2 },
+		{ typeof(AobBoundedScanOutcomeKind), "InvalidBounds", 3 },
+		{ typeof(AobBoundedScanOutcomeKind), "SessionCreationFailed", 4 },
+		{ typeof(AobBoundedScanOutcomeKind), "ScanFailed", 5 },
+		{ typeof(AobBoundedScanOutcomeKind), "WaitTimedOut", 6 },
+		{ typeof(AobBoundedScanOutcomeKind), "HostReportedError", 7 },
+		{ typeof(AobBoundedScanOutcomeKind), "InvalidResult", 8 },
+		{ typeof(AobBoundedScanOutcomeKind), "TargetChanged", 9 },
+		{ typeof(AobBoundedScanOutcomeKind), "TargetIdentityUnavailable", 10 },
+		{ typeof(AobBoundedScanOutcomeKind), "RuntimeInvalidated", 11 },
+		{ typeof(AobBoundedScanOutcomeKind), "Cancelled", 12 }
+	};
+
+	/// <summary>The session creation and materialization enums, as (type, name, value).</summary>
+	public static TheoryData<Type, string, long> FactoryAndCopyPins => new()
+	{
 		{ typeof(MemoryScanCreationStatus), "Unknown", 0 },
 		{ typeof(MemoryScanCreationStatus), "Success", 1 },
 		{ typeof(MemoryScanCreationStatus), "GlobalUnavailable", 2 },
@@ -42,7 +60,12 @@ public sealed class ScanStatusContractTests
 		{ typeof(MemoryScanMaterializationStatus), "TargetIdentityMismatch", 7 },
 		{ typeof(MemoryScanMaterializationStatus), "LuaFailure", 8 },
 		{ typeof(MemoryScanMaterializationStatus), "InvalidResult", 9 },
-		{ typeof(MemoryScanMaterializationStatus), "PageStartOutOfRange", 10 },
+		{ typeof(MemoryScanMaterializationStatus), "PageStartOutOfRange", 10 }
+	};
+
+	/// <summary>The wait, termination and invalidation enums of a session, as (type, name, value).</summary>
+	public static TheoryData<Type, string, long> SessionPins => new()
+	{
 		{ typeof(MemoryScanWaitStatus), "Unknown", 0 },
 		{ typeof(MemoryScanWaitStatus), "Completed", 1 },
 		{ typeof(MemoryScanWaitStatus), "TimedOut", 2 },
@@ -111,6 +134,18 @@ public sealed class ScanStatusContractTests
 	}
 
 	[Fact]
+	public void AobBoundedScanResult_default_is_unknown_and_never_success()
+	{
+		AobBoundedScanResult result = default;
+
+		Assert.Equal(AobBoundedScanOutcomeKind.Unknown, result.Kind);
+		Assert.False(result.IsSuccess);
+		Assert.False(result.InBoundsCountIsExact);
+		Assert.Equal(MemoryScanTerminationStatus.Unknown, result.Termination);
+		Assert.Null(result.HostErrorText);
+	}
+
+	[Fact]
 	public void MemoryScanCreationOutcome_default_status_is_unknown()
 	{
 		MemoryScanCreationOutcome outcome = default;
@@ -120,7 +155,9 @@ public sealed class ScanStatusContractTests
 	}
 
 	[Theory]
-	[MemberData(nameof(PinnedMembers))]
+	[MemberData(nameof(AobPins))]
+	[MemberData(nameof(FactoryAndCopyPins))]
+	[MemberData(nameof(SessionPins))]
 	public void Scan_status_enums_pin_their_numeric_values(Type enumType, string name, long value)
 	{
 		Assert.True(Enum.IsDefined(enumType, name), $"{enumType.Name}.{name} is not declared.");
@@ -134,7 +171,7 @@ public sealed class ScanStatusContractTests
 	public void Scan_status_enums_declare_exactly_the_pinned_members()
 	{
 		Dictionary<Type, SortedSet<string>> pinned = [];
-		foreach (TheoryDataRow<Type, string, long> row in PinnedMembers)
+		foreach (TheoryDataRow<Type, string, long> row in AobPins.Concat(FactoryAndCopyPins).Concat(SessionPins))
 		{
 			(Type enumType, string name, _) = row.Data;
 			if (!pinned.TryGetValue(enumType, out SortedSet<string>? names))

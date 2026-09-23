@@ -1,9 +1,13 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 
 using CheatEngine.SDK.Annotations.Lifetime;
+using CheatEngine.SDK.Annotations.Threading;
 using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Engine.Scanning.Values;
 using CheatEngine.SDK.Engine.Targets;
+using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.CompilerServices;
 using CheatEngine.SDK.Lua.Marshalling;
@@ -49,11 +53,22 @@ namespace CheatEngine.SDK.Engine.Scanning.Aob;
 ///         original exception. No owner escapes and no list is leaked or destroyed twice.
 ///     </para>
 ///     <para>
-///         The CE primitive is synchronous and this SDK exposes no range/module restriction, result limit, early-stop,
-///         or <c>CancellationToken</c> parameter for it: none is a verified <c>AOBScan</c> execution control. A Client
-///         may decide whether to admit or wait for work and may cap strings after copying them, but neither action
-///         interrupts a running CE scan or proves a bound on CE work. Copy every needed string while the returned owner
-///         is alive, then dispose that owner exactly once.
+///         The global <c>AOBScan</c> primitive is synchronous and unbounded: this SDK exposes no range/module restriction,
+///         result limit, early-stop, or <c>CancellationToken</c> parameter for it, because none is a verified
+///         <c>AOBScan</c> execution control. Its native cost is a scan of the whole address space whatever a caller
+///         filters afterwards. A Client may cap strings after copying them, but that neither interrupts a running CE scan
+///         nor bounds CE work. Copy every needed string while the returned owner is alive, then dispose that owner exactly
+///         once.
+///     </para>
+///     <para>
+///         The bounded route is
+///         <see cref="TryScanWithinBounds(string, AobScanBounds, AobScanOptions, Span{Address}, CancellationToken)" />: a
+///         MemScan byte-array scan whose CE work is limited to <c>[Start, Stop)</c>, exhaustive (never a first match),
+///         with an address-only copy. Its four limits are distinct: the CE work limit (<see cref="AobScanBounds" />), the
+///         available results (<see cref="AobBoundedScanResult.HostResultCount" />), the materialization limit (the
+///         destination length, <see cref="AobBoundedScanResult.IsMaterializationLimitReached" />) and the call deadline
+///         (the optional wait timeout, <see cref="AobBoundedScanOutcomeKind.WaitTimedOut" />). Uniqueness needs an
+///         exhausted domain or a second in-bounds match, never a first-found scan.
 ///     </para>
 /// </remarks>
 public static class AobScanner
@@ -213,6 +228,105 @@ public static class AobScanner
 		out Owned<StringList>? results, out AobScanTargetContext targetContext)
 	{
 		return TryScanOutcomeCore(pattern, options, PublishResultList, out results, out targetContext);
+	}
+
+	/// <summary>
+	///     Runs an exhaustive AOB scan whose CE work is bounded by <paramref name="bounds" />, through a MemScan session,
+	///     and copies the in-bounds match addresses into <paramref name="destination" />.
+	/// </summary>
+	/// <param name="pattern">CE's byte-array pattern text, passed without normalization.</param>
+	/// <param name="bounds">
+	///     The CE work limit <c>[Start, Stop)</c>. An invalid value (the default) is refused before any CE call with
+	///     <see cref="AobBoundedScanOutcomeKind.InvalidBounds" />.
+	/// </param>
+	/// <param name="options">
+	///     CE's protection and alignment arguments. A <see langword="null" /> protection string is passed as CE's "find
+	///     everything" empty string.
+	/// </param>
+	/// <param name="destination">
+	///     The materialization limit: in-bounds addresses are written in CE's found-list order until it is full. It is
+	///     written only for <see cref="AobBoundedScanOutcomeKind.Matches" /> and
+	///     <see cref="AobBoundedScanOutcomeKind.NoMatches" />; any other outcome leaves it unchanged.
+	/// </param>
+	/// <param name="cancellationToken">
+	///     Observed before the session is created, before the scan starts, after it completes and between row reads; it
+	///     cannot interrupt a CE call already running. A cancelled scan publishes nothing and still releases its session.
+	/// </param>
+	/// <returns>The factual outcome, the four limits it met, the copy accounting and the separate durations.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+	/// <exception cref="ArgumentException"><paramref name="destination" /> is empty.</exception>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
+	/// <remarks>
+	///     <para>
+	///         Unlike the global <c>AOBScan</c> route, the CE work itself is bounded: the session's MemScan scans only
+	///         <c>[Start, Stop)</c> with a hexadecimal byte-array first scan
+	///         (<see cref="FirstScanRequest.ByteArray(string, Address, Address, string, Enums.FastScanMethod, string)" />).
+	///         The scan is exhaustive: <c>OnlyOneResult</c> is always switched off before it starts, and <c>IsUnique</c>,
+	///         <c>Result</c> and the scan callbacks are never used. On the pinned profile
+	///         <c>ce-7.7.0.10621-x64-managed-hostfxr</c> this route returned exactly the in-module subset of the global
+	///         route, in the same order (Lua-only host observation, spike 2026-09-22, D4.5; the Q28 C3 receipt is still
+	///         pending). CE's start bound is not byte-exact, so addresses below <see cref="AobScanBounds.Start" /> are
+	///         dropped and counted (<see cref="AobBoundedScanResult.BelowStartSkipped" />).
+	///     </para>
+	///     <para>
+	///         Zero in-bounds matches with an empty CE error text is the factual
+	///         <see cref="AobBoundedScanOutcomeKind.NoMatches" />; with a non-empty text it is
+	///         <see cref="AobBoundedScanOutcomeKind.HostReportedError" />, the text being copied but never parsed. Only the
+	///         addresses are read (one <c>getAddress</c> call per needed row, never <c>getValue</c>), and reading stops as
+	///         soon as the destination is full. Order is CE's found-list order, which CE does not document: never infer the
+	///         lowest address from the first element. Uniqueness needs an exhausted domain
+	///         (<see cref="AobBoundedScanResult.InBoundsCountIsExact" />) or a second in-bounds match (a destination of at
+	///         least two elements and <see cref="AobBoundedScanResult.Written" /> of two or more).
+	///     </para>
+	///     <para>
+	///         The call blocks CE's main thread for the scan, the copy and the release, and waits through CE's
+	///         no-timeout wait. The session is released once, child before parent, on every exit.
+	///     </para>
+	/// </remarks>
+	[MainThreadOnly]
+	[RequiresPluginEnabled]
+	public static AobBoundedScanResult TryScanWithinBounds(string pattern, AobScanBounds bounds, AobScanOptions options,
+		Span<Address> destination, CancellationToken cancellationToken)
+	{
+		ValidateBoundedArguments(pattern, destination);
+		return AobBoundedScan.Run(pattern, bounds, options, null, destination, cancellationToken);
+	}
+
+	/// <summary>
+	///     Runs the bounded, exhaustive AOB scan of
+	///     <see cref="TryScanWithinBounds(string, AobScanBounds, AobScanOptions, Span{Address}, CancellationToken)" />
+	///     with a call deadline on CE's wait.
+	/// </summary>
+	/// <param name="pattern">CE's byte-array pattern text, passed without normalization.</param>
+	/// <param name="bounds">The CE work limit <c>[Start, Stop)</c>; an invalid value is refused before any CE call.</param>
+	/// <param name="options">CE's protection and alignment arguments.</param>
+	/// <param name="waitTimeout">
+	///     The call deadline of CE's <c>waitTillDone(timeout)</c>: strictly positive and at most
+	///     <see cref="int.MaxValue" /> milliseconds; a sub-millisecond value rounds up to one millisecond.
+	/// </param>
+	/// <param name="destination">The materialization limit; written only for a successful outcome.</param>
+	/// <param name="cancellationToken">Observed between CE calls; it cannot interrupt a CE call already running.</param>
+	/// <returns>The factual outcome, the four limits it met, the copy accounting and the separate durations.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+	/// <exception cref="ArgumentException"><paramref name="destination" /> is empty.</exception>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="waitTimeout" /> is outside the accepted range.</exception>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
+	/// <remarks>
+	///     When the deadline expires first the outcome is <see cref="AobBoundedScanOutcomeKind.WaitTimedOut" />: the SDK
+	///     requests one cooperative stop (<c>terminateScan(false)</c>, then a five-second settle wait), reports it in
+	///     <see cref="AobBoundedScanResult.Termination" />, publishes nothing and releases the session without repeating
+	///     the stop. The timed-out wait and <c>terminateScan</c> were not observed on the pinned CE 7.7.0.10621 host
+	///     (spike D4.7), which is why this overload is experimental.
+	/// </remarks>
+	[Experimental("CESDK5010", UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
+	[MainThreadOnly]
+	[RequiresPluginEnabled]
+	public static AobBoundedScanResult TryScanWithinBounds(string pattern, AobScanBounds bounds, AobScanOptions options,
+		TimeSpan waitTimeout, Span<Address> destination, CancellationToken cancellationToken)
+	{
+		ValidateBoundedArguments(pattern, destination);
+		int milliseconds = MemoryScanSession.ToWaitMilliseconds(waitTimeout, nameof(waitTimeout));
+		return AobBoundedScan.Run(pattern, bounds, options, milliseconds, destination, cancellationToken);
 	}
 
 	// Test seam: the same protected call and classification as TryScanDetailed, with a substitutable owner
@@ -389,6 +503,17 @@ public static class AobScanner
 	private static Owned<StringList> PublishResultList(StringList list)
 	{
 		return new Owned<StringList>(list);
+	}
+
+	private static void ValidateBoundedArguments(string pattern, Span<Address> destination)
+	{
+		ArgumentNullException.ThrowIfNull(pattern);
+		if (destination.IsEmpty)
+		{
+			throw new ArgumentException(
+				"A bounded AOB scan needs a non-empty destination: its length is the materialization limit.",
+				nameof(destination));
+		}
 	}
 
 	private static TargetSelectionObservation ObserveTarget(LuaState state)

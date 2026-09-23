@@ -13,8 +13,9 @@ namespace CheatEngine.SDK.Engine.Scanning.Aob;
 ///         <see cref="NoResult" /> (host observation, spike 2026-09-22; the Q27 C3 receipt is still pending). On that
 ///         profile, <see cref="NoMatches" /> is therefore unreachable on the global route, and <see cref="NoResult" />
 ///         means "zero matches or a host failure that also produced no list": the SDK keeps it raw rather than
-///         converting it to a no-match classification. Only the bounded MemScan route reports a factual zero on that
-///         profile.
+///         converting it to a no-match classification. Only the bounded MemScan route,
+///         <see cref="AobScanner.TryScanWithinBounds(string, AobScanBounds, AobScanOptions, System.Span{CheatEngine.SDK.Engine.Values.Address}, System.Threading.CancellationToken)" />,
+///         reports a factual zero on that profile.
 ///     </para>
 ///     <para>Categories come from the result's Lua type and arity only, never from a Lua error message.</para>
 /// </remarks>

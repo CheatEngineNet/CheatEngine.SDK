@@ -16,10 +16,11 @@ only if you accept that, and handle every status they can return.
 Your code calls one of these `CheatEngine.SDK.Engine` members, which carry
 `[Experimental("CESDK5010")]`:
 
-| Member                                             | Relies on                                                         |
-|----------------------------------------------------|-------------------------------------------------------------------|
-| `MemoryScanSession.TryWaitForCompletion(TimeSpan)` | the `false` (timed-out) result of `MemScan.waitTillDone(timeout)` |
-| `MemoryScanSession.TryTerminateScan(TimeSpan)`     | `MemScan.terminateScan(false)` and the bounded wait that follows  |
+| Member                                                           | Relies on                                                         |
+|------------------------------------------------------------------|-------------------------------------------------------------------|
+| `MemoryScanSession.TryWaitForCompletion(TimeSpan)`               | the `false` (timed-out) result of `MemScan.waitTillDone(timeout)` |
+| `MemoryScanSession.TryTerminateScan(TimeSpan)`                   | `MemScan.terminateScan(false)` and the bounded wait that follows  |
+| `AobScanner.TryScanWithinBounds(..., TimeSpan waitTimeout, ...)` | both, when the call deadline expires before the scan completes    |
 
 ## Why it is experimental
 
@@ -32,7 +33,9 @@ tests (C1) only, not by the host.
 
 The members are still safe by construction: the SDK never forces termination (a forced stop can kill CE's scan thread
 and open a modal dialog on CE's main thread), requests the cooperative stop at most once, never retries it, and reports
-an unconfirmed stop instead of claiming one.
+an unconfirmed stop instead of claiming one. The bounded scan without a deadline,
+`AobScanner.TryScanWithinBounds(string, AobScanBounds, AobScanOptions, Span<Address>, CancellationToken)`, is not
+gated: the spike settled its range semantics, completeness and cost.
 
 ## How to opt in
 

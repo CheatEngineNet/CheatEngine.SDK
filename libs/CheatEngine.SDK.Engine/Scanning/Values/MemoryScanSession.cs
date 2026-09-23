@@ -1199,6 +1199,52 @@ public sealed class MemoryScanSession : IDisposable
 		return (value & 0xC0) == 0x80;
 	}
 
+	// Cores for the bounded AOB routes of AobScanner. They run inside the caller's admitted operation and never
+	// re-acquire it; state and context rules are enforced by the caller's sequence.
+
+	// MemScan.setOnlyOneResult(value): 1 argument, 0 results.
+	internal LuaStatus SetOnlyOneResultCore(LuaState state, bool value)
+	{
+		using LuaFrame frame = new(state);
+		state.PushBoolean(value);
+		return _scanner!.Value.Handle.TryCallMethod(state, "setOnlyOneResult"u8, 1, 0);
+	}
+
+	// The runtime and target check of every session operation, without throwing.
+	internal MemoryScanMaterializationStatus TryEnsureCurrentContextCore(LuaState state)
+	{
+		return TryEnsureCurrentContext(state);
+	}
+
+	// FoundList.getCount() of an initialized list; throws MemoryScanException (LuaError or UnexpectedResult).
+	internal ulong ReadResultCountCore(LuaState state)
+	{
+		return ReadResultCount(state, RequireResults());
+	}
+
+	// FoundList.getAddress(index) of an initialized list, read as UTF-8 and parsed without allocating. It never reads
+	// getValue: an address-only copy costs one CE call per row.
+	internal MemoryScanRowRead TryReadAddressRowCore(LuaState state, int index, out Address address,
+		out LuaStatus luaStatus)
+	{
+		using LuaFrame frame = new(state);
+		state.PushInteger(index);
+		luaStatus = RequireResults().Handle.TryCallMethod(state, "getAddress"u8, 1, 1);
+		if (!luaStatus.IsOk)
+		{
+			address = default;
+			return MemoryScanRowRead.LuaFailure;
+		}
+
+		if (!state.TryReadUtf8(-1, out ReadOnlySpan<byte> utf8) || !Address.TryParse(utf8, out address))
+		{
+			address = default;
+			return MemoryScanRowRead.InvalidResult;
+		}
+
+		return MemoryScanRowRead.Read;
+	}
+
 	private static MemoryScanWaitStatus ToWaitStatus(MemoryScanMaterializationStatus context)
 	{
 		return context switch

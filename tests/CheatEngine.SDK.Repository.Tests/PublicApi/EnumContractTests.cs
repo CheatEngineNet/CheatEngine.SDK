@@ -52,6 +52,7 @@ public sealed class EnumContractTests
 		["CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem"] = EnumCategory.ReasonOrEvidence,
 		["CheatEngine.SDK.Engine.Runtime.TargetBackend"] = EnumCategory.ReasonOrEvidence,
+		["CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone"] = EnumCategory.ReasonOrEvidence,

@@ -34,7 +34,11 @@ not established whether it is a size, version, or another discriminator, so Host
 `PluginInitRecord` from [`CheatEngine.SDK.Abi`](../CheatEngine.SDK.Abi/README.md). It copies the plugin name once into
 native memory that is
 never freed. ASCII is copied exactly. Other characters go through the process ANSI code page, and an unrepresentable
-one becomes `?`. A plugin that wants the same name on every machine keeps it ASCII. The library also builds on [
+one becomes `?`. A plugin that wants the same name on every machine keeps it ASCII. **Unqualified (2.0):** whether
+Cheat Engine 7.7 really reads a non-ASCII name as the process ANSI code page rather than UTF-8 has not been confirmed
+by a host-based qualification run — no local Cheat Engine qualification observation is available on this branch. The
+ANSI encoding is kept unchanged pending a future host-based qualification run (audit A02-22, A04-14, A20-Q05-3). The
+library also builds on [
 `CheatEngine.SDK.Lua`](../CheatEngine.SDK.Lua/README.md) and ships inside the `CheatEngine.SDK` package.
 
 | Type                                                                                                    | Role                                                                                                                                                                                 |

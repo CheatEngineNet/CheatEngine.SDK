@@ -10,4 +10,9 @@
     <Using Include="System.Xml.Linq"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Workflows/: parses .github/workflows/*.yml and the composite actions. -->
+    <PackageReference Include="YamlDotNet"/>
+  </ItemGroup>
+
 </Project>

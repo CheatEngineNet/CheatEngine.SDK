@@ -11,6 +11,9 @@ name: CI
 #   coverage                                           build-test (Debug) → sonar
 #   nuget-package                                      build-test (Release) → sonar, release publish, reviewers
 #   test-results-<configuration>                       build-test → humans
+#
+# No job restores or saves a NuGet cache: every job is reachable from the tag release run. Every restore is locked
+# against the committed packages.lock.json files (.github/actions/setup-dotnet).
 
 on:
   workflow_call:
@@ -42,8 +45,8 @@ defaults:
 jobs:
   native:
     name: Build native bridge
-    runs-on: windows-latest
-    timeout-minutes: 10
+    runs-on: windows-2025
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -162,8 +165,8 @@ jobs:
   build-test:
     name: Build and test (${{ matrix.configuration }})
     needs: native
-    runs-on: windows-latest
-    timeout-minutes: 30
+    runs-on: windows-2025
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -279,8 +282,8 @@ jobs:
   aot:
     name: Native AOT publication probe
     needs: native
-    runs-on: windows-latest
-    timeout-minutes: 20
+    runs-on: windows-2025
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -288,22 +291,14 @@ jobs:
           fetch-depth: 0 # MinVer computes the version from tags and history
           persist-credentials: false
 
+      # The three projects live outside the solution's test run; their lock files carry the win-x64 ILCompiler packages.
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
         with:
-          restore: tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj
-
-      - name: Restore Native AOT library loader harness
-        run: |
-          $ErrorActionPreference = 'Stop'
-          dotnet restore tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj
-          if ($LASTEXITCODE -ne 0) {
-            throw "Native AOT library probe restore failed with exit code $LASTEXITCODE."
-          }
-          dotnet restore tests/CheatEngine.SDK.NativeAotLoaderHarness/CheatEngine.SDK.NativeAotLoaderHarness.csproj
-          if ($LASTEXITCODE -ne 0) {
-            throw "Native AOT loader harness restore failed with exit code $LASTEXITCODE."
-          }
+          restore: |
+            tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj
+            tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj
+            tests/CheatEngine.SDK.NativeAotLoaderHarness/CheatEngine.SDK.NativeAotLoaderHarness.csproj
 
       - name: Use CI-built native bridge
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -375,8 +370,8 @@ jobs:
 
   lint:
     name: Lint workflows
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     env:
       ACTIONLINT_VERSION: 1.7.12
       ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 # linux_amd64, official checksums file
@@ -411,7 +406,7 @@ jobs:
     # always(): a failed or cancelled job must turn the required check red instead of skipping it.
     if: always()
     needs: [ native, build-test, aot, sonar, lint ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: { }
     steps:

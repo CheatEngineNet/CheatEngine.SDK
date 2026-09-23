@@ -36,7 +36,7 @@ defaults:
 jobs:
   analyze:
     name: Analyze
-    runs-on: windows-latest
+    runs-on: windows-2025
     timeout-minutes: 30
     env:
       SONAR_PROJECT_KEY: ${{ inputs.project-key }}
@@ -68,7 +68,7 @@ jobs:
           distribution: zulu
           java-version: '21'
 
-      # SDK and CLI settings only: the restore below must not use the checked-out nuget.config.
+      # SDK and CLI settings only: the restore below must not use the checked-out nuget.config. No package cache.
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
 
@@ -103,14 +103,15 @@ jobs:
           "path=$path" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       # Restore before scanner begin: the subsequent analysis build is --no-restore, so no PR-supplied source can
-      # participate while scanner credentials are configured.
+      # participate while scanner credentials are configured. Locked mode: exactly the packages of the committed lock
+      # files, from nuget.org only.
       - name: Restore from NuGet.org
         env:
           NUGET_CONFIG: ${{ steps.nuget-config.outputs.path }}
         run: |
-          dotnet restore CheatEngine.SDK.slnx --configfile $env:NUGET_CONFIG
+          dotnet restore CheatEngine.SDK.slnx --configfile $env:NUGET_CONFIG --locked-mode
           if ($LASTEXITCODE -ne 0) {
-            throw "Sonar restore failed with exit code $LASTEXITCODE."
+            throw "Sonar restore failed with exit code $LASTEXITCODE. If a dependency changed, regenerate the lock files with ./eng/Update-LockFiles.ps1."
           }
 
       - name: Install scanner

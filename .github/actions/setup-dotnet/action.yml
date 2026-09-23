@@ -1,28 +1,53 @@
 name: Setup .NET
-description: Installs the SDK pinned by global.json, quiets the CLI and optionally restores a solution or project.
+description: >-
+  Installs the exact SDK pinned by global.json, quiets the CLI and optionally restores solutions or projects in NuGet
+  locked mode.
 
 inputs:
   restore:
-    description: Solution or project to restore. Empty skips the restore.
+    description: >-
+      Newline-separated solutions or projects to restore, each with --locked-mode against its committed
+      packages.lock.json. Empty skips the restore.
     default: ''
+  cache:
+    description: >-
+      Cache the NuGet package folder, keyed on every packages.lock.json. Keep 'false' in every job reachable from a
+      release, Sonar or CodeQL run (ci.yml, sonar.yml, codeql.yml, release.yml): a cache written by a pull request run
+      must never feed a published build. WorkflowContractTests enforces it; only scheduled-health.yml may pass 'true'.
+    default: 'false'
 
 runs:
   using: composite
   steps:
+    # global.json pins the SDK with rollForward: disable, and runner images do not ship that exact feature band, so
+    # every job that runs dotnet installs it here.
     - name: Install SDK
       uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
       with:
         global-json-file: global.json
+        cache: ${{ inputs.cache }}
+        cache-dependency-path: '**/packages.lock.json'
 
     - name: Configure CLI
       shell: pwsh
-      run: |
+      run: | # zizmor: ignore[github-env] writes three constant literals only; no expression or user input reaches GITHUB_ENV
         'DOTNET_NOLOGO=1', 'DOTNET_CLI_TELEMETRY_OPTOUT=1', 'MSBUILDDISABLENODEREUSE=1' |
           Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+    # Locked mode fails with NU1004 when a committed lock file no longer matches the projects, instead of silently
+    # resolving different packages than the ones reviewed. Never combined with --force-evaluate (NU1005).
+    # https://learn.microsoft.com/nuget/consume-packages/package-references-in-project-files#locking-dependencies
     - name: Restore
       if: inputs.restore != ''
       shell: pwsh
       env:
-        RESTORE_TARGET: ${{ inputs.restore }}
-      run: dotnet restore $env:RESTORE_TARGET
+        RESTORE_TARGETS: ${{ inputs.restore }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $targets = @($env:RESTORE_TARGETS -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+        foreach ($target in $targets) {
+          dotnet restore $target --locked-mode
+          if ($LASTEXITCODE -ne 0) {
+            throw "Locked restore of '$target' failed with exit code $LASTEXITCODE. If a dependency, global.json or a project changed, regenerate the lock files with ./eng/Update-LockFiles.ps1 and commit them."
+          }
+        }

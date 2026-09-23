@@ -726,9 +726,10 @@ internal static unsafe class LiveProbeState
 	[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
 	private static int CallbackShutdownThunk(nint statePointer)
 	{
-		LuaState state = new(statePointer);
+		// The whole body is one guard try (CESDK1004): nothing may run before it, not even the state wrapper.
 		try
 		{
+			LuaState state = new(statePointer);
 			if (!LuaThunk.TryGetState(state, out CallbackCounter? counter))
 			{
 				return LuaThunk.Fail(state, "callback shutdown probe state is unavailable"u8);
@@ -739,7 +740,7 @@ internal static unsafe class LiveProbeState
 		}
 		catch (Exception exception)
 		{
-			return LuaThunk.Fail(state, exception);
+			return LuaThunk.Fail(new LuaState(statePointer), exception);
 		}
 	}
 

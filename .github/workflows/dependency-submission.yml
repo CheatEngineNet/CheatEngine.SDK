@@ -8,6 +8,9 @@
 #   refuses a snapshot whose commit, ref or correlator is not this run's, because detect ran repository code.
 # Pushes to main give dependency review its base snapshot; same-repository pull requests (Dependabot included) submit
 # a head snapshot for the pull request head commit. Fork pull requests and drafts never run it.
+# detect restores in locked mode, like CI: on a Dependabot pull request whose lock files still miss entries that only
+# eng/Update-LockFiles.ps1 regenerates (the SDK-implicit packages), it fails until the maintainer runs that script on the
+# branch and pushes. It is advisory, never a required check.
 name: Dependency submission
 
 on:
@@ -17,8 +20,11 @@ on:
     types: [ opened, synchronize, reopened, ready_for_review ]
   workflow_dispatch:
 
-# Only the newest snapshot of a pull request matters. A push to main is never cancelled, so a quick second push does not
-# leave the first commit, which later pull requests may use as their base, without a snapshot.
+# Only the newest snapshot of a pull request matters, so a pull request run cancels the previous one. Runs for main are
+# serialized and a running one is never cancelled, so snapshots reach the graph in push order. GitHub keeps at most one
+# pending run per group, though: after three quick pushes the middle commit's pending run is replaced by the newest one
+# and that commit gets no snapshot. Accepted: the newest commit of main always gets one; dependency review of a pull
+# request based on a commit without a snapshot compares against the manifest-only graph and reports snapshot warnings.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

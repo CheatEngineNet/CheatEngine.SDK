@@ -28,6 +28,7 @@ native code. See [
 | `Support/DebugAssertScope.cs` | Turns a failed `Debug.Assert` into an exception, so the Debug-only main-thread guard of `Owned<T>` is testable. That test skips in Release.                                                                                    |
 | `Support/EngineTest.cs`       | `RequireNativeLua()` skips without a Lua library. `RunOnWorker` runs work on a fresh thread and returns what it threw.                                                                                                         |
 | `AssemblyInfo.cs`             | Runs tests sequentially, because `LuaRuntime` and the fake host are process-wide.                                                                                                                                              |
+| `Scanning/MemScanTestHost.cs` | Lua stand-ins for `createMemScan`, `createFoundList` and the MemScan/FoundList members the SDK calls; every call is traced, and Lua globals steer each result shape (wait result, stop, error text, rows, target).             |
 
 Each fake object is a Lua table found by its pointer, so every push of one pointer finds the same state. Pointers are
 synthetic and never dereferenced. The double follows the assumed userdata layout, so the suite cannot prove that Cheat
@@ -68,7 +69,11 @@ behavior.
   `AutoAssemblerDisableInfoSnapshotTests`).
 - Symbol leases never unregister a replaced or removed name, and a registered symbol list is unregistered before it is
   destroyed (`SymbolLeaseReplacementTests`, `SymbolListTests`).
-- A scan session enforces its state machine and destroys its owned `FoundList` before its `MemScan`. Address-list and
+- A scan session enforces its state machine and destroys its owned `FoundList` before its `MemScan`, after one
+  cooperative stop when a scan may still run. AOB zero matches as CE 7.7 reports them (no value) are `NoResult`; the
+  bounded AOB route is exhaustive, post-filters its start and reports a factual `NoMatches`; the chapter-13 battery is
+  covered at fixture level and tagged `Q25`–`Q29` (`AobScannerTests`, `AobBoundedScanTests`, `AobFirstFoundScanTests`,
+  `MemoryScanSessionReleaseTests`, `MemoryScanSessionDeadlineTests`, `MemoryScanSessionBatteryTests`). Address-list and
   memory-record handles remain CE-borrowed and are never implicitly owned. Activation reports its before and after
   state and never retries, and a table load refuses re-entrant mutations (`MemoryRecordActivationTests`,
   `AddressListExitTests`).

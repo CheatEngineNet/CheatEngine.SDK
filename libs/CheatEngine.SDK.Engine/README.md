@@ -29,7 +29,7 @@ Cheat Engine. This library encodes each rule once, in a type.
 | `CheatEngine.SDK.Engine.Inspection`  | `EngineInspection`, `SymbolRegistry`, `SymbolLists`, `SymbolList`                                                                              | Copied modules, sections, symbols, address resolution and memory-region snapshots; symbol registration leases and plugin-owned symbol lists                         |
 | `CheatEngine.SDK.Engine.Allocation`  | `TargetMemoryAllocator`, `AllocatedRegion`, `TargetAllocationAcquireOutcome`                                                                   | Explicit ownership for target allocation, via a reviewed binding seam; never a live address without an owner or a reported compensation                             |
 | `CheatEngine.SDK.Engine.Assembly`    | `AutoAssemblerPatcher`, `AutoAssemblerPatch`, `InstructionProfiles`, `InstructionAssembler`, `InstructionDisassembler`, `InstructionNavigator` | Auto Assembler owns a single `disableInfo`; separately, bounded profile-qualified Lua instruction operations return copied values and structured outcomes            |
-| `CheatEngine.SDK.Engine.Scanning`    | `AobScanner`, `StringList`, `MemoryScanSession`                                                                                                | AOB result ownership and conservative MemScan/FoundList state transitions                                                                                            |
+| `CheatEngine.SDK.Engine.Scanning`    | `AobScanner`, `AobScanBounds`, `StringList`, `MemoryScanSession`                                                                               | AOB result ownership, the bounded exhaustive AOB route, and conservative MemScan/FoundList state transitions                                                         |
 | `CheatEngine.SDK.Engine.AddressList` | `AddressListMutations`, `MemoryRecordId`, `MemoryRecordActivationOutcome`                                                                      | ID-addressed record commands, including activation with its real effect; borrowed GUI views never become managed owners                                             |
 | `CheatEngine.SDK.Engine.Errors`      | `EngineException` hierarchy, `EngineResourceHandoffException`                                                                                  | Stable distinction between expected CE, unavailable global, Lua, binding and marshalling failures; post-effect ownership publication reports its one cleanup attempt |
 | `CheatEngine.SDK.Engine.Generated`   | `MemoryScalars`, `RuntimeCapabilityProbes`                                                                                                     | Generated wrappers: the earlier scalar memory contract, and raw read-only CE 7.7 runtime facts (ce77 spec)                                                          |
@@ -44,8 +44,8 @@ host has the same contract.
 | `Memory`                   | `TargetMemory`, `HostMemory`, `Address`, `HostAddress`, `PointerSize`, `MemoryAccessFailure`                                                                  | Keeps attached-target addresses distinct from CE-host addresses. Target-width pointer, scalar, bounded-span, and string calls report expected CE/binding/Lua/result failures through `Try*` results; they do not claim a universal GUI-thread rule.                                             |
 | `Inspection`               | `EngineInspection` and module, section, symbol and region value types                                                                                         | Returns copied managed snapshots. `NotFound` is used only where the CE 7.7 Lua contract documents `nil`; malformed data and Lua failures remain distinct status values.                                                                                                                         |
 | `Allocation`               | `TargetMemoryAllocator`, `AllocatedRegion`, `TargetAllocationAcquireOutcome`                                                                                  | Models one target allocation as an explicit, single-use owner bound to its Lua runtime identity and target incarnation. It does not infer a GUI-thread requirement from an unspecific CE global, and reports a failed post-effect owner handoff with its one compensation outcome.              |
-| `Objects` / `Scanning.Aob` | `StringList`, `StringLists`, `AobScanner`                                                                                                                     | `StringLists.TryCreate` and a successful `AobScanner.TryScan` out value yield `Owned<StringList>` only after a host object is returned. A list borrowed from CE must never be wrapped or destroyed by plugin code.                                                                              |
-| `Scanning.Values`          | `MemScan`, `FoundList`, `MemoryScanSessions`, `MemoryScanSession`, scan requests and states                                                                   | The factory creates and owns the scanner/child pair, retains rollback authority through publication, and the session serializes documented state transitions and releases the child before the parent. It is explicitly main-thread-only; the generic `Owned<T>` wrapper is not.                |
+| `Objects` / `Scanning.Aob` | `StringList`, `StringLists`, `AobScanner`, `AobScanBounds`, `AobBoundedScanResult`                                                                            | `StringLists.TryCreate` and a successful `AobScanner.TryScan` out value yield `Owned<StringList>` only after a host object is returned; a failed owner publication destroys the raw list once. `TryScanWithinBounds` is the bounded, exhaustive AOB route. A list borrowed from CE must never be wrapped or destroyed by plugin code. |
+| `Scanning.Values`          | `MemScan`, `FoundList`, `MemoryScanSessions`, `MemoryScanSession`, scan requests and states                                                                   | The factory creates and owns the scanner/child pair, retains rollback authority through publication, and the session serializes documented state transitions, stops a running scan cooperatively on release, and releases the child before the parent. It is explicitly main-thread-only; the generic `Owned<T>` wrapper is not. |
 | `AddressList`              | `AddressListAccess`, `AddressList`, `MemoryRecord`, `MemoryRecordId`, `AddressListMutations`                                                                  | The current GUI list and records are borrowed CE-owned handles. Mutations resolve IDs inside one protected command and report completed, not-started, or indeterminate effect (activation: before/after state, host refusal, pending); they do not promise historic record identity.            |
 | `Assembly`                 | `InstructionTargetProfile`, `InstructionAssembler`, `InstructionAssembly`, `AssemblePreference`, `InstructionDisassembler`, `InstructionNavigator`, `InstructionDisassembly`, `InstructionOperationStatus` | `InstructionProfiles` observes PID/probe/PID under one Lua admission and maps CE's x86 family plus 64-bit flag to x64. Each instruction call validates target width and rechecks that PID before and after CE's ambient operation; its result is copied and bounded, and the detailed assembler overload echoes the origin, jump preference and range-check option it sent. That coherence check is not a target lock or a live-host qualification. |
 | `Errors`                   | `EngineException` and stable subclasses                                                                                                                       | Separates expected operation failure, global absence, Lua failure, binding violation and marshalling violation instead of exposing a raw Lua stack error as the public Engine contract.                                                                                                         |
@@ -190,21 +190,41 @@ allocation but managed owner publication then throws, `Allocate` attempts the sa
 and throws `EngineResourceHandoffException`; its `CleanupOutcome` distinguishes a confirmed release, a safe refusal,
 cleanup that could not begin, and an effect requiring manual recovery.
 
-`AobScanner.TryScanDetailed` retains global-unavailable, protected-Lua-failure, raw `nil`, malformed-result and
-successful-list outcomes; `TryScan` keeps its compatible `bool` projection and supplies a caller-owned
-`Owned<StringList>` through its `out` parameter. A valid empty list is still a successful caller-owned result, not a
-match classification. `AobScanner.TryScanOutcome` adds the factual distinction that a valid `StringList` with a
-verified zero count is `NoMatches`; raw `nil` remains a distinct result, never a no-match inference. It retains the
-caller-owned list for both `Matches` and `NoMatches`, reports an unreadable or negative count as a separate outcome
-after disposing that otherwise unreturnable owner, and preserves the protected Lua status without copying transient
-error text. The CE call is synchronous: this SDK exposes no range, module, result-limit, early-stop or
-`CancellationToken` control because none is established for this `AOBScan` path. Client code may cap its own copied
-data after the full host list returns, but that does not bound or interrupt CE work. CE documents an AOB result list as
-caller-freed; `StringList` itself remains a borrowed handle. `MemScan` and `FoundList` are borrowed handle values, while
-`MemoryScanSessions.TryCreate` is the SDK's source-backed CE 7.7 creation path: it immediately owns the returned parent
-and child, holds one Lua operation across both calls, retains raw handles until their owner is published, rolls the
-child back before its parent on every later failure, and transfers the pair only to `MemoryScanSession`; an ordinary
-consumer cannot create an `Owned<MemScan>` or `Owned<FoundList>` manually.
+`AobScanner.TryScanDetailed` retains global-unavailable, protected-Lua-failure, raw `nil` (or no value),
+malformed-result and successful-list outcomes; `TryScan` keeps its compatible `bool` projection and supplies a
+caller-owned `Owned<StringList>` through its `out` parameter. A valid empty list is still a successful caller-owned
+result, not a match classification. `AobScanner.TryScanOutcome` adds the factual distinction that a valid `StringList`
+with a verified zero count is `NoMatches`; raw `nil` remains a distinct result, never a no-match inference. On the pinned
+profile `ce-7.7.0.10621-x64-managed-hostfxr`, zero matches are reported this way: `AOBScan` returns no value, which the
+SDK reports as `NoResult`, and an empty list was never observed (host observation, spike 2026-09-22; the Q27 C3 receipt
+is still pending). `NoMatches` on this global route stays reserved for a valid empty list and is unreachable on that
+profile. `TryScanOutcome` retains the caller-owned list for both `Matches` and `NoMatches`, reports an unreadable or
+negative count as a separate outcome after disposing that otherwise unreturnable owner, and preserves the protected Lua
+status without copying transient error text; no category is ever derived from Lua error text. If publishing the managed
+owner of a returned list fails, the SDK destroys the raw list once and rethrows the original exception. An overload also
+reports the target observations made immediately before and after the call (`AobScanTargetContext`), as facts only. The
+global `AOBScan` call is synchronous and unbounded: this SDK exposes no range, module, result-limit, early-stop or
+`CancellationToken` control for it because none is established for this path. Client code may cap its own copied data
+after the full host list returns, but that does not bound or interrupt CE work. CE documents an AOB result list as
+caller-freed; `StringList` itself remains a borrowed handle.
+
+`AobScanner.TryScanWithinBounds` is the bounded route: a `MemoryScanSession` byte-array first scan
+(`FirstScanRequest.ByteArray`) whose CE work is limited to an `AobScanBounds` range `[Start, Stop)`. It always switches
+`OnlyOneResult` off, reads addresses only, drops and counts rows below `Start` (CE's start bound is not byte-exact) and
+reports a factual `NoMatches` when no row lies in the bounds and CE reported no error text. On the pinned profile this
+route returned exactly the in-module subset of the global route (Lua-only host observation, spike D4; the Q28 C3
+receipt is still pending). A deadline overload and the session's `TryWaitForCompletion`/`TryTerminateScan` are
+`[Experimental("CESDK5010")]` because CE's timed-out wait and `terminateScan` were not observed on the pinned host; the
+separately named first-found opt-in, `TryFindFirstFoundWithinBounds`, is `[Experimental("CESDK5011")]` because its result
+is "first found, order unspecified", never a uniqueness proof. See [Scan limits and cost](#scan-limits-and-cost).
+
+`MemScan` and `FoundList` are borrowed handle values, while `MemoryScanSessions.TryCreate` is the SDK's source-backed CE
+7.7 creation path: it immediately owns the returned parent and child, holds one Lua operation across both calls, retains
+raw handles until their owner is published, rolls the child back before its parent on every later failure, and transfers
+the pair only to `MemoryScanSession`; an ordinary consumer cannot create an `Owned<MemScan>` or `Owned<FoundList>`
+manually. Releasing a session whose scan may still run first requests one cooperative stop (`terminateScan(false)`, then a
+five-second bounded wait), then destroys the child and the parent once each even when the stop is not confirmed, which
+can block CE's main thread; `MemoryScanReleaseOutcome.Termination` reports the stop.
 The Client must still keep value scanning capability-gated until its opt-in CE 7.7 x64 live scenario validates creation,
 cleanup, disable/re-enable, and target changes. The session guards the `firstScan → waitTillDone → initialize → read →
 deinitialize` order and rejects worker-thread cleanup while attached because its owned children use the existing SDK
@@ -436,6 +456,31 @@ does not advance, so this policy does not trigger; detection is a Lua runtime co
 Q30.e, Q34, Q35) are tracked by the `Qualification` trait on the tests named in the promise rows below, and their C3/C4
 evidence is future work against the exact Cheat Engine host (Wave 4).
 
+## Scan limits and cost
+
+A scan has four distinct limits, named the same way in the types and XML docs:
+
+| Limit                 | Where it lives                                                                                       | What it bounds                                              |
+|-----------------------|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| CE work limit         | `AobScanBounds` `[Start, Stop)` passed to the MemScan first scan                                     | The memory CE scans; `Stop` is exclusive (a match must fit) |
+| Available results     | `AobBoundedScanResult.HostResultCount`, `MemoryScanSession.ResultCount`                              | What CE found, including rows the SDK later drops           |
+| Materialization limit | The caller's destination length; `AobBoundedScanResult.IsMaterializationLimitReached`                | How many rows the SDK reads and copies                      |
+| Call deadline         | The optional wait timeout; `AobBoundedScanOutcomeKind.WaitTimedOut`, `MemoryScanWaitStatus.TimedOut` | How long one call waits for CE (experimental, CESDK5010)    |
+
+The global `AOBScan` route has none of these: its native cost is a scan of the whole address space, whatever the caller
+filters or caps afterwards. The bounded route bounds the CE work, and its copy reads one `getAddress` per needed row and
+never `getValue`. `AobBoundedScanResult` reports `HostScanElapsed` (from just before `firstScan` to the end of the wait),
+`CopyElapsed` (count, error text and rows) and `TotalElapsed` (session creation to release) separately.
+
+Indicative host figures, from the Lua-only C3 spike of 2026-09-22 on the pinned profile under about 41 % concurrent CPU
+load (not a receipt, not SDK code): when 1 of 100 291 global matches lay in the scanned module, the range route took about
+31–34 ms against about 455–470 ms for the global route plus a managed filter (roughly 14 times cheaper); when all 7628
+matches lay in the module, both were comparable (68–73 ms against 75–86 ms), because the per-row copy (about 5 µs per
+`getAddress`) dominated. This is why the copy is bounded by the destination and reads addresses only. The fixture tests
+count CE calls as a C1 cost proxy (`AobBoundedScanTests`); host timings are C3 work: the Q28 receipts must re-measure on
+`tests/CheatEngine.SDK.QualificationTarget` without concurrent build load, and benchmarks of the fixture paths belong to
+the performance lot. Both remain not executed in the [qualification matrix](../../docs/qualification/README.md).
+
 ## Promise
 
 The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine object model on a real Lua 5.3 state.
@@ -470,8 +515,9 @@ The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine
 13. Allocation ownership is consumed once; `TryAllocate` never yields a live address without an owner or a reported
     compensation, a release after detach reports `NotInvoked` and after re-enable is refused, and a released region never
     frees a later allocation at the same address (`AllocatedRegionTests`, `TargetMemoryAllocatorTests`,
-    `AllocationLifecycleTests`, `TargetBoundAllocationTests`). AOB lists are owned deterministically, and the
-    MemScan/FoundList state machine destroys its child before its parent (`AobScannerTests`, `MemoryScanSessionTests`).
+    `AllocationLifecycleTests`, `TargetBoundAllocationTests`). AOB lists are owned deterministically (a failed owner
+    publication destroys the raw list once), and the MemScan/FoundList state machine destroys its child before its
+    parent (`AobScannerTests`, `AobScannerPublicationTests`, `MemoryScanSessionTests`).
 14. Address-list and memory-record wrappers remain borrowed and intentionally do not assert an unproven main-thread
     contract; ID-addressed mutations validate hierarchy and preserve indeterminate host effects; activation reports the
     before and after state, a host refusal, a pending asynchronous activation or an indeterminate effect and never
@@ -484,24 +530,32 @@ The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine
 16. Module, section, symbol and region calls distinguish documented `nil` from Lua/binding/malformed-result failures
     and never publish a partial copied destination (`EngineInspectionTests`).
 17. Allocation, AOB, StringList, scan-session and address-list tests exercise ownership transfer, zero-based access,
-    deterministic child-before-parent cleanup, forbidden scan state transitions, symbol leases that never unregister a
-    replaced or removed name, and symbol lists unregistered before they are destroyed (`AllocatedRegionTests`,
-    `AobScannerTests`, `StringListTests`, `MemoryScanSessionTests`, `AddressListLuaTests`, `AddressListMutationsTests`,
-    `SymbolRegistryTests`, `SymbolLeaseReplacementTests`, `SymbolListTests`). These are fixture contracts, not a
-    substitute for a controlled CE 7.7 live run.
+    deterministic child-before-parent cleanup, forbidden scan state transitions, the chapter-13 scan battery, symbol
+    leases that never unregister a replaced or removed name, and symbol lists unregistered before they are destroyed
+    (`AllocatedRegionTests`, `AobScannerTests`, `StringListTests`, `MemoryScanSessionTests`,
+    `MemoryScanSessionFactoryTests`, `MemoryScanSessionBatteryTests`, `AddressListLuaTests`,
+    `AddressListMutationsTests`, `SymbolRegistryTests`, `SymbolLeaseReplacementTests`, `SymbolListTests`). These are
+    fixture contracts, not a substitute for a controlled CE 7.7 live run.
 18. Instruction profiles map CE's x86 family plus 64-bit flag to x64 and refuse contradictory, absent, no-target and
     file-as-process facts; the assembler echoes the origin, preference and range-check option it sent; target selection
     refuses local incarnation evidence for CEServer, unknown-backend and file-as-process targets
     (`InstructionOperationsTests`, `InstructionAssemblerTests`, `RuntimeProcessOperationsTests`,
     `RuntimeObservationsTests`, `TargetSelectionTests`, `RuntimeCapabilityProbesTests`). These are C1/C2 fixture
     contracts, not host qualification.
-19. Auto Assembler activation reports a factual outcome with its effect state, keeps every result CE returns (disable
+19. AOB zero matches on the pinned profile surface as `NoResult`, never `NoMatches`; only the bounded MemScan route
+    reports a factual `NoMatches`. Bounded scans are exhaustive (`OnlyOneResult` off), bound CE's work to
+    `[Start, Stop)`, post-filter the start, name their four limits and report host-scan and copy durations separately;
+    first-found stays a separately named experimental opt-in; a session stops a running scan cooperatively, once, before
+    destroying the child and then the parent (`AobScannerTests`, `AobBoundedScanTests`, `AobFirstFoundScanTests`,
+    `MemoryScanSessionReleaseTests`, `MemoryScanSessionDeadlineTests`). These are fixture contracts; the Q27–Q29 C3 host
+    receipts are still pending.
+20. Auto Assembler activation reports a factual outcome with its effect state, keeps every result CE returns (disable
     information, warnings), copies host text only on request and bounded, never derives a category from it, publishes a
     bounded disable-info snapshot that never fails the activation, and `TryCheck` never creates an owner
     (`AutoAssemblerOutcomeTests`, `AutoAssemblerDisableInfoSnapshotTests`, `AutoAssemblerPatcherTests`).
-20. `CheatTableFiles.TryLoad` passes exactly the path and the merge flag, and its load scope refuses re-entrant
+21. `CheatTableFiles.TryLoad` passes exactly the path and the merge flag, and its load scope refuses re-entrant
     address-list mutations and ends on every exit path (`CheatTableFilesTests`).
-21. No shipping library declares a finalizer or binds the global that deletes every registered symbol
+22. No shipping library declares a finalizer or binds the global that deletes every registered symbol
     (`OwnershipPolicyTests` in `tests/CheatEngine.SDK.Repository.Tests`).
 
 ## Run the tests

@@ -456,11 +456,12 @@ CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.ProtectedLuaFailure = 4 -
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.ResultListCountUnavailable = 7 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
-CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.GlobalUnavailable = 1 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
-CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.InvalidResult = 4 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
-CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.LuaFailure = 2 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
-CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.NoResult = 3 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
-CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.Success = 0 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.GlobalUnavailable = 2 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.InvalidResult = 5 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.LuaFailure = 3 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.NoResult = 4 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.Success = 1 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone.CancelledBeforeNativeCall = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone.None = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
@@ -471,16 +472,17 @@ CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.MemoryScanCreat
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.Status.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.TargetObservation.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.AliasedFoundList = 7 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.GlobalUnavailable = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.InvalidFoundListResult = 6 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.InvalidScannerResult = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.LuaFailure = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.NoFoundListResult = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.NoScannerResult = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.RollbackUnconfirmed = 8 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.Success = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.TargetIdentityUnavailable = 9 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.AliasedFoundList = 8 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.GlobalUnavailable = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.InvalidFoundListResult = 7 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.InvalidScannerResult = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.LuaFailure = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.NoFoundListResult = 6 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.NoScannerResult = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.RollbackUnconfirmed = 9 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.Success = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.TargetIdentityUnavailable = 10 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind.RuntimeInvalidated = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind.TargetIdentityMismatch = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind.TargetIdentityUnavailable = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind
@@ -491,16 +493,17 @@ CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.RuntimeIdent
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.TargetChanged = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.TargetProcessReused = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.Cancelled = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.DestinationTooSmall = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.InvalidResult = 8 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.LuaFailure = 7 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.NoResults = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.PageStartOutOfRange = 9 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.RuntimeInvalidated = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.Success = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.TargetIdentityMismatch = 6 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
-CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.TargetIdentityUnavailable = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.Cancelled = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.DestinationTooSmall = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.InvalidResult = 9 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.LuaFailure = 8 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.NoResults = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.PageStartOutOfRange = 10 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.RuntimeInvalidated = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.Success = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.TargetIdentityMismatch = 7 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.TargetIdentityUnavailable = 6 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.Equals(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome other) -> bool
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.FoundList.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome

@@ -216,15 +216,20 @@ public static class AobScanner
 		}
 	}
 
-	private static AobScanOutcome FromStatus(AobScanStatus status, LuaStatus luaStatus)
+	// Every member has its own arm. Unknown (the default) and Success (which never reaches this mapping, because a
+	// successful call is classified from its list count) map to the Unknown outcome, never to a count failure: an
+	// unexpected status must not be reported as a host list that was returned but could not be counted.
+	internal static AobScanOutcome FromStatus(AobScanStatus status, LuaStatus luaStatus)
 	{
 		return status switch
 		{
+			AobScanStatus.Unknown => default,
+			AobScanStatus.Success => default,
 			AobScanStatus.GlobalUnavailable => AobScanOutcome.GlobalUnavailable,
 			AobScanStatus.LuaFailure => AobScanOutcome.ProtectedLuaFailure(ToFailureStatus(luaStatus)),
 			AobScanStatus.NoResult => AobScanOutcome.NoResult,
 			AobScanStatus.InvalidResult => AobScanOutcome.InvalidResult,
-			_ => AobScanOutcome.ResultListCountUnavailable
+			_ => default
 		};
 	}
 

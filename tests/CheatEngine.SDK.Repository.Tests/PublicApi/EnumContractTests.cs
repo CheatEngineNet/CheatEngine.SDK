@@ -76,9 +76,6 @@ public sealed class EnumContractTests
 	/// </summary>
 	private static readonly Dictionary<string, string> s_pendingZeroValueFixes = new(StringComparer.Ordinal)
 	{
-		["CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus"] = "S-SCAN",
-		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus"] = "S-SCAN",
-		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus"] = "S-SCAN"
 	};
 
 	/// <summary>Zero-member names that read as "it worked" (or, for a failure-kind enum, "no failure").</summary>

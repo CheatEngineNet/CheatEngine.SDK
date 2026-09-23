@@ -357,4 +357,32 @@ public sealed class AobScannerTests
 
 		Assert.Throws<InvalidOperationException>(() => AobScanner.TryScan("90", out _));
 	}
+
+	[Theory]
+	[InlineData(AobScanStatus.Unknown)]
+	[InlineData(AobScanStatus.Success)]
+	[InlineData((AobScanStatus) 250)]
+	public void FromStatus_never_maps_an_unexpected_status_to_a_count_failure(AobScanStatus status)
+	{
+		AobScanOutcome outcome = AobScanner.FromStatus(status, LuaStatus.Ok);
+
+		Assert.Equal(AobScanOutcomeKind.Unknown, outcome.Kind);
+		Assert.NotEqual(AobScanOutcomeKind.ResultListCountUnavailable, outcome.Kind);
+		Assert.False(outcome.IsSuccess);
+		Assert.Equal(default, outcome);
+	}
+
+	[Theory]
+	[InlineData(AobScanStatus.GlobalUnavailable, AobScanOutcomeKind.GlobalUnavailable)]
+	[InlineData(AobScanStatus.LuaFailure, AobScanOutcomeKind.ProtectedLuaFailure)]
+	[InlineData(AobScanStatus.NoResult, AobScanOutcomeKind.NoResult)]
+	[InlineData(AobScanStatus.InvalidResult, AobScanOutcomeKind.InvalidResult)]
+	public void FromStatus_maps_every_failure_status_to_its_own_outcome_kind(AobScanStatus status,
+		AobScanOutcomeKind expected)
+	{
+		AobScanOutcome outcome = AobScanner.FromStatus(status, LuaStatus.RuntimeError);
+
+		Assert.Equal(expected, outcome.Kind);
+		Assert.False(outcome.IsSuccess);
+	}
 }

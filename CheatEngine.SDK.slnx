@@ -54,6 +54,8 @@
   <Folder Name="/eng/ci/">
     <File Path="eng/ci/build-info.v0.schema.json"/>
     <File Path="eng/ci/Build-NativeBridge.ps1"/>
+    <File Path="eng/ci/client-canary-report.v0.schema.json"/>
+    <File Path="eng/ci/Invoke-ClientCanary.ps1"/>
     <File Path="eng/ci/Invoke-ScriptAnalysis.ps1"/>
     <File Path="eng/ci/New-BuildInfo.ps1"/>
     <File Path="eng/ci/Test-CoverageBaseline.ps1"/>

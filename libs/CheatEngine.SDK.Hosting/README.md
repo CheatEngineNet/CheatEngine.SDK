@@ -47,7 +47,7 @@ library also builds on [
 | `PluginHost` (`CheatEngine.SDK.Hosting.Bootstrap`)                                                      | `InitializeManaged<TFactory>`, the three native callbacks, and the lock-free readers `Phase`, `IsInitialized`, `IsEnabled` and `Context`                                             |
 | `PluginContext` (`CheatEngine.SDK.Hosting.Context`)                                                     | Immutable facts of one enable: `PluginId`, `Epoch`, `MainThreadId`, `ShutdownToken`, `IsMainThread`, `IsCurrent`, `ReportedExportsSize`, `HasProcessMessages`, `HasCheckSynchronize` |
 | `MainThread` (`CheatEngine.SDK.Hosting.Threading`)                                                      | `IsMainThread`, `ProcessMessages()`, `CheckSynchronize(int)` and `Invoke`                                                                                                            |
-| `HostLog`, `IHostLogSink`, `HostLogLevel`, `DebugOutputLogSink` (`CheatEngine.SDK.Hosting.Diagnostics`) | The logging seam                                                                                                                                                                     |
+| `HostLog`, `IHostLogSink`, `HostLogLevel`, `DebugOutputLogSink` (`CheatEngine.SDK.Hosting.Diagnostics`) | The logging seam, plus the opt-in `HostLog.IdentifyOnEnable` load identification diagnostic                                                                                          |
 
 The lifecycle state machine is `Uninitialized → Registered → Enabling → Enabled → Disabling → Registered`.
 `PluginHost.IsEnabled` is true only in stable `Enabled`. `Context` is deliberately available during `Enabling` and
@@ -127,6 +127,26 @@ plugin mode needs an explicit resident-core/adapter design and separate exact-ho
 `OutputDebugStringW`, so a debugger attached to Cheat Engine or DebugView shows the entries. Set `HostLog.Sink` to route
 entries elsewhere and `HostLog.MinimumLevel` (default `Information`) to filter. `Trace` adds every lifecycle call.
 
+## Opt-in load identification
+
+Set `HostLog.IdentifyOnEnable = true`, or the environment variable `CHEATENGINE_SDK_IDENTIFY_ON_ENABLE=1`, before an
+enable attempt (a `[ModuleInitializer]` method applies it to the very first one). Every enable attempt that reaches
+`EnablePlugin` then writes at most one `Information` entry, **before** the exports record is copied, so it appears
+even when the Lua bind or plugin construction later fails:
+
+```
+CheatEngineSdkIdentification: sdk.version=…; sdk.commit=…; sdk.consistent=…; hosting.mvid=…; hosting.alc=…; plugin.id=…; plugin.assembly=…; host.argument=…; exports.size=…; bridge.fingerprint=…; bridge.sha256=…; lua.module=…; lua.sha256=…; ce.file=…; ce.fileVersion=…; runtime=…; arch=…
+```
+
+Fixed key order, each value at most 128 characters (the fixed-shape `bridge.fingerprint`, `<64 hex>:<64 hex>`, is the
+one 129-character exception; it is validated by its own pattern instead of the general bound), the whole entry at
+most 1024. `bridge.fingerprint`,
+`bridge.sha256` and `lua.sha256` read `unavailable` when the bridge or the Lua module cannot be located or hashed;
+`sdk.commit` reads `unknown` when no 40-hex commit can be parsed from the informational version. Nothing here is a
+directory path, a drive root or a user name: `lua.module` and `ce.file` are file names only, and `hosting.alc` keeps
+only the load context's kind and file token, never the isolated component's absolute path. Building the line calls no
+Lua API and constructs no plugin; only the finished line is written to `HostLog`, once.
+
 ```csharp
 using System;
 using CheatEngine.SDK.Annotations.Plugin;
@@ -173,6 +193,11 @@ from a simulated host record.
    (`MainThreadTests`).
 8. The native boundary uses no delegate marshalling, structure marshalling or reflection activation:
    `eng/BannedSymbols.txt` makes each a build error.
+9. The `CheatEngineSdkIdentification` diagnostic is silent unless opted in (programmatically or through the
+   environment seam), is emitted at most once per enable attempt before the exports record is copied (so a later bind
+   or construction failure does not suppress it), keeps a fixed key order within its 1024-character bound, never
+   contains a directory separator, a drive root or the current user name, and calls no Lua API and constructs no
+   plugin while it builds (`LoadIdentificationTests`).
 
 ## Run the tests
 

@@ -269,6 +269,11 @@ from a simulated host record.
     or construction failure does not suppress it), keeps a fixed key order within its 1024-character bound, never
     contains a directory separator, a drive root or the current user name, and calls no Lua API and constructs no
     plugin while it builds (`LoadIdentificationTests`).
+13. The bootstrap's second raw argument never changes the 36-byte record write for any value, including `int.MinValue`
+    and `int.MaxValue` (`InitializeManagedTests`); repeated enabling never accumulates a Lua-module loader reference,
+    because every already-bound lookup releases exactly the one reference it added (`LuaModuleLocatorTests`); and
+    `Disable` pumps a worker genuinely blocked inside the host's real Lua `synchronize` call, not only a dispatch
+    override, before it detaches (`DisablePluginTests`).
 
 ## Run the tests
 

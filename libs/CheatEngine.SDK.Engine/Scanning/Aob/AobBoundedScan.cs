@@ -24,6 +24,17 @@ internal static class AobBoundedScan
 	internal static AobBoundedScanResult Run(string pattern, AobScanBounds bounds, AobScanOptions options,
 		int? waitMilliseconds, Span<Address> destination, CancellationToken cancellationToken)
 	{
+		return Run(pattern, bounds, options, waitMilliseconds, destination, ArrayPool<Address>.Shared,
+			cancellationToken);
+	}
+
+	// stagingPool is a test seam, not an extension point: production always passes ArrayPool<Address>.Shared. Tests
+	// substitute a pool whose Rent fails to prove that a managed allocation failure after the session exists still
+	// releases it once and propagates unchanged (audit ch.08, F13).
+	internal static AobBoundedScanResult Run(string pattern, AobScanBounds bounds, AobScanOptions options,
+		int? waitMilliseconds, Span<Address> destination, ArrayPool<Address> stagingPool,
+		CancellationToken cancellationToken)
+	{
 		if (!bounds.IsValid)
 		{
 			return Refused(AobBoundedScanOutcomeKind.InvalidBounds);
@@ -50,28 +61,31 @@ internal static class AobBoundedScan
 		}
 		else
 		{
-			RunSession(state, session, pattern, bounds, options, waitMilliseconds, destination, ref facts,
-				cancellationToken);
+			// Nothing between the session's publication and RunSession's releasing try may allocate or throw.
+			RunSession(state, session, pattern, bounds, options, waitMilliseconds, destination, stagingPool,
+				ref facts, cancellationToken);
 		}
 
 		facts.TotalElapsed = Stopwatch.GetElapsedTime(started);
 		return new AobBoundedScanResult(in facts);
 	}
 
-	// Stages in-bounds addresses in a pooled buffer so that nothing reaches the caller's destination unless the scan
-	// succeeds, and releases the session once whatever happens.
+	// Releases the session once whatever happens. The staging buffer is rented inside the releasing try, so a managed
+	// allocation failure (a destination too large for one array, memory pressure) still releases the found list and
+	// then its scanner, and the original exception propagates (audit ch.08, F13). In-bounds addresses are staged so that
+	// nothing reaches the caller's destination unless the scan succeeds.
 	private static void RunSession(LuaState state, MemoryScanSession session, string pattern, AobScanBounds bounds,
-		AobScanOptions options, int? waitMilliseconds, Span<Address> destination, ref AobBoundedScanFacts facts,
-		CancellationToken cancellationToken)
+		AobScanOptions options, int? waitMilliseconds, Span<Address> destination, ArrayPool<Address> stagingPool,
+		ref AobBoundedScanFacts facts, CancellationToken cancellationToken)
 	{
-		Address[] staging = ArrayPool<Address>.Shared.Rent(destination.Length);
+		Address[]? staging = null;
 		try
 		{
-			Span<Address> staged = staging.AsSpan(0, destination.Length);
 			try
 			{
-				facts.Kind = Execute(state, session, pattern, bounds, options, waitMilliseconds, staged, ref facts,
-					cancellationToken);
+				staging = stagingPool.Rent(destination.Length);
+				facts.Kind = Execute(state, session, pattern, bounds, options, waitMilliseconds,
+					staging.AsSpan(0, destination.Length), ref facts, cancellationToken);
 			}
 			catch (MemoryScanException exception)
 			{
@@ -82,9 +96,10 @@ internal static class AobBoundedScan
 				facts.Release = session.ReleaseWithOutcome();
 			}
 
-			if (facts.Kind is AobBoundedScanOutcomeKind.Matches or AobBoundedScanOutcomeKind.NoMatches)
+			if (staging is not null &&
+				facts.Kind is AobBoundedScanOutcomeKind.Matches or AobBoundedScanOutcomeKind.NoMatches)
 			{
-				staged[..facts.Written].CopyTo(destination);
+				staging.AsSpan(0, facts.Written).CopyTo(destination);
 			}
 			else
 			{
@@ -93,7 +108,10 @@ internal static class AobBoundedScan
 		}
 		finally
 		{
-			ArrayPool<Address>.Shared.Return(staging);
+			if (staging is not null)
+			{
+				stagingPool.Return(staging);
+			}
 		}
 	}
 

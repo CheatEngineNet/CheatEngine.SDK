@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
@@ -475,6 +476,60 @@ public sealed class AobBoundedScanTests
 		Assert.Equal(0, L.Top);
 	}
 
+	// Audit ch.08 and F13: a managed failure after the session exists, here the staging buffer's allocation, must not
+	// leak the CE objects. The found list and then its scanner are destroyed once, and the original failure propagates.
+	[Fact]
+	[Trait("Qualification", "Q28")]
+	public void TryScanWithinBounds_staging_allocation_failure_releases_the_created_session_once_and_rethrows()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		_ = MemScanTestHost.Install(L);
+		SetAddresses(L, "100000000");
+		InsufficientMemoryException injected = new("injected staging allocation failure");
+		StagingPool pool = new(injected);
+		Address[] destination = [new Address(0xA11CE)];
+
+		InsufficientMemoryException thrown = Assert.Throws<InsufficientMemoryException>(() =>
+			AobBoundedScan.Run(Pattern, ModuleBounds, AobScanOptions.Default, null, destination, pool,
+				TestContext.Current.CancellationToken));
+
+		Assert.Same(injected, thrown);
+		Assert.Equal(1, pool.RentCount);
+		Assert.Equal(0, pool.ReturnCount);
+		Assert.Equal(new Address(0xA11CE), destination[0]);
+		Assert.Equal("factory.scan,factory.list,list.destroy,scan.destroy", MemScanTestHost.ReadTrace(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Theory]
+	[Trait("Qualification", "Q28")]
+	[InlineData("found_addresses = { '100000000' }", AobBoundedScanOutcomeKind.Matches)]
+	[InlineData("scan_first_raises = true", AobBoundedScanOutcomeKind.ScanFailed)]
+	public void TryScanWithinBounds_returns_its_staging_buffer_once_to_the_pool_it_came_from(string mode,
+		AobBoundedScanOutcomeKind expected)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		_ = MemScanTestHost.Install(L);
+		MemScanTestHost.Run(L, mode);
+		StagingPool pool = new(null);
+
+		AobBoundedScanResult result = AobBoundedScan.Run(Pattern, ModuleBounds, AobScanOptions.Default, null,
+			new Address[2], pool, TestContext.Current.CancellationToken);
+
+		Assert.Equal(expected, result.Kind);
+		Assert.Equal(1, pool.RentCount);
+		Assert.Equal(1, pool.ReturnCount);
+		Assert.Same(pool.LastRented, pool.LastReturned);
+		Assert.EndsWith("list.destroy,scan.destroy", MemScanTestHost.ReadTrace(L), StringComparison.Ordinal);
+		Assert.Equal(0, L.Top);
+	}
+
 	[Theory]
 	[Trait("Qualification", "Q28")]
 	[InlineData("found_count = 'many'")]
@@ -799,5 +854,55 @@ public sealed class AobBoundedScanTests
 		}
 
 		return count;
+	}
+
+	// The staging-buffer seam of AobBoundedScan.Run: hands out plain arrays, or fails every Rent with the injected
+	// exception, and records both calls.
+	private sealed class StagingPool : ArrayPool<Address>
+	{
+		private readonly Exception? _rentFailure;
+
+		public StagingPool(Exception? rentFailure)
+		{
+			_rentFailure = rentFailure;
+		}
+
+		public int RentCount
+		{
+			get; private set;
+		}
+
+		public int ReturnCount
+		{
+			get; private set;
+		}
+
+		public Address[]? LastRented
+		{
+			get; private set;
+		}
+
+		public Address[]? LastReturned
+		{
+			get; private set;
+		}
+
+		public override Address[] Rent(int minimumLength)
+		{
+			RentCount++;
+			if (_rentFailure is not null)
+			{
+				throw _rentFailure;
+			}
+
+			LastRented = new Address[minimumLength];
+			return LastRented;
+		}
+
+		public override void Return(Address[] array, bool clearArray = false)
+		{
+			ReturnCount++;
+			LastReturned = array;
+		}
 	}
 }

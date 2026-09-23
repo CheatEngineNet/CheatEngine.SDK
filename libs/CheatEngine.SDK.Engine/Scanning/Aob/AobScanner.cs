@@ -282,6 +282,13 @@ public static class AobScanner
 	///         The call blocks CE's main thread for the scan, the copy and the release, and waits through CE's
 	///         no-timeout wait. The session is released once, child before parent, on every exit.
 	///     </para>
+	///     <para>
+	///         Addresses are staged in a pooled buffer as long as <paramref name="destination" /> and copied out only on
+	///         success, so the call's managed memory peak is about twice the materialization limit, even for zero
+	///         matches. A managed failure to obtain that buffer (for example a destination too large for one array) is a
+	///         lifecycle fault: the session is still released once, child before parent, and the original exception
+	///         propagates.
+	///     </para>
 	/// </remarks>
 	[MainThreadOnly]
 	[RequiresPluginEnabled]

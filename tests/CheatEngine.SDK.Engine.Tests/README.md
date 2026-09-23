@@ -72,9 +72,10 @@ behavior.
   destroyed (`SymbolLeaseReplacementTests`, `SymbolListTests`).
 - A scan session enforces its state machine and destroys its owned `FoundList` before its `MemScan`, after one
   cooperative stop when a scan may still run; a release requested from inside one of its own CE waits is deferred until
-  that wait has returned, and other members called from there are refused. AOB zero matches as CE 7.7 reports them (no value) are `NoResult`; the
-  bounded AOB route is exhaustive, post-filters its start and reports a factual `NoMatches`; the chapter-13 battery is
-  covered at fixture level and tagged `Q25`–`Q29` (`AobScannerTests`, `AobBoundedScanTests`, `AobFirstFoundScanTests`,
+  that wait has returned, and other members called from there are refused. AOB zero matches as CE 7.7 reports them (no
+  value) are `NoResult`; the bounded AOB route is exhaustive, post-filters its start, reports a factual `NoMatches` and
+  releases its session once even when its staging buffer cannot be allocated; the chapter-13 battery is covered at
+  fixture level and tagged `Q25`–`Q29` (`AobScannerTests`, `AobBoundedScanTests`, `AobFirstFoundScanTests`,
   `MemoryScanSessionReleaseTests`, `MemoryScanSessionDeadlineTests`, `MemoryScanSessionBatteryTests`). Address-list and
   memory-record handles remain CE-borrowed and are never implicitly owned. Activation reports its before and after
   state and never retries, and a table load refuses re-entrant mutations (`MemoryRecordActivationTests`,

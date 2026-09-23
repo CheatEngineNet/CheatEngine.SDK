@@ -6,12 +6,13 @@ CheatEngine.SDK.Lua.Calls.LuaOperationStatus.Kind.get -> CheatEngine.SDK.Lua.Cal
 CheatEngine.SDK.Lua.Calls.LuaOperationStatus.LuaOperationStatus() -> void
 CheatEngine.SDK.Lua.Calls.LuaOperationStatus.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
 CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
-CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.GlobalUnavailable = 1 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
-CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.InvalidResult = 4 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
-CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.LuaFailure = 2 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
-CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.NilResult = 3 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
-CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.StackUnavailable = 5 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
-CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.Success = 0 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.GlobalUnavailable = 2 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.InvalidResult = 5 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.LuaFailure = 3 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.NilResult = 4 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.StackUnavailable = 6 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.Success = 1 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
+CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind.Unknown = 0 -> CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind
 CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome
 CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.IsSuccess.get -> bool
 CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.LuaGlobalPushOutcome() -> void
@@ -19,9 +20,10 @@ CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.LuaStatus.get -> Cheat
 CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.Status.get -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
 CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.ToOperationStatus() -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
 CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
-CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.LuaFailure = 2 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
-CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.Success = 0 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
-CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.Unavailable = 1 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.LuaFailure = 3 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.Success = 1 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.Unavailable = 2 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.Unknown = 0 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
 CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy
 CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy.RejectExisting = 0 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy
 CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy.ReplaceExisting = 1 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy

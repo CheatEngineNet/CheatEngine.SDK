@@ -6,9 +6,16 @@ namespace CheatEngine.SDK.Lua.Calls;
 
 /// <summary>A compact, allocation-free outcome for an opt-in generated Lua global binding.</summary>
 /// <remarks>
-///     The status deliberately does not capture Lua's error text: extracting it reads the transient Lua stack and
-///     allocates a managed string. Callers can classify a protected failure by <see cref="LuaStatus" /> without exposing
-///     a <c>LuaState</c> or parsing a localized exception message.
+///     <para>
+///         The status deliberately does not capture Lua's error text: extracting it reads the transient Lua stack and
+///         allocates a managed string. Callers can classify a protected failure by <see cref="LuaStatus" /> without
+///         exposing a <c>LuaState</c> or parsing a localized exception message.
+///     </para>
+///     <para>
+///         <c>default(LuaOperationStatus)</c> has <see cref="Kind" /> <see cref="LuaOperationStatusKind.Unknown" /> and
+///         <see cref="IsSuccess" /> <see langword="false" />: an unassigned status never reads as success. Use the named
+///         statics, never <see langword="default" />, to express an outcome.
+///     </para>
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct LuaOperationStatus : IEquatable<LuaOperationStatus>
@@ -35,7 +42,8 @@ public readonly struct LuaOperationStatus : IEquatable<LuaOperationStatus>
 	}
 
 	/// <summary>Gets a successful status.</summary>
-	public static LuaOperationStatus Success => default;
+	/// <remarks>Distinct from <see langword="default" />, which is <see cref="LuaOperationStatusKind.Unknown" />.</remarks>
+	public static LuaOperationStatus Success => new(LuaOperationStatusKind.Success, LuaStatus.Ok);
 
 	/// <summary>Gets a status for an absent or non-callable global.</summary>
 	public static LuaOperationStatus GlobalUnavailable => new(LuaOperationStatusKind.GlobalUnavailable, LuaStatus.Ok);
@@ -56,7 +64,10 @@ public readonly struct LuaOperationStatus : IEquatable<LuaOperationStatus>
 		return new LuaOperationStatus(LuaOperationStatusKind.LuaFailure, luaStatus);
 	}
 
-	/// <summary>Gets whether the call and result conversions completed successfully.</summary>
+	/// <summary>
+	///     Gets whether the call and result conversions completed successfully; <see langword="false" /> for
+	///     <see cref="LuaOperationStatusKind.Unknown" />.
+	/// </summary>
 	public bool IsSuccess => Kind == LuaOperationStatusKind.Success;
 
 	/// <inheritdoc />

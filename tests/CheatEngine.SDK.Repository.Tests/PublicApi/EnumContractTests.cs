@@ -73,9 +73,7 @@ public sealed class EnumContractTests
 		["CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind"] = "S-RT",
 		["CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus"] = "S-SCAN",
 		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus"] = "S-SCAN",
-		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus"] = "S-SCAN",
-		["CheatEngine.SDK.Lua.Calls.LuaOperationStatusKind"] = "S-GEN-A",
-		["CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus"] = "S-GEN-A"
+		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus"] = "S-SCAN"
 	};
 
 	/// <summary>Zero-member names that read as "it worked" (or, for a failure-kind enum, "no failure").</summary>

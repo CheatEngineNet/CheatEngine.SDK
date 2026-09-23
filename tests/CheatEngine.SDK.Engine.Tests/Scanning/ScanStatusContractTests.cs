@@ -33,7 +33,19 @@ public sealed class ScanStatusContractTests
 		{ typeof(AobBoundedScanOutcomeKind), "TargetChanged", 9 },
 		{ typeof(AobBoundedScanOutcomeKind), "TargetIdentityUnavailable", 10 },
 		{ typeof(AobBoundedScanOutcomeKind), "RuntimeInvalidated", 11 },
-		{ typeof(AobBoundedScanOutcomeKind), "Cancelled", 12 }
+		{ typeof(AobBoundedScanOutcomeKind), "Cancelled", 12 },
+		{ typeof(AobFirstFoundOutcomeKind), "Unknown", 0 },
+		{ typeof(AobFirstFoundOutcomeKind), "Found", 1 },
+		{ typeof(AobFirstFoundOutcomeKind), "NotFound", 2 },
+		{ typeof(AobFirstFoundOutcomeKind), "FoundOutsideBounds", 3 },
+		{ typeof(AobFirstFoundOutcomeKind), "InvalidBounds", 4 },
+		{ typeof(AobFirstFoundOutcomeKind), "SessionCreationFailed", 5 },
+		{ typeof(AobFirstFoundOutcomeKind), "ScanFailed", 6 },
+		{ typeof(AobFirstFoundOutcomeKind), "InvalidResult", 7 },
+		{ typeof(AobFirstFoundOutcomeKind), "TargetChanged", 8 },
+		{ typeof(AobFirstFoundOutcomeKind), "TargetIdentityUnavailable", 9 },
+		{ typeof(AobFirstFoundOutcomeKind), "RuntimeInvalidated", 10 },
+		{ typeof(AobFirstFoundOutcomeKind), "Cancelled", 11 }
 	};
 
 	/// <summary>The session creation and materialization enums, as (type, name, value).</summary>

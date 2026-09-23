@@ -475,6 +475,29 @@ CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.Termination.get -> Chea
 CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.TotalElapsed.get -> System.TimeSpan
 CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.UnreadHostRows.get -> ulong
 CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.Written.get -> int
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.Cancelled = 11 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.Found = 1 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.FoundOutsideBounds = 3 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.InvalidBounds = 4 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.InvalidResult = 7 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.NotFound = 2 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.RuntimeInvalidated = 10 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.ScanFailed = 6 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.SessionCreationFailed = 5 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.TargetChanged = 8 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.TargetIdentityUnavailable = 9 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Address.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.AobFirstFoundResult() -> void
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Creation.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Equals(CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult other) -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.HasAddress.get -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.HostScanElapsed.get -> System.TimeSpan
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Kind.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Release.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.AobScanBounds() -> void
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.Contains(CheatEngine.SDK.Engine.Values.Address address) -> bool
@@ -681,6 +704,7 @@ CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.Unspecified = 0 
 [CESDK5010]CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryTerminateScan(System.TimeSpan waitTimeout) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
 [CESDK5010]CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryWaitForCompletion(System.TimeSpan timeout) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
 [CESDK5010]static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanWithinBounds(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds bounds, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, System.TimeSpan waitTimeout, System.Span<CheatEngine.SDK.Engine.Values.Address> destination, System.Threading.CancellationToken cancellationToken) -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult
+[CESDK5011]static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryFindFirstFoundWithinBounds(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds bounds, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, System.Threading.CancellationToken cancellationToken) -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult
 const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxDisableInfoEntriesLimit = 65536 -> int
 const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxDisableInfoNameBytesLimit = 4096 -> int
 const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxHostTextBytesLimit = 8192 -> int
@@ -714,6 +738,7 @@ override CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.GetHashCode() -
 override CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.Equals(object? obj) -> bool
 override CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.GetHashCode() -> int
@@ -849,6 +874,8 @@ static CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.operator !=(
 static CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.operator ==(CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation left, CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation right) -> bool
 static CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.operator !=(CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult left, CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult right) -> bool
 static CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.operator ==(CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult left, CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.operator !=(CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult left, CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.operator ==(CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult left, CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult right) -> bool
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.TryCreate(CheatEngine.SDK.Engine.Values.Address start, CheatEngine.SDK.Engine.Values.Address stop, out CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds bounds) -> bool
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.TryFromModule(in CheatEngine.SDK.Engine.Inspection.ModuleInfo module, out CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds bounds) -> bool
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.operator !=(CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds right) -> bool
@@ -921,6 +948,8 @@ static CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.operator ==(Che
 ~override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ToString() -> string
 ~override CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.Equals(object obj) -> bool
 ~override CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.ToString() -> string
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.ToString() -> string
 ~override CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.Equals(object obj) -> bool
 ~override CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.ToString() -> string
 ~override CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.Equals(object obj) -> bool

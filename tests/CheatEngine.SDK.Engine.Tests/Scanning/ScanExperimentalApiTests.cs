@@ -8,8 +8,9 @@ namespace CheatEngine.SDK.Engine.Tests.Scanning;
 /// <summary>
 ///     The exact set of scanning members behind an <c>[Experimental]</c> gate, read by reflection from the compiled
 ///     Engine assembly: CESDK5010 covers every member whose correctness depends on the unobserved timed-out wait or on
-///     <c>terminateScan</c> (spike D4.7); nothing else in the scanning namespaces is gated. The no-deadline bounded scan
-///     stays ungated because the spike settled its semantics.
+///     <c>terminateScan</c> (spike D4.7), CESDK5011 covers the separately named first-found opt-in (F07); nothing else in
+///     the scanning namespaces is gated. The no-deadline bounded scan stays ungated because the spike settled its
+///     semantics.
 /// </summary>
 public sealed class ScanExperimentalApiTests
 {
@@ -22,7 +23,8 @@ public sealed class ScanExperimentalApiTests
 		{
 			"CESDK5010 AobScanner.TryScanWithinBounds(String, AobScanBounds, AobScanOptions, TimeSpan, Span<Address>, CancellationToken)",
 			"CESDK5010 MemoryScanSession.TryTerminateScan(TimeSpan)",
-			"CESDK5010 MemoryScanSession.TryWaitForCompletion(TimeSpan)"
+			"CESDK5010 MemoryScanSession.TryWaitForCompletion(TimeSpan)",
+			"CESDK5011 AobScanner.TryFindFirstFoundWithinBounds(String, AobScanBounds, AobScanOptions, CancellationToken)"
 		};
 
 		SortedSet<string> actual = new(StringComparer.Ordinal);

@@ -329,6 +329,50 @@ public static class AobScanner
 		return AobBoundedScan.Run(pattern, bounds, options, milliseconds, destination, cancellationToken);
 	}
 
+	/// <summary>
+	///     Runs CE's one-result MemScan mode over <paramref name="bounds" /> and reports the first match CE found:
+	///     first found, order unspecified, never a uniqueness proof.
+	/// </summary>
+	/// <param name="pattern">CE's byte-array pattern text, passed without normalization.</param>
+	/// <param name="bounds">The CE work limit <c>[Start, Stop)</c>; an invalid value is refused before any CE call.</param>
+	/// <param name="options">CE's protection and alignment arguments; a <see langword="null" /> protection string means "find everything".</param>
+	/// <param name="cancellationToken">
+	///     Observed before the session is created and before the scan starts; it cannot interrupt the scan.
+	/// </param>
+	/// <returns>
+	///     <see cref="AobFirstFoundOutcomeKind.Found" /> with some in-bounds match,
+	///     <see cref="AobFirstFoundOutcomeKind.NotFound" />, the indeterminate
+	///     <see cref="AobFirstFoundOutcomeKind.FoundOutsideBounds" />, or a failure; the session is released once.
+	/// </returns>
+	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
+	/// <remarks>
+	///     <para>
+	///         CE stops at the first match it finds and exposes it through <c>getOnlyResult</c> (<c>celua.txt</c> lines
+	///         2656-2657); CE documents no order. The C3 spike saw the lowest in-module address three times out of three,
+	///         which is an observation, not a contract. The result must never back a bounded or range scan, a "require
+	///         single" query, or any exhaustive query: use
+	///         <see cref="TryScanWithinBounds(string, AobScanBounds, AobScanOptions, Span{Address}, CancellationToken)" />,
+	///         which is exhaustive, for those.
+	///     </para>
+	///     <para>
+	///         The session's found list is never initialized, because CE documents that the one-result mode does not fill
+	///         it. A match reported below <see cref="AobScanBounds.Start" /> is
+	///         <see cref="AobFirstFoundOutcomeKind.FoundOutsideBounds" />: CE's start bound is not byte-exact, so whether an
+	///         in-bounds match exists is unknown. The <c>getOnlyResult</c> no-match path and this route's call sequence
+	///         were not observed on the pinned CE 7.7.0.10621 host, which is why it is experimental (CESDK5011).
+	///     </para>
+	/// </remarks>
+	[Experimental("CESDK5011", UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
+	[MainThreadOnly]
+	[RequiresPluginEnabled]
+	public static AobFirstFoundResult TryFindFirstFoundWithinBounds(string pattern, AobScanBounds bounds,
+		AobScanOptions options, CancellationToken cancellationToken)
+	{
+		ArgumentNullException.ThrowIfNull(pattern);
+		return AobFirstFoundScan.Run(pattern, bounds, options, cancellationToken);
+	}
+
 	// Test seam: the same protected call and classification as TryScanDetailed, with a substitutable owner
 	// publication. Production callers always pass PublishResultList.
 	internal static AobScanStatus TryScanDetailedCore(string pattern, AobScanOptions options,

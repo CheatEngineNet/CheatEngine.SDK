@@ -1222,6 +1222,33 @@ public sealed class MemoryScanSession : IDisposable
 		return ReadResultCount(state, RequireResults());
 	}
 
+	// MemScan.getOnlyResult(): 0 arguments, 1 result. No value or nil is "not found" (celua.txt line 2657); only a Lua
+	// integer is an address, read bit for bit so that an address at or above 2^63 keeps its 64-bit pattern. A float is
+	// refused rather than converted, like any other non-integer.
+	internal MemoryScanOnlyResult TryReadOnlyResultCore(LuaState state, out Address address, out LuaStatus luaStatus)
+	{
+		using LuaFrame frame = new(state);
+		address = default;
+		luaStatus = _scanner!.Value.Handle.TryCallMethod(state, "getOnlyResult"u8, 0, 1);
+		if (!luaStatus.IsOk)
+		{
+			return MemoryScanOnlyResult.LuaFailure;
+		}
+
+		if (state.IsNil(-1))
+		{
+			return MemoryScanOnlyResult.NotFound;
+		}
+
+		if (!state.IsInteger(-1) || !state.TryReadInteger(-1, out long bits))
+		{
+			return MemoryScanOnlyResult.InvalidResult;
+		}
+
+		address = Address.FromInt64(bits);
+		return MemoryScanOnlyResult.Found;
+	}
+
 	// FoundList.getAddress(index) of an initialized list, read as UTF-8 and parsed without allocating. It never reads
 	// getValue: an address-only copy costs one CE call per row.
 	internal MemoryScanRowRead TryReadAddressRowCore(LuaState state, int index, out Address address,

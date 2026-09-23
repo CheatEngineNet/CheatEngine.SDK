@@ -146,13 +146,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0 # MinVer and the packaging tests need tags and full history
+          fetch-depth: 0 # MinVer computes the package version from tags and history
           persist-credentials: false
 
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
         with:
-          restore: CheatEngine.SDK.slnx
+          restore: |
+            CheatEngine.SDK.slnx
+            tests/CheatEngine.SDK.LiveProbe/CheatEngine.SDK.LiveProbe.csproj
 
       - name: Use CI-built native bridge
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -167,58 +169,101 @@ jobs:
           name: classic-abi-fixture-facts
           path: artifacts/native-abi-fixture
 
+      # One build of the whole solution, which also compiles every harness it lists (LivePlugin, Coexistence, probes).
       - name: Build
         run: |
-          dotnet build CheatEngine.SDK.slnx -c $env:CONFIGURATION --no-restore
+          dotnet build CheatEngine.SDK.slnx -c $env:CONFIGURATION --no-restore "-bl:artifacts/logs/build-test-$env:CONFIGURATION.binlog"
           if ($LASTEXITCODE -ne 0) {
             throw "$env:CONFIGURATION solution build failed with exit code $LASTEXITCODE."
           }
 
-      # One parallel run over every tests/**/*.Tests project of the solution, which also proves that the solution
-      # discovers every test module. A skip fails both configurations: NativeLua tests skip when the bundled Lua DLL
-      # does not bind, and a green check must not hide that. In Debug, the facts the native job built make the managed
-      # ABI comparison mandatory, and every module writes its own GUID-named coverage report.
-      - name: Test
+      # C0 evidence only: the CE 7.7 live probe must keep compiling, but CI never loads or runs it and uploads nothing it
+      # produces. This step exists until the probe joins CheatEngine.SDK.slnx; WorkflowContractTests then requires its
+      # removal, because the solution build compiles the probe in both legs.
+      - name: Compile live probe
+        if: matrix.configuration == 'Release'
         run: |
+          dotnet build tests/CheatEngine.SDK.LiveProbe/CheatEngine.SDK.LiveProbe.csproj -c Release --no-restore -bl:artifacts/logs/build-test-live-probe.binlog
+          if ($LASTEXITCODE -ne 0) {
+            throw "The live probe no longer compiles (exit code $LASTEXITCODE)."
+          }
+
+      # Pack before testing: the packaging tests below consume this exact file, which is then uploaded unchanged. The
+      # pack is incremental after the build and recompiles nothing.
+      - name: Pack
+        id: pack
+        if: matrix.configuration == 'Release'
+        env:
+          PACKAGE_VERSION: ${{ inputs.package-version }}
+          BRIDGE_SHA256: ${{ needs.native.outputs.bridge-sha256 }}
+        run: |
+          dotnet pack src/CheatEngine.SDK -c Release --no-restore -o artifacts/nuget -bl:artifacts/logs/pack-Release.binlog
+          if ($LASTEXITCODE -ne 0) {
+            throw "SDK package creation failed with exit code $LASTEXITCODE."
+          }
+          ./eng/ci/Test-SdkPackage.ps1 -PackageDirectory artifacts/nuget -PackageVersion $env:PACKAGE_VERSION -ExpectedBridgeSha256 $env:BRIDGE_SHA256
+          if ($LASTEXITCODE -ne 0) {
+            throw "The packed SDK failed its checks with exit code $LASTEXITCODE."
+          }
+
+      # One run over every tests/**/*.Tests module of the solution; MTP options go straight to dotnet test (SDK 10).
+      # A skip fails the run (--fail-skips on): NativeLua tests skip when the bundled Lua DLL does not bind, and a green
+      # check must not hide that. Hang and crash dumps need the extensions every module gets from eng/Tests.props.
+      # Debug: the native job's ABI facts make the managed ABI comparison mandatory, every module writes a coverage
+      # report, and the packaging tests are filtered out by trait (never skipped): they run in the Release leg against
+      # the packed file (CESDK_PACKAGED_UMBRELLA_NUPKG).
+      - name: Test
+        id: test
+        env:
+          CESDK_PACKAGED_UMBRELLA_NUPKG: ${{ matrix.configuration == 'Release' && steps.pack.outputs.nupkg || '' }}
+          PACKED_NUPKG_SHA256: ${{ steps.pack.outputs.sha256 }}
+        run: |
+          $ErrorActionPreference = 'Stop'
           $options = @(
             '--solution', 'CheatEngine.SDK.slnx', '-c', $env:CONFIGURATION, '--no-build', '--results-directory', $env:RESULTS,
-            '--fail-skips', 'on', '--report-trx', '--report-gh', '--report-gh-groups', 'off'
+            '--fail-skips', 'on', '--report-trx', '--report-gh', '--report-gh-groups', 'off',
+            '--hangdump', '--hangdump-timeout', '15m', '--crashdump'
           )
           if ($env:CONFIGURATION -eq 'Debug') {
             $env:CE77_NATIVE_ABI_FACTS_PATH = Join-Path $env:GITHUB_WORKSPACE 'artifacts/native-abi-fixture/ce77-native-abi-facts.txt'
             $env:CE77_NATIVE_ABI_REQUIRED = 'true'
-            $options += '--coverage', '--coverage-output-format', 'xml'
+            $options += '--coverage', '--coverage-output-format', 'xml', '--filter-not-trait', 'Category=Packaging'
+          }
+          else {
+            $consumed = (Get-FileHash -LiteralPath $env:CESDK_PACKAGED_UMBRELLA_NUPKG -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($consumed -ne $env:PACKED_NUPKG_SHA256) {
+              throw "The package changed between Pack ($env:PACKED_NUPKG_SHA256) and Test ($consumed)."
+            }
+            "Packaging tests consume ``$(Split-Path -Leaf $env:CESDK_PACKAGED_UMBRELLA_NUPKG)`` (SHA-256 ``$consumed``)." |
+              Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           }
           dotnet test @options
           if ($LASTEXITCODE -ne 0) {
             throw "$env:CONFIGURATION tests failed with exit code $LASTEXITCODE."
           }
-          if ($env:CONFIGURATION -eq 'Debug') {
-            $modules = @(Get-ChildItem -LiteralPath $env:RESULTS -Filter *.trx -File).Count
-            $reports = @(Get-ChildItem -LiteralPath $env:RESULTS -Filter *.xml -File).Count
-            if ($reports -eq 0 -or $reports -ne $modules) {
-              throw "Expected one coverage report per test module ($modules), found $reports."
-            }
+
+      # Every tests/**/*.Tests.csproj must have produced its report: a dropped or silently empty module fails here.
+      - name: Check test module inventory
+        if: ${{ !cancelled() && steps.test.outcome != 'skipped' }}
+        run: |
+          $options = @{ ResultsDirectory = $env:RESULTS; Configuration = $env:CONFIGURATION }
+          if ($env:CONFIGURATION -eq 'Debug') { $options.RequireCoverage = $true }
+          ./eng/ci/Test-TestModuleInventory.ps1 @options
+          if ($LASTEXITCODE -ne 0) {
+            throw "The test module inventory failed with exit code $LASTEXITCODE."
           }
 
-      # The shipped package comes from the build the tests just ran against. The pack is incremental: nothing recompiles.
-      - name: Pack
+      # The uploaded file is the file the tests consumed.
+      - name: Verify the tested package is unchanged
         if: matrix.configuration == 'Release'
         env:
-          PACKAGE_VERSION: ${{ inputs.package-version }}
+          PACKAGE: ${{ steps.pack.outputs.nupkg }}
+          PACKED_NUPKG_SHA256: ${{ steps.pack.outputs.sha256 }}
         run: |
-          dotnet pack src/CheatEngine.SDK -c Release --no-restore -o artifacts/nuget
-          if ($LASTEXITCODE -ne 0) {
-            throw "SDK package creation failed with exit code $LASTEXITCODE."
+          $actual = (Get-FileHash -LiteralPath $env:PACKAGE -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:PACKED_NUPKG_SHA256) {
+            throw "The package changed during the tests: packed $env:PACKED_NUPKG_SHA256, now $actual."
           }
-          $packages = @(Get-ChildItem -Path artifacts/nuget -Filter *.nupkg -File)
-          if ($packages.Count -ne 1) {
-            throw "Expected one package in artifacts/nuget, found $($packages.Count)."
-          }
-          if ($env:PACKAGE_VERSION -and $packages[0].Name -ne "CheatEngine.SDK.$env:PACKAGE_VERSION.nupkg") {
-            throw "Packed $($packages[0].Name), but the release requires CheatEngine.SDK.$env:PACKAGE_VERSION.nupkg."
-          }
-          "Packed ``$($packages[0].Name)``." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
       - name: Upload package
         if: matrix.configuration == 'Release'
@@ -246,6 +291,29 @@ jobs:
           path: ${{ env.RESULTS }}/*.trx
           if-no-files-found: warn
           retention-days: 7
+
+      - name: Upload test dumps
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-dumps-${{ matrix.configuration }}
+          # Hang and crash dumps, and the crash sequence file listing the tests that were running.
+          path: |
+            ${{ env.RESULTS }}/**/*.dmp
+            ${{ env.RESULTS }}/**/*sequence*
+          if-no-files-found: ignore
+          retention-days: 5
+
+      # Binary logs only on failure: they record the environment the build saw.
+      # https://learn.microsoft.com/visualstudio/ide/msbuild-logs#provide-msbuild-binary-logs-for-investigation
+      - name: Upload binary logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: binlogs-build-test-${{ matrix.configuration }}
+          path: artifacts/logs/*.binlog
+          if-no-files-found: ignore
+          retention-days: 5
 
   aot:
     name: Native AOT publication probe
@@ -279,7 +347,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $output = Join-Path $PWD 'artifacts/aot-probe'
-          dotnet publish tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj -c Release --no-restore -o $output
+          dotnet publish tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj -c Release --no-restore -o $output -bl:artifacts/logs/aot-probe.binlog
           if ($LASTEXITCODE -ne 0) {
             throw "Native AOT probe publish failed with exit code $LASTEXITCODE."
           }
@@ -299,11 +367,11 @@ jobs:
           $profileOutput = Join-Path $PWD 'artifacts/nativeaot-loader-profile'
           $libraryProject = 'tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj'
           $harnessProject = 'tests/CheatEngine.SDK.NativeAotLoaderHarness/CheatEngine.SDK.NativeAotLoaderHarness.csproj'
-          dotnet publish $libraryProject -c Release --no-restore -o $profileOutput
+          dotnet publish $libraryProject -c Release --no-restore -o $profileOutput -bl:artifacts/logs/aot-library-probe.binlog
           if ($LASTEXITCODE -ne 0) {
             throw "Native AOT shared-library publish failed with exit code $LASTEXITCODE."
           }
-          dotnet publish $harnessProject -c Release --no-restore -o $profileOutput
+          dotnet publish $harnessProject -c Release --no-restore -o $profileOutput -bl:artifacts/logs/aot-loader-harness.binlog
           if ($LASTEXITCODE -ne 0) {
             throw "Native AOT loader harness publish failed with exit code $LASTEXITCODE."
           }
@@ -319,6 +387,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Native AOT loader harness analysis exited with code $LASTEXITCODE." }
           & $harness --load --acknowledge-process-resident-load
           if ($LASTEXITCODE -ne 0) { throw "Native AOT loader harness load exited with code $LASTEXITCODE." }
+
+      - name: Upload binary logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: binlogs-aot
+          path: artifacts/logs/*.binlog
+          if-no-files-found: ignore
+          retention-days: 5
 
   # Secrets never reach fork or Dependabot runs, and a merge-queue branch is analysed again once it lands on main.
   # Pull requests fail on the quality gate; main only reports it.

@@ -48,6 +48,8 @@
   </Folder>
   <Folder Name="/eng/ci/">
     <File Path="eng/ci/Build-NativeBridge.ps1"/>
+    <File Path="eng/ci/Test-SdkPackage.ps1"/>
+    <File Path="eng/ci/Test-TestModuleInventory.ps1"/>
   </Folder>
   <Folder Name="/docs/">
     <File Path="docs/README.md"/>

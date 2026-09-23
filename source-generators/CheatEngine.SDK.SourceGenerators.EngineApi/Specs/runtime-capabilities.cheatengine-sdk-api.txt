@@ -1,12 +1,19 @@
-# Cheat Engine 7.7 scalar runtime capability probes.
+# Cheat Engine 7.7 raw runtime capability probes, generated into CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.
 #
-# Provenance: CE 7.7.0.10621 x64 celua.txt (SHA-256
-# AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00).
-# Names and result shapes follow that catalog. The version-table global is intentionally absent because the current
-# EngineApi grammar has no table result kind; do not reconstruct it from getCEVersion's floating-point result.
+# These wrappers return Cheat Engine's raw facts, one global per method, and raise LuaException when a call fails or
+# returns another type. The structured, outcome-returning API is RuntimeHostOperations, RuntimeProcessOperations and
+# RuntimeObservations (CheatEngine.SDK.Engine.Processes); prefer it. In particular, with no target selected Cheat Engine
+# reports x64-like target facts (x86 family, 64-bit, pointer size 8; spike C3 D2), so read getOpenedProcessID first and
+# ignore every target fact while it is 0.
 #
-# This file is a curated input only. CheatEngine.SDK.Engine.csproj must list it as an AdditionalFiles item before the
-# EngineApi generator will emit RuntimeCapabilityProbes.
+# Read-only on purpose: setPointerSize, setAssemblerMode, openProcess, openFileAsProcess and every dbk_* or dbvm_* global
+# change Cheat Engine or the target, or load a driver, and are deliberately absent (audit A17-18, Q45).
+# getCheatEngineFileVersion stays hand-written (RuntimeHostOperations.TryGetCheatEngineFileVersion) because it returns a
+# packed integer and a table; the current EngineApi grammar has no table result kind, and the value must never be
+# reconstructed from getCEVersion's floating-point result.
+#
+# The celua.txt line of each global is given as a locator only; the descriptions are written independently.
+# Format: source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/README.md.
 
 namespace: CheatEngine.SDK.Engine.Generated
 type: RuntimeCapabilityProbes
@@ -69,3 +76,35 @@ form: throwing
 return: boolean
 nil: none
 doc: Gets whether Cheat Engine reports the selected target as ARM based.
+
+# targetIsAndroid(), celua.txt:715.
+global: targetIsAndroid
+method: IsTargetAndroid
+form: throwing
+return: boolean
+nil: none
+doc: Gets whether Cheat Engine reports an Android target.
+
+# getPointerSize(), celua.txt:501: the configured pointer size; any integer that setPointerSize stored.
+global: getPointerSize
+method: GetConfiguredPointerSizeBytes
+form: throwing
+return: int32
+nil: none
+doc: Gets Cheat Engine's raw configured pointer size, which is not the target bitness; RuntimeProcessOperations.TryGetConfiguredPointerSize validates it.
+
+# getOperatingSystem(), celua.txt:14: 0=Windows, 1=macOS, 2=Linux.
+global: getOperatingSystem
+method: GetOperatingSystemCode
+form: throwing
+return: int32
+nil: none
+doc: Gets Cheat Engine's raw operating-system code; RuntimeHostOperations.TryGetOperatingSystem decodes it.
+
+# isConnectedToCEServer(), celua.txt:4415.
+global: isConnectedToCEServer
+method: IsConnectedToCeServer
+form: throwing
+return: boolean
+nil: none
+doc: Gets whether Cheat Engine is connected to CEServer, in which case a local process identity does not describe the target.

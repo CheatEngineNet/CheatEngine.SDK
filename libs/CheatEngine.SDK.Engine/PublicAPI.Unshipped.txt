@@ -166,6 +166,7 @@ CheatEngine.SDK.Engine.Errors.EngineTargetIdentityException
 CheatEngine.SDK.Engine.Errors.EngineTargetIdentityException.Check.get -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheck
 CheatEngine.SDK.Engine.Errors.EngineTargetIdentityException.EngineTargetIdentityException(string! operation, CheatEngine.SDK.Engine.Targets.TargetIdentityCheck check) -> void
 CheatEngine.SDK.Engine.Errors.EngineTargetIdentityException.Operation.get -> string!
+CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes
 CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.AddressResolutionOptions(bool Shallow = false) -> void
 CheatEngine.SDK.Engine.Inspection.SymbolName
 CheatEngine.SDK.Engine.Inspection.SymbolName.Equals(CheatEngine.SDK.Engine.Inspection.SymbolName other) -> bool
@@ -509,6 +510,17 @@ static CheatEngine.SDK.Engine.Assembly.InstructionProfile.operator ==(CheatEngin
 static CheatEngine.SDK.Engine.Assembly.InstructionProfiles.TryObserveCurrent(out CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile targetProfile) -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
 static CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.operator !=(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile left, CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile right) -> bool
 static CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.operator ==(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile left, CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile right) -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetCheatEngineVersion() -> double
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetConfiguredPointerSizeBytes() -> int
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetOperatingSystemCode() -> int
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetSystemArchitectureCode() -> int
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetTargetAbiCode() -> int
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsCheatEngine64Bit() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsConnectedToCeServer() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTarget64Bit() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTargetAndroid() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTargetArm() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTargetX86() -> bool
 static CheatEngine.SDK.Engine.Inspection.EngineInspection.ResolveHostAddress(CheatEngine.SDK.Engine.Inspection.SymbolExpression expression, CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions options, out CheatEngine.SDK.Engine.Memory.HostAddress address) -> CheatEngine.SDK.Engine.Inspection.InspectionStatus
 static CheatEngine.SDK.Engine.Inspection.SymbolName.Push(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Engine.Inspection.SymbolName value) -> void
 static CheatEngine.SDK.Engine.Inspection.SymbolName.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out CheatEngine.SDK.Engine.Inspection.SymbolName value) -> bool

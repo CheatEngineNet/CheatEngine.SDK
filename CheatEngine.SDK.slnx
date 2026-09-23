@@ -37,6 +37,14 @@
     <File Path="eng/Tests.props"/>
     <File Path="eng/Update-LockFiles.ps1"/>
   </Folder>
+  <Folder Name="/eng/qualification/">
+    <File Path="eng/qualification/Invoke-LocalQualification.ps1"/>
+    <File Path="eng/qualification/QualificationRunner.psm1"/>
+    <File Path="eng/qualification/scenarios.json"/>
+  </Folder>
+  <Folder Name="/eng/qualification/driver/">
+    <File Path="eng/qualification/driver/zz_cesdk_qualification.template.lua"/>
+  </Folder>
   <Folder Name="/docs/">
     <File Path="docs/README.md"/>
   </Folder>

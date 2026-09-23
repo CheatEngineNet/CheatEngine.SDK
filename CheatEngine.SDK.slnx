@@ -36,6 +36,7 @@
     <File Path=".github/workflows/dependency-submission.yml"/>
     <File Path=".github/workflows/main-ci.yml"/>
     <File Path=".github/workflows/release.yml"/>
+    <File Path=".github/workflows/scheduled-health.yml"/>
     <File Path=".github/workflows/scorecard.yml"/>
     <File Path=".github/workflows/pull-request-ci.yml"/>
     <File Path=".github/workflows/pr-policy.yml"/>
@@ -78,6 +79,18 @@
     <File Path="eng/ci/Test-PullRequestPolicy.ps1"/>
     <File Path="eng/ci/Test-SdkPackage.ps1"/>
     <File Path="eng/ci/Test-TestModuleInventory.ps1"/>
+  </Folder>
+  <Folder Name="/eng/ci/health/">
+    <File Path="eng/ci/health/HealthCheck.psm1"/>
+    <File Path="eng/ci/health/HealthCommand.psm1"/>
+    <File Path="eng/ci/health/Invoke-BridgeDriftCheck.ps1"/>
+    <File Path="eng/ci/health/Invoke-SdkCanary.ps1"/>
+    <File Path="eng/ci/health/Invoke-TestRepeat.ps1"/>
+    <File Path="eng/ci/health/Invoke-VulnerabilityAudit.ps1"/>
+    <File Path="eng/ci/health/Publish-HealthIssue.ps1"/>
+    <File Path="eng/ci/health/README.md"/>
+    <File Path="eng/ci/health/Set-CanarySdkVersion.ps1"/>
+    <File Path="eng/ci/health/Test-ExternalLink.ps1"/>
   </Folder>
   <Folder Name="/docs/">
     <File Path="docs/README.md"/>

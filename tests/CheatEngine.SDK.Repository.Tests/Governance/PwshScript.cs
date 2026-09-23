@@ -8,9 +8,10 @@ namespace CheatEngine.SDK.Repository.Tests.Governance;
 /// <summary>
 ///     Runs the repository's PowerShell policy code in a separate <c>pwsh</c> process: <c>-NoProfile</c>,
 ///     <c>-NonInteractive</c>, the repository root as working directory, a 120 s limit and the test cancellation token.
-///     The GitHub Actions file commands (<c>GITHUB_STEP_SUMMARY</c>, <c>GITHUB_OUTPUT</c>, ...) and the pull-request
-///     variables of the scripts are removed from the child environment, so a run inside CI never writes into the job
-///     summary or reads the real pull request. A missing <c>pwsh</c> fails the test: it is never skipped
+///     The GitHub Actions file commands (<c>GITHUB_STEP_SUMMARY</c>, <c>GITHUB_OUTPUT</c>, ...), the tokens and every
+///     input the governance scripts read from the environment are removed from the child environment, so a run inside CI
+///     never writes into the job summary, reads the real pull request or reaches GitHub. A missing <c>pwsh</c> fails the
+///     test: it is never skipped
 ///     (<c>--fail-skips on</c>).
 /// </summary>
 internal static class PwshScript
@@ -21,7 +22,9 @@ internal static class PwshScript
 	private static readonly string[] s_isolatedVariables =
 	[
 		"GITHUB_STEP_SUMMARY", "GITHUB_OUTPUT", "GITHUB_ENV", "GITHUB_PATH", "GITHUB_STATE", "GITHUB_ACTIONS", "CI",
-		"PR_TITLE", "PR_BODY", "PR_AUTHOR", "BASE_SHA", "HEAD_SHA", "GH_TOKEN", "GITHUB_TOKEN"
+		"PR_TITLE", "PR_BODY", "PR_AUTHOR", "BASE_SHA", "HEAD_SHA", "GH_TOKEN", "GITHUB_TOKEN", "GH_REPO",
+		"NEEDS", "RUN_URL", "DRIFT", "BROKEN_LINKS", "REPOSITORY", "SNAPSHOT_SHA", "SNAPSHOT_REF", "SNAPSHOT_CORRELATOR",
+		"SNAPSHOT_JOB_ID", "SNAPSHOT_JOB_URL", "CESDK_PACKAGED_UMBRELLA_NUPKG"
 	];
 
 	/// <summary>Runs <paramref name="scriptText" /> from a temporary <c>.ps1</c> file.</summary>

@@ -569,12 +569,15 @@
               "trait": "Qualification=Q08"
             }
           ],
+          "justification": "Covers the SDK's own cleanup (failed-enable detach, callback detach), which stays incomplete and retryable. It does not cover a throwing OnDisable: DisablePluginTests.OnDisable_throwing_is_logged_but_reports_TRUE_after_the_plugin_is_disabled shows the SDK logs the exception and reports TRUE, so that test is deliberately not Q08 evidence.",
           "date": "2026-09-23"
         },
         "C3": {
           "status": "NotExecuted",
           "evidenceKind": "ToQualify",
-          "profileId": "ce-7.7.0.10621-x64-managed-hostfxr"
+          "profileId": "ce-7.7.0.10621-x64-managed-hostfxr",
+          "justification": "The C3 scenario injects a throwing OnDisable. The SDK reports TRUE after it (DisablePluginTests.OnDisable_throwing_is_logged_but_reports_TRUE_after_the_plugin_is_disabled), so Cheat Engine is expected to show the plugin as cleanly disabled: pre-declared Failed until the lifecycle decision on a throwing OnDisable changes.",
+          "expected": "Failed"
         }
       }
     },

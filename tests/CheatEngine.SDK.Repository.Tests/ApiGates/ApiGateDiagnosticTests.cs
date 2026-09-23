@@ -1,4 +1,5 @@
-using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 using CheatEngine.SDK.Repository.Tests.Infrastructure;
 
@@ -12,17 +13,19 @@ namespace CheatEngine.SDK.Repository.Tests.ApiGates;
 ///     diagnostics index lists it. Experimental gates use the <c>CESDK5xxx</c> range.
 /// </summary>
 /// <remarks>
-///     Shared-contracts section 3.2 describes this catalog as built "by reflection over the packed assemblies". This
-///     project has no <c>ProjectReference</c> by design (its own top-of-file comment), so it reads the committed source
-///     of <c>libs/</c> and <c>src/</c> instead; this is a reported deviation, not a silent one. A source scan cannot
-///     detect a declaration whose attribute text is present but does not actually bind (a named-argument typo, a member
-///     excluded from the public surface, a conditional-compilation exclusion), which reflection over the built assembly
-///     would catch. The scan blanks <c>//</c> and <c>/* */</c> comments and captures each attribute's argument list up
-///     to its own balanced closing parenthesis, so a documentation example and a ']' inside a string argument (for
-///     example inside <c>UrlFormat</c>) are both handled; it does not also mask string and character literals, so a
-///     comment marker that a literal argument contains is still misread as starting a real comment.
+///     Shared-contracts section 3.2 requires this catalog to be built "by reflection over the packed assemblies", the
+///     same technique <c>CheatEngine.SDK.Engine.Tests.Scanning.ScanExperimentalApiTests</c> already uses, scoped there
+///     to one namespace it has a <c>ProjectReference</c> to. This project has none, by design (its own top-of-file
+///     comment: it only reads committed files and never builds, packs or restores), so it cannot reflect over a
+///     referenced assembly. Instead it loads the shipping assemblies' own build output with
+///     <see cref="Assembly.LoadFrom(string)"/> from <c>artifacts/bin/CheatEngine.SDK/&lt;configuration&gt;</c> — the one
+///     folder <c>src/CheatEngine.SDK</c> copies every <c>libs/</c> assembly into (its csproj comment "Libraries embedded
+///     under lib/net10.0") alongside its own — which the solution build that runs before this test module (shared
+///     contracts section 1.8: build, then pack, then test) has already populated. This is still a from-disk load, never
+///     a compile-time reference, so the "no ProjectReference" design holds; unlike a source-text scan it cannot be
+///     fooled by a documentation example or a comment, and it sees exactly what the compiler bound.
 /// </remarks>
-public sealed partial class ApiGateDiagnosticTests
+public sealed class ApiGateDiagnosticTests
 {
 	private const string UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md";
 
@@ -33,15 +36,15 @@ public sealed partial class ApiGateDiagnosticTests
 		List<string> offenders = [];
 		foreach (ApiGate gate in gates)
 		{
-			string expectedRange = gate.Kind == ApiGateKind.Experimental ? "^CESDK5[0-9]{3}$" : "^CESDK[0-9]{4}$";
-			if (!Regex.IsMatch(gate.Id, expectedRange, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)))
+			if (!HasExpectedShape(gate.Id, gate.Kind))
 			{
-				offenders.Add($"{gate.File}: {gate.Kind} id '{gate.Id}' is outside {expectedRange}.");
+				string expectedShape = gate.Kind == ApiGateKind.Experimental ? "CESDK5 + 3 digits" : "CESDK + 4 digits";
+				offenders.Add($"{gate.Location}: {gate.Kind} id '{gate.Id}' does not match '{expectedShape}'.");
 			}
 
 			if (!string.Equals(gate.UrlFormat, UrlFormat, StringComparison.Ordinal))
 			{
-				offenders.Add($"{gate.File}: {gate.Kind}('{gate.Id}') has UrlFormat '{gate.UrlFormat}', expected '{UrlFormat}'.");
+				offenders.Add($"{gate.Location}: {gate.Kind}('{gate.Id}') has UrlFormat '{gate.UrlFormat}', expected '{UrlFormat}'.");
 			}
 		}
 
@@ -75,168 +78,91 @@ public sealed partial class ApiGateDiagnosticTests
 		Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
 	}
 
-	[Fact]
-	public void The_attribute_scanner_ignores_comments_and_reads_multi_line_arguments()
+	/// <summary>Experimental ids are exactly <c>CESDK5</c> + 3 digits; Obsolete ids are exactly <c>CESDK</c> + 4 digits.</summary>
+	private static bool HasExpectedShape(string id, ApiGateKind kind)
 	{
-		string[] sample =
-		[
-			"/// <c>[Experimental(\"CESDK5999\")]</c> in documentation is not a declaration.",
-			"// [Obsolete(\"text\", DiagnosticId = \"CESDK7999\")]",
-			"[MainThreadOnly, Experimental(\"CESDK5998\",",
-			"    UrlFormat = \"https://example.invalid/{0}\")]",
-			"[System.Obsolete(\"Use the new API.\", DiagnosticId = \"CESDK7998\", UrlFormat = \"u\")]",
-			"[Obsolete(\"No diagnostic id.\")]"
-		];
+		string prefix = kind == ApiGateKind.Experimental ? "CESDK5" : "CESDK";
+		int digitCount = kind == ApiGateKind.Experimental ? 3 : 4;
+		if (!id.StartsWith(prefix, StringComparison.Ordinal) || id.Length != prefix.Length + digitCount)
+		{
+			return false;
+		}
 
-		List<ApiGate> gates = Scan("libs/Sample.cs", sample);
+		for (int index = prefix.Length; index < id.Length; index++)
+		{
+			if (id[index] is < '0' or > '9')
+			{
+				return false;
+			}
+		}
 
-		Assert.Equal(
-			["Experimental CESDK5998 https://example.invalid/{0}", "Obsolete CESDK7998 u"],
-			gates.Select(static gate => $"{gate.Kind} {gate.Id} {gate.UrlFormat}"), StringComparer.Ordinal);
+		return true;
 	}
 
-	// A block comment can span several lines and does not start with "//" on every one of them; a naive per-line "//"
-	// check (the scanner's previous shape) never blanks it.
-	[Fact]
-	public void The_attribute_scanner_ignores_a_multi_line_block_comment()
-	{
-		string[] sample =
-		[
-			"/* An earlier design considered",
-			"   [Experimental(\"CESDK5997\")] here. */",
-			"[Experimental(\"CESDK5996\")]"
-		];
-
-		List<ApiGate> gates = Scan("libs/Sample.cs", sample);
-
-		Assert.Equal(["Experimental CESDK5996 "], gates.Select(static gate => $"{gate.Kind} {gate.Id} {gate.UrlFormat}"),
-			StringComparer.Ordinal);
-	}
-
-	// The argument list is captured up to its own balanced closing parenthesis, not up to the first ']'; a UrlFormat
-	// (or any other string argument) that happens to contain ']' must not truncate the match early.
-	[Fact]
-	public void The_attribute_scanner_keeps_a_closing_bracket_inside_a_string_argument()
-	{
-		string[] sample = ["[Experimental(\"CESDK5995\", UrlFormat = \"https://example.invalid/{0}]tail\")]"];
-
-		List<ApiGate> gates = Scan("libs/Sample.cs", sample);
-
-		Assert.Equal(["Experimental CESDK5995 https://example.invalid/{0}]tail"],
-			gates.Select(static gate => $"{gate.Kind} {gate.Id} {gate.UrlFormat}"), StringComparer.Ordinal);
-	}
+	/// <summary>
+	///     The shipping assemblies (<c>libs/</c> + <c>src/CheatEngine.SDK</c> itself), loaded once per test process from
+	///     the current configuration's build output. The configuration is read from this test module's own output
+	///     directory name (<c>artifacts/bin/CheatEngine.SDK.Repository.Tests/&lt;configuration&gt;</c>), never
+	///     hard-coded, so the same test scans whichever leg (Debug or Release) built it.
+	/// </summary>
+	private static readonly Lazy<List<Assembly>> s_shippingAssemblies = new(LoadShippingAssemblies);
 
 	private static List<ApiGate> ApiGates()
 	{
 		List<ApiGate> gates = [];
-		foreach (string file in RepositoryRoot.EnumerateSourceFiles("*.cs"))
+		foreach (Assembly assembly in s_shippingAssemblies.Value)
 		{
-			if (file.StartsWith("libs/", StringComparison.Ordinal) || file.StartsWith("src/", StringComparison.Ordinal))
+			string assemblyName = assembly.GetName().Name ?? assembly.FullName ?? "<unknown assembly>";
+			foreach (Type type in assembly.GetExportedTypes())
 			{
-				gates.AddRange(Scan(file, File.ReadAllLines(Path.Combine(RepositoryRoot.Path, file))));
+				AddGates(gates, assemblyName, type.FullName ?? type.Name, type);
+				const BindingFlags memberFlags =
+					BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+				foreach (MemberInfo member in type.GetMembers(memberFlags))
+				{
+					AddGates(gates, assemblyName, (type.FullName ?? type.Name) + "." + member.Name, member);
+				}
 			}
 		}
 
 		return gates;
 	}
 
-	private static List<ApiGate> Scan(string file, string[] lines)
+	private static void AddGates(List<ApiGate> gates, string assemblyName, string location, MemberInfo member)
 	{
-		string code = BlankComments(string.Join("\n", lines));
-		List<ApiGate> gates = [];
-		foreach (Match match in GateAttribute().Matches(code))
+		if (member.GetCustomAttribute<ExperimentalAttribute>() is { } experimental)
 		{
-			string arguments = match.Groups["arguments"].Value;
-			string url = UrlFormatArgument().Match(arguments) is { Success: true } urlMatch
-				? urlMatch.Groups["value"].Value
-				: string.Empty;
-			if (string.Equals(match.Groups["name"].Value, "Experimental", StringComparison.Ordinal))
-			{
-				Match id = FirstStringArgument().Match(arguments);
-				gates.Add(new ApiGate(file, ApiGateKind.Experimental, id.Success ? id.Groups["value"].Value : "", url));
-			}
-			else if (DiagnosticIdArgument().Match(arguments) is { Success: true } idMatch)
-			{
-				gates.Add(new ApiGate(file, ApiGateKind.Obsolete, idMatch.Groups["value"].Value, url));
-			}
+			gates.Add(new ApiGate($"{assemblyName}: {location}", ApiGateKind.Experimental, experimental.DiagnosticId,
+				experimental.UrlFormat ?? string.Empty));
 		}
 
-		return gates;
+		if (member.GetCustomAttribute<ObsoleteAttribute>() is { DiagnosticId.Length: > 0 } obsolete)
+		{
+			gates.Add(new ApiGate($"{assemblyName}: {location}", ApiGateKind.Obsolete, obsolete.DiagnosticId!,
+				obsolete.UrlFormat ?? string.Empty));
+		}
 	}
 
-	// Blanks "//" line comments and "/* */" block comments (which need not start at column 0 or fit on one line),
-	// keeping every line break so that line numbers in offender messages still line up with the source. A regular
-	// double-quoted string is skipped verbatim first, because every gate's UrlFormat argument is one and contains its
-	// own "//" (e.g. "https://github.com/..."), which must never be misread as a comment start. This project
-	// deliberately has no ProjectReference (see the type doc comment), so the scan reads source text, never a built or
-	// packed assembly; it does not also recognise verbatim, raw or interpolated strings or character literals
-	// (shared-contracts section 3.2 is reported as a deviation), none of which this repository's gate declarations use.
-	private static string BlankComments(string source)
+	private static List<Assembly> LoadShippingAssemblies()
 	{
-		char[] blanked = source.ToCharArray();
-		int index = 0;
-		while (index < blanked.Length)
+		string configuration = new DirectoryInfo(AppContext.BaseDirectory).Name;
+		string directory = Path.Combine(RepositoryRoot.Path, "artifacts", "bin", "CheatEngine.SDK", configuration);
+		if (!Directory.Exists(directory))
 		{
-			if (blanked[index] == '"')
-			{
-				index++;
-				while (index < blanked.Length && blanked[index] != '"' && blanked[index] != '\n')
-				{
-					index += blanked[index] == '\\' && index + 1 < blanked.Length && blanked[index + 1] != '\n' ? 2 : 1;
-				}
-
-				if (index < blanked.Length && blanked[index] == '"')
-				{
-					index++;
-				}
-			}
-			else if (blanked[index] == '/' && index + 1 < blanked.Length && blanked[index + 1] == '/')
-			{
-				while (index < blanked.Length && blanked[index] != '\n')
-				{
-					blanked[index] = ' ';
-					index++;
-				}
-			}
-			else if (blanked[index] == '/' && index + 1 < blanked.Length && blanked[index + 1] == '*')
-			{
-				int closing = source.IndexOf("*/", index + 2, StringComparison.Ordinal);
-				int end = closing < 0 ? blanked.Length : closing + 2;
-				for (; index < end; index++)
-				{
-					if (blanked[index] != '\n')
-					{
-						blanked[index] = ' ';
-					}
-				}
-			}
-			else
-			{
-				index++;
-			}
+			throw new InvalidOperationException(
+				$"'{RepositoryRoot.ToRelative(directory)}' does not exist. Build 'CheatEngine.SDK.slnx' in the " +
+				$"'{configuration}' configuration before running this test: shared-contracts section 3.2 reads the " +
+				"built shipping assemblies, never source text.");
 		}
 
-		return new string(blanked);
+		List<Assembly> assemblies = [];
+		foreach (string dll in Directory.EnumerateFiles(directory, "CheatEngine.SDK*.dll", SearchOption.TopDirectoryOnly))
+		{
+			assemblies.Add(Assembly.LoadFrom(dll));
+		}
+
+		return assemblies;
 	}
-
-	// An attribute of an attribute list: '[' or ',' before the name, then the argument list up to its own balanced
-	// closing parenthesis (so a ']' inside a string argument, such as a UrlFormat, cannot truncate the match early),
-	// followed by ']' or ','.
-	[GeneratedRegex(
-		@"[\[,]\s*(?:System\.Diagnostics\.CodeAnalysis\.|System\.)?(?<name>Experimental|Obsolete)(?:Attribute)?\s*\((?<arguments>(?>[^()]+|\((?<depth>)|\)(?<-depth>))*)(?(depth)(?!))\)\s*[\],]",
-		RegexOptions.CultureInvariant | RegexOptions.Singleline, matchTimeoutMilliseconds: 1000)]
-	private static partial Regex GateAttribute();
-
-	[GeneratedRegex(@"^\s*""(?<value>[^""]*)""", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-	private static partial Regex FirstStringArgument();
-
-	[GeneratedRegex(@"DiagnosticId\s*=\s*""(?<value>[^""]*)""", RegexOptions.CultureInvariant,
-		matchTimeoutMilliseconds: 1000)]
-	private static partial Regex DiagnosticIdArgument();
-
-	[GeneratedRegex(@"UrlFormat\s*=\s*""(?<value>[^""]*)""", RegexOptions.CultureInvariant,
-		matchTimeoutMilliseconds: 1000)]
-	private static partial Regex UrlFormatArgument();
 
 	private enum ApiGateKind
 	{
@@ -245,5 +171,5 @@ public sealed partial class ApiGateDiagnosticTests
 		Obsolete
 	}
 
-	private sealed record ApiGate(string File, ApiGateKind Kind, string Id, string UrlFormat);
+	private sealed record ApiGate(string Location, ApiGateKind Kind, string Id, string UrlFormat);
 }

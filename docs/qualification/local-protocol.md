@@ -77,7 +77,8 @@ continues. A plumbing check with a local pack uses `-Smoke`: it writes `smoke-re
 The plan is [`eng/qualification/scenarios.json`](../../eng/qualification/scenarios.json); preconditions, operation and
 expected result come from the [matrix](matrix.json). Every LiveProbe scenario opens the x64 qualification target first
 and loads the plugin with `loadPlugin`, so the probe's authorization gate (exact host, short-lived manifest, target
-opened in Cheat Engine) is satisfied.
+opened in Cheat Engine) is satisfied. `loadPlugin` returns nil on failure without raising a Lua error, so every pass
+rule except Q06's (where the enable fails on purpose) also requires each load to return an index of 0 or greater.
 
 | Scenario | Level | Harness                       | Target | Steps                                                                                                                    | Pass rule                                                                                         |
 |----------|-------|-------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|

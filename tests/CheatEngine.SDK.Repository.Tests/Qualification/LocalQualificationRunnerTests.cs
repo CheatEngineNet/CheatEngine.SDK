@@ -381,6 +381,7 @@ public sealed class LocalQualificationRunnerTests
 				$values = if ($Json) { @([pscustomobject]@{ type = 'string'; value = $Json }) } else { @() }
 				[pscustomobject]@{ id = $Id; ok = $Ok; values = $values }
 			}
+			function New-LoadStep([string] $Id) { [pscustomobject]@{ id = $Id; ok = $true; values = @([pscustomobject]@{ type = 'integer'; value = 0 }) } }
 			function Get-Status($Scenario, $Steps, $Answers) {
 				$outcome = Resolve-QualificationOutcome -Scenario $Scenario -Steps $Steps -Answers $Answers
 				"$($outcome.status) $($outcome.passKind)".Trim()
@@ -388,7 +389,7 @@ public sealed class LocalQualificationRunnerTests
 			$result = [ordered]@{}
 			foreach ($id in 'Q09.a', 'Q09.b') {
 				$scenario = @($plan.scenarios | Where-Object id -eq $id)[0]
-				$steps = [ordered]@{}
+				$steps = [ordered]@{ loadA = New-LoadStep 'loadA'; loadB = New-LoadStep 'loadB' }
 				foreach ($name in 'identityA', 'identityB', 'pingB', 'pingA2', 'pingB2') { $steps[$name] = New-Step $name $true }
 				$steps.pingA = New-Step 'pingA' $false
 				$result["$id removed"] = Get-Status $scenario $steps ([ordered]@{ removeA = 'y' })
@@ -397,7 +398,7 @@ public sealed class LocalQualificationRunnerTests
 				$result["$id notRemoved"] = Get-Status $scenario $steps ([ordered]@{ removeA = 'n' })
 			}
 			$q07 = @($plan.scenarios | Where-Object id -eq 'Q07')[0]
-			$steps = [ordered]@{ pump = New-Step 'pump' $true '{"enabledAfter":true,"phaseAfter":"Enabled"}'; status = New-Step 'status' $true '{"context":{"phase":"Enabled"} }' }
+			$steps = [ordered]@{ load = New-LoadStep 'load'; pump = New-Step 'pump' $true '{"enabledAfter":true,"phaseAfter":"Enabled"}'; status = New-Step 'status' $true '{"context":{"phase":"Enabled"} }' }
 			$result['Q07 refused'] = Get-Status $q07 $steps ([ordered]@{ acted = 'y' })
 			$steps.status = New-Step 'status' $true '{"context":{"phase":"Disabled"} }'
 			$result['Q07 disabledAfterThePump'] = Get-Status $q07 $steps ([ordered]@{ acted = 'y' })
@@ -413,6 +414,46 @@ public sealed class LocalQualificationRunnerTests
 
 		Assert.Equal("Passed RefusalVerified", result.GetProperty("Q07 refused").GetString());
 		Assert.Equal("Failed", result.GetProperty("Q07 disabledAfterThePump").GetString());
+	}
+
+	[Fact]
+	public void A_load_step_passes_only_with_the_non_negative_index_loadPlugin_returns_on_success()
+	{
+		// loadPlugin returns nil on failure without raising (celua.txt:643), so a protected call that succeeded proves
+		// nothing; the value must be a number of 0 or greater. The step records are parsed from driver JSON as in a run.
+		JsonElement result = RunJson(ModuleImport + $$"""
+			$plan = Get-Content -LiteralPath {{PowerShellProcess.Quote(QualificationDocuments.Absolute(Scenarios))}} -Raw | ConvertFrom-Json -Depth 64
+			$scenario = @($plan.scenarios | Where-Object id -eq 'Q04')[0]
+			$status = [ordered]@{ schema = 'ce77-live-probe-status-v1'; bootstrap = [ordered]@{ calls = 1; opaqueSecondInt = 0; interpretation = 'none' } } | ConvertTo-Json -Compress
+			$statusLine = [pscustomobject]@{ tMs = 2; source = 'Driver'; kind = 'StepResult'; message = (@{ step = 3; id = 'status'; action = 'call'; ok = $true; values = @(@{ type = 'string'; value = $status }) } | ConvertTo-Json -Compress -Depth 8) }
+			$loads = [ordered]@{
+				index0 = '{"step":2,"id":"load","action":"loadPlugin","ok":true,"values":[{"type":"integer","value":0}]}'
+				index3 = '{"step":2,"id":"load","action":"loadPlugin","ok":true,"values":[{"type":"integer","value":3}]}'
+				nil = '{"step":2,"id":"load","action":"loadPlugin","ok":true,"values":[{"type":"nil"}]}'
+				noValue = '{"step":2,"id":"load","action":"loadPlugin","ok":true,"values":[]}'
+				negative = '{"step":2,"id":"load","action":"loadPlugin","ok":true,"values":[{"type":"integer","value":-1}]}'
+				numericString = '{"step":2,"id":"load","action":"loadPlugin","ok":true,"values":[{"type":"string","value":"0"}]}'
+				luaError = '{"step":2,"id":"load","action":"loadPlugin","ok":false,"values":[{"type":"string","value":"attempt to call a nil value (global loadPlugin)"}]}'
+				notRecorded = $null
+			}
+			$result = [ordered]@{}
+			foreach ($name in $loads.Keys) {
+				$lines = @($statusLine)
+				if ($null -ne $loads[$name]) { $lines = @([pscustomobject]@{ tMs = 1; source = 'Driver'; kind = 'StepResult'; message = $loads[$name] }) + $lines }
+				$redacted = ConvertTo-RedactedSessionEvent -Raw $lines -Map (Get-RedactionMap -Paths ([ordered]@{ '<workRoot>' = 'C:\lab\work' })) -OffsetMs 0
+				$outcome = Resolve-QualificationOutcome -Scenario $scenario -Steps $redacted.steps -Answers ([ordered]@{})
+				$result[$name] = "$($outcome.status) $($outcome.passKind)".Trim()
+			}
+			$result | ConvertTo-Json -Compress
+			""");
+
+		Assert.Equal("Passed Functional", result.GetProperty("index0").GetString());
+		Assert.Equal("Passed Functional", result.GetProperty("index3").GetString());
+		foreach (string failure in (string[]) ["nil", "noValue", "negative", "numericString", "luaError", "notRecorded"])
+		{
+			Assert.True(string.Equals("Failed", result.GetProperty(failure).GetString(), StringComparison.Ordinal),
+				failure + ": " + result.GetProperty(failure).GetString());
+		}
 	}
 
 	[Fact]
@@ -660,6 +701,44 @@ public sealed class LocalQualificationRunnerTests
 			if (!stepIds.Contains(check.GetProperty("step").GetString()!))
 			{
 				yield return $"{id}: a pass-rule check names the unknown step '{check.GetProperty("step").GetString()}'.";
+			}
+		}
+
+		foreach (string problem in CheckLoadIndexes(id, scenario))
+		{
+			yield return problem;
+		}
+	}
+
+	// loadPlugin returns nil on failure without raising, so a load that must succeed is checked for its index. A fault
+	// injected while the plugin is created or enabled makes the load result the observation instead.
+	private static IEnumerable<string> CheckLoadIndexes(string id, JsonElement scenario)
+	{
+		string fault = scenario.TryGetProperty("faultStage", out JsonElement stage) ? stage.GetString()! : "None";
+		if (fault is "FactoryCreate" or "OnEnable")
+		{
+			yield break;
+		}
+
+		HashSet<string> indexChecked = new(StringComparer.Ordinal);
+		foreach (JsonElement check in scenario.GetProperty("passRule").GetProperty("checks").EnumerateArray())
+		{
+			if (check.TryGetProperty("json", out JsonElement selector) &&
+				string.Equals(selector.GetString(), "0", StringComparison.Ordinal) &&
+				check.TryGetProperty("atLeast", out JsonElement atLeast) && atLeast.ValueKind == JsonValueKind.Number &&
+				atLeast.GetInt32() == 0)
+			{
+				indexChecked.Add(check.GetProperty("step").GetString()!);
+			}
+		}
+
+		foreach (JsonElement step in scenario.GetProperty("steps").EnumerateArray())
+		{
+			string stepId = step.GetProperty("id").GetString()!;
+			if (step.TryGetProperty("action", out JsonElement action) &&
+				string.Equals(action.GetString(), "loadPlugin", StringComparison.Ordinal) && !indexChecked.Contains(stepId))
+			{
+				yield return $"{id}: the loadPlugin step '{stepId}' needs the pass-rule check {{ \"step\": \"{stepId}\", \"json\": \"0\", \"atLeast\": 0 }}.";
 			}
 		}
 	}

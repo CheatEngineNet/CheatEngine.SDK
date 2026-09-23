@@ -130,6 +130,9 @@ authorization manifest contain private data and must never be committed.
   root is refused (`Work_root_is_refused_when_it_overlaps_Cheat_Engine_holds_non_ASCII_or_sees_the_workspace`); a
   coexistence receipt passes only when plugin A was observably removed and Q07 only when the plugin is still enabled
   after the pump (`Pass_rules_require_the_observed_removal_of_plugin_A_and_a_plugin_still_enabled_after_the_refused_disable`);
+  a load step passes only when `loadPlugin` returned a number of 0 or greater, never on nil, a string or a Lua error
+  (`A_load_step_passes_only_with_the_non_negative_index_loadPlugin_returns_on_success`), and every load that must
+  succeed carries that check (`Every_Checkpoint_B_scenario_exists_and_cites_harness_commands_that_exist`);
   the recorded content hash is the
   lock-file value (`Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash`); only Cheat
   Engine's own executables count as another instance, never a process such as a `CheatEngine.*` test host

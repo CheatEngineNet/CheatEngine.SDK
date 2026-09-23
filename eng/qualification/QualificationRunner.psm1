@@ -876,7 +876,9 @@ function Test-StepCheck {
     $value = Get-StepValue -Step $Step -Selector ([string] $Check.json)
     if ($names -contains 'equals') { return ($null -ne $value) -and ($value -ceq $Check.equals) }
     if ($names -contains 'present') { return $null -ne $value }
-    if ($names -contains 'atLeast') { return ($null -ne $value) -and ([double] $value -ge [double] $Check.atLeast) }
+    # Numeric comparisons accept JSON numbers only: a Lua error string, a numeric string or a boolean fails the check
+    # instead of being coerced (or throwing) in the [double] conversion.
+    if ($names -contains 'atLeast') { return (Test-JsonNumber -Value $value) -and ([double] $value -ge [double] $Check.atLeast) }
     if ($names -contains 'contains') { return @($value) -ccontains $Check.contains }
     if ($names -contains 'startsWith') { return ($null -ne $value) -and ([string] $value).StartsWith([string] $Check.startsWith, [System.StringComparison]::Ordinal) }
     if ($names -contains 'equalsPackagedBridge') {
@@ -886,11 +888,23 @@ function Test-StepCheck {
         $reference = if ($names -contains 'greaterThan') { $Check.greaterThan } else { $Check.sameAs }
         $other = Get-StepValue -Step $Steps[$reference.step] -Selector ([string] $reference.json)
         if ($null -eq $value -or $null -eq $other) { return $false }
-        if ($names -contains 'greaterThan') { return [double] $value -gt [double] $other }
+        if ($names -contains 'greaterThan') { return (Test-JsonNumber -Value $value) -and (Test-JsonNumber -Value $other) -and ([double] $value -gt [double] $other) }
         return $value -ceq $other
     }
 
     throw "Unknown pass-rule check: $(ConvertTo-Json -InputObject $Check -Compress)."
+}
+
+function Test-JsonNumber {
+    <#
+    .SYNOPSIS
+        True for a number as ConvertFrom-Json returns it; false for $null, strings (numeric or not) and booleans.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)] [AllowNull()] [object] $Value)
+
+    return $Value -is [int] -or $Value -is [long] -or $Value -is [double] -or $Value -is [decimal] -or $Value -is [System.Numerics.BigInteger]
 }
 
 function Format-StepCheck {

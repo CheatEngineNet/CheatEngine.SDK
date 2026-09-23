@@ -20,7 +20,7 @@
         "kind": "OperatorJudgement",
         "passKind": "Functional",
         "checks": [
-          { "step": "load", "ok": true },
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "status", "json": "bootstrap.tailCanaryWritten", "equals": true },
           { "step": "review", "answer": "y" }
         ]
@@ -43,6 +43,7 @@
         "kind": "NotApplicableObservation",
         "justification": "The exact host hands a complete managed exports record (the observed size is recorded); a reduced or missing record cannot be produced on Cheat Engine 7.7 without modifying it. The C1 refusal tests are the evidence of the refusal.",
         "checks": [
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "status", "json": "context.reportedExportsSize", "present": true }
         ]
       }
@@ -64,7 +65,7 @@
         "kind": "Automated",
         "passKind": "Functional",
         "checks": [
-          { "step": "load", "ok": true },
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "status", "ok": true },
           { "step": "status", "json": "bootstrap.calls", "atLeast": 1 },
           { "step": "status", "json": "bootstrap.opaqueSecondInt", "present": true },
@@ -92,6 +93,7 @@
         "kind": "Automated",
         "passKind": "Functional",
         "checks": [
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "first", "ok": true },
           { "step": "second", "ok": true },
           { "step": "second", "json": "context.epoch", "greaterThan": { "step": "first", "json": "context.epoch" } },
@@ -119,7 +121,7 @@
         "kind": "OperatorJudgement",
         "passKind": "Functional",
         "checks": [
-          { "step": "load", "ok": true },
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "status", "ok": true },
           { "step": "intact", "answer": "y" }
         ]
@@ -173,6 +175,7 @@
         "passKind": "RefusalVerified",
         "requiresAnswer": { "step": "acted", "answer": "y" },
         "checks": [
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "pump", "ok": true },
           { "step": "pump", "json": "enabledAfter", "equals": true },
           { "step": "pump", "json": "phaseAfter", "equals": "Enabled" },
@@ -203,6 +206,7 @@
         "kind": "OperatorJudgement",
         "passKind": "Functional",
         "checks": [
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "before", "ok": true },
           { "step": "status", "ok": true },
           { "step": "status", "json": "faultInjection.injected", "contains": "OnDisable@1" },
@@ -228,7 +232,7 @@
         "kind": "Automated",
         "passKind": "Functional",
         "checks": [
-          { "step": "load", "ok": true },
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "throw", "ok": false },
           { "step": "throw", "errorContains": "deliberate managed exception" },
           { "step": "status", "ok": true },
@@ -256,6 +260,7 @@
         "kind": "Automated",
         "passKind": "Functional",
         "checks": [
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "live", "ok": true },
           { "step": "kept", "ok": false },
           { "step": "kept", "errorContains": "released" }
@@ -288,6 +293,7 @@
         "kind": "OperatorJudgement",
         "passKind": "Functional",
         "checks": [
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "before", "ok": true },
           { "step": "judge", "answer": "y" }
         ]
@@ -316,6 +322,7 @@
         "kind": "OperatorJudgement",
         "passKind": "Functional",
         "checks": [
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "threads", "ok": true },
           { "step": "judge", "answer": "y" }
         ]
@@ -345,7 +352,7 @@
         "kind": "Automated",
         "passKind": "Functional",
         "checks": [
-          { "step": "load", "ok": true },
+          { "step": "load", "json": "0", "atLeast": 0 },
           { "step": "status", "json": "identity.pluginAssemblyLocation", "startsWith": "<bundle:LiveProbe>" },
           { "step": "status", "json": "identity.hostingAssemblyLocation", "startsWith": "<bundle:LiveProbe>" },
           { "step": "profile", "json": "bridge.path", "startsWith": "<bundle:LiveProbe>" },
@@ -378,6 +385,8 @@
         "passKind": "Functional",
         "requiresAnswer": { "step": "removeA", "answer": "y" },
         "checks": [
+          { "step": "loadA", "json": "0", "atLeast": 0 },
+          { "step": "loadB", "json": "0", "atLeast": 0 },
           { "step": "identityA", "ok": true },
           { "step": "identityB", "ok": true },
           { "step": "pingB", "ok": true },
@@ -412,6 +421,8 @@
         "passKind": "Functional",
         "requiresAnswer": { "step": "removeA", "answer": "y" },
         "checks": [
+          { "step": "loadA", "json": "0", "atLeast": 0 },
+          { "step": "loadB", "json": "0", "atLeast": 0 },
           { "step": "identityA", "ok": true },
           { "step": "identityB", "ok": true },
           { "step": "pingB", "ok": true },

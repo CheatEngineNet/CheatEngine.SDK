@@ -122,8 +122,27 @@ That packaged asset is the **only** place in this repository that sets
 `CheatEngineSdkGenerateEntryPoint=true` and registers it as a `CompilerVisibleProperty`; without both, the
 `CheatEngine.SDK.SourceGenerators.EntryPoint` generator stays silent (by its own documented design — see
 `source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/README.md`, "an indirect package reference leaves it
-absent and produces no bootstrap") and neither plugin assembly contains a `CESDK.CESDK` type. This program then
-correctly, and honestly, reports `a.bootstrap.first=failed` / `a.bootstrap.second=failed` with the hostfxr result
-`0x80131522` (`COR_E_TYPELOAD`, "Could not find or load a type") — the emulator and the generator are both working
-exactly as designed; the plugin fixture itself is simply missing the two-line opt-in the packaged consumer gets for
-free. See the S-HOST-EMULATOR lot report for the exact fix and its verification.
+absent and produces no bootstrap") and neither plugin assembly contains a `CESDK.CESDK` type. hostfxr's
+`load_assembly_and_get_function_pointer` therefore never even resolves an entry point to call: this program's own
+`plugin.entryResolved` stays `false`, so every fact that depends on a call into the plugin (`{a,b}.bootstrap.*`,
+`{a,b}.getversion`, `{a,b}.enable.*`) reports `skipped` — not `failed` — because `boolText()` reports `skipped`
+whenever the call itself was never attempted. This program and the generator are both working exactly as designed;
+the plugin fixture itself is simply missing the two-line opt-in the packaged consumer gets for free:
+
+```xml
+<PropertyGroup>
+  <CheatEngineSdkGenerateEntryPoint>true</CheatEngineSdkGenerateEntryPoint>
+</PropertyGroup>
+<ItemGroup>
+  <CompilerVisibleProperty Include="CheatEngineSdkGenerateEntryPoint" />
+</ItemGroup>
+```
+
+`CoexistencePlugin.props` is outside S-HOST's owned and narrow-edit file lists (it belongs to the Coexistence test
+fixture as a whole, shared with other lots), so this repository does not carry that two-block change yet. It is
+requested from the integrator in the S-HOST lot report (`requestsForOtherFiles`) verbatim as the snippet above,
+added to `CoexistencePlugin.props`'s existing `<PropertyGroup>`/`<ItemGroup>` elements. Once it lands, rebuild the
+slnx and re-run `NativeHostEmulatorTests` with `CESDK_NATIVE_HOST_EMULATOR_DIR`/`REQUIRED=true` set: every
+`AssertBootstrapAndEnableSucceeded` assertion must go from `skipped` to `ok`/`true` before this work item is
+treated as green. As of this report, it is **not** green: 5 of 9 `NativeHostEmulatorTests` fail for exactly this
+reason.

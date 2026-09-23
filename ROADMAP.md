@@ -5,7 +5,6 @@ preparation session was denied GitHub writes; this branch is the later reviewabl
 outcomes, never implementation, package, fixture, or live-host completion.
 
 The `SDK-0xx` work-item pages were retired on 2026-09-22 and are not restored; the identifiers below are plain text.
-See [retired documentation](docs/README.md#retired-documentation).
 
 ## Operating boundary
 

@@ -126,12 +126,10 @@ C toolchain to rebuild it.
 | [`native/`](native/)                           | The Lua test fixture and bundled Windows x64 Lua protection bridge.         |
 | [`tests/`](tests/)                             | Unit tests, benchmarks, shared fixtures, and the live-plugin sample.        |
 | [`exemples/`](exemples/)                       | Guides, recipes, and API documentation. The directory name is intentional.  |
-| [`docs/`](docs/)                               | Qualification, ABI and catalogue documents rebuilt after the 2026-09 audit. |
-| [`eng/`](eng/)                                 | Shared build configuration, and the CI, release and qualification scripts.  |
+| [`eng/`](eng/)                                 | Shared MSBuild configuration (`Directory.Build.*`, central package management). |
 
 ## Documentation
 
-- [Documentation index](docs/README.md)
 - [Examples and recipes](exemples/README.md)
 - [API guide](exemples/api/README.md)
 - [Diagnostic reference](analyzers/docs/README.md)

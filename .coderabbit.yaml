@@ -5,7 +5,7 @@ early_access: false
 
 reviews:
   # Assertive and advisory: CodeRabbit reviews thoroughly but never approves, requests changes or sets a required
-  # status. The merge requirements are the CI / Gate and PR policy checks; there is no merge queue.
+  # status. The merge requirement is the CI / Gate check; there is no merge queue.
   profile: assertive
   request_changes_workflow: false
   review_details: false
@@ -40,8 +40,7 @@ reviews:
       requirements: >-
         Pull requests are squash-merged and the title becomes the commit subject: a short imperative sentence such as
         "Fix CI validation findings", at most 72 characters, no trailing period, no Conventional Commit or area prefix,
-        starting with an uppercase letter. The required PR policy check enforces these rules; this check only reports
-        them earlier.
+        starting with an uppercase letter.
     description:
       mode: warning
     issue_assessment:

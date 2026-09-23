@@ -1,7 +1,7 @@
 ## Summary
 
 <!-- What changes and why. The squash-merge commit subject is the pull request title: a short imperative sentence of at
-most 72 characters, without a prefix or a trailing period (the PR policy check enforces it). -->
+most 72 characters, without a prefix or a trailing period. -->
 
 ## Scope and ownership
 

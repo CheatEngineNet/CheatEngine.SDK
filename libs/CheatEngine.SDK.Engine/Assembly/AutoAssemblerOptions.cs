@@ -3,7 +3,8 @@ using System;
 namespace CheatEngine.SDK.Engine.Assembly;
 
 /// <summary>
-///     Bounds and opt-ins for <see cref="AutoAssemblerPatcher.TryApplyWithOutcome(string, AutoAssemblerOptions, out AutoAssemblerPatch?)" />
+///     Bounds and opt-ins for
+///     <see cref="AutoAssemblerPatcher.TryApplyWithOutcome(string, AutoAssemblerOptions, out AutoAssemblerPatch?)" />
 ///     and <see cref="AutoAssemblerPatcher.TryCheck(string, bool, AutoAssemblerOptions)" />.
 /// </summary>
 /// <remarks>
@@ -21,7 +22,8 @@ namespace CheatEngine.SDK.Engine.Assembly;
 ///     </para>
 ///     <para>
 ///         Values are validated when the options are used: an out-of-range value makes the call throw
-///         <see cref="ArgumentOutOfRangeException" /> before any Lua work. Instances are immutable after initialization and
+///         <see cref="ArgumentOutOfRangeException" /> before any Lua work. Instances are immutable after initialization
+///         and
 ///         can be shared between threads.
 ///     </para>
 /// </remarks>

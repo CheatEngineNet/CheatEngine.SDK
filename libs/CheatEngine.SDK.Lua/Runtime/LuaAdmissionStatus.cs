@@ -1,6 +1,9 @@
 namespace CheatEngine.SDK.Lua.Runtime;
 
-/// <summary>The factual reason <see cref="LuaRuntime.TryAcquireOperationWithOutcome" /> did, or did not, admit an operation.</summary>
+/// <summary>
+///     The factual reason <see cref="LuaRuntime.TryAcquireOperationWithOutcome" /> did, or did not, admit an
+///     operation.
+/// </summary>
 /// <remarks>
 ///     The zero value is <see cref="Unknown" />; a default value never reads as admitted. Callers must switch on this
 ///     enum instead of parsing an exception message: <see cref="LuaRuntime.AcquireOperation()" /> throws a

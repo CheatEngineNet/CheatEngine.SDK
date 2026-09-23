@@ -20,7 +20,8 @@ namespace CheatEngine.SDK.Abi.Tests.Native;
 ///         The Q38 tests call the registered thunk from threads created with Win32 <c>CreateThread</c>, which the CLR did
 ///         not create and has never seen before the call (the situation of a debug event delivered by a host thread). They
 ///         are C1 evidence of the dispatcher's thread contract only: on the managed-hostfxr profile no route reaches the
-///         classic <c>RegisterFunction</c>, so Q38 at C3 stays NotApplicable (see <c>libs/CheatEngine.SDK.Abi/README.md</c>).
+///         classic <c>RegisterFunction</c>, so Q38 at C3 stays NotApplicable (see
+///         <c>libs/CheatEngine.SDK.Abi/README.md</c>).
 ///     </para>
 /// </remarks>
 public sealed unsafe partial class ClassicDebugEventDispatcherTests : IDisposable
@@ -484,7 +485,8 @@ public sealed unsafe partial class ClassicDebugEventDispatcherTests : IDisposabl
 	[InlineData(true, false)]
 	[InlineData(false, true)]
 	[InlineData(false, false)]
-	public void Missing_register_or_unregister_slot_is_refused_before_any_host_call(bool withRegister, bool withUnregister)
+	public void Missing_register_or_unregister_slot_is_refused_before_any_host_call(bool withRegister,
+		bool withUnregister)
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
 		s_registerCalls = 0;

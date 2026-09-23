@@ -51,8 +51,8 @@ internal static class RepositoryRoot
 	private static string FindRoot()
 	{
 		for (DirectoryInfo? directory = new(AppContext.BaseDirectory);
-			 directory is not null;
-			 directory = directory.Parent)
+		     directory is not null;
+		     directory = directory.Parent)
 		{
 			if (File.Exists(System.IO.Path.Combine(directory.FullName, SolutionFileName)))
 			{

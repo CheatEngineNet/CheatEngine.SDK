@@ -83,10 +83,7 @@ internal static class LuaObjectMembersTables
 		for (int i = 0; i < tables.Count; i++)
 		{
 			string baseName = tables[i].ContainingType.HintBaseName;
-			tables[i] = tables[i] with
-			{
-				HintName = HintNames.AllocateUnique(baseName, HintSuffix, used)
-			};
+			tables[i] = tables[i] with { HintName = HintNames.AllocateUnique(baseName, HintSuffix, used) };
 		}
 	}
 

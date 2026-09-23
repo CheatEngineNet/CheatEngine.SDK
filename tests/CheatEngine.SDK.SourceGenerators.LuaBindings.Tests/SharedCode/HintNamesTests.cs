@@ -91,6 +91,6 @@ public sealed class HintNamesTests
 	private static string WithOrdinal(string hintName, string suffix, int ordinal)
 	{
 		return hintName[..^suffix.Length] + "_" + ordinal.ToString(CultureInfo.InvariantCulture) +
-			   suffix;
+		       suffix;
 	}
 }

@@ -512,7 +512,7 @@ public static class EngineInspection
 		for (int index = 0; index < sequenceCount; index++)
 		{
 			if (state.RawGetSequenceItem(tableIndex, index) != LuaType.Table ||
-				!TryReadModuleInfo(state, -1, out snapshot[index]))
+			    !TryReadModuleInfo(state, -1, out snapshot[index]))
 			{
 				return InspectionStatus.InvalidResult;
 			}
@@ -554,7 +554,7 @@ public static class EngineInspection
 		for (int index = 0; index < sequenceCount; index++)
 		{
 			if (state.RawGetSequenceItem(tableIndex, index) != LuaType.Table ||
-				!TryReadModuleSectionInfo(state, -1, out snapshot[index]))
+			    !TryReadModuleSectionInfo(state, -1, out snapshot[index]))
 			{
 				return InspectionStatus.InvalidResult;
 			}
@@ -596,7 +596,7 @@ public static class EngineInspection
 		for (int index = 0; index < sequenceCount; index++)
 		{
 			if (state.RawGetSequenceItem(tableIndex, index) != LuaType.Table ||
-				!TryReadMemoryRegionInfo(state, -1, out snapshot[index]))
+			    !TryReadMemoryRegionInfo(state, -1, out snapshot[index]))
 			{
 				return InspectionStatus.InvalidResult;
 			}
@@ -627,10 +627,10 @@ public static class EngineInspection
 	{
 		module = default;
 		if (!TryReadRequiredStringField(state, tableIndex, "Name"u8, out string? name) ||
-			!TryReadAddressField(state, tableIndex, "Address"u8, out Address address) ||
-			!TryReadOptionalMemorySizeField(state, tableIndex, "Size"u8, out MemorySize? size) ||
-			!TryReadBooleanField(state, tableIndex, "Is64Bit"u8, out bool is64Bit) ||
-			!TryReadRequiredStringField(state, tableIndex, "PathToFile"u8, out string? pathToFile))
+		    !TryReadAddressField(state, tableIndex, "Address"u8, out Address address) ||
+		    !TryReadOptionalMemorySizeField(state, tableIndex, "Size"u8, out MemorySize? size) ||
+		    !TryReadBooleanField(state, tableIndex, "Is64Bit"u8, out bool is64Bit) ||
+		    !TryReadRequiredStringField(state, tableIndex, "PathToFile"u8, out string? pathToFile))
 		{
 			return false;
 		}
@@ -643,9 +643,9 @@ public static class EngineInspection
 	{
 		section = default;
 		if (!TryReadRequiredStringField(state, tableIndex, "Name"u8, out string? name) ||
-			!TryReadMemorySizeField(state, tableIndex, "Size"u8, out MemorySize size) ||
-			!TryReadAddressField(state, tableIndex, "Address"u8, out Address address) ||
-			!TryReadUInt64Field(state, tableIndex, "FileAddress"u8, out ulong fileAddress))
+		    !TryReadMemorySizeField(state, tableIndex, "Size"u8, out MemorySize size) ||
+		    !TryReadAddressField(state, tableIndex, "Address"u8, out Address address) ||
+		    !TryReadUInt64Field(state, tableIndex, "FileAddress"u8, out ulong fileAddress))
 		{
 			return false;
 		}
@@ -658,9 +658,9 @@ public static class EngineInspection
 	{
 		symbol = default;
 		if (!TryReadRequiredStringField(state, tableIndex, "modulename"u8, out string? moduleName) ||
-			!TryReadRequiredStringField(state, tableIndex, "searchkey"u8, out string? searchKey) ||
-			!TryReadAddressField(state, tableIndex, "address"u8, out Address address) ||
-			!TryReadMemorySizeField(state, tableIndex, "symbolsize"u8, out MemorySize size))
+		    !TryReadRequiredStringField(state, tableIndex, "searchkey"u8, out string? searchKey) ||
+		    !TryReadAddressField(state, tableIndex, "address"u8, out Address address) ||
+		    !TryReadMemorySizeField(state, tableIndex, "symbolsize"u8, out MemorySize size))
 		{
 			return false;
 		}
@@ -673,14 +673,14 @@ public static class EngineInspection
 	{
 		region = default;
 		if (!TryReadAddressField(state, tableIndex, "BaseAddress"u8, out Address baseAddress) ||
-			!TryReadAddressField(state, tableIndex, "AllocationBase"u8, out Address allocationBase) ||
-			!TryReadProtectionField(state, tableIndex, "AllocationProtect"u8,
-				out MemoryProtection allocationProtection) ||
-			!TryReadMemorySizeField(state, tableIndex, "RegionSize"u8, out MemorySize size) ||
-			!TryReadUInt32Field(state, tableIndex, "State"u8, out uint stateValue) ||
-			!TryReadProtectionField(state, tableIndex, "Protect"u8, out MemoryProtection protection) ||
-			!TryReadUInt32Field(state, tableIndex, "Type"u8, out uint typeValue) ||
-			!TryReadOptionalStringField(state, tableIndex, "Extra"u8, out string? extra))
+		    !TryReadAddressField(state, tableIndex, "AllocationBase"u8, out Address allocationBase) ||
+		    !TryReadProtectionField(state, tableIndex, "AllocationProtect"u8,
+			    out MemoryProtection allocationProtection) ||
+		    !TryReadMemorySizeField(state, tableIndex, "RegionSize"u8, out MemorySize size) ||
+		    !TryReadUInt32Field(state, tableIndex, "State"u8, out uint stateValue) ||
+		    !TryReadProtectionField(state, tableIndex, "Protect"u8, out MemoryProtection protection) ||
+		    !TryReadUInt32Field(state, tableIndex, "Type"u8, out uint typeValue) ||
+		    !TryReadOptionalStringField(state, tableIndex, "Extra"u8, out string? extra))
 		{
 			return false;
 		}

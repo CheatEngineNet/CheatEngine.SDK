@@ -20,8 +20,8 @@ internal static class RepositoryLayout
 	private static string FindRoot()
 	{
 		for (DirectoryInfo? directory = new(AppContext.BaseDirectory);
-			 directory is not null;
-			 directory = directory.Parent)
+		     directory is not null;
+		     directory = directory.Parent)
 		{
 			if (File.Exists(Path.Combine(directory.FullName, SolutionFileName)))
 			{

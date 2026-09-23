@@ -3,7 +3,8 @@
 `CheatEngine.SDK.LiveProbe` is a manually loaded **evidence harness**, not a unit-test project, sample plugin, package
 asset, or normal CI input. It records CE 7.7 behaviours that fixture tests cannot establish: the raw managed bootstrap
 argument, the disputed packed-record tail, `synchronize`, per-thread Lua states and registry sharing, external
-`resetLuaState`, CE userdata, callback cleanup on plugin disable, and the Checkpoint B hooks of the qualification runner.
+`resetLuaState`, CE userdata, callback cleanup on plugin disable, and the Checkpoint B hooks of the qualification
+runner.
 
 ## Objective
 
@@ -17,7 +18,8 @@ non-ASCII plugin name (Q05.a) and where the SDK assemblies were loaded from (Q40
 
 Only a real Cheat Engine host can show these behaviours, and C1/C2 success is never host evidence. The harness keeps
 every probe opt-in and fail-closed, so
-loading it by mistake observes nothing and changes nothing. The solution compiles it, so a compile break is caught by CI;
+loading it by mistake observes nothing and changes nothing. The solution compiles it, so a compile break is caught by
+CI;
 CI never loads or runs it.
 
 ## Safety boundary
@@ -46,17 +48,17 @@ containing sensitive paths, or captured process memory in source control.
 
 ## How it works
 
-| File                                                                  | Content                                                                                                                                                                                                                  |
-|-----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `CE77LiveProbeBootstrap.cs`                                           | The hand-written `CESDK.CESDK.CEPluginInitialize(nint, int)`. It records the second integer raw, then forwards to `PluginHost.InitializeManaged`. With `LIVEPROBE_NON_ASCII_NAME` it selects the non-ASCII factory.      |
-| `ProbePluginFactory.cs`, `ProbePluginFactoryNonAscii.cs`              | The factories. `Create` first evaluates the fault switch. The non-ASCII factory exists only in the `-p:LiveProbeNonAsciiName=true` build.                                                                                |
-| `Ce77LiveProbePlugin.cs`                                              | `OnEnable` registers the console commands, re-checks the gates and applies the `OnEnable` fault; `OnDisable` unregisters them and applies the `OnDisable` fault.                                                        |
-| `ProbeConsole.cs`, `ProbeHostGlobals.cs`                              | The `[LuaFunction]` console commands below and the one `[LuaGlobal("getOpenedProcessID")]` binding.                                                                                                                      |
-| `LiveProbeAuthorization.cs`, `AuthorizationDecision.cs`               | The fail-closed gate: exact host hash and version, operator acknowledgement, unexpired manifest, live hash-verified disposable target.                                                                                   |
-| `LiveProbeState.cs`                                                   | Process-local observations and the command implementations. Every command that acts re-evaluates the gate first.                                                                                                        |
-| `LiveProbeFaultInjection.cs`, `LiveProbeFaultStage.cs`, `LiveProbeFaultDecision.cs` | The fault switch (see below). Lua-free, compile-linked into the tests.                                                                                                                                       |
-| `LiveProbeHostFacts.cs`, `LiveProbeStatusSnapshot.cs`, `LiveProbeStatusReport.cs`   | The status record: `PluginHost` facts, gates, fault decisions and observations serialized as `ce77-live-probe-status-v1` JSON. Lua-free, compile-linked into the tests.                                       |
-| `HostProfileObservation.cs`                                           | The `ce77-live-host-profile-v1` identity record of host, Lua module, bridge, plugin and target files.                                                                                                                    |
+| File                                                                                | Content                                                                                                                                                                                                             |
+|-------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `CE77LiveProbeBootstrap.cs`                                                         | The hand-written `CESDK.CESDK.CEPluginInitialize(nint, int)`. It records the second integer raw, then forwards to `PluginHost.InitializeManaged`. With `LIVEPROBE_NON_ASCII_NAME` it selects the non-ASCII factory. |
+| `ProbePluginFactory.cs`, `ProbePluginFactoryNonAscii.cs`                            | The factories. `Create` first evaluates the fault switch. The non-ASCII factory exists only in the `-p:LiveProbeNonAsciiName=true` build.                                                                           |
+| `Ce77LiveProbePlugin.cs`                                                            | `OnEnable` registers the console commands, re-checks the gates and applies the `OnEnable` fault; `OnDisable` unregisters them and applies the `OnDisable` fault.                                                    |
+| `ProbeConsole.cs`, `ProbeHostGlobals.cs`                                            | The `[LuaFunction]` console commands below and the one `[LuaGlobal("getOpenedProcessID")]` binding.                                                                                                                 |
+| `LiveProbeAuthorization.cs`, `AuthorizationDecision.cs`                             | The fail-closed gate: exact host hash and version, operator acknowledgement, unexpired manifest, live hash-verified disposable target.                                                                              |
+| `LiveProbeState.cs`                                                                 | Process-local observations and the command implementations. Every command that acts re-evaluates the gate first.                                                                                                    |
+| `LiveProbeFaultInjection.cs`, `LiveProbeFaultStage.cs`, `LiveProbeFaultDecision.cs` | The fault switch (see below). Lua-free, compile-linked into the tests.                                                                                                                                              |
+| `LiveProbeHostFacts.cs`, `LiveProbeStatusSnapshot.cs`, `LiveProbeStatusReport.cs`   | The status record: `PluginHost` facts, gates, fault decisions and observations serialized as `ce77-live-probe-status-v1` JSON. Lua-free, compile-linked into the tests.                                             |
+| `HostProfileObservation.cs`                                                         | The `ce77-live-host-profile-v1` identity record of host, Lua module, bridge, plugin and target files.                                                                                                               |
 
 ### Console commands
 
@@ -64,18 +66,18 @@ Every command returns a self-contained string. Commands that act (all except the
 authorization manifest, the target image and CE's opened PID immediately before acting, and return
 `Live probe denied: <reason>` otherwise.
 
-| Command                                                                           | Observation                                                                                                                                                                      | Used by                |
-|-----------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
-| `ce77_live_probe_status()`                                                        | Human-readable: bootstrap calls, the raw second integer (`opaqueSecondInt`, never labelled size or version), `PluginHost.LastInitRecordArgument`, phase, plugin id, epoch, reported exports size, gates, prior observations. | operator               |
-| `ce77_live_probe_status_json()`                                                   | The same facts as one `ce77-live-probe-status-v1` JSON object, plus assembly locations, MVIDs, the Hosting load context and every fault-switch decision. Not gated: it reads process-local facts only. | Q03, Q04, Q05, Q06, Q08, Q40 |
-| `ce77_live_probe_host_profile()`                                                  | One `ce77-live-host-profile-v1` JSON identity record for the authorized CE host, loaded Lua module, loaded bridge, plugin and disposable target.                                 | Q40                    |
-| `ce77_live_probe_throw_managed_exception()`                                       | Throws `InvalidOperationException("CE 7.7 live probe deliberate managed exception (Q14).")` inside the generated thunk; call it under `pcall` and record the Lua error.         | Q14                    |
-| `ce77_live_probe_pump_messages(seconds)`                                          | Pumps CE's messages for 1–60 seconds from admitted main-thread work and returns a `ce77-live-probe-pump-v1` JSON record of the lifecycle phases seen. The operator unticks the plugin meanwhile. An observation, not a promise. | Q07                    |
-| `ce77_live_probe_begin_synchronize()` then `ce77_live_probe_synchronize_status()` | Worker, thunk and nested-invoke managed thread IDs; return round-trip and propagated exception.                                                                                  | operator               |
-| `ce77_live_probe_begin_lua_threads()` then `ce77_live_probe_lua_threads_status()` | GUI and worker `lua_State*` identities and a private raw-registry marker read by the worker. Do not execute other Lua for one second.                                             | Q19                    |
-| `ce77_live_probe_snapshot_before_reset()` / `ce77_live_probe_snapshot_after_reset()` | State pointer, SDK epoch and reference slot before and after an operator-run `resetLuaState()`; whether the old SDK reference still pushed. The harness never calls the reset.  | Q17, Q18               |
-| `ce77_live_probe_userdata()`                                                      | `type(getMainForm())` and `tostring(getMainForm())`, without retaining the userdata or invoking the host-object pusher.                                                         | operator               |
-| `ce77_live_probe_prepare_callback_shutdown()`                                     | Installs a counter callback and leaves it registered in `OnDisable`, so `LuaRuntime.Detach` must neutralize it. Call `pcall(ce77_live_probe_callback_shutdown)` before and after disabling. | Q15                    |
+| Command                                                                              | Observation                                                                                                                                                                                                                     | Used by                      |
+|--------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|
+| `ce77_live_probe_status()`                                                           | Human-readable: bootstrap calls, the raw second integer (`opaqueSecondInt`, never labelled size or version), `PluginHost.LastInitRecordArgument`, phase, plugin id, epoch, reported exports size, gates, prior observations.    | operator                     |
+| `ce77_live_probe_status_json()`                                                      | The same facts as one `ce77-live-probe-status-v1` JSON object, plus assembly locations, MVIDs, the Hosting load context and every fault-switch decision. Not gated: it reads process-local facts only.                          | Q03, Q04, Q05, Q06, Q08, Q40 |
+| `ce77_live_probe_host_profile()`                                                     | One `ce77-live-host-profile-v1` JSON identity record for the authorized CE host, loaded Lua module, loaded bridge, plugin and disposable target.                                                                                | Q40                          |
+| `ce77_live_probe_throw_managed_exception()`                                          | Throws `InvalidOperationException("CE 7.7 live probe deliberate managed exception (Q14).")` inside the generated thunk; call it under `pcall` and record the Lua error.                                                         | Q14                          |
+| `ce77_live_probe_pump_messages(seconds)`                                             | Pumps CE's messages for 1–60 seconds from admitted main-thread work and returns a `ce77-live-probe-pump-v1` JSON record of the lifecycle phases seen. The operator unticks the plugin meanwhile. An observation, not a promise. | Q07                          |
+| `ce77_live_probe_begin_synchronize()` then `ce77_live_probe_synchronize_status()`    | Worker, thunk and nested-invoke managed thread IDs; return round-trip and propagated exception.                                                                                                                                 | operator                     |
+| `ce77_live_probe_begin_lua_threads()` then `ce77_live_probe_lua_threads_status()`    | GUI and worker `lua_State*` identities and a private raw-registry marker read by the worker. Do not execute other Lua for one second.                                                                                           | Q19                          |
+| `ce77_live_probe_snapshot_before_reset()` / `ce77_live_probe_snapshot_after_reset()` | State pointer, SDK epoch and reference slot before and after an operator-run `resetLuaState()`; whether the old SDK reference still pushed. The harness never calls the reset.                                                  | Q17, Q18                     |
+| `ce77_live_probe_userdata()`                                                         | `type(getMainForm())` and `tostring(getMainForm())`, without retaining the userdata or invoking the host-object pusher.                                                                                                         | operator                     |
+| `ce77_live_probe_prepare_callback_shutdown()`                                        | Installs a counter callback and leaves it registered in `OnDisable`, so `LuaRuntime.Detach` must neutralize it. Call `pcall(ce77_live_probe_callback_shutdown)` before and after disabling.                                     | Q15                          |
 
 ### Fault switch (Q06, Q08)
 
@@ -88,7 +90,8 @@ A file named `liveprobe.fault.json` next to `CheatEngine.SDK.LiveProbe.dll` sele
 `throwIn` is `None`, `FactoryCreate` (the factory throws before constructing the plugin; the enable fails and the next
 enable tries again), `OnEnable` (after the console commands are registered) or `OnDisable` (after they are
 unregistered). The switch is read once per enable, without Lua, and only when the authorization gate allows: without
-the manifest the file is never opened. An unknown schema, an unknown stage or malformed JSON is ignored and reported. Every
+the manifest the file is never opened. An unknown schema, an unknown stage or malformed JSON is ignored and reported.
+Every
 decision is logged and appears under `faultInjection` in `ce77_live_probe_status_json()`, with the list of stages that
 actually threw. The runner writes and deletes the file in the bundle folder; it never lives in the repository.
 
@@ -97,8 +100,8 @@ actually threw. The runner writes and deletes the file in the bundle folder; it 
 `dotnet build tests/CheatEngine.SDK.LiveProbe/CheatEngine.SDK.LiveProbe.csproj -c Release -p:LiveProbeNonAsciiName=true`
 defines `LIVEPROBE_NON_ASCII_NAME`, and the bootstrap then registers the name `CheatEngine.SDK Live Probe é 日本` (one
 Latin-1 character and two characters outside code page 1252). It settles, by observation, whether Cheat Engine 7.7
-decodes the name the SDK converts to the process ANSI code page
-([`AnsiNameBuffer`](../../libs/CheatEngine.SDK.Hosting/Bootstrap/AnsiNameBuffer.cs)). The default build keeps the ASCII
+decodes the name the SDK converts to the process ANSI code page ([
+`AnsiNameBuffer`](../../libs/CheatEngine.SDK.Hosting/Bootstrap/AnsiNameBuffer.cs)). The default build keeps the ASCII
 name `CheatEngine.SDK CE 7.7 Live Probe`. The switch writes to the same output folder, so rebuild without it afterwards.
 
 ## Build and load
@@ -138,7 +141,8 @@ disposable target through its normal cleanup route. Do not force-unload assembli
 ## Promise
 
 - The harness is compiled by CI through `CheatEngine.SDK.slnx` as an x64 dynamic-loading plugin that is not a test
-  module and never packs (`QualificationHarnessShapeTests.LiveProbe_is_in_the_solution_as_an_x64_dynamic_loading_plugin_that_never_packs`).
+  module and never packs
+  (`QualificationHarnessShapeTests.LiveProbe_is_in_the_solution_as_an_x64_dynamic_loading_plugin_that_never_packs`).
 - A fresh authorization is required before every acting command, and a changed manifest, target image or CE target
   PID is refused (`LiveProbeStateTests`).
 - The raw second bootstrap integer and the reported exports size are reported without interpretation
@@ -146,7 +150,8 @@ disposable target through its normal cleanup route. Do not force-unload assembli
 - Without authorization the exception and pump hooks are inert, and the pump refuses a duration outside 1–60 seconds
   before any host call (`LiveProbeStatusTests`).
 - The two status commands are deliberately not gated: they serialize process-local facts (bootstrap record, `PluginHost`
-  state, gate results, fault decisions, assembly identities), touch no target and make no Lua call of their own; an absent context is
+  state, gate results, fault decisions, assembly identities), touch no target and make no Lua call of their own; an
+  absent context is
   reported as absent, never as zero values
   (`LiveProbeStatusTests.Status_without_an_enabled_context_reports_none_instead_of_zero_values`,
   `LiveProbeStatusTests.Status_json_reports_the_fault_switch_decision_and_the_assembly_identities`).
@@ -157,7 +162,8 @@ disposable target through its normal cleanup route. Do not force-unload assembli
   to the application
   (`HostProfileObservationTests.Host_profile_records_the_loaded_bridge_module_and_never_a_file_next_to_the_application`).
 - No live test is invoked by `dotnet test`, normal CI, Release validation or packaging: the solution only compiles it,
-  and no workflow references the runner (`LocalQualificationRunnerTests.No_workflow_references_the_local_qualification_runner`).
+  and no workflow references the runner
+  (`LocalQualificationRunnerTests.No_workflow_references_the_local_qualification_runner`).
 
 ## Run the tests
 

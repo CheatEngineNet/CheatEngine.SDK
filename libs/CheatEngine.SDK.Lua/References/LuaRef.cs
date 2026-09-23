@@ -162,8 +162,8 @@ public sealed class LuaRef : IDisposable
 			{
 				LuaRefBinding? binding = Interlocked.Exchange(ref _binding, null);
 				if (binding is not null && binding.Reference != NoReference &&
-					binding.Identity == LuaRuntime.CurrentStateIdentity &&
-					!state.IsNull)
+				    binding.Identity == LuaRuntime.CurrentStateIdentity &&
+				    !state.IsNull)
 				{
 					LuaReferences.Release(state, binding.Reference);
 				}

@@ -1,6 +1,5 @@
 using System.Text;
 
-using CheatEngine.SDK.Engine.Generated;
 using CheatEngine.SDK.Engine.Processes;
 using CheatEngine.SDK.Engine.Runtime;
 using CheatEngine.SDK.Engine.Tests.Support;

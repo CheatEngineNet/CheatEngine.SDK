@@ -64,8 +64,8 @@ public static class InstructionProfiles
 			}
 
 			if (!RuntimeInfo.TryDeriveTargetArchitecture(probe.IsX86Family.GetValueOrDefault(),
-					probe.IsArmFamily.GetValueOrDefault(), probe.Is64Bit.GetValueOrDefault(),
-					out CheatEngineArchitecture architecture))
+				    probe.IsArmFamily.GetValueOrDefault(), probe.Is64Bit.GetValueOrDefault(),
+				    out CheatEngineArchitecture architecture))
 			{
 				return InstructionOperationStatus.InvalidProfile;
 			}

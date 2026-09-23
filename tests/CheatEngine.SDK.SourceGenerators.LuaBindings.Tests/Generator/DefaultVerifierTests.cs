@@ -50,8 +50,7 @@ public sealed class DefaultVerifierTests
 		{
 			// A framework moniker WITHOUT a reference-assembly package: nothing is resolved through NuGet; the
 			// framework and the SDK come from the local installation and this process (no network).
-			ReferenceAssemblies = new ReferenceAssemblies("net10.0"),
-			CompilerDiagnostics = CompilerDiagnostics.Warnings
+			ReferenceAssemblies = new ReferenceAssemblies("net10.0"), CompilerDiagnostics = CompilerDiagnostics.Warnings
 		};
 
 		// The test declarations are undocumented public members: CS1591 is theirs, not the generated file's.

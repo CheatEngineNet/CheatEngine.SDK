@@ -7,5 +7,5 @@ internal enum NativeHostEmulatorAlcRoute
 	Component,
 
 	/// <summary>The undocumented <c>hdt_load_assembly</c> + <c>hdt_get_function_pointer</c> route into the default ALC.</summary>
-	Default,
+	Default
 }

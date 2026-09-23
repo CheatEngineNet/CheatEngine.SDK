@@ -187,8 +187,7 @@ internal static class EngineApiFileEmitter
 		LuaGlobalCallModel call = entry.Call;
 		LuaGlobalCallModel core = call with
 		{
-			Modifiers = "private static",
-			MethodName = CoreMethodName(call.MethodName)
+			Modifiers = "private static", MethodName = CoreMethodName(call.MethodName)
 		};
 
 		writer.Write("// Raw core of '");

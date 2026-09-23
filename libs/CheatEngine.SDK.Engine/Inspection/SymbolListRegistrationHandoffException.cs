@@ -39,7 +39,8 @@ public sealed class SymbolListRegistrationHandoffException : EngineException
 
 	private static string CreateMessage(SymbolListRegistrationReleaseOutcome cleanupOutcome)
 	{
-		return "Cheat Engine registered a symbol list before its managed lease could be published; compensation ended as " +
-			   cleanupOutcome.UnregisterKind + ".";
+		return
+			"Cheat Engine registered a symbol list before its managed lease could be published; compensation ended as " +
+			cleanupOutcome.UnregisterKind + ".";
 	}
 }

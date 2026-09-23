@@ -216,8 +216,12 @@ public readonly struct FirstScanRequest
 	/// <param name="startAddress">The lower bound; not byte-exact on the pinned CE 7.7 profile (post-filter results).</param>
 	/// <param name="stopAddress">The exclusive upper bound; a match is reported only when it fits entirely below it.</param>
 	/// <returns>
-	///     The fourteen CE positions <c>(soExactValue, vtByteArray, rtRounded, pattern, "", startAddress, stopAddress, "",
-	///     fsmNotAligned, "", true, false, false, false)</c>.
+	///     The fourteen CE positions
+	///     <c>
+	///         (soExactValue, vtByteArray, rtRounded, pattern, "", startAddress, stopAddress, "",
+	///         fsmNotAligned, "", true, false, false, false)
+	///     </c>
+	///     .
 	/// </returns>
 	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
 	/// <exception cref="ArgumentOutOfRangeException">
@@ -245,8 +249,12 @@ public readonly struct FirstScanRequest
 	/// <param name="fastScanMethod">The address-alignment rule.</param>
 	/// <param name="alignmentParameter">The alignment rule's CE string parameter; empty for no alignment.</param>
 	/// <returns>
-	///     The fourteen CE positions <c>(soExactValue, vtByteArray, rtRounded, pattern, "", startAddress, stopAddress,
-	///     protectionFlags, fastScanMethod, alignmentParameter, true, false, false, false)</c>.
+	///     The fourteen CE positions
+	///     <c>
+	///         (soExactValue, vtByteArray, rtRounded, pattern, "", startAddress, stopAddress,
+	///         protectionFlags, fastScanMethod, alignmentParameter, true, false, false, false)
+	///     </c>
+	///     .
 	/// </returns>
 	/// <exception cref="ArgumentNullException">A string argument is <see langword="null" />.</exception>
 	/// <exception cref="ArgumentOutOfRangeException">

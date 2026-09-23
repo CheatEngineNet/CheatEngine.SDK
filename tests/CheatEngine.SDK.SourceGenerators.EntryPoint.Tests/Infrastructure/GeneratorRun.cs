@@ -76,7 +76,7 @@ internal sealed class GeneratorRun
 			.. OutputCompilation
 				.GetDiagnostics(TestContext.Current.CancellationToken)
 				.Where(static diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning &&
-											!IsMissingDocumentationInTestInput(diagnostic))
+				                            !IsMissingDocumentationInTestInput(diagnostic))
 		];
 
 		Assert.True(problems.Length == 0,
@@ -88,7 +88,7 @@ internal sealed class GeneratorRun
 	private static bool IsMissingDocumentationInTestInput(Diagnostic diagnostic)
 	{
 		return string.Equals(diagnostic.Id, "CS1591", StringComparison.Ordinal)
-			   && diagnostic.Location.SourceTree is { FilePath: string path }
-			   && !path.EndsWith(".g.cs", StringComparison.Ordinal);
+		       && diagnostic.Location.SourceTree is { FilePath: string path }
+		       && !path.EndsWith(".g.cs", StringComparison.Ordinal);
 	}
 }

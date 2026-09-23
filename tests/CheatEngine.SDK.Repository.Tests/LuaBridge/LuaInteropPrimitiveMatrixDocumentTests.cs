@@ -28,7 +28,8 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 	[Fact]
 	public void Primitive_matrix_has_its_schema_identity()
 	{
-		Assert.Equal("cheatengine-lua-interop-primitives/v0", LuaBridgeDocuments.Matrix.GetProperty("schema").GetString());
+		Assert.Equal("cheatengine-lua-interop-primitives/v0",
+			LuaBridgeDocuments.Matrix.GetProperty("schema").GetString());
 	}
 
 	[Fact]
@@ -44,7 +45,8 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 		string[] exceptions =
 		[
 			.. matrix.GetProperty("productionExceptions").EnumerateArray()
-				.Select(static item => item.GetProperty("member").GetString() + "|" + item.GetProperty("file").GetString())
+				.Select(static item =>
+					item.GetProperty("member").GetString() + "|" + item.GetProperty("file").GetString())
 		];
 		Assert.Equal(exceptions.Order(StringComparer.Ordinal), exceptions, StringComparer.Ordinal);
 		Assert.Equal(exceptions.Length, exceptions.Distinct(StringComparer.Ordinal).Count());
@@ -56,7 +58,8 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 		HashSet<string> operations = new(LuaBridgeDocuments.Operations.Select(static operation =>
 			operation.GetProperty("id").GetString()!), StringComparer.Ordinal);
 		Dictionary<string, JsonElement> divergences = LuaBridgeDocuments.Matrix.GetProperty("manualDivergences")
-			.EnumerateArray().ToDictionary(static item => item.GetProperty("member").GetString()!, StringComparer.Ordinal);
+			.EnumerateArray().ToDictionary(static item => item.GetProperty("member").GetString()!,
+				StringComparer.Ordinal);
 		List<string> problems = [];
 		foreach (JsonElement row in LuaBridgeDocuments.Rows)
 		{
@@ -65,7 +68,8 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 		}
 
 		Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
-		HashSet<string> members = new(LuaBridgeDocuments.Rows.Select(static row => row.GetProperty("member").GetString()!),
+		HashSet<string> members = new(
+			LuaBridgeDocuments.Rows.Select(static row => row.GetProperty("member").GetString()!),
 			StringComparer.Ordinal);
 		Assert.All(divergences.Keys, member => Assert.Contains(member, members));
 	}
@@ -77,7 +81,8 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 			static row => row.GetProperty("member").GetString()!,
 			static row => row.GetProperty("decision").GetString()!, StringComparer.Ordinal);
 		HashSet<string> excepted = new(LuaBridgeDocuments.Matrix.GetProperty("productionExceptions").EnumerateArray()
-			.Select(static item => item.GetProperty("member").GetString() + "|" + item.GetProperty("file").GetString()),
+				.Select(static item =>
+					item.GetProperty("member").GetString() + "|" + item.GetProperty("file").GetString()),
 			StringComparer.Ordinal);
 		HashSet<string> members = new(decisions.Keys, StringComparer.Ordinal);
 		HashSet<string> used = new(StringComparer.Ordinal);
@@ -91,7 +96,8 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 				used.Add(key);
 				if (decisions[use.Member] is not ("DirectAllowed" or "Lifecycle") && !excepted.Contains(key))
 				{
-					problems.Add($"{file}:{use.Line}: {use.Member} is {decisions[use.Member]}; route it through the bridge or add a production exception.");
+					problems.Add(
+						$"{file}:{use.Line}: {use.Member} is {decisions[use.Member]}; route it through the bridge or add a production exception.");
 				}
 			}
 		}
@@ -111,16 +117,16 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 	{
 		HashSet<string> members = new(["lua_tolstring", "lua_settop", "lua_gettop"], StringComparer.Ordinal);
 		const string Source = """"
-							  using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
-							  // lua_gettop(L) in a comment
-							  /* LuaApi.lua_gettop */
-							  class C
-							  {
-							      string s = "lua_gettop(L)";
-							      string v = @"LuaApi.lua_gettop ""quoted""";
-							      void M(void* L) { lua_settop(L, 0); _ = LuaApi.lua_tolstring(L, -1, null); other.lua_gettop(); }
-							  }
-							  """";
+		                      using static CheatEngine.SDK.Lua.Interop.Api.LuaApi;
+		                      // lua_gettop(L) in a comment
+		                      /* LuaApi.lua_gettop */
+		                      class C
+		                      {
+		                          string s = "lua_gettop(L)";
+		                          string v = @"LuaApi.lua_gettop ""quoted""";
+		                          void M(void* L) { lua_settop(L, 0); _ = LuaApi.lua_tolstring(L, -1, null); other.lua_gettop(); }
+		                      }
+		                      """";
 
 		IReadOnlyList<LuaApiUse> uses = LuaApiUseScanner.Scan(Source, members);
 
@@ -139,7 +145,8 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 			proof.GetProperty("bridgeSourceSha256").GetString());
 		Assert.Equal(RepositoryDocument.RawSha256(LuaBridgeDocuments.XmakePath),
 			proof.GetProperty("xmakeSha256").GetString());
-		Assert.DoesNotContain((byte) '\r', File.ReadAllBytes(RepositoryDocument.Absolute(LuaBridgeDocuments.BridgeSourcePath)));
+		Assert.DoesNotContain((byte) '\r',
+			File.ReadAllBytes(RepositoryDocument.Absolute(LuaBridgeDocuments.BridgeSourcePath)));
 
 		string[] test = proof.GetProperty("checkstackEvidence").GetString()!.Split('.');
 		string file = Assert.Single(RepositoryRoot.EnumerateSourceFiles(test[0] + ".cs"),
@@ -152,9 +159,10 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 	{
 		string fixture = RepositoryDocument.RawSha256(LuaBridgeDocuments.LuaFixturePath);
 
-		Assert.Equal(fixture, LuaBridgeDocuments.Matrix.GetProperty("bridgeProof").GetProperty("luaFixtureSha256").GetString());
+		Assert.Equal(fixture,
+			LuaBridgeDocuments.Matrix.GetProperty("bridgeProof").GetProperty("luaFixtureSha256").GetString());
 		Assert.Equal(fixture, LuaBridgeDocuments.Catalogue.GetProperty("host").GetProperty("lua")
-			.GetProperty("fixtureSha256").GetString(), ignoreCase: true);
+			.GetProperty("fixtureSha256").GetString(), true);
 	}
 
 	private static void CheckRoute(JsonElement row, HashSet<string> operations, List<string> problems)
@@ -164,7 +172,7 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 		string raises = row.GetProperty("raises").GetString()!;
 		string? bridge = LuaBridgeDocuments.OptionalString(row, "bridgeOperation");
 		string? native = LuaBridgeDocuments.OptionalString(row, "nativeSymbol");
-		if (raises is "Memory" or "Any" or "Always" && (decision is "DirectAllowed" or "Lifecycle"))
+		if (raises is "Memory" or "Any" or "Always" && decision is "DirectAllowed" or "Lifecycle")
 		{
 			problems.Add($"{member}: a raising member cannot be {decision}.");
 		}
@@ -175,9 +183,10 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 		}
 
 		if (string.Equals(decision, "BridgeRequired", StringComparison.Ordinal) && bridge is null &&
-			!string.Equals(member, "lua_error", StringComparison.Ordinal))
+		    !string.Equals(member, "lua_error", StringComparison.Ordinal))
 		{
-			problems.Add($"{member}: BridgeRequired names no bridge operation (only lua_error, raised by the bridge's C code, may).");
+			problems.Add(
+				$"{member}: BridgeRequired names no bridge operation (only lua_error, raised by the bridge's C code, may).");
 		}
 
 		if (native is not null && !string.Equals(native, member, StringComparison.Ordinal))
@@ -186,7 +195,8 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 		}
 	}
 
-	private static void CheckProvenance(JsonElement row, Dictionary<string, JsonElement> divergences, List<string> problems)
+	private static void CheckProvenance(JsonElement row, Dictionary<string, JsonElement> divergences,
+		List<string> problems)
 	{
 		string member = row.GetProperty("member").GetString()!;
 		JsonElement provenance = row.GetProperty("provenance");
@@ -215,11 +225,12 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 		string manualClass = ClassOfMarker(marker);
 		string raises = row.GetProperty("raises").GetString()!;
 		bool agrees = string.Equals(manualClass, raises, StringComparison.Ordinal) ||
-					  (string.Equals(manualClass, "Never", StringComparison.Ordinal) &&
-					   string.Equals(raises, "NotApplicable", StringComparison.Ordinal));
+		              (string.Equals(manualClass, "Never", StringComparison.Ordinal) &&
+		               string.Equals(raises, "NotApplicable", StringComparison.Ordinal));
 		bool recorded = divergences.TryGetValue(member, out JsonElement divergence) &&
-						string.Equals(divergence.GetProperty("manualClass").GetString(), manualClass, StringComparison.Ordinal) &&
-						string.Equals(divergence.GetProperty("sdkClass").GetString(), raises, StringComparison.Ordinal);
+		                string.Equals(divergence.GetProperty("manualClass").GetString(), manualClass,
+			                StringComparison.Ordinal) &&
+		                string.Equals(divergence.GetProperty("sdkClass").GetString(), raises, StringComparison.Ordinal);
 		if (agrees == recorded)
 		{
 			problems.Add(agrees
@@ -244,7 +255,7 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 	{
 		return RepositoryRoot.EnumerateSourceFiles("*.cs")
 			.Where(static file => file.StartsWith("libs/", StringComparison.Ordinal) &&
-								  !file.StartsWith(RawApiDirectory, StringComparison.Ordinal))
+			                      !file.StartsWith(RawApiDirectory, StringComparison.Ordinal))
 			.Order(StringComparer.Ordinal);
 	}
 }

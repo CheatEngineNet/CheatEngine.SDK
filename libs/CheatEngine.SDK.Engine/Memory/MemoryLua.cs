@@ -288,7 +288,7 @@ internal static class MemoryLua
 		{
 			LuaType type = state.RawGetIndex(table, index + 1L);
 			bool valid = type == LuaType.Number && state.TryReadInteger(-1, out long value)
-												&& (ulong) value <= byte.MaxValue;
+			                                    && (ulong) value <= byte.MaxValue;
 			state.Pop(1);
 			if (!valid)
 			{
@@ -319,7 +319,7 @@ internal static class MemoryLua
 			LuaType type = state.RawGetIndex(table, index + 1L);
 			long value = default;
 			bool valid = type == LuaType.Number && state.TryReadInteger(-1, out value)
-												&& (ulong) value <= byte.MaxValue;
+			                                    && (ulong) value <= byte.MaxValue;
 			state.Pop(1);
 			if (!valid)
 			{

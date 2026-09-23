@@ -97,7 +97,7 @@ internal static class AobBoundedScan
 			}
 
 			if (staging is not null &&
-				facts.Kind is AobBoundedScanOutcomeKind.Matches or AobBoundedScanOutcomeKind.NoMatches)
+			    facts.Kind is AobBoundedScanOutcomeKind.Matches or AobBoundedScanOutcomeKind.NoMatches)
 			{
 				staging.AsSpan(0, facts.Written).CopyTo(destination);
 			}
@@ -135,7 +135,8 @@ internal static class AobBoundedScan
 
 		// An omitted protection string is CE's "find everything" value, never a nil (celua.txt line 847).
 		FirstScanRequest request = FirstScanRequest.ByteArray(pattern, bounds.Start, bounds.Stop,
-			options.ProtectionFlags ?? string.Empty, options.AlignmentMethod, options.AlignmentParameter ?? string.Empty);
+			options.ProtectionFlags ?? string.Empty, options.AlignmentMethod,
+			options.AlignmentParameter ?? string.Empty);
 		long scanStarted = Stopwatch.GetTimestamp();
 		session.StartFirstScan(in request);
 		AobBoundedScanOutcomeKind waited = Wait(state, session, waitMilliseconds, ref facts);
@@ -228,7 +229,7 @@ internal static class AobBoundedScan
 		out int staging)
 	{
 		// Rows are addressed with CE's Int32 index; rows beyond it stay unread and make the in-bounds count inexact.
-		ulong readable = Math.Min(count, (ulong) int.MaxValue);
+		ulong readable = Math.Min(count, int.MaxValue);
 		staging = 0;
 		for (int index = 0; (ulong) index < readable && staging < staged.Length; index++)
 		{
@@ -322,11 +323,7 @@ internal static class AobBoundedScan
 
 	private static AobBoundedScanResult Refused(AobBoundedScanOutcomeKind kind)
 	{
-		AobBoundedScanFacts facts = new()
-		{
-			Kind = kind,
-			Termination = MemoryScanTerminationStatus.NotRequired
-		};
+		AobBoundedScanFacts facts = new() { Kind = kind, Termination = MemoryScanTerminationStatus.NotRequired };
 		return new AobBoundedScanResult(in facts);
 	}
 

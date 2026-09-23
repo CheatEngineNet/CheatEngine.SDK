@@ -120,7 +120,7 @@ public sealed unsafe class PluginInitRecordTests
 	private static Bool32 FakeEnablePlugin(ManagedExportedFunctions* exports, uint pluginId)
 	{
 		return exports is not null && exports->SizeOfExportedFunctions == sizeof(ManagedExportedFunctions) &&
-			   pluginId == 0xFFFF_FFF0u;
+		       pluginId == 0xFFFF_FFF0u;
 	}
 
 	[UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]

@@ -103,7 +103,8 @@ public sealed class InstructionOperationsTests
 
 	[Fact]
 	[Trait("Qualification", "Q32")]
-	public void observe_current_without_a_selected_target_reports_target_not_selected_although_the_probes_look_like_x64()
+	public void
+		observe_current_without_a_selected_target_reports_target_not_selected_although_the_probes_look_like_x64()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -204,7 +205,8 @@ public sealed class InstructionOperationsTests
 		InstructionOperationStatus failed = InstructionProfiles.TryObserveCurrent(out _);
 		Assert.Equal(0, scope.State.Top);
 		EngineTest.Run(scope.State, "raise_isa_probe = false"u8);
-		InstructionOperationStatus recovered = InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile profile);
+		InstructionOperationStatus recovered =
+			InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile profile);
 
 		Assert.Equal(InstructionOperationStatus.LuaFailure, failed);
 		Assert.Equal(InstructionOperationStatus.Success, recovered);
@@ -418,7 +420,9 @@ public sealed class InstructionOperationsTests
 		InstallInstructionGlobals(scope.State);
 		InstructionTargetProfile targetProfile = Observe(scope.State);
 		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes("instruction_assemble_behavior = \"target-change\"\n" +
-			"instruction_assemble_next_process_id = " + selectionAfterEffect.ToString(CultureInfo.InvariantCulture)));
+		                                                   "instruction_assemble_next_process_id = " +
+		                                                   selectionAfterEffect.ToString(CultureInfo
+			                                                   .InvariantCulture)));
 		Span<byte> destination = stackalloc byte[1];
 		destination[0] = 0xA5;
 

@@ -40,7 +40,7 @@ public sealed class LibraryProbeContractTests
 		Assert.Contains("CEPlugin_GetVersion", names, StringComparer.Ordinal);
 		Assert.Contains(LibraryProbeContract.FindViolations(names),
 			static violation => violation.Contains("'CEPlugin_GetVersion'", StringComparison.Ordinal) &&
-								violation.Contains("native-plugin entry point", StringComparison.Ordinal));
+			                    violation.Contains("native-plugin entry point", StringComparison.Ordinal));
 	}
 
 	[Theory]
@@ -89,7 +89,10 @@ public sealed class LibraryProbeContractTests
 			LibraryProbeContract.FindViolations(PortableExecutableExportReader.ReadExportNames(BridgeImage.Load()));
 
 		Assert.Equal(6, violations.Count);
-		Assert.Equal(2, violations.Count(static violation => violation.Contains("required fixture export", StringComparison.Ordinal)));
-		Assert.Equal(4, violations.Count(static violation => violation.Contains("unexpected export", StringComparison.Ordinal)));
+		Assert.Equal(2,
+			violations.Count(static violation =>
+				violation.Contains("required fixture export", StringComparison.Ordinal)));
+		Assert.Equal(4,
+			violations.Count(static violation => violation.Contains("unexpected export", StringComparison.Ordinal)));
 	}
 }

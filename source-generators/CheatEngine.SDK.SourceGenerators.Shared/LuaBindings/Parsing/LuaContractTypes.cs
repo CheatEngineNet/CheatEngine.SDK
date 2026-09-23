@@ -59,8 +59,8 @@ internal static class LuaContractTypes
 	public static bool Is(ITypeSymbol type, INamedTypeSymbol? expected)
 	{
 		return expected is not null
-			   && type is INamedTypeSymbol named
-			   && SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, expected);
+		       && type is INamedTypeSymbol named
+		       && SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, expected);
 	}
 
 	/// <summary>
@@ -70,8 +70,8 @@ internal static class LuaContractTypes
 	public static bool IsLookAlike(ITypeSymbol type, INamedTypeSymbol? expected, string metadataName)
 	{
 		return type is INamedTypeSymbol named
-			   && !Is(type, expected)
-			   && HasMetadataName(named.OriginalDefinition, metadataName);
+		       && !Is(type, expected)
+		       && HasMetadataName(named.OriginalDefinition, metadataName);
 	}
 
 	/// <summary>Whether a top-level <paramref name="type" /> has the full metadata name <paramref name="metadataName" />.</summary>
@@ -114,6 +114,6 @@ internal static class LuaContractTypes
 	private static bool NameEquals(string name, string metadataName, int start, int end)
 	{
 		return name.Length == end - start
-			   && string.CompareOrdinal(name, 0, metadataName, start, name.Length) == 0;
+		       && string.CompareOrdinal(name, 0, metadataName, start, name.Length) == 0;
 	}
 }

@@ -207,9 +207,9 @@ internal sealed unsafe class
 		}
 
 		if (!TryEnterActiveCallback(
-				out ClassicDebugEventDispatcher? dispatcher,
-				out DebugEventDecisionHandler handler,
-				out BoundedDebugEventObservationBuffer? observations))
+			    out ClassicDebugEventDispatcher? dispatcher,
+			    out DebugEventDecisionHandler handler,
+			    out BoundedDebugEventObservationBuffer? observations))
 		{
 			return 0;
 		}

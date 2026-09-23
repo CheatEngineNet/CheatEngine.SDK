@@ -189,17 +189,17 @@ internal static class LiveProbeAuthorization
 			using JsonDocument document = JsonDocument.Parse(stream);
 			JsonElement root = document.RootElement;
 			if (root.ValueKind != JsonValueKind.Object || !TryString(root, "schema", out string schema) ||
-				!string.Equals(schema, "ce77-live-probe-v1", StringComparison.Ordinal) ||
-				!TryString(root, "acknowledgement", out string acknowledgement) ||
-				!TryString(root, "hostSha256", out string hostSha256) ||
-				!TryString(root, "targetSha256", out string targetSha256) ||
-				!TryString(root, "expiresUtc", out string expiresText) ||
-				!root.TryGetProperty("targetProcessId", out JsonElement pid) ||
-				!pid.TryGetInt32(out int targetProcessId) ||
-				!root.TryGetProperty("disposable", out JsonElement disposable) ||
-				disposable.ValueKind is not JsonValueKind.True and not JsonValueKind.False ||
-				!DateTimeOffset.TryParse(expiresText, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind,
-					out DateTimeOffset expiresUtc))
+			    !string.Equals(schema, "ce77-live-probe-v1", StringComparison.Ordinal) ||
+			    !TryString(root, "acknowledgement", out string acknowledgement) ||
+			    !TryString(root, "hostSha256", out string hostSha256) ||
+			    !TryString(root, "targetSha256", out string targetSha256) ||
+			    !TryString(root, "expiresUtc", out string expiresText) ||
+			    !root.TryGetProperty("targetProcessId", out JsonElement pid) ||
+			    !pid.TryGetInt32(out int targetProcessId) ||
+			    !root.TryGetProperty("disposable", out JsonElement disposable) ||
+			    disposable.ValueKind is not JsonValueKind.True and not JsonValueKind.False ||
+			    !DateTimeOffset.TryParse(expiresText, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind,
+				    out DateTimeOffset expiresUtc))
 			{
 				failure = "The authorization manifest is missing a required ce77-live-probe-v1 field.";
 				return false;
@@ -210,7 +210,7 @@ internal static class LiveProbeAuthorization
 			return true;
 		}
 		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException
-											  or ArgumentException)
+			                                  or ArgumentException)
 		{
 			failure = exception.GetType().Name + ": " + exception.Message;
 			return false;
@@ -246,7 +246,7 @@ internal static class LiveProbeAuthorization
 			return true;
 		}
 		catch (Exception exception) when (exception is ArgumentException or InvalidOperationException
-											  or NotSupportedException or Win32Exception)
+			                                  or NotSupportedException or Win32Exception)
 		{
 			failure = exception.GetType().Name + ": " + exception.Message;
 			return false;
@@ -275,7 +275,7 @@ internal static class LiveProbeAuthorization
 			return false;
 		}
 		catch (Exception exception) when (exception is BadImageFormatException or IOException
-											  or UnauthorizedAccessException)
+			                                  or UnauthorizedAccessException)
 		{
 			failure = exception.GetType().Name + ": " + exception.Message;
 			return false;

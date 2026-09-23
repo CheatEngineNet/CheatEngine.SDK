@@ -871,8 +871,8 @@ public sealed class MemoryScanSessionTests
 	private static void InstallCurrentTarget(LuaState state)
 	{
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("opened_process_id = " +
-													 Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
-													 "; function getOpenedProcessID() return opened_process_id end"));
+		                                             Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
+		                                             "; function getOpenedProcessID() return opened_process_id end"));
 		EngineTest.Run(state, FakeHost.LocalTargetBackendChunk);
 	}
 
@@ -895,14 +895,14 @@ public sealed class MemoryScanSessionTests
 		string firstAddress = invalidAddress ? "'not-an-address'" : "'00001234'";
 		string destroyFailure = destroyRaises ? "; error('found-list destroy rejected')" : string.Empty;
 		return "o.props.initialize = function() table.insert(trace, 'list.initialize') end\n" +
-			   "o.props.deinitialize = function() table.insert(trace, 'list.deinitialize') end\n" +
-			   "o.props.Count = " + resultCountLiteral + "\n" +
-			   "o.props.getCount = function() table.insert(trace, 'results.getCount'); return o.props.Count end\n" +
-			   "o.props.getAddress = function(index) table.insert(trace, 'results.getAddress:' .. index); if index == 0 then return " +
-			   firstAddress + " end; return 'FFFFFFFFFFFFFFFF' end\n" +
-			   "o.props.getValue = function(index) table.insert(trace, 'results.getValue:' .. index); return '100' end\n" +
-			   "o.getters.destroy = function(o) return function() o.destroyed = true; table.insert(trace, 'list.destroy')" +
-			   destroyFailure + " end end";
+		       "o.props.deinitialize = function() table.insert(trace, 'list.deinitialize') end\n" +
+		       "o.props.Count = " + resultCountLiteral + "\n" +
+		       "o.props.getCount = function() table.insert(trace, 'results.getCount'); return o.props.Count end\n" +
+		       "o.props.getAddress = function(index) table.insert(trace, 'results.getAddress:' .. index); if index == 0 then return " +
+		       firstAddress + " end; return 'FFFFFFFFFFFFFFFF' end\n" +
+		       "o.props.getValue = function(index) table.insert(trace, 'results.getValue:' .. index); return '100' end\n" +
+		       "o.getters.destroy = function(o) return function() o.destroyed = true; table.insert(trace, 'list.destroy')" +
+		       destroyFailure + " end end";
 	}
 
 	private static string ReadTrace(LuaState state)

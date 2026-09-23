@@ -77,7 +77,8 @@ public sealed class RuntimeObservationsTests
 
 	[Fact]
 	[Trait("Qualification", "Q31.a")]
-	public void try_observe_runtime_info_with_a_configured_pointer_size_of_four_on_x64_reports_it_as_the_pointer_size_and_keeps_bitness()
+	public void
+		try_observe_runtime_info_with_a_configured_pointer_size_of_four_on_x64_reports_it_as_the_pointer_size_and_keeps_bitness()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -296,7 +297,8 @@ public sealed class RuntimeObservationsTests
 		Assert.Throws<InvalidOperationException>(() => RuntimeObservations.TryObserveRuntimeInfo(out _));
 		Assert.Throws<InvalidOperationException>(() => RuntimeHostOperations.ObserveHost(out _));
 		Assert.Throws<InvalidOperationException>(() => RuntimeProcessOperations.ObserveTargetArchitecture(out _));
-		Assert.Throws<InvalidOperationException>(() => RuntimeProcessOperations.TryGetConfiguredPointerSize(out _, out _));
+		Assert.Throws<InvalidOperationException>(() =>
+			RuntimeProcessOperations.TryGetConfiguredPointerSize(out _, out _));
 	}
 
 	private static RuntimeCapabilityContract Contract(RuntimeInfo info, RuntimeCapabilityId capability)

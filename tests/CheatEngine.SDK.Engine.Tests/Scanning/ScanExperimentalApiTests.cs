@@ -14,7 +14,8 @@ namespace CheatEngine.SDK.Engine.Tests.Scanning;
 /// </summary>
 public sealed class ScanExperimentalApiTests
 {
-	private const string UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md";
+	private const string UrlFormat =
+		"https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md";
 
 	[Fact]
 	public void Scanning_experimental_members_are_exactly_the_documented_gates()
@@ -42,7 +43,7 @@ public sealed class ScanExperimentalApiTests
 		foreach (Type type in typeof(AobScanner).Assembly.GetExportedTypes())
 		{
 			if (type.Namespace is null ||
-				!type.Namespace.StartsWith("CheatEngine.SDK.Engine.Scanning", StringComparison.Ordinal))
+			    !type.Namespace.StartsWith("CheatEngine.SDK.Engine.Scanning", StringComparison.Ordinal))
 			{
 				continue;
 			}
@@ -53,7 +54,7 @@ public sealed class ScanExperimentalApiTests
 			}
 
 			foreach (MemberInfo member in type.GetMembers(BindingFlags.Public | BindingFlags.Instance |
-														  BindingFlags.Static | BindingFlags.DeclaredOnly))
+			                                              BindingFlags.Static | BindingFlags.DeclaredOnly))
 			{
 				if (member.GetCustomAttribute<ExperimentalAttribute>() is { } attribute)
 				{

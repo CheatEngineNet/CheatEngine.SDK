@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 using CheatEngine.SDK.Repository.Tests.Infrastructure;
@@ -39,19 +40,20 @@ public sealed class OwnershipPolicyTests
 		foreach (string file in RepositoryRoot.EnumerateSourceFiles("*"))
 		{
 			bool shippingCode = (file.StartsWith("libs/", StringComparison.Ordinal) ||
-								 file.StartsWith("src/", StringComparison.Ordinal)) &&
-								file.EndsWith(".cs", StringComparison.Ordinal);
+			                     file.StartsWith("src/", StringComparison.Ordinal)) &&
+			                    file.EndsWith(".cs", StringComparison.Ordinal);
 			bool generatorSpec = file.StartsWith("source-generators/", StringComparison.Ordinal) &&
-								 file.Contains("/Specs/", StringComparison.Ordinal);
+			                     file.Contains("/Specs/", StringComparison.Ordinal);
 			if ((shippingCode || generatorSpec) &&
-				File.ReadAllText(Absolute(file)).Contains(DeleteAllRegisteredSymbols, StringComparison.Ordinal))
+			    File.ReadAllText(Absolute(file)).Contains(DeleteAllRegisteredSymbols, StringComparison.Ordinal))
 			{
 				offenders.Add(file);
 			}
 		}
 
 		Assert.True(offenders.Count == 0,
-			DeleteAllRegisteredSymbols + " removes every plugin's and script's symbols; bind per-plugin cleanup instead: " +
+			DeleteAllRegisteredSymbols +
+			" removes every plugin's and script's symbols; bind per-plugin cleanup instead: " +
 			string.Join(", ", offenders));
 	}
 
@@ -98,7 +100,7 @@ public sealed class OwnershipPolicyTests
 
 			if (FinalizerDeclaration.IsMatch(line))
 			{
-				hits.Add(file + ":" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+				hits.Add(file + ":" + (index + 1).ToString(CultureInfo.InvariantCulture));
 			}
 		}
 

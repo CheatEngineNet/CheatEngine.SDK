@@ -48,7 +48,8 @@ public sealed unsafe class FieldLayoutContractTests
 	[Fact]
 	public void Every_layout_row_names_an_existing_field()
 	{
-		Dictionary<string, Type> structures = AbiStructures.All().ToDictionary(static type => type.FullName!, StringComparer.Ordinal);
+		Dictionary<string, Type> structures =
+			AbiStructures.All().ToDictionary(static type => type.FullName!, StringComparer.Ordinal);
 		List<string> stale = [];
 		HashSet<(string, string)> seen = [];
 
@@ -59,7 +60,7 @@ public sealed unsafe class FieldLayoutContractTests
 				stale.Add($"{row.TypeFullName}.{row.FieldName} (duplicate)");
 			}
 			else if (!structures.TryGetValue(row.TypeFullName, out Type? structure) ||
-					 structure.GetField(row.FieldName, FieldLayoutGate.InstanceFields) is null)
+			         structure.GetField(row.FieldName, FieldLayoutGate.InstanceFields) is null)
 			{
 				stale.Add($"{row.TypeFullName}.{row.FieldName}");
 			}
@@ -145,7 +146,8 @@ public sealed unsafe class FieldLayoutContractTests
 
 		PluginInitRecord init = default;
 		AssertSameOffset<PluginInitRecord>(nameof(PluginInitRecord.Name), Layout.OffsetOf(&init, &init.Name));
-		AssertSameOffset<PluginInitRecord>(nameof(PluginInitRecord.GetVersion), Layout.OffsetOf(&init, &init.GetVersion));
+		AssertSameOffset<PluginInitRecord>(nameof(PluginInitRecord.GetVersion),
+			Layout.OffsetOf(&init, &init.GetVersion));
 		AssertSameOffset<PluginInitRecord>(nameof(PluginInitRecord.EnablePlugin),
 			Layout.OffsetOf(&init, &init.EnablePlugin));
 		AssertSameOffset<PluginInitRecord>(nameof(PluginInitRecord.DisablePlugin),
@@ -169,12 +171,14 @@ public sealed unsafe class FieldLayoutContractTests
 		PluginType0Record record = default;
 		AssertSameOffset<PluginType0Record>(nameof(PluginType0Record.InterpretedAddress),
 			Layout.OffsetOf(&record, &record.InterpretedAddress));
-		AssertSameOffset<PluginType0Record>(nameof(PluginType0Record.Address), Layout.OffsetOf(&record, &record.Address));
+		AssertSameOffset<PluginType0Record>(nameof(PluginType0Record.Address),
+			Layout.OffsetOf(&record, &record.Address));
 		AssertSameOffset<PluginType0Record>(nameof(PluginType0Record.IsPointer),
 			Layout.OffsetOf(&record, &record.IsPointer));
 		AssertSameOffset<PluginType0Record>(nameof(PluginType0Record.CountOffsets),
 			Layout.OffsetOf(&record, &record.CountOffsets));
-		AssertSameOffset<PluginType0Record>(nameof(PluginType0Record.Offsets), Layout.OffsetOf(&record, &record.Offsets));
+		AssertSameOffset<PluginType0Record>(nameof(PluginType0Record.Offsets),
+			Layout.OffsetOf(&record, &record.Offsets));
 		AssertSameOffset<PluginType0Record>(nameof(PluginType0Record.Description),
 			Layout.OffsetOf(&record, &record.Description));
 		AssertSameOffset<PluginType0Record>(nameof(PluginType0Record.ValueType),
@@ -204,7 +208,8 @@ public sealed unsafe class FieldLayoutContractTests
 		Assert.Empty(FieldLayoutGate.FindViolations(typeof(Probe), [first, second, third]));
 
 		Assert.Contains(FieldLayoutGate.FindViolations(typeof(Probe), [first, second]),
-			static violation => violation.EndsWith("Probe.Third: missing layout row for this field.", StringComparison.Ordinal));
+			static violation => violation.EndsWith("Probe.Third: missing layout row for this field.",
+				StringComparison.Ordinal));
 		Assert.Contains(FieldLayoutGate.FindViolations(typeof(Probe),
 				[first, second, third, new FieldLayoutRow(probe, "Fourth", 24, 4, FieldKind.Integer)]),
 			static violation => violation.EndsWith("Probe.Fourth: extra layout row names no field of the structure.",
@@ -213,8 +218,10 @@ public sealed unsafe class FieldLayoutContractTests
 			static violation => violation.EndsWith("Probe.Second: offset 8, expected 4.", StringComparison.Ordinal));
 		Assert.Contains(FieldLayoutGate.FindViolations(typeof(Probe), [first, second with { Width = 4 }, third]),
 			static violation => violation.EndsWith("Probe.Second: width 8, expected 4.", StringComparison.Ordinal));
-		Assert.Contains(FieldLayoutGate.FindViolations(typeof(Probe), [first, second, third with { Kind = FieldKind.Pointer }]),
-			static violation => violation.EndsWith("Probe.Third: kind OpaquePointer, expected Pointer.", StringComparison.Ordinal));
+		Assert.Contains(
+			FieldLayoutGate.FindViolations(typeof(Probe), [first, second, third with { Kind = FieldKind.Pointer }]),
+			static violation => violation.EndsWith("Probe.Third: kind OpaquePointer, expected Pointer.",
+				StringComparison.Ordinal));
 		Assert.Contains(FieldLayoutGate.FindViolations(typeof(Probe), [first, first, second, third]),
 			static violation => violation.EndsWith("Probe.First: duplicate layout row.", StringComparison.Ordinal));
 	}
@@ -233,7 +240,8 @@ public sealed unsafe class FieldLayoutContractTests
 
 		Assert.Equal(Layout.SizeOf<Probe>(), Layout.SizeOf<ShiftedMirror>());
 		IReadOnlyList<string> violations = FieldLayoutGate.FindViolations(typeof(ShiftedMirror), hostRows);
-		Assert.Contains(violations, static violation => violation.Contains("ShiftedMirror.Second: offset 4, expected 8.",
+		Assert.Contains(violations, static violation => violation.Contains(
+			"ShiftedMirror.Second: offset 4, expected 8.",
 			StringComparison.Ordinal));
 		Assert.Contains(violations, static violation => violation.Contains("ShiftedMirror.Second: width 4, expected 8.",
 			StringComparison.Ordinal));
@@ -243,14 +251,14 @@ public sealed unsafe class FieldLayoutContractTests
 	{
 		Type structure = AbiStructures.AbiAssembly.GetType(row.TypeFullName, true, false)!;
 		return structure.GetField(row.FieldName, FieldLayoutGate.InstanceFields)
-			   ?? throw new InvalidOperationException($"{row.TypeFullName} has no field {row.FieldName}.");
+		       ?? throw new InvalidOperationException($"{row.TypeFullName} has no field {row.FieldName}.");
 	}
 
 	private static void AssertSameOffset<T>(string fieldName, int addressOfOffset)
 		where T : unmanaged
 	{
 		FieldInfo field = typeof(T).GetField(fieldName, FieldLayoutGate.InstanceFields)
-						  ?? throw new InvalidOperationException($"{typeof(T).Name} has no field {fieldName}.");
+		                  ?? throw new InvalidOperationException($"{typeof(T).Name} has no field {fieldName}.");
 		Assert.Equal(addressOfOffset, FieldLayoutGate.OffsetOf(field));
 	}
 

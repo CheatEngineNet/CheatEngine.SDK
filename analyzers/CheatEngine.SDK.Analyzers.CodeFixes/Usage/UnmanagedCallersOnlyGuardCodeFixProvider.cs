@@ -64,8 +64,8 @@ public sealed class UnmanagedCallersOnlyGuardCodeFixProvider : CodeFixProvider
 		{
 			MethodDeclarationSyntax? declaration = FindDeclaration(root, diagnostic.Location.SourceSpan);
 			if (declaration is null
-				|| semanticModel.GetDeclaredSymbol(declaration, context.CancellationToken) is not IMethodSymbol method
-				|| !HasKnownFailureConvention(method))
+			    || semanticModel.GetDeclaredSymbol(declaration, context.CancellationToken) is not IMethodSymbol method
+			    || !HasKnownFailureConvention(method))
 			{
 				continue;
 			}
@@ -107,8 +107,8 @@ public sealed class UnmanagedCallersOnlyGuardCodeFixProvider : CodeFixProvider
 		SyntaxNode? root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 		SemanticModel? semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 		if (root is null ||
-			semanticModel?.GetDeclaredSymbol(declaration, cancellationToken) is not IMethodSymbol method
-			|| !HasKnownFailureConvention(method))
+		    semanticModel?.GetDeclaredSymbol(declaration, cancellationToken) is not IMethodSymbol method
+		    || !HasKnownFailureConvention(method))
 		{
 			return document;
 		}
@@ -136,25 +136,25 @@ public sealed class UnmanagedCallersOnlyGuardCodeFixProvider : CodeFixProvider
 	private static bool HasKnownFailureConvention(IMethodSymbol method)
 	{
 		if (!method.IsStatic
-			|| method.IsGenericMethod
-			|| method.DeclaredAccessibility != Accessibility.Public
-			|| !string.Equals(method.Name, "CEPluginInitialize", StringComparison.Ordinal)
-			|| method.ReturnsByRef
-			|| method.ReturnsByRefReadonly
-			|| method.ReturnType.SpecialType != SpecialType.System_Int32
-			|| method.Parameters.Length != 2
-			|| method.Parameters[0].RefKind != RefKind.None
-			|| method.Parameters[0].Type.SpecialType != SpecialType.System_IntPtr
-			|| method.Parameters[1].RefKind != RefKind.None
-			|| method.Parameters[1].Type.SpecialType != SpecialType.System_Int32)
+		    || method.IsGenericMethod
+		    || method.DeclaredAccessibility != Accessibility.Public
+		    || !string.Equals(method.Name, "CEPluginInitialize", StringComparison.Ordinal)
+		    || method.ReturnsByRef
+		    || method.ReturnsByRefReadonly
+		    || method.ReturnType.SpecialType != SpecialType.System_Int32
+		    || method.Parameters.Length != 2
+		    || method.Parameters[0].RefKind != RefKind.None
+		    || method.Parameters[0].Type.SpecialType != SpecialType.System_IntPtr
+		    || method.Parameters[1].RefKind != RefKind.None
+		    || method.Parameters[1].Type.SpecialType != SpecialType.System_Int32)
 		{
 			return false;
 		}
 
 		INamedTypeSymbol containingType = method.ContainingType;
 		return string.Equals(containingType.Name, "CESDK", StringComparison.Ordinal)
-			   && containingType.ContainingType is null
-			   && string.Equals(containingType.ContainingNamespace.ToDisplayString(), "CESDK",
-				   StringComparison.Ordinal);
+		       && containingType.ContainingType is null
+		       && string.Equals(containingType.ContainingNamespace.ToDisplayString(), "CESDK",
+			       StringComparison.Ordinal);
 	}
 }

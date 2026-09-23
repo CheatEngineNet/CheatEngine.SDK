@@ -403,7 +403,7 @@ public sealed class TargetMemoryAllocator
 		}
 
 		if (outcome.Kind is TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable or
-			TargetMemoryOperationOutcomeKind.TargetIdentityMismatch)
+		    TargetMemoryOperationOutcomeKind.TargetIdentityMismatch)
 		{
 			throw new EngineTargetIdentityException(AllocateOperation, GetUnavailableTargetCheck());
 		}

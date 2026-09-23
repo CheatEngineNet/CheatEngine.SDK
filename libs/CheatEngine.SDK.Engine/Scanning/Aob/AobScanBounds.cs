@@ -7,13 +7,17 @@ namespace CheatEngine.SDK.Engine.Scanning.Aob;
 
 /// <summary>
 ///     A non-empty, half-open target-address range <c>[Start, Stop)</c>: the CE work limit of
-///     <see cref="AobScanner.TryScanWithinBounds(string, AobScanBounds, AobScanOptions, System.Span{Address}, System.Threading.CancellationToken)" />.
+///     <see
+///         cref="AobScanner.TryScanWithinBounds(string, AobScanBounds, AobScanOptions, System.Span{Address}, System.Threading.CancellationToken)" />
+///     .
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         <see cref="Stop" /> is exclusive and is passed to CE as the MemScan stop address: on the pinned profile
-///         <c>ce-7.7.0.10621-x64-managed-hostfxr</c>, CE reports a match only when it fits entirely below it (Lua-only host
-///         observation, spike 2026-09-22, D4.1). <see cref="Start" /> is inclusive for the caller, but CE does not treat it
+///         <c>ce-7.7.0.10621-x64-managed-hostfxr</c>, CE reports a match only when it fits entirely below it (Lua-only
+///         host
+///         observation, spike 2026-09-22, D4.1). <see cref="Start" /> is inclusive for the caller, but CE does not treat
+///         it
 ///         byte-exactly (D4.2): the bounded route drops, and counts, every address CE returns below it.
 ///     </para>
 ///     <para>
@@ -65,7 +69,10 @@ public readonly record struct AobScanBounds
 	/// <param name="start">The inclusive lower bound.</param>
 	/// <param name="stop">The exclusive upper bound.</param>
 	/// <param name="bounds">The range when the method returns <see langword="true" />; otherwise the invalid default.</param>
-	/// <returns><see langword="false" /> when the range is empty or inverted (<paramref name="stop" /> not above <paramref name="start" />).</returns>
+	/// <returns>
+	///     <see langword="false" /> when the range is empty or inverted (<paramref name="stop" /> not above
+	///     <paramref name="start" />).
+	/// </returns>
 	public static bool TryCreate(Address start, Address stop, out AobScanBounds bounds)
 	{
 		if (stop <= start)
@@ -95,7 +102,7 @@ public readonly record struct AobScanBounds
 	public static bool TryFromModule(in ModuleInfo module, out AobScanBounds bounds)
 	{
 		if (module.ImageSize is not { } size || size.Value == 0 ||
-			size.Value > ulong.MaxValue - module.BaseAddress.Value)
+		    size.Value > ulong.MaxValue - module.BaseAddress.Value)
 		{
 			bounds = default;
 			return false;

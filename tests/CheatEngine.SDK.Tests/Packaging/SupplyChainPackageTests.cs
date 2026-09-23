@@ -46,11 +46,12 @@ public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixt
 		Assert.Equal(NuspecMetadata("id"), package.GetProperty("name").GetString());
 		Assert.Equal(fixture.PackageVersion, package.GetProperty("versionInfo").GetString());
 		Assert.Equal(fixture.PackageVersion, NuspecMetadata("version"));
-		Assert.StartsWith($"{RepositoryUrl}/", root.GetProperty("documentNamespace").GetString(), StringComparison.Ordinal);
+		Assert.StartsWith($"{RepositoryUrl}/", root.GetProperty("documentNamespace").GetString(),
+			StringComparison.Ordinal);
 
 		// The sidecar checksum the SBOM tool writes next to the manifest matches it.
 		string sidecar = Encoding.ASCII.GetString(ReadEntry(archive, SbomChecksumEntry)).Trim();
-		Assert.Equal(Sha256(manifest), sidecar, ignoreCase: true);
+		Assert.Equal(Sha256(manifest), sidecar, true);
 	}
 
 	[Fact]
@@ -63,18 +64,19 @@ public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixt
 		foreach (string entry in fixture.PackageEntries)
 		{
 			if ((entry.StartsWith("lib/net10.0/", StringComparison.Ordinal)
-				 || entry.StartsWith("analyzers/dotnet/cs/", StringComparison.Ordinal))
-				&& entry.EndsWith(".dll", StringComparison.Ordinal))
+			     || entry.StartsWith("analyzers/dotnet/cs/", StringComparison.Ordinal))
+			    && entry.EndsWith(".dll", StringComparison.Ordinal))
 			{
 				shipped.Add(entry);
 			}
 		}
 
-		Assert.True(shipped.Count >= 13, $"Expected the 7 libraries, 5 components and the bridge, found {shipped.Count}.");
+		Assert.True(shipped.Count >= 13,
+			$"Expected the 7 libraries, 5 components and the bridge, found {shipped.Count}.");
 		foreach (string entry in shipped)
 		{
 			Assert.True(sbomSha256.TryGetValue(entry, out string? declared), $"The SBOM does not list '{entry}'.");
-			Assert.Equal(Sha256(ReadEntry(archive, entry)), declared, ignoreCase: true);
+			Assert.Equal(Sha256(ReadEntry(archive, entry)), declared, true);
 		}
 	}
 
@@ -156,7 +158,8 @@ public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixt
 			MetadataReader pdb = pdbProvider.GetMetadataReader();
 
 			string? sourceLink = null;
-			foreach (CustomDebugInformationHandle handle in pdb.GetCustomDebugInformation(EntityHandle.ModuleDefinition))
+			foreach (CustomDebugInformationHandle handle in
+			         pdb.GetCustomDebugInformation(EntityHandle.ModuleDefinition))
 			{
 				CustomDebugInformation information = pdb.GetCustomDebugInformation(handle);
 				if (pdb.GetGuid(information.Kind) == s_sourceLinkKind)
@@ -184,7 +187,7 @@ public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixt
 		foreach (string entry in fixture.PackageEntries)
 		{
 			if (entry.StartsWith("lib/net10.0/CheatEngine.SDK", StringComparison.Ordinal)
-				&& entry.EndsWith(".dll", StringComparison.Ordinal))
+			    && entry.EndsWith(".dll", StringComparison.Ordinal))
 			{
 				libraries.Add(entry);
 			}
@@ -225,7 +228,7 @@ public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixt
 	private static byte[] ReadEntry(ZipArchive archive, string entryName)
 	{
 		ZipArchiveEntry entry = archive.GetEntry(entryName)
-								?? throw new InvalidOperationException($"The package has no '{entryName}' entry.");
+		                        ?? throw new InvalidOperationException($"The package has no '{entryName}' entry.");
 		using Stream stream = entry.Open();
 		using MemoryStream copy = new();
 		stream.CopyTo(copy);
@@ -244,6 +247,6 @@ public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixt
 		return Version.Parse(core);
 	}
 
-	[GeneratedRegex("^[0-9a-f]{40}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex("^[0-9a-f]{40}$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex CommitSha();
 }

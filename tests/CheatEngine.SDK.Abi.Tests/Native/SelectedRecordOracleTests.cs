@@ -17,7 +17,8 @@ namespace CheatEngine.SDK.Abi.Tests.Native;
 ///     per-field check separates them (audit annex 05, A03-31, AX05-07).
 /// </summary>
 /// <remarks>
-///     The mirrors are modelled here as nested C# structures, never in <c>CheatEngine.SDK.Abi</c>. The CI-only fixture test
+///     The mirrors are modelled here as nested C# structures, never in <c>CheatEngine.SDK.Abi</c>. The CI-only fixture
+///     test
 ///     compares the same three layouts as compiled by MSVC from the transcriptions in
 ///     <c>tests/native-abi-fixture/ce77_plugin_abi_contract.h</c>. Nothing here observes the CE 7.7 binary.
 /// </remarks>
@@ -44,7 +45,8 @@ public sealed class SelectedRecordOracleTests
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
 
 		Assert.Equal(48, Layout.SizeOf<PluginType0Record>());
-		Assert.Empty(FieldLayoutGate.FindViolations(typeof(PluginType0Record), HostRows(HostType, FieldKindsOfSdkRecord())));
+		Assert.Empty(FieldLayoutGate.FindViolations(typeof(PluginType0Record),
+			HostRows(HostType, FieldKindsOfSdkRecord())));
 		Assert.Equal(HostLayout.Select(static row => row.Field),
 			typeof(PluginType0Record).GetFields(FieldLayoutGate.InstanceFields).Select(static field => field.Name),
 			StringComparer.Ordinal);
@@ -93,7 +95,8 @@ public sealed class SelectedRecordOracleTests
 		Assert.Equal(Layout.SizeOf<PluginType0Record>(), Layout.SizeOf<PascalBooleanMirrorSelectedRecord>());
 
 		// What the per-field gate sees against the host oracle: the SDK record passes, both mirrors fail.
-		Assert.Empty(FieldLayoutGate.FindViolations(typeof(PluginType0Record), HostRows(HostType, FieldKindsOfSdkRecord())));
+		Assert.Empty(FieldLayoutGate.FindViolations(typeof(PluginType0Record),
+			HostRows(HostType, FieldKindsOfSdkRecord())));
 		Assert.Contains(FieldLayoutGate.FindViolations(typeof(PascalDwordMirrorSelectedRecord),
 			HostRows(typeof(PascalDwordMirrorSelectedRecord).FullName!, null)), IsOffsetOrWidth);
 		Assert.Contains(FieldLayoutGate.FindViolations(typeof(PascalBooleanMirrorSelectedRecord),
@@ -173,7 +176,7 @@ public sealed class SelectedRecordOracleTests
 	private static bool IsOffsetOrWidth(string violation)
 	{
 		return violation.Contains(": offset ", StringComparison.Ordinal) ||
-			   violation.Contains(": width ", StringComparison.Ordinal);
+		       violation.Contains(": width ", StringComparison.Ordinal);
 	}
 
 	private static int Offset<T>(string fieldName)
@@ -189,7 +192,7 @@ public sealed class SelectedRecordOracleTests
 	private static FieldInfo FieldOf<T>(string fieldName)
 	{
 		return typeof(T).GetField(fieldName, FieldLayoutGate.InstanceFields)
-			   ?? throw new InvalidOperationException($"{typeof(T).Name} has no field {fieldName}.");
+		       ?? throw new InvalidOperationException($"{typeof(T).Name} has no field {fieldName}.");
 	}
 
 	private static string Text(int value)

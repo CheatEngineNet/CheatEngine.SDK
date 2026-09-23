@@ -26,7 +26,8 @@ public sealed class LockFileTests
 			}
 		}
 
-		Assert.True(missing.Count == 0, $"Projects without {LockFileName}: {string.Join(", ", missing)}. {RegenerateHint}");
+		Assert.True(missing.Count == 0,
+			$"Projects without {LockFileName}: {string.Join(", ", missing)}. {RegenerateHint}");
 	}
 
 	[Fact]
@@ -46,7 +47,8 @@ public sealed class LockFileTests
 		// CESDK9005 forbids opting out of Central Package Management, and NuGet writes version 2 lock files for CPM projects.
 		foreach ((string path, JsonElement lockFile) in LoadLockFiles())
 		{
-			Assert.True(lockFile.GetProperty("version").GetInt32() == 2, $"{path} is not a version 2 lock file. {RegenerateHint}");
+			Assert.True(lockFile.GetProperty("version").GetInt32() == 2,
+				$"{path} is not a version 2 lock file. {RegenerateHint}");
 		}
 	}
 
@@ -82,7 +84,8 @@ public sealed class LockFileTests
 			}
 
 			runtimeSpecificProjects++;
-			bool publishAot = string.Equals(LastPropertyValue(document, "PublishAot"), "true", StringComparison.OrdinalIgnoreCase);
+			bool publishAot = string.Equals(LastPropertyValue(document, "PublishAot"), "true",
+				StringComparison.OrdinalIgnoreCase);
 			string lockPath = LockPathOf(project);
 			using JsonDocument lockFile = JsonDocument.Parse(File.ReadAllBytes(FullPath(lockPath)));
 			JsonProperty? section = null;
@@ -104,7 +107,8 @@ public sealed class LockFileTests
 			}
 		}
 
-		Assert.True(runtimeSpecificProjects > 0, "No project sets RuntimeIdentifier: the Native AOT probes are expected to.");
+		Assert.True(runtimeSpecificProjects > 0,
+			"No project sets RuntimeIdentifier: the Native AOT probes are expected to.");
 	}
 
 	[Fact]

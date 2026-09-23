@@ -29,7 +29,7 @@ public sealed class AddressTypeSeparationTests
 		string[] conversions =
 		[
 			.. types.SelectMany(static type => type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic |
-																 BindingFlags.Static | BindingFlags.DeclaredOnly))
+			                                                   BindingFlags.Static | BindingFlags.DeclaredOnly))
 				.Where(static method => method.Name is "op_Implicit" or "op_Explicit")
 				.Select(Describe)
 				.Order(StringComparer.Ordinal)

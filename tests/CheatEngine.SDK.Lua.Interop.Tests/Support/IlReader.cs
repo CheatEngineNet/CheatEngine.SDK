@@ -19,7 +19,7 @@ internal static class IlReader
 	public static List<(OpCode Code, int Operand)> Read(MethodBase method)
 	{
 		byte[] il = method.GetMethodBody()?.GetILAsByteArray() ??
-					throw new InvalidOperationException(method.Name + " has no IL body.");
+		            throw new InvalidOperationException(method.Name + " has no IL body.");
 		List<(OpCode Code, int Operand)> instructions = [];
 
 		int offset = 0;

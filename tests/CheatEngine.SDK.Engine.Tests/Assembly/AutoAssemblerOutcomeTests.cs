@@ -1,3 +1,5 @@
+using System.Text;
+
 using CheatEngine.SDK.Engine.Assembly;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Targets;
@@ -30,7 +32,8 @@ public sealed class AutoAssemblerOutcomeTests
 		LuaState L = scope.State;
 		AutoAssemblerTestHost.Install(L);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
 
 		Assert.Equal(AutoAssemblerApplyOutcomeKind.Applied, outcome.Kind);
 		Assert.Equal(EngineEffectState.Applied, outcome.Effect);
@@ -38,7 +41,8 @@ public sealed class AutoAssemblerOutcomeTests
 		Assert.Null(outcome.Compensation);
 		Assert.True(outcome.TargetObservation.IsQualified);
 		Assert.True(outcome.PostEffectTargetCheck.GetValueOrDefault().IsCurrent);
-		AutoAssemblerDisableInfoSnapshot snapshot = Assert.IsType<AutoAssemblerDisableInfoSnapshot>(outcome.DisableInfo);
+		AutoAssemblerDisableInfoSnapshot
+			snapshot = Assert.IsType<AutoAssemblerDisableInfoSnapshot>(outcome.DisableInfo);
 		Assert.Equal(AutoAssemblerDisableInfoSnapshotStatus.Complete, snapshot.Status);
 		AutoAssemblerPatch owner = Assert.IsType<AutoAssemblerPatch>(patch);
 		Assert.Same(snapshot, owner.DisableInfo);
@@ -64,7 +68,8 @@ public sealed class AutoAssemblerOutcomeTests
 		LuaState L = scope.State;
 		AutoAssemblerTestHost.Install(L);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("apply-false", out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome("apply-false", out AutoAssemblerPatch? patch);
 
 		Assert.Equal(AutoAssemblerApplyOutcomeKind.Rejected, outcome.Kind);
 		Assert.Equal(EngineEffectState.Unknown, outcome.Effect);
@@ -112,7 +117,7 @@ public sealed class AutoAssemblerOutcomeTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		AutoAssemblerTestHost.Install(L);
-		EngineTest.Run(L, System.Text.Encoding.UTF8.GetBytes("aa_long_detail = \"" + luaEscapedDetail + "\""));
+		EngineTest.Run(L, Encoding.UTF8.GetBytes("aa_long_detail = \"" + luaEscapedDetail + "\""));
 
 		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("apply-reject-long",
 			new AutoAssemblerOptions { CaptureHostText = true, MaxHostTextBytes = maxBytes }, out _);
@@ -210,7 +215,8 @@ public sealed class AutoAssemblerOutcomeTests
 		LuaState L = scope.State;
 		AutoAssemblerTestHost.Install(L);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("success", SCapture, out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome("success", SCapture, out AutoAssemblerPatch? patch);
 
 		Assert.False(outcome.HasHostWarnings);
 		Assert.Null(outcome.HostWarnings);
@@ -230,7 +236,8 @@ public sealed class AutoAssemblerOutcomeTests
 		LuaState L = scope.State;
 		AutoAssemblerTestHost.Install(L);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome(script, out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome(script, out AutoAssemblerPatch? patch);
 
 		Assert.Equal(AutoAssemblerApplyOutcomeKind.InvalidResult, outcome.Kind);
 		Assert.Equal(EngineEffectState.Unknown, outcome.Effect);
@@ -292,7 +299,8 @@ public sealed class AutoAssemblerOutcomeTests
 		Assert.False(outcome.HasPatch);
 		Assert.IsType<InvalidOperationException>(cause);
 		Assert.Equal(TargetReleaseStatus.Released, outcome.Compensation.GetValueOrDefault().Status);
-		AutoAssemblerDisableInfoSnapshot snapshot = Assert.IsType<AutoAssemblerDisableInfoSnapshot>(outcome.DisableInfo);
+		AutoAssemblerDisableInfoSnapshot
+			snapshot = Assert.IsType<AutoAssemblerDisableInfoSnapshot>(outcome.DisableInfo);
 		Assert.Equal("newmem", Assert.Single(snapshot.Symbols).Name);
 		Assert.Equal(1, AutoAssemblerTestHost.ReadCounter(L, "auto_assembler_disable_count"));
 		Assert.True(AutoAssemblerTestHost.ReadBoolean(L, "auto_assembler_disable_received_info"));
@@ -308,7 +316,8 @@ public sealed class AutoAssemblerOutcomeTests
 		LuaState L = scope.State;
 		FakeHost.InstallQualifiedLocalTarget(L);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
 		AutoAssemblerCheckOutcome check = AutoAssemblerPatcher.TryCheck("success", true);
 
 		Assert.Equal(AutoAssemblerApplyOutcomeKind.GlobalUnavailable, outcome.Kind);
@@ -355,7 +364,8 @@ public sealed class AutoAssemblerOutcomeTests
 		AutoAssemblerTestHost.Install(L);
 		AutoAssemblerTestHost.SelectTarget(L, 0);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
 
 		Assert.Equal(AutoAssemblerApplyOutcomeKind.TargetIdentityUnavailable, outcome.Kind);
 		Assert.Equal(EngineEffectState.NotStarted, outcome.Effect);
@@ -374,7 +384,8 @@ public sealed class AutoAssemblerOutcomeTests
 		LuaState L = scope.State;
 		AutoAssemblerTestHost.Install(L);
 
-		AutoAssemblerApplyOutcome failed = AutoAssemblerPatcher.TryApplyWithOutcome("apply-raise", out AutoAssemblerPatch? none);
+		AutoAssemblerApplyOutcome failed =
+			AutoAssemblerPatcher.TryApplyWithOutcome("apply-raise", out AutoAssemblerPatch? none);
 		Assert.Equal(0, L.Top);
 		AutoAssemblerApplyOutcome recovered =
 			AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
@@ -398,7 +409,8 @@ public sealed class AutoAssemblerOutcomeTests
 		AutoAssemblerTestHost.Install(L);
 
 		AutoAssemblerApplyOutcome english = AutoAssemblerPatcher.TryApplyWithOutcome("apply-false", SCapture, out _);
-		AutoAssemblerApplyOutcome french = AutoAssemblerPatcher.TryApplyWithOutcome("apply-reject-french", SCapture, out _);
+		AutoAssemblerApplyOutcome french =
+			AutoAssemblerPatcher.TryApplyWithOutcome("apply-reject-french", SCapture, out _);
 
 		Assert.Equal(english.Kind, french.Kind);
 		Assert.Equal(english.Effect, french.Effect);

@@ -6,11 +6,11 @@ fixes, how to report a vulnerability privately, and how to check that a package 
 
 ## Supported versions
 
-| Version | Package | Security fixes |
-|---|---|---|
-| 1.0.x, the latest published release line | `CheatEngine.SDK` on nuget.org | Yes, as a new 1.0.x patch release |
-| 2.0.0 prereleases built from `main` | CI artifacts and prerelease packages | On `main` only; a prerelease is never patched in place |
-| 0.1.0 to 0.2.1 | the former `CESDK` package ID | No; move to `CheatEngine.SDK` (see [CHANGELOG.md](CHANGELOG.md)) |
+| Version                                  | Package                              | Security fixes                                                   |
+|------------------------------------------|--------------------------------------|------------------------------------------------------------------|
+| 1.0.x, the latest published release line | `CheatEngine.SDK` on nuget.org       | Yes, as a new 1.0.x patch release                                |
+| 2.0.0 prereleases built from `main`      | CI artifacts and prerelease packages | On `main` only; a prerelease is never patched in place           |
+| 0.1.0 to 0.2.1                           | the former `CESDK` package ID        | No; move to `CheatEngine.SDK` (see [CHANGELOG.md](CHANGELOG.md)) |
 
 When a new release line ships, the previous line stops receiving fixes; the table is updated in the same pull request.
 

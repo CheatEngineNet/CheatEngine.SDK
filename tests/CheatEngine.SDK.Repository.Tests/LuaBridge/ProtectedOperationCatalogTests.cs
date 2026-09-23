@@ -26,7 +26,8 @@ public sealed partial class ProtectedOperationCatalogTests
 	public void Catalog_has_its_schema_version_and_identity()
 	{
 		Assert.Equal(1, LuaBridgeDocuments.Catalogue.GetProperty("schemaVersion").GetInt32());
-		Assert.Equal("cheatengine-sdk-lua-protected-operations", LuaBridgeDocuments.Catalogue.GetProperty("catalogId").GetString());
+		Assert.Equal("cheatengine-sdk-lua-protected-operations",
+			LuaBridgeDocuments.Catalogue.GetProperty("catalogId").GetString());
 	}
 
 	[Fact]
@@ -53,8 +54,10 @@ public sealed partial class ProtectedOperationCatalogTests
 
 		AssertUnique(operations, static operation => operation.GetProperty("id").GetString()!);
 		AssertUnique(operations, static operation => operation.GetProperty("nativeEnum").GetString()!);
-		AssertUnique(operations, static operation => operation.GetProperty("managed").GetProperty("constant").GetString()!);
-		AssertUnique(operations, static operation => operation.GetProperty("managed").GetProperty("wrapper").GetString()!);
+		AssertUnique(operations,
+			static operation => operation.GetProperty("managed").GetProperty("constant").GetString()!);
+		AssertUnique(operations,
+			static operation => operation.GetProperty("managed").GetProperty("wrapper").GetString()!);
 		Assert.Equal(BitmapWidth, contract.GetProperty("operationBitmapWidth").GetInt32());
 		Assert.Equal(string.Create(CultureInfo.InvariantCulture, $"0x{bitmap:X16}"),
 			contract.GetProperty("operationBitmap").GetString());
@@ -79,11 +82,13 @@ public sealed partial class ProtectedOperationCatalogTests
 		{
 			string name = Regex.Escape(operation.GetProperty("nativeEnum").GetString()!);
 			int opcode = operation.GetProperty("opcode").GetInt32();
-			Assert.True(Regex.IsMatch(values, $@"\b{name}\s*=\s*{opcode}\b", RegexOptions.CultureInvariant, RegexTimeout),
+			Assert.True(
+				Regex.IsMatch(values, $@"\b{name}\s*=\s*{opcode}\b", RegexOptions.CultureInvariant, RegexTimeout),
 				$"The native enum does not define {name} = {opcode}.");
 			Assert.True(Regex.IsMatch(source, $@"\bcase\s+{name}\s*:", RegexOptions.CultureInvariant, RegexTimeout),
 				$"The native bridge has no case for {name}.");
-			Assert.True(Regex.IsMatch(mask.Groups["mask"].Value, $@"\b{name}\b", RegexOptions.CultureInvariant, RegexTimeout),
+			Assert.True(
+				Regex.IsMatch(mask.Groups["mask"].Value, $@"\b{name}\b", RegexOptions.CultureInvariant, RegexTimeout),
 				$"The native operation mask does not name {name}.");
 		}
 	}
@@ -118,9 +123,10 @@ public sealed partial class ProtectedOperationCatalogTests
 			}
 
 			if (policy.TryGetProperty("conditionalDirectUse", out JsonElement conditional) &&
-				(direct || !bridge || !conditional.GetProperty("allowed").GetBoolean()))
+			    (direct || !bridge || !conditional.GetProperty("allowed").GetBoolean()))
 			{
-				problems.Add($"{symbol}: a conditional direct use keeps the bridge as its default route and opts in explicitly.");
+				problems.Add(
+					$"{symbol}: a conditional direct use keeps the bridge as its default route and opts in explicitly.");
 			}
 		}
 
@@ -135,9 +141,10 @@ public sealed partial class ProtectedOperationCatalogTests
 		foreach (JsonElement operation in LuaBridgeDocuments.Operations)
 		{
 			string id = operation.GetProperty("id").GetString()!;
-			bool raises = !string.Equals(operation.GetProperty("raises").GetString(), "never", StringComparison.Ordinal);
+			bool raises = !string.Equals(operation.GetProperty("raises").GetString(), "never",
+				StringComparison.Ordinal);
 			if (raises && (!operation.TryGetProperty("failureEvidence", out JsonElement evidence) ||
-						   evidence.GetArrayLength() == 0))
+			               evidence.GetArrayLength() == 0))
 			{
 				problems.Add($"{id} can raise but names no failure evidence (a failure-probe marker or a Q13 test).");
 			}
@@ -170,7 +177,8 @@ public sealed partial class ProtectedOperationCatalogTests
 	public void Probe_marker_evidence_is_emitted_by_the_failure_probe_source()
 	{
 		string probe = RepositoryDocument.ReadNormalizedText(LuaBridgeDocuments.FailureProbePath);
-		string[] markers = [.. Evidence(ProbeMarkerKind).Select(static item => item.GetProperty("marker").GetString()!)];
+		string[] markers =
+			[.. Evidence(ProbeMarkerKind).Select(static item => item.GetProperty("marker").GetString()!)];
 
 		Assert.NotEmpty(markers);
 		Assert.Equal(markers.Length, markers.Distinct(StringComparer.Ordinal).Count());
@@ -199,8 +207,10 @@ public sealed partial class ProtectedOperationCatalogTests
 		}
 
 		JsonElement pusher = Assert.Single(LuaBridgeDocuments.Operations,
-			static operation => string.Equals(operation.GetProperty("id").GetString(), "PushHostObject", StringComparison.Ordinal));
-		Assert.Contains("Q23", pusher.GetProperty("provenance")[0].GetProperty("verification").GetString(), StringComparison.Ordinal);
+			static operation => string.Equals(operation.GetProperty("id").GetString(), "PushHostObject",
+				StringComparison.Ordinal));
+		Assert.Contains("Q23", pusher.GetProperty("provenance")[0].GetProperty("verification").GetString(),
+			StringComparison.Ordinal);
 		Assert.Contains("Q23", RepositoryDocument.ReadNormalizedText("libs/CheatEngine.SDK.Lua.Interop/README.md"),
 			StringComparison.Ordinal);
 	}
@@ -226,20 +236,24 @@ public sealed partial class ProtectedOperationCatalogTests
 
 	private static void AssertUnique(JsonElement[] items, Func<JsonElement, string> key)
 	{
-		string[] duplicates = [.. items.GroupBy(key, StringComparer.Ordinal).Where(static group => group.Count() > 1)
-			.Select(static group => group.Key)];
+		string[] duplicates =
+		[
+			.. items.GroupBy(key, StringComparer.Ordinal).Where(static group => group.Count() > 1)
+				.Select(static group => group.Key)
+		];
 		Assert.True(duplicates.Length == 0, "Duplicated: " + string.Join(", ", duplicates));
 	}
 
-	[GeneratedRegex(@"enum\s*\{\s*(?<values>OP_PUSH_BYTES\s*=\s*0,[\s\S]*?CHEATENGINE_SDK_LUA_BRIDGE_OPERATION_COUNT\s*=\s*\d+)\s*\};",
-		RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(
+		@"enum\s*\{\s*(?<values>OP_PUSH_BYTES\s*=\s*0,[\s\S]*?CHEATENGINE_SDK_LUA_BRIDGE_OPERATION_COUNT\s*=\s*\d+)\s*\};",
+		RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex NativeOperationEnum();
 
 	[GeneratedRegex(@"CHEATENGINE_SDK_LUA_BRIDGE_OPERATION_COUNT\s*=\s*(?<count>\d+)", RegexOptions.CultureInvariant,
-		matchTimeoutMilliseconds: 1000)]
+		1000)]
 	private static partial Regex OperationCount();
 
 	[GeneratedRegex(@"#define\s+CHEATENGINE_SDK_LUA_BRIDGE_OPERATION_MASK\s*\\(?<mask>[\s\S]*?)\n\s*\n",
-		RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+		RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex OperationMask();
 }

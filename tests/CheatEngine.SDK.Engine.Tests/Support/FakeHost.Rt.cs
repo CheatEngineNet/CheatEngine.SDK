@@ -173,7 +173,7 @@ internal static partial class FakeHost
 		Assert.True(state.TryGetGlobal(global).IsOk);
 		Assert.True(state.IsTable(-1));
 		int table = state.AbsoluteIndex(-1);
-		for (long index = 1; ; index++)
+		for (long index = 1;; index++)
 		{
 			if (state.RawGetIndex(table, index) == LuaType.Nil)
 			{

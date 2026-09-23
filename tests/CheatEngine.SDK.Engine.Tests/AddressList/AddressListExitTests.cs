@@ -68,9 +68,9 @@ public sealed class AddressListExitTests
 	{
 		using AddressListTestHost host = new();
 		CEObject handle = host.AddRecord(1, extra: """
-		                                            o.props.Address = "game.exe+10"
-		                                            o.getters.getCurrentAddress = function() return function() return 0x140000010 end end
-		                                            """);
+		                                           o.props.Address = "game.exe+10"
+		                                           o.getters.getCurrentAddress = function() return function() return 0x140000010 end end
+		                                           """);
 		MemoryRecord record = new(handle);
 
 		Assert.True(record.TryGetAddressExpression(out string? expression));
@@ -124,11 +124,11 @@ public sealed class AddressListExitTests
 		List<MemoryRecordMutationOutcome> mutations = [];
 		List<MemoryRecordActivationOutcome> activations = [];
 		using (FakeHost.InstallReentrantHook(host.State, "table_script", () =>
-			   {
-				   mutations.Add(AddressListMutations.Delete(new MemoryRecordId(1)));
-				   mutations.Add(AddressListMutations.SetParent(new MemoryRecordId(1), new MemoryRecordId(2)));
-				   activations.Add(AddressListMutations.SetActive(new MemoryRecordId(1), true));
-			   }))
+		       {
+			       mutations.Add(AddressListMutations.Delete(new MemoryRecordId(1)));
+			       mutations.Add(AddressListMutations.SetParent(new MemoryRecordId(1), new MemoryRecordId(2)));
+			       activations.Add(AddressListMutations.SetActive(new MemoryRecordId(1), true));
+		       }))
 		{
 			host.Execute("loadTable = function(path, merge) table_script() end");
 

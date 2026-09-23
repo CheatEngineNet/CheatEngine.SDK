@@ -19,7 +19,8 @@ public readonly struct SymbolListRegistrationReleaseOutcome
 
 	/// <summary>
 	///     Gets how the unregister step ended: <see cref="SymbolRegistrationReleaseKind.Released" />,
-	///     <see cref="SymbolRegistrationReleaseKind.AlreadyReleased" />, <see cref="SymbolRegistrationReleaseKind.StaleRuntime" />,
+	///     <see cref="SymbolRegistrationReleaseKind.AlreadyReleased" />,
+	///     <see cref="SymbolRegistrationReleaseKind.StaleRuntime" />,
 	///     <see cref="SymbolRegistrationReleaseKind.CleanupUnavailable" /> (retryable) or
 	///     <see cref="SymbolRegistrationReleaseKind.CleanupIndeterminate" />.
 	/// </summary>
@@ -53,5 +54,6 @@ public readonly struct SymbolListRegistrationReleaseOutcome
 
 	/// <summary>Gets whether no later release attempt can be made through the lease.</summary>
 	public bool IsTerminal =>
-		UnregisterKind is not (SymbolRegistrationReleaseKind.Unknown or SymbolRegistrationReleaseKind.CleanupUnavailable);
+		UnregisterKind is not (SymbolRegistrationReleaseKind.Unknown
+			or SymbolRegistrationReleaseKind.CleanupUnavailable);
 }

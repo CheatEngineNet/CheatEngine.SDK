@@ -187,8 +187,8 @@ public sealed class ContractIdentityTests(RoslynFixture roslyn) : IClassFixture<
 		Assert.DoesNotContain(
 			run.OutputCompilation.GetDiagnostics(TestContext.Current.CancellationToken),
 			static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error
-								 && (diagnostic.Location.SourceTree is null
-									 || !diagnostic.Location.SourceTree.FilePath.EndsWith(".g.cs",
-										 StringComparison.Ordinal)));
+			                     && (diagnostic.Location.SourceTree is null
+			                         || !diagnostic.Location.SourceTree.FilePath.EndsWith(".g.cs",
+				                         StringComparison.Ordinal)));
 	}
 }

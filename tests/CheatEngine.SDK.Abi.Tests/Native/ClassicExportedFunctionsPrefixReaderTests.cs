@@ -157,14 +157,14 @@ public sealed unsafe class ClassicExportedFunctionsPrefixReaderTests
 	public void Prefix_distinguishes_direct_function_slots_value_cells_and_opaque_null_slots_without_invocation()
 	{
 		FieldInfo showMessage = typeof(ExportedFunctionsPrefix).GetField(nameof(ExportedFunctionsPrefix.ShowMessage))
-								?? throw new InvalidOperationException("The ShowMessage field was not found.");
+		                        ?? throw new InvalidOperationException("The ShowMessage field was not found.");
 		FieldInfo processId = typeof(ExportedFunctionsPrefix).GetField(nameof(ExportedFunctionsPrefix.OpenedProcessId))
-							  ?? throw new InvalidOperationException("The OpenedProcessId field was not found.");
+		                      ?? throw new InvalidOperationException("The OpenedProcessId field was not found.");
 		FieldInfo processHandle =
 			typeof(ExportedFunctionsPrefix).GetField(nameof(ExportedFunctionsPrefix.OpenedProcessHandle))
 			?? throw new InvalidOperationException("The OpenedProcessHandle field was not found.");
 		FieldInfo fixMemory = typeof(ExportedFunctionsPrefix).GetField(nameof(ExportedFunctionsPrefix.FixMemory))
-							  ?? throw new InvalidOperationException("The FixMemory field was not found.");
+		                      ?? throw new InvalidOperationException("The FixMemory field was not found.");
 		FieldInfo getAddress =
 			typeof(ExportedFunctionsPrefix).GetField(nameof(ExportedFunctionsPrefix.GetAddressFromPointer))
 			?? throw new InvalidOperationException("The GetAddressFromPointer field was not found.");

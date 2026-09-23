@@ -27,7 +27,7 @@ internal static class EntryPointProbe
 		{
 			TypeDefinition type = reader.GetTypeDefinition(typeHandle);
 			if (!string.Equals(reader.GetString(type.Namespace), TypeNamespace, StringComparison.Ordinal)
-				|| !string.Equals(reader.GetString(type.Name), TypeName, StringComparison.Ordinal))
+			    || !string.Equals(reader.GetString(type.Name), TypeName, StringComparison.Ordinal))
 			{
 				continue;
 			}
@@ -36,7 +36,7 @@ internal static class EntryPointProbe
 			{
 				MethodDefinition method = reader.GetMethodDefinition(methodHandle);
 				if (string.Equals(reader.GetString(method.Name), MethodName, StringComparison.Ordinal) &&
-					method.GetParameters().Count == 2)
+				    method.GetParameters().Count == 2)
 				{
 					return (TypeExists: true, MethodExists: true);
 				}

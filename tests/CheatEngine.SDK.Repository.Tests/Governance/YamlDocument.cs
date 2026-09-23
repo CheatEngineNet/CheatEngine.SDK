@@ -5,7 +5,8 @@ namespace CheatEngine.SDK.Repository.Tests.Governance;
 /// <summary>
 ///     A committed YAML file (workflow, Dependabot configuration, issue form) read through YamlDotNet's representation
 ///     model. Every scalar stays the string written in the file: the workflow key <c>on</c> stays <c>"on"</c> (no YAML 1.1
-///     boolean resolution) and <c>'true'</c> and <c>true</c> both read as <c>"true"</c>, which is how GitHub compares them.
+///     boolean resolution) and <c>'true'</c> and <c>true</c> both read as <c>"true"</c>, which is how GitHub compares
+///     them.
 /// </summary>
 internal sealed class YamlDocument
 {
@@ -46,7 +47,8 @@ internal sealed class YamlDocument
 				{
 					if (entry.Value is YamlMappingNode job)
 					{
-						jobs.Add(new KeyValuePair<string, YamlMappingNode>(((YamlScalarNode) entry.Key).Value ?? "", job));
+						jobs.Add(new KeyValuePair<string, YamlMappingNode>(((YamlScalarNode) entry.Key).Value ?? "",
+							job));
 					}
 				}
 			}

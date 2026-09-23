@@ -57,7 +57,7 @@ internal sealed class PluginCompilationState
 	{
 		int pluginClassCount = _pluginClasses.Count;
 		if (pluginClassCount == 0)
-		// Not a plugin assembly (the SDK's own libraries, a helper library): both rules are about plugins.
+			// Not a plugin assembly (the SDK's own libraries, a helper library): both rules are about plugins.
 		{
 			return;
 		}

@@ -159,6 +159,6 @@ internal static class LuaGlobalParser
 		}
 
 		return LuaNames.IsValidName(luaName)
-			   && method.ContainingType.GetMembers(LuaGlobalCallModel.CacheFieldFor(luaName!)).Length != 0;
+		       && method.ContainingType.GetMembers(LuaGlobalCallModel.CacheFieldFor(luaName!)).Length != 0;
 	}
 }

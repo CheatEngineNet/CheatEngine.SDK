@@ -10,22 +10,33 @@ namespace CheatEngine.SDK.Engine.Runtime;
 ///     </para>
 ///     <list type="table">
 ///         <item>
-///             <term><see cref="LocalProcess" /></term>
-///             <description><c>isConnectedToCEServer()</c> returned <see langword="false" /> for a selected process identifier.</description>
+///             <term>
+///                 <see cref="LocalProcess" />
+///             </term>
+///             <description>
+///                 <c>isConnectedToCEServer()</c> returned <see langword="false" /> for a selected process
+///                 identifier.
+///             </description>
 ///         </item>
 ///         <item>
-///             <term><see cref="FileAsProcess" /></term>
+///             <term>
+///                 <see cref="FileAsProcess" />
+///             </term>
 ///             <description>
 ///                 <c>getOpenedProcessID()</c> returned the file-as-process sentinel 4294967295 (CE source ec45d5f,
 ///                 ObservedSource; not yet observed on the 7.7 binary).
 ///             </description>
 ///         </item>
 ///         <item>
-///             <term><see cref="CEServer" /></term>
+///             <term>
+///                 <see cref="CEServer" />
+///             </term>
 ///             <description><c>isConnectedToCEServer()</c> returned <see langword="true" />.</description>
 ///         </item>
 ///         <item>
-///             <term><see cref="Unknown" /></term>
+///             <term>
+///                 <see cref="Unknown" />
+///             </term>
 ///             <description>The <c>isConnectedToCEServer</c> global is absent, so the backend cannot be established.</description>
 ///         </item>
 ///     </list>

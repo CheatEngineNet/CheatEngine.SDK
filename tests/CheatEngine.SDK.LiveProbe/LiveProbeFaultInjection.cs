@@ -79,7 +79,7 @@ internal static class LiveProbeFaultInjection
 			text = readFile(path);
 		}
 		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
-											  or ArgumentException or NotSupportedException)
+			                                  or ArgumentException or NotSupportedException)
 		{
 			return new LiveProbeFaultDecision(LiveProbeFaultStage.None,
 				"Fault switch ignored: " + FileName + " could not be read (" + exception.GetType().Name + ").", true);
@@ -147,7 +147,7 @@ internal static class LiveProbeFaultInjection
 	private static LiveProbeFaultDecision EvaluateForEnable()
 	{
 		string pluginDirectory = Path.GetDirectoryName(typeof(LiveProbeFaultInjection).Assembly.Location) ??
-								 AppContext.BaseDirectory;
+		                         AppContext.BaseDirectory;
 		LiveProbeFaultDecision decision = Evaluate(LiveProbeAuthorization.Evaluate, pluginDirectory, ReadIfPresent);
 		int sequence;
 		lock (Gate)
@@ -184,7 +184,7 @@ internal static class LiveProbeFaultInjection
 			using JsonDocument document = JsonDocument.Parse(text);
 			JsonElement root = document.RootElement;
 			if (root.ValueKind != JsonValueKind.Object ||
-				!root.TryGetProperty("schema", out JsonElement schema) || schema.ValueKind != JsonValueKind.String)
+			    !root.TryGetProperty("schema", out JsonElement schema) || schema.ValueKind != JsonValueKind.String)
 			{
 				return Ignored("it has no schema string");
 			}
@@ -234,7 +234,7 @@ internal static class LiveProbeFaultInjection
 		if (file.Length > MaximumFileBytes)
 		{
 			throw new IOException("The fault switch is larger than " +
-								  MaximumFileBytes.ToString(CultureInfo.InvariantCulture) + " bytes.");
+			                      MaximumFileBytes.ToString(CultureInfo.InvariantCulture) + " bytes.");
 		}
 
 		return File.ReadAllText(path);

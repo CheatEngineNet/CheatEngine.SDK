@@ -250,7 +250,7 @@ static int CHEATENGINE_SDK_CALL operation(lua_State* L)
     {
     case OP_PUSH_BYTES:
         {
-            static const char empty = 0;
+            static constexpr char empty = 0;
             if (c->input_count != 0 || (c->size != 0 && !c->data))
                 return fail(L, "CheatEngine.SDK protected byte push has invalid arguments");
             a->pushlstring(L, c->size ? (const char*)c->data : &empty, c->size);

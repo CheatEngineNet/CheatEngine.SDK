@@ -32,7 +32,8 @@ public sealed class ProductionSpecsTests
 			SpecFileModel spec = SpecFileParser.Parse(fileName, text);
 
 			Assert.True(spec.Issues.IsEmpty,
-				fileName + ": " + string.Join(" | ", spec.Issues.AsImmutableArray().Select(static i => i.Line + ": " + i.Message)));
+				fileName + ": " + string.Join(" | ",
+					spec.Issues.AsImmutableArray().Select(static i => i.Line + ": " + i.Message)));
 			Assert.NotEqual(string.Empty, spec.TypeName, StringComparer.Ordinal);
 		}
 	}
@@ -62,7 +63,8 @@ public sealed class ProductionSpecsTests
 		{
 			SpecFileContract contract = Assert.IsType<SpecFileContract>(SpecFileParser.Parse(fileName, text).Contract);
 
-			Assert.StartsWith("ExactInstalledFile: CE 7.7.0.10621 celua.txt", contract.Provenance, StringComparison.Ordinal);
+			Assert.StartsWith("ExactInstalledFile: CE 7.7.0.10621 celua.txt", contract.Provenance,
+				StringComparison.Ordinal);
 			Assert.EndsWith("SHA-256 " + CeluaSha256, contract.Provenance, StringComparison.Ordinal);
 		}
 	}
@@ -95,7 +97,8 @@ public sealed class ProductionSpecsTests
 			}
 
 			Assert.True(ReviewedUnwiredSpecs.Contains(fileName),
-				fileName + " declares entries but is neither wired into CheatEngine.SDK.Engine nor a reviewed reservation.");
+				fileName +
+				" declares entries but is neither wired into CheatEngine.SDK.Engine nor a reviewed reservation.");
 		}
 	}
 
@@ -107,7 +110,8 @@ public sealed class ProductionSpecsTests
 			SpecFileContract contract = Assert.IsType<SpecFileContract>(SpecFileParser.Parse(fileName, text).Contract);
 
 			Assert.True(contract.ThreadAffinity is "unknown" or "any",
-				fileName + " claims thread '" + contract.ThreadAffinity + "' without CE 7.7 evidence (audit SRC02-02).");
+				fileName + " claims thread '" + contract.ThreadAffinity +
+				"' without CE 7.7 evidence (audit SRC02-02).");
 		}
 	}
 }

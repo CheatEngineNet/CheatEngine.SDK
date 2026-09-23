@@ -615,7 +615,7 @@ public sealed class LuaObjectOutputTests(RoslynFixture roslyn) : IClassFixture<R
 		foreach (SyntaxNode node in root.DescendantNodes())
 		{
 			if (node is MethodDeclarationSyntax candidate
-				&& string.Equals(candidate.Identifier.ValueText, methodName, StringComparison.Ordinal))
+			    && string.Equals(candidate.Identifier.ValueText, methodName, StringComparison.Ordinal))
 			{
 				Assert.Null(result);
 				result = candidate;

@@ -365,7 +365,7 @@ internal static class LuaGlobalCallEmitter
 	public static string OmittedBeforePresentMessage(string globalName, string parameterName)
 	{
 		return "The optional argument '" + parameterName + "' of the Lua global '" + globalName +
-			   "' is omitted while a later optional argument is present; Lua cannot receive an argument after an absent one. Pass LuaOptional.Nil<T>() to send nil in its place.";
+		       "' is omitted while a later optional argument is present; Lua cannot receive an argument after an absent one. Pass LuaOptional.Nil<T>() to send nil in its place.";
 	}
 
 	private static string UnescapedName(string name)
@@ -896,7 +896,7 @@ internal static class LuaGlobalCallEmitter
 	private static void WriteThrowingResult(SourceWriter writer, LuaGlobalCallModel model)
 	{
 		if (!model.HasReturn)
-		// A void call keeps no result: the successful call already left the stack at its recorded top.
+			// A void call keeps no result: the successful call already left the stack at its recorded top.
 		{
 			return;
 		}

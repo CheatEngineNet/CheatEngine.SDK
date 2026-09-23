@@ -38,7 +38,7 @@ internal static class SdkSymbolResolver
 		foreach (MetadataReference reference in compilation.References)
 		{
 			if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol assembly
-				|| !string.Equals(assembly.Identity.Name, assemblyName, StringComparison.Ordinal))
+			    || !string.Equals(assembly.Identity.Name, assemblyName, StringComparison.Ordinal))
 			{
 				continue;
 			}

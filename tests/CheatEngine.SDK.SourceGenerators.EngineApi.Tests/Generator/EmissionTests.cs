@@ -169,7 +169,8 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void An_address_try_result_is_exposed_as_Address_and_converted_from_the_raw_core()
 	{
 		const string Text =
-			"namespace: Demo\ntype: Addresses\n" + SpecSources.Ce77 + "\nglobal: getAddress\nmethod: TryGetAddress\nform: try\nresult: value:address\nnil: none\ndoc: Gets a target address.\n";
+			"namespace: Demo\ntype: Addresses\n" + SpecSources.Ce77 +
+			"\nglobal: getAddress\nmethod: TryGetAddress\nform: try\nresult: value:address\nnil: none\ndoc: Gets a target address.\n";
 
 		GeneratorRun run = roslyn.Run("address-result.cheatengine-sdk-api.txt", Text);
 
@@ -190,7 +191,8 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void An_address_throwing_return_is_exposed_as_Address_and_converted_from_the_raw_core()
 	{
 		const string Text =
-			"namespace: Demo\ntype: Addresses\n" + SpecSources.Ce77 + "\nglobal: getAddress\nmethod: GetAddress\nform: throwing\nreturn: address\nnil: none\ndoc: Gets a target address.\n";
+			"namespace: Demo\ntype: Addresses\n" + SpecSources.Ce77 +
+			"\nglobal: getAddress\nmethod: GetAddress\nform: throwing\nreturn: address\nnil: none\ndoc: Gets a target address.\n";
 
 		GeneratorRun run = roslyn.Run("address-return.cheatengine-sdk-api.txt", Text);
 
@@ -210,7 +212,8 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void Address_arguments_and_try_results_keep_the_complete_public_signature_strongly_typed()
 	{
 		const string Text =
-			"namespace: Demo\ntype: Addresses\n" + SpecSources.Ce77 + "\nglobal: resolvePointer\nmethod: TryResolvePointer\nform: try\narg: address:address\nresult: result:address\nnil: none\ndoc: Resolves a target pointer.\n";
+			"namespace: Demo\ntype: Addresses\n" + SpecSources.Ce77 +
+			"\nglobal: resolvePointer\nmethod: TryResolvePointer\nform: try\narg: address:address\nresult: result:address\nnil: none\ndoc: Resolves a target pointer.\n";
 
 		GeneratorRun run = roslyn.Run("address-argument-and-result.cheatengine-sdk-api.txt", Text);
 
@@ -227,7 +230,7 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void Optional_address_argument_is_converted_by_the_facade_without_losing_its_state()
 	{
 		string text = SpecSources.Ce77Header("Demo", "Allocation") +
-					  "global: allocateMemory\nmethod: TryAllocate\nform: try\narg: size:int64\nopt: preferredBaseAddress:address\nopt: protection:int32\nresult: address:address\nnil: expected-failure\ndoc: Allocates.\n";
+		              "global: allocateMemory\nmethod: TryAllocate\nform: try\narg: size:int64\nopt: preferredBaseAddress:address\nopt: protection:int32\nresult: address:address\nnil: expected-failure\ndoc: Allocates.\n";
 
 		GeneratorRun run = roslyn.Run("allocation.cheatengine-sdk-api.txt", text);
 
@@ -253,7 +256,7 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void Outcome_form_with_address_results_is_exposed_through_the_facade()
 	{
 		string text = SpecSources.Ce77Header("Demo", "Symbols") +
-					  "global: getAddressSafe\nmethod: ResolveAddress\nform: outcome\narg: expression:string\nresult: address:address\nopt-result: alternate:address\nnil: absence\ndoc: Resolves.\n";
+		              "global: getAddressSafe\nmethod: ResolveAddress\nform: outcome\narg: expression:string\nresult: address:address\nopt-result: alternate:address\nnil: absence\ndoc: Resolves.\n";
 
 		GeneratorRun run = roslyn.Run("symbols.cheatengine-sdk-api.txt", text);
 
@@ -272,15 +275,17 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 			"alternate = __engineApiRawResult1.HasValue ? global::CheatEngine.SDK.Lua.Marshalling.LuaOptional.Of(new global::CheatEngine.SDK.Engine.Values.Address(unchecked((ulong)__engineApiRawResult1.Value))) : __engineApiRawResult1.IsNil ? global::CheatEngine.SDK.Lua.Marshalling.LuaOptional.Nil<global::CheatEngine.SDK.Engine.Values.Address>() : default;",
 			generated, StringComparison.Ordinal);
 		Assert.Contains("return __engineApiStatus;", generated, StringComparison.Ordinal);
-		Assert.Contains("return: LuaOperationStatus with out results; nil: absence;", generated, StringComparison.Ordinal);
-		Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState.MultipleResults", generated, StringComparison.Ordinal);
+		Assert.Contains("return: LuaOperationStatus with out results; nil: absence;", generated,
+			StringComparison.Ordinal);
+		Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState.MultipleResults", generated,
+			StringComparison.Ordinal);
 	}
 
 	[Fact]
 	public void Rest_result_is_a_span_and_a_count_in_the_outcome_form()
 	{
 		string text = SpecSources.Ce77Header("Demo", "Bytes") +
-					  "global: readBytes\nmethod: ReadBytes\nform: outcome\narg: address:address\narg: count:int32\nrest: values:int32\nnil: expected-failure\ndoc: Reads bytes.\n";
+		              "global: readBytes\nmethod: ReadBytes\nform: outcome\narg: address:address\narg: count:int32\nrest: values:int32\nnil: expected-failure\ndoc: Reads bytes.\n";
 
 		GeneratorRun run = roslyn.Run("bytes.cheatengine-sdk-api.txt", text);
 
@@ -327,8 +332,8 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	private static string ExpectedText(string fileName)
 	{
 		using Stream stream = typeof(EmissionTests).Assembly.GetManifestResourceStream(
-								  "CheatEngine.SDK.EngineApi.Tests.Expected." + fileName)
-							  ?? throw new InvalidOperationException("Missing expected text " + fileName + ".");
+			                      "CheatEngine.SDK.EngineApi.Tests.Expected." + fileName)
+		                      ?? throw new InvalidOperationException("Missing expected text " + fileName + ".");
 		using StreamReader reader = new(stream);
 		return reader.ReadToEnd().ReplaceLineEndings("\n");
 	}

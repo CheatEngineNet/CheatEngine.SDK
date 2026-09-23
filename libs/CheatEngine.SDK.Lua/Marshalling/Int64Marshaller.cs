@@ -10,7 +10,8 @@ namespace CheatEngine.SDK.Lua.Marshalling;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Reading never lets a value pass through a lossy <see cref="double" />: an integer subtype reads exactly; a float
+///         Reading never lets a value pass through a lossy <see cref="double" />: an integer subtype reads exactly; a
+///         float
 ///         reads only when it is integral and of magnitude below 2^53 (<c>3.0</c> succeeds, <c>9007199254740992.0</c>,
 ///         <c>1e19</c> and <c>2.5</c> fail); a string reads only when it is a Lua integer numeral that fits 64 bits
 ///         (<c>"42"</c>, <c>" 0x10 "</c>, <c>"-9223372036854775808"</c> succeed; <c>"3.0"</c>, <c>"1e3"</c>,

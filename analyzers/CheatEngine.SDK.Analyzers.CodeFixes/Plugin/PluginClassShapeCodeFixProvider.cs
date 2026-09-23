@@ -80,10 +80,10 @@ public sealed class PluginClassShapeCodeFixProvider : CodeFixProvider
 		foreach (Diagnostic diagnostic in context.Diagnostics)
 		{
 			if (!diagnostic.Properties.TryGetValue(DiagnosticProperties.PluginClassProblem, out string? problemName)
-				|| !Enum.TryParse(problemName, out PluginShapeIssues problem)
-				|| root.FindToken(diagnostic.Location.SourceSpan.Start).Parent
-					?.FirstAncestorOrSelf<TypeDeclarationSyntax>() is not { } declaration
-				|| semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is not { } type)
+			    || !Enum.TryParse(problemName, out PluginShapeIssues problem)
+			    || root.FindToken(diagnostic.Location.SourceSpan.Start).Parent
+				    ?.FirstAncestorOrSelf<TypeDeclarationSyntax>() is not { } declaration
+			    || semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is not { } type)
 			{
 				continue;
 			}
@@ -117,7 +117,7 @@ public sealed class PluginClassShapeCodeFixProvider : CodeFixProvider
 		foreach (SyntaxReference reference in type.DeclaringSyntaxReferences)
 		{
 			if (reference.GetSyntax(cancellationToken) is not TypeDeclarationSyntax part
-				|| solution.GetDocument(reference.SyntaxTree) is not { } document)
+			    || solution.GetDocument(reference.SyntaxTree) is not { } document)
 			{
 				continue;
 			}
@@ -243,11 +243,11 @@ public sealed class PluginClassShapeCodeFixProvider : CodeFixProvider
 		foreach (IMethodSymbol constructor in type.InstanceConstructors)
 		{
 			if (!constructor.Parameters.IsEmpty
-				|| constructor.IsImplicitlyDeclared
-				|| constructor.DeclaringSyntaxReferences.IsEmpty
-				|| constructor.DeclaringSyntaxReferences[0] is not { } reference
-				|| reference.GetSyntax(cancellationToken) is not ConstructorDeclarationSyntax syntax
-				|| solution.GetDocument(reference.SyntaxTree) is not { } document)
+			    || constructor.IsImplicitlyDeclared
+			    || constructor.DeclaringSyntaxReferences.IsEmpty
+			    || constructor.DeclaringSyntaxReferences[0] is not { } reference
+			    || reference.GetSyntax(cancellationToken) is not ConstructorDeclarationSyntax syntax
+			    || solution.GetDocument(reference.SyntaxTree) is not { } document)
 			{
 				continue;
 			}

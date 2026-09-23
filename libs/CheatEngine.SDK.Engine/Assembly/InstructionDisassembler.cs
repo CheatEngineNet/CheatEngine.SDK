@@ -120,9 +120,9 @@ public static class InstructionDisassembler
 			}
 
 			if (!state.TryReadUtf8(-4, out ReadOnlySpan<byte> addressUtf8) ||
-				!state.TryReadUtf8(-3, out ReadOnlySpan<byte> bytesUtf8) ||
-				!state.TryReadUtf8(-2, out ReadOnlySpan<byte> opcodeUtf8) ||
-				!state.TryReadUtf8(-1, out ReadOnlySpan<byte> extraUtf8))
+			    !state.TryReadUtf8(-3, out ReadOnlySpan<byte> bytesUtf8) ||
+			    !state.TryReadUtf8(-2, out ReadOnlySpan<byte> opcodeUtf8) ||
+			    !state.TryReadUtf8(-1, out ReadOnlySpan<byte> extraUtf8))
 			{
 				return InstructionOperationStatus.InvalidResult;
 			}

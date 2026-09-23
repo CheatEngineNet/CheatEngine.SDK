@@ -8,8 +8,10 @@ namespace CheatEngine.SDK.Engine.Runtime;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The SDK produces a snapshot with <c>CheatEngine.SDK.Engine.Processes.RuntimeObservations.TryObserveRuntimeInfo</c>,
-///         which fills <see cref="Host" /> and, when a target is selected, <see cref="Target" />; the legacy properties are
+///         The SDK produces a snapshot with
+///         <c>CheatEngine.SDK.Engine.Processes.RuntimeObservations.TryObserveRuntimeInfo</c>,
+///         which fills <see cref="Host" /> and, when a target is selected, <see cref="Target" />; the legacy properties
+///         are
 ///         then derived from those observations without inference. A snapshot can also carry caller-supplied facts
 ///         through the legacy constructor, in which case <see cref="Host" /> and <see cref="Target" /> are
 ///         <see langword="null" />.
@@ -33,7 +35,10 @@ public sealed class RuntimeInfo
 	/// <param name="targetAbi">The ABI family reported by <c>getABI</c>, or unknown.</param>
 	/// <param name="capabilities">The immutable optional-capability observations for this snapshot.</param>
 	/// <exception cref="System.ArgumentNullException"><paramref name="capabilities" /> is <see langword="null" />.</exception>
-	/// <remarks>This constructor records caller-supplied facts as-is; <see cref="Host" /> and <see cref="Target" /> stay <see langword="null" />.</remarks>
+	/// <remarks>
+	///     This constructor records caller-supplied facts as-is; <see cref="Host" /> and <see cref="Target" /> stay
+	///     <see langword="null" />.
+	/// </remarks>
 	public RuntimeInfo(
 		CheatEngineVersion version,
 		CheatEngineArchitecture systemArchitecture,
@@ -76,7 +81,10 @@ public sealed class RuntimeInfo
 		Capabilities = capabilities ?? throw new ArgumentNullException(nameof(capabilities));
 	}
 
-	/// <summary>Gets the Cheat Engine host observation of an SDK-produced snapshot, or <see langword="null" /> for caller-supplied facts.</summary>
+	/// <summary>
+	///     Gets the Cheat Engine host observation of an SDK-produced snapshot, or <see langword="null" /> for
+	///     caller-supplied facts.
+	/// </summary>
 	public CheatEngineHostObservation? Host
 	{
 		get;
@@ -86,7 +94,10 @@ public sealed class RuntimeInfo
 	///     Gets the selected target's observation of an SDK-produced snapshot, or <see langword="null" /> when no target
 	///     was selected, its facts could not be read, or the snapshot holds caller-supplied facts.
 	/// </summary>
-	/// <remarks>The target bitness is <see cref="TargetArchitectureObservation.Bitness" />; it is not <see cref="PointerSize" />.</remarks>
+	/// <remarks>
+	///     The target bitness is <see cref="TargetArchitectureObservation.Bitness" />; it is not
+	///     <see cref="PointerSize" />.
+	/// </remarks>
 	public TargetArchitectureObservation? Target
 	{
 		get;

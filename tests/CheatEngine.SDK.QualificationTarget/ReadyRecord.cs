@@ -30,7 +30,8 @@ internal static class ReadyRecord
 			Region(writer, "heap-marker", memory.HeapMarkersAddress, memory.HeapMarkers.Length, marker,
 				ImageScanner.Count(memory.HeapMarkers, TargetLayout.Marker));
 			Region(writer, "many-results", memory.RepeatedAddress, memory.Repeated.Length,
-				TargetLayout.ToPattern(memory.RepeatedPattern), ImageScanner.Count(memory.Repeated, memory.RepeatedPattern));
+				TargetLayout.ToPattern(memory.RepeatedPattern),
+				ImageScanner.Count(memory.Repeated, memory.RepeatedPattern));
 			writer.WriteEndArray();
 			writer.WriteStartArray("values");
 			Value(writer, "int32", memory.Int32Address, memory.Int32);

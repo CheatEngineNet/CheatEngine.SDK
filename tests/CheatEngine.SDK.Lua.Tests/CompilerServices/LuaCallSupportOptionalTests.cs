@@ -9,8 +9,10 @@ namespace CheatEngine.SDK.Lua.Tests.CompilerServices;
 
 /// <summary>
 ///     The generator-facing helpers behind optional arguments, optional results and variadic results
-///     (<see cref="LuaCallSupport.PushOptional{T,TMarshaller}" />, <see cref="LuaCallSupport.TryReadOptional{T,TMarshaller}" />,
-///     <see cref="LuaCallSupport.ReadResults{T,TMarshaller}" />): omitted, <c>nil</c> and a value stay distinct, reads never
+///     (<see cref="LuaCallSupport.PushOptional{T,TMarshaller}" />,
+///     <see cref="LuaCallSupport.TryReadOptional{T,TMarshaller}" />,
+///     <see cref="LuaCallSupport.ReadResults{T,TMarshaller}" />): omitted, <c>nil</c> and a value stay distinct, reads
+///     never
 ///     change the stack, and a failure is classified by type, never by text.
 /// </summary>
 [Trait("Category", "NativeLua")]
@@ -73,14 +75,16 @@ public sealed class LuaCallSupportOptionalTests
 		Span<long> values = stackalloc long[4];
 		Span<long> small = stackalloc long[2];
 
-		Assert.Equal(LuaOperationStatus.Success, LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 2, values, out int count));
+		Assert.Equal(LuaOperationStatus.Success,
+			LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 2, values, out int count));
 		Assert.Equal(3, count);
 		Assert.Equal([10L, 20L, 30L], values[..3].ToArray());
 		Assert.Equal(LuaOperationStatus.ResultCapacityExceeded,
 			LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 2, small, out int needed));
 		Assert.Equal(3, needed);
 		Assert.Equal([0L, 0L], small.ToArray());
-		Assert.Equal(LuaOperationStatus.Success, LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 5, small, out int none));
+		Assert.Equal(LuaOperationStatus.Success,
+			LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 5, small, out int none));
 		Assert.Equal(0, none);
 		Assert.Throws<ArgumentOutOfRangeException>(() =>
 			LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 0, new long[1], out _));
@@ -98,7 +102,8 @@ public sealed class LuaCallSupportOptionalTests
 		L.PushNil();
 		Span<long> values = stackalloc long[4];
 
-		Assert.Equal(LuaOperationStatus.NilResult, LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 1, values, out int nilCount));
+		Assert.Equal(LuaOperationStatus.NilResult,
+			LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 1, values, out int nilCount));
 		Assert.Equal(0, nilCount);
 		Assert.Equal([0L, 0L, 0L, 0L], values.ToArray());
 
@@ -125,8 +130,8 @@ public sealed class LuaCallSupportOptionalTests
 			LuaCallSupport.PushOptional<long, Int64Marshaller>(L, LuaOptional.Of(5L));
 			LuaCallSupport.PushOptional<long, Int64Marshaller>(L, LuaOptional.Of(6L));
 			if (!LuaCallSupport.TryReadOptional<long, Int64Marshaller>(L, 1, out LuaOptional<long> value)
-				|| !LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 1, buffer, out int count).IsSuccess
-				|| count != 2)
+			    || !LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 1, buffer, out int count).IsSuccess
+			    || count != 2)
 			{
 				throw new InvalidOperationException("wrong read");
 			}

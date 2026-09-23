@@ -6,7 +6,7 @@ namespace LiveProbe;
 ///     Lua-console commands for the CE 7.7 live-probe plugin. Every command returns a self-contained status record;
 ///     commands that initiate a probe first require the exact host and disposable-target authorization gate.
 /// </summary>
-internal static partial class ProbeConsole
+internal static class ProbeConsole
 {
 	/// <summary>Returns the gate decision and all observations accumulated in this process.</summary>
 	[LuaFunction("ce77_live_probe_status")]

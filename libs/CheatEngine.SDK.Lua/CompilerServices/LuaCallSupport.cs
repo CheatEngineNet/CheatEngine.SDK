@@ -153,7 +153,8 @@ public static class LuaCallSupport
 	{
 		if (index <= 0)
 		{
-			throw new ArgumentOutOfRangeException(nameof(index), index, "An optional value is read at a positive, absolute index.");
+			throw new ArgumentOutOfRangeException(nameof(index), index,
+				"An optional value is read at a positive, absolute index.");
 		}
 
 		if (index > state.Top)
@@ -298,6 +299,6 @@ public static class LuaCallSupport
 		string typeName = Encoding.UTF8.GetString(state.TypeName(index));
 		state.SetTop(top);
 		throw new LuaException("The Lua global '" + globalName + "' returned a " + typeName + " value, not " +
-							   expected + ".");
+		                       expected + ".");
 	}
 }

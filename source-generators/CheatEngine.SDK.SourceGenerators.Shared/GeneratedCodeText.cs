@@ -76,9 +76,9 @@ internal static class GeneratedCodeText
 		AssemblyName assembly = generatorType.Assembly.GetName();
 		string version = (assembly.Version ?? new Version(0, 0, 0, 0)).ToString();
 		return "[global::System.CodeDom.Compiler.GeneratedCode("
-			   + CSharpLiteral.ToStringLiteral(assembly.Name ?? string.Empty)
-			   + ", "
-			   + CSharpLiteral.ToStringLiteral(version)
-			   + ")]";
+		       + CSharpLiteral.ToStringLiteral(assembly.Name ?? string.Empty)
+		       + ", "
+		       + CSharpLiteral.ToStringLiteral(version)
+		       + ")]";
 	}
 }

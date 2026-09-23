@@ -48,7 +48,8 @@ internal static class WorkflowContract
 	public const string BinlogRetention = "5";
 
 	/// <summary>The only runner labels a job may use (never a floating <c>-latest</c> label).</summary>
-	public static readonly HashSet<string> RunnerLabels = new(StringComparer.Ordinal) { "windows-2025", "ubuntu-24.04" };
+	public static readonly HashSet<string>
+		RunnerLabels = new(StringComparer.Ordinal) { "windows-2025", "ubuntu-24.04" };
 
 	/// <summary>The workflows that call ci.yml and so produce "CI / Gate".</summary>
 	public static readonly string[] Callers = ["pull-request-ci.yml", "main-ci.yml", "release.yml"];
@@ -150,8 +151,8 @@ internal static class WorkflowContract
 		foreach (PendingViolation pending in Pending)
 		{
 			if (string.Equals(pending.Rule, rule, StringComparison.Ordinal) &&
-				string.Equals(pending.File, violation.File, StringComparison.Ordinal) &&
-				string.Equals(pending.Subject, violation.Subject, StringComparison.Ordinal))
+			    string.Equals(pending.File, violation.File, StringComparison.Ordinal) &&
+			    string.Equals(pending.Subject, violation.Subject, StringComparison.Ordinal))
 			{
 				return pending;
 			}

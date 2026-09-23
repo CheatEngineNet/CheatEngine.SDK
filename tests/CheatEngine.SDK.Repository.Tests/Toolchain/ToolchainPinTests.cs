@@ -231,18 +231,14 @@ public sealed partial class ToolchainPinTests
 
 	private static JsonElement ReadGlobalJsonSdk()
 	{
-		JsonDocumentOptions options = new()
-		{
-			CommentHandling = JsonCommentHandling.Skip,
-			AllowTrailingCommas = true
-		};
+		JsonDocumentOptions options = new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
 		using JsonDocument document = JsonDocument.Parse(File.ReadAllText(RepositoryFile(GlobalJson)), options);
 		return document.RootElement.GetProperty("sdk").Clone();
 	}
 
-	[GeneratedRegex(@"^\d+\.\d+\.\d{3}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^\d+\.\d+\.\d{3}$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex ExactSdkVersion();
 
-	[GeneratedRegex(@"^\d+\.\d+-recommended$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^\d+\.\d+-recommended$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex PinnedAnalysisLevel();
 }

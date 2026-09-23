@@ -11,7 +11,7 @@ namespace CheatEngine.SDK.Hosting.Tests.Diagnostics;
 ///     ABI callback. It cannot recurse into <see cref="HostLog.Write" />, cannot re-enter a lifecycle transition, and
 ///     cannot acquire Lua while a transition owns admission; none of that waits for the sink.
 /// </summary>
-public sealed unsafe class HostLogContainmentTests : IDisposable
+public sealed class HostLogContainmentTests : IDisposable
 {
 	public HostLogContainmentTests()
 	{
@@ -120,7 +120,7 @@ public sealed unsafe class HostLogContainmentTests : IDisposable
 		HostLog.Sink = new CallbackLogSink(message =>
 		{
 			if (string.Equals(message, "RecordingPlugin.OnDisable observed", StringComparison.Ordinal)
-				&& acquiredDuringOnDisable is null)
+			    && acquiredDuringOnDisable is null)
 			{
 				// OnDisable still runs on the captured main thread while the runtime is attached (operation
 				// admission itself does not close until after OnDisable returns): the acquisition succeeds and

@@ -95,14 +95,14 @@ public sealed class ClassicNativeExportAnalyzer : DiagnosticAnalyzer
 			foreach (KeyValuePair<string, TypedConstant> argument in attribute.NamedArguments)
 			{
 				if (!string.Equals(argument.Key, EntryPointArgument, StringComparison.Ordinal) ||
-					argument.Value.Value is not string entryPoint ||
-					!entryPoint.StartsWith(ClassicExportPrefix, StringComparison.Ordinal))
+				    argument.Value.Value is not string entryPoint ||
+				    !entryPoint.StartsWith(ClassicExportPrefix, StringComparison.Ordinal))
 				{
 					continue;
 				}
 
 				Location location = attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation()
-									?? (method.Locations.IsEmpty ? Location.None : method.Locations[0]);
+				                    ?? (method.Locations.IsEmpty ? Location.None : method.Locations[0]);
 				report(Diagnostic.Create(DiagnosticDescriptors.ClassicNativePluginExport, location, method.Name,
 					entryPoint));
 			}

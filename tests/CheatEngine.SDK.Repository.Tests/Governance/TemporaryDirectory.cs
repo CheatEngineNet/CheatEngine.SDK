@@ -15,17 +15,11 @@ internal sealed class TemporaryDirectory : IDisposable
 		get;
 	}
 
-	/// <summary>The absolute path of a file inside the folder.</summary>
-	public string File(string name)
-	{
-		return System.IO.Path.Combine(Path, name);
-	}
-
 	public void Dispose()
 	{
 		try
 		{
-			Directory.Delete(Path, recursive: true);
+			Directory.Delete(Path, true);
 		}
 		catch (IOException)
 		{
@@ -35,5 +29,11 @@ internal sealed class TemporaryDirectory : IDisposable
 		{
 			// Same as above.
 		}
+	}
+
+	/// <summary>The absolute path of a file inside the folder.</summary>
+	public string File(string name)
+	{
+		return System.IO.Path.Combine(Path, name);
 	}
 }

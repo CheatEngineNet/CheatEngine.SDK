@@ -64,7 +64,7 @@ internal sealed record LuaResultModel(
 	///     reference type (an optional result is a struct, a copy-out or variadic count is an <see langword="int" />).
 	/// </summary>
 	public bool IsReferenceType => Shape == LuaResultShape.Value &&
-								   (CustomMarshaller?.IsReferenceType ?? LuaValueKinds.IsReferenceType(Kind));
+	                               (CustomMarshaller?.IsReferenceType ?? LuaValueKinds.IsReferenceType(Kind));
 
 	/// <summary>Whether the protected call must keep every result and read the factual count.</summary>
 	public bool IsDynamic => Shape is LuaResultShape.Optional or LuaResultShape.Variadic;

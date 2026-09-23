@@ -47,10 +47,10 @@ internal static unsafe partial class LoadIdentification
 	private const long MaxHashedFileBytes = 16 * 1024 * 1024;
 
 	[GeneratedRegex("(?<![0-9a-fA-F])[0-9a-fA-F]{40}(?![0-9a-fA-F])", RegexOptions.CultureInvariant,
-		matchTimeoutMilliseconds: 1000)]
+		1000)]
 	private static partial Regex CommitPattern();
 
-	[GeneratedRegex("^[0-9a-f]{64}:[0-9a-f]{64}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex("^[0-9a-f]{64}:[0-9a-f]{64}$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex BridgeFingerprintPattern();
 
 	/// <summary>
@@ -90,7 +90,7 @@ internal static unsafe partial class LoadIdentification
 		AppendLuaFields(builder);
 		AppendCeFields(builder);
 		AppendField(builder, "runtime", RuntimeInformation.FrameworkDescription);
-		AppendField(builder, "arch", RuntimeInformation.ProcessArchitecture.ToString(), last: true);
+		AppendField(builder, "arch", RuntimeInformation.ProcessArchitecture.ToString(), true);
 
 		if (builder.Length > MaxEntryLength)
 		{
@@ -108,9 +108,9 @@ internal static unsafe partial class LoadIdentification
 		string abiVersion = ReadInformationalVersion(typeof(AbiConstants).Assembly);
 
 		bool consistent = string.Equals(hostingVersion, luaVersion, StringComparison.Ordinal)
-						  && string.Equals(hostingVersion, luaInteropVersion, StringComparison.Ordinal)
-						  && string.Equals(hostingVersion, abiVersion, StringComparison.Ordinal)
-						  && !string.Equals(hostingVersion, Unknown, StringComparison.Ordinal);
+		                  && string.Equals(hostingVersion, luaInteropVersion, StringComparison.Ordinal)
+		                  && string.Equals(hostingVersion, abiVersion, StringComparison.Ordinal)
+		                  && !string.Equals(hostingVersion, Unknown, StringComparison.Ordinal);
 
 		AppendField(builder, "sdk.version", hostingVersion);
 		AppendField(builder, "sdk.commit", ParseCommit(hostingVersion));
@@ -217,7 +217,7 @@ internal static unsafe partial class LoadIdentification
 		try
 		{
 			if (!NativeLibrary.TryLoad("cheatengine-sdk-lua-bridge", typeof(PluginHost).Assembly,
-					DllImportSearchPath.AssemblyDirectory, out nint handle))
+				    DllImportSearchPath.AssemblyDirectory, out nint handle))
 			{
 				return;
 			}
@@ -225,7 +225,7 @@ internal static unsafe partial class LoadIdentification
 			try
 			{
 				if (NativeLibrary.TryGetExport(handle, "cheatengine_sdk_lua_bridge_source_fingerprint",
-						out nint export))
+					    out nint export))
 				{
 					string? text = ReadBoundedAnsiString((byte*) export, 160);
 					if (text is not null && BridgeFingerprintPattern().IsMatch(text))

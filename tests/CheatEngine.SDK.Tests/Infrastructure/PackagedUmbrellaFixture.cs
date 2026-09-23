@@ -21,21 +21,23 @@ namespace CheatEngine.SDK.Tests.Infrastructure;
 ///         its feed and never packs: in the CI Release leg it is the <c>.nupkg</c> that is uploaded as
 ///         <c>nuget-package</c>, attested and published, so these tests are evidence about the shipped file. Otherwise,
 ///         outside CI, it packs <c>src/CheatEngine.SDK/CheatEngine.SDK.csproj</c> itself: the facts then describe the
-///         working tree, not a shipped file. Under <c>CI=true</c> a missing variable is an error, never a silent self-pack.
+///         working tree, not a shipped file. Under <c>CI=true</c> a missing variable is an error, never a silent
+///         self-pack.
 ///     </para>
 ///     <para>
-///     Every consumer restore is pointed (<c>dotnet restore --packages</c>) at <see cref="PackagesDirectory" />, a
-///     directory scoped to this fixture's own <c>_tempRoot</c>, never the machine-wide global-packages folder
-///     (typically <c>%USERPROFILE%\.nuget\packages</c>). This matters because every pack in one session gets the SAME
-///     MinVer-derived version (git commit height only changes on a new commit), and NuGet treats a package id+version
-///     already extracted in the global-packages folder as immutable: a later restore against a freshly re-packed
-///     <c>.nupkg</c> with different content but the same version would silently reuse whatever was extracted there by
-///     an earlier run - this fixture's own previous run, a developer's manual restore, or another parallel build on
-///     the same machine - with no error or warning. That would defeat this project's whole point (verifying the
-///     freshly packed umbrella, not some earlier one) for every consumer-based assertion
-///     (<c>EntryPointTests</c>, <c>BuildPropertyDefaultsTests</c>); only the nuspec/file-list tests, which read the
-///     <c>.nupkg</c> directly via <see cref="NupkgInspector" />, would be unaffected. Starting every fixture run from an
-///     empty, run-scoped packages directory removes the sharing that makes that possible.
+///         Every consumer restore is pointed (<c>dotnet restore --packages</c>) at <see cref="PackagesDirectory" />, a
+///         directory scoped to this fixture's own <c>_tempRoot</c>, never the machine-wide global-packages folder
+///         (typically <c>%USERPROFILE%\.nuget\packages</c>). This matters because every pack in one session gets the SAME
+///         MinVer-derived version (git commit height only changes on a new commit), and NuGet treats a package id+version
+///         already extracted in the global-packages folder as immutable: a later restore against a freshly re-packed
+///         <c>.nupkg</c> with different content but the same version would silently reuse whatever was extracted there by
+///         an earlier run - this fixture's own previous run, a developer's manual restore, or another parallel build on
+///         the same machine - with no error or warning. That would defeat this project's whole point (verifying the
+///         freshly packed umbrella, not some earlier one) for every consumer-based assertion
+///         (<c>EntryPointTests</c>, <c>BuildPropertyDefaultsTests</c>); only the nuspec/file-list tests, which read the
+///         <c>.nupkg</c> directly via <see cref="NupkgInspector" />, would be unaffected. Starting every fixture run from
+///         an
+///         empty, run-scoped packages directory removes the sharing that makes that possible.
 ///     </para>
 /// </remarks>
 public sealed class PackagedUmbrellaFixture : IAsyncLifetime
@@ -547,10 +549,10 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 	private static bool LooksLikeFileLockContention(string output)
 	{
 		return output.Contains("being used by another process", StringComparison.OrdinalIgnoreCase)
-			   || output.Contains("cannot access the file", StringComparison.OrdinalIgnoreCase)
-			   || output.Contains("MSB3021", StringComparison.Ordinal)
-			   || output.Contains("MSB3027", StringComparison.Ordinal)
-			   || output.Contains("MSB3061", StringComparison.Ordinal);
+		       || output.Contains("cannot access the file", StringComparison.OrdinalIgnoreCase)
+		       || output.Contains("MSB3021", StringComparison.Ordinal)
+		       || output.Contains("MSB3027", StringComparison.Ordinal)
+		       || output.Contains("MSB3061", StringComparison.Ordinal);
 	}
 
 	private async Task InitializeDefaultConsumerAsync(string tempRoot, string feedDirectory, string packagesDirectory)
@@ -628,8 +630,7 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 			feedDirectory,
 			new ThrowawayConsumer.CreateOptions
 			{
-				ExtraProperties = "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n",
-				IncludeLuaFunction = true
+				ExtraProperties = "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n", IncludeLuaFunction = true
 			});
 		ProcessResult optInRestore =
 			await optInConsumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);

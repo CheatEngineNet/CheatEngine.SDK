@@ -58,7 +58,8 @@ internal static class LiveProbeStatusReport
 		writer.WriteNumber("tailWrites", snapshot.TailWrites);
 		if (snapshot.TailCanaryWritten)
 		{
-			writer.WriteString("tailBeforeHex", snapshot.TailReadBeforeWrite.ToString("X8", CultureInfo.InvariantCulture));
+			writer.WriteString("tailBeforeHex",
+				snapshot.TailReadBeforeWrite.ToString("X8", CultureInfo.InvariantCulture));
 		}
 		else
 		{

@@ -48,7 +48,7 @@ public sealed class EngineResourceHandoffException : EngineException
 	private static string CreateMessage(string operation, TargetReleaseOutcome cleanupOutcome)
 	{
 		return "The Engine operation '" + RequireText(operation, nameof(operation)) +
-			   "' completed before its ownership could be published; compensation ended as " +
-			   cleanupOutcome.Status + ".";
+		       "' completed before its ownership could be published; compensation ended as " +
+		       cleanupOutcome.Status + ".";
 	}
 }

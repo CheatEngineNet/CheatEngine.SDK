@@ -5,7 +5,8 @@ namespace CheatEngine.SDK.Engine.Runtime;
 ///     <para>
 ///         Values are semantic, not the raw Lua integers: <see cref="RuntimeInfo.TryDecodeOperatingSystem" /> maps the
 ///         codes documented by the CE 7.7 Lua catalogue (<c>celua.txt:14</c>: 0, 1, 2 for Windows, macOS and Linux).
-///         The public CE source at ec45d5f returns 0 on Windows and 1 on every other build (<c>LuaHandler.pas:14863-14867</c>,
+///         The public CE source at ec45d5f returns 0 on Windows and 1 on every other build (
+///         <c>LuaHandler.pas:14863-14867</c>,
 ///         ObservedSource), so a non-Windows code is catalogue evidence only.
 ///     </para>
 ///     <para>

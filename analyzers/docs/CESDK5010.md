@@ -26,7 +26,8 @@ Your code calls one of these `CheatEngine.SDK.Engine` members, which carry
 
 Cheat Engine 7.7.0.10621 documents an optional timeout for `MemScan.waitTillDone` that returns a boolean (`celua.txt`
 line 2649) and a cooperative `MemScan.terminateScan` (line 2566). The C3 spike of 2026-09-22 (Lua-only, on the pinned
-`ce-7.7.0.10621-x64-managed-hostfxr` profile, decision D4.7) observed `waitTillDone(timeout)` returning `true`, but could
+`ce-7.7.0.10621-x64-managed-hostfxr` profile, decision D4.7) observed `waitTillDone(timeout)` returning `true`, but
+could
 not produce the `false` path: a whole-address-space scan finished before a one-millisecond deadline expired. It did not
 exercise `terminateScan` at all. Everything these members do after a deadline expires is therefore covered by fixture
 tests (C1) only, not by the host.

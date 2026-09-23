@@ -14,7 +14,8 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void An_invalid_entry_reports_its_additional_file_line_and_column_while_a_valid_sibling_is_emitted()
 	{
 		const string Text =
-			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: Bad\nform: try\nresult: value:int32\nnil: none\ndoc: bad.\nextra: value\n\nglobal: readQword\nmethod: Good\nform: try\nresult: value:int64\nnil: none\ndoc: good.\n";
+			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 +
+			"\nglobal: readInteger\nmethod: Bad\nform: try\nresult: value:int32\nnil: none\ndoc: bad.\nextra: value\n\nglobal: readQword\nmethod: Good\nform: try\nresult: value:int64\nnil: none\ndoc: good.\n";
 		const string Path = "Specs/diagnostics.cheatengine-sdk-api.txt";
 
 		GeneratorRun run = roslyn.Run(Path, Text);
@@ -60,9 +61,11 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void Conflicting_specs_report_each_participant_and_emit_neither_while_an_independent_type_is_emitted()
 	{
 		const string First =
-			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: First\nform: try\nresult: value:int32\nnil: none\ndoc: first.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 +
+			"\nglobal: readInteger\nmethod: First\nform: try\nresult: value:int32\nnil: none\ndoc: first.\n";
 		const string Second =
-			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\nglobal: readQword\nmethod: Second\nform: try\nresult: value:int64\nnil: none\ndoc: second.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 +
+			"\nglobal: readQword\nmethod: Second\nform: try\nresult: value:int64\nnil: none\ndoc: second.\n";
 
 		GeneratorRun run = roslyn.Run(
 			("Specs/first.cheatengine-sdk-api.txt", First),
@@ -89,9 +92,11 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void Conflicting_member_and_cache_identities_are_diagnosed_on_both_spec_files()
 	{
 		const string First =
-			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  nil: none\n  doc: first.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 +
+			"\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  nil: none\n  doc: first.\n";
 		const string Second =
-			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  nil: none\n  doc: second.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 +
+			"\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  nil: none\n  doc: second.\n";
 
 		GeneratorRun run = roslyn.Run(
 			("Specs/first.cheatengine-sdk-api.txt", First),
@@ -100,12 +105,12 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 		run.AssertNoGeneratedSource();
 		Assert.Contains(run.GeneratorDiagnostics,
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK3002", StringComparison.Ordinal)
-								 && diagnostic.GetMessage(CultureInfo.InvariantCulture)
-									 .Contains("member", StringComparison.Ordinal));
+			                     && diagnostic.GetMessage(CultureInfo.InvariantCulture)
+				                     .Contains("member", StringComparison.Ordinal));
 		Assert.Contains(run.GeneratorDiagnostics,
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK3002", StringComparison.Ordinal)
-								 && diagnostic.GetMessage(CultureInfo.InvariantCulture)
-									 .Contains("cache field", StringComparison.Ordinal));
+			                     && diagnostic.GetMessage(CultureInfo.InvariantCulture)
+				                     .Contains("cache field", StringComparison.Ordinal));
 		AssertConflictLocation(run, "Generated member", "Specs/first.cheatengine-sdk-api.txt", 10, 10);
 		AssertConflictLocation(run, "Generated member", "Specs/second.cheatengine-sdk-api.txt", 10, 10);
 		AssertConflictLocation(run, "Generated cache field", "Specs/first.cheatengine-sdk-api.txt", 9, 10);
@@ -117,11 +122,14 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void Three_same_named_spec_files_receive_unique_case_insensitive_hint_names()
 	{
 		const string First =
-			"namespace: Demo\ntype: First\n" + SpecSources.Ce77 + "\nglobal: first\nmethod: LoadFirst\nform: throwing\nnil: none\ndoc: first.\n";
+			"namespace: Demo\ntype: First\n" + SpecSources.Ce77 +
+			"\nglobal: first\nmethod: LoadFirst\nform: throwing\nnil: none\ndoc: first.\n";
 		const string Second =
-			"namespace: Demo\ntype: Second\n" + SpecSources.Ce77 + "\nglobal: second\nmethod: LoadSecond\nform: throwing\nnil: none\ndoc: second.\n";
+			"namespace: Demo\ntype: Second\n" + SpecSources.Ce77 +
+			"\nglobal: second\nmethod: LoadSecond\nform: throwing\nnil: none\ndoc: second.\n";
 		const string Third =
-			"namespace: Demo\ntype: Third\n" + SpecSources.Ce77 + "\nglobal: third\nmethod: LoadThird\nform: throwing\nnil: none\ndoc: third.\n";
+			"namespace: Demo\ntype: Third\n" + SpecSources.Ce77 +
+			"\nglobal: third\nmethod: LoadThird\nform: throwing\nnil: none\ndoc: third.\n";
 
 		GeneratorRun run = roslyn.Run(
 			("One/shared.cheatengine-sdk-api.txt", First),
@@ -152,7 +160,7 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	{
 		const string Path = "Specs/optional.cheatengine-sdk-api.txt";
 		string text = SpecSources.Ce77Header("Demo", "Optional") +
-					  "global: g\nmethod: G\nform: throwing\nopt: a:int32\narg: b:int64\nnil: none\ndoc: d.\n";
+		              "global: g\nmethod: G\nform: throwing\nopt: a:int32\narg: b:int64\nnil: none\ndoc: d.\n";
 
 		GeneratorRun run = roslyn.Run(Path, text);
 
@@ -165,7 +173,7 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	{
 		const string Path = "Specs/results.cheatengine-sdk-api.txt";
 		string text = SpecSources.Ce77Header("Demo", "Results") +
-					  "global: g\nmethod: G\nform: outcome\nopt-result: a:int32\nresult: b:int64\nnil: none\ndoc: d.\n";
+		              "global: g\nmethod: G\nform: outcome\nopt-result: a:int32\nresult: b:int64\nnil: none\ndoc: d.\n";
 
 		GeneratorRun run = roslyn.Run(Path, text);
 
@@ -193,7 +201,7 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 		foreach (Diagnostic diagnostic in run.GeneratorDiagnostics)
 		{
 			if (!diagnostic.GetMessage(CultureInfo.InvariantCulture)
-					.Contains(messageFragment, StringComparison.Ordinal))
+				    .Contains(messageFragment, StringComparison.Ordinal))
 			{
 				continue;
 			}

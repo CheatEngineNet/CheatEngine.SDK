@@ -20,13 +20,13 @@ x86 .NET 6), so the target is published with Native AOT, which supports win-x86 
 
 ## How it works
 
-| File              | Content                                                                                                                                                         |
-|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| File              | Content                                                                                                                                                                 |
+|-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `TargetLayout.cs` | The 16-byte module-resident marker (constant data of the image), the 8-byte many-results pattern (computed at run time, so it is not in the image), the initial values. |
-| `TargetMemory.cs` | Pinned heap arrays: N marker copies 64 bytes apart, M back-to-back repetitions of the second pattern, and the Int32/Int64 cells.                                 |
-| `ImageScanner.cs` | Counts a pattern in every readable section of the executable image, or in a heap region.                                                                       |
-| `ReadyRecord.cs`  | The one-line JSON records, written with `Utf8JsonWriter` (no reflection, trim-safe).                                                                           |
-| `Program.cs`      | Arguments, the ready record, and the `step` / `exit` command loop on standard input.                                                                            |
+| `TargetMemory.cs` | Pinned heap arrays: N marker copies 64 bytes apart, M back-to-back repetitions of the second pattern, and the Int32/Int64 cells.                                        |
+| `ImageScanner.cs` | Counts a pattern in every readable section of the executable image, or in a heap region.                                                                                |
+| `ReadyRecord.cs`  | The one-line JSON records, written with `Utf8JsonWriter` (no reflection, trim-safe).                                                                                    |
+| `Program.cs`      | Arguments, the ready record, and the `step` / `exit` command loop on standard input.                                                                                    |
 
 On start the target prints one line and waits for commands:
 
@@ -44,20 +44,21 @@ compiler may emit a constant more than once, which is why the count is measured 
 measured over their regions. Patterns that must be absent are chosen by the qualification driver, never stored in the
 target.
 
-| Input                        | Effect                                                                                  |
-|------------------------------|-----------------------------------------------------------------------------------------|
-| `--heap-copies N`            | Number of heap marker copies, 1–1024 (default 8).                                       |
-| `--repetitions M`            | Number of many-results repetitions, 1–1000000 (default 20000).                          |
-| `--ready-file PATH`          | Also writes the ready record to PATH; the only file the target ever writes.             |
-| `step` on standard input     | Adds one to both value cells and prints `{"event":"step","int32":…,"int64":…}`.        |
-| `exit` or end of input       | Exits with code 0.                                                                      |
+| Input                    | Effect                                                                          |
+|--------------------------|---------------------------------------------------------------------------------|
+| `--heap-copies N`        | Number of heap marker copies, 1–1024 (default 8).                               |
+| `--repetitions M`        | Number of many-results repetitions, 1–1000000 (default 20000).                  |
+| `--ready-file PATH`      | Also writes the ready record to PATH; the only file the target ever writes.     |
+| `step` on standard input | Adds one to both value cells and prints `{"event":"step","int32":…,"int64":…}`. |
+| `exit` or end of input   | Exits with code 0.                                                              |
 
 The target opens no network connection, requests no elevation, reads no file and loads no SDK assembly.
 
 ## Promise
 
 - The target is in the solution, publishes with Native AOT for `win-x64` and `win-x86`, is not a test module and never
-  packs (`QualificationHarnessShapeTests.QualificationTarget_is_in_the_solution_and_publishes_native_aot_for_x64_and_x86`,
+  packs
+  (`QualificationHarnessShapeTests.QualificationTarget_is_in_the_solution_and_publishes_native_aot_for_x64_and_x86`,
   `QualificationHarnessShapeTests.Qualification_harnesses_are_not_test_modules_and_never_pack`).
 - It references no SDK project, so a qualification observes the SDK only from the plugin side
   (`QualificationHarnessShapeTests.QualificationTarget_references_no_SDK_project`).

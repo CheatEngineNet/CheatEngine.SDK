@@ -296,7 +296,8 @@ public sealed class LuaGlobalQ22MatrixEndToEndTests(RoslynFixture roslyn) : ICla
 		EvenDelegate even = assembly.Delegate<EvenDelegate>(Q22Type, "Even");
 
 		// A marshaller's own exception is not a Lua failure: no form swallows or reclassifies it.
-		Assert.Equal("negative token", Assert.Throws<InvalidOperationException>(() => tryEven("negative", out _)).Message);
+		Assert.Equal("negative token",
+			Assert.Throws<InvalidOperationException>(() => tryEven("negative", out _)).Message);
 		Assert.Equal(0, L.Top);
 		Assert.Throws<InvalidOperationException>(() => outcome("negative", out _));
 		Assert.Equal(0, L.Top);

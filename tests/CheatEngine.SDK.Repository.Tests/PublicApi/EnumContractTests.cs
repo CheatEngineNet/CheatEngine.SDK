@@ -80,14 +80,20 @@ public sealed class EnumContractTests
 	///     declared through CompatibilitySuppressions.xml when the enum shipped, and a PublicAPI change). The list only
 	///     shrinks: <see cref="Pending_zero_value_fixes_are_still_needed" /> fails once an entry is fixed.
 	/// </summary>
-	private static readonly Dictionary<string, string> s_pendingZeroValueFixes = new(StringComparer.Ordinal)
-	{
-	};
+	private static readonly Dictionary<string, string> s_pendingZeroValueFixes = new(StringComparer.Ordinal);
 
 	/// <summary>Zero-member names that read as "it worked" (or, for a failure-kind enum, "no failure").</summary>
 	private static readonly HashSet<string> s_successLikeNames = new(StringComparer.Ordinal)
 	{
-		"Complete", "Completed", "Done", "None", "Ok", "Released", "Succeeded", "Success", "Successful"
+		"Complete",
+		"Completed",
+		"Done",
+		"None",
+		"Ok",
+		"Released",
+		"Succeeded",
+		"Success",
+		"Successful"
 	};
 
 	/// <summary>
@@ -98,15 +104,6 @@ public sealed class EnumContractTests
 	{
 		"Unknown", "Unspecified", "Uninitialized", "NotAttempted"
 	};
-
-	private enum EnumCategory
-	{
-		Unknown = 0,
-		StatusOrOutcome,
-		Policy,
-		ReasonOrEvidence,
-		AbiDecision
-	}
 
 	[Fact]
 	public void Enums_mirroring_cheat_engine_constants_or_client_signatures_keep_their_1_0_0_members()
@@ -128,7 +125,7 @@ public sealed class EnumContractTests
 			foreach (string added in library.Added)
 			{
 				if (IsMemberOfFrozenEnum(added, out string enumType)
-					&& PublicApiDeclarations.TryParseEnumMember(added, out _, out string member, out _))
+				    && PublicApiDeclarations.TryParseEnumMember(added, out _, out string member, out _))
 				{
 					Assert.True(s_reviewedFrozenEnumAdditions.Contains($"{enumType}.{member}"),
 						$"{library.UnshippedPath}: '{added}' adds a member to the frozen enum {enumType} without a reviewed entry.");
@@ -168,7 +165,8 @@ public sealed class EnumContractTests
 			}
 
 			string? zero = ZeroMember(declared[enumType]);
-			Assert.True(zero is not null, $"{enumType} has no member with value 0, so default({SimpleName(enumType)}) has no name.");
+			Assert.True(zero is not null,
+				$"{enumType} has no member with value 0, so default({SimpleName(enumType)}) has no name.");
 			Assert.False(s_successLikeNames.Contains(zero), $"{enumType}.{zero} = 0 reads as success.");
 			Assert.True(s_neutralZeroNames.Contains(zero),
 				$"{enumType}.{zero} = 0: a status/outcome enum starts with Unknown = 0 (tolerated: {string.Join(", ", s_neutralZeroNames)}).");
@@ -181,10 +179,14 @@ public sealed class EnumContractTests
 		Dictionary<string, SortedDictionary<string, long>> declared = EnumMembers(static l => l.Declared);
 		foreach ((string enumType, string owner) in s_pendingZeroValueFixes)
 		{
-			Assert.True(s_addedEnums.TryGetValue(enumType, out EnumCategory category) && category == EnumCategory.StatusOrOutcome,
+			Assert.True(
+				s_addedEnums.TryGetValue(enumType, out EnumCategory category) &&
+				category == EnumCategory.StatusOrOutcome,
 				$"{enumType} is pending but not classified as {EnumCategory.StatusOrOutcome}.");
 			Assert.False(string.IsNullOrWhiteSpace(owner));
-			string? zero = declared.TryGetValue(enumType, out SortedDictionary<string, long>? members) ? ZeroMember(members) : null;
+			string? zero = declared.TryGetValue(enumType, out SortedDictionary<string, long>? members)
+				? ZeroMember(members)
+				: null;
 			Assert.True(zero is not null && s_successLikeNames.Contains(zero),
 				$"{enumType} no longer starts with a success-like member ({zero ?? "no zero member"}): {owner} fixed it, so remove it from {nameof(s_pendingZeroValueFixes)}.");
 		}
@@ -209,7 +211,8 @@ public sealed class EnumContractTests
 		{
 			foreach (string line in lines(library))
 			{
-				if (PublicApiDeclarations.TryParseEnumMember(line, out string enumType, out string member, out long value))
+				if (PublicApiDeclarations.TryParseEnumMember(line, out string enumType, out string member,
+					    out long value))
 				{
 					if (!enums.TryGetValue(enumType, out SortedDictionary<string, long>? members))
 					{
@@ -241,5 +244,14 @@ public sealed class EnumContractTests
 	private static string SimpleName(string typeName)
 	{
 		return typeName[(typeName.LastIndexOf('.') + 1)..];
+	}
+
+	private enum EnumCategory
+	{
+		Unknown = 0,
+		StatusOrOutcome,
+		Policy,
+		ReasonOrEvidence,
+		AbiDecision
 	}
 }

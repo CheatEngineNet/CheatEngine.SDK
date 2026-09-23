@@ -30,7 +30,7 @@ public sealed class BoundedDebugEventObservationBuffer
 	{
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 		if (overflowPolicy is not DebugEventObservationOverflowPolicy.DropNewest
-			and not DebugEventObservationOverflowPolicy.DropOldest)
+		    and not DebugEventObservationOverflowPolicy.DropOldest)
 		{
 			throw new ArgumentOutOfRangeException(nameof(overflowPolicy));
 		}

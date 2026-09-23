@@ -205,8 +205,8 @@ internal static class LuaFunctionShape
 		INamedTypeSymbol? luaMarshallerContract, ImmutableArray<LuaArgumentModel>.Builder builder)
 	{
 		if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, parameter.Type,
-				parameter.GetAttributes(), luaMarshallerAttribute, luaMarshallerContract,
-				out LuaCustomMarshallerModel? customMarshaller, out _))
+			    parameter.GetAttributes(), luaMarshallerAttribute, luaMarshallerContract,
+			    out LuaCustomMarshallerModel? customMarshaller, out _))
 		{
 			return LuaFunctionShapeIssues.UnsupportedParameterType;
 		}
@@ -255,9 +255,9 @@ internal static class LuaFunctionShape
 		}
 
 		if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, method.ReturnType,
-				method.GetReturnTypeAttributes(), luaMarshallerAttribute, luaMarshallerContract,
-				out returnMarshaller, out _)
-			|| (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
+			    method.GetReturnTypeAttributes(), luaMarshallerAttribute, luaMarshallerContract,
+			    out returnMarshaller, out _)
+		    || (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
 		{
 			return LuaFunctionShapeIssues.UnsupportedReturnType;
 		}

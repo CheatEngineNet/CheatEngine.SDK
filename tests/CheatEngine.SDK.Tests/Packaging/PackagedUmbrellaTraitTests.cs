@@ -5,7 +5,8 @@ using CheatEngine.SDK.Tests.Infrastructure;
 namespace CheatEngine.SDK.Tests.Packaging;
 
 /// <summary>
-///     The Debug CI leg excludes the packaging fixture with <c>--filter-not-trait "Category=Packaging"</c>, and the Release
+///     The Debug CI leg excludes the packaging fixture with <c>--filter-not-trait "Category=Packaging"</c>, and the
+///     Release
 ///     leg hands it the exact package. That only works if the trait and the collection coincide: a collection class
 ///     without the trait would start a pack in the Debug leg (or fail it under <c>CI=true</c>), and a traited class
 ///     outside the collection would silently drop out of the Debug leg. Read through <see cref="CustomAttributeData" />,
@@ -29,13 +30,13 @@ public sealed class PackagedUmbrellaTraitTests
 				if (!HasPackagingTrait(type))
 				{
 					offenders.Add($"{type.FullName} joins '{PackagedUmbrellaSuite.Name}' without " +
-								  $"[Trait(\"{CategoryTrait}\", UmbrellaPackage.PackagingCategory)].");
+					              $"[Trait(\"{CategoryTrait}\", UmbrellaPackage.PackagingCategory)].");
 				}
 			}
 			else if (ReceivesTheFixture(type))
 			{
 				offenders.Add($"{type.FullName} receives {nameof(PackagedUmbrellaFixture)} outside collection " +
-							  $"'{PackagedUmbrellaSuite.Name}', so it would get its own pack.");
+				              $"'{PackagedUmbrellaSuite.Name}', so it would get its own pack.");
 			}
 		}
 
@@ -87,8 +88,9 @@ public sealed class PackagedUmbrellaTraitTests
 
 	private static bool HasTestMethod(Type type)
 	{
-		foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static |
-													  BindingFlags.DeclaredOnly))
+		foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance |
+		                                              BindingFlags.Static |
+		                                              BindingFlags.DeclaredOnly))
 		{
 			foreach (CustomAttributeData attribute in method.GetCustomAttributesData())
 			{
@@ -142,9 +144,9 @@ public sealed class PackagedUmbrellaTraitTests
 		foreach (CustomAttributeData attribute in member.GetCustomAttributesData())
 		{
 			if (attribute.AttributeType == typeof(TraitAttribute)
-				&& attribute.ConstructorArguments.Count == 2
-				&& Equals(attribute.ConstructorArguments[0].Value, CategoryTrait)
-				&& Equals(attribute.ConstructorArguments[1].Value, UmbrellaPackage.PackagingCategory))
+			    && attribute.ConstructorArguments.Count == 2
+			    && Equals(attribute.ConstructorArguments[0].Value, CategoryTrait)
+			    && Equals(attribute.ConstructorArguments[1].Value, UmbrellaPackage.PackagingCategory))
 			{
 				return true;
 			}
@@ -155,8 +157,9 @@ public sealed class PackagedUmbrellaTraitTests
 
 	private static bool HasPackagingTraitOnAMethod(Type type)
 	{
-		foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static |
-													  BindingFlags.DeclaredOnly))
+		foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance |
+		                                              BindingFlags.Static |
+		                                              BindingFlags.DeclaredOnly))
 		{
 			if (HasPackagingTrait(method))
 			{

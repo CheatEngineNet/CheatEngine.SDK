@@ -32,7 +32,9 @@ public sealed class MemoryScanSessionBatteryTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
-		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
+		MemScanTestHost.Run(L,
+			"opened_process_id = " +
+			MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 
 		MemoryScanException failure = Assert.Throws<MemoryScanException>(session.WaitForCompletion);
 
@@ -188,7 +190,8 @@ public sealed class MemoryScanSessionBatteryTests
 		Assert.DoesNotContain("setOnlyOneResult", trace, StringComparison.Ordinal);
 		Assert.Equal(0L, MemScanTestHost.ReadInteger(L, "create_mem_scan_argument_count"));
 		Assert.Equal(1L, MemScanTestHost.ReadInteger(L, "create_found_list_argument_count"));
-		Assert.EndsWith("scan.terminate:false,scan.wait:5000,list.destroy,scan.destroy", trace, StringComparison.Ordinal);
+		Assert.EndsWith("scan.terminate:false,scan.wait:5000,list.destroy,scan.destroy", trace,
+			StringComparison.Ordinal);
 		Assert.Equal(0, L.Top);
 	}
 
@@ -214,7 +217,8 @@ public sealed class MemoryScanSessionBatteryTests
 
 		Assert.Equal(MemoryScanFailureKind.LuaError, failure.FailureKind);
 		Assert.Equal("MemoryScan.FirstScan", failure.Operation);
-		Assert.Equal("The protected Lua call for memory scan operation 'MemoryScan.FirstScan' failed.", failure.Message);
+		Assert.Equal("The protected Lua call for memory scan operation 'MemoryScan.FirstScan' failed.",
+			failure.Message);
 		Assert.Equal(MemoryScanState.Invalidated, session.State);
 		Assert.Equal(MemoryScanInvalidationReason.ProtectedLuaFailure, session.InvalidationReason);
 		Assert.Equal(0, L.Top);

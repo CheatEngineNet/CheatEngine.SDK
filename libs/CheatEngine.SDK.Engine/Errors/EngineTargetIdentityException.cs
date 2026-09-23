@@ -36,6 +36,6 @@ public sealed class EngineTargetIdentityException : EngineException
 	private static string CreateMessage(string operation, TargetIdentityCheck check)
 	{
 		return "The Engine operation '" + RequireText(operation, nameof(operation)) +
-			   "' was refused because its original target is not verified as current (" + check.Kind + ").";
+		       "' was refused because its original target is not verified as current (" + check.Kind + ").";
 	}
 }

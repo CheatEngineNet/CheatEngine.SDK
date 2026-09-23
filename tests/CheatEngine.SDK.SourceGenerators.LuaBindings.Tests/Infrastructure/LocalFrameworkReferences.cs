@@ -63,8 +63,8 @@ internal static class LocalFrameworkReferences
 		{
 			string candidate = Path.Combine(pack, "ref", TargetFrameworkFolder);
 			if (Directory.Exists(candidate)
-				&& TryParsePackVersion(Path.GetFileName(pack), out Version? version)
-				&& (bestVersion is null || version > bestVersion))
+			    && TryParsePackVersion(Path.GetFileName(pack), out Version? version)
+			    && (bestVersion is null || version > bestVersion))
 			{
 				best = candidate;
 				bestVersion = version;

@@ -87,8 +87,8 @@ public sealed class EngineMarshallingException : EngineException
 		string directionText =
 			ValidateDirection(direction) == EngineMarshallingDirection.Argument ? "argument" : "result";
 		return "The " + directionText + " of Cheat Engine operation '" +
-			   RequireText(operation, nameof(operation)) + "' could not be marshalled: expected " +
-			   RequireText(expected, nameof(expected)) + ", observed " + RequireText(actual, nameof(actual)) + ".";
+		       RequireText(operation, nameof(operation)) + "' could not be marshalled: expected " +
+		       RequireText(expected, nameof(expected)) + ", observed " + RequireText(actual, nameof(actual)) + ".";
 	}
 
 	private static EngineMarshallingDirection ValidateDirection(EngineMarshallingDirection direction)

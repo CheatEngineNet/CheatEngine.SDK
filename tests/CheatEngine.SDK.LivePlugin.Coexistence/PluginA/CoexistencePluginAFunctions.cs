@@ -2,7 +2,7 @@ using CheatEngine.SDK.Annotations.Lua;
 
 namespace LivePlugin.Coexistence.PluginA;
 
-internal static partial class CoexistencePluginAFunctions
+internal static class CoexistencePluginAFunctions
 {
 	private static long s_pingCount;
 

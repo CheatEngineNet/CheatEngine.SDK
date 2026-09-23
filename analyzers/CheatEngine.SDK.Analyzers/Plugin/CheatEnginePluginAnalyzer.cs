@@ -86,8 +86,8 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
 		// CESDK.CESDK to the author, which CESDK0003 validates at compilation end.
 		bool? entryPointIsGenerated = null;
 		if (context.Options.AnalyzerConfigOptionsProvider.GlobalOptions.TryGetValue(GenerateEntryPointKey,
-				out string? raw)
-			&& bool.TryParse(raw, out bool generate))
+			    out string? raw)
+		    && bool.TryParse(raw, out bool generate))
 		{
 			entryPointIsGenerated = generate;
 		}
@@ -128,7 +128,7 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
 
 		// The attribute targets classes only: on anything else the compiler already reports CS0592.
 		if (type.TypeKind != TypeKind.Class ||
-			FindAttribute(type, symbols.PluginAttribute) is not { } attribute)
+		    FindAttribute(type, symbols.PluginAttribute) is not { } attribute)
 		{
 			return;
 		}
@@ -215,20 +215,20 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
 		foreach (ISymbol member in type.GetMembers("CEPluginInitialize"))
 		{
 			if (member is not IMethodSymbol
-				{
-					MethodKind: MethodKind.Ordinary,
-					IsStatic: true,
-					IsGenericMethod: false,
-					DeclaredAccessibility: Accessibility.Public,
-					ReturnsByRef: false,
-					ReturnsByRefReadonly: false,
-					ReturnType.SpecialType: SpecialType.System_Int32,
-					Parameters:
-					[
-					{ RefKind: RefKind.None, Type.SpecialType: SpecialType.System_IntPtr },
-					{ RefKind: RefKind.None, Type.SpecialType: SpecialType.System_Int32 }
-					]
-				})
+			    {
+				    MethodKind: MethodKind.Ordinary,
+				    IsStatic: true,
+				    IsGenericMethod: false,
+				    DeclaredAccessibility: Accessibility.Public,
+				    ReturnsByRef: false,
+				    ReturnsByRefReadonly: false,
+				    ReturnType.SpecialType: SpecialType.System_Int32,
+				    Parameters:
+				    [
+					    { RefKind: RefKind.None, Type.SpecialType: SpecialType.System_IntPtr },
+					    { RefKind: RefKind.None, Type.SpecialType: SpecialType.System_Int32 }
+				    ]
+			    })
 			{
 				continue;
 			}
@@ -265,9 +265,9 @@ public sealed class CheatEnginePluginAnalyzer : DiagnosticAnalyzer
 
 		// A nested declaration is under 'CESDK' exactly when its outermost declaration is: one report per outermost one.
 		if (declaration.Parent is not CompilationUnitSyntax
-			|| context.SemanticModel.GetDeclaredSymbol(declaration, context.CancellationToken) is not INamespaceSymbol
-				declared
-			|| !IsUnderReservedRoot(declared, context.CancellationToken))
+		    || context.SemanticModel.GetDeclaredSymbol(declaration, context.CancellationToken) is not INamespaceSymbol
+			    declared
+		    || !IsUnderReservedRoot(declared, context.CancellationToken))
 		{
 			return;
 		}

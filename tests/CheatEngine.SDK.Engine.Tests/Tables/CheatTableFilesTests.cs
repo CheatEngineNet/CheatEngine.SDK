@@ -101,10 +101,10 @@ public sealed class CheatTableFilesTests
 		List<bool> observed = [];
 		MemoryRecordMutationOutcome refused = default;
 		using (FakeHost.InstallReentrantHook(L, "table_script", () =>
-			   {
-				   observed.Add(CheatTableFiles.IsLoadInProgressOnCurrentThread);
-				   refused = AddressListMutations.Delete(new MemoryRecordId(1));
-			   }))
+		       {
+			       observed.Add(CheatTableFiles.IsLoadInProgressOnCurrentThread);
+			       refused = AddressListMutations.Delete(new MemoryRecordId(1));
+		       }))
 		{
 			EngineTest.Run(L, "loadTable = function(path, merge) table_script() end"u8);
 

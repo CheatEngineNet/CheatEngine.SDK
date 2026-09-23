@@ -3,13 +3,17 @@ using CheatEngine.SDK.Tests.Infrastructure;
 namespace CheatEngine.SDK.Tests.Packaging;
 
 /// <summary>
-///     Proves, on synthetic manifests and without the packaging fixture, that each <see cref="ConsumerManifestRules" /> rule
+///     Proves, on synthetic manifests and without the packaging fixture, that each <see cref="ConsumerManifestRules" />
+///     rule
 ///     accepts a clean package consumer and rejects the workspace leak it exists for. Runs in both CI legs.
 /// </summary>
 public sealed class ConsumerManifestRuleTests
 {
 	private const string Version = "2.0.0-alpha.0.18";
-	private const string Sha512 = "n7nHqZ8vzo7Vf20jF0fkh/jUtR3yo1TwRGpXE7ERxZeJ4C5S/Nsft4lqOg7zGwfsD5Nh9tTVgdw4PrybJRF0gA==";
+
+	private const string Sha512 =
+		"n7nHqZ8vzo7Vf20jF0fkh/jUtR3yo1TwRGpXE7ERxZeJ4C5S/Nsft4lqOg7zGwfsD5Nh9tTVgdw4PrybJRF0gA==";
+
 	private const string Root = @"D:\a\CheatEngine.SDK\CheatEngine.SDK";
 
 	[Fact]

@@ -38,17 +38,13 @@ internal static class LuaObjectMethodParser
 		bool described = TryDescribe(method, context.TargetNode as MethodDeclarationSyntax,
 			out LuaObjectMethodModel model);
 		bool valid = isSdkAttribute && LuaNames.IsValidName(luaName)
-									&& LuaClassParser.IsGeneratedHandle(method.ContainingType, compilation,
-										cancellationToken)
-									&& described;
+		                            && LuaClassParser.IsGeneratedHandle(method.ContainingType, compilation,
+			                            cancellationToken)
+		                            && described;
 
 		if (valid)
 		{
-			return model with
-			{
-				LuaName = luaName!,
-				IsValid = true
-			};
+			return model with { LuaName = luaName!, IsValid = true };
 		}
 
 		return new LuaObjectMethodModel(
@@ -72,11 +68,11 @@ internal static class LuaObjectMethodParser
 			ImmutableArray.CreateBuilder<LuaArgumentModel>(method.Parameters.Length);
 		ImmutableArray<LuaResultModel>.Builder results = ImmutableArray.CreateBuilder<LuaResultModel>();
 		bool valid = method.MethodKind == MethodKind.Ordinary
-					 && !method.IsStatic
-					 && method.IsPartialDefinition
-					 && method.PartialImplementationPart is null
-					 && !method.IsGenericMethod
-					 && !method.IsAsync;
+		             && !method.IsStatic
+		             && method.IsPartialDefinition
+		             && method.PartialImplementationPart is null
+		             && !method.IsGenericMethod
+		             && !method.IsAsync;
 		valid &= DescribeParameters(method.Parameters, arguments, results);
 
 		LuaCallForm form = results.Count == 0 ? LuaCallForm.Throwing : LuaCallForm.Try;
@@ -107,7 +103,7 @@ internal static class LuaObjectMethodParser
 		foreach (IParameterSymbol parameter in parameters)
 		{
 			if (IsReserved(parameter.Name) || parameter.IsParams || parameter.IsOptional
-				|| parameter.HasExplicitDefaultValue)
+			    || parameter.HasExplicitDefaultValue)
 			{
 				valid = false;
 			}
@@ -116,7 +112,7 @@ internal static class LuaObjectMethodParser
 			{
 				seenResult = true;
 				if (!LuaValueKindMapper.TryMap(parameter.Type, out LuaValueKind kind, out bool nullable)
-					|| !LuaValueKinds.CanBeResult(kind))
+				    || !LuaValueKinds.CanBeResult(kind))
 				{
 					valid = false;
 				}
@@ -129,9 +125,9 @@ internal static class LuaObjectMethodParser
 			}
 
 			if (parameter.RefKind != RefKind.None || seenResult
-												  || !LuaValueKindMapper.TryMap(parameter.Type,
-													  out LuaValueKind argumentKind,
-													  out bool argumentNullable))
+			                                      || !LuaValueKindMapper.TryMap(parameter.Type,
+				                                      out LuaValueKind argumentKind,
+				                                      out bool argumentNullable))
 			{
 				valid = false;
 			}
@@ -153,7 +149,7 @@ internal static class LuaObjectMethodParser
 		if (form == LuaCallForm.Try)
 		{
 			return method.ReturnType.SpecialType == SpecialType.System_Boolean && !method.ReturnsByRef
-																			   && !method.ReturnsByRefReadonly;
+			                                                                   && !method.ReturnsByRefReadonly;
 		}
 
 		if (method.ReturnsVoid)
@@ -162,9 +158,9 @@ internal static class LuaObjectMethodParser
 		}
 
 		if (method.ReturnsByRef || method.ReturnsByRefReadonly
-								|| !LuaValueKindMapper.TryMap(method.ReturnType, out LuaValueKind kind,
-									out returnNullable)
-								|| !LuaValueKinds.CanBeResult(kind))
+		                        || !LuaValueKindMapper.TryMap(method.ReturnType, out LuaValueKind kind,
+			                        out returnNullable)
+		                        || !LuaValueKinds.CanBeResult(kind))
 		{
 			return false;
 		}
@@ -176,10 +172,10 @@ internal static class LuaObjectMethodParser
 	private static bool IsReserved(string name)
 	{
 		return string.Equals(name, StateLocal, StringComparison.Ordinal)
-			   || string.Equals(name, OperationLocal, StringComparison.Ordinal)
-			   || string.Equals(name, TopLocal, StringComparison.Ordinal)
-			   || string.Equals(name, StatusLocal, StringComparison.Ordinal)
-			   || string.Equals(name, ResultLocal, StringComparison.Ordinal);
+		       || string.Equals(name, OperationLocal, StringComparison.Ordinal)
+		       || string.Equals(name, TopLocal, StringComparison.Ordinal)
+		       || string.Equals(name, StatusLocal, StringComparison.Ordinal)
+		       || string.Equals(name, ResultLocal, StringComparison.Ordinal);
 	}
 
 	private static string Modifiers(MethodDeclarationSyntax? declaration)

@@ -8,6 +8,7 @@ public sealed class LiveProbeStateTests
 	public void CaptureHostProfile_when_authorization_expires_after_enable_returns_fresh_denial()
 	{
 		int evaluationCount = 0;
+
 		AuthorizationDecision evaluateAuthorization()
 		{
 			evaluationCount++;
@@ -15,6 +16,7 @@ public sealed class LiveProbeStateTests
 				? AllowedAuthorization()
 				: AuthorizationDecision.Denied("The authorization manifest has expired.");
 		}
+
 		LiveProbeState.ValidateAfterEnable(evaluateAuthorization, static () => 401);
 		bool wasCaptured = false;
 
@@ -36,6 +38,7 @@ public sealed class LiveProbeStateTests
 	public void CaptureHostProfile_when_target_image_changes_after_enable_returns_fresh_denial()
 	{
 		int evaluationCount = 0;
+
 		AuthorizationDecision evaluateAuthorization()
 		{
 			evaluationCount++;
@@ -43,6 +46,7 @@ public sealed class LiveProbeStateTests
 				? AllowedAuthorization()
 				: AuthorizationDecision.Denied("The declared target SHA-256 differs from its live process image.");
 		}
+
 		LiveProbeState.ValidateAfterEnable(evaluateAuthorization, static () => 401);
 		bool wasCaptured = false;
 
@@ -64,11 +68,13 @@ public sealed class LiveProbeStateTests
 	public void CaptureHostProfile_when_ce_target_pid_changes_after_enable_returns_denial()
 	{
 		int evaluationCount = 0;
+
 		AuthorizationDecision evaluateAuthorization()
 		{
 			evaluationCount++;
 			return AllowedAuthorization();
 		}
+
 		LiveProbeState.ValidateAfterEnable(evaluateAuthorization, static () => 401);
 		bool wasCaptured = false;
 
@@ -90,6 +96,7 @@ public sealed class LiveProbeStateTests
 	public void CaptureHostProfile_when_fresh_authorization_and_pid_match_passes_fresh_decision_to_capture()
 	{
 		int evaluationCount = 0;
+
 		AuthorizationDecision evaluateAuthorization()
 		{
 			evaluationCount++;
@@ -97,6 +104,7 @@ public sealed class LiveProbeStateTests
 				? AuthorizationDecision.Denied("The manifest was not present during enable.")
 				: AllowedAuthorization();
 		}
+
 		LiveProbeState.ValidateAfterEnable(evaluateAuthorization,
 			static () => throw new InvalidOperationException("The denied enable state must not read CE's PID."));
 
@@ -113,6 +121,7 @@ public sealed class LiveProbeStateTests
 	public void TryRequireRuntimeAuthorization_when_manifest_expires_after_enable_rechecks_and_denies()
 	{
 		int evaluationCount = 0;
+
 		AuthorizationDecision evaluateAuthorization()
 		{
 			evaluationCount++;
@@ -120,6 +129,7 @@ public sealed class LiveProbeStateTests
 				? AllowedAuthorization()
 				: AuthorizationDecision.Denied("The authorization manifest has expired.");
 		}
+
 		LiveProbeState.ValidateAfterEnable(evaluateAuthorization, static () => 401);
 
 		bool isAllowed = LiveProbeState.TryRequireRuntimeAuthorization(evaluateAuthorization,
@@ -137,11 +147,13 @@ public sealed class LiveProbeStateTests
 	public void TryRequireRuntimeAuthorization_when_ce_target_pid_changes_after_enable_rechecks_and_denies()
 	{
 		int evaluationCount = 0;
+
 		AuthorizationDecision evaluateAuthorization()
 		{
 			evaluationCount++;
 			return AllowedAuthorization();
 		}
+
 		LiveProbeState.ValidateAfterEnable(evaluateAuthorization, static () => 401);
 
 		bool isAllowed = LiveProbeState.TryRequireRuntimeAuthorization(evaluateAuthorization, static () => 402,

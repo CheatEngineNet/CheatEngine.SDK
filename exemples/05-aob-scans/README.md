@@ -176,7 +176,8 @@ internal static class ModuleSignatures
 ```
 
 `result.IsMaterializationLimitReached` tells you the destination filled up before every row was read, and
-`result.InBoundsCountIsExact` that `Written` is the full in-bounds count; a single match is proven only by that, never by
+`result.InBoundsCountIsExact` that `Written` is the full in-bounds count; a single match is proven only by that, never
+by
 a first-found scan.
 
 ```mermaid

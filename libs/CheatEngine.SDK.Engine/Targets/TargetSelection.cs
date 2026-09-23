@@ -34,7 +34,9 @@ namespace CheatEngine.SDK.Engine.Targets;
 ///             </description>
 ///         </item>
 ///         <item>
-///             <term><c>isConnectedToCEServer() == true</c></term>
+///             <term>
+///                 <c>isConnectedToCEServer() == true</c>
+///             </term>
 ///             <description>
 ///                 <see cref="TargetSelectionObservationStatus.CurrentTargetRemoteBackend" />: a local PID and creation
 ///                 time do not describe a PID served by CEServer, so no lookup runs and no incarnation is emitted.
@@ -214,7 +216,7 @@ public static class TargetSelection
 			return true;
 		}
 		catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception
-											  or NotSupportedException or UnauthorizedAccessException)
+			                                  or NotSupportedException or UnauthorizedAccessException)
 		{
 			incarnation = default;
 			return false;

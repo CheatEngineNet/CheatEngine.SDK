@@ -72,7 +72,7 @@ internal static unsafe class FakeHostRuntime
 		if (!status.IsOk)
 		{
 			throw new InvalidOperationException("Installing the fake host metatable failed: " +
-												LuaError.FromStack(state, status));
+			                                    LuaError.FromStack(state, status));
 		}
 
 		state.RawSetPointer(LuaState.RegistryIndex, s_metatableKey);

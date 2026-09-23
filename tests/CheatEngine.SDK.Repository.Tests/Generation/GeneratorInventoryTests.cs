@@ -89,8 +89,8 @@ public sealed partial class GeneratorInventoryTests
 		{
 			string text = Read(path);
 			if (text.Contains("Program Files", StringComparison.OrdinalIgnoreCase) ||
-				text.Contains("celua.txt", StringComparison.OrdinalIgnoreCase) ||
-				DriveRootedPath().IsMatch(text))
+			    text.Contains("celua.txt", StringComparison.OrdinalIgnoreCase) ||
+			    DriveRootedPath().IsMatch(text))
 			{
 				offences.Add(path);
 			}

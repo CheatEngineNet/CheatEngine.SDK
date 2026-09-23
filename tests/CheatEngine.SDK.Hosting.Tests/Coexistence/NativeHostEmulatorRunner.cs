@@ -23,7 +23,8 @@ internal static class NativeHostEmulatorRunner
 		string exePath = Path.Combine(emulatorDirectory, "ce-host-emulator.exe");
 		if (!File.Exists(exePath))
 		{
-			throw new FileNotFoundException($"'{exePath}' does not exist: run tests/native-host-emulator/build.ps1 first.", exePath);
+			throw new FileNotFoundException(
+				$"'{exePath}' does not exist: run tests/native-host-emulator/build.ps1 first.", exePath);
 		}
 
 		string runtimeConfigPath = Path.Combine(emulatorDirectory, "ce-like.runtimeconfig.json");
@@ -34,7 +35,7 @@ internal static class NativeHostEmulatorRunner
 			UseShellExecute = false,
 			RedirectStandardOutput = true,
 			RedirectStandardError = true,
-			CreateNoWindow = true,
+			CreateNoWindow = true
 		};
 
 		AddArgument(startInfo, "--lua", luaPath);
@@ -47,17 +48,14 @@ internal static class NativeHostEmulatorRunner
 		AddArgument(startInfo, "--alc", route == NativeHostEmulatorAlcRoute.Default ? "default" : "component");
 		AddArgument(startInfo, "--facts", factsPath);
 
-		using Process process = new()
-		{
-			StartInfo = startInfo,
-		};
+		using Process process = new() { StartInfo = startInfo };
 		process.Start();
 		string standardOutput = process.StandardOutput.ReadToEnd();
 		string standardError = process.StandardError.ReadToEnd();
 		bool exited = process.WaitForExit((int) ProcessTimeout.TotalMilliseconds);
 		if (!exited)
 		{
-			process.Kill(entireProcessTree: true);
+			process.Kill(true);
 			throw new TimeoutException($"'{exePath}' did not exit within {ProcessTimeout}.");
 		}
 
@@ -89,7 +87,8 @@ internal static class NativeHostEmulatorRunner
 		DirectoryInfo? root = new DirectoryInfo(runtimeDirectory).Parent?.Parent?.Parent;
 		if (root is null)
 		{
-			throw new InvalidOperationException($"Could not derive a .NET root three levels above '{runtimeDirectory}'.");
+			throw new InvalidOperationException(
+				$"Could not derive a .NET root three levels above '{runtimeDirectory}'.");
 		}
 
 		return root.FullName;

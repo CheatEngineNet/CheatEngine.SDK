@@ -82,7 +82,7 @@ internal static class Program
 					break;
 				default:
 					error = "Invalid argument '" + args[index] +
-							"'. Use --heap-copies 1-1024, --repetitions 1-1000000 and --ready-file PATH.";
+					        "'. Use --heap-copies 1-1024, --repetitions 1-1000000 and --ready-file PATH.";
 					return false;
 			}
 		}
@@ -93,6 +93,6 @@ internal static class Program
 	private static bool TryRange(string? text, int minimum, int maximum, out int value)
 	{
 		return int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out value) && value >= minimum &&
-			   value <= maximum;
+		       value <= maximum;
 	}
 }

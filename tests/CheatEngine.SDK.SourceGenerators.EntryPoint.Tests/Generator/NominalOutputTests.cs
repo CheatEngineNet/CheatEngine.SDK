@@ -105,8 +105,11 @@ public sealed class NominalOutputTests(RoslynFixture roslyn) : IClassFixture<Ros
 		GeneratorRun run = roslyn.Run(PluginSources.Nominal);
 		string text = run.SingleGeneratedText;
 
-		foreach (string reflective in (string[]) ["Activator", "CreateInstance", "GetTypes", "GetType(", "typeof(",
-					 "System.Reflection", "Assembly."])
+		foreach (string reflective in (string[])
+		         [
+			         "Activator", "CreateInstance", "GetTypes", "GetType(", "typeof(",
+			         "System.Reflection", "Assembly."
+		         ])
 		{
 			Assert.DoesNotContain(reflective, text, StringComparison.Ordinal);
 		}

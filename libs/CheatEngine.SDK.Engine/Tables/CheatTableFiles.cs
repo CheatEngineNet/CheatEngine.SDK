@@ -20,7 +20,8 @@ namespace CheatEngine.SDK.Engine.Tables;
 ///     <para>
 ///         <b>Overload policy.</b> Only the file overloads are projected. The file overload of <c>loadTable</c> has no
 ///         option to suppress the Lua-script dialog, so a table that contains Lua scripts may prompt the user or execute
-///         Lua. The stream overloads (<c>loadTable(stream, merge, ignoreluascriptdialog)</c>, <c>saveTable(stream, ...)</c>)
+///         Lua. The stream overloads (<c>loadTable(stream, merge, ignoreluascriptdialog)</c>,
+///         <c>saveTable(stream, ...)</c>)
 ///         and the <c>protect</c> / <c>dontDeactivateDesignerForms</c> options of <c>saveTable</c> are not projected until
 ///         a Cheat Engine stream projection exists; the Lua surface catalogue records them as deferred.
 ///     </para>

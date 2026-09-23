@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -59,7 +60,8 @@ public sealed class LivePluginClosureTests
 		foreach (JsonProperty library in target.EnumerateObject())
 		{
 			string name = library.Name[..library.Name.IndexOf('/', StringComparison.Ordinal)];
-			if (name.StartsWith("CheatEngine.SDK.", StringComparison.Ordinal) && !string.Equals(name, project, StringComparison.Ordinal))
+			if (name.StartsWith("CheatEngine.SDK.", StringComparison.Ordinal) &&
+			    !string.Equals(name, project, StringComparison.Ordinal))
 			{
 				sdkLibraries.Add(name);
 			}
@@ -76,7 +78,8 @@ public sealed class LivePluginClosureTests
 		Assert.Superset(new HashSet<string>(s_bootstrapLibraries, StringComparer.Ordinal), sdkLibraries);
 		foreach (string file in promised)
 		{
-			Assert.True(File.Exists(Path.Combine(folder, file)), $"{project}.deps.json promises {file}, which is not in {folder}.");
+			Assert.True(File.Exists(Path.Combine(folder, file)),
+				$"{project}.deps.json promises {file}, which is not in {folder}.");
 		}
 
 		foreach (string assembly in Directory.EnumerateFiles(folder, "CheatEngine.SDK.*.dll"))
@@ -86,7 +89,8 @@ public sealed class LivePluginClosureTests
 		}
 
 		// The runtime policy is the one the managed hostfxr profile loads: net10.0 on the shared Microsoft.NETCore.App.
-		using JsonDocument runtimeConfig = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(folder, project + ".runtimeconfig.json")));
+		using JsonDocument runtimeConfig =
+			JsonDocument.Parse(File.ReadAllBytes(Path.Combine(folder, project + ".runtimeconfig.json")));
 		JsonElement options = runtimeConfig.RootElement.GetProperty("runtimeOptions");
 		Assert.Equal("net10.0", options.GetProperty("tfm").GetString());
 		Assert.Equal("Microsoft.NETCore.App", options.GetProperty("framework").GetProperty("name").GetString());
@@ -99,7 +103,8 @@ public sealed class LivePluginClosureTests
 		foreach (string file in Directory.EnumerateFiles(folder, "*.dll"))
 		{
 			string name = Path.GetFileName(file);
-			Assert.False(name.StartsWith("lua", StringComparison.OrdinalIgnoreCase), $"{folder} deploys a Lua runtime, {name}.");
+			Assert.False(name.StartsWith("lua", StringComparison.OrdinalIgnoreCase),
+				$"{folder} deploys a Lua runtime, {name}.");
 		}
 	}
 
@@ -129,7 +134,9 @@ public sealed class LivePluginClosureTests
 	/// </summary>
 	private static string BundleFolder(string project)
 	{
-		string configuration = new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)).Name;
+		string configuration =
+			new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar,
+				Path.AltDirectorySeparatorChar)).Name;
 		string folder = RepositoryLayout.PathOf($"artifacts/bin/{project}/{configuration}");
 		Assert.True(File.Exists(Path.Combine(folder, project + ".dll")),
 			$"{project} has no {configuration} output in {folder}: build CheatEngine.SDK.slnx -c {configuration} first.");
@@ -146,7 +153,7 @@ public sealed class LivePluginClosureTests
 		{
 			TypeDefinition type = reader.GetTypeDefinition(typeHandle);
 			if (!string.Equals(reader.GetString(type.Namespace), "CESDK", StringComparison.Ordinal)
-				|| !string.Equals(reader.GetString(type.Name), "CESDK", StringComparison.Ordinal))
+			    || !string.Equals(reader.GetString(type.Name), "CESDK", StringComparison.Ordinal))
 			{
 				continue;
 			}
@@ -159,10 +166,15 @@ public sealed class LivePluginClosureTests
 					continue;
 				}
 
-				MethodSignature<string> decoded = method.DecodeSignature(SignatureNames.Instance, genericContext: null);
-				string access = (method.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public ? "public" : "non-public";
-				string binding = (method.Attributes & MethodAttributes.Static) != MethodAttributes.PrivateScope ? "static" : "instance";
-				return $"{access} {binding} {decoded.ReturnType} CEPluginInitialize({string.Join(", ", decoded.ParameterTypes)})";
+				MethodSignature<string> decoded = method.DecodeSignature(SignatureNames.Instance, null);
+				string access = (method.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public
+					? "public"
+					: "non-public";
+				string binding = (method.Attributes & MethodAttributes.Static) != MethodAttributes.PrivateScope
+					? "static"
+					: "instance";
+				return
+					$"{access} {binding} {decoded.ReturnType} CEPluginInitialize({string.Join(", ", decoded.ParameterTypes)})";
 			}
 		}
 
@@ -202,7 +214,8 @@ public sealed class LivePluginClosureTests
 			return reader.GetString(reference.Namespace) + "." + reader.GetString(reference.Name);
 		}
 
-		public string GetTypeFromSpecification(MetadataReader reader, object? genericContext, TypeSpecificationHandle handle, byte rawTypeKind)
+		public string GetTypeFromSpecification(MetadataReader reader, object? genericContext,
+			TypeSpecificationHandle handle, byte rawTypeKind)
 		{
 			return "typespec";
 		}
@@ -234,12 +247,12 @@ public sealed class LivePluginClosureTests
 
 		public string GetGenericMethodParameter(object? genericContext, int index)
 		{
-			return "!!" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+			return "!!" + index.ToString(CultureInfo.InvariantCulture);
 		}
 
 		public string GetGenericTypeParameter(object? genericContext, int index)
 		{
-			return "!" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+			return "!" + index.ToString(CultureInfo.InvariantCulture);
 		}
 
 		public string GetModifiedType(string modifier, string unmodifiedType, bool isRequired)

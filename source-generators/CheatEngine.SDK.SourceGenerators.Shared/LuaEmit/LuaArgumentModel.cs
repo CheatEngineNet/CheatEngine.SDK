@@ -59,12 +59,6 @@ internal sealed record LuaArgumentModel(
 	{
 	}
 
-	/// <summary>An optional <c>LuaOptional&lt;T&gt;</c> argument of a built-in kind.</summary>
-	public static LuaArgumentModel Optional(string name, LuaValueKind kind)
-	{
-		return new LuaArgumentModel(name, kind, false, IsOptional: true);
-	}
-
 	/// <summary>Whether this value is pushed directly instead of being supplied by a wrapper parameter.</summary>
 	public bool IsFixed => FixedValue is not null;
 
@@ -83,4 +77,10 @@ internal sealed record LuaArgumentModel(
 	/// <summary>The Lua-facing expected type in a generated bad-argument message.</summary>
 	public string ExpectedArgumentTypeName =>
 		CustomMarshaller?.ExpectedTypeName ?? LuaValueKinds.ExpectedArgument(Kind);
+
+	/// <summary>An optional <c>LuaOptional&lt;T&gt;</c> argument of a built-in kind.</summary>
+	public static LuaArgumentModel Optional(string name, LuaValueKind kind)
+	{
+		return new LuaArgumentModel(name, kind, false, IsOptional: true);
+	}
 }

@@ -36,9 +36,11 @@ public sealed class AutoAssemblerDisableInfoSnapshotTests
 		                  }
 		                  """u8);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
 
-		AutoAssemblerDisableInfoSnapshot snapshot = Assert.IsType<AutoAssemblerDisableInfoSnapshot>(outcome.DisableInfo);
+		AutoAssemblerDisableInfoSnapshot
+			snapshot = Assert.IsType<AutoAssemblerDisableInfoSnapshot>(outcome.DisableInfo);
 		Assert.Equal(AutoAssemblerDisableInfoSnapshotStatus.Complete, snapshot.Status);
 		Assert.Collection(snapshot.Allocations,
 			static code =>
@@ -58,7 +60,10 @@ public sealed class AutoAssemblerDisableInfoSnapshotTests
 		Assert.Equal(["player_base", "ammo"], snapshot.RegisteredSymbols);
 		Assert.Equal([new Address(0x140000010), new Address(0x140000020)], snapshot.ExceptionRanges);
 		Assert.Equal(
-			[new AutoAssemblerSymbolInfo("newmem", new Address(0x140000000)), new AutoAssemblerSymbolInfo("return_here", new Address(0x140001005))],
+			[
+				new AutoAssemblerSymbolInfo("newmem", new Address(0x140000000)),
+				new AutoAssemblerSymbolInfo("return_here", new Address(0x140001005))
+			],
 			snapshot.Symbols);
 		Assert.False(snapshot.HasCCodeSymbolList);
 		Assert.IsNotType<AutoAssemblerAllocationInfo[]>(snapshot.Allocations);
@@ -84,12 +89,14 @@ public sealed class AutoAssemblerDisableInfoSnapshotTests
 		                  }
 		                  """u8);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
 
 		AutoAssemblerDisableInfoSnapshot snapshot = outcome.DisableInfo!;
 		Assert.Equal(["B", "_z", "a", "b"], snapshot.Allocations.Select(static allocation => allocation.Name),
 			StringComparer.Ordinal);
-		Assert.Equal(["B", "_z", "a", "b"], snapshot.Symbols.Select(static symbol => symbol.Name), StringComparer.Ordinal);
+		Assert.Equal(["B", "_z", "a", "b"], snapshot.Symbols.Select(static symbol => symbol.Name),
+			StringComparer.Ordinal);
 		patch!.Dispose();
 		Assert.Equal(0, L.Top);
 	}
@@ -110,7 +117,8 @@ public sealed class AutoAssemblerDisableInfoSnapshotTests
 		                  }
 		                  """u8);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
 
 		AutoAssemblerDisableInfoSnapshot snapshot = outcome.DisableInfo!;
 		Assert.Equal(AutoAssemblerDisableInfoSnapshotStatus.Complete, snapshot.Status);
@@ -138,11 +146,7 @@ public sealed class AutoAssemblerDisableInfoSnapshotTests
 		                    symbols = { short = 1, far_too_long_a_name = 2 },
 		                  }
 		                  """u8);
-		AutoAssemblerOptions options = new()
-		{
-			MaxDisableInfoEntries = 2,
-			MaxDisableInfoNameBytes = 8
-		};
+		AutoAssemblerOptions options = new() { MaxDisableInfoEntries = 2, MaxDisableInfoNameBytes = 8 };
 
 		AutoAssemblerApplyOutcome outcome =
 			AutoAssemblerPatcher.TryApplyWithOutcome("success", options, out AutoAssemblerPatch? patch);
@@ -181,7 +185,8 @@ public sealed class AutoAssemblerDisableInfoSnapshotTests
 		                  }
 		                  """u8);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
 
 		Assert.Equal(AutoAssemblerApplyOutcomeKind.Applied, outcome.Kind);
 		Assert.Equal(EngineEffectState.Applied, outcome.Effect);
@@ -215,7 +220,8 @@ public sealed class AutoAssemblerDisableInfoSnapshotTests
 		EngineTest.Run(L, "aa_disable_info = { ccodesymbols = aa_ccode_symbols }"u8);
 		long destroyed = FakeHost.DestroyedCount(L);
 
-		AutoAssemblerApplyOutcome outcome = AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
+		AutoAssemblerApplyOutcome outcome =
+			AutoAssemblerPatcher.TryApplyWithOutcome("success", out AutoAssemblerPatch? patch);
 		patch!.Dispose();
 
 		Assert.True(outcome.DisableInfo!.HasCCodeSymbolList);

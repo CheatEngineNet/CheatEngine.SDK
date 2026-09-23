@@ -12,7 +12,7 @@ internal static class Identifiers
 	public static string Escape(string name)
 	{
 		return SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ||
-			   SyntaxFacts.GetContextualKeywordKind(name) != SyntaxKind.None
+		       SyntaxFacts.GetContextualKeywordKind(name) != SyntaxKind.None
 			? "@" + name
 			: name;
 	}

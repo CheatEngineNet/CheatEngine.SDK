@@ -18,14 +18,13 @@ namespace CheatEngine.SDK.Engine.Tests.AddressList;
 internal sealed class AddressListTestHost : IDisposable
 {
 	private readonly NativeLuaState _nativeState;
-	private readonly HostScope _scope;
 
 	public AddressListTestHost()
 	{
 		EngineTest.RequireNativeLua();
 		_nativeState = new NativeLuaState();
-		_scope = new HostScope(_nativeState);
-		State = _scope.State;
+		Scope = new HostScope(_nativeState);
+		State = Scope.State;
 		CEObject list = FakeHost.CreateObject(State, "Probe");
 		FakeHost.SetGlobalObject(State, "list", list);
 		EngineTest.Run(State, """
@@ -43,36 +42,45 @@ internal sealed class AddressListTestHost : IDisposable
 		get;
 	}
 
-	public HostScope Scope => _scope;
+	public HostScope Scope
+	{
+		get;
+	}
+
+	public void Dispose()
+	{
+		Scope.Dispose();
+		_nativeState.Dispose();
+	}
 
 	/// <summary>Creates a record with <paramref name="id" />, adds it to <c>records</c> and returns its handle.</summary>
 	public CEObject AddRecord(int id, string mode = "apply", bool active = false, string extra = "")
 	{
 		string initializer = string.Create(CultureInfo.InvariantCulture, $$"""
-			o.props.ID = {{id}}
-			o.props.Active = {{(active ? "true" : "false")}}
-			o.props.AsyncProcessing = false
-			o.props.Async = false
-			o.mode = "{{mode}}"
-			o.getters.destroy = function(o)
-			  return function()
-			    delete_calls = delete_calls + 1
-			    if o.gone then error("object already destroyed") end
-			    o.gone = true
-			    records[o.props.ID] = nil
-			  end
-			end
-			o.setters.Active = function(o, value)
-			  active_set_calls = active_set_calls + 1
-			  if o.mode == "refuse" then return end
-			  if o.mode == "retry-request" then retry_requested = retry_requested + 1 return end
-			  o.props.Active = value
-			  if o.mode == "raise" then error("activation raised after it started") end
-			  if o.mode == "async" then o.props.AsyncProcessing = true end
-			  if o.mode == "post-read-fails" then o.getters.Active = function() error("record vanished") end end
-			end
-			{{extra}}
-			""");
+		                                                                   o.props.ID = {{id}}
+		                                                                   o.props.Active = {{(active ? "true" : "false")}}
+		                                                                   o.props.AsyncProcessing = false
+		                                                                   o.props.Async = false
+		                                                                   o.mode = "{{mode}}"
+		                                                                   o.getters.destroy = function(o)
+		                                                                     return function()
+		                                                                       delete_calls = delete_calls + 1
+		                                                                       if o.gone then error("object already destroyed") end
+		                                                                       o.gone = true
+		                                                                       records[o.props.ID] = nil
+		                                                                     end
+		                                                                   end
+		                                                                   o.setters.Active = function(o, value)
+		                                                                     active_set_calls = active_set_calls + 1
+		                                                                     if o.mode == "refuse" then return end
+		                                                                     if o.mode == "retry-request" then retry_requested = retry_requested + 1 return end
+		                                                                     o.props.Active = value
+		                                                                     if o.mode == "raise" then error("activation raised after it started") end
+		                                                                     if o.mode == "async" then o.props.AsyncProcessing = true end
+		                                                                     if o.mode == "post-read-fails" then o.getters.Active = function() error("record vanished") end end
+		                                                                   end
+		                                                                   {{extra}}
+		                                                                   """);
 		CEObject record = FakeHost.CreateObject(State, "Probe", initializer);
 		FakeHost.SetGlobalObject(State, "new_record", record);
 		EngineTest.Run(State, Encoding.UTF8.GetBytes(
@@ -92,11 +100,5 @@ internal sealed class AddressListTestHost : IDisposable
 		using LuaFrame frame = new(State);
 		Assert.True(State.TryGetGlobal(Encoding.UTF8.GetBytes(name)).IsOk);
 		return EngineTest.ReadInteger(State, -1);
-	}
-
-	public void Dispose()
-	{
-		_scope.Dispose();
-		_nativeState.Dispose();
 	}
 }

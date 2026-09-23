@@ -57,7 +57,7 @@ internal static class ExceptionGuardRewriter
 		int statementPart = IndexAfterLastComment(afterSemicolon);
 		SyntaxTriviaList withStatement = Slice(afterSemicolon, 0, statementPart);
 		if (statementPart > 0 && afterSemicolon[statementPart - 1].IsKind(SyntaxKind.SingleLineCommentTrivia))
-		// The closing brace of the try block follows: it must not end up inside the comment.
+			// The closing brace of the try block follows: it must not end up inside the comment.
 		{
 			withStatement = withStatement.Add(endOfLine);
 		}

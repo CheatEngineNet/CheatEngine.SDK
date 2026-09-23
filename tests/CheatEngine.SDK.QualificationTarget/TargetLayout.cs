@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace QualificationTarget;
@@ -55,7 +56,7 @@ internal static class TargetLayout
 				builder.Append(' ');
 			}
 
-			builder.Append(value.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+			builder.Append(value.ToString("X2", CultureInfo.InvariantCulture));
 		}
 
 		return builder.ToString();

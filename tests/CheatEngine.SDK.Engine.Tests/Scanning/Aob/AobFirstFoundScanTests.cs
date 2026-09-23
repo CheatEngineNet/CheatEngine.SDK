@@ -106,7 +106,8 @@ public sealed class AobFirstFoundScanTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		_ = MemScanTestHost.Install(L);
-		MemScanTestHost.Run(L, "only_result_mode = 'value'; only_result_value = " + reported.ToString(CultureInfo.InvariantCulture));
+		MemScanTestHost.Run(L,
+			"only_result_mode = 'value'; only_result_value = " + reported.ToString(CultureInfo.InvariantCulture));
 
 		AobFirstFoundResult result = Find(Bounds(0x1_0000_1000, 0x1_0036_7000));
 
@@ -163,7 +164,8 @@ public sealed class AobFirstFoundScanTests
 	[InlineData("not-found", AobFirstFoundOutcomeKind.NotFound, "scan.getOnlyResult,list.destroy,scan.destroy")]
 	[InlineData("invalid", AobFirstFoundOutcomeKind.InvalidResult, "scan.getOnlyResult,list.destroy,scan.destroy")]
 	[InlineData("get-raises", AobFirstFoundOutcomeKind.ScanFailed, "scan.getOnlyResult,list.destroy,scan.destroy")]
-	[InlineData("set-raises", AobFirstFoundOutcomeKind.ScanFailed, "scan.setOnlyOneResult:true,list.destroy,scan.destroy")]
+	[InlineData("set-raises", AobFirstFoundOutcomeKind.ScanFailed,
+		"scan.setOnlyOneResult:true,list.destroy,scan.destroy")]
 	[InlineData("first-raises", AobFirstFoundOutcomeKind.ScanFailed,
 		"scan.first:14,scan.terminate:false,scan.wait:5000,list.destroy,scan.destroy")]
 	[InlineData("wait-raises", AobFirstFoundOutcomeKind.ScanFailed,
@@ -261,8 +263,9 @@ public sealed class AobFirstFoundScanTests
 		LuaState L = scope.State;
 		_ = MemScanTestHost.Install(L);
 		MemScanTestHost.Run(L, "only_result_mode = 'value'; only_result_value = 0x100000000; " +
-							   "scan_first_hook = function() opened_process_id = " +
-							   MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture) + " end");
+		                       "scan_first_hook = function() opened_process_id = " +
+		                       MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture) +
+		                       " end");
 
 		AobFirstFoundResult result = Find(ModuleBounds);
 

@@ -85,34 +85,6 @@ public sealed class MemoryScanSession : IDisposable
 	private const string ResultCountOperation = "MemoryScan.ResultCount";
 	private const string ResultAddressOperation = "MemoryScan.ResultAddress";
 	private const string ResultValueOperation = "MemoryScan.ResultValue";
-	private Owned<FoundList>? _foundList;
-	private bool _isBound;
-	private Owned<MemScan>? _scanner;
-
-	// True from immediately before a firstScan/nextScan call (CE may have started work even if the call then fails)
-	// until a wait reports completion, a cooperative stop is confirmed, or a reset succeeds.
-	private bool _scanMayBeRunning;
-
-	// The one cooperative stop request of the current scan, if any: it is never repeated, and its status is what a
-	// later release reports when the stop stayed unconfirmed.
-	private bool _terminationAttempted;
-	private MemoryScanTerminationStatus _termination;
-	private TargetSelectionObservation _targetObservation;
-
-	// The member whose CE calls are in progress, or null, and whether that member is the release itself. CE's waits,
-	// resets and destroys can run queued main-thread work that calls back into this session (see the type remarks).
-	// While a member is active, every other member is refused, and a release or abandon requested meanwhile is
-	// recorded here and run by the active member once its CE calls have returned.
-	private string? _activeOperation;
-	private bool _releaseInProgress;
-	private DeferredDisposal _deferredDisposal;
-
-	private MemoryScanSession(Owned<MemScan> scanner, Owned<FoundList> foundList)
-	{
-		_scanner = scanner;
-		_foundList = foundList;
-		State = MemoryScanState.New;
-	}
 
 	/// <summary>The maximum number of UTF-8 bytes that <see cref="TryGetHostErrorText" /> copies from CE.</summary>
 	public const int HostErrorTextMaximumUtf8Bytes = 1024;
@@ -122,6 +94,34 @@ public sealed class MemoryScanSession : IDisposable
 	///     route issue for a scan that may still be running.
 	/// </summary>
 	internal const int ReleaseTerminationWaitMilliseconds = 5000;
+
+	// The member whose CE calls are in progress, or null, and whether that member is the release itself. CE's waits,
+	// resets and destroys can run queued main-thread work that calls back into this session (see the type remarks).
+	// While a member is active, every other member is refused, and a release or abandon requested meanwhile is
+	// recorded here and run by the active member once its CE calls have returned.
+	private string? _activeOperation;
+	private DeferredDisposal _deferredDisposal;
+	private Owned<FoundList>? _foundList;
+	private bool _isBound;
+	private bool _releaseInProgress;
+
+	// True from immediately before a firstScan/nextScan call (CE may have started work even if the call then fails)
+	// until a wait reports completion, a cooperative stop is confirmed, or a reset succeeds.
+	private bool _scanMayBeRunning;
+	private Owned<MemScan>? _scanner;
+	private TargetSelectionObservation _targetObservation;
+	private MemoryScanTerminationStatus _termination;
+
+	// The one cooperative stop request of the current scan, if any: it is never repeated, and its status is what a
+	// later release reports when the stop stayed unconfirmed.
+	private bool _terminationAttempted;
+
+	private MemoryScanSession(Owned<MemScan> scanner, Owned<FoundList> foundList)
+	{
+		_scanner = scanner;
+		_foundList = foundList;
+		State = MemoryScanState.New;
+	}
 
 	/// <summary>Gets the session's conservative, managed state.</summary>
 	public MemoryScanState State
@@ -267,6 +267,10 @@ public sealed class MemoryScanSession : IDisposable
 			}
 		}
 	}
+
+	// Whether a release or abandon was requested from inside the active member's CE calls: that member then makes no
+	// further CE call.
+	private bool IsDisposalRequested => _deferredDisposal != DeferredDisposal.None;
 
 	/// <summary>Best-effort, no-throw disposal that consumes both owners and never implicitly retries CE cleanup.</summary>
 	/// <remarks>
@@ -664,7 +668,7 @@ public sealed class MemoryScanSession : IDisposable
 		}
 
 		if (State == MemoryScanState.Scanning ||
-			(_terminationAttempted && _termination != MemoryScanTerminationStatus.Confirmed))
+		    (_terminationAttempted && _termination != MemoryScanTerminationStatus.Confirmed))
 		{
 			ThrowWrongState("Reset");
 		}
@@ -726,7 +730,8 @@ public sealed class MemoryScanSession : IDisposable
 	///     (timed-out) path was not observed on the pinned CE 7.7.0.10621 host (spike D4.7), which is why this member is
 	///     experimental. It blocks CE's main thread for at most the deadline.
 	/// </remarks>
-	[Experimental("CESDK5010", UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
+	[Experimental("CESDK5010",
+		UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
 	public MemoryScanWaitStatus TryWaitForCompletion(TimeSpan timeout)
@@ -792,7 +797,8 @@ public sealed class MemoryScanSession : IDisposable
 	///         (spike D4.7), which is why this member is experimental.
 	///     </para>
 	/// </remarks>
-	[Experimental("CESDK5010", UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
+	[Experimental("CESDK5010",
+		UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
 	public MemoryScanTerminationStatus TryTerminateScan(TimeSpan waitTimeout)
@@ -1251,7 +1257,8 @@ public sealed class MemoryScanSession : IDisposable
 		}
 
 		long ticks = timeout.Ticks;
-		long milliseconds = (ticks / TimeSpan.TicksPerMillisecond) + (ticks % TimeSpan.TicksPerMillisecond == 0 ? 0 : 1);
+		long milliseconds = (ticks / TimeSpan.TicksPerMillisecond) +
+		                    (ticks % TimeSpan.TicksPerMillisecond == 0 ? 0 : 1);
 		if (milliseconds > int.MaxValue)
 		{
 			throw new ArgumentOutOfRangeException(parameterName, timeout,
@@ -1365,7 +1372,7 @@ public sealed class MemoryScanSession : IDisposable
 		using LuaFrame frame = new(state);
 		state.PushInteger(waitMilliseconds);
 		if (!_scanner!.Value.Handle.TryCallMethod(state, "waitTillDone"u8, 1, 1).IsOk ||
-			state.TypeOf(-1) != LuaType.Boolean)
+		    state.TypeOf(-1) != LuaType.Boolean)
 		{
 			return MemoryScanTerminationStatus.WaitFailed;
 		}
@@ -1379,7 +1386,7 @@ public sealed class MemoryScanSession : IDisposable
 	{
 		using LuaFrame frame = new(state);
 		if (!_scanner!.Value.Handle.TryGetProperty(state, "ErrorString"u8).IsOk ||
-			!state.TryReadUtf8(-1, out ReadOnlySpan<byte> utf8))
+		    !state.TryReadUtf8(-1, out ReadOnlySpan<byte> utf8))
 		{
 			text = null;
 			truncated = false;
@@ -1620,10 +1627,6 @@ public sealed class MemoryScanSession : IDisposable
 		_ = ReleaseAsActiveCall();
 	}
 
-	// Whether a release or abandon was requested from inside the active member's CE calls: that member then makes no
-	// further CE call.
-	private bool IsDisposalRequested => _deferredDisposal != DeferredDisposal.None;
-
 	// After a lifecycle member returned: a release deferred from inside its CE calls has disposed the session, so the
 	// member must not report a completed transition.
 	private void ThrowIfReleasedDuringCall(string operation)
@@ -1650,7 +1653,7 @@ public sealed class MemoryScanSession : IDisposable
 	private TargetReleaseOutcome CreateRefusedReleaseOutcome(MemoryScanMaterializationStatus context)
 	{
 		if (context is MemoryScanMaterializationStatus.TargetIdentityUnavailable or
-				MemoryScanMaterializationStatus.TargetIdentityMismatch && LastTargetCheck.HasValue)
+			    MemoryScanMaterializationStatus.TargetIdentityMismatch && LastTargetCheck.HasValue)
 		{
 			return TargetReleaseOutcome.Refused(LastTargetCheck.GetValueOrDefault());
 		}

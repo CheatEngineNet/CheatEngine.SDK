@@ -53,11 +53,7 @@ public sealed class LiveProbeStatusTests
 	[Fact]
 	public void Status_without_an_enabled_context_reports_none_instead_of_zero_values()
 	{
-		LiveProbeHostFacts host = Facts(0, 0, 0, 0) with
-		{
-			HasContext = false,
-			Phase = "Registered"
-		};
+		LiveProbeHostFacts host = Facts(0, 0, 0, 0) with { HasContext = false, Phase = "Registered" };
 
 		string text = LiveProbeState.GetStatus(host);
 		using JsonDocument json = JsonDocument.Parse(LiveProbeState.GetStatusJson(host));

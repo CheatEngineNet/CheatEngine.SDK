@@ -85,10 +85,7 @@ internal static class LuaGlobalTables
 		{
 			string baseName = tables[i].ContainingType.HintBaseName;
 			string hintName = HintNames.AllocateUnique(baseName, LuaGlobalTableModel.HintSuffix, used);
-			tables[i] = tables[i] with
-			{
-				HintName = hintName
-			};
+			tables[i] = tables[i] with { HintName = hintName };
 		}
 
 		return tables;

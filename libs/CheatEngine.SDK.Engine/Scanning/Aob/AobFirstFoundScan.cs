@@ -89,7 +89,8 @@ internal static class AobFirstFoundScan
 		}
 
 		FirstScanRequest request = FirstScanRequest.ByteArray(pattern, bounds.Start, bounds.Stop,
-			options.ProtectionFlags ?? string.Empty, options.AlignmentMethod, options.AlignmentParameter ?? string.Empty);
+			options.ProtectionFlags ?? string.Empty, options.AlignmentMethod,
+			options.AlignmentParameter ?? string.Empty);
 		long scanStarted = Stopwatch.GetTimestamp();
 		session.StartFirstScan(in request);
 		MemoryScanMaterializationStatus context = session.TryEnsureCurrentContextCore(state);
@@ -152,7 +153,9 @@ internal static class AobFirstFoundScan
 			case MemoryScanFailureKind.UnexpectedResult:
 				return AobFirstFoundOutcomeKind.InvalidResult;
 			default:
-				luaStatus = exception.InnerException is LuaException lua ? FailureStatus(lua.Status) : LuaStatus.RuntimeError;
+				luaStatus = exception.InnerException is LuaException lua
+					? FailureStatus(lua.Status)
+					: LuaStatus.RuntimeError;
 				return AobFirstFoundOutcomeKind.ScanFailed;
 		}
 	}

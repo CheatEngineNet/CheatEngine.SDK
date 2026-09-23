@@ -59,9 +59,13 @@ namespace CheatEngine.SDK.Lua.Runtime;
 ///         policy from pointer inequality nor claims a live concurrency qualification.
 ///     </para>
 ///     <para>
-///         <b>Threading and Lua concurrency contract (ADR-07, unqualified pending a future host-based validation run; no
-///         local CE qualification is currently available).</b> The 2.0 default is <see cref="LuaThreadAdmission.MainThreadOnly" />:
-///         a new <see cref="AcquireOperation()" />-family call is refused with <see cref="LuaAdmissionStatus.ThreadNotAdmitted" />
+///         <b>
+///             Threading and Lua concurrency contract (ADR-07, unqualified pending a future host-based validation run; no
+///             local CE qualification is currently available).
+///         </b>
+///         The 2.0 default is <see cref="LuaThreadAdmission.MainThreadOnly" />:
+///         a new <see cref="AcquireOperation()" />-family call is refused with
+///         <see cref="LuaAdmissionStatus.ThreadNotAdmitted" />
 ///         before the host's state provider ever runs, unless the calling thread is the host's captured main thread, the
 ///         call is nested inside a Lua operation or callback already admitted on that thread, or it is the single
 ///         documented default exception: the worker-side <c>synchronize</c> hand-off behind
@@ -109,7 +113,6 @@ public static unsafe class LuaRuntime
 
 	// The private-registry universe stamp (WI-3 / A08-21, A08-22, A20-Q17-3, A20-Q18-2). Key is unique per SDK copy and
 	// never moves; s_stamped guards the one-time write per attachment so later admissions only verify it.
-	private static readonly nint s_stampKey = RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(LuaRuntime), 1);
 	private static int s_stamped;
 	private static int s_externalResetDetected;
 
@@ -130,7 +133,10 @@ public static unsafe class LuaRuntime
 	internal static Action? OperationAdmissionClosedForTesting;
 
 	/// <summary>The universe stamp's private-registry key. For tests only (distinctness from other private keys).</summary>
-	internal static nint StampKeyForTests => s_stampKey;
+	internal static nint StampKeyForTests
+	{
+		get;
+	} = RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(LuaRuntime), 1);
 
 	/// <summary>Gets a value indicating whether a host binding is attached. Lock-free; any thread.</summary>
 	public static bool IsAttached => Read(ref s_services) is not null;
@@ -260,7 +266,10 @@ public static unsafe class LuaRuntime
 	/// <summary>
 	///     Non-throwing <see cref="AcquireOperation()" /> that reports the factual admission reason instead of a boolean.
 	/// </summary>
-	/// <param name="operation">The admitted operation when the result is <see cref="LuaAdmissionStatus.Admitted" />; default otherwise.</param>
+	/// <param name="operation">
+	///     The admitted operation when the result is <see cref="LuaAdmissionStatus.Admitted" />; default
+	///     otherwise.
+	/// </param>
 	/// <returns>The factual admission outcome. Never derive a reason from an exception message instead of this enum.</returns>
 	[RequiresPluginEnabled]
 	public static LuaAdmissionStatus TryAcquireOperationWithOutcome(out LuaRuntimeOperation operation)
@@ -278,7 +287,8 @@ public static unsafe class LuaRuntime
 	///     The result is selected while <c>SOperationGate</c> is held. In particular, an
 	///     <see cref="LuaCallbackDisposeOperationResult.AdmissionClosed" /> result cannot be reinterpreted as detached
 	///     after an unsuccessful transition reopens admission: callback disposal must leave registry ownership with that
-	///     transition until a state has neutralized the Lua closure. <see cref="LuaCallbackDisposeOperationResult.ThreadNotAdmitted" />
+	///     transition until a state has neutralized the Lua closure.
+	///     <see cref="LuaCallbackDisposeOperationResult.ThreadNotAdmitted" />
 	///     and <see cref="LuaCallbackDisposeOperationResult.ExternalStateReset" /> are treated the same way by callers:
 	///     never abandon the closure early from a thread or a universe the SDK does not currently trust.
 	/// </remarks>
@@ -811,8 +821,8 @@ public static unsafe class LuaRuntime
 	internal static bool IsGeneratedFunctionRegistrationCurrent(int attachEpoch, int stateGeneration)
 	{
 		return Read(ref s_services) is not null
-			   && Read(ref s_identity) == PackIdentity(attachEpoch, stateGeneration)
-			   && IsOperationAdmissionOpen();
+		       && Read(ref s_identity) == PackIdentity(attachEpoch, stateGeneration)
+		       && IsOperationAdmissionOpen();
 	}
 
 	/// <summary>
@@ -883,7 +893,7 @@ public static unsafe class LuaRuntime
 	// Evaluates the 2.0 admission policy under SOperationGate, entirely before services.Provider() ever runs on a
 	// refused thread (pitfall 2): detached, external reset, transitioning and thread-not-admitted are all decided
 	// without creating a coroutine. Only then is the provider called and the universe stamp verified.
-	private static unsafe LuaAdmissionStatus TryEnterProviderOperationWithOutcome(out LuaState state,
+	private static LuaAdmissionStatus TryEnterProviderOperationWithOutcome(out LuaState state,
 		bool bypassThreadAdmission)
 	{
 		LuaAdmissionStatus gateStatus = TryEnterAdmissionGate(bypassThreadAdmission, out LuaHostServices? services);
@@ -953,9 +963,9 @@ public static unsafe class LuaRuntime
 			}
 
 			if (!bypassThreadAdmission
-				&& Read(ref s_threadAdmission) == (int) LuaThreadAdmission.MainThreadOnly
-				&& Environment.CurrentManagedThreadId != services.MainThreadId
-				&& t_operationDepth == 0)
+			    && Read(ref s_threadAdmission) == (int) LuaThreadAdmission.MainThreadOnly
+			    && Environment.CurrentManagedThreadId != services.MainThreadId
+			    && t_operationDepth == 0)
 			{
 				return LuaAdmissionStatus.ThreadNotAdmitted;
 			}
@@ -971,8 +981,8 @@ public static unsafe class LuaRuntime
 	{
 		if (Interlocked.CompareExchange(ref s_stamped, 1, 0) == 0)
 		{
-			state.PushLightUserdata(s_stampKey);
-			state.RawSetPointer(LuaState.RegistryIndex, s_stampKey);
+			state.PushLightUserdata(StampKeyForTests);
+			state.RawSetPointer(LuaState.RegistryIndex, StampKeyForTests);
 			return true;
 		}
 
@@ -982,8 +992,8 @@ public static unsafe class LuaRuntime
 	// Raw, non-allocating, no metamethod (pitfall 6c): a plain rawgetp/touserdata/pop. ZeroAllocationTests gates this.
 	private static bool CheckStamp(LuaState state)
 	{
-		LuaType type = state.RawGetPointer(LuaState.RegistryIndex, s_stampKey);
-		bool matches = type == LuaType.LightUserdata && state.ToUserdata(-1) == s_stampKey;
+		LuaType type = state.RawGetPointer(LuaState.RegistryIndex, StampKeyForTests);
+		bool matches = type == LuaType.LightUserdata && state.ToUserdata(-1) == StampKeyForTests;
 		state.Pop(1);
 		return matches;
 	}
@@ -991,7 +1001,7 @@ public static unsafe class LuaRuntime
 	// Best-effort eager stamp at Attach (or after CompleteStateReset) time, on the state the binding already
 	// provides. Deferred to the first admitted acquisition when the provider yields no state yet (pitfall 6a: tests
 	// may attach with a provider returning null).
-	private static unsafe void StampIfStateAvailable(LuaHostServices services)
+	private static void StampIfStateAvailable(LuaHostServices services)
 	{
 		lua_State* l = services.Provider();
 		if (l is null)
@@ -1004,8 +1014,8 @@ public static unsafe class LuaRuntime
 		{
 			if (Interlocked.CompareExchange(ref s_stamped, 1, 0) == 0)
 			{
-				state.PushLightUserdata(s_stampKey);
-				state.RawSetPointer(LuaState.RegistryIndex, s_stampKey);
+				state.PushLightUserdata(StampKeyForTests);
+				state.RawSetPointer(LuaState.RegistryIndex, StampKeyForTests);
 			}
 		}
 		catch
@@ -1021,7 +1031,7 @@ public static unsafe class LuaRuntime
 	// BeginStateReset) would otherwise unref and neutralize against. Never mutates anything and never releases a
 	// reference: a mismatch means the whole registry belongs to a different Lua universe (A08-22), so the caller
 	// must abandon instead of unregistering into it.
-	private static unsafe bool DetectExternalResetForDetach(LuaHostServices services, out LuaState state)
+	private static bool DetectExternalResetForDetach(LuaHostServices services, out LuaState state)
 	{
 		if (Read(ref s_externalResetDetected) != 0)
 		{

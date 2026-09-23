@@ -29,17 +29,13 @@ internal static class LuaObjectPropertyParser
 			LuaBindingsGenerator.LuaPropertyAttributeMetadataName);
 		bool described = TryDescribe(property, declaration, out LuaObjectPropertyModel model);
 		bool valid = isSdkAttribute && LuaNames.IsValidName(luaName)
-									&& LuaClassParser.IsGeneratedHandle(property.ContainingType, compilation,
-										cancellationToken)
-									&& described;
+		                            && LuaClassParser.IsGeneratedHandle(property.ContainingType, compilation,
+			                            cancellationToken)
+		                            && described;
 
 		if (valid)
 		{
-			return model with
-			{
-				LuaName = luaName!,
-				IsValid = true
-			};
+			return model with { LuaName = luaName!, IsValid = true };
 		}
 
 		return new LuaObjectPropertyModel(
@@ -63,7 +59,7 @@ internal static class LuaObjectPropertyParser
 		LuaValueKind kind;
 		bool isNullable;
 		bool typeIsSupported = LuaValueKindMapper.TryMap(property.Type, out kind, out isNullable)
-							   && LuaValueKinds.CanBeResult(kind);
+		                       && LuaValueKinds.CanBeResult(kind);
 		string modifiers;
 		bool definitionIsSupported = IsSupportedDefinition(property, declaration, typeIsSupported,
 			out modifiers);
@@ -92,15 +88,15 @@ internal static class LuaObjectPropertyParser
 	{
 		modifiers = string.Empty;
 		return declaration is not null
-			   && !property.IsStatic
-			   && !property.IsIndexer
-			   && property.RefKind == RefKind.None
-			   && declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
-			   && declaration.AccessorList is not null
-			   && declaration.ExplicitInterfaceSpecifier is null
-			   && property.PartialImplementationPart is null
-			   && typeIsSupported
-			   && TryModifiers(declaration, out modifiers);
+		       && !property.IsStatic
+		       && !property.IsIndexer
+		       && property.RefKind == RefKind.None
+		       && declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
+		       && declaration.AccessorList is not null
+		       && declaration.ExplicitInterfaceSpecifier is null
+		       && property.PartialImplementationPart is null
+		       && typeIsSupported
+		       && TryModifiers(declaration, out modifiers);
 	}
 
 	private static bool TryDescribeAccessors(PropertyDeclarationSyntax? declaration, out bool hasGetter,
@@ -118,7 +114,7 @@ internal static class LuaObjectPropertyParser
 		foreach (AccessorDeclarationSyntax accessor in accessorList.Accessors)
 		{
 			if (!TryDescribeAccessor(accessor, ref hasGetter, ref getterModifiers, ref hasSetter,
-					ref setterModifiers))
+				    ref setterModifiers))
 			{
 				return false;
 			}
@@ -131,7 +127,7 @@ internal static class LuaObjectPropertyParser
 		ref string getterModifiers, ref bool hasSetter, ref string setterModifiers)
 	{
 		if (accessor.Body is not null || accessor.ExpressionBody is not null
-									  || !TryAccessorModifiers(accessor, out string modifiers))
+		                              || !TryAccessorModifiers(accessor, out string modifiers))
 		{
 			return false;
 		}

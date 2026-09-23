@@ -1,3 +1,5 @@
+using System.Globalization;
+
 using YamlDotNet.RepresentationModel;
 
 namespace CheatEngine.SDK.Repository.Tests.Workflows;
@@ -29,7 +31,7 @@ public sealed partial class WorkflowContractTests
 				if (string.Equals(job.Uses, PipelineUses, StringComparison.Ordinal))
 				{
 					Assert.True(string.Equals(job.Id, WorkflowContract.CallerJobId, StringComparison.Ordinal) &&
-						string.Equals(job.Name, WorkflowContract.CallerJobName, StringComparison.Ordinal),
+					            string.Equals(job.Name, WorkflowContract.CallerJobName, StringComparison.Ordinal),
 						$"{job.Location} calls ci.yml; only a job 'ci' named 'CI' may.");
 				}
 			}
@@ -75,7 +77,8 @@ public sealed partial class WorkflowContractTests
 		Assert.Contains("$required = 'skipped'", run, StringComparison.Ordinal);
 		Assert.Contains("if ($result -ne $required)", run, StringComparison.Ordinal);
 		Assert.Contains("| Job | Result | Required | Reason |", run, StringComparison.Ordinal);
-		Assert.Contains("Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8", run, StringComparison.Ordinal);
+		Assert.Contains("Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8", run,
+			StringComparison.Ordinal);
 		Assert.Contains("exit 1", run, StringComparison.Ordinal);
 	}
 
@@ -122,7 +125,7 @@ public sealed partial class WorkflowContractTests
 			Assert.True(jobs.Remove(expected.Id, out WorkflowJob? job), $"ci.yml has no job '{expected.Id}'.");
 			Assert.Equal(expected.Name, job.Name);
 			Assert.Equal(expected.RunsOn, job.RunsOn);
-			Assert.Equal(expected.TimeoutMinutes?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+			Assert.Equal(expected.TimeoutMinutes?.ToString(CultureInfo.InvariantCulture),
 				WorkflowFile.Scalar(job.Node, "timeout-minutes"));
 		}
 
@@ -149,7 +152,9 @@ public sealed partial class WorkflowContractTests
 
 		YamlMappingNode secrets = Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(call, "secrets"));
 		Assert.Equal(["SONAR_TOKEN"], WorkflowFile.Keys(secrets));
-		Assert.Equal("false", WorkflowFile.Scalar(Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(secrets, "SONAR_TOKEN")), "required"));
+		Assert.Equal("false",
+			WorkflowFile.Scalar(Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(secrets, "SONAR_TOKEN")),
+				"required"));
 		Assert.False(WorkflowFile.Has(call, "outputs"), "ci.yml has no workflow_call outputs in v1 (contract 1.4).");
 
 		// No repository variable steers the pipeline (contract 1.4).
@@ -176,7 +181,8 @@ public sealed partial class WorkflowContractTests
 		Assert.Equal(["build-test"], sonar.Needs());
 		Assert.Equal("${{ github.event_name != 'push' }}", WorkflowJob.With(sonar.Node, "wait-quality-gate"));
 		Assert.Equal("${{ secrets.SONAR_TOKEN }}",
-			WorkflowFile.Scalar(Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(sonar.Node, "secrets")), "SONAR_TOKEN"));
+			WorkflowFile.Scalar(Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(sonar.Node, "secrets")),
+				"SONAR_TOKEN"));
 
 		WorkflowJob analyze = WorkflowFile.LoadWorkflow(WorkflowContract.Sonar).Job("analyze");
 		YamlMappingNode env = Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(analyze.Node, "env"));
@@ -188,7 +194,8 @@ public sealed partial class WorkflowContractTests
 		YamlMappingNode link = analyze.Step("Link the analysis");
 		Assert.True(analyze.StepIndex("End analysis") < analyze.StepIndex("Link the analysis"));
 		Assert.Equal("${{ !cancelled() }}", WorkflowFile.Scalar(link, "if"));
-		Assert.Contains("Out-File -FilePath $env:GITHUB_STEP_SUMMARY", WorkflowFile.Scalar(link, "run"), StringComparison.Ordinal);
+		Assert.Contains("Out-File -FilePath $env:GITHUB_STEP_SUMMARY", WorkflowFile.Scalar(link, "run"),
+			StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -199,17 +206,18 @@ public sealed partial class WorkflowContractTests
 
 		HashSet<string> exclusions = new(SonarProperty(begin, "sonar.exclusions").Split(','), StringComparer.Ordinal);
 		foreach (string tree in new[]
-				 {
-					 "artifacts/**", "tests/CheatEngine.SDK.QualificationTarget/**", "tests/native-host-emulator/**", "eng/tools/**",
-					 "docs/**"
-				 })
+		         {
+			         "artifacts/**", "tests/CheatEngine.SDK.QualificationTarget/**",
+			         "tests/native-host-emulator/**", "eng/tools/**", "docs/**"
+		         })
 		{
 			Assert.True(exclusions.Contains(tree), $"sonar.exclusions must list {tree}.");
 		}
 
 		// Tests stay analysed (their issues are triaged by rule), but they never count as product coverage.
 		Assert.False(exclusions.Contains("tests/**"), "Tests stay analysed; only their coverage is excluded.");
-		HashSet<string> coverage = new(SonarProperty(begin, "sonar.coverage.exclusions").Split(','), StringComparer.Ordinal);
+		HashSet<string> coverage = new(SonarProperty(begin, "sonar.coverage.exclusions").Split(','),
+			StringComparer.Ordinal);
 		foreach (string tree in new[] { "tests/**", "eng/**", "docs/**" })
 		{
 			Assert.True(coverage.Contains(tree), $"sonar.coverage.exclusions must list {tree}.");
@@ -239,7 +247,8 @@ public sealed partial class WorkflowContractTests
 			{
 				// pr-policy.yml no longer exists (the PR title/changelog policy engine was removed); pull-request-ci.yml
 				// must always exist.
-				Assert.False(string.Equals(fileName, "pull-request-ci.yml", StringComparison.Ordinal), $"{fileName} is missing.");
+				Assert.False(string.Equals(fileName, "pull-request-ci.yml", StringComparison.Ordinal),
+					$"{fileName} is missing.");
 				continue;
 			}
 
@@ -251,7 +260,8 @@ public sealed partial class WorkflowContractTests
 					continue;
 				}
 
-				Assert.False(WorkflowFile.Has(configuration, "paths") || WorkflowFile.Has(configuration, "paths-ignore"),
+				Assert.False(
+					WorkflowFile.Has(configuration, "paths") || WorkflowFile.Has(configuration, "paths-ignore"),
 					$"{fileName} '{trigger}' must not filter paths: its required check must report on every pull request.");
 			}
 		}
@@ -264,7 +274,8 @@ public sealed partial class WorkflowContractTests
 
 		Assert.Equal(["push", "workflow_dispatch"], main.Triggers());
 		YamlMappingNode push = Assert.IsType<YamlMappingNode>(main.Trigger("push"));
-		Assert.Equal(["main"], WorkflowFile.ScalarValues(Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(push, "branches"))));
+		Assert.Equal(["main"],
+			WorkflowFile.ScalarValues(Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(push, "branches"))));
 		Assert.False(WorkflowFile.Has(main.Root, "concurrency"),
 			"main-ci.yml keeps every main commit's run: a concurrency group would cancel or drop intermediate runs.");
 	}
@@ -278,10 +289,13 @@ public sealed partial class WorkflowContractTests
 		YamlMappingNode trigger = Assert.IsType<YamlMappingNode>(pullRequest.Trigger("pull_request"));
 		Assert.Equal(["opened", "synchronize", "reopened", "ready_for_review"],
 			WorkflowFile.ScalarValues(Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(trigger, "types"))));
-		Assert.Equal("${{ !github.event.pull_request.draft }}", pullRequest.Job(WorkflowContract.CallerJobId).Condition);
+		Assert.Equal("${{ !github.event.pull_request.draft }}",
+			pullRequest.Job(WorkflowContract.CallerJobId).Condition);
 
-		YamlMappingNode concurrency = Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(pullRequest.Root, "concurrency"));
-		Assert.Equal("${{ github.workflow }}-${{ github.event.pull_request.number }}", WorkflowFile.Scalar(concurrency, "group"));
+		YamlMappingNode concurrency =
+			Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(pullRequest.Root, "concurrency"));
+		Assert.Equal("${{ github.workflow }}-${{ github.event.pull_request.number }}",
+			WorkflowFile.Scalar(concurrency, "group"));
 		Assert.Equal("true", WorkflowFile.Scalar(concurrency, "cancel-in-progress"));
 	}
 

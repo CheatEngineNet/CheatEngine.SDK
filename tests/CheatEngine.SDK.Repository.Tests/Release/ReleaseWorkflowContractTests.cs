@@ -6,8 +6,12 @@ namespace CheatEngine.SDK.Repository.Tests.Release;
 
 /// <summary>
 ///     The release workflow is draft-first and compatible with immutable releases (shared contract 1.11, audit ch.21
-///     "Le tuple a qualifier", Checkpoint F): <c>verify → ci → attest → draft-release → publish → verify-publication →
-///     finalize-release</c>. Attestations and every asset exist before the draft is published, publication jobs run only
+///     "Le tuple a qualifier", Checkpoint F):
+///     <c>
+///         verify → ci → attest → draft-release → publish → verify-publication →
+///         finalize-release
+///     </c>
+///     . Attestations and every asset exist before the draft is published, publication jobs run only
 ///     for version tags of this repository, the only write tokens live in the jobs that need them, NuGet trusted
 ///     publishing stays in the <c>publish</c> job with environment <c>nuget</c>, and nothing is ever uploaded to a
 ///     published release. These tests read the committed YAML only.
@@ -31,9 +35,11 @@ public sealed class ReleaseWorkflowContractTests
 		("finalize-release", "Publish GitHub release", ["verify", "attest", "verify-publication"])
 	];
 
-	private static readonly string[] s_publicationJobs = ["draft-release", "publish", "verify-publication", "finalize-release"];
+	private static readonly string[] s_publicationJobs =
+		["draft-release", "publish", "verify-publication", "finalize-release"];
 
-	private static readonly HashSet<string> s_runnerLabels = new(StringComparer.Ordinal) { "windows-2025", "ubuntu-24.04" };
+	private static readonly HashSet<string> s_runnerLabels =
+		new(StringComparer.Ordinal) { "windows-2025", "ubuntu-24.04" };
 
 	[Fact]
 	public void Release_runs_for_version_tags_and_manual_dry_runs_without_cancelling()
@@ -50,7 +56,8 @@ public sealed class ReleaseWorkflowContractTests
 		YamlMappingNode concurrency = ReleaseWorkflow.Mapping(workflow.Root, "concurrency")!;
 		Assert.Equal("${{ github.workflow }}-${{ github.ref }}", ReleaseWorkflow.Scalar(concurrency, "group"));
 		Assert.Equal("false", ReleaseWorkflow.Scalar(concurrency, "cancel-in-progress"));
-		Assert.Equal("read", ReleaseWorkflow.Scalar(ReleaseWorkflow.Mapping(workflow.Root, "permissions")!, "contents"));
+		Assert.Equal("read",
+			ReleaseWorkflow.Scalar(ReleaseWorkflow.Mapping(workflow.Root, "permissions")!, "contents"));
 		Assert.Single(ReleaseWorkflow.Keys(ReleaseWorkflow.Mapping(workflow.Root, "permissions")!));
 	}
 
@@ -78,11 +85,13 @@ public sealed class ReleaseWorkflowContractTests
 			string guard = ReleaseWorkflow.Normalize(ReleaseWorkflow.Scalar(workflow.Job(id), "if"));
 			if (s_publicationJobs.Contains(id, StringComparer.Ordinal))
 			{
-				Assert.True(string.Equals(TagGuard, guard, StringComparison.Ordinal), $"Job '{id}' must run only when '{TagGuard}', not '{guard}'.");
+				Assert.True(string.Equals(TagGuard, guard, StringComparison.Ordinal),
+					$"Job '{id}' must run only when '{TagGuard}', not '{guard}'.");
 			}
 			else
 			{
-				Assert.True(guard.Length == 0, $"Job '{id}' runs on dry runs too and must not be conditional ('{guard}').");
+				Assert.True(guard.Length == 0,
+					$"Job '{id}' runs on dry runs too and must not be conditional ('{guard}').");
 			}
 		}
 
@@ -93,7 +102,8 @@ public sealed class ReleaseWorkflowContractTests
 		foreach (YamlMappingNode step in ReleaseWorkflow.Steps(attest))
 		{
 			bool signsOrVerifies = attestations.Contains(step)
-								   || (ReleaseWorkflow.Scalar(step, "run") ?? "").Contains("gh attestation verify", StringComparison.Ordinal);
+			                       || (ReleaseWorkflow.Scalar(step, "run") ?? "").Contains("gh attestation verify",
+				                       StringComparison.Ordinal);
 			if (signsOrVerifies)
 			{
 				Assert.Equal(TagGuard, ReleaseWorkflow.Normalize(ReleaseWorkflow.Scalar(step, "if")));
@@ -132,13 +142,16 @@ public sealed class ReleaseWorkflowContractTests
 		{
 			YamlMappingNode job = workflow.Job(id);
 			bool isPublish = string.Equals(id, "publish", StringComparison.Ordinal);
-			YamlNode? environment = job.Children.TryGetValue(new YamlScalarNode("environment"), out YamlNode? value) ? value : null;
+			YamlNode? environment = job.Children.TryGetValue(new YamlScalarNode("environment"), out YamlNode? value)
+				? value
+				: null;
 			List<YamlMappingNode> logins = ReleaseWorkflow.StepsUsing(job, "NuGet/login@");
 			bool pushes = ReleaseWorkflow.RunText(job).Contains("dotnet nuget push", StringComparison.Ordinal);
 			if (!isPublish)
 			{
 				Assert.True(environment is null, $"Job '{id}' uses an environment; only 'publish' may use 'nuget'.");
-				Assert.True(logins.Count == 0 && !pushes, $"Job '{id}' logs in to or pushes to NuGet; only 'publish' may.");
+				Assert.True(logins.Count == 0 && !pushes,
+					$"Job '{id}' logs in to or pushes to NuGet; only 'publish' may.");
 				continue;
 			}
 
@@ -150,7 +163,8 @@ public sealed class ReleaseWorkflowContractTests
 			List<YamlMappingNode> steps = ReleaseWorkflow.Steps(job);
 			int loginIndex = steps.IndexOf(login);
 			Assert.True(loginIndex + 1 < steps.Count, "The NuGet login must be followed by the push.");
-			Assert.Contains("dotnet nuget push", ReleaseWorkflow.Scalar(steps[loginIndex + 1], "run") ?? "", StringComparison.Ordinal);
+			Assert.Contains("dotnet nuget push", ReleaseWorkflow.Scalar(steps[loginIndex + 1], "run") ?? "",
+				StringComparison.Ordinal);
 			Assert.Equal("${{ steps.login.outputs.NUGET_API_KEY }}",
 				ReleaseWorkflow.Scalar(ReleaseWorkflow.Mapping(steps[loginIndex + 1], "env")!, "NUGET_API_KEY"));
 		}
@@ -176,7 +190,9 @@ public sealed class ReleaseWorkflowContractTests
 		{
 			foreach ((string scope, string value) in ReleaseWorkflow.Permissions(workflow.Job(id)))
 			{
-				Assert.True(!string.Equals(value, "write", StringComparison.Ordinal) || scope is "contents" or "id-token" or "attestations",
+				Assert.True(
+					!string.Equals(value, "write", StringComparison.Ordinal) ||
+					scope is "contents" or "id-token" or "attestations",
 					$"Job '{id}' grants '{scope}: write'.");
 			}
 		}
@@ -192,12 +208,16 @@ public sealed class ReleaseWorkflowContractTests
 			string run = ReleaseWorkflow.RunText(workflow.Job(id));
 			bool creates = run.Contains("gh release create", StringComparison.Ordinal);
 			bool edits = run.Contains("gh release edit", StringComparison.Ordinal);
-			bool clobbers = run.Contains("--clobber", StringComparison.Ordinal) && run.Contains("gh release upload", StringComparison.Ordinal);
+			bool clobbers = run.Contains("--clobber", StringComparison.Ordinal) &&
+			                run.Contains("gh release upload", StringComparison.Ordinal);
 			bool publishes = run.Contains("--draft=false", StringComparison.Ordinal);
 			Assert.True(!creates || id is "draft-release", $"Job '{id}' creates a release; only 'draft-release' may.");
-			Assert.True(!edits || id is "finalize-release", $"Job '{id}' edits a release; only 'finalize-release' may.");
-			Assert.True(!publishes || id is "finalize-release", $"Job '{id}' publishes the release; only 'finalize-release' may.");
-			Assert.True(!clobbers || id is "draft-release" or "finalize-release", $"Job '{id}' replaces a release asset.");
+			Assert.True(!edits || id is "finalize-release",
+				$"Job '{id}' edits a release; only 'finalize-release' may.");
+			Assert.True(!publishes || id is "finalize-release",
+				$"Job '{id}' publishes the release; only 'finalize-release' may.");
+			Assert.True(!clobbers || id is "draft-release" or "finalize-release",
+				$"Job '{id}' replaces a release asset.");
 			Assert.DoesNotContain("gh release delete", run, StringComparison.Ordinal);
 		}
 
@@ -216,8 +236,10 @@ public sealed class ReleaseWorkflowContractTests
 
 		// Publishing runs only while the release is still a draft.
 		YamlMappingNode publishStep = Assert.Single(ReleaseWorkflow.Steps(workflow.Job("finalize-release")),
-			static step => (ReleaseWorkflow.Scalar(step, "run") ?? "").Contains("--draft=false", StringComparison.Ordinal));
-		Assert.Equal("steps.state.outputs.draft == 'true'", ReleaseWorkflow.Normalize(ReleaseWorkflow.Scalar(publishStep, "if")));
+			static step =>
+				(ReleaseWorkflow.Scalar(step, "run") ?? "").Contains("--draft=false", StringComparison.Ordinal));
+		Assert.Equal("steps.state.outputs.draft == 'true'",
+			ReleaseWorkflow.Normalize(ReleaseWorkflow.Scalar(publishStep, "if")));
 	}
 
 	[Fact]
@@ -238,7 +260,9 @@ public sealed class ReleaseWorkflowContractTests
 
 		// The publish job pushes only the file SHA256SUMS of the draft lists.
 		string publish = ReleaseWorkflow.RunText(workflow.Job("publish"));
-		Assert.True(publish.IndexOf("SHA256SUMS", StringComparison.Ordinal) < publish.IndexOf("dotnet nuget push", StringComparison.Ordinal),
+		Assert.True(
+			publish.IndexOf("SHA256SUMS", StringComparison.Ordinal) <
+			publish.IndexOf("dotnet nuget push", StringComparison.Ordinal),
 			"The publish job must check the package against SHA256SUMS before pushing it.");
 	}
 
@@ -271,8 +295,9 @@ public sealed class ReleaseWorkflowContractTests
 
 			string? runsOn = ReleaseWorkflow.Scalar(job, "runs-on");
 			Assert.True(runsOn is not null && s_runnerLabels.Contains(runsOn), $"Job '{id}' runs on '{runsOn}'.");
-			Assert.True(int.TryParse(ReleaseWorkflow.Scalar(job, "timeout-minutes"), NumberStyles.None, CultureInfo.InvariantCulture, out int minutes)
-						&& minutes is > 0 and <= 60,
+			Assert.True(int.TryParse(ReleaseWorkflow.Scalar(job, "timeout-minutes"), NumberStyles.None,
+				            CultureInfo.InvariantCulture, out int minutes)
+			            && minutes is > 0 and <= 60,
 				$"Job '{id}' needs a timeout-minutes between 1 and 60.");
 		}
 	}
@@ -295,7 +320,8 @@ public sealed class ReleaseWorkflowContractTests
 
 		// The nupkg travels only in ci.yml's nuget-package artifact: attestation-bundles never carries a second copy.
 		Assert.Equal(["release-notes", "attestation-bundles"], uploaded);
-		YamlMappingNode bundles = Assert.Single(ReleaseWorkflow.StepsUsing(workflow.Job("attest"), "actions/upload-artifact@"));
+		YamlMappingNode bundles =
+			Assert.Single(ReleaseWorkflow.StepsUsing(workflow.Job("attest"), "actions/upload-artifact@"));
 		Assert.Contains("!artifacts/release/*.nupkg", ReleaseWorkflow.With(bundles, "path"), StringComparison.Ordinal);
 	}
 
@@ -310,7 +336,8 @@ public sealed class ReleaseWorkflowContractTests
 			Assert.Empty(ReleaseWorkflow.StepsUsing(job, "actions/cache"));
 			foreach (YamlMappingNode setup in ReleaseWorkflow.StepsUsing(job, "./.github/actions/setup-dotnet"))
 			{
-				Assert.True(ReleaseWorkflow.With(setup, "cache") is null or "false", $"Job '{id}' enables a package cache.");
+				Assert.True(ReleaseWorkflow.With(setup, "cache") is null or "false",
+					$"Job '{id}' enables a package cache.");
 			}
 
 			bool needsDotnet = id is "publish" or "verify-publication";
@@ -336,7 +363,7 @@ public sealed class ReleaseWorkflowContractTests
 		foreach (string id in Ids())
 		{
 			if (ReleaseWorkflow.Permissions(workflow.Job(id)).TryGetValue(scope, out string? value)
-				&& string.Equals(value, "write", StringComparison.Ordinal))
+			    && string.Equals(value, "write", StringComparison.Ordinal))
 			{
 				granted.Add(id);
 			}

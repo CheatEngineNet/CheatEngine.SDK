@@ -6,7 +6,8 @@ namespace CheatEngine.SDK.Repository.Tests.Diagnostics;
 
 /// <summary>
 ///     The diagnostic identifiers that SDK product code declares on its own API through
-///     <c>[Obsolete(DiagnosticId = "CESDKnnnn")]</c> and <c>[Experimental("CESDKnnnn")]</c>. The C# compiler raises them in
+///     <c>[Obsolete(DiagnosticId = "CESDKnnnn")]</c> and <c>[Experimental("CESDKnnnn")]</c>. The C# compiler raises them
+///     in
 ///     consumer code, so, like the analyzer descriptors that <c>DiagnosticCatalogTests</c> covers, each one needs a
 ///     documentation page, a row in <c>analyzers/docs/README.md</c>, the repository help-link format and an identifier
 ///     from its reserved range (shared-contracts section 3.2: <c>5xxx</c> experimental gates, <c>7xxx</c> obsoletions).
@@ -22,16 +23,15 @@ namespace CheatEngine.SDK.Repository.Tests.Diagnostics;
 /// </remarks>
 public sealed partial class ApiDiagnosticIdTests
 {
-	private const string HelpUrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md";
+	private const string HelpUrlFormat =
+		"https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md";
 
 	/// <summary>
 	///     Reviewed obsoletions outside the <c>7xxx</c> range: the legacy Lua registration pair shares its usage analyzer
 	///     identifier (shared-contracts section 3.3, S-REG-ANALYZER, CESDK1006).
 	/// </summary>
-	private static readonly HashSet<string> s_reviewedObsoleteIdsOutsideTheRange = new(StringComparer.Ordinal)
-	{
-		"CESDK1006"
-	};
+	private static readonly HashSet<string> s_reviewedObsoleteIdsOutsideTheRange =
+		new(StringComparer.Ordinal) { "CESDK1006" };
 
 	[Fact]
 	public void the_source_scan_finds_the_declared_api_diagnostic_ids()
@@ -39,7 +39,8 @@ public sealed partial class ApiDiagnosticIdTests
 		IReadOnlyList<ApiDiagnosticId> ids = ScanApiDiagnosticIds();
 
 		Assert.Contains(ids, static id => id is { Kind: ApiDiagnosticKind.Obsolete, Id: "CESDK7001" } &&
-			string.Equals(id.File, "libs/CheatEngine.SDK.Engine/Runtime/PointerSize.cs", StringComparison.Ordinal));
+		                                  string.Equals(id.File, "libs/CheatEngine.SDK.Engine/Runtime/PointerSize.cs",
+			                                  StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -97,7 +98,8 @@ public sealed partial class ApiDiagnosticIdTests
 		{
 			if (!string.Equals(id.UrlFormat, HelpUrlFormat, StringComparison.Ordinal))
 			{
-				offenders.Add($"{id.File}: {id.Id} has UrlFormat '{id.UrlFormat ?? "(none)"}', expected '{HelpUrlFormat}'.");
+				offenders.Add(
+					$"{id.File}: {id.Id} has UrlFormat '{id.UrlFormat ?? "(none)"}', expected '{HelpUrlFormat}'.");
 			}
 		}
 
@@ -147,7 +149,8 @@ public sealed partial class ApiDiagnosticIdTests
 		List<ApiDiagnosticId> ids = [.. Scan("sample.cs", Source)];
 
 		Assert.Equal(3, ids.Count);
-		Assert.Equal(new ApiDiagnosticId("sample.cs", ApiDiagnosticKind.Obsolete, "CESDK7999", "https://example.invalid/{0}"),
+		Assert.Equal(
+			new ApiDiagnosticId("sample.cs", ApiDiagnosticKind.Obsolete, "CESDK7999", "https://example.invalid/{0}"),
 			ids[0]);
 		Assert.Equal(new ApiDiagnosticId("sample.cs", ApiDiagnosticKind.Experimental, "CESDK5999",
 			"https://example.invalid/{0}.md"), ids[1]);
@@ -224,9 +227,9 @@ public sealed partial class ApiDiagnosticIdTests
 			new("sample.cs", ApiDiagnosticKind.Experimental, "CESDK5908", null),
 			new("sample.cs", ApiDiagnosticKind.Experimental, "CESDK5909", null),
 			new("sample.cs", ApiDiagnosticKind.Obsolete, "CESDK7911", "c"),
-			new("sample.cs", ApiDiagnosticKind.Obsolete, "Ids.Old", "d", IsLiteral: false),
-			new("sample.cs", ApiDiagnosticKind.Experimental, "Ids.Gate", null, IsLiteral: false),
-			new("sample.cs", ApiDiagnosticKind.Obsolete, "\"SYSLIB0999\"", null, IsLiteral: false)
+			new("sample.cs", ApiDiagnosticKind.Obsolete, "Ids.Old", "d", false),
+			new("sample.cs", ApiDiagnosticKind.Experimental, "Ids.Gate", null, false),
+			new("sample.cs", ApiDiagnosticKind.Obsolete, "\"SYSLIB0999\"", null, false)
 		];
 
 		Assert.Equal(expected, Scan("sample.cs", Source));
@@ -237,7 +240,8 @@ public sealed partial class ApiDiagnosticIdTests
 		List<ApiDiagnosticId> ids = [];
 		foreach (string file in RepositoryRoot.EnumerateSourceFiles("*.cs"))
 		{
-			if (!file.StartsWith("libs/", StringComparison.Ordinal) && !file.StartsWith("src/", StringComparison.Ordinal))
+			if (!file.StartsWith("libs/", StringComparison.Ordinal) &&
+			    !file.StartsWith("src/", StringComparison.Ordinal))
 			{
 				continue;
 			}
@@ -274,7 +278,7 @@ public sealed partial class ApiDiagnosticIdTests
 			if (expression.Success)
 			{
 				yield return new ApiDiagnosticId(file, kind, expression.Groups["expression"].Value.Trim(), urlFormat,
-					IsLiteral: false);
+					false);
 			}
 		}
 	}
@@ -378,7 +382,7 @@ public sealed partial class ApiDiagnosticIdTests
 						{
 							depth++;
 						}
-						else if ((current is ')' or ']' or '}') && depth > 0)
+						else if (current is ')' or ']' or '}' && depth > 0)
 						{
 							depth--;
 						}
@@ -408,7 +412,7 @@ public sealed partial class ApiDiagnosticIdTests
 			int index = _position;
 			int dollars = 0;
 			bool verbatim = false;
-			while (index < _source.Length && (_source[index] is '$' or '@'))
+			while (index < _source.Length && _source[index] is '$' or '@')
 			{
 				if (_source[index] == '$')
 				{

@@ -18,7 +18,8 @@ namespace CheatEngine.SDK.Engine.Inspection;
 ///     <para>
 ///         Created by <see cref="SymbolLists.TryRegister" />, which transfers the list's <see cref="Owned{T}" /> into the
 ///         lease. The order of <see cref="Release" /> is fixed: an already terminal lease reports
-///         <see cref="SymbolRegistrationReleaseKind.AlreadyReleased" />; a detached runtime or another Lua universe reports
+///         <see cref="SymbolRegistrationReleaseKind.AlreadyReleased" />; a detached runtime or another Lua universe
+///         reports
 ///         <see cref="SymbolRegistrationReleaseKind.StaleRuntime" /> and abandons the list without any Cheat Engine call;
 ///         an unavailable <c>unregister</c> member reports <see cref="SymbolRegistrationReleaseKind.CleanupUnavailable" />
 ///         and keeps the lease retryable; an <c>unregister()</c> that raised reports
@@ -140,7 +141,8 @@ public sealed class SymbolListRegistrationLease : IDisposable
 			if (!invoked)
 			{
 				// No unregister began (member absent, or its resolution failed): nothing changed, retry later.
-				return new SymbolListRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupUnavailable, status,
+				return new SymbolListRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.CleanupUnavailable,
+					status,
 					default);
 			}
 

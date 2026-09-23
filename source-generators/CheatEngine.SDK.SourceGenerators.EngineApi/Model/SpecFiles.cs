@@ -56,10 +56,7 @@ internal static class SpecFiles
 				}
 			}
 
-			specs[i] = specs[i] with
-			{
-				HintName = hintName
-			};
+			specs[i] = specs[i] with { HintName = hintName };
 		}
 	}
 
@@ -98,10 +95,7 @@ internal static class SpecFiles
 
 			foreach (int index in indices)
 			{
-				specs[index] = specs[index] with
-				{
-					IsSuppressed = true
-				};
+				specs[index] = specs[index] with { IsSuppressed = true };
 			}
 		}
 	}
@@ -202,10 +196,7 @@ internal static class SpecFiles
 	{
 		List<SpecIssue> issues = [.. spec.Issues];
 		issues.Add(new SpecIssue(line, message, column, SpecIssueKind.Conflict));
-		spec = spec with
-		{
-			Issues = new EquatableArray<SpecIssue>([.. issues])
-		};
+		spec = spec with { Issues = new EquatableArray<SpecIssue>([.. issues]) };
 	}
 
 	private static string QualifiedTypeName(SpecFileModel spec)

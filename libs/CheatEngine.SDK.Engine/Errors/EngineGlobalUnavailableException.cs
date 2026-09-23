@@ -49,6 +49,6 @@ public sealed class EngineGlobalUnavailableException : EngineException
 	private static string CreateDefaultMessage(string operation)
 	{
 		return "The required binding global for Cheat Engine operation '" +
-			   RequireText(operation, nameof(operation)) + "' is unavailable.";
+		       RequireText(operation, nameof(operation)) + "' is unavailable.";
 	}
 }

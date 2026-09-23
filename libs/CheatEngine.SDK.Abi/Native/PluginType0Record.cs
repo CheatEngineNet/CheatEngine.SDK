@@ -25,7 +25,8 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         of the same name with <c>address: dword</c>, which moves <c>ispointer</c> to 12 and <c>countoffsets</c> to
 ///         16 while keeping 48 bytes, and a <c>TSelectedRecord</c> (lines 147-156) with a one-byte
 ///         <c>ispointer: boolean</c> at the host offsets. Neither is x64 authority; a size check alone cannot tell them
-///         apart (per-field table in <c>libs/CheatEngine.SDK.Abi/README.md</c>, tests <c>SelectedRecordOracleTests</c> and the
+///         apart (per-field table in <c>libs/CheatEngine.SDK.Abi/README.md</c>, tests <c>SelectedRecordOracleTests</c> and
+///         the
 ///         compiled fixture facts <c>host_plugin0_selected_record</c>, <c>pascal_dword_mirror_selected_record</c>,
 ///         <c>pascal_boolean_mirror_selected_record</c>).
 ///     </para>

@@ -92,6 +92,6 @@ public sealed partial class WorkflowContractTests
 		return string.Join('\n', lines);
 	}
 
-	[GeneratedRegex(@"<#.*?#>", RegexOptions.Singleline | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"<#.*?#>", RegexOptions.Singleline | RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex CommentBlock();
 }

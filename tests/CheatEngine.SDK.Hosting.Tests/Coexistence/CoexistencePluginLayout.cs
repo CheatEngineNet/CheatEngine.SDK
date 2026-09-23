@@ -29,7 +29,8 @@ internal static class CoexistencePluginLayout
 
 	private static string BinRoot => RequireMetadata("CoexistencePluginBinRoot");
 
-	private static string LowercaseConfiguration => RequireMetadata("CoexistencePluginConfiguration").ToLowerInvariant();
+	private static string LowercaseConfiguration =>
+		RequireMetadata("CoexistencePluginConfiguration").ToLowerInvariant();
 
 	/// <summary>
 	///     Builds the shared-layout scenario: copies both plugin output directories into one folder. Fails loudly, per
@@ -41,8 +42,8 @@ internal static class CoexistencePluginLayout
 	internal static string CreateSharedLayout(string destinationDirectory)
 	{
 		Directory.CreateDirectory(destinationDirectory);
-		CopyDirectoryInto(PluginADirectory, destinationDirectory, compareExisting: false);
-		CopyDirectoryInto(PluginBDirectory, destinationDirectory, compareExisting: true);
+		CopyDirectoryInto(PluginADirectory, destinationDirectory, false);
+		CopyDirectoryInto(PluginBDirectory, destinationDirectory, true);
 		return destinationDirectory;
 	}
 
@@ -74,7 +75,8 @@ internal static class CoexistencePluginLayout
 
 	private static string RequireMetadata(string key)
 	{
-		foreach (AssemblyMetadataAttribute attribute in typeof(CoexistencePluginLayout).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>())
+		foreach (AssemblyMetadataAttribute attribute in typeof(CoexistencePluginLayout).Assembly
+			         .GetCustomAttributes<AssemblyMetadataAttribute>())
 		{
 			if (string.Equals(attribute.Key, key, StringComparison.Ordinal) && !string.IsNullOrEmpty(attribute.Value))
 			{

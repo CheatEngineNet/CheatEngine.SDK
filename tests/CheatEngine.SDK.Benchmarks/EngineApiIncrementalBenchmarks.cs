@@ -183,7 +183,7 @@ public class EngineApiIncrementalBenchmarks
 	private BenchmarkAdditionalText EditedFirst()
 	{
 		return _editedFirstSpec ??
-			   throw new InvalidOperationException("Benchmark setup did not create the edited spec.");
+		       throw new InvalidOperationException("Benchmark setup did not create the edited spec.");
 	}
 
 	private GeneratorDriver WarmDriver()

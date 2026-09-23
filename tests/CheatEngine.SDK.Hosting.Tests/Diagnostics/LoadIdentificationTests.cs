@@ -19,19 +19,19 @@ public sealed unsafe partial class LoadIdentificationTests
 {
 	private const string Prefix = "CheatEngineSdkIdentification: ";
 
-	[GeneratedRegex(@"lua\.module=(?<module>[^;]*); lua\.sha256=(?<sha>[0-9a-f]{64}|unavailable)",
-		RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
-	private static partial Regex LuaModuleFieldsPattern();
-
-	[GeneratedRegex("^[A-Za-z]:", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-	private static partial Regex DriveRootPattern();
-
 	private static readonly string[] SExpectedKeys =
 	[
 		"sdk.version", "sdk.commit", "sdk.consistent", "hosting.mvid", "hosting.alc", "plugin.id", "plugin.assembly",
 		"host.argument", "exports.size", "bridge.fingerprint", "bridge.sha256", "lua.module", "lua.sha256", "ce.file",
 		"ce.fileVersion", "runtime", "arch"
 	];
+
+	[GeneratedRegex(@"lua\.module=(?<module>[^;]*); lua\.sha256=(?<sha>[0-9a-f]{64}|unavailable)",
+		RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, 1000)]
+	private static partial Regex LuaModuleFieldsPattern();
+
+	[GeneratedRegex("^[A-Za-z]:", RegexOptions.CultureInvariant, 1000)]
+	private static partial Regex DriveRootPattern();
 
 	[Fact]
 	public void Identification_is_not_emitted_unless_opted_in()
@@ -83,7 +83,8 @@ public sealed unsafe partial class LoadIdentificationTests
 	{
 		string line = EnableWithIdentification();
 
-		Assert.Matches(@"sdk\.version=[^;]*; sdk\.commit=(?:[0-9a-f]{40}|unknown); sdk\.consistent=(?:true|false)(?:; |$)",
+		Assert.Matches(
+			@"sdk\.version=[^;]*; sdk\.commit=(?:[0-9a-f]{40}|unknown); sdk\.consistent=(?:true|false)(?:; |$)",
 			line);
 	}
 
@@ -102,7 +103,7 @@ public sealed unsafe partial class LoadIdentificationTests
 	public void Identification_contains_the_lua_module_file_name_and_sha256_without_a_directory()
 	{
 		HostingTest.RequireNativeLua();
-		string line = EnableWithIdentification(useNativeLuaModule: true);
+		string line = EnableWithIdentification(true);
 
 		Match match = LuaModuleFieldsPattern().Match(line);
 		Assert.True(match.Success, "lua.module/lua.sha256 not found in: " + line);
@@ -119,7 +120,7 @@ public sealed unsafe partial class LoadIdentificationTests
 	public void Identification_never_contains_a_directory_separator_drive_root_or_user_name()
 	{
 		HostingTest.RequireNativeLua();
-		string line = EnableWithIdentification(useNativeLuaModule: true);
+		string line = EnableWithIdentification(true);
 
 		foreach ((string _, string value) in ParsePairs(line))
 		{

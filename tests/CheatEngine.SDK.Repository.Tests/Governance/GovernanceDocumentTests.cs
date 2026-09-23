@@ -19,9 +19,14 @@ public sealed partial class GovernanceDocumentTests
 	private const string IssueTemplates = ".github/ISSUE_TEMPLATE";
 	private const string CompatibilityForm = ".github/ISSUE_TEMPLATE/compatibility.yml";
 	private const string ChooserConfiguration = ".github/ISSUE_TEMPLATE/config.yml";
-	private const string PrivateReportingUrl = "https://github.com/CheatEngineNet/CheatEngine.SDK/security/advisories/new";
+
+	private const string PrivateReportingUrl =
+		"https://github.com/CheatEngineNet/CheatEngine.SDK/security/advisories/new";
+
 	private const string LuaFixture = "native/cheat-engine/lua53-64.dll";
-	private const string BridgeBinary = "native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll";
+
+	private const string BridgeBinary =
+		"native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll";
 
 	/// <summary>Maintainers who may own paths; CODEOWNERS is informational (no required code-owner review).</summary>
 	private static readonly string[] s_knownOwners = ["@AriusII", "@ShadowNineX"];
@@ -42,7 +47,10 @@ public sealed partial class GovernanceDocumentTests
 		string text = RepositoryFile.ReadText(SecurityPolicy);
 
 		Assert.Equal(
-			["Supported versions", "Reporting a vulnerability", "Scope", "Response", "Verifying releases", "Binary files in this repository"],
+			[
+				"Supported versions", "Reporting a vulnerability", "Scope", "Response", "Verifying releases",
+				"Binary files in this repository"
+			],
 			Level2Headings(text));
 		Assert.Contains(PrivateReportingUrl, text, StringComparison.Ordinal);
 		Assert.Contains("Never report a vulnerability in a public issue", text, StringComparison.Ordinal);
@@ -67,7 +75,8 @@ public sealed partial class GovernanceDocumentTests
 
 		string actual = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(RepositoryFile.FullPath(LuaFixture))));
 		Assert.Contains($"`{actual}`", policy, StringComparison.Ordinal);
-		Assert.Contains($"`{actual}`", RepositoryFile.ReadText("native/cheat-engine/README.md"), StringComparison.Ordinal);
+		Assert.Contains($"`{actual}`", RepositoryFile.ReadText("native/cheat-engine/README.md"),
+			StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -75,7 +84,8 @@ public sealed partial class GovernanceDocumentTests
 	{
 		string text = RepositoryFile.ReadText(CodeOfConduct);
 
-		Assert.Contains("https://www.contributor-covenant.org/version/2/1/code_of_conduct.html", text, StringComparison.Ordinal);
+		Assert.Contains("https://www.contributor-covenant.org/version/2/1/code_of_conduct.html", text,
+			StringComparison.Ordinal);
 		Assert.Contains(PrivateReportingUrl, text, StringComparison.Ordinal);
 		Assert.DoesNotMatch(EmailAddress(), text);
 	}
@@ -103,7 +113,8 @@ public sealed partial class GovernanceDocumentTests
 			Assert.NotEmpty(owners);
 			foreach (string owner in owners)
 			{
-				Assert.True(Array.IndexOf(s_knownOwners, owner) >= 0, $"{CodeOwners}: '{owner}' is not a known maintainer.");
+				Assert.True(Array.IndexOf(s_knownOwners, owner) >= 0,
+					$"{CodeOwners}: '{owner}' is not a known maintainer.");
 			}
 
 			// GitHub rejects "!" negation and "[ ]" ranges in CODEOWNERS.
@@ -116,7 +127,8 @@ public sealed partial class GovernanceDocumentTests
 			string path = pattern.Trim('/');
 			Assert.True(RepositoryFile.ExistsWithExactCase(path, out bool isDirectory),
 				$"{CodeOwners}: '{pattern}' matches nothing in the repository (exact case).");
-			Assert.True(!pattern.EndsWith('/') || isDirectory, $"{CodeOwners}: '{pattern}' names a folder that is a file.");
+			Assert.True(!pattern.EndsWith('/') || isDirectory,
+				$"{CodeOwners}: '{pattern}' names a folder that is a file.");
 		}
 	}
 
@@ -136,24 +148,29 @@ public sealed partial class GovernanceDocumentTests
 
 		foreach (string id in s_requiredTupleIds)
 		{
-			Assert.True(elements.TryGetValue(id, out YamlMappingNode? element), $"{CompatibilityForm} has no '{id}' field.");
+			Assert.True(elements.TryGetValue(id, out YamlMappingNode? element),
+				$"{CompatibilityForm} has no '{id}' field.");
 			Assert.True(IsRequired(element), $"{CompatibilityForm}: '{id}' must be required.");
 		}
 
 		foreach (string id in s_optionalTupleIds)
 		{
-			Assert.True(elements.TryGetValue(id, out YamlMappingNode? element), $"{CompatibilityForm} has no '{id}' field.");
+			Assert.True(elements.TryGetValue(id, out YamlMappingNode? element),
+				$"{CompatibilityForm} has no '{id}' field.");
 			Assert.False(IsRequired(element), $"{CompatibilityForm}: '{id}' is optional.");
 		}
 
-		IReadOnlyList<string> levels = YamlDocument.Scalars(YamlDocument.Child(elements["evidence-level"], "attributes"), "options");
+		IReadOnlyList<string> levels =
+			YamlDocument.Scalars(YamlDocument.Child(elements["evidence-level"], "attributes"), "options");
 		foreach (string level in (string[]) ["(C0)", "(C1/C2)", "(C3)", "(C4)"])
 		{
 			Assert.Contains(levels, option => option.EndsWith(level, StringComparison.Ordinal));
 		}
 
-		IReadOnlyList<string> profiles = YamlDocument.Scalars(YamlDocument.Child(elements["load-profile"], "attributes"), "options");
-		Assert.Contains(profiles, static option => option.Contains("ce-7.7.0.10621-x64-managed-hostfxr", StringComparison.Ordinal));
+		IReadOnlyList<string> profiles =
+			YamlDocument.Scalars(YamlDocument.Child(elements["load-profile"], "attributes"), "options");
+		Assert.Contains(profiles,
+			static option => option.Contains("ce-7.7.0.10621-x64-managed-hostfxr", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -193,17 +210,20 @@ public sealed partial class GovernanceDocumentTests
 			foreach (YamlMappingNode element in body)
 			{
 				string type = YamlDocument.Scalar(element, "type") ?? "";
-				Assert.Contains(type, (string[]) ["markdown", "input", "textarea", "dropdown", "checkboxes"], StringComparer.Ordinal);
+				Assert.Contains(type, (string[]) ["markdown", "input", "textarea", "dropdown", "checkboxes"],
+					StringComparer.Ordinal);
 				string? id = YamlDocument.Scalar(element, "id");
 				if (string.Equals(type, "markdown", StringComparison.Ordinal))
 				{
 					continue;
 				}
 
-				Assert.True(id is not null && ElementId().IsMatch(id), $"{path}: a {type} element has no valid id ('{id}').");
+				Assert.True(id is not null && ElementId().IsMatch(id),
+					$"{path}: a {type} element has no valid id ('{id}').");
 				Assert.True(ids.Add(id), $"{path}: the id '{id}' is used twice.");
 				YamlNode? attributes = YamlDocument.Child(element, "attributes");
-				Assert.False(string.IsNullOrWhiteSpace(YamlDocument.Scalar(attributes, "label")), $"{path}: '{id}' has no label.");
+				Assert.False(string.IsNullOrWhiteSpace(YamlDocument.Scalar(attributes, "label")),
+					$"{path}: '{id}' has no label.");
 				if (string.Equals(type, "dropdown", StringComparison.Ordinal))
 				{
 					IReadOnlyList<string> options = YamlDocument.Scalars(attributes, "options");
@@ -216,7 +236,8 @@ public sealed partial class GovernanceDocumentTests
 			Assert.DoesNotMatch(AbsoluteLocalPath(), form.Text);
 			foreach (Match link in SelfLink().Matches(form.Text))
 			{
-				Assert.True(TryCheckSelfLink(link, out string? problem), $"{path}: {link.Value} does not resolve ({problem}).");
+				Assert.True(TryCheckSelfLink(link, out string? problem),
+					$"{path}: {link.Value} does not resolve ({problem}).");
 			}
 		}
 	}
@@ -232,7 +253,8 @@ public sealed partial class GovernanceDocumentTests
 		{
 			foreach (string key in (string[]) ["name", "url", "about"])
 			{
-				Assert.False(string.IsNullOrWhiteSpace(YamlDocument.Scalar(link, key)), $"{ChooserConfiguration}: a contact link has no {key}.");
+				Assert.False(string.IsNullOrWhiteSpace(YamlDocument.Scalar(link, key)),
+					$"{ChooserConfiguration}: a contact link has no {key}.");
 			}
 
 			string url = YamlDocument.Scalar(link, "url")!;
@@ -257,8 +279,8 @@ public sealed partial class GovernanceDocumentTests
 				foreach (string sentence in Sentences(text))
 				{
 					if (sentence.Contains("runtimeconfig", StringComparison.OrdinalIgnoreCase)
-						&& EditInstruction().IsMatch(sentence)
-						&& !NegationPattern().IsMatch(sentence))
+					    && EditInstruction().IsMatch(sentence)
+					    && !NegationPattern().IsMatch(sentence))
 					{
 						offenders.Add($"{path}: '{sentence}'");
 					}
@@ -266,7 +288,8 @@ public sealed partial class GovernanceDocumentTests
 			}
 		}
 
-		Assert.True(offenders.Count == 0, $"Issue forms must never ask users to edit ce.runtimeconfig.json: {string.Join("; ", offenders)}");
+		Assert.True(offenders.Count == 0,
+			$"Issue forms must never ask users to edit ce.runtimeconfig.json: {string.Join("; ", offenders)}");
 	}
 
 	/// <summary>The <c>## </c> (ATX level-2) headings of a Markdown document, outside fenced code blocks, in order.</summary>
@@ -278,7 +301,8 @@ public sealed partial class GovernanceDocumentTests
 		{
 			string line = rawLine.TrimEnd();
 			string trimmedStart = line.TrimStart();
-			if (trimmedStart.StartsWith("```", StringComparison.Ordinal) || trimmedStart.StartsWith("~~~", StringComparison.Ordinal))
+			if (trimmedStart.StartsWith("```", StringComparison.Ordinal) ||
+			    trimmedStart.StartsWith("~~~", StringComparison.Ordinal))
 			{
 				inFence = !inFence;
 				continue;
@@ -376,33 +400,37 @@ public sealed partial class GovernanceDocumentTests
 		}
 	}
 
-	[GeneratedRegex(@"(?<=[.!?;])\s+|\r?\n", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"(?<=[.!?;])\s+|\r?\n", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex SentenceBoundary();
 
-	[GeneratedRegex(@"\b(edit|modify|change|replace|overwrite)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture,
-		matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"\b(edit|modify|change|replace|overwrite)",
+		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture,
+		1000)]
 	private static partial Regex EditInstruction();
 
-	[GeneratedRegex(@"\b(supported|qualified|compatible)\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture,
-		matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"\b(supported|qualified|compatible)\b",
+		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture,
+		1000)]
 	private static partial Regex QualificationClaim();
 
-	[GeneratedRegex(@"\b(not|never|no|without)\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture,
-		matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"\b(not|never|no|without)\b",
+		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture,
+		1000)]
 	private static partial Regex NegationPattern();
 
-	[GeneratedRegex("^[A-Za-z0-9_-]+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex("^[A-Za-z0-9_-]+$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex ElementId();
 
-	[GeneratedRegex(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex EmailAddress();
 
 	/// <summary>A drive path, a user-profile folder or a <c>file:</c> URI: never valid in a public issue form.</summary>
-	[GeneratedRegex(@"[A-Za-z]:\\|\\Users\\|/home/|/Users/|file://", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"[A-Za-z]:\\|\\Users\\|/home/|/Users/|file://", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex AbsoluteLocalPath();
 
 	/// <summary>An absolute link back into this repository on <c>main</c>. Group <c>rest</c> is the path as written.</summary>
-	[GeneratedRegex(@"(?i:https://github\.com/CheatEngineNet/CheatEngine\.SDK)/(?:blob|tree)/main/(?<rest>[^\s)\]""'`>]*)",
-		RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(
+		@"(?i:https://github\.com/CheatEngineNet/CheatEngine\.SDK)/(?:blob|tree)/main/(?<rest>[^\s)\]""'`>]*)",
+		RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, 1000)]
 	private static partial Regex SelfLink();
 }

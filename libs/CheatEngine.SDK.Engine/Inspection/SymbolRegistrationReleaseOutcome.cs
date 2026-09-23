@@ -22,9 +22,11 @@ public readonly struct SymbolRegistrationReleaseOutcome
 
 	/// <summary>
 	///     Gets the status of the last CE call the release made: the unregister call, or the name lookup for
-	///     <see cref="SymbolRegistrationReleaseKind.Replaced" />, <see cref="SymbolRegistrationReleaseKind.ExternallyRemoved" />
+	///     <see cref="SymbolRegistrationReleaseKind.Replaced" />,
+	///     <see cref="SymbolRegistrationReleaseKind.ExternallyRemoved" />
 	///     and a lookup failure. <see langword="null" /> when no CE call was made at all
-	///     (<see cref="SymbolRegistrationReleaseKind.AlreadyReleased" />, <see cref="SymbolRegistrationReleaseKind.Superseded" />,
+	///     (<see cref="SymbolRegistrationReleaseKind.AlreadyReleased" />,
+	///     <see cref="SymbolRegistrationReleaseKind.Superseded" />,
 	///     <see cref="SymbolRegistrationReleaseKind.StaleRuntime" /> before any call). This is deliberately a nullable
 	///     value rather than <see langword="default" />(<see cref="LuaOperationStatus" />): a no-call outcome must never
 	///     be mistaken for <see cref="LuaOperationStatus.Success" /> regardless of which member of

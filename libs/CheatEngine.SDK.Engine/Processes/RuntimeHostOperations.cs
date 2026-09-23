@@ -157,7 +157,8 @@ public static class RuntimeHostOperations
 	/// </returns>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
 	/// <remarks>
-	///     <c>getCheatEngineFileVersion</c> may legitimately return no value; <see cref="CheatEngineHostObservation.FileVersion" />
+	///     <c>getCheatEngineFileVersion</c> may legitimately return no value;
+	///     <see cref="CheatEngineHostObservation.FileVersion" />
 	///     is then <see langword="null" />, as for an absent global. Nothing is inferred between the fields.
 	/// </remarks>
 	[RequiresPluginEnabled]
@@ -360,7 +361,7 @@ public static class RuntimeHostOperations
 			}
 
 			if (!state.IsInteger(packedIndex) || !state.TryReadInteger(packedIndex, out long packed) ||
-				!RuntimeInfo.TryDecodeFileVersion(packed, out CheatEngineVersion decoded))
+			    !RuntimeInfo.TryDecodeFileVersion(packed, out CheatEngineVersion decoded))
 			{
 				return LuaOperationStatus.InvalidResult;
 			}
@@ -464,7 +465,7 @@ public static class RuntimeHostOperations
 			}
 
 			if (state.TypeOf(-1) != LuaType.Number || !state.TryReadNumber(-1, out version) ||
-				!double.IsFinite(version) || version < 0)
+			    !double.IsFinite(version) || version < 0)
 			{
 				version = default;
 				return state.IsNil(-1) ? LuaOperationStatus.NilResult : LuaOperationStatus.InvalidResult;

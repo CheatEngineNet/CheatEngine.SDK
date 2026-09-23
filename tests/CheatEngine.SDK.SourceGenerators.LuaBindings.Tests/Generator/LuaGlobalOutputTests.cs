@@ -238,9 +238,9 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
 			.. run.OutputCompilation
 				.GetDiagnostics(TestContext.Current.CancellationToken)
 				.Where(static diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning
-											&& !(string.Equals(diagnostic.Id, "CS1591", StringComparison.Ordinal)
-												 && diagnostic.Location.SourceTree is { FilePath: string path } &&
-												 !path.EndsWith(".g.cs", StringComparison.Ordinal)))
+				                            && !(string.Equals(diagnostic.Id, "CS1591", StringComparison.Ordinal)
+				                                 && diagnostic.Location.SourceTree is { FilePath: string path } &&
+				                                 !path.EndsWith(".g.cs", StringComparison.Ordinal)))
 		];
 		Diagnostic problem = Assert.Single(problems);
 		Assert.Equal("CS8601", problem.Id);
@@ -337,7 +337,8 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
 		Assert.Contains("return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, __rest);",
 			body, StringComparison.Ordinal);
 
-		const string TryForm = "using System;\nusing CheatEngine.SDK.Annotations.Lua;\nnamespace Demo; public static partial class Holder { [LuaGlobal(\"seq\")] public static partial bool TrySeq(int n, Span<long> values, out int count); }";
+		const string TryForm =
+			"using System;\nusing CheatEngine.SDK.Annotations.Lua;\nnamespace Demo; public static partial class Holder { [LuaGlobal(\"seq\")] public static partial bool TrySeq(int n, Span<long> values, out int count); }";
 		roslyn.Run(TryForm).AssertNoOutput();
 	}
 
@@ -351,9 +352,11 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
 
 		run.AssertCompilesClean();
 		string body = Section(run.SingleGeneratedText, "Divide(long a, long b", "\n        }\n");
-		Assert.Contains("remainder = default!;\n                    return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, __L.IsNil(-2)",
+		Assert.Contains(
+			"remainder = default!;\n                    return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, __L.IsNil(-2)",
 			body, StringComparison.Ordinal);
-		Assert.Contains("quotient = default;\n                    return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, __L.IsNil(-1)",
+		Assert.Contains(
+			"quotient = default;\n                    return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, __L.IsNil(-1)",
 			body, StringComparison.Ordinal);
 	}
 

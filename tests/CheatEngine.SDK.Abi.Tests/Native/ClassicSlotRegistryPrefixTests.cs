@@ -34,7 +34,8 @@ public sealed class ClassicSlotRegistryPrefixTests
 			Assert.Equal(entry.GetProperty("width").GetInt32(), FieldLayoutGate.WidthOf(field));
 		}
 
-		Assert.All(slots[18..], static entry => Assert.Equal(JsonValueKind.Null, entry.GetProperty("sdkField").ValueKind));
+		Assert.All(slots[18..],
+			static entry => Assert.Equal(JsonValueKind.Null, entry.GetProperty("sdkField").ValueKind));
 	}
 
 	[Fact]
@@ -42,11 +43,13 @@ public sealed class ClassicSlotRegistryPrefixTests
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
 
-		Assert.Equal(ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount, ClassicSlotRegistry.MinDeclaredSize(17));
+		Assert.Equal(ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount,
+			ClassicSlotRegistry.MinDeclaredSize(17));
 		Assert.Equal(ClassicSlotRegistry.MinDeclaredSize(17), Layout.SizeOf<ExportedFunctionsPrefix>());
 		Assert.Equal(ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount,
 			ClassicSlotRegistry.Root.GetProperty("contract").GetProperty("sdkDirectPrefixSize").GetInt32());
-		Assert.True(ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount < ClassicSlotRegistry.MinDeclaredSize(18));
+		Assert.True(
+			ClassicExportedFunctionsPrefixReader.DirectPrefixByteCount < ClassicSlotRegistry.MinDeclaredSize(18));
 	}
 
 	[Fact]
@@ -58,7 +61,8 @@ public sealed class ClassicSlotRegistryPrefixTests
 		{
 			bool opaque = FieldLayoutGate.KindOf(PrefixFields[slot]) == FieldKind.OpaquePointer;
 			string expected = opaque ? "PrefixOpaque" : "PrefixTyped";
-			Assert.True(string.Equals(expected, slots[slot].GetProperty("sdkExposure").GetString(), StringComparison.Ordinal),
+			Assert.True(
+				string.Equals(expected, slots[slot].GetProperty("sdkExposure").GetString(), StringComparison.Ordinal),
 				$"Slot {slot} ({PrefixFields[slot].Name}) is {expected} in the SDK but {slots[slot].GetProperty("sdkExposure").GetString()} in the registry.");
 		}
 	}
@@ -72,7 +76,8 @@ public sealed class ClassicSlotRegistryPrefixTests
 		for (int slot = 0; slot < PrefixFields.Length; slot++)
 		{
 			JsonElement entry = slots[slot];
-			bool nil = string.Equals(entry.GetProperty("nullability").GetString(), "NilAssigned", StringComparison.Ordinal);
+			bool nil = string.Equals(entry.GetProperty("nullability").GetString(), "NilAssigned",
+				StringComparison.Ordinal);
 			bool divergent = entry.GetProperty("divergenceRefs").GetArrayLength() > 0;
 			if (nil || divergent)
 			{

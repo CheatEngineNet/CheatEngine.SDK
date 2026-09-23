@@ -106,8 +106,8 @@ public sealed class SpecFileParserTests
 		string text = SpecSources.SingleTry.Replace("\r\n", "\n", StringComparison.Ordinal)
 			.Replace("\n", "\r\n", StringComparison.Ordinal);
 		text = "  namespace: Demo.One\r\n  type: One\r\n" +
-			   SpecSources.Ce77.Replace("\n", "\r\n    ", StringComparison.Ordinal) + "\r\n" +
-			   text[text.IndexOf("global:", StringComparison.Ordinal)..];
+		       SpecSources.Ce77.Replace("\n", "\r\n    ", StringComparison.Ordinal) + "\r\n" +
+		       text[text.IndexOf("global:", StringComparison.Ordinal)..];
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -278,7 +278,8 @@ public sealed class SpecFileParserTests
 			'\n',
 			entry.Split('\n').Where(line => !line.StartsWith(missingKey + ":", StringComparison.Ordinal)));
 
-		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", SpecSources.Ce77Header("Demo", "T") + edited);
+		SpecFileModel spec =
+			SpecFileParser.Parse("x.cheatengine-sdk-api.txt", SpecSources.Ce77Header("Demo", "T") + edited);
 
 		Assert.Empty(spec.Calls.AsSpan().ToArray());
 		Assert.Contains(spec.Issues, issue => issue.Message.Contains("'" + missingKey + "'", StringComparison.Ordinal));
@@ -351,7 +352,7 @@ public sealed class SpecFileParserTests
 	public void An_invalid_lua_global_name_drops_the_entry(string badName)
 	{
 		string text = "namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: " + badName +
-					  "\nmethod: M\nform: try\narg: address:address\nresult: value:int32\nnil: none\ndoc: d.\n";
+		              "\nmethod: M\nform: try\narg: address:address\nresult: value:int32\nnil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -567,8 +568,9 @@ public sealed class SpecFileParserTests
 	[InlineData("arg: 1bad:address")]
 	public void A_malformed_or_unknown_kind_argument_drops_the_entry(string argLine)
 	{
-		string text = "namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: M\nform: try\n" + argLine +
-					  "\nresult: value:int32\nnil: none\ndoc: d.\n";
+		string text = "namespace: Demo\ntype: T\n" + SpecSources.Ce77 +
+		              "\nglobal: readInteger\nmethod: M\nform: try\n" + argLine +
+		              "\nresult: value:int32\nnil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -582,8 +584,9 @@ public sealed class SpecFileParserTests
 	[InlineData("fixed: boolean:true; System.Console.WriteLine()")]
 	public void A_fixed_argument_accepts_only_boolean_literals(string fixedLine)
 	{
-		string text = "namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: M\nform: try\narg: address:address\n" +
-					  fixedLine + "\nresult: value:int32\nnil: none\ndoc: d.\n";
+		string text = "namespace: Demo\ntype: T\n" + SpecSources.Ce77 +
+		              "\nglobal: readInteger\nmethod: M\nform: try\narg: address:address\n" +
+		              fixedLine + "\nresult: value:int32\nnil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -864,7 +867,8 @@ public sealed class SpecFileParserTests
 	public void An_invalid_argument_kind_records_its_value_column()
 	{
 		const string Text =
-			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\n    global: readInteger\n    method: M\n    form: try\n    arg: address:notakind\n    result: value:int32\n    nil: none\n    doc: d.\n";
+			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 +
+			"\n    global: readInteger\n    method: M\n    form: try\n    arg: address:notakind\n    result: value:int32\n    nil: none\n    doc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
 
@@ -878,7 +882,8 @@ public sealed class SpecFileParserTests
 	public void Parameter_and_generated_member_identity_collisions_drop_the_affected_entries()
 	{
 		const string Text =
-			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: BadParameter\nform: try\narg: __L:int32\nresult: value:int32\nnil: none\ndoc: bad.\n\nglobal: readInteger\nmethod: Read\nform: try\narg: address:address\nresult: value:int32\nnil: none\ndoc: raw core.\n\nglobal: readQword\nmethod: __ReadRaw\nform: try\nresult: value:int64\nnil: none\ndoc: collision.\n";
+			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 +
+			"\nglobal: readInteger\nmethod: BadParameter\nform: try\narg: __L:int32\nresult: value:int32\nnil: none\ndoc: bad.\n\nglobal: readInteger\nmethod: Read\nform: try\narg: address:address\nresult: value:int32\nnil: none\ndoc: raw core.\n\nglobal: readQword\nmethod: __ReadRaw\nform: try\nresult: value:int64\nnil: none\ndoc: collision.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
 
@@ -893,7 +898,8 @@ public sealed class SpecFileParserTests
 	public void A_parameter_named_operation_is_rejected_as_an_emitter_local_collision()
 	{
 		const string Text =
-			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: BadOperation\nform: try\narg: __operation:int32\nresult: value:int32\nnil: none\ndoc: bad.\n";
+			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 +
+			"\nglobal: readInteger\nmethod: BadOperation\nform: try\narg: __operation:int32\nresult: value:int32\nnil: none\ndoc: bad.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
 
@@ -919,7 +925,8 @@ public sealed class SpecFileParserTests
 		Assert.Contains("'contract: ce77'", issue.Message, StringComparison.Ordinal);
 
 		// A header-only reservation stays readable without the contract: it generates nothing either way.
-		SpecFileModel reservation = SpecFileParser.Parse("reservation.cheatengine-sdk-api.txt", "namespace: Demo\ntype: T\n");
+		SpecFileModel reservation =
+			SpecFileParser.Parse("reservation.cheatengine-sdk-api.txt", "namespace: Demo\ntype: T\n");
 		Assert.True(reservation.Issues.IsEmpty);
 		Assert.Null(reservation.Contract);
 	}
@@ -928,7 +935,7 @@ public sealed class SpecFileParserTests
 	public void Fixed_and_optional_arguments_keep_their_declaration_order()
 	{
 		string text = SpecSources.Ce77Header("Demo", "T") +
-					  "global: g\nmethod: G\nform: throwing\narg: a:int32\nfixed: boolean:true\narg: b:int64\nopt: c:address\nopt: d:string\nnil: none\ndoc: d.\n";
+		              "global: g\nmethod: G\nform: throwing\narg: a:int32\nfixed: boolean:true\narg: b:int64\nopt: c:address\nopt: d:string\nnil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -949,7 +956,7 @@ public sealed class SpecFileParserTests
 	public void Argument_after_an_optional_argument_is_refused(string arguments, string message)
 	{
 		string text = SpecSources.Ce77Header("Demo", "T") + "global: g\nmethod: G\nform: throwing\n" + arguments +
-					  "nil: none\ndoc: d.\n";
+		              "nil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -960,7 +967,8 @@ public sealed class SpecFileParserTests
 	}
 
 	[Theory]
-	[InlineData("try", "opt-result: a:int32\nresult: b:int32\n", "'b:int32' is a required 'result' after an 'opt-result'")]
+	[InlineData("try", "opt-result: a:int32\nresult: b:int32\n",
+		"'b:int32' is a required 'result' after an 'opt-result'")]
 	[InlineData("outcome", "rest: a:int64\nresult: b:int32\n", "'b:int32' must be declared before the 'rest' result")]
 	[InlineData("outcome", "opt-result: a:string?\n", "'string?' cannot be an 'opt-result' kind")]
 	[InlineData("outcome", "rest: a:address\n", "'address' cannot be a 'rest' kind")]
@@ -968,7 +976,7 @@ public sealed class SpecFileParserTests
 	public void Optional_result_before_a_required_result_is_refused(string form, string results, string message)
 	{
 		string text = SpecSources.Ce77Header("Demo", "T") + "global: g\nmethod: G\nform: " + form + "\n" + results +
-					  "nil: none\ndoc: d.\n";
+		              "nil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -982,8 +990,8 @@ public sealed class SpecFileParserTests
 	public void Outcome_form_is_parsed()
 	{
 		string text = SpecSources.Ce77Header("Demo", "T") +
-					  "global: g\nmethod: G\nform: outcome\narg: a:address\nresult: first:int64\nopt-result: second:address\nrest: values:double\nnil: absence\ndoc: d.\n\n" +
-					  "global: beep\nmethod: Beep\nform: outcome\nnil: none\ndoc: d.\n";
+		              "global: g\nmethod: G\nform: outcome\narg: a:address\nresult: first:int64\nopt-result: second:address\nrest: values:double\nnil: absence\ndoc: d.\n\n" +
+		              "global: beep\nmethod: Beep\nform: outcome\nnil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -1004,7 +1012,7 @@ public sealed class SpecFileParserTests
 	public void Rest_result_requires_the_outcome_form()
 	{
 		string text = SpecSources.Ce77Header("Demo", "T") +
-					  "global: g\nmethod: TryG\nform: try\nresult: first:int32\nrest: values:int32\nnil: none\ndoc: d.\n";
+		              "global: g\nmethod: TryG\nform: try\nresult: first:int32\nrest: values:int32\nnil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -1020,12 +1028,13 @@ public sealed class SpecFileParserTests
 	public void Reformatting_a_spec_keeps_its_contract_and_call_model()
 	{
 		string compact = SpecSources.Ce77Header("Demo", "T") +
-						 "global: g\nmethod: G\nform: outcome\narg: a:int32\nopt: b:address\nresult: r:int64\nopt-result: s:string\nnil: absence\ndoc: Reads.\n";
+		                 "global: g\nmethod: G\nform: outcome\narg: a:int32\nopt: b:address\nresult: r:int64\nopt-result: s:string\nnil: absence\ndoc: Reads.\n";
 		string reformatted = "# reformatted\r\n  namespace:   Demo  \r\n\ttype: T\r\n" +
-							 SpecSources.Ce77.Replace("\n", "\r\n  # a comment inside the header\r\n", StringComparison.Ordinal) +
-							 "\r\n\r\n   # a comment before the entry\r\n  global:  g\r\n  method: G\r\n  # a comment inside the entry\r\n" +
-							 "  form:outcome\r\n  arg:   a:int32\r\n  opt: b:address  \r\n  result: r:int64\r\n  opt-result: s:string\r\n" +
-							 "  nil: absence\r\n  doc: Reads.\r\n\r\n";
+		                     SpecSources.Ce77.Replace("\n", "\r\n  # a comment inside the header\r\n",
+			                     StringComparison.Ordinal) +
+		                     "\r\n\r\n   # a comment before the entry\r\n  global:  g\r\n  method: G\r\n  # a comment inside the entry\r\n" +
+		                     "  form:outcome\r\n  arg:   a:int32\r\n  opt: b:address  \r\n  result: r:int64\r\n  opt-result: s:string\r\n" +
+		                     "  nil: absence\r\n  doc: Reads.\r\n\r\n";
 
 		SpecFileModel first = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", compact);
 		SpecFileModel second = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", reformatted);

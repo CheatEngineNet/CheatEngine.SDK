@@ -45,7 +45,7 @@ public sealed class ContainingTypeTests(RoslynFixture roslyn) : IClassFixture<Ro
 	public void Generator_global_namespace_has_no_namespace_block()
 	{
 		GeneratorRun run = roslyn.Run(Usings +
-									  "public static partial class Top { [LuaFunction(\"f\")] public static int F(int a) => a; }");
+		                              "public static partial class Top { [LuaFunction(\"f\")] public static int F(int a) => a; }");
 
 		run.AssertCompilesClean();
 		string text = run.GeneratedText("Top.LuaFunctions.g.cs");
@@ -66,7 +66,7 @@ public sealed class ContainingTypeTests(RoslynFixture roslyn) : IClassFixture<Ro
 	public void Generator_type_kinds_are_reopened_with_their_keyword(string declaration, string expectedPart)
 	{
 		GeneratorRun run = roslyn.Run(Usings + "namespace Demo; " + declaration +
-									  " Holder { [LuaFunction(\"f\")] public static int F(int a) => a; [LuaGlobal(\"g\")] public static partial bool TryG(nuint a, out int v); }");
+		                              " Holder { [LuaFunction(\"f\")] public static int F(int a) => a; [LuaGlobal(\"g\")] public static partial bool TryG(nuint a, out int v); }");
 
 		run.AssertCompilesClean();
 		Assert.Contains("\n    " + expectedPart + " Holder\n    {\n",
@@ -109,7 +109,7 @@ public sealed class ContainingTypeTests(RoslynFixture roslyn) : IClassFixture<Ro
 		// cannot tell "DemoType" and "demoType" apart (neither has a replaced character), so without disambiguation
 		// AddSource throws ArgumentException on the second one and the whole generation pass crashes.
 		const string Source = Usings +
-							  "namespace Demo; public static partial class DemoType { [LuaFunction(\"f1\")] public static int F(int a) => a; } public static partial class demoType { [LuaFunction(\"f2\")] public static int F(int a) => a; }";
+		                      "namespace Demo; public static partial class DemoType { [LuaFunction(\"f1\")] public static int F(int a) => a; } public static partial class demoType { [LuaFunction(\"f2\")] public static int F(int a) => a; }";
 
 		GeneratorRun run = roslyn.Run(Source);
 
@@ -124,7 +124,7 @@ public sealed class ContainingTypeTests(RoslynFixture roslyn) : IClassFixture<Ro
 	public void Generator_non_ascii_type_name_gets_a_hashed_hint_name_and_an_unescaped_declaration()
 	{
 		GeneratorRun run = roslyn.Run(Usings +
-									  "namespace Demo; public static partial class Caf\u00E9 { [LuaFunction(\"f\")] public static int F(int a) => a; }");
+		                              "namespace Demo; public static partial class Caf\u00E9 { [LuaFunction(\"f\")] public static int F(int a) => a; }");
 
 		run.AssertCompilesClean();
 		string hintName = Assert.Single(run.HintNames);
@@ -186,8 +186,8 @@ public sealed class ContainingTypeTests(RoslynFixture roslyn) : IClassFixture<Ro
 	public void Generator_repeats_the_defining_declarations_modifiers(string declared, string emitted)
 	{
 		GeneratorRun run = roslyn.Run(Usings + "namespace Demo; public partial class Holder { [LuaGlobal(\"g\")] " +
-									  declared +
-									  " bool TryG(nuint a, out int v); }");
+		                              declared +
+		                              " bool TryG(nuint a, out int v); }");
 
 		run.AssertCompilesClean();
 		Assert.Contains("\n        " + emitted + " bool TryG(nuint a, out int v)\n", run.SingleGeneratedText,
@@ -214,7 +214,7 @@ public sealed class ContainingTypeTests(RoslynFixture roslyn) : IClassFixture<Ro
 	public void Generator_old_style_partial_void_without_accessibility_is_implemented_without_one()
 	{
 		GeneratorRun run = roslyn.Run(Usings +
-									  "namespace Demo; public static partial class Holder { [LuaGlobal(\"beep\")] static partial void Beep(); }");
+		                              "namespace Demo; public static partial class Holder { [LuaGlobal(\"beep\")] static partial void Beep(); }");
 
 		run.AssertCompilesClean();
 		Assert.Contains("\n        static partial void Beep()\n", run.SingleGeneratedText, StringComparison.Ordinal);
@@ -224,7 +224,7 @@ public sealed class ContainingTypeTests(RoslynFixture roslyn) : IClassFixture<Ro
 	public void Generator_private_target_is_reachable_from_the_thunk()
 	{
 		GeneratorRun run = roslyn.Run(Usings +
-									  "namespace Demo; internal static partial class Holder { [LuaFunction(\"f\")] private static int F(int a) => a; }");
+		                              "namespace Demo; internal static partial class Holder { [LuaFunction(\"f\")] private static int F(int a) => a; }");
 
 		run.AssertCompilesClean();
 		Assert.Contains("global::Demo.Holder.F(__arg0)", run.SingleGeneratedText, StringComparison.Ordinal);

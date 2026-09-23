@@ -330,7 +330,8 @@ public sealed class MemoryScanSessionFactoryTests
 
 	[Fact]
 	[Trait("Qualification", "Q25")]
-	public void TryCreate_when_adoption_fails_and_the_child_rollback_raises_still_destroys_the_parent_once_and_rethrows_the_adoption_failure()
+	public void
+		TryCreate_when_adoption_fails_and_the_child_rollback_raises_still_destroys_the_parent_once_and_rethrows_the_adoption_failure()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -359,7 +360,8 @@ public sealed class MemoryScanSessionFactoryTests
 
 	[Fact]
 	[Trait("Qualification", "Q25")]
-	public void TryCreate_when_the_parent_rollback_raises_after_a_child_failure_reports_rollback_unconfirmed_without_retrying()
+	public void
+		TryCreate_when_the_parent_rollback_raises_after_a_child_failure_reports_rollback_unconfirmed_without_retrying()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -446,8 +448,8 @@ public sealed class MemoryScanSessionFactoryTests
 	private static void InstallCurrentTarget(LuaState state)
 	{
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("function getOpenedProcessID() return " +
-													 Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
-													 " end"));
+		                                             Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
+		                                             " end"));
 		EngineTest.Run(state, FakeHost.LocalTargetBackendChunk);
 	}
 

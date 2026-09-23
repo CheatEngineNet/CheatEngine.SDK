@@ -17,7 +17,10 @@ namespace CheatEngine.SDK.Engine.Runtime;
 /// </remarks>
 /// <param name="FileVersion">The complete file version from <c>getCheatEngineFileVersion</c>, or <see langword="null" />.</param>
 /// <param name="SystemArchitecture">The host architecture from <c>getSystemArchitecture</c>, or unknown.</param>
-/// <param name="CheatEngineIs64Bit">Whether <c>cheatEngineIs64Bit</c> reported a 64-bit Cheat Engine, or <see langword="null" />.</param>
+/// <param name="CheatEngineIs64Bit">
+///     Whether <c>cheatEngineIs64Bit</c> reported a 64-bit Cheat Engine, or
+///     <see langword="null" />.
+/// </param>
 /// <param name="OperatingSystem">The operating system from <c>getOperatingSystem</c>, or unknown.</param>
 [StructLayout(LayoutKind.Auto)]
 public readonly record struct CheatEngineHostObservation(

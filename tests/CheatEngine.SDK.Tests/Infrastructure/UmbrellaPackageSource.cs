@@ -75,9 +75,9 @@ internal static partial class UmbrellaPackageSource
 		ArgumentNullException.ThrowIfNull(fileName);
 		string prefix = UmbrellaPackage.Id + ".";
 		return fileName.StartsWith(prefix, StringComparison.Ordinal)
-			   && fileName.EndsWith(NupkgExtension, StringComparison.Ordinal)
-			   && fileName.Length > prefix.Length + NupkgExtension.Length
-			   && SemanticVersion().IsMatch(fileName[prefix.Length..^NupkgExtension.Length]);
+		       && fileName.EndsWith(NupkgExtension, StringComparison.Ordinal)
+		       && fileName.Length > prefix.Length + NupkgExtension.Length
+		       && SemanticVersion().IsMatch(fileName[prefix.Length..^NupkgExtension.Length]);
 	}
 
 	private static InvalidOperationException Rejected(string value, string reason)

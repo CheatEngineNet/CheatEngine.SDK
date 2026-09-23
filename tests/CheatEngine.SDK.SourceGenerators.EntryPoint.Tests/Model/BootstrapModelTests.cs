@@ -68,32 +68,17 @@ public sealed class BootstrapModelTests
 	{
 		Assert.True(ValidA.IsValid);
 		Assert.False(Invalid.IsValid);
-		Assert.False((ValidA with
-		{
-			Issues = PluginShapeIssues.InvalidName
-		}).IsValid);
+		Assert.False((ValidA with { Issues = PluginShapeIssues.InvalidName }).IsValid);
 	}
 
 	[Fact]
 	public void Models_compare_by_value()
 	{
 		Assert.Equal(new PluginModel("global::A", "Plugin A", "", PluginShapeIssues.None), ValidA);
-		Assert.NotEqual(ValidA with
-		{
-			DisplayName = "other"
-		}, ValidA);
-		Assert.NotEqual(ValidA with
-		{
-			FullyQualifiedTypeName = "global::Z"
-		}, ValidA);
-		Assert.NotEqual(ValidA with
-		{
-			DeclaredDiagnosticIds = "EXP001"
-		}, ValidA);
-		Assert.NotEqual(ValidA with
-		{
-			Issues = PluginShapeIssues.Static
-		}, ValidA);
+		Assert.NotEqual(ValidA with { DisplayName = "other" }, ValidA);
+		Assert.NotEqual(ValidA with { FullyQualifiedTypeName = "global::Z" }, ValidA);
+		Assert.NotEqual(ValidA with { DeclaredDiagnosticIds = "EXP001" }, ValidA);
+		Assert.NotEqual(ValidA with { Issues = PluginShapeIssues.Static }, ValidA);
 		Assert.Equal(new EntryPointOptions(true), On);
 		Assert.NotEqual(Off, On);
 		Assert.Equal(

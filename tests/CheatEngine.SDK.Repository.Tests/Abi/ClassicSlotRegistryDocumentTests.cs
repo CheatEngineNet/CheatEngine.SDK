@@ -26,7 +26,8 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 		.. Enumerable.Range(18, 10), .. Enumerable.Range(30, 6), .. Enumerable.Range(73, 9)
 	];
 
-	private static readonly string[] AuditDivergences = ["D01", "D02", "D03", "D04", "D05", "D06", "D07", "D08", "D09", "D10"];
+	private static readonly string[] AuditDivergences =
+		["D01", "D02", "D03", "D04", "D05", "D06", "D07", "D08", "D09", "D10"];
 
 	private static JsonElement Registry => RepositoryDocument.LoadJson(ClassicSlotRegistryContract.RegistryPath);
 
@@ -41,7 +42,8 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 		AssertProperties(ClassicSlotRegistryContract.ContractRequired, root.GetProperty("contract"));
 		AssertProperties(ClassicSlotRegistryContract.SlotRequired, Slots[0]);
 		AssertProperties(ClassicSlotRegistryContract.DivergenceRequired, root.GetProperty("divergences")[0]);
-		AssertProperties(ClassicSlotRegistryContract.CallbackCategoryRequired, root.GetProperty("callbackCategories")[0]);
+		AssertProperties(ClassicSlotRegistryContract.CallbackCategoryRequired,
+			root.GetProperty("callbackCategories")[0]);
 
 		Assert.All(root.GetProperty("sources").EnumerateArray(),
 			source => AssertProperties(ClassicSlotRegistryContract.SourceRequired, source));
@@ -53,18 +55,28 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 
 		Assert.Equal(ClassicSlotRegistryContract.Kind, root.GetProperty("schema").GetString());
 		Assert.All(root.GetProperty("sources").EnumerateArray(), source =>
-			Assert.Contains(source.GetProperty("role").GetString(), ClassicSlotRegistryContract.SourceRoles, StringComparer.Ordinal));
+			Assert.Contains(source.GetProperty("role").GetString(), ClassicSlotRegistryContract.SourceRoles,
+				StringComparer.Ordinal));
 		Assert.All(Slots, slot =>
 		{
-			Assert.Contains(slot.GetProperty("section").GetString(), ClassicSlotRegistryContract.Sections, StringComparer.Ordinal);
-			Assert.Contains(slot.GetProperty("hostAssignment").GetProperty("kind").GetString(), ClassicSlotRegistryContract.AssignmentKinds, StringComparer.Ordinal);
-			Assert.Contains(slot.GetProperty("nature").GetString(), ClassicSlotRegistryContract.Natures, StringComparer.Ordinal);
-			Assert.Contains(slot.GetProperty("callingConvention").GetString(), ClassicSlotRegistryContract.CallingConventions, StringComparer.Ordinal);
-			Assert.Contains(slot.GetProperty("nullability").GetString(), ClassicSlotRegistryContract.Nullabilities, StringComparer.Ordinal);
-			Assert.Contains(slot.GetProperty("sdkExposure").GetString(), ClassicSlotRegistryContract.SdkExposures, StringComparer.Ordinal);
-			Assert.Contains(slot.GetProperty("facadeStatus").GetString(), ClassicSlotRegistryContract.FacadeStatuses, StringComparer.Ordinal);
-			Assert.Contains(slot.GetProperty("ownership").GetString(), ClassicSlotRegistryContract.Ownerships, StringComparer.Ordinal);
-			Assert.Contains(slot.GetProperty("evidenceKind").GetString(), ClassicSlotRegistryContract.SlotEvidenceKinds, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("section").GetString(), ClassicSlotRegistryContract.Sections,
+				StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("hostAssignment").GetProperty("kind").GetString(),
+				ClassicSlotRegistryContract.AssignmentKinds, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("nature").GetString(), ClassicSlotRegistryContract.Natures,
+				StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("callingConvention").GetString(),
+				ClassicSlotRegistryContract.CallingConventions, StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("nullability").GetString(), ClassicSlotRegistryContract.Nullabilities,
+				StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("sdkExposure").GetString(), ClassicSlotRegistryContract.SdkExposures,
+				StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("facadeStatus").GetString(), ClassicSlotRegistryContract.FacadeStatuses,
+				StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("ownership").GetString(), ClassicSlotRegistryContract.Ownerships,
+				StringComparer.Ordinal);
+			Assert.Contains(slot.GetProperty("evidenceKind").GetString(), ClassicSlotRegistryContract.SlotEvidenceKinds,
+				StringComparer.Ordinal);
 		});
 	}
 
@@ -139,11 +151,14 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 	public void Nil_assigned_slots_are_exactly_the_eleven_host_nil_assignments()
 	{
 		int[] nil = SlotsWhere(static slot => IsKind(slot, "Nil"));
-		int[] nilAssigned = SlotsWhere(static slot => string.Equals(slot.GetProperty("nullability").GetString(), "NilAssigned", StringComparison.Ordinal));
+		int[] nilAssigned = SlotsWhere(static slot =>
+			string.Equals(slot.GetProperty("nullability").GetString(), "NilAssigned", StringComparison.Ordinal));
 
 		Assert.Equal(NilSlots, nil);
 		Assert.Equal(NilSlots, nilAssigned);
-		Assert.All(nil, static index => Assert.Equal("nil", Slots[index].GetProperty("hostAssignment").GetProperty("expression").GetString()));
+		Assert.All(nil,
+			static index => Assert.Equal("nil",
+				Slots[index].GetProperty("hostAssignment").GetProperty("expression").GetString()));
 		Assert.Equal("fixmem", HostName(Slots[14]));
 	}
 
@@ -152,8 +167,10 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 	{
 		int[] cells = SlotsWhere(static slot => IsKind(slot, "CellAddress"));
 		int[] doubleAddress = SlotsWhere(static slot =>
-			slot.GetProperty("hostAssignment").GetProperty("expression").GetString()!.StartsWith("@@", StringComparison.Ordinal));
-		int[] functionPointerCells = SlotsWhere(static slot => string.Equals(slot.GetProperty("nature").GetString(), "FunctionPointerCell", StringComparison.Ordinal));
+			slot.GetProperty("hostAssignment").GetProperty("expression").GetString()!.StartsWith("@@",
+				StringComparison.Ordinal));
+		int[] functionPointerCells = SlotsWhere(static slot => string.Equals(slot.GetProperty("nature").GetString(),
+			"FunctionPointerCell", StringComparison.Ordinal));
 
 		Assert.Equal(25, cells.Length);
 		Assert.Equal(CellSlots, cells);
@@ -170,8 +187,12 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 	[Fact]
 	public void Data_and_object_reference_cells_have_their_declared_nature()
 	{
-		Assert.Equal([4, 5], SlotsWhere(static slot => string.Equals(slot.GetProperty("nature").GetString(), "DataCell", StringComparison.Ordinal)));
-		Assert.Equal([82, 83], SlotsWhere(static slot => string.Equals(slot.GetProperty("nature").GetString(), "ObjectRefCell", StringComparison.Ordinal)));
+		Assert.Equal([4, 5],
+			SlotsWhere(static slot =>
+				string.Equals(slot.GetProperty("nature").GetString(), "DataCell", StringComparison.Ordinal)));
+		Assert.Equal([82, 83],
+			SlotsWhere(static slot =>
+				string.Equals(slot.GetProperty("nature").GetString(), "ObjectRefCell", StringComparison.Ordinal)));
 		int[] cells = [4, 5, 82, 83];
 		foreach (int index in cells)
 		{
@@ -197,8 +218,12 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 	public void Divergence_register_lists_the_ten_audit_divergences()
 	{
 		JsonElement[] divergences = [.. Registry.GetProperty("divergences").EnumerateArray()];
-		string[] audit = [.. divergences.Where(static row => string.Equals(row.GetProperty("origin").GetString(), "Audit", StringComparison.Ordinal))
-			.Select(static row => row.GetProperty("id").GetString()!)];
+		string[] audit =
+		[
+			.. divergences.Where(static row =>
+					string.Equals(row.GetProperty("origin").GetString(), "Audit", StringComparison.Ordinal))
+				.Select(static row => row.GetProperty("id").GetString()!)
+		];
 
 		Assert.Equal(AuditDivergences, audit);
 		Assert.Equal([17], Ints(Divergence(divergences, "D01"), "slots"));
@@ -213,7 +238,8 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 		Assert.Contains("PluginInitRecord", Strings(Divergence(divergences, "D10"), "records"), StringComparer.Ordinal);
 
 		// Lot observations are extra rows, never replacements: each is a source observation of the pinned source.
-		foreach (JsonElement row in divergences.Where(static row => string.Equals(row.GetProperty("origin").GetString(), "LotObservation", StringComparison.Ordinal)))
+		foreach (JsonElement row in divergences.Where(static row =>
+			         string.Equals(row.GetProperty("origin").GetString(), "LotObservation", StringComparison.Ordinal)))
 		{
 			Assert.Equal("ObservedSource", row.GetProperty("evidenceKind").GetString());
 		}
@@ -232,20 +258,26 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 		foreach (JsonElement slot in Slots)
 		{
 			int index = slot.GetProperty("slot").GetInt32();
-			string[] refs = [.. slot.GetProperty("divergenceRefs").EnumerateArray().Select(static id => id.GetString()!)];
+			string[] refs =
+				[.. slot.GetProperty("divergenceRefs").EnumerateArray().Select(static id => id.GetString()!)];
 			foreach (string id in refs)
 			{
-				Assert.True(slotsById.TryGetValue(id, out int[]? listed), $"Slot {index} cites the unknown divergence {id}.");
+				Assert.True(slotsById.TryGetValue(id, out int[]? listed),
+					$"Slot {index} cites the unknown divergence {id}.");
 				Assert.Contains(index, listed);
 			}
 
-			string[] expected = [.. slotsById.Where(pair => pair.Value.Contains(index)).Select(static pair => pair.Key).Order(StringComparer.Ordinal)];
+			string[] expected =
+			[
+				.. slotsById.Where(pair => pair.Value.Contains(index)).Select(static pair => pair.Key)
+					.Order(StringComparer.Ordinal)
+			];
 			Assert.Equal(expected, refs.Order(StringComparer.Ordinal), StringComparer.Ordinal);
 		}
 
 		// D12: every slot of the cell section that the host assigns a direct @ expression (not @@, not nil).
 		int[] direct = SlotsWhere(static slot => slot.GetProperty("slot").GetInt32() is >= 18 and <= 81 &&
-												 IsKind(slot, "FunctionAddress"));
+		                                         IsKind(slot, "FunctionAddress"));
 		Assert.Equal(direct, slotsById["D12"]);
 	}
 
@@ -255,18 +287,23 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 		foreach (JsonElement slot in Slots)
 		{
 			bool divergent = slot.GetProperty("divergenceRefs").GetArrayLength() > 0;
-			bool nil = string.Equals(slot.GetProperty("nullability").GetString(), "NilAssigned", StringComparison.Ordinal);
+			bool nil = string.Equals(slot.GetProperty("nullability").GetString(), "NilAssigned",
+				StringComparison.Ordinal);
 			if (divergent || nil)
 			{
 				Assert.NotEqual("PrefixTyped", slot.GetProperty("sdkExposure").GetString(), StringComparer.Ordinal);
 			}
 		}
 
-		Assert.Equal([14, 17], SlotsWhere(static slot => string.Equals(slot.GetProperty("sdkExposure").GetString(), "PrefixOpaque", StringComparison.Ordinal)));
+		Assert.Equal([14, 17],
+			SlotsWhere(static slot => string.Equals(slot.GetProperty("sdkExposure").GetString(), "PrefixOpaque",
+				StringComparison.Ordinal)));
 		Assert.Equal([.. Enumerable.Range(0, 18).Except([14, 17])],
-			SlotsWhere(static slot => string.Equals(slot.GetProperty("sdkExposure").GetString(), "PrefixTyped", StringComparison.Ordinal)));
+			SlotsWhere(static slot => string.Equals(slot.GetProperty("sdkExposure").GetString(), "PrefixTyped",
+				StringComparison.Ordinal)));
 		Assert.Equal([.. Enumerable.Range(18, 141)],
-			SlotsWhere(static slot => string.Equals(slot.GetProperty("sdkExposure").GetString(), "None", StringComparison.Ordinal)));
+			SlotsWhere(static slot =>
+				string.Equals(slot.GetProperty("sdkExposure").GetString(), "None", StringComparison.Ordinal)));
 		Assert.All(Slots[18..], static slot =>
 		{
 			Assert.Equal("Deferred", slot.GetProperty("facadeStatus").GetString());
@@ -279,9 +316,12 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 	{
 		JsonElement[] sources = [.. Registry.GetProperty("sources").EnumerateArray()];
 
-		Assert.Equal(ClassicSlotRegistryContract.SourceIds, sources.Select(static source => source.GetProperty("id").GetString()!),
+		Assert.Equal(ClassicSlotRegistryContract.SourceIds,
+			sources.Select(static source => source.GetProperty("id").GetString()!),
 			StringComparer.Ordinal);
-		JsonElement authority = Assert.Single(sources, static source => string.Equals(source.GetProperty("role").GetString(), "Authority", StringComparison.Ordinal));
+		JsonElement authority = Assert.Single(sources,
+			static source => string.Equals(source.GetProperty("role").GetString(), "Authority",
+				StringComparison.Ordinal));
 		Assert.Equal("Cheat Engine/plugin.pas", authority.GetProperty("path").GetString());
 		foreach (JsonElement source in sources)
 		{
@@ -293,7 +333,8 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 
 		JsonElement header = sources[2].GetProperty("installed");
 		Assert.Equal("MirrorC", sources[2].GetProperty("role").GetString());
-		Assert.Equal("9c0e31bb753d782ce20710d19828f4e97b4371c8733abd0c5c6f7f485306fb28", header.GetProperty("sha256").GetString());
+		Assert.Equal("9c0e31bb753d782ce20710d19828f4e97b4371c8733abd0c5c6f7f485306fb28",
+			header.GetProperty("sha256").GetString());
 		Assert.Equal("CommentOnlyDifference", header.GetProperty("relation").GetString());
 		JsonElement pascal = sources[3].GetProperty("installed");
 		Assert.Equal("MirrorPascal", sources[3].GetProperty("role").GetString());
@@ -310,14 +351,16 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 		});
 
 		// A host implementation is only cited for a function address whose target plugin.pas assigns.
-		Assert.All(Slots.Where(static slot => slot.GetProperty("hostImplementation").ValueKind != JsonValueKind.Null), static slot =>
-		{
-			Assert.Equal("FunctionAddress", AssignmentKind(slot));
-			Assert.Equal("pluginexports-pas", slot.GetProperty("hostImplementation").GetProperty("source").GetString());
-			Assert.Equal("ObservedSource", slot.GetProperty("evidenceKind").GetString());
-		});
+		Assert.All(Slots.Where(static slot => slot.GetProperty("hostImplementation").ValueKind != JsonValueKind.Null),
+			static slot =>
+			{
+				Assert.Equal("FunctionAddress", AssignmentKind(slot));
+				Assert.Equal("pluginexports-pas",
+					slot.GetProperty("hostImplementation").GetProperty("source").GetString());
+				Assert.Equal("ObservedSource", slot.GetProperty("evidenceKind").GetString());
+			});
 		Assert.All(Slots.Where(static slot => IsKind(slot, "FunctionAddress") &&
-											   slot.GetProperty("hostImplementation").ValueKind == JsonValueKind.Null),
+		                                      slot.GetProperty("hostImplementation").ValueKind == JsonValueKind.Null),
 			static slot => Assert.Equal("ToQualify", slot.GetProperty("evidenceKind").GetString()));
 	}
 
@@ -327,14 +370,17 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 		JsonElement[] statuses = [.. Registry.GetProperty("profileStatus").EnumerateArray()];
 
 		JsonElement qualifiable = Assert.Single(statuses, static status =>
-			string.Equals(status.GetProperty("profileId").GetString(), ClassicSlotRegistryContract.QualifiableProfile, StringComparison.Ordinal));
+			string.Equals(status.GetProperty("profileId").GetString(), ClassicSlotRegistryContract.QualifiableProfile,
+				StringComparison.Ordinal));
 		Assert.Equal("NotObserved", qualifiable.GetProperty("status").GetString());
 		Assert.Contains("no managed-hostfxr route reaches the classic table",
 			qualifiable.GetProperty("reason").GetString(), StringComparison.Ordinal);
 		JsonElement documentary = Assert.Single(statuses, static status =>
-			string.Equals(status.GetProperty("profileId").GetString(), ClassicSlotRegistryContract.DocumentaryProfile, StringComparison.Ordinal));
+			string.Equals(status.GetProperty("profileId").GetString(), ClassicSlotRegistryContract.DocumentaryProfile,
+				StringComparison.Ordinal));
 		Assert.Equal("SourceOnly", documentary.GetProperty("status").GetString());
-		Assert.All(Slots, static slot => Assert.Equal("NotObserved", slot.GetProperty("hostProfileStatus").GetString()));
+		Assert.All(Slots,
+			static slot => Assert.Equal("NotObserved", slot.GetProperty("hostProfileStatus").GetString()));
 	}
 
 	[Fact]
@@ -351,7 +397,8 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 	[Fact]
 	public void Lua_equivalents_are_named_only_for_function_slots()
 	{
-		JsonElement[] withLua = [.. Slots.Where(static slot => slot.GetProperty("luaEquivalent").ValueKind != JsonValueKind.Null)];
+		JsonElement[] withLua =
+			[.. Slots.Where(static slot => slot.GetProperty("luaEquivalent").ValueKind != JsonValueKind.Null)];
 
 		Assert.NotEmpty(withLua);
 		Assert.All(withLua, static slot =>
@@ -360,7 +407,8 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 			Assert.Equal(HostName(slot), slot.GetProperty("luaEquivalent").GetProperty("name").GetString(),
 				StringComparer.OrdinalIgnoreCase);
 		});
-		Assert.All(Slots, static slot => Assert.Equal(JsonValueKind.Null, slot.GetProperty("catalogSurfaceId").ValueKind));
+		Assert.All(Slots,
+			static slot => Assert.Equal(JsonValueKind.Null, slot.GetProperty("catalogSurfaceId").ValueKind));
 		Assert.Equal("createForm", Slots[124].GetProperty("luaEquivalent").GetProperty("name").GetString());
 	}
 
@@ -393,10 +441,14 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 	{
 		JsonElement[] categories = [.. Registry.GetProperty("callbackCategories").EnumerateArray()];
 
-		Assert.Equal([.. Enumerable.Range(0, 9)], categories.Select(static row => row.GetProperty("pluginType").GetInt32()));
+		Assert.Equal([.. Enumerable.Range(0, 9)],
+			categories.Select(static row => row.GetProperty("pluginType").GetInt32()));
 		Assert.Equal(
-			["ptAddressList", "ptMemoryView", "ptOnDebugEvent", "ptProcesswatcherEvent", "ptFunctionPointerchange", "ptMainMenu",
-			 "ptDisassemblerContext", "ptDisassemblerRenderLine", "ptAutoAssembler"],
+			[
+				"ptAddressList", "ptMemoryView", "ptOnDebugEvent", "ptProcesswatcherEvent", "ptFunctionPointerchange",
+				"ptMainMenu",
+				"ptDisassemblerContext", "ptDisassemblerRenderLine", "ptAutoAssembler"
+			],
 			categories.Select(static row => row.GetProperty("name").GetString()!), StringComparer.Ordinal);
 		Assert.True(categories[2].GetProperty("synchronousDecision").GetBoolean());
 		Assert.Equal(1, categories.Count(static row => row.GetProperty("synchronousDecision").GetBoolean()));
@@ -449,7 +501,8 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 
 	private static JsonElement Divergence(JsonElement[] divergences, string id)
 	{
-		return Assert.Single(divergences, row => string.Equals(row.GetProperty("id").GetString(), id, StringComparison.Ordinal));
+		return Assert.Single(divergences,
+			row => string.Equals(row.GetProperty("id").GetString(), id, StringComparison.Ordinal));
 	}
 
 	private static int[] Ints(JsonElement row, string property)
@@ -464,10 +517,12 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 
 	private static bool InRange(JsonElement[] ranges, int line)
 	{
-		return ranges.Any(range => line >= range.GetProperty("start").GetInt32() && line <= range.GetProperty("end").GetInt32());
+		return ranges.Any(range =>
+			line >= range.GetProperty("start").GetInt32() && line <= range.GetProperty("end").GetInt32());
 	}
 
-	[GeneratedRegex(@"(?<![A-Za-z])[A-Za-z]:(\\|/)|file://|\\Users\\", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, 1000)]
+	[GeneratedRegex(@"(?<![A-Za-z])[A-Za-z]:(\\|/)|file://|\\Users\\",
+		RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, 1000)]
 	private static partial Regex AbsoluteLocalPath();
 
 	[GeneratedRegex("\\b[0-9A-Fa-f]{64}\\b", RegexOptions.CultureInvariant, 1000)]

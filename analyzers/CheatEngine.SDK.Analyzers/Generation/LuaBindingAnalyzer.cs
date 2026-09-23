@@ -123,7 +123,7 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 		switch (context.Symbol)
 		{
 			case IMethodSymbol method when symbols.LuaMethodAttribute is not null
-										   && FindAttribute(method, symbols.LuaMethodAttribute) is not null:
+			                               && FindAttribute(method, symbols.LuaMethodAttribute) is not null:
 				usesOptional = LuaContractTypes.Is(method.ReturnType, symbols.LuaOptional);
 				foreach (IParameterSymbol parameter in method.Parameters)
 				{
@@ -132,7 +132,7 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 
 				break;
 			case IPropertySymbol property when symbols.LuaPropertyAttribute is not null
-											   && FindAttribute(property, symbols.LuaPropertyAttribute) is not null:
+			                                   && FindAttribute(property, symbols.LuaPropertyAttribute) is not null:
 				usesOptional = LuaContractTypes.Is(property.Type, symbols.LuaOptional);
 				break;
 			default:

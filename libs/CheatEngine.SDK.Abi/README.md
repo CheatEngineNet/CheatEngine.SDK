@@ -68,7 +68,8 @@ These installed-file hashes were recorded in a source index that was retired on 
 remain declarations (`DeclaredRepo`) until an exact-host measurement re-measures them. The independently
 compiled fixture is deliberately more limited: it compiles a checked-in transcription of the pinned upstream C-header
 subset under MSVC x64, validates 104 facts, and compares its `sizeof`, `offsetof`, alignment, export, and topology facts
-with a versioned expectation. The Debug CI test run also passes that facts file into a compiled managed test, which measures
+with a versioned expectation. The Debug CI test run also passes that facts file into a compiled managed test, which
+measures
 the matching managed record sizes, offsets, and alignments directly. It is therefore a `compiled-transcription-fixture`
 proof, not proof that a live CE host
 loads a slot, uses a given Pascal boolean width, or provides a non-null table entry. The records stay internal until a
@@ -86,8 +87,8 @@ its own.
 
 Cheat Engine hands a plugin one of two exported-function tables, depending on how the plugin was loaded:
 
-| Route             | Entry point                                        | Table the plugin receives                                                                |
-|-------------------|-----------------------------------------------------|--------------------------------------------------------------------------------------------|
+| Route             | Entry point                                        | Table the plugin receives                                                                 |
+|-------------------|----------------------------------------------------|-------------------------------------------------------------------------------------------|
 | Managed (hostfxr) | `CESDK.CESDK.CEPluginInitialize(IntPtr, int)`      | `ManagedExportedFunctions`: 48 bytes, six fields, filled by Cheat Engine's managed loader |
 | Classic native    | `CEPlugin_GetVersion`, `CEPlugin_InitializePlugin` | `TExportedFunctions5` of `plugin.pas`: 159 slots, 1272 bytes on x64                       |
 
@@ -109,16 +110,16 @@ The oracle for `PluginType0Record` is the host type actually passed: `TPlugin0_S
 with. The Pascal kit unit `cepluginsdk.pas` has two known-wrong mirrors. All three are 48 bytes, so only a per-field
 check separates them (`SelectedRecordOracleTests`, registry divergence D09):
 
-| Field                 | Host type (oracle) | `cepluginsdk.pas` dword mirror (lines 161-170) | `cepluginsdk.pas` `TSelectedRecord` (lines 147-156) |
-|-----------------------|---------------------|--------------------------------------------------|--------------------------------------------------------|
-| `interpretedaddress`  | 0, 8 bytes          | 0, 8 bytes                                       | 0, 8 bytes                                              |
-| `address`             | 8, 8 bytes          | 8, **4 bytes**                                   | 8, 8 bytes                                              |
-| `ispointer`           | 16, 4 bytes         | **12**, 4 bytes                                  | 16, **1 byte**                                          |
-| `countoffsets`        | 20, 4 bytes         | **16**, 4 bytes                                  | 20, 4 bytes                                             |
-| `offsets`             | 24, 8 bytes         | 24, 8 bytes                                      | 24, 8 bytes                                             |
-| `description`         | 32, 8 bytes         | 32, 8 bytes                                      | 32, 8 bytes                                             |
-| `valuetype`           | 40, 1 byte          | 40, 1 byte                                       | 40, 1 byte                                              |
-| `size`                | 41, 1 byte          | 41, 1 byte                                       | 41, 1 byte                                              |
+| Field                | Host type (oracle) | `cepluginsdk.pas` dword mirror (lines 161-170) | `cepluginsdk.pas` `TSelectedRecord` (lines 147-156) |
+|----------------------|--------------------|------------------------------------------------|-----------------------------------------------------|
+| `interpretedaddress` | 0, 8 bytes         | 0, 8 bytes                                     | 0, 8 bytes                                          |
+| `address`            | 8, 8 bytes         | 8, **4 bytes**                                 | 8, 8 bytes                                          |
+| `ispointer`          | 16, 4 bytes        | **12**, 4 bytes                                | 16, **1 byte**                                      |
+| `countoffsets`       | 20, 4 bytes        | **16**, 4 bytes                                | 20, 4 bytes                                         |
+| `offsets`            | 24, 8 bytes        | 24, 8 bytes                                    | 24, 8 bytes                                         |
+| `description`        | 32, 8 bytes        | 32, 8 bytes                                    | 32, 8 bytes                                         |
+| `valuetype`          | 40, 1 byte         | 40, 1 byte                                     | 40, 1 byte                                          |
+| `size`               | 41, 1 byte         | 41, 1 byte                                     | 41, 1 byte                                          |
 
 Which record the 7.7.0.10621 binary passes is `NotObserved`: no managed route reaches a type-0 registration, so the
 type-0 callback stays `void*`.
@@ -130,13 +131,13 @@ not a supported CheatEngine.SDK profile.** Unloading a Native AOT library with `
 supported by .NET (https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries, audit source EXT-01), and
 Cheat Engine removes a plugin with `FreeLibrary`.
 
-| Profile | Status in CheatEngine.SDK 2.0 | Evidence and boundary |
-|---|---|---|
-| Historical CLR route: `MSCorEE.dll` hosting with a string entry point, as in the historical public C# template | Documentary only, **not supported** | Described by the pinned public source (`ce-public-src-ec45d5f`), which is never qualifiable. The SDK does not downgrade to that bootstrap. |
-| **Managed hostfxr route** | **The only qualifiable profile**: `ce-7.7.0.10621-x64-managed-hostfxr` | Cheat Engine 7.7.0.10621 x64 (`cheatengine-x86_64.exe` SHA-256 `9727076da50924e4a097b49a02155e4b34759269c3017ff31375364b8826eb4d`), with a `ce.runtimeconfig.json` recorded as a local modification (`LocalModified`), never an installer baseline. The plugin is a framework-dependent folder; the SDK generates `int CESDK.CESDK.CEPluginInitialize(IntPtr args, int size)`, which fills the 36-byte packed `PluginInitRecord` and receives the 48-byte managed exports table. |
-| NativeAOT plugin DLL | **Not supported** | Cheat Engine unloads plugins with `FreeLibrary`, which .NET does not support for NativeAOT libraries. No residence model exists in 2.0: a resident native adapter separate from an AOT component is a possible future architecture with its own contract and proof (audit A04-07, deferred), not a change of the existing profile. Q42 is recorded `NotApplicable` for this reason. |
-| Classic native plugin exporting `CEPlugin_*` | **Not provided by the SDK** | The classic path receives the 159-slot classic table (the committed registry above); no managed route reaches it and the SDK has no classic facade. A package can never add native exports to a consumer: only `UnmanagedCallersOnly` methods of the published assembly become exports (https://learn.microsoft.com/dotnet/core/deploying/native-aot/interop#native-exports). |
-| x86 or ARM64 host | **Not supported** | `AbiArchitecture` accepts x64 only; the packaged target refuses other explicit `PlatformTarget` values with `CESDK9101`. x64 layout tests make no x86 or ARM64 promise. |
+| Profile                                                                                                        | Status in CheatEngine.SDK 2.0                                          | Evidence and boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+|----------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Historical CLR route: `MSCorEE.dll` hosting with a string entry point, as in the historical public C# template | Documentary only, **not supported**                                    | Described by the pinned public source (`ce-public-src-ec45d5f`), which is never qualifiable. The SDK does not downgrade to that bootstrap.                                                                                                                                                                                                                                                                                                                                       |
+| **Managed hostfxr route**                                                                                      | **The only qualifiable profile**: `ce-7.7.0.10621-x64-managed-hostfxr` | Cheat Engine 7.7.0.10621 x64 (`cheatengine-x86_64.exe` SHA-256 `9727076da50924e4a097b49a02155e4b34759269c3017ff31375364b8826eb4d`), with a `ce.runtimeconfig.json` recorded as a local modification (`LocalModified`), never an installer baseline. The plugin is a framework-dependent folder; the SDK generates `int CESDK.CESDK.CEPluginInitialize(IntPtr args, int size)`, which fills the 36-byte packed `PluginInitRecord` and receives the 48-byte managed exports table. |
+| NativeAOT plugin DLL                                                                                           | **Not supported**                                                      | Cheat Engine unloads plugins with `FreeLibrary`, which .NET does not support for NativeAOT libraries. No residence model exists in 2.0: a resident native adapter separate from an AOT component is a possible future architecture with its own contract and proof (audit A04-07, deferred), not a change of the existing profile. Q42 is recorded `NotApplicable` for this reason.                                                                                              |
+| Classic native plugin exporting `CEPlugin_*`                                                                   | **Not provided by the SDK**                                            | The classic path receives the 159-slot classic table (the committed registry above); no managed route reaches it and the SDK has no classic facade. A package can never add native exports to a consumer: only `UnmanagedCallersOnly` methods of the published assembly become exports (https://learn.microsoft.com/dotnet/core/deploying/native-aot/interop#native-exports).                                                                                                    |
+| x86 or ARM64 host                                                                                              | **Not supported**                                                      | `AbiArchitecture` accepts x64 only; the packaged target refuses other explicit `PlatformTarget` values with `CESDK9101`. x64 layout tests make no x86 or ARM64 promise.                                                                                                                                                                                                                                                                                                          |
 
 **What "AOT-compatible libraries" means.** The shipping libraries set `IsAotCompatible=true`, and
 `tests/CheatEngine.SDK.AotProbe` publishes the complete shipping graph as a standalone Native AOT executable. That
@@ -159,10 +160,10 @@ NativeAOT publish success is never a Cheat Engine load success.**
 4. **Coexistence.** Even a future residence model would have to repeat the two-plugin protocol (Q09, Q10): a solution
    to unloading does not isolate static state or Lua globals by itself.
 
-| Diagnostic | Where | What it catches |
-|---|---|---|
-| `CESDK9102` (`analyzers/docs/CESDK9102.md`) | MSBuild warning of the packaged `build/CheatEngine.SDK.targets` (target `CheatEngineSdkWarnNativeAotPluginProfile`), direct package consumers only | A library (not `Exe`/`WinExe`) that sets `PublishAot=true`, with or without `NativeLib`. Suppressible with `NoWarn`. |
-| `CESDK0006` (`analyzers/docs/CESDK0006.md`) | Roslyn analyzer shipped in the package | An `[UnmanagedCallersOnly]` method whose constant `EntryPoint` starts with `CEPlugin_`, including `NativeExportNames.*`. Unprefixed historical names are not flagged (documented limitation). |
+| Diagnostic                                  | Where                                                                                                                                              | What it catches                                                                                                                                                                               |
+|---------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `CESDK9102` (`analyzers/docs/CESDK9102.md`) | MSBuild warning of the packaged `build/CheatEngine.SDK.targets` (target `CheatEngineSdkWarnNativeAotPluginProfile`), direct package consumers only | A library (not `Exe`/`WinExe`) that sets `PublishAot=true`, with or without `NativeLib`. Suppressible with `NoWarn`.                                                                          |
+| `CESDK0006` (`analyzers/docs/CESDK0006.md`) | Roslyn analyzer shipped in the package                                                                                                             | An `[UnmanagedCallersOnly]` method whose constant `EntryPoint` starts with `CEPlugin_`, including `NativeExportNames.*`. Unprefixed historical names are not flagged (documented limitation). |
 
 **Evidence.** Q41 (NativeAOT publish and export inspection, C0/C2): C0 is `Passed` from the static contract tests
 below — the loader harness refuses any `CEPlugin_*` export, any missing probe export and any unexpected export

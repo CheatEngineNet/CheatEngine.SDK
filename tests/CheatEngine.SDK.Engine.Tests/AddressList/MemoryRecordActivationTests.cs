@@ -183,10 +183,10 @@ public sealed class MemoryRecordActivationTests
 	{
 		using AddressListTestHost host = new();
 		CEObject handle = host.AddRecord(1, active: true, extra: """
-		                                                        o.props.Script = "[ENABLE]\n[DISABLE]"
-		                                                        o.props.OffsetCount = 2
-		                                                        o.props.Async = true
-		                                                        """);
+		                                                         o.props.Script = "[ENABLE]\n[DISABLE]"
+		                                                         o.props.OffsetCount = 2
+		                                                         o.props.Async = true
+		                                                         """);
 		CEObject plain = host.AddRecord(2, extra: "o.props.OffsetCount = 'many'");
 		MemoryRecord record = new(handle);
 		MemoryRecord other = new(plain);

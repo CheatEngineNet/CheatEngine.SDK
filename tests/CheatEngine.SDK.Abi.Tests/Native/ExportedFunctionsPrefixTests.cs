@@ -91,13 +91,13 @@ public sealed unsafe class ExportedFunctionsPrefixTests
 	public void Historically_null_and_conflicting_slots_stay_opaque()
 	{
 		FieldInfo fixMemory = typeof(ExportedFunctionsPrefix).GetField(nameof(ExportedFunctionsPrefix.FixMemory),
-								  BindingFlags.Instance | BindingFlags.Public)
-							  ?? throw new InvalidOperationException("The FixMemory field was not found.");
+			                      BindingFlags.Instance | BindingFlags.Public)
+		                      ?? throw new InvalidOperationException("The FixMemory field was not found.");
 		FieldInfo getAddressFromPointer = typeof(ExportedFunctionsPrefix).GetField(
-											  nameof(ExportedFunctionsPrefix.GetAddressFromPointer),
-											  BindingFlags.Instance | BindingFlags.Public)
-										  ?? throw new InvalidOperationException(
-											  "The GetAddressFromPointer field was not found.");
+			                                  nameof(ExportedFunctionsPrefix.GetAddressFromPointer),
+			                                  BindingFlags.Instance | BindingFlags.Public)
+		                                  ?? throw new InvalidOperationException(
+			                                  "The GetAddressFromPointer field was not found.");
 
 		Type fixMemoryType = fixMemory.GetModifiedFieldType().UnderlyingSystemType;
 		Type getAddressFromPointerType = getAddressFromPointer.GetModifiedFieldType().UnderlyingSystemType;

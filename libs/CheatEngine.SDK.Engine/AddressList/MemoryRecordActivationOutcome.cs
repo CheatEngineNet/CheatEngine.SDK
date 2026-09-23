@@ -9,7 +9,8 @@ namespace CheatEngine.SDK.Engine.AddressList;
 /// <remarks>
 ///     <see cref="Effect" /> follows from <see cref="Kind" />: <see cref="MemoryRecordActivationOutcomeKind.Applied" /> is
 ///     <see cref="EngineEffectState.Applied" />; <see cref="MemoryRecordActivationOutcomeKind.Unchanged" /> and
-///     <see cref="MemoryRecordActivationOutcomeKind.NotAttempted" /> are <see cref="EngineEffectState.NotStarted" />; every
+///     <see cref="MemoryRecordActivationOutcomeKind.NotAttempted" /> are <see cref="EngineEffectState.NotStarted" />;
+///     every
 ///     other kind is <see cref="EngineEffectState.Unknown" />. The before and after states are the values actually read;
 ///     <see langword="null" /> means that no value was observed.
 /// </remarks>

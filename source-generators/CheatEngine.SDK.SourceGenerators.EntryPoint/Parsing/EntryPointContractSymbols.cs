@@ -93,7 +93,7 @@ internal readonly struct EntryPointContractSymbols
 		foreach (MetadataReference reference in compilation.References)
 		{
 			if (compilation.GetAssemblyOrModuleSymbol(reference) is IAssemblySymbol assembly
-				&& string.Equals(assembly.Identity.Name, assemblyName, StringComparison.Ordinal))
+			    && string.Equals(assembly.Identity.Name, assemblyName, StringComparison.Ordinal))
 			{
 				return assembly.GetTypeByMetadataName(metadataName);
 			}

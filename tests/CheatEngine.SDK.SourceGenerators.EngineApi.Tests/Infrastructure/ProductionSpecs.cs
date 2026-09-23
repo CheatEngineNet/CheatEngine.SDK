@@ -61,7 +61,7 @@ internal static class ProductionSpecs
 	private static string Read(string resourceName)
 	{
 		using Stream stream = Resources.GetManifestResourceStream(resourceName)
-							  ?? throw new InvalidOperationException("Missing embedded resource " + resourceName + ".");
+		                      ?? throw new InvalidOperationException("Missing embedded resource " + resourceName + ".");
 		using StreamReader reader = new(stream);
 		return reader.ReadToEnd();
 	}

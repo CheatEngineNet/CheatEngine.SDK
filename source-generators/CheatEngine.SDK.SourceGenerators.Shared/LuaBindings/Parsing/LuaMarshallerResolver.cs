@@ -57,7 +57,7 @@ internal static class LuaMarshallerResolver
 		}
 
 		if (!Implements(type, marshallerContract, valueType)
-			|| !HasCallableStaticContract(compilation, bindingType, type, marshallerContract, valueType))
+		    || !HasCallableStaticContract(compilation, bindingType, type, marshallerContract, valueType))
 		{
 			return false;
 		}
@@ -74,7 +74,7 @@ internal static class LuaMarshallerResolver
 		foreach (INamedTypeSymbol implementation in candidate.AllInterfaces)
 		{
 			if (!SymbolEqualityComparer.Default.Equals(implementation.OriginalDefinition, contract)
-				|| implementation.TypeArguments.Length != 1)
+			    || implementation.TypeArguments.Length != 1)
 			{
 				continue;
 			}
@@ -101,7 +101,7 @@ internal static class LuaMarshallerResolver
 
 		INamedTypeSymbol closedContract = contract.Construct(valueType);
 		return HasCallableStaticMethod(compilation, bindingType, candidate, closedContract, "Push")
-			   && HasCallableStaticMethod(compilation, bindingType, candidate, closedContract, "TryRead");
+		       && HasCallableStaticMethod(compilation, bindingType, candidate, closedContract, "TryRead");
 	}
 
 	private static bool HasCallableStaticMethod(Compilation? compilation, INamedTypeSymbol bindingType,
@@ -125,12 +125,12 @@ internal static class LuaMarshallerResolver
 		foreach (ISymbol member in candidate.GetMembers(name))
 		{
 			if (member is not IMethodSymbol method
-				|| method.MethodKind != MethodKind.Ordinary
-				|| !method.IsStatic
-				|| method.IsAbstract
-				|| method.Arity != 0
-				|| (compilation is not null && !compilation.IsSymbolAccessibleWithin(method, bindingType))
-				|| !HasMatchingSignature(method, required))
+			    || method.MethodKind != MethodKind.Ordinary
+			    || !method.IsStatic
+			    || method.IsAbstract
+			    || method.Arity != 0
+			    || (compilation is not null && !compilation.IsSymbolAccessibleWithin(method, bindingType))
+			    || !HasMatchingSignature(method, required))
 			{
 				continue;
 			}
@@ -144,8 +144,8 @@ internal static class LuaMarshallerResolver
 	private static bool HasMatchingSignature(IMethodSymbol candidate, IMethodSymbol required)
 	{
 		if (candidate.ReturnsVoid != required.ReturnsVoid
-			|| !SymbolEqualityComparer.Default.Equals(candidate.ReturnType, required.ReturnType)
-			|| candidate.Parameters.Length != required.Parameters.Length)
+		    || !SymbolEqualityComparer.Default.Equals(candidate.ReturnType, required.ReturnType)
+		    || candidate.Parameters.Length != required.Parameters.Length)
 		{
 			return false;
 		}
@@ -155,7 +155,7 @@ internal static class LuaMarshallerResolver
 			IParameterSymbol actual = candidate.Parameters[i];
 			IParameterSymbol expected = required.Parameters[i];
 			if (actual.RefKind != expected.RefKind
-				|| !SymbolEqualityComparer.Default.Equals(actual.Type, expected.Type))
+			    || !SymbolEqualityComparer.Default.Equals(actual.Type, expected.Type))
 			{
 				return false;
 			}

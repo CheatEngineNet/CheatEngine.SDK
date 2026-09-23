@@ -124,8 +124,8 @@ internal static class PluginShape
 		parameterlessConstructor = null;
 
 		if (type.IsStatic)
-		// A static class is also abstract and sealed in metadata, has no base class and no instance
-		// constructor: one message instead of four.
+			// A static class is also abstract and sealed in metadata, has no base class and no instance
+			// constructor: one message instead of four.
 		{
 			return issues | PluginShapeIssues.Static;
 		}
@@ -229,8 +229,8 @@ internal static class PluginShape
 		for (INamedTypeSymbol? current = type.BaseType; current is not null; current = current.BaseType)
 		{
 			if (pluginBase is null
-					? IsPluginBaseFallback(current)
-					: SymbolEqualityComparer.Default.Equals(current, pluginBase))
+				    ? IsPluginBaseFallback(current)
+				    : SymbolEqualityComparer.Default.Equals(current, pluginBase))
 			{
 				return true;
 			}
@@ -329,7 +329,7 @@ internal static class PluginShape
 		for (INamedTypeSymbol? current = type; current is not null; current = current.BaseType)
 		{
 			if (current.GetMembers().Any(static member =>
-					member is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true }))
+				    member is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true }))
 			{
 				return true;
 			}

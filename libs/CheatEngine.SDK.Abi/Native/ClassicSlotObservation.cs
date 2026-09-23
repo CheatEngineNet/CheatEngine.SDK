@@ -10,7 +10,9 @@ namespace CheatEngine.SDK.Abi.Native;
 /// <remarks>
 ///     <para>
 ///         An observation, not a capability: <see cref="RawValue" /> is the pointer-sized value the table held when it
-///         was read. Depending on the slot (see <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>) it is a function address,
+///         was read. Depending on the slot (see
+///         <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>) it is a function
+///         address,
 ///         the address of a host cell that holds a function pointer, the address of a host variable, or nil. Nothing
 ///         here dereferences, invokes or caches it; two reads of the same slot are two independent observations.
 ///     </para>

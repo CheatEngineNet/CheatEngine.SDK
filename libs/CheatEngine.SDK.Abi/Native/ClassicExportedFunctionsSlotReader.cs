@@ -17,7 +17,8 @@ namespace CheatEngine.SDK.Abi.Native;
 ///     </para>
 ///     <para>
 ///         <b>Scope.</b> Slots 1 to 158 of <c>TExportedFunctions5</c> (plugin contract 6, 159 fields, 1272 bytes on x64,
-///         <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>); slot 0 is the declared size itself. No managed-hostfxr plugin
+///         <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>); slot 0 is the declared
+///         size itself. No managed-hostfxr plugin
 ///         receives this table, so there is no production caller: the classic facade is deferred and every slot stays
 ///         <c>NotObserved</c> on the qualifiable profile. x64 only, like the rest of the assembly.
 ///     </para>

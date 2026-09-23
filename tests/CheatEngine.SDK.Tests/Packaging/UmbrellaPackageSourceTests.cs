@@ -82,7 +82,8 @@ public sealed class UmbrellaPackageSourceTests : IDisposable
 		Assert.StartsWith(UmbrellaPackage.PrebuiltPackageVariable + " is not set while CI=true.", failure.Message,
 			StringComparison.Ordinal);
 		Assert.Contains("--filter-not-trait \"Category=Packaging\"", failure.Message, StringComparison.Ordinal);
-		Assert.Contains("tests/CheatEngine.SDK.Tests/README.md#run-the-tests", failure.Message, StringComparison.Ordinal);
+		Assert.Contains("tests/CheatEngine.SDK.Tests/README.md#run-the-tests", failure.Message,
+			StringComparison.Ordinal);
 	}
 
 	[Theory]

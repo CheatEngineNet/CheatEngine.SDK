@@ -25,7 +25,7 @@ internal sealed class LoadedBootstrap : IDisposable
 		// Same lookup as the host: type 'CESDK.CESDK' in the plugin assembly, static method 'CEPluginInitialize'.
 		Type entryPoint = plugin.GetType("CESDK.CESDK", true)!;
 		MethodInfo method = entryPoint.GetMethod("CEPluginInitialize", BindingFlags.Public | BindingFlags.Static)
-							?? throw new MissingMethodException("CESDK.CESDK", "CEPluginInitialize");
+		                    ?? throw new MissingMethodException("CESDK.CESDK", "CEPluginInitialize");
 		_initialize = method.CreateDelegate<Func<IntPtr, int, int>>();
 	}
 

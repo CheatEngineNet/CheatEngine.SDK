@@ -66,7 +66,8 @@ public readonly record struct TargetSelectionObservation
 	{
 		return new TargetSelectionObservation(TargetSelectionObservationStatus.CurrentTargetQualified,
 			TargetIdentityEvidence.CheatEngineSelectedProcessId | TargetIdentityEvidence.LocalBackendConfirmed |
-			TargetIdentityEvidence.LocalProcessStartTime, incarnation.ProcessId, incarnation, TargetBackend.LocalProcess);
+			TargetIdentityEvidence.LocalProcessStartTime, incarnation.ProcessId, incarnation,
+			TargetBackend.LocalProcess);
 	}
 
 	internal static TargetSelectionObservation NoTarget()

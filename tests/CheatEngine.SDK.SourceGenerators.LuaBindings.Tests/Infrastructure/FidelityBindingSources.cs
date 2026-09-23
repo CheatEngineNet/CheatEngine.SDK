@@ -8,30 +8,6 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.Infrastructure;
 /// </summary>
 internal static class FidelityBindingSources
 {
-	/// <summary>
-	///     <c>q22(kind)</c> returns one shape per kind: <c>nil</c>, <c>false</c>, <c>true</c>, 0, 42, 7 (odd), -2
-	///     (negative), <c>''</c>, <c>{}</c>, no value at all, a string error and a table error whose <c>__tostring</c>
-	///     raises.
-	/// </summary>
-	public static ReadOnlySpan<byte> Q22StandIns => """
-	                                                local raising = setmetatable({}, { __tostring = function() error('tostring boom') end })
-	                                                local cases = {
-	                                                  ['nil'] = function() return nil end,
-	                                                  ['false'] = function() return false end,
-	                                                  ['true'] = function() return true end,
-	                                                  zero = function() return 0 end,
-	                                                  value = function() return 42 end,
-	                                                  odd = function() return 7 end,
-	                                                  negative = function() return -2 end,
-	                                                  empty = function() return '' end,
-	                                                  table = function() return {} end,
-	                                                  none = function() end,
-	                                                  raise = function() error('boom') end,
-	                                                  raise_table = function() error(raising) end,
-	                                                }
-	                                                function q22(kind) return cases[kind]() end
-	                                                """u8;
-
 	/// <summary>Every Q22 form: Try, Outcome and Throwing over integer, boolean, string, optional and custom results.</summary>
 	public const string Q22Suite = """
 	                               using System;
@@ -110,11 +86,6 @@ internal static class FidelityBindingSources
 	                               }
 	                               """;
 
-	/// <summary><c>boundary(expression)</c> evaluates a Lua expression, so each row is a value Lua itself produced.</summary>
-	public static ReadOnlySpan<byte> NumericStandIns => """
-	                                                    function boundary(expression) return assert(load('return ' .. expression))() end
-	                                                    """u8;
-
 	/// <summary>Integer, 64-bit and address results in every form, and the same kinds as exported function arguments.</summary>
 	public const string NumericSuite = """
 	                                   using CheatEngine.SDK.Annotations.Lua;
@@ -162,18 +133,6 @@ internal static class FidelityBindingSources
 	                                   }
 	                                   """;
 
-	/// <summary>
-	///     <c>s_value(key)</c> returns a string with embedded NULs, multibyte UTF-8, invalid UTF-8 or the empty string;
-	///     <c>s_len</c> returns the byte length Lua received, <c>s_echo</c> the string itself, <c>s_type</c> its type.
-	/// </summary>
-	public static ReadOnlySpan<byte> StringStandIns => """
-	                                                   local values = { nul = 'a\0b\0', multibyte = '\u{E9}\u{6F22}\u{1F600}', invalid = '\255\254A', empty = '' }
-	                                                   function s_value(key) return values[key] end
-	                                                   function s_len(s) return #s end
-	                                                   function s_echo(s) return s end
-	                                                   function s_type(s) return type(s) end
-	                                                   """u8;
-
 	/// <summary>String and UTF-8 arguments and results in every shape, and a nullable string function argument.</summary>
 	public const string StringSuite = """
 	                                  using System;
@@ -212,4 +171,45 @@ internal static class FidelityBindingSources
 	                                      public static string Describe(string? text) => text is null ? "null" : "text:" + text.Length;
 	                                  }
 	                                  """;
+
+	/// <summary>
+	///     <c>q22(kind)</c> returns one shape per kind: <c>nil</c>, <c>false</c>, <c>true</c>, 0, 42, 7 (odd), -2
+	///     (negative), <c>''</c>, <c>{}</c>, no value at all, a string error and a table error whose <c>__tostring</c>
+	///     raises.
+	/// </summary>
+	public static ReadOnlySpan<byte> Q22StandIns => """
+	                                                local raising = setmetatable({}, { __tostring = function() error('tostring boom') end })
+	                                                local cases = {
+	                                                  ['nil'] = function() return nil end,
+	                                                  ['false'] = function() return false end,
+	                                                  ['true'] = function() return true end,
+	                                                  zero = function() return 0 end,
+	                                                  value = function() return 42 end,
+	                                                  odd = function() return 7 end,
+	                                                  negative = function() return -2 end,
+	                                                  empty = function() return '' end,
+	                                                  table = function() return {} end,
+	                                                  none = function() end,
+	                                                  raise = function() error('boom') end,
+	                                                  raise_table = function() error(raising) end,
+	                                                }
+	                                                function q22(kind) return cases[kind]() end
+	                                                """u8;
+
+	/// <summary><c>boundary(expression)</c> evaluates a Lua expression, so each row is a value Lua itself produced.</summary>
+	public static ReadOnlySpan<byte> NumericStandIns => """
+	                                                    function boundary(expression) return assert(load('return ' .. expression))() end
+	                                                    """u8;
+
+	/// <summary>
+	///     <c>s_value(key)</c> returns a string with embedded NULs, multibyte UTF-8, invalid UTF-8 or the empty string;
+	///     <c>s_len</c> returns the byte length Lua received, <c>s_echo</c> the string itself, <c>s_type</c> its type.
+	/// </summary>
+	public static ReadOnlySpan<byte> StringStandIns => """
+	                                                   local values = { nul = 'a\0b\0', multibyte = '\u{E9}\u{6F22}\u{1F600}', invalid = '\255\254A', empty = '' }
+	                                                   function s_value(key) return values[key] end
+	                                                   function s_len(s) return #s end
+	                                                   function s_echo(s) return s end
+	                                                   function s_type(s) return type(s) end
+	                                                   """u8;
 }

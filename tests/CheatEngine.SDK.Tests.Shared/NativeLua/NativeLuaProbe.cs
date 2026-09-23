@@ -65,7 +65,7 @@ internal sealed record NativeLuaProbe(nint Handle, string? LibraryPath, string R
 			return true;
 		}
 		catch (Exception exception) when (exception is ArgumentException or NotSupportedException
-											  or PathTooLongException or SecurityException)
+			                                  or PathTooLongException or SecurityException)
 		{
 			fullPath = string.Empty;
 			return false;

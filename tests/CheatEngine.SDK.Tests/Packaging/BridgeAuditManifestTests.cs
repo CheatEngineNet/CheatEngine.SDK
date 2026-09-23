@@ -9,7 +9,8 @@ using CheatEngine.SDK.Tests.Infrastructure;
 namespace CheatEngine.SDK.Tests.Packaging;
 
 /// <summary>
-///     <c>native/cheatengine-sdk-lua-bridge/bridge-audit-manifest.json</c> records the audited bridge: the SHA-256 of its two
+///     <c>native/cheatengine-sdk-lua-bridge/bridge-audit-manifest.json</c> records the audited bridge: the SHA-256 of its
+///     two
 ///     LF-pinned build inputs, the fingerprint embedded in the DLL, the DLL SHA-256, its PE facts and the pinned xmake
 ///     version. The DLL facts are read from the <b>committed</b> blob (<c>git cat-file</c>), never from the working tree:
 ///     CI overwrites the working-tree DLL with the one it builds, and a byte difference between the two is drift that CI
@@ -26,9 +27,7 @@ public sealed partial class BridgeAuditManifestTests
 
 	private static readonly JsonSerializerOptions s_manifestFormat = new()
 	{
-		WriteIndented = true,
-		IndentSize = 2,
-		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+		WriteIndented = true, IndentSize = 2, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
 	};
 
 	[Fact]
@@ -39,9 +38,11 @@ public sealed partial class BridgeAuditManifestTests
 		string buildSha256 = Sha256(File.ReadAllBytes(BridgeInput(BuildFile)));
 		string message = await StaleMessageAsync().ConfigureAwait(true);
 
-		Assert.True(string.Equals(sourceSha256, (string?) manifest["source"]?["hashes"]?[SourceFile], StringComparison.Ordinal),
+		Assert.True(
+			string.Equals(sourceSha256, (string?) manifest["source"]?["hashes"]?[SourceFile], StringComparison.Ordinal),
 			message);
-		Assert.True(string.Equals(buildSha256, (string?) manifest["source"]?["hashes"]?[BuildFile], StringComparison.Ordinal),
+		Assert.True(
+			string.Equals(buildSha256, (string?) manifest["source"]?["hashes"]?[BuildFile], StringComparison.Ordinal),
 			message);
 		Assert.True(string.Equals($"{sourceSha256}:{buildSha256}", (string?) manifest["source"]?["fingerprint"],
 			StringComparison.Ordinal), message);
@@ -56,8 +57,10 @@ public sealed partial class BridgeAuditManifestTests
 		JsonNode? asset = manifest["nativeAsset"];
 
 		Assert.True(string.Equals(committed.Sha256, (string?) asset?["sha256"], StringComparison.Ordinal), message);
-		Assert.True(string.Equals(committed.Format, (string?) asset?["pe"]?["format"], StringComparison.Ordinal), message);
-		Assert.True(string.Equals(committed.Machine, (string?) asset?["pe"]?["machine"], StringComparison.Ordinal), message);
+		Assert.True(string.Equals(committed.Format, (string?) asset?["pe"]?["format"], StringComparison.Ordinal),
+			message);
+		Assert.True(string.Equals(committed.Machine, (string?) asset?["pe"]?["machine"], StringComparison.Ordinal),
+			message);
 		Assert.True(committed.IsDll && (bool?) asset?["pe"]?["isDll"] == true, message);
 		Assert.True(SetEquals(committed.Exports, Strings(asset?["exports"])), message);
 		Assert.True(SetEquals(committed.Imports, Strings(asset?["imports"])), message);
@@ -99,7 +102,8 @@ public sealed partial class BridgeAuditManifestTests
 				}
 			}
 
-			Assert.True(match is not null, $"'{segment}' of asset '{asset}' does not exist with that exact case in '{current}'.");
+			Assert.True(match is not null,
+				$"'{segment}' of asset '{asset}' does not exist with that exact case in '{current}'.");
 			current = match!;
 		}
 
@@ -146,7 +150,7 @@ public sealed partial class BridgeAuditManifestTests
 	private static async Task<string> StaleMessageAsync()
 	{
 		return $"{ManifestPath} does not describe the committed bridge. Replace it with:{Environment.NewLine}" +
-			   await ExpectedManifestJsonAsync().ConfigureAwait(false);
+		       await ExpectedManifestJsonAsync().ConfigureAwait(false);
 	}
 
 	private static async Task<BridgeFacts> ReadCommittedBridgeAsync()
@@ -211,7 +215,7 @@ public sealed partial class BridgeAuditManifestTests
 	private static JsonNode ReadManifest()
 	{
 		return JsonNode.Parse(File.ReadAllText(RepositoryLayout.PathOf(ManifestPath)))
-			   ?? throw new InvalidDataException($"{ManifestPath} is empty.");
+		       ?? throw new InvalidDataException($"{ManifestPath} is empty.");
 	}
 
 	private static string BridgeInput(string fileName)
@@ -222,7 +226,7 @@ public sealed partial class BridgeAuditManifestTests
 	private static JsonObject Object(JsonNode parent, string name)
 	{
 		return parent[name] as JsonObject
-			   ?? throw new InvalidDataException($"{ManifestPath} has no '{name}' object.");
+		       ?? throw new InvalidDataException($"{ManifestPath} has no '{name}' object.");
 	}
 
 	private static JsonArray JsonStrings(IReadOnlyList<string> values)
@@ -253,7 +257,7 @@ public sealed partial class BridgeAuditManifestTests
 	private static bool SetEquals(IReadOnlyList<string> expected, List<string> actual)
 	{
 		return expected.Count == actual.Count
-			   && new HashSet<string>(expected, StringComparer.Ordinal).SetEquals(actual);
+		       && new HashSet<string>(expected, StringComparer.Ordinal).SetEquals(actual);
 	}
 
 	private static string Sha256(byte[] content)

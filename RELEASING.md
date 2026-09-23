@@ -22,15 +22,15 @@ verify ─► ci ─► attest ─► draft-release ─► publish ─► verify
           └ build and test the tag in Debug and Release, pack once, test that exact nupkg
 ```
 
-| Job | What it does |
-|---|---|
-| `verify` | Checks the SemVer tag, that it points to the first-parent history of `main`, that the version is not on nuget.org yet, and extracts the release notes from `CHANGELOG.md`. |
-| `ci` | Runs `ci.yml` on the tag. The Release leg packs `CheatEngine.SDK.<version>.nupkg` (the file name must match the tag), runs the packaging tests on that exact file (`CESDK_PACKAGED_UMBRELLA_NUPKG`), and uploads it as `nuget-package`. |
-| `attest` | Extracts the SPDX 2.2 SBOM embedded in the nupkg, creates the SLSA provenance attestation and the SBOM attestation of the nupkg (predicate `https://spdx.dev/Document/v2.2`), verifies both, and writes `SHA256SUMS`. |
-| `draft-release` | Creates a **draft** release that already carries every asset, or completes an existing draft. It never uploads to a published release. |
-| `publish` | Waits for approval of the `nuget` environment, checks the nupkg against `SHA256SUMS`, logs in through NuGet trusted publishing and pushes. |
-| `verify-publication` | Waits until nuget.org lists the version, downloads the repository-signed copy and checks it: `dotnet nuget verify --all`, and every zip entry byte-identical to the attested package except the added `.signature.p7s`. |
-| `finalize-release` | Publishes the release, then verifies what a consumer downloads (`SHA256SUMS`, `gh release verify`, `gh attestation verify`). |
+| Job                  | What it does                                                                                                                                                                                                                            |
+|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `verify`             | Checks the SemVer tag, that it points to the first-parent history of `main`, that the version is not on nuget.org yet, and extracts the release notes from `CHANGELOG.md`.                                                              |
+| `ci`                 | Runs `ci.yml` on the tag. The Release leg packs `CheatEngine.SDK.<version>.nupkg` (the file name must match the tag), runs the packaging tests on that exact file (`CESDK_PACKAGED_UMBRELLA_NUPKG`), and uploads it as `nuget-package`. |
+| `attest`             | Extracts the SPDX 2.2 SBOM embedded in the nupkg, creates the SLSA provenance attestation and the SBOM attestation of the nupkg (predicate `https://spdx.dev/Document/v2.2`), verifies both, and writes `SHA256SUMS`.                   |
+| `draft-release`      | Creates a **draft** release that already carries every asset, or completes an existing draft. It never uploads to a published release.                                                                                                  |
+| `publish`            | Waits for approval of the `nuget` environment, checks the nupkg against `SHA256SUMS`, logs in through NuGet trusted publishing and pushes.                                                                                              |
+| `verify-publication` | Waits until nuget.org lists the version, downloads the repository-signed copy and checks it: `dotnet nuget verify --all`, and every zip entry byte-identical to the attested package except the added `.signature.p7s`.                 |
+| `finalize-release`   | Publishes the release, then verifies what a consumer downloads (`SHA256SUMS`, `gh release verify`, `gh attestation verify`).                                                                                                            |
 
 The `nuget-package` artifact is the release artifact: the file the packaging tests consumed is the file that is
 attested, attached to the release and pushed to nuget.org. Never upload a locally built package: nuget.org versions
@@ -48,11 +48,11 @@ One release has three package identities: the attested asset, its NuGet content 
 `verify-publication` checks all three exist and agree; none of them is written to a separate manifest. The published
 1.0.0 is the worked example (verified on 2026-09-23):
 
-| Identity | What it is | 1.0.0 |
-|---|---|---|
-| Attested asset SHA-256 | SHA-256 of the unsigned nupkg CI packed: the GitHub release asset and the subject of the attestations. | `99bf90101cd13e0183c94759e43badc6a1e719ffc3e2c9fd0b93490abdac0632` |
-| NuGet content hash | SHA-512 (base64) of that same unsigned file. It is the `contentHash` consumer lock files store and validate on restore ([NU1403](https://learn.microsoft.com/nuget/reference/errors-and-warnings/nu1403)). | `n7nHqZ8vzo7Vf20jF0fkh/jUtR3yo1TwRGpXE7ERxZeJ4C5S/Nsft4lqOg7zGwfsD5Nh9tTVgdw4PrybJRF0gA==` |
-| nuget.org signed file | nuget.org [repository-signs every package](https://learn.microsoft.com/nuget/reference/signed-packages-reference), so the file it serves has different bytes: the same entries plus `.signature.p7s`. | SHA-256 `3e8c98583ac71af25a5bd7053e7583fbafcd196139fae7c0b04bae9b40a7cd33`, SHA-512 `1a2B/E6reX5e636hfdb+Zdj3kT6817DuNES1RWvprhRyuyztE/56Zk2iHOMQIKpGH+O2Va8rYJxXXXTVq5aN9Q==` |
+| Identity               | What it is                                                                                                                                                                                                 | 1.0.0                                                                                                                                                                          |
+|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Attested asset SHA-256 | SHA-256 of the unsigned nupkg CI packed: the GitHub release asset and the subject of the attestations.                                                                                                     | `99bf90101cd13e0183c94759e43badc6a1e719ffc3e2c9fd0b93490abdac0632`                                                                                                             |
+| NuGet content hash     | SHA-512 (base64) of that same unsigned file. It is the `contentHash` consumer lock files store and validate on restore ([NU1403](https://learn.microsoft.com/nuget/reference/errors-and-warnings/nu1403)). | `n7nHqZ8vzo7Vf20jF0fkh/jUtR3yo1TwRGpXE7ERxZeJ4C5S/Nsft4lqOg7zGwfsD5Nh9tTVgdw4PrybJRF0gA==`                                                                                     |
+| nuget.org signed file  | nuget.org [repository-signs every package](https://learn.microsoft.com/nuget/reference/signed-packages-reference), so the file it serves has different bytes: the same entries plus `.signature.p7s`.      | SHA-256 `3e8c98583ac71af25a5bd7053e7583fbafcd196139fae7c0b04bae9b40a7cd33`, SHA-512 `1a2B/E6reX5e636hfdb+Zdj3kT6817DuNES1RWvprhRyuyztE/56Zk2iHOMQIKpGH+O2Va8rYJxXXXTVq5aN9Q==` |
 
 The 1.0.0 signed copy has 28 entries and the asset 27; every common entry is byte-identical, and
 `dotnet nuget verify --all` on the signed copy reports the content hash above. The native bridge inside 1.0.0
@@ -107,11 +107,11 @@ releases were disabled.
    `CHANGELOG.md` and add its link reference. The body of that section becomes the GitHub release notes: a stable tag
    fails without it; a prerelease tag uses its own `## [X.Y.Z-rc.N]` section when present, otherwise `[Unreleased]`.
    Keep the four kinds of change the audit distinguishes apart, because each one breaks consumers differently:
-   - `### Added`: extensions (a new wrapper, option or API);
-   - `### Changed`: semantic corrections (the meaning of a result or boolean, a Lua arity or index convention, the
-     allowed thread, ownership conditions, an error category);
-   - `### Security`: refusal hardening (an operation that used to proceed and is now refused);
-   - `### Deployment`: package, native bridge, runtime policy or load-profile changes.
+    - `### Added`: extensions (a new wrapper, option or API);
+    - `### Changed`: semantic corrections (the meaning of a result or boolean, a Lua arity or index convention, the
+      allowed thread, ownership conditions, an error category);
+    - `### Security`: refusal hardening (an operation that used to proceed and is now refused);
+    - `### Deployment`: package, native bridge, runtime policy or load-profile changes.
 
    `### Removed` and `### Deprecated` are used as Keep a Changelog defines them. Add a `### Qualification waivers`
    section when the [qualification gate](#qualification-gate) needs one.
@@ -208,8 +208,10 @@ Get-Content SHA256SUMS | ForEach-Object {
 - A consumer lock file holds the NuGet content hash: the `contentHash` of `CheatEngine.SDK` in `packages.lock.json`
   equals the base64 SHA-512 of the release asset
   (`[Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData([IO.File]::ReadAllBytes("CheatEngine.SDK.$v.nupkg")))`).
-- `dotnet nuget verify --all` on the file downloaded from nuget.org reports a nuget.org repository signature and the same
-  content hash ([`dotnet nuget verify`](https://learn.microsoft.com/dotnet/core/tools/dotnet-nuget-verify)). Never run it
+- `dotnet nuget verify --all` on the file downloaded from nuget.org reports a nuget.org repository signature and the
+  same
+  content hash ([`dotnet nuget verify`](https://learn.microsoft.com/dotnet/core/tools/dotnet-nuget-verify)). Never run
+  it
   on the GitHub asset: that file is unsigned by design and fails with
   [NU3004](https://learn.microsoft.com/nuget/reference/errors-and-warnings/nu3004).
 - The `verify-publication` job automates these nuget.org checks directly in the workflow.

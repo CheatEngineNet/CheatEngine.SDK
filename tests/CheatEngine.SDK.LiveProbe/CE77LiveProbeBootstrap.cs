@@ -2,9 +2,7 @@ using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Diagnostics;
 
-using LiveProbe;
-
-namespace CESDK;
+namespace LiveProbe;
 
 /// <summary>
 ///     The intentionally hand-written CE managed bootstrap used only by the CE 7.7 live-probe plugin.
@@ -16,7 +14,7 @@ namespace CESDK;
 /// </remarks>
 #pragma warning disable MA0048 // The file identifies the CE 7.7 probe; the host fixes the public bootstrap type name.
 #pragma warning disable MA0049 // CE's host requires CESDK.CESDK exactly.
-public static unsafe class CESDK
+public static class CESDK
 {
 	/// <summary>
 	///     CE's fixed managed component entry point. The second argument is recorded raw and deliberately has no
@@ -34,7 +32,7 @@ public static unsafe class CESDK
 			int result =
 				PluginHost.InitializeManaged<LiveProbe.ProbePluginFactoryNonAscii>(initRecord, opaqueHostArgument);
 #else
-			int result = PluginHost.InitializeManaged<LiveProbe.ProbePluginFactory>(initRecord, opaqueHostArgument);
+			int result = PluginHost.InitializeManaged<ProbePluginFactory>(initRecord, opaqueHostArgument);
 #endif
 			LiveProbeState.TryWriteTailCanaryAfterPackedRecord(initRecord, result);
 			return result;

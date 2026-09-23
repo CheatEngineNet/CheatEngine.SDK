@@ -434,24 +434,24 @@ public sealed class LuaHostSubscriptionTests
 		public bool Register()
 		{
 			if (!LuaHostSubscription.TryRegister(state, RunAdmittedCallback,
-					(registrationState, callback) =>
-					{
-						HostCallback = callback;
-						return static _ =>
-						{
-						};
-					}, out LuaHostSubscription? firstSubscription))
+				    (registrationState, callback) =>
+				    {
+					    HostCallback = callback;
+					    return static _ =>
+					    {
+					    };
+				    }, out LuaHostSubscription? firstSubscription))
 			{
 				return false;
 			}
 
 			FirstSubscription = firstSubscription;
 			return LuaHostSubscription.TryRegister(state, static () =>
-					   {
-					   },
-					   (registrationState, callback) => releaseState => SecondUnregisters++,
-					   out LuaHostSubscription? secondSubscription)
-				   && (SecondSubscription = secondSubscription) is not null;
+				       {
+				       },
+				       (registrationState, callback) => releaseState => SecondUnregisters++,
+				       out LuaHostSubscription? secondSubscription)
+			       && (SecondSubscription = secondSubscription) is not null;
 		}
 
 		private void RunAdmittedCallback()

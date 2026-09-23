@@ -67,10 +67,7 @@ internal static class RepositoryDocument
 	{
 		JsonWriterOptions writerOptions = new()
 		{
-			Indented = true,
-			IndentSize = 2,
-			Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-			NewLine = "\n"
+			Indented = true, IndentSize = 2, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, NewLine = "\n"
 		};
 		using MemoryStream stream = new();
 		using (Utf8JsonWriter writer = new(stream, writerOptions))

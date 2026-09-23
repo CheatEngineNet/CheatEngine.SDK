@@ -45,7 +45,7 @@ internal static class Program
 		}
 
 		if (arguments.Length == 2 && string.Equals(arguments[0], LoadMode, StringComparison.Ordinal) &&
-			string.Equals(arguments[1], AcknowledgeProcessResidentLoad, StringComparison.Ordinal))
+		    string.Equals(arguments[1], AcknowledgeProcessResidentLoad, StringComparison.Ordinal))
 		{
 			LoadAndQueryNames();
 			return 0;
@@ -154,7 +154,10 @@ internal static class Program
 		return new LibraryInspection(fullPath, sha256, LibraryProbeContract.RuntimeExportsIn(exportNames), fileLock);
 	}
 
-	private sealed class LibraryInspection(string path, string sha256, IReadOnlyList<string> runtimeExports,
+	private sealed class LibraryInspection(
+		string path,
+		string sha256,
+		IReadOnlyList<string> runtimeExports,
 		FileStream fileLock) : IDisposable
 	{
 		public string Path

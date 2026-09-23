@@ -42,6 +42,12 @@ namespace CheatEngine.SDK.Engine.Scanning.Aob;
 ///         Lua error text.
 ///     </para>
 ///     <para>
+///         Once CE has returned a host list, the SDK holds its only destroy authority until the managed owner exists. A
+///         managed failure while publishing that owner (for example an allocation failure) is a lifecycle fault: the SDK
+///         destroys the unpublished list once, never retries, discards the status of that one attempt, and rethrows the
+///         original exception. No owner escapes and no list is leaked or destroyed twice.
+///     </para>
+///     <para>
 ///         The CE primitive is synchronous and this SDK exposes no range/module restriction, result limit, early-stop,
 ///         or <c>CancellationToken</c> parameter for it: none is a verified <c>AOBScan</c> execution control. A Client
 ///         may decide whether to admit or wait for work and may cap strings after copying them, but neither action
@@ -58,6 +64,10 @@ public static class AobScanner
 	/// <param name="results">The caller-owned result list, or <see langword="null" /> on failure/no result.</param>
 	/// <returns><see langword="true" /> when CE returned a non-null host object.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+	/// <remarks>
+	///     A managed failure while publishing the owner is a lifecycle fault: the SDK destroys the unpublished list once
+	///     and rethrows the original exception.
+	/// </remarks>
 	[RequiresPluginEnabled]
 	public static bool TryScan(string pattern, [NotNullWhen(true)] out Owned<StringList>? results)
 	{
@@ -70,6 +80,10 @@ public static class AobScanner
 	/// <param name="results">The caller-owned result list, or <see langword="null" /> on failure/no result.</param>
 	/// <returns><see langword="true" /> when CE returned a non-null host object.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+	/// <remarks>
+	///     A managed failure while publishing the owner is a lifecycle fault: the SDK destroys the unpublished list once
+	///     and rethrows the original exception.
+	/// </remarks>
 	[RequiresPluginEnabled]
 	public static bool TryScan(string pattern, AobScanOptions options,
 		[NotNullWhen(true)] out Owned<StringList>? results)
@@ -85,6 +99,10 @@ public static class AobScanner
 	/// </param>
 	/// <returns>The protected AOBScan outcome without parsing a Lua error message.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+	/// <remarks>
+	///     A managed failure while publishing the owner is a lifecycle fault: the SDK destroys the unpublished list once
+	///     and rethrows the original exception.
+	/// </remarks>
 	[RequiresPluginEnabled]
 	public static AobScanStatus TryScanDetailed(string pattern, out Owned<StringList>? results)
 	{
@@ -100,16 +118,15 @@ public static class AobScanner
 	/// </param>
 	/// <returns>The protected AOBScan outcome without parsing a Lua error message.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+	/// <remarks>
+	///     A managed failure while publishing the owner is a lifecycle fault: the SDK destroys the unpublished list once
+	///     and rethrows the original exception.
+	/// </remarks>
 	[RequiresPluginEnabled]
 	public static AobScanStatus TryScanDetailed(string pattern, AobScanOptions options,
 		out Owned<StringList>? results)
 	{
-		ArgumentNullException.ThrowIfNull(pattern);
-
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		LuaState state = operation.State;
-		using LuaFrame frame = new(state);
-		return TryScanCore(state, pattern, options, out results, out _);
+		return TryScanDetailedCore(pattern, options, PublishResultList, out results);
 	}
 
 	/// <summary>Runs AOBScan and reports whether a valid returned StringList contains matches.</summary>
@@ -126,6 +143,10 @@ public static class AobScanner
 	///     <see cref="AobScanOutcomeKind.NoMatches" /> (host observation, spike 2026-09-22; Q27 C3 pending).
 	/// </returns>
 	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+	/// <remarks>
+	///     A managed failure while publishing the owner is a lifecycle fault: the SDK destroys the unpublished list once
+	///     and rethrows the original exception.
+	/// </remarks>
 	[RequiresPluginEnabled]
 	public static AobScanOutcome TryScanOutcome(string pattern, out Owned<StringList>? results)
 	{
@@ -139,18 +160,73 @@ public static class AobScanner
 	///     The caller-owned list when <see cref="AobScanOutcome.IsSuccess" /> is <see langword="true" />; otherwise
 	///     <see langword="null" />. Copy required entries before disposing the owner exactly once.
 	/// </param>
-	/// <returns>The factual protected AOB result, including a valid empty-list no-match classification.</returns>
+	/// <returns>
+	///     The factual protected AOB result, including a valid empty-list no-match classification. On the pinned
+	///     CE 7.7.0.10621 x64 profile, zero matches are reported as <see cref="AobScanOutcomeKind.NoResult" />.
+	/// </returns>
 	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+	/// <remarks>
+	///     A managed failure while publishing the owner is a lifecycle fault: the SDK destroys the unpublished list once
+	///     and rethrows the original exception.
+	/// </remarks>
 	[RequiresPluginEnabled]
 	public static AobScanOutcome TryScanOutcome(string pattern, AobScanOptions options,
 		out Owned<StringList>? results)
 	{
+		return TryScanOutcomeCore(pattern, options, PublishResultList, out results);
+	}
+
+	// Test seam: the same protected call and classification as TryScanDetailed, with a substitutable owner
+	// publication. Production callers always pass PublishResultList.
+	internal static AobScanStatus TryScanDetailedCore(string pattern, AobScanOptions options,
+		AobResultListPublisher publisher, out Owned<StringList>? results)
+	{
 		ArgumentNullException.ThrowIfNull(pattern);
+		ArgumentNullException.ThrowIfNull(publisher);
 
 		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
 		LuaState state = operation.State;
 		using LuaFrame frame = new(state);
-		AobScanStatus status = TryScanCore(state, pattern, options, out results, out LuaStatus luaStatus);
+		return TryScanCore(state, pattern, options, publisher, out results, out _);
+	}
+
+	// Test seam: the same protected call and classification as TryScanOutcome, with a substitutable owner
+	// publication. Production callers always pass PublishResultList.
+	internal static AobScanOutcome TryScanOutcomeCore(string pattern, AobScanOptions options,
+		AobResultListPublisher publisher, out Owned<StringList>? results)
+	{
+		ArgumentNullException.ThrowIfNull(pattern);
+		ArgumentNullException.ThrowIfNull(publisher);
+
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		using LuaFrame frame = new(state);
+		AobScanStatus status = TryScanCore(state, pattern, options, publisher, out results, out LuaStatus luaStatus);
+		return Classify(status, luaStatus, ref results);
+	}
+
+	// Every member has its own arm. Unknown (the default) and Success (which never reaches this mapping, because a
+	// successful call is classified from its list count) map to the Unknown outcome, never to a count failure: an
+	// unexpected status must not be reported as a host list that was returned but could not be counted.
+	internal static AobScanOutcome FromStatus(AobScanStatus status, LuaStatus luaStatus)
+	{
+		return status switch
+		{
+			AobScanStatus.Unknown => default,
+			AobScanStatus.Success => default,
+			AobScanStatus.GlobalUnavailable => AobScanOutcome.GlobalUnavailable,
+			AobScanStatus.LuaFailure => AobScanOutcome.ProtectedLuaFailure(ToFailureStatus(luaStatus)),
+			AobScanStatus.NoResult => AobScanOutcome.NoResult,
+			AobScanStatus.InvalidResult => AobScanOutcome.InvalidResult,
+			_ => default
+		};
+	}
+
+	// Classifies a completed protected call. A published owner whose count cannot be read has no caller left to
+	// release it, so it is disposed here, once, before the failure outcome is returned.
+	private static AobScanOutcome Classify(AobScanStatus status, LuaStatus luaStatus,
+		ref Owned<StringList>? results)
+	{
 		if (status != AobScanStatus.Success)
 		{
 			return FromStatus(status, luaStatus);
@@ -177,21 +253,21 @@ public static class AobScanner
 	}
 
 	private static AobScanStatus TryScanCore(LuaState state, string pattern, AobScanOptions options,
-		out Owned<StringList>? results, out LuaStatus luaStatus)
+		AobResultListPublisher publisher, out Owned<StringList>? results, out LuaStatus luaStatus)
 	{
+		results = null;
 		luaStatus = LuaStatus.Ok;
+		CEObject unpublished = CEObject.Null;
 		try
 		{
 			LuaGlobalPushOutcome global = LuaGlobalFunctions.TryPushWithOutcome(state, SAobScan, "AOBScan"u8);
 			if (global.Status == LuaGlobalPushStatus.Unavailable)
 			{
-				results = null;
 				return AobScanStatus.GlobalUnavailable;
 			}
 
 			if (!global.IsSuccess)
 			{
-				results = null;
 				luaStatus = ToFailureStatus(global.LuaStatus);
 				return AobScanStatus.LuaFailure;
 			}
@@ -200,48 +276,62 @@ public static class AobScanner
 			luaStatus = state.TryCall(argumentCount, 1);
 			if (!luaStatus.IsOk)
 			{
-				results = null;
 				return AobScanStatus.LuaFailure;
 			}
 
+			// CE 7.7.0.10621 returns no value on zero matches; the one-result call reads that as nil (spike D1).
 			if (state.IsNil(-1))
 			{
-				results = null;
 				return AobScanStatus.NoResult;
 			}
 
 			if (!CEObject.TryRead(state, -1, out CEObject handle))
 			{
-				results = null;
 				return AobScanStatus.InvalidResult;
 			}
 
-			results = new Owned<StringList>(StringList.FromHandle(handle));
+			// From here until the owner exists, this frame holds the list's only destroy authority.
+			unpublished = handle;
+			results = publisher(StringList.FromHandle(handle));
+			unpublished = CEObject.Null;
 			return AobScanStatus.Success;
 		}
-		catch (LuaException exception)
+		catch (LuaException exception) when (unpublished.IsNull)
 		{
+			// A protected failure before CE returned a list. A failure while publishing the owner is not caught here: it
+			// is a lifecycle fault and propagates unchanged after the single rollback below.
 			results = null;
 			luaStatus = ToFailureStatus(exception.Status);
 			return AobScanStatus.LuaFailure;
 		}
+		finally
+		{
+			if (!unpublished.IsNull)
+			{
+				RollBackUnpublishedList(state, unpublished);
+			}
+		}
 	}
 
-	// Every member has its own arm. Unknown (the default) and Success (which never reaches this mapping, because a
-	// successful call is classified from its list count) map to the Unknown outcome, never to a count failure: an
-	// unexpected status must not be reported as a host list that was returned but could not be counted.
-	internal static AobScanOutcome FromStatus(AobScanStatus status, LuaStatus luaStatus)
+	// One destroy attempt for a host list whose managed owner could not be published. It is never retried: a failed
+	// protected destroy may already have freed part of the object. Its status is discarded and any exception it throws
+	// is swallowed, so the original publication failure is the exception the caller observes.
+	private static void RollBackUnpublishedList(LuaState state, CEObject unpublished)
 	{
-		return status switch
+		try
 		{
-			AobScanStatus.Unknown => default,
-			AobScanStatus.Success => default,
-			AobScanStatus.GlobalUnavailable => AobScanOutcome.GlobalUnavailable,
-			AobScanStatus.LuaFailure => AobScanOutcome.ProtectedLuaFailure(ToFailureStatus(luaStatus)),
-			AobScanStatus.NoResult => AobScanOutcome.NoResult,
-			AobScanStatus.InvalidResult => AobScanOutcome.InvalidResult,
-			_ => default
-		};
+			using LuaFrame rollback = new(state);
+			_ = unpublished.TryDestroy(state);
+		}
+		catch (Exception)
+		{
+			// Deliberately ignored: see the method comment.
+		}
+	}
+
+	private static Owned<StringList> PublishResultList(StringList list)
+	{
+		return new Owned<StringList>(list);
 	}
 
 	private static LuaStatus ToFailureStatus(LuaStatus luaStatus)

@@ -125,7 +125,7 @@ public sealed class EnumContractTests
 			foreach (string added in library.Added)
 			{
 				if (IsMemberOfFrozenEnum(added, out string enumType)
-				    && PublicApiDeclarations.TryParseEnumMember(added, out _, out string member, out _))
+					&& PublicApiDeclarations.TryParseEnumMember(added, out _, out string member, out _))
 				{
 					Assert.True(s_reviewedFrozenEnumAdditions.Contains($"{enumType}.{member}"),
 						$"{library.UnshippedPath}: '{added}' adds a member to the frozen enum {enumType} without a reviewed entry.");
@@ -212,7 +212,7 @@ public sealed class EnumContractTests
 			foreach (string line in lines(library))
 			{
 				if (PublicApiDeclarations.TryParseEnumMember(line, out string enumType, out string member,
-					    out long value))
+						out long value))
 				{
 					if (!enums.TryGetValue(enumType, out SortedDictionary<string, long>? members))
 					{

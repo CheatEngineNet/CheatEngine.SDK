@@ -110,9 +110,9 @@ public readonly struct CheatEngineVersion : IEquatable<CheatEngineVersion>, ICom
 	public override string ToString()
 	{
 		return Major.ToString(CultureInfo.InvariantCulture) + "." +
-		       Minor.ToString(CultureInfo.InvariantCulture) + "." +
-		       Release.ToString(CultureInfo.InvariantCulture) + "." +
-		       Build.ToString(CultureInfo.InvariantCulture);
+			   Minor.ToString(CultureInfo.InvariantCulture) + "." +
+			   Release.ToString(CultureInfo.InvariantCulture) + "." +
+			   Build.ToString(CultureInfo.InvariantCulture);
 	}
 
 	/// <summary>Tests two versions for equality.</summary>

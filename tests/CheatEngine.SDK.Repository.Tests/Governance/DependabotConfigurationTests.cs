@@ -52,8 +52,8 @@ public sealed class DependabotConfigurationTests
 			{
 				string? value = YamlDocument.Scalar(cooldown, key);
 				if (value is not null &&
-				    (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int days) ||
-				     days < MinimumCooldownDays))
+					(!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int days) ||
+					 days < MinimumCooldownDays))
 				{
 					problems.Add($"{ecosystem}: {key} is {value}");
 				}
@@ -96,7 +96,7 @@ public sealed class DependabotConfigurationTests
 		{
 			string id = (string?) version.Attribute("Include") ?? "";
 			if (id.StartsWith("Microsoft.CodeAnalysis.", StringComparison.Ordinal)
-			    && string.Equals((string?) version.Attribute("Version"), floor, StringComparison.Ordinal))
+				&& string.Equals((string?) version.Attribute("Version"), floor, StringComparison.Ordinal))
 			{
 				pinnedToFloor.Add(id);
 			}
@@ -120,8 +120,8 @@ public sealed class DependabotConfigurationTests
 		foreach (YamlMappingNode rule in YamlDocument.Mappings(sdk, "ignore"))
 		{
 			if (string.Equals(YamlDocument.Scalar(rule, "dependency-name"), "*", StringComparison.Ordinal)
-			    && YamlDocument.Scalars(rule, "update-types")
-				    .Contains("version-update:semver-major", StringComparer.Ordinal))
+				&& YamlDocument.Scalars(rule, "update-types")
+					.Contains("version-update:semver-major", StringComparer.Ordinal))
 			{
 				ignoresMajor = true;
 			}

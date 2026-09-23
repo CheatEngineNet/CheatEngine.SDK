@@ -130,8 +130,8 @@ public sealed class LuaCallSupportOptionalTests
 			LuaCallSupport.PushOptional<long, Int64Marshaller>(L, LuaOptional.Of(5L));
 			LuaCallSupport.PushOptional<long, Int64Marshaller>(L, LuaOptional.Of(6L));
 			if (!LuaCallSupport.TryReadOptional<long, Int64Marshaller>(L, 1, out LuaOptional<long> value)
-			    || !LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 1, buffer, out int count).IsSuccess
-			    || count != 2)
+				|| !LuaCallSupport.ReadResults<long, Int64Marshaller>(L, 1, buffer, out int count).IsSuccess
+				|| count != 2)
 			{
 				throw new InvalidOperationException("wrong read");
 			}

@@ -31,7 +31,7 @@ public sealed partial class WorkflowContractTests
 				if (string.Equals(job.Uses, PipelineUses, StringComparison.Ordinal))
 				{
 					Assert.True(string.Equals(job.Id, WorkflowContract.CallerJobId, StringComparison.Ordinal) &&
-					            string.Equals(job.Name, WorkflowContract.CallerJobName, StringComparison.Ordinal),
+								string.Equals(job.Name, WorkflowContract.CallerJobName, StringComparison.Ordinal),
 						$"{job.Location} calls ci.yml; only a job 'ci' named 'CI' may.");
 				}
 			}
@@ -206,10 +206,10 @@ public sealed partial class WorkflowContractTests
 
 		HashSet<string> exclusions = new(SonarProperty(begin, "sonar.exclusions").Split(','), StringComparer.Ordinal);
 		foreach (string tree in new[]
-		         {
-			         "artifacts/**", "tests/CheatEngine.SDK.QualificationTarget/**",
-			         "tests/native-host-emulator/**", "eng/tools/**", "docs/**"
-		         })
+				 {
+					 "artifacts/**", "tests/CheatEngine.SDK.QualificationTarget/**",
+					 "tests/native-host-emulator/**", "eng/tools/**", "docs/**"
+				 })
 		{
 			Assert.True(exclusions.Contains(tree), $"sonar.exclusions must list {tree}.");
 		}

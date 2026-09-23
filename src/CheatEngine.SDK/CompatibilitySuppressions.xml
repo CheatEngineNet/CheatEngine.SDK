@@ -17,17 +17,14 @@
     </Suppression>
     <Suppression>
         <DiagnosticId>CP0002</DiagnosticId>
-        <Target>M:CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.#ctor(System.Boolean,System.Boolean)
-        </Target>
+        <Target>M:CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.#ctor(System.Boolean,System.Boolean)</Target>
         <Left>lib/net10.0/CheatEngine.SDK.Engine.dll</Left>
         <Right>lib/net10.0/CheatEngine.SDK.Engine.dll</Right>
         <IsBaselineSuppression>true</IsBaselineSuppression>
     </Suppression>
     <Suppression>
         <DiagnosticId>CP0002</DiagnosticId>
-        <Target>
-            M:CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.Deconstruct(System.Boolean@,System.Boolean@)
-        </Target>
+        <Target>M:CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.Deconstruct(System.Boolean@,System.Boolean@)</Target>
         <Left>lib/net10.0/CheatEngine.SDK.Engine.dll</Left>
         <Right>lib/net10.0/CheatEngine.SDK.Engine.dll</Right>
         <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -41,8 +38,7 @@
     </Suppression>
     <Suppression>
         <DiagnosticId>CP0002</DiagnosticId>
-        <Target>M:CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.set_UseHostSymbolTable(System.Boolean)
-        </Target>
+        <Target>M:CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.set_UseHostSymbolTable(System.Boolean)</Target>
         <Left>lib/net10.0/CheatEngine.SDK.Engine.dll</Left>
         <Right>lib/net10.0/CheatEngine.SDK.Engine.dll</Right>
         <IsBaselineSuppression>true</IsBaselineSuppression>

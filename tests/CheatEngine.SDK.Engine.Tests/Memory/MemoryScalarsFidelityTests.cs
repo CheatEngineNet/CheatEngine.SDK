@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 
+using CheatEngine.SDK.Engine.Generated;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Engine.Values;
 using CheatEngine.SDK.Tests.Shared.NativeLua;

@@ -35,7 +35,7 @@ public static class LuaRegistrationSet
 		}
 
 		if (collisionPolicy is not LuaRegistrationCollisionPolicy.RejectExisting
-		    and not LuaRegistrationCollisionPolicy.ReplaceExisting)
+			and not LuaRegistrationCollisionPolicy.ReplaceExisting)
 		{
 			throw new ArgumentOutOfRangeException(nameof(collisionPolicy));
 		}

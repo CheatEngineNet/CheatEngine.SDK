@@ -159,7 +159,7 @@ public sealed class ApiGateDiagnosticTests
 
 		List<Assembly> assemblies = [];
 		foreach (string dll in Directory.EnumerateFiles(directory, "CheatEngine.SDK*.dll",
-			         SearchOption.TopDirectoryOnly))
+					 SearchOption.TopDirectoryOnly))
 		{
 			assemblies.Add(Assembly.LoadFrom(dll));
 		}

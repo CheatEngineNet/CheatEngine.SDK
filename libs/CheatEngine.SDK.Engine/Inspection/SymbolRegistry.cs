@@ -206,7 +206,7 @@ public static partial class SymbolRegistry
 			}
 
 			if (!SOwnedRegistrations.TryGetValue(lease.Name, out SymbolRegistrationLease? current) ||
-			    !ReferenceEquals(current, lease))
+				!ReferenceEquals(current, lease))
 			{
 				lease.MarkTerminalAndObserve(SymbolRegistrationReleaseKind.Superseded);
 				return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.Superseded, NoBindingCall);
@@ -238,7 +238,7 @@ public static partial class SymbolRegistry
 			status = UnregisterCore(lease.Name);
 		}
 		catch (InvalidOperationException) when (!LuaRuntime.IsAttached ||
-		                                        lease.Identity != LuaRuntime.CurrentStateIdentity)
+												lease.Identity != LuaRuntime.CurrentStateIdentity)
 		{
 			return MarkStaleRuntime(lease, NoBindingCall);
 		}
@@ -367,7 +367,7 @@ public static partial class SymbolRegistry
 			status = UnregisterCore(name);
 		}
 		catch (InvalidOperationException) when (!LuaRuntime.IsAttached ||
-		                                        identity != LuaRuntime.CurrentStateIdentity)
+												identity != LuaRuntime.CurrentStateIdentity)
 		{
 			return new SymbolRegistrationReleaseOutcome(SymbolRegistrationReleaseKind.StaleRuntime, NoBindingCall);
 		}
@@ -407,7 +407,7 @@ public static partial class SymbolRegistry
 	private static void RemoveCurrentLease(SymbolRegistrationLease lease)
 	{
 		if (SOwnedRegistrations.TryGetValue(lease.Name, out SymbolRegistrationLease? current) &&
-		    ReferenceEquals(current, lease))
+			ReferenceEquals(current, lease))
 		{
 			SOwnedRegistrations.Remove(lease.Name);
 		}

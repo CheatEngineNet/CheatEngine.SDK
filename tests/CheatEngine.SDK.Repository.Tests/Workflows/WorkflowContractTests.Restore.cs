@@ -105,8 +105,8 @@ public sealed partial class WorkflowContractTests
 				for (int index = 0; index < steps.Count; index++)
 				{
 					if (setupStep < 0 &&
-					    string.Equals(WorkflowFile.Scalar(steps[index], "uses"), WorkflowContract.SetupAction,
-						    StringComparison.Ordinal))
+						string.Equals(WorkflowFile.Scalar(steps[index], "uses"), WorkflowContract.SetupAction,
+							StringComparison.Ordinal))
 					{
 						setupStep = index;
 					}

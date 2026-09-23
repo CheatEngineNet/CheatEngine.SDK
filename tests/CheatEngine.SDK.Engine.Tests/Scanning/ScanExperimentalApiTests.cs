@@ -43,7 +43,7 @@ public sealed class ScanExperimentalApiTests
 		foreach (Type type in typeof(AobScanner).Assembly.GetExportedTypes())
 		{
 			if (type.Namespace is null ||
-			    !type.Namespace.StartsWith("CheatEngine.SDK.Engine.Scanning", StringComparison.Ordinal))
+				!type.Namespace.StartsWith("CheatEngine.SDK.Engine.Scanning", StringComparison.Ordinal))
 			{
 				continue;
 			}
@@ -54,7 +54,7 @@ public sealed class ScanExperimentalApiTests
 			}
 
 			foreach (MemberInfo member in type.GetMembers(BindingFlags.Public | BindingFlags.Instance |
-			                                              BindingFlags.Static | BindingFlags.DeclaredOnly))
+														  BindingFlags.Static | BindingFlags.DeclaredOnly))
 			{
 				if (member.GetCustomAttribute<ExperimentalAttribute>() is { } attribute)
 				{

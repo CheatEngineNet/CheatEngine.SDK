@@ -27,7 +27,7 @@ internal static class SymbolTableReader
 
 		using LuaFrame frame = new(state);
 		if (!TryReadString(state, table, "modulename"u8, out string? moduleName) ||
-		    !TryReadString(state, table, "searchkey"u8, out string? searchKey))
+			!TryReadString(state, table, "searchkey"u8, out string? searchKey))
 		{
 			return false;
 		}

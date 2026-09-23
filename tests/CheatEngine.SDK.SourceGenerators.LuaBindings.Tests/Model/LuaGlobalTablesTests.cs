@@ -38,7 +38,8 @@ public sealed class LuaGlobalTablesTests
 	{
 		LuaGlobalModel invalid = Global("g", "G()") with
 		{
-			Issues = LuaGlobalShapeIssues.NotPartialDefinition, Call = null
+			Issues = LuaGlobalShapeIssues.NotPartialDefinition,
+			Call = null
 		};
 
 		Assert.True(LuaGlobalTables.Group([invalid]).IsEmpty);

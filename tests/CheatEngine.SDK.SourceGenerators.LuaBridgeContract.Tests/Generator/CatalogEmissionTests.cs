@@ -21,7 +21,7 @@ public sealed class CatalogEmissionTests
 		Assert.Contains("PushBytes = 0", generated, StringComparison.Ordinal);
 		Assert.Contains("PushHostObject = 10", generated, StringComparison.Ordinal);
 		Assert.True(generated.IndexOf("PushBytes = 0", StringComparison.Ordinal)
-		            < generated.IndexOf("PushHostObject = 10", StringComparison.Ordinal));
+					< generated.IndexOf("PushHostObject = 10", StringComparison.Ordinal));
 		Assert.Contains("internal const int Count = 2;", generated, StringComparison.Ordinal);
 		Assert.Contains("internal const ulong RequiredBitmap = 0x0000000000000401UL;", generated,
 			StringComparison.Ordinal);

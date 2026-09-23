@@ -42,7 +42,7 @@ public sealed class LuaApiNamesTests
 			{
 				int dot = text.LastIndexOf('.');
 				Type owner = FindType(text[..dot])
-				             ?? throw new InvalidOperationException($"{name}: no such type in the SDK assemblies.");
+							 ?? throw new InvalidOperationException($"{name}: no such type in the SDK assemblies.");
 				Assert.NotEmpty(owner.GetMember(
 					text[(dot + 1)..^2],
 					MemberTypes.Method,
@@ -51,7 +51,7 @@ public sealed class LuaApiNamesTests
 			else
 			{
 				_ = FindType(text)
-				    ?? throw new InvalidOperationException($"{name}: no such type in the SDK assemblies.");
+					?? throw new InvalidOperationException($"{name}: no such type in the SDK assemblies.");
 			}
 		}
 	}

@@ -83,7 +83,7 @@ public static class RuntimeProcessOperations
 
 			status = TryGetOpenedProcessId(state, out TargetProcessId? observedProcessId);
 			if (status.Kind == ProcessOperationStatusKind.TargetNotAttached ||
-			    (status.IsSuccess && observedProcessId != processId))
+				(status.IsSuccess && observedProcessId != processId))
 			{
 				observation = default;
 				return ProcessOperationStatus.SelectionNotConfirmed;

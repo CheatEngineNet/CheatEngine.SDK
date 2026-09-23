@@ -102,8 +102,8 @@ public sealed class ReleaseWorkflowContractTests
 		foreach (YamlMappingNode step in ReleaseWorkflow.Steps(attest))
 		{
 			bool signsOrVerifies = attestations.Contains(step)
-			                       || (ReleaseWorkflow.Scalar(step, "run") ?? "").Contains("gh attestation verify",
-				                       StringComparison.Ordinal);
+								   || (ReleaseWorkflow.Scalar(step, "run") ?? "").Contains("gh attestation verify",
+									   StringComparison.Ordinal);
 			if (signsOrVerifies)
 			{
 				Assert.Equal(TagGuard, ReleaseWorkflow.Normalize(ReleaseWorkflow.Scalar(step, "if")));
@@ -209,7 +209,7 @@ public sealed class ReleaseWorkflowContractTests
 			bool creates = run.Contains("gh release create", StringComparison.Ordinal);
 			bool edits = run.Contains("gh release edit", StringComparison.Ordinal);
 			bool clobbers = run.Contains("--clobber", StringComparison.Ordinal) &&
-			                run.Contains("gh release upload", StringComparison.Ordinal);
+							run.Contains("gh release upload", StringComparison.Ordinal);
 			bool publishes = run.Contains("--draft=false", StringComparison.Ordinal);
 			Assert.True(!creates || id is "draft-release", $"Job '{id}' creates a release; only 'draft-release' may.");
 			Assert.True(!edits || id is "finalize-release",
@@ -296,8 +296,8 @@ public sealed class ReleaseWorkflowContractTests
 			string? runsOn = ReleaseWorkflow.Scalar(job, "runs-on");
 			Assert.True(runsOn is not null && s_runnerLabels.Contains(runsOn), $"Job '{id}' runs on '{runsOn}'.");
 			Assert.True(int.TryParse(ReleaseWorkflow.Scalar(job, "timeout-minutes"), NumberStyles.None,
-				            CultureInfo.InvariantCulture, out int minutes)
-			            && minutes is > 0 and <= 60,
+							CultureInfo.InvariantCulture, out int minutes)
+						&& minutes is > 0 and <= 60,
 				$"Job '{id}' needs a timeout-minutes between 1 and 60.");
 		}
 	}
@@ -363,7 +363,7 @@ public sealed class ReleaseWorkflowContractTests
 		foreach (string id in Ids())
 		{
 			if (ReleaseWorkflow.Permissions(workflow.Job(id)).TryGetValue(scope, out string? value)
-			    && string.Equals(value, "write", StringComparison.Ordinal))
+				&& string.Equals(value, "write", StringComparison.Ordinal))
 			{
 				granted.Add(id);
 			}

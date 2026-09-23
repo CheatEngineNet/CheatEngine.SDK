@@ -23,7 +23,10 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 
 	private static readonly Dictionary<string, string> RaisesFromRemark = new(StringComparer.Ordinal)
 	{
-		["never"] = "Never", ["memory"] = "Memory", ["any"] = "Any", ["always"] = "Always"
+		["never"] = "Never",
+		["memory"] = "Memory",
+		["any"] = "Any",
+		["always"] = "Always"
 	};
 
 	[Fact]
@@ -68,7 +71,7 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 				? null
 				: row.GetProperty("stackEffect").GetString();
 			if (!string.Equals(expectedRaises, row.GetProperty("raises").GetString(), StringComparison.Ordinal) ||
-			    !string.Equals(expectedStack, stack, StringComparison.Ordinal))
+				!string.Equals(expectedStack, stack, StringComparison.Ordinal))
 			{
 				problems.Add(
 					$"{member}: documented {expectedStack ?? "no stack"} / {expectedRaises}, matrix {stack ?? "no stack"} / {row.GetProperty("raises").GetString()}.");
@@ -129,9 +132,9 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 				? "ConditionallyDirect"
 				: "BridgeRequired";
 		if (!string.Equals(expectedDecision, decision, StringComparison.Ordinal) ||
-		    !string.Equals(Optional(policy, "bridgeOperation"), bridge, StringComparison.Ordinal) ||
-		    !string.Equals(policy.GetProperty("nativeSymbol").GetString(), Optional(row, "nativeSymbol"),
-			    StringComparison.Ordinal))
+			!string.Equals(Optional(policy, "bridgeOperation"), bridge, StringComparison.Ordinal) ||
+			!string.Equals(policy.GetProperty("nativeSymbol").GetString(), Optional(row, "nativeSymbol"),
+				StringComparison.Ordinal))
 		{
 			problems.Add(
 				$"{member}: the policy route ({expectedDecision}, {Optional(policy, "bridgeOperation")}) differs from the row ({decision}, {bridge}).");
@@ -142,7 +145,7 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 		// The policy may only be more conservative than the documented class, and only where the bridge operation
 		// records the source conflict that justifies it (luaL_unref: documented never, implemented with lua_rawseti).
 		bool conflictRecorded = bridge is not null && operations.TryGetValue(bridge, out JsonElement operation) &&
-		                        operation.TryGetProperty("provenanceConflict", out _);
+								operation.TryGetProperty("provenanceConflict", out _);
 		if (policyRank != rowRank && !(policyRank > rowRank && conflictRecorded))
 		{
 			problems.Add(
@@ -179,7 +182,7 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 
 		// The LUA_* properties are header constants (library names, the signature), not callable primitives.
 		foreach (PropertyInfo property in typeof(LuaApi).GetProperties(Flags)
-			         .Where(static property => !property.Name.StartsWith("LUA_", StringComparison.Ordinal)))
+					 .Where(static property => !property.Name.StartsWith("LUA_", StringComparison.Ordinal)))
 		{
 			members.Add(property.Name);
 		}
@@ -216,7 +219,7 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 	private static JsonDocument Load(string resource)
 	{
 		using Stream stream = typeof(LuaInteropPrimitiveMatrixTests).Assembly.GetManifestResourceStream(resource)
-		                      ?? throw new InvalidOperationException($"The embedded resource {resource} is missing.");
+							  ?? throw new InvalidOperationException($"The embedded resource {resource} is missing.");
 		return JsonDocument.Parse(stream);
 	}
 

@@ -73,7 +73,7 @@ public sealed class HostWidthPointerSizeAnalyzer : DiagnosticAnalyzer
 		foreach (MetadataReference reference in compilation.References)
 		{
 			if (compilation.GetAssemblyOrModuleSymbol(reference) is IAssemblySymbol assembly
-			    && string.Equals(assembly.Identity.Name, EngineAssemblyName, StringComparison.Ordinal))
+				&& string.Equals(assembly.Identity.Name, EngineAssemblyName, StringComparison.Ordinal))
 			{
 				return assembly.GetTypeByMetadataName(PointerSizeMetadataName);
 			}
@@ -86,8 +86,8 @@ public sealed class HostWidthPointerSizeAnalyzer : DiagnosticAnalyzer
 	{
 		IObjectCreationOperation creation = (IObjectCreationOperation) context.Operation;
 		if (creation.Constructor is null
-		    || !SymbolEqualityComparer.Default.Equals(creation.Constructor.ContainingType, symbols.PointerSize)
-		    || creation.Arguments.Length != 1)
+			|| !SymbolEqualityComparer.Default.Equals(creation.Constructor.ContainingType, symbols.PointerSize)
+			|| creation.Arguments.Length != 1)
 		{
 			return;
 		}
@@ -106,9 +106,9 @@ public sealed class HostWidthPointerSizeAnalyzer : DiagnosticAnalyzer
 	{
 		IConditionalOperation conditional = (IConditionalOperation) context.Operation;
 		if (conditional.WhenFalse is null
-		    || !SymbolEqualityComparer.Default.Equals(conditional.Type, symbols.PointerSize)
-		    || !IsWidthConstant(conditional.WhenTrue, symbols)
-		    || !IsWidthConstant(conditional.WhenFalse, symbols))
+			|| !SymbolEqualityComparer.Default.Equals(conditional.Type, symbols.PointerSize)
+			|| !IsWidthConstant(conditional.WhenTrue, symbols)
+			|| !IsWidthConstant(conditional.WhenFalse, symbols))
 		{
 			return;
 		}
@@ -127,8 +127,8 @@ public sealed class HostWidthPointerSizeAnalyzer : DiagnosticAnalyzer
 	private static bool IsWidthConstant(IOperation operation, HostWidthSymbols symbols)
 	{
 		return SkipConversions(operation) is IPropertyReferenceOperation { Instance: null } property
-		       && SymbolEqualityComparer.Default.Equals(property.Property.ContainingType, symbols.PointerSize)
-		       && property.Property.Name is "Bit32" or "Bit64";
+			   && SymbolEqualityComparer.Default.Equals(property.Property.ContainingType, symbols.PointerSize)
+			   && property.Property.Name is "Bit32" or "Bit64";
 	}
 
 	private static IOperation? FindHostWidthSource(IOperation condition, HostWidthSymbols symbols)
@@ -156,7 +156,7 @@ public sealed class HostWidthPointerSizeAnalyzer : DiagnosticAnalyzer
 			case IPropertyReferenceOperation { Instance: null } property:
 				// IntPtr.Size and UIntPtr.Size; nint.Size and nuint.Size bind to the same properties.
 				return string.Equals(property.Property.Name, "Size", StringComparison.Ordinal)
-				       && IsNativeWidthType(property.Property.ContainingType);
+					   && IsNativeWidthType(property.Property.ContainingType);
 			case ISizeOfOperation sizeOf:
 				return IsNativeWidthType(sizeOf.TypeOperand) || sizeOf.TypeOperand is IPointerTypeSymbol;
 			case IInvocationOperation invocation:
@@ -171,14 +171,14 @@ public sealed class HostWidthPointerSizeAnalyzer : DiagnosticAnalyzer
 	{
 		IMethodSymbol method = invocation.TargetMethod;
 		if (!string.Equals(method.Name, "SizeOf", StringComparison.Ordinal) || method.TypeArguments.Length != 1
-		                                                                    || invocation.Arguments.Length != 0)
+																			|| invocation.Arguments.Length != 0)
 		{
 			return false;
 		}
 
 		INamedTypeSymbol declaring = method.ContainingType;
 		bool knownHelper = SymbolEqualityComparer.Default.Equals(declaring, symbols.Unsafe)
-		                   || SymbolEqualityComparer.Default.Equals(declaring, symbols.Marshal);
+						   || SymbolEqualityComparer.Default.Equals(declaring, symbols.Marshal);
 		ITypeSymbol argument = method.TypeArguments[0];
 		return knownHelper && (IsNativeWidthType(argument) || argument is IPointerTypeSymbol);
 	}
@@ -186,8 +186,8 @@ public sealed class HostWidthPointerSizeAnalyzer : DiagnosticAnalyzer
 	private static bool IsIs64BitProcess(IOperation operation, HostWidthSymbols symbols)
 	{
 		return operation is IPropertyReferenceOperation { Instance: null } property
-		       && string.Equals(property.Property.Name, "Is64BitProcess", StringComparison.Ordinal)
-		       && SymbolEqualityComparer.Default.Equals(property.Property.ContainingType, symbols.Environment);
+			   && string.Equals(property.Property.Name, "Is64BitProcess", StringComparison.Ordinal)
+			   && SymbolEqualityComparer.Default.Equals(property.Property.ContainingType, symbols.Environment);
 	}
 
 	// System.IntPtr and System.UIntPtr, including their nint and nuint spellings.

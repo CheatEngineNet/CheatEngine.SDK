@@ -150,12 +150,12 @@ public sealed class NativeFailureProcessTests
 				}
 
 				Assert.True(operation.TryGetProperty("failureEvidence", out JsonElement evidence) &&
-				            evidence.GetArrayLength() > 0,
+							evidence.GetArrayLength() > 0,
 					$"Protected operation {id} can raise but names no failure evidence.");
 				foreach (JsonElement item in evidence.EnumerateArray())
 				{
 					if (string.Equals(item.GetProperty("kind").GetString(), "FailureProbeMarker",
-						    StringComparison.Ordinal))
+							StringComparison.Ordinal))
 					{
 						markers.Add(item.GetProperty("marker").GetString()!);
 					}
@@ -175,8 +175,8 @@ public sealed class NativeFailureProcessTests
 	{
 		const string ResourceName = "CheatEngine.SDK.Lua.Tests.ProtectedOperations.json";
 		using Stream stream = typeof(NativeFailureProcessTests).Assembly.GetManifestResourceStream(ResourceName)
-		                      ?? throw new InvalidOperationException(
-			                      $"The embedded resource {ResourceName} is missing.");
+							  ?? throw new InvalidOperationException(
+								  $"The embedded resource {ResourceName} is missing.");
 		return JsonDocument.Parse(stream);
 	}
 

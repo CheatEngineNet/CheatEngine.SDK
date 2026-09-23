@@ -37,7 +37,8 @@ internal static class CodeFixVerifier<TAnalyzer, TCodeFix>
 	{
 		CheatEngineSdkCodeFixTest<TAnalyzer, TCodeFix> test = new()
 		{
-			CodeActionEquivalenceKey = equivalenceKey, NumberOfFixAllIterations = fixAllIterations
+			CodeActionEquivalenceKey = equivalenceKey,
+			NumberOfFixAllIterations = fixAllIterations
 		};
 
 		// The default drops fixable ids from the markup of the fixed state, assuming a fix always removes them all.

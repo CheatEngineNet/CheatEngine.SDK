@@ -38,7 +38,10 @@ public static class RuntimeObservations
 		RuntimeOwnership.None, RuntimeReturnSemantics.Value);
 
 	private static readonly RuntimeCapabilityContract SHostOptionalValue =
-		SHostValue with { ReturnSemantics = RuntimeReturnSemantics.OptionalValue };
+		SHostValue with
+		{
+			ReturnSemantics = RuntimeReturnSemantics.OptionalValue
+		};
 
 	private static readonly RuntimeCapabilityContract STargetValue = new(CheatEngineVersion.Ce77010621,
 		RuntimeArchitectureScope.Target, RuntimeArchitectureRequirement.Unknown, RuntimeThreadRequirement.Unknown,

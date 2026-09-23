@@ -36,7 +36,10 @@ internal static class CommittedFile
 		startInfo.ArgumentList.Add("blob");
 		startInfo.ArgumentList.Add($"HEAD:{repoRelativePath}");
 
-		using Process process = new() { StartInfo = startInfo };
+		using Process process = new()
+		{
+			StartInfo = startInfo
+		};
 		try
 		{
 			process.Start();

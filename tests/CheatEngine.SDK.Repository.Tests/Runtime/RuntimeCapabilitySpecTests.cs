@@ -123,7 +123,7 @@ public sealed partial class RuntimeCapabilitySpecTests
 		SortedSet<string> rows = new(StringComparer.Ordinal);
 		List<string> qualified = [];
 		foreach (string[] cells in BackendTableRows(
-			         File.ReadAllLines(Path.Combine(RepositoryRoot.Path, EngineReadmePath))))
+					 File.ReadAllLines(Path.Combine(RepositoryRoot.Path, EngineReadmePath))))
 		{
 			string backend = cells[0].Trim('`');
 			Assert.True(rows.Add(backend), $"Duplicate backend row {backend}.");
@@ -158,7 +158,7 @@ public sealed partial class RuntimeCapabilitySpecTests
 
 			string[] cells = Cells(lines[index]);
 			if (string.Equals(cells[0], "Backend", StringComparison.Ordinal)
-			    && string.Equals(cells[^1], "Qualified backend", StringComparison.Ordinal))
+				&& string.Equals(cells[^1], "Qualified backend", StringComparison.Ordinal))
 			{
 				Assert.Equal(-1, header);
 				header = index;

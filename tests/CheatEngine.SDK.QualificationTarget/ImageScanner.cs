@@ -16,7 +16,7 @@ internal static unsafe class ImageScanner
 	{
 		using Process process = Process.GetCurrentProcess();
 		ProcessModule module = process.MainModule
-		                       ?? throw new InvalidOperationException("The main module is not available.");
+							   ?? throw new InvalidOperationException("The main module is not available.");
 		return (module.BaseAddress, module.ModuleMemorySize);
 	}
 

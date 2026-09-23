@@ -64,8 +64,8 @@ public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixt
 		foreach (string entry in fixture.PackageEntries)
 		{
 			if ((entry.StartsWith("lib/net10.0/", StringComparison.Ordinal)
-			     || entry.StartsWith("analyzers/dotnet/cs/", StringComparison.Ordinal))
-			    && entry.EndsWith(".dll", StringComparison.Ordinal))
+				 || entry.StartsWith("analyzers/dotnet/cs/", StringComparison.Ordinal))
+				&& entry.EndsWith(".dll", StringComparison.Ordinal))
 			{
 				shipped.Add(entry);
 			}
@@ -159,7 +159,7 @@ public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixt
 
 			string? sourceLink = null;
 			foreach (CustomDebugInformationHandle handle in
-			         pdb.GetCustomDebugInformation(EntityHandle.ModuleDefinition))
+					 pdb.GetCustomDebugInformation(EntityHandle.ModuleDefinition))
 			{
 				CustomDebugInformation information = pdb.GetCustomDebugInformation(handle);
 				if (pdb.GetGuid(information.Kind) == s_sourceLinkKind)
@@ -187,7 +187,7 @@ public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixt
 		foreach (string entry in fixture.PackageEntries)
 		{
 			if (entry.StartsWith("lib/net10.0/CheatEngine.SDK", StringComparison.Ordinal)
-			    && entry.EndsWith(".dll", StringComparison.Ordinal))
+				&& entry.EndsWith(".dll", StringComparison.Ordinal))
 			{
 				libraries.Add(entry);
 			}
@@ -228,7 +228,7 @@ public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixt
 	private static byte[] ReadEntry(ZipArchive archive, string entryName)
 	{
 		ZipArchiveEntry entry = archive.GetEntry(entryName)
-		                        ?? throw new InvalidOperationException($"The package has no '{entryName}' entry.");
+								?? throw new InvalidOperationException($"The package has no '{entryName}' entry.");
 		using Stream stream = entry.Open();
 		using MemoryStream copy = new();
 		stream.CopyTo(copy);

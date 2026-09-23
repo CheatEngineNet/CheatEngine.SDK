@@ -187,7 +187,10 @@ public sealed class LuaGlobalCallEmitterTests
 		LuaGlobalCallModel throwingVoid = new("g", "s", "static", "G", string.Empty,
 			EquatableArray<LuaArgumentModel>.Empty, LuaCallForm.Throwing, EquatableArray<LuaResultModel>.Empty,
 			null, false);
-		LuaGlobalCallModel throwingValue = throwingVoid with { ReturnKind = LuaValueKind.Double };
+		LuaGlobalCallModel throwingValue = throwingVoid with
+		{
+			ReturnKind = LuaValueKind.Double
+		};
 
 		Assert.Equal(0, throwingVoid.ResultCount);
 		Assert.Equal(1, throwingValue.ResultCount);
@@ -287,10 +290,10 @@ public sealed class LuaGlobalCallEmitterTests
 			writer.ToString());
 
 		foreach (string local in (string[])
-		         [
-			         "__L", "__operation", "__top", "__ok", "__status", "__result",
-			         "__resolution", "__exception", "__argc", "__rest"
-		         ])
+				 [
+					 "__L", "__operation", "__top", "__ok", "__status", "__result",
+					 "__resolution", "__exception", "__argc", "__rest"
+				 ])
 		{
 			Assert.True(LuaGlobalCallEmitter.IsReservedLocal(local), local);
 		}

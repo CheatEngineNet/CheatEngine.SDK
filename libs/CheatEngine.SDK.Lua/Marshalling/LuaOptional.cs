@@ -140,7 +140,7 @@ public readonly struct LuaOptional<T> : IEquatable<LuaOptional<T>>
 	public bool Equals(LuaOptional<T> other)
 	{
 		return _state == other._state
-		       && (_state != ValueState || EqualityComparer<T>.Default.Equals(_value, other._value));
+			   && (_state != ValueState || EqualityComparer<T>.Default.Equals(_value, other._value));
 	}
 
 	/// <inheritdoc />

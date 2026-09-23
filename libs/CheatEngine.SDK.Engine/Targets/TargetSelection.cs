@@ -216,7 +216,7 @@ public static class TargetSelection
 			return true;
 		}
 		catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception
-			                                  or NotSupportedException or UnauthorizedAccessException)
+											  or NotSupportedException or UnauthorizedAccessException)
 		{
 			incarnation = default;
 			return false;

@@ -420,9 +420,9 @@ public sealed class InstructionOperationsTests
 		InstallInstructionGlobals(scope.State);
 		InstructionTargetProfile targetProfile = Observe(scope.State);
 		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes("instruction_assemble_behavior = \"target-change\"\n" +
-		                                                   "instruction_assemble_next_process_id = " +
-		                                                   selectionAfterEffect.ToString(CultureInfo
-			                                                   .InvariantCulture)));
+														   "instruction_assemble_next_process_id = " +
+														   selectionAfterEffect.ToString(CultureInfo
+															   .InvariantCulture)));
 		Span<byte> destination = stackalloc byte[1];
 		destination[0] = 0xA5;
 

@@ -668,7 +668,7 @@ public sealed class MemoryScanSession : IDisposable
 		}
 
 		if (State == MemoryScanState.Scanning ||
-		    (_terminationAttempted && _termination != MemoryScanTerminationStatus.Confirmed))
+			(_terminationAttempted && _termination != MemoryScanTerminationStatus.Confirmed))
 		{
 			ThrowWrongState("Reset");
 		}
@@ -1258,7 +1258,7 @@ public sealed class MemoryScanSession : IDisposable
 
 		long ticks = timeout.Ticks;
 		long milliseconds = (ticks / TimeSpan.TicksPerMillisecond) +
-		                    (ticks % TimeSpan.TicksPerMillisecond == 0 ? 0 : 1);
+							(ticks % TimeSpan.TicksPerMillisecond == 0 ? 0 : 1);
 		if (milliseconds > int.MaxValue)
 		{
 			throw new ArgumentOutOfRangeException(parameterName, timeout,
@@ -1372,7 +1372,7 @@ public sealed class MemoryScanSession : IDisposable
 		using LuaFrame frame = new(state);
 		state.PushInteger(waitMilliseconds);
 		if (!_scanner!.Value.Handle.TryCallMethod(state, "waitTillDone"u8, 1, 1).IsOk ||
-		    state.TypeOf(-1) != LuaType.Boolean)
+			state.TypeOf(-1) != LuaType.Boolean)
 		{
 			return MemoryScanTerminationStatus.WaitFailed;
 		}
@@ -1386,7 +1386,7 @@ public sealed class MemoryScanSession : IDisposable
 	{
 		using LuaFrame frame = new(state);
 		if (!_scanner!.Value.Handle.TryGetProperty(state, "ErrorString"u8).IsOk ||
-		    !state.TryReadUtf8(-1, out ReadOnlySpan<byte> utf8))
+			!state.TryReadUtf8(-1, out ReadOnlySpan<byte> utf8))
 		{
 			text = null;
 			truncated = false;
@@ -1653,7 +1653,7 @@ public sealed class MemoryScanSession : IDisposable
 	private TargetReleaseOutcome CreateRefusedReleaseOutcome(MemoryScanMaterializationStatus context)
 	{
 		if (context is MemoryScanMaterializationStatus.TargetIdentityUnavailable or
-			    MemoryScanMaterializationStatus.TargetIdentityMismatch && LastTargetCheck.HasValue)
+				MemoryScanMaterializationStatus.TargetIdentityMismatch && LastTargetCheck.HasValue)
 		{
 			return TargetReleaseOutcome.Refused(LastTargetCheck.GetValueOrDefault());
 		}

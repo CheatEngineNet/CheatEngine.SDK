@@ -103,7 +103,7 @@ internal static class HintNames
 			return hashed;
 		}
 
-		for (int ordinal = 2;; ordinal++)
+		for (int ordinal = 2; ; ordinal++)
 		{
 			string suffixed = AppendOrdinal(hashed, suffix, ordinal);
 			if (used.Add(suffixed))
@@ -129,7 +129,7 @@ internal static class HintNames
 		bool replaced = false;
 		foreach (char c in typeName)
 		{
-			if (c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '.' or '_')
+			if (c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '.' or '_')
 			{
 				builder.Append(c);
 			}

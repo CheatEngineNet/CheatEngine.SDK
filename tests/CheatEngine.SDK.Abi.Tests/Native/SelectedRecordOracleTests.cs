@@ -176,7 +176,7 @@ public sealed class SelectedRecordOracleTests
 	private static bool IsOffsetOrWidth(string violation)
 	{
 		return violation.Contains(": offset ", StringComparison.Ordinal) ||
-		       violation.Contains(": width ", StringComparison.Ordinal);
+			   violation.Contains(": width ", StringComparison.Ordinal);
 	}
 
 	private static int Offset<T>(string fieldName)
@@ -192,7 +192,7 @@ public sealed class SelectedRecordOracleTests
 	private static FieldInfo FieldOf<T>(string fieldName)
 	{
 		return typeof(T).GetField(fieldName, FieldLayoutGate.InstanceFields)
-		       ?? throw new InvalidOperationException($"{typeof(T).Name} has no field {fieldName}.");
+			   ?? throw new InvalidOperationException($"{typeof(T).Name} has no field {fieldName}.");
 	}
 
 	private static string Text(int value)

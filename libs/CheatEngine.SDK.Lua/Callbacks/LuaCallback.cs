@@ -160,8 +160,8 @@ public abstract class LuaCallback : IDisposable
 		}
 
 		if (result is LuaRuntime.LuaCallbackDisposeOperationResult.AdmissionClosed
-		    or LuaRuntime.LuaCallbackDisposeOperationResult.ThreadNotAdmitted
-		    or LuaRuntime.LuaCallbackDisposeOperationResult.ExternalStateReset)
+			or LuaRuntime.LuaCallbackDisposeOperationResult.ThreadNotAdmitted
+			or LuaRuntime.LuaCallbackDisposeOperationResult.ExternalStateReset)
 		{
 			// This result was observed atomically with the closed gate, the thread-admission refusal or the detected
 			// external reset. A later failed Detach can reopen admission, but cannot make it safe to abandon the

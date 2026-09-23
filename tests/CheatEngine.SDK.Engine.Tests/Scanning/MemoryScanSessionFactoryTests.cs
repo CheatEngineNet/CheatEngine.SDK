@@ -448,8 +448,8 @@ public sealed class MemoryScanSessionFactoryTests
 	private static void InstallCurrentTarget(LuaState state)
 	{
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("function getOpenedProcessID() return " +
-		                                             Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
-		                                             " end"));
+													 Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
+													 " end"));
 		EngineTest.Run(state, FakeHost.LocalTargetBackendChunk);
 	}
 

@@ -28,10 +28,10 @@ public sealed partial class NativeAotProfileDocumentTests
 			StringComparison.Ordinal);
 		Assert.Contains("LocalModified", page, StringComparison.Ordinal);
 		foreach (string profile in (string[])
-		         [
-			         "| Historical CLR route", "| **Managed hostfxr route**", "| NativeAOT plugin DLL",
-			         "| Classic native plugin exporting `CEPlugin_*`", "| x86 or ARM64 host"
-		         ])
+				 [
+					 "| Historical CLR route", "| **Managed hostfxr route**", "| NativeAOT plugin DLL",
+					 "| Classic native plugin exporting `CEPlugin_*`", "| x86 or ARM64 host"
+				 ])
 		{
 			Assert.Contains(profile, page, StringComparison.Ordinal);
 		}

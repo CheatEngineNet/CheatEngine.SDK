@@ -104,9 +104,9 @@ public sealed partial class WorkflowContractTests
 		// No other way to hide a test: no second filter, no ignored exit code, no retries in the required run.
 		Assert.Equal(1, Occurrences(run, "--filter"));
 		foreach (string forbidden in new[]
-		         {
-			         "--ignore-exit-code", "--retry-failed-tests", "TESTINGPLATFORM_EXITCODE_IGNORE"
-		         })
+				 {
+					 "--ignore-exit-code", "--retry-failed-tests", "TESTINGPLATFORM_EXITCODE_IGNORE"
+				 })
 		{
 			Assert.DoesNotContain(forbidden, run, StringComparison.Ordinal);
 		}
@@ -126,12 +126,12 @@ public sealed partial class WorkflowContractTests
 		Assert.Equal(1, Occurrences(run, "dotnet test"));
 		Assert.Contains("dotnet test @options", run, StringComparison.Ordinal);
 		foreach (string option in new[]
-		         {
-			         "'--solution', 'CheatEngine.SDK.slnx'", "'--no-build'", "'--results-directory', $env:RESULTS",
-			         "'--report-trx'", "'--report-gh', '--report-gh-groups', 'off'",
-			         "'--hangdump', '--hangdump-timeout'", "'--crashdump'",
-			         "'--coverage', '--coverage-output-format', 'xml'"
-		         })
+				 {
+					 "'--solution', 'CheatEngine.SDK.slnx'", "'--no-build'", "'--results-directory', $env:RESULTS",
+					 "'--report-trx'", "'--report-gh', '--report-gh-groups', 'off'",
+					 "'--hangdump', '--hangdump-timeout'", "'--crashdump'",
+					 "'--coverage', '--coverage-output-format', 'xml'"
+				 })
 		{
 			Assert.Contains(option, run, StringComparison.Ordinal);
 		}
@@ -150,7 +150,7 @@ public sealed partial class WorkflowContractTests
 		foreach (XElement group in props.Descendants("ItemGroup"))
 		{
 			if (!((string?) group.Attribute("Condition") ?? "").Contains("$(MSBuildProjectName.EndsWith('.Tests'))",
-				    StringComparison.Ordinal))
+					StringComparison.Ordinal))
 			{
 				continue;
 			}
@@ -231,7 +231,7 @@ public sealed partial class WorkflowContractTests
 				{
 					string name = WorkflowJob.With(step, "name") ?? "";
 					if (name.StartsWith("binlogs-", StringComparison.Ordinal) ||
-					    name.StartsWith("test-dumps-", StringComparison.Ordinal))
+						name.StartsWith("test-dumps-", StringComparison.Ordinal))
 					{
 						Assert.True(mayLogBuilds,
 							$"{job.Location} uploads '{name}'; sonar.yml and release.yml never do.");
@@ -262,7 +262,7 @@ public sealed partial class WorkflowContractTests
 			{
 				string run = job.RunText();
 				bool packs = VersionedPack().IsMatch(run) ||
-				             run.Contains("dotnet-sonarscanner", StringComparison.Ordinal);
+							 run.Contains("dotnet-sonarscanner", StringComparison.Ordinal);
 				bool builds = VersionedBuild().IsMatch(run);
 				if (!packs && !builds)
 				{
@@ -380,8 +380,8 @@ public sealed partial class WorkflowContractTests
 	{
 		int count = 0;
 		for (int index = text.IndexOf(value, StringComparison.Ordinal);
-		     index >= 0;
-		     index = text.IndexOf(value, index + value.Length, StringComparison.Ordinal))
+			 index >= 0;
+			 index = text.IndexOf(value, index + value.Length, StringComparison.Ordinal))
 		{
 			count++;
 		}

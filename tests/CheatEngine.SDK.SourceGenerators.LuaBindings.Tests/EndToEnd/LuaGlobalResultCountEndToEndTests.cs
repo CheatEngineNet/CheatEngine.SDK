@@ -253,7 +253,7 @@ public sealed class LuaGlobalResultCountEndToEndTests(RoslynFixture roslyn) : IC
 		AllocationGate.AssertZero(() =>
 		{
 			if (!pair(3, out long first, out LuaOptional<long> second).IsSuccess || !second.TryGetValue(out long value)
-			    || !sequence(3, default, buffer, out int count).IsSuccess || count != 3)
+				|| !sequence(3, default, buffer, out int count).IsSuccess || count != 3)
 			{
 				throw new InvalidOperationException("wrong results");
 			}

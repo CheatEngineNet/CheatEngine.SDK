@@ -298,7 +298,7 @@ internal static class MemScanTestHost
 					}
 				}
 				catch (Exception exception) when (exception is InvalidOperationException or Win32Exception
-					                                  or NotSupportedException)
+													  or NotSupportedException)
 				{
 					// Not readable by this user (protected or already exited): not a qualifiable target.
 				}
@@ -318,8 +318,8 @@ internal static class MemScanTestHost
 	public static void ReplaceCapturedTarget(MemoryScanSession session, TargetProcessIncarnation incarnation)
 	{
 		FieldInfo field = typeof(MemoryScanSession).GetField("_targetObservation",
-			                  BindingFlags.Instance | BindingFlags.NonPublic)
-		                  ?? throw new InvalidOperationException("The session's captured target field was not found.");
+							  BindingFlags.Instance | BindingFlags.NonPublic)
+						  ?? throw new InvalidOperationException("The session's captured target field was not found.");
 		field.SetValue(session, TargetSelectionObservation.Qualified(incarnation));
 	}
 

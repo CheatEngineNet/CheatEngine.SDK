@@ -101,7 +101,7 @@ internal sealed class PartialLuaModule : IDisposable
 		int signature = BinaryPrimitives.ReadInt32LittleEndian(image.AsSpan(PeHeaderPointerOffset));
 		int optionalHeader = signature + OptionalHeaderOffsetFromSignature;
 		if (BinaryPrimitives.ReadUInt32LittleEndian(image.AsSpan(signature)) != 0x4550 ||
-		    BinaryPrimitives.ReadUInt16LittleEndian(image.AsSpan(optionalHeader)) != Pe32PlusMagic)
+			BinaryPrimitives.ReadUInt16LittleEndian(image.AsSpan(optionalHeader)) != Pe32PlusMagic)
 		{
 			throw new InvalidOperationException("The Lua fixture is not a PE32+ image.");
 		}
@@ -132,8 +132,8 @@ internal sealed class PartialLuaModule : IDisposable
 		}
 
 		bool staysSorted = (target == 0 || string.CompareOrdinal(names[target - 1].Name, replacement) < 0) &&
-		                   (target == names.Count - 1 ||
-		                    string.CompareOrdinal(replacement, names[target + 1].Name) < 0);
+						   (target == names.Count - 1 ||
+							string.CompareOrdinal(replacement, names[target + 1].Name) < 0);
 		if (!staysSorted)
 		{
 			throw new InvalidOperationException($"'{replacement}' would leave the export name table unsorted.");

@@ -58,6 +58,6 @@ public sealed unsafe class PluginType0RecordTests
 	private static Type TypeOf(string fieldName)
 	{
 		return (typeof(PluginType0Record).GetField(fieldName)
-		        ?? throw new InvalidOperationException($"PluginType0Record has no field {fieldName}.")).FieldType;
+				?? throw new InvalidOperationException($"PluginType0Record has no field {fieldName}.")).FieldType;
 	}
 }

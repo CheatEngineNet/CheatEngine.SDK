@@ -263,9 +263,9 @@ public sealed class AobFirstFoundScanTests
 		LuaState L = scope.State;
 		_ = MemScanTestHost.Install(L);
 		MemScanTestHost.Run(L, "only_result_mode = 'value'; only_result_value = 0x100000000; " +
-		                       "scan_first_hook = function() opened_process_id = " +
-		                       MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture) +
-		                       " end");
+							   "scan_first_hook = function() opened_process_id = " +
+							   MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture) +
+							   " end");
 
 		AobFirstFoundResult result = Find(ModuleBounds);
 

@@ -58,10 +58,14 @@ public sealed class LuaFunctionTablesTests
 	{
 		LuaFunctionModel invalid = Function(Alpha, "bad") with
 		{
-			Issues = LuaFunctionShapeIssues.NotStatic, Thunk = null
+			Issues = LuaFunctionShapeIssues.NotStatic,
+			Thunk = null
 		};
 		LuaFunctionModel invalidType =
-			Function(Zeta, "ok") with { ContainingTypeIssues = ContainingTypeIssues.NotPartial };
+			Function(Zeta, "ok") with
+			{
+				ContainingTypeIssues = ContainingTypeIssues.NotPartial
+			};
 
 		EquatableArray<LuaFunctionTableModel> tables =
 			LuaFunctionTables.Group([invalid, invalidType, Function(Alpha, "good")]);

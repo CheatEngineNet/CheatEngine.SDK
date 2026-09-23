@@ -102,7 +102,7 @@ public readonly record struct AobScanBounds
 	public static bool TryFromModule(in ModuleInfo module, out AobScanBounds bounds)
 	{
 		if (module.ImageSize is not { } size || size.Value == 0 ||
-		    size.Value > ulong.MaxValue - module.BaseAddress.Value)
+			size.Value > ulong.MaxValue - module.BaseAddress.Value)
 		{
 			bounds = default;
 			return false;

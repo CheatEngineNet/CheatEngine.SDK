@@ -56,7 +56,7 @@ public sealed class OwnershipSurfaceTests
 			foreach (MethodInfo method in type.GetMethods(PublicMembers))
 			{
 				if (!method.IsSpecialName && method.Name.StartsWith("Get", StringComparison.Ordinal) &&
-				    IsOwner(method.ReturnType))
+					IsOwner(method.ReturnType))
 				{
 					offenders.Add(type.Name + "." + method.Name);
 				}
@@ -84,7 +84,7 @@ public sealed class OwnershipSurfaceTests
 			foreach (MethodInfo method in type.GetMethods(PublicMembers))
 			{
 				if (method.ReturnType == ownedRecord || Array.Exists(method.GetParameters(),
-					    parameter => UnderlyingType(parameter.ParameterType) == ownedRecord))
+						parameter => UnderlyingType(parameter.ParameterType) == ownedRecord))
 				{
 					offenders.Add(type.Name + "." + method.Name);
 				}

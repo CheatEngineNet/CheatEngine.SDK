@@ -821,8 +821,8 @@ public static unsafe class LuaRuntime
 	internal static bool IsGeneratedFunctionRegistrationCurrent(int attachEpoch, int stateGeneration)
 	{
 		return Read(ref s_services) is not null
-		       && Read(ref s_identity) == PackIdentity(attachEpoch, stateGeneration)
-		       && IsOperationAdmissionOpen();
+			   && Read(ref s_identity) == PackIdentity(attachEpoch, stateGeneration)
+			   && IsOperationAdmissionOpen();
 	}
 
 	/// <summary>
@@ -963,9 +963,9 @@ public static unsafe class LuaRuntime
 			}
 
 			if (!bypassThreadAdmission
-			    && Read(ref s_threadAdmission) == (int) LuaThreadAdmission.MainThreadOnly
-			    && Environment.CurrentManagedThreadId != services.MainThreadId
-			    && t_operationDepth == 0)
+				&& Read(ref s_threadAdmission) == (int) LuaThreadAdmission.MainThreadOnly
+				&& Environment.CurrentManagedThreadId != services.MainThreadId
+				&& t_operationDepth == 0)
 			{
 				return LuaAdmissionStatus.ThreadNotAdmitted;
 			}

@@ -123,7 +123,7 @@ public sealed partial class ProtectedOperationCatalogTests
 			}
 
 			if (policy.TryGetProperty("conditionalDirectUse", out JsonElement conditional) &&
-			    (direct || !bridge || !conditional.GetProperty("allowed").GetBoolean()))
+				(direct || !bridge || !conditional.GetProperty("allowed").GetBoolean()))
 			{
 				problems.Add(
 					$"{symbol}: a conditional direct use keeps the bridge as its default route and opts in explicitly.");
@@ -144,7 +144,7 @@ public sealed partial class ProtectedOperationCatalogTests
 			bool raises = !string.Equals(operation.GetProperty("raises").GetString(), "never",
 				StringComparison.Ordinal);
 			if (raises && (!operation.TryGetProperty("failureEvidence", out JsonElement evidence) ||
-			               evidence.GetArrayLength() == 0))
+						   evidence.GetArrayLength() == 0))
 			{
 				problems.Add($"{id} can raise but names no failure evidence (a failure-probe marker or a Q13 test).");
 			}

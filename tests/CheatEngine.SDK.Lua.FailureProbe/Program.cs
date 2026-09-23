@@ -95,9 +95,9 @@ internal static unsafe class Program
 	private static bool HasValidArguments(string[] arguments)
 	{
 		return arguments.Length is >= 1 and <= 2 &&
-		       (arguments.Length != 2 ||
-		        string.Equals(arguments[1], CheckStackGrowthMode, StringComparison.Ordinal) ||
-		        string.Equals(arguments[1], GeneratedFunctionAllocationMode, StringComparison.Ordinal));
+			   (arguments.Length != 2 ||
+				string.Equals(arguments[1], CheckStackGrowthMode, StringComparison.Ordinal) ||
+				string.Equals(arguments[1], GeneratedFunctionAllocationMode, StringComparison.Ordinal));
 	}
 
 	private static int RunRequestedProbe(LuaState state, nint module, string[] arguments)
@@ -507,7 +507,7 @@ internal static unsafe class Program
 			catch (InvalidOperationException exception)
 			{
 				if (!string.Equals(exception.Message, UncheckedFunctionReservationFailureMessage,
-					    StringComparison.Ordinal))
+						StringComparison.Ordinal))
 				{
 					return Fail("PushUncheckedFunction returned an unstable reservation failure message");
 				}
@@ -1055,7 +1055,7 @@ internal static unsafe class Program
 		}
 
 		if (!state.TryReadString(-1, out string? error) ||
-		    !error.Contains("bad argument #1", StringComparison.Ordinal))
+			!error.Contains("bad argument #1", StringComparison.Ordinal))
 		{
 			return Fail("PushHostObject did not leave the native luaL_checkinteger failure message on the stack");
 		}

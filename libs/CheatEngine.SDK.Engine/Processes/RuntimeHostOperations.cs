@@ -361,7 +361,7 @@ public static class RuntimeHostOperations
 			}
 
 			if (!state.IsInteger(packedIndex) || !state.TryReadInteger(packedIndex, out long packed) ||
-			    !RuntimeInfo.TryDecodeFileVersion(packed, out CheatEngineVersion decoded))
+				!RuntimeInfo.TryDecodeFileVersion(packed, out CheatEngineVersion decoded))
 			{
 				return LuaOperationStatus.InvalidResult;
 			}
@@ -465,7 +465,7 @@ public static class RuntimeHostOperations
 			}
 
 			if (state.TypeOf(-1) != LuaType.Number || !state.TryReadNumber(-1, out version) ||
-			    !double.IsFinite(version) || version < 0)
+				!double.IsFinite(version) || version < 0)
 			{
 				version = default;
 				return state.IsNil(-1) ? LuaOperationStatus.NilResult : LuaOperationStatus.InvalidResult;

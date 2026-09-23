@@ -280,7 +280,10 @@ public sealed class RuntimeContractsTests
 	{
 		CheatEngineHostObservation host = new(null, CheatEngineArchitecture.X64, null,
 			CheatEngineOperatingSystem.Unknown);
-		CheatEngineHostObservation reported = host with { CheatEngineIs64Bit = false };
+		CheatEngineHostObservation reported = host with
+		{
+			CheatEngineIs64Bit = false
+		};
 
 		Assert.Null(host.FileVersion);
 		Assert.Null(host.CheatEngineIs64Bit);
@@ -428,7 +431,10 @@ public sealed class RuntimeContractsTests
 
 		RuntimeInfo info = new(host, narrowed, RuntimeCapabilities.Empty);
 		RuntimeInfo widenedInfo = new(host, widened, RuntimeCapabilities.Empty);
-		RuntimeInfo withoutTarget = new(host with { FileVersion = null }, null, RuntimeCapabilities.Empty);
+		RuntimeInfo withoutTarget = new(host with
+		{
+			FileVersion = null
+		}, null, RuntimeCapabilities.Empty);
 		RuntimeInfo unknown = new(host, unknownFamilies, RuntimeCapabilities.Empty);
 
 		Assert.Equal(host, info.Host);

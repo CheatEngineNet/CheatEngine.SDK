@@ -11,7 +11,7 @@ namespace LivePlugin;
 ///     ;
 ///     <see cref="CheatEngineSdkLivePlugin.OnDisable" /> unregisters them through <c>UnregisterLuaFunctions</c>.
 /// </summary>
-internal static class LiveFunctions
+internal static partial class LiveFunctions
 {
 	private static long s_pingCount;
 

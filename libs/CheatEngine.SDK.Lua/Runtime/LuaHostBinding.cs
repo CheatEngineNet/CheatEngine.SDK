@@ -113,7 +113,7 @@ public readonly unsafe struct LuaHostBinding : IEquatable<LuaHostBinding>
 	public bool Equals(LuaHostBinding other)
 	{
 		return StateProvider == other.StateProvider && HostObjectPusher == other.HostObjectPusher &&
-		       MainThreadId == other.MainThreadId;
+			   MainThreadId == other.MainThreadId;
 	}
 
 	/// <inheritdoc />

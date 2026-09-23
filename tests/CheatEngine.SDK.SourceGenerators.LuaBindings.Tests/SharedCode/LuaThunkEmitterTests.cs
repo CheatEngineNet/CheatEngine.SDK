@@ -190,8 +190,8 @@ public sealed class LuaThunkEmitterTests
 	{
 		int count = 0;
 		for (int index = text.IndexOf(value, StringComparison.Ordinal);
-		     index >= 0;
-		     index = text.IndexOf(value, index + value.Length, StringComparison.Ordinal))
+			 index >= 0;
+			 index = text.IndexOf(value, index + value.Length, StringComparison.Ordinal))
 		{
 			count++;
 		}

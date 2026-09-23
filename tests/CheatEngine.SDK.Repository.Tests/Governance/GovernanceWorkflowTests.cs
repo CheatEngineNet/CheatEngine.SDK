@@ -31,8 +31,8 @@ public sealed partial class GovernanceWorkflowTests
 			{
 				Match uses = UsesLine().Match(lines[i]);
 				if (uses.Success && !uses.Groups["reference"].Value.StartsWith("./", StringComparison.Ordinal)
-				                 && !(PinnedReference().IsMatch(uses.Groups["reference"].Value)
-				                      && VersionComment().IsMatch(uses.Groups["comment"].Value)))
+								 && !(PinnedReference().IsMatch(uses.Groups["reference"].Value)
+									  && VersionComment().IsMatch(uses.Groups["comment"].Value)))
 				{
 					offenders.Add($"{path}:{i + 1}: {lines[i].Trim()}");
 				}
@@ -82,7 +82,7 @@ public sealed partial class GovernanceWorkflowTests
 					string name = ((YamlScalarNode) scope.Key).Value ?? "";
 					string access = ((YamlScalarNode) scope.Value).Value ?? "";
 					if (string.Equals(name, "contents", StringComparison.Ordinal)
-					    && string.Equals(access, "read", StringComparison.Ordinal))
+						&& string.Equals(access, "read", StringComparison.Ordinal))
 					{
 						continue;
 					}
@@ -131,7 +131,7 @@ public sealed partial class GovernanceWorkflowTests
 					string[] lines = (YamlDocument.Scalar(step, "run") ?? "").ReplaceLineEndings("\n").Trim()
 						.Split('\n');
 					if (lines.Length > 1 && !string.Equals(lines[0].Trim(), "$ErrorActionPreference = 'Stop'",
-						    StringComparison.Ordinal))
+							StringComparison.Ordinal))
 					{
 						offenders.Add($"{path} job {job.Key} step '{YamlDocument.Scalar(step, "name")}'");
 					}
@@ -170,7 +170,7 @@ public sealed partial class GovernanceWorkflowTests
 						}
 
 						if (next >= lines.Length || !lines[next].TrimStart()
-							    .StartsWith("if ($LASTEXITCODE -ne 0)", StringComparison.Ordinal))
+								.StartsWith("if ($LASTEXITCODE -ne 0)", StringComparison.Ordinal))
 						{
 							offenders.Add($"{path} job {job.Key}: '{lines[i].Trim()}'");
 						}
@@ -289,11 +289,11 @@ public sealed partial class GovernanceWorkflowTests
 		YamlMappingNode build = Assert.Single(steps, static step => YamlDocument.Scalar(step, "run") is not null);
 		string run = YamlDocument.NormalizeWhitespace(YamlDocument.Scalar(build, "run")!);
 		foreach (string fragment in (string[])
-		         [
-			         "dotnet build src/CheatEngine.SDK/CheatEngine.SDK.csproj", "-c Release", "--no-restore",
-			         "--no-incremental",
-			         "--disable-build-servers", "-p:UseSharedCompilation=false", "$LASTEXITCODE"
-		         ])
+				 [
+					 "dotnet build src/CheatEngine.SDK/CheatEngine.SDK.csproj", "-c Release", "--no-restore",
+					 "--no-incremental",
+					 "--disable-build-servers", "-p:UseSharedCompilation=false", "$LASTEXITCODE"
+				 ])
 		{
 			Assert.Contains(fragment, run, StringComparison.Ordinal);
 		}
@@ -383,7 +383,7 @@ public sealed partial class GovernanceWorkflowTests
 			"github/codeql-action/upload-sarif", "step-security/harden-runner"
 		];
 		foreach (YamlMappingNode step in YamlDocument.Steps(YamlDocument.Load(GovernanceWorkflows.Scorecard)
-			         .Job("analysis")))
+					 .Job("analysis")))
 		{
 			string uses = YamlDocument.Uses(step) ?? "";
 			string action = uses.Split('@')[0];
@@ -414,7 +414,7 @@ public sealed partial class GovernanceWorkflowTests
 		foreach (string holder in holders)
 		{
 			Assert.True(string.Equals(holder, GovernanceWorkflows.Scorecard + "#analysis", StringComparison.Ordinal)
-			            || holder.StartsWith(".github/workflows/release.yml#", StringComparison.Ordinal),
+						|| holder.StartsWith(".github/workflows/release.yml#", StringComparison.Ordinal),
 				$"{holder} requests an id-token; only the Scorecard analysis job and the release workflow may.");
 		}
 
@@ -491,8 +491,8 @@ public sealed partial class GovernanceWorkflowTests
 			foreach (KeyValuePair<string, YamlMappingNode> job in YamlDocument.Load(path).Jobs)
 			{
 				if (YamlDocument.Permissions(job.Value) is { } permissions
-				    && permissions.TryGetValue("contents", out string? access)
-				    && string.Equals(access, "write", StringComparison.Ordinal))
+					&& permissions.TryGetValue("contents", out string? access)
+					&& string.Equals(access, "write", StringComparison.Ordinal))
 				{
 					writers.Add($"{path}#{job.Key}");
 				}
@@ -568,32 +568,7 @@ public sealed partial class GovernanceWorkflowTests
 		const string Ref = "refs/heads/main";
 		using TemporaryDirectory directory = new();
 		Directory.CreateDirectory(directory.File("snapshot"));
-		Dictionary<string, object> snapshot = new(StringComparer.Ordinal)
-		{
-			["version"] = 0,
-			["sha"] = Is(variant, "other_commit") ? new string('f', 40) : Sha,
-			["ref"] = Is(variant, "other_ref") ? "refs/heads/feature" : Ref,
-			["job"] = new Dictionary<string, string>(StringComparer.Ordinal)
-			{
-				["correlator"] = Is(variant, "other_correlator") ? "other" : "sdk-nuget", ["id"] = "1"
-			},
-			["detector"] =
-				new Dictionary<string, string>(StringComparer.Ordinal)
-				{
-					["name"] = "d", ["version"] = "1", ["url"] = "u"
-				},
-			["scanned"] = "2026-09-23T00:00:00Z",
-			["manifests"] = Is(variant, "no_manifest")
-				? new Dictionary<string, object>(StringComparer.Ordinal)
-				: new Dictionary<string, object>(StringComparer.Ordinal)
-				{
-					["src/A.csproj"] = new Dictionary<string, object>(StringComparer.Ordinal)
-				}
-		};
-		if (Is(variant, "extra_property"))
-		{
-			snapshot["extra"] = 1;
-		}
+		Dictionary<string, object> snapshot = BuildDependencySnapshot(variant, Sha, Ref);
 
 		await File.WriteAllTextAsync(directory.File("snapshot/snapshot.json"), JsonSerializer.Serialize(snapshot),
 			TestContext.Current.CancellationToken);
@@ -602,8 +577,8 @@ public sealed partial class GovernanceWorkflowTests
 			YamlDocument.Steps(YamlDocument.Load(GovernanceWorkflows.DependencySubmission).Job("submit"))[1];
 		string marker = directory.File("gh-called.txt");
 		string script = $"Set-Location -LiteralPath {PwshScript.Quote(directory.Path)}" + Environment.NewLine +
-		                $"function gh {{ $args -join ' ' | Set-Content -LiteralPath {PwshScript.Quote(marker)}; $global:LASTEXITCODE = 0 }}" +
-		                Environment.NewLine + YamlDocument.Scalar(submit, "run");
+						$"function gh {{ $args -join ' ' | Set-Content -LiteralPath {PwshScript.Quote(marker)}; $global:LASTEXITCODE = 0 }}" +
+						Environment.NewLine + YamlDocument.Scalar(submit, "run");
 		Dictionary<string, string> environment = new(StringComparer.Ordinal)
 		{
 			["REPOSITORY"] = "CheatEngineNet/CheatEngine.SDK",
@@ -633,11 +608,46 @@ public sealed partial class GovernanceWorkflowTests
 		return string.Equals(value, expected, StringComparison.Ordinal);
 	}
 
+	private static Dictionary<string, object> BuildDependencySnapshot(string variant, string sha, string @ref)
+	{
+		Dictionary<string, object> snapshot = new(StringComparer.Ordinal)
+		{
+			["version"] = 0,
+			["sha"] = Is(variant, "other_commit") ? new string('f', 40) : sha,
+			["ref"] = Is(variant, "other_ref") ? "refs/heads/feature" : @ref,
+			["job"] = new Dictionary<string, string>(StringComparer.Ordinal)
+			{
+				["correlator"] = Is(variant, "other_correlator") ? "other" : "sdk-nuget",
+				["id"] = "1"
+			},
+			["detector"] =
+				new Dictionary<string, string>(StringComparer.Ordinal)
+				{
+					["name"] = "d",
+					["version"] = "1",
+					["url"] = "u"
+				},
+			["scanned"] = "2026-09-23T00:00:00Z",
+			["manifests"] = Is(variant, "no_manifest")
+				? new Dictionary<string, object>(StringComparer.Ordinal)
+				: new Dictionary<string, object>(StringComparer.Ordinal)
+				{
+					["src/A.csproj"] = new Dictionary<string, object>(StringComparer.Ordinal)
+				}
+		};
+		if (Is(variant, "extra_property"))
+		{
+			snapshot["extra"] = 1;
+		}
+
+		return snapshot;
+	}
+
 	private static YamlNode? WithOf(YamlMappingNode job, string action)
 	{
 		YamlMappingNode step = Assert.Single(YamlDocument.Steps(job), step => YamlDocument.UsesAction(step, action)
-		                                                                      || string.Equals(YamlDocument.Uses(step),
-			                                                                      action, StringComparison.Ordinal));
+																			  || string.Equals(YamlDocument.Uses(step),
+																				  action, StringComparison.Ordinal));
 		return YamlDocument.Child(step, "with");
 	}
 
@@ -646,7 +656,7 @@ public sealed partial class GovernanceWorkflowTests
 		for (int i = 0; i < steps.Count; i++)
 		{
 			if (YamlDocument.UsesAction(steps[i], action)
-			    || string.Equals(YamlDocument.Uses(steps[i]), action, StringComparison.Ordinal))
+				|| string.Equals(YamlDocument.Uses(steps[i]), action, StringComparison.Ordinal))
 			{
 				return i;
 			}

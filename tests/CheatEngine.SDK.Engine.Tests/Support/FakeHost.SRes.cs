@@ -201,12 +201,12 @@ internal static unsafe partial class FakeHost
 	private static Action CreateStateReplacement()
 	{
 		MethodInfo begin = typeof(LuaRuntime).GetMethod("BeginStateReset", BindingFlags.Static | BindingFlags.NonPublic,
-			                   Type.EmptyTypes)
-		                   ?? throw new InvalidOperationException("LuaRuntime.BeginStateReset() was not found.");
+							   Type.EmptyTypes)
+						   ?? throw new InvalidOperationException("LuaRuntime.BeginStateReset() was not found.");
 		Type transition = begin.ReturnType;
 		MethodInfo dispose = transition.GetMethod("Dispose", BindingFlags.Instance | BindingFlags.Public,
-			                     Type.EmptyTypes)
-		                     ?? throw new InvalidOperationException("LuaStateResetTransition.Dispose() was not found.");
+								 Type.EmptyTypes)
+							 ?? throw new InvalidOperationException("LuaStateResetTransition.Dispose() was not found.");
 		DynamicMethod method = new("ReplaceStateGeneration", null, Type.EmptyTypes, typeof(FakeHost).Module, true);
 		ILGenerator il = method.GetILGenerator();
 		LocalBuilder local = il.DeclareLocal(transition);

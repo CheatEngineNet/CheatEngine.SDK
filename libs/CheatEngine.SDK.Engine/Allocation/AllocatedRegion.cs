@@ -291,7 +291,7 @@ public sealed class AllocatedRegion : IDisposable
 			return outcome;
 		}
 		catch (InvalidOperationException) when (!LuaRuntime.IsAttached ||
-		                                        !EngineResourceOrigin.IsCurrent(Origin.Runtime))
+												!EngineResourceOrigin.IsCurrent(Origin.Runtime))
 		{
 			// The binding could not acquire a Lua operation: deAlloc never ran.
 			_lastReleaseOutcome = TargetReleaseOutcome.NotInvoked(EngineFailureKind.BindingFailure);
@@ -313,7 +313,7 @@ public sealed class AllocatedRegion : IDisposable
 	private void ThrowForReleaseOutcome(TargetMemoryOperationOutcome outcome)
 	{
 		if (outcome.Kind is TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable or
-		    TargetMemoryOperationOutcomeKind.TargetIdentityMismatch)
+			TargetMemoryOperationOutcomeKind.TargetIdentityMismatch)
 		{
 			throw new EngineTargetIdentityException("TargetMemoryDeallocate",
 				LastReleaseOutcome.TargetCheck.GetValueOrDefault());

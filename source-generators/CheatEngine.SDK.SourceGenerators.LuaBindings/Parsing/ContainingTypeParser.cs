@@ -75,7 +75,7 @@ internal static class ContainingTypeParser
 		foreach (SyntaxReference reference in type.DeclaringSyntaxReferences)
 		{
 			if (reference.GetSyntax() is TypeDeclarationSyntax declaration
-			    && declaration.Modifiers.Any(SyntaxKind.ReadOnlyKeyword))
+				&& declaration.Modifiers.Any(SyntaxKind.ReadOnlyKeyword))
 			{
 				return true;
 			}

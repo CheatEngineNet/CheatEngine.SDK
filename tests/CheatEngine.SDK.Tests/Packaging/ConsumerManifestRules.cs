@@ -25,7 +25,7 @@ internal static class ConsumerManifestRules
 		string key = $"{UmbrellaPackage.Id}/{packageVersion}";
 		using JsonDocument document = JsonDocument.Parse(depsJson);
 		if (!document.RootElement.TryGetProperty("libraries", out JsonElement libraries)
-		    || !libraries.TryGetProperty(key, out JsonElement library))
+			|| !libraries.TryGetProperty(key, out JsonElement library))
 		{
 			problems.Add($"library '{key}' is absent");
 			return problems;
@@ -68,7 +68,7 @@ internal static class ConsumerManifestRules
 		foreach (JsonProperty library in libraries.EnumerateObject())
 		{
 			if (library.Name.StartsWith(UmbrellaPackage.Id, StringComparison.OrdinalIgnoreCase)
-			    && string.Equals(StringProperty(library.Value, "type"), "project", StringComparison.Ordinal))
+				&& string.Equals(StringProperty(library.Value, "type"), "project", StringComparison.Ordinal))
 			{
 				offenders.Add($"library '{library.Name}' is project-typed");
 			}
@@ -115,14 +115,14 @@ internal static class ConsumerManifestRules
 	public static bool IsLuaRuntimeFileName(string fileName)
 	{
 		return fileName.StartsWith("lua", StringComparison.OrdinalIgnoreCase)
-		       && fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
+			   && fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
 	}
 
 	private static string StringProperty(JsonElement element, string name)
 	{
 		return element.ValueKind == JsonValueKind.Object
-		       && element.TryGetProperty(name, out JsonElement value)
-		       && value.ValueKind == JsonValueKind.String
+			   && element.TryGetProperty(name, out JsonElement value)
+			   && value.ValueKind == JsonValueKind.String
 			? value.GetString()!
 			: "";
 	}

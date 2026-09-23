@@ -32,8 +32,8 @@ internal static class ClassicSlotRegistry
 	private static JsonElement Load()
 	{
 		using Stream stream = typeof(ClassicSlotRegistry).Assembly.GetManifestResourceStream(ResourceName)
-		                      ?? throw new InvalidOperationException(
-			                      $"The embedded resource {ResourceName} is missing.");
+							  ?? throw new InvalidOperationException(
+								  $"The embedded resource {ResourceName} is missing.");
 		using JsonDocument document = JsonDocument.Parse(stream);
 		return document.RootElement.Clone();
 	}

@@ -424,7 +424,7 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
 	private static void InstallCurrentTarget(LuaState state)
 	{
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("function getOpenedProcessID() return " +
-		                                             Environment.ProcessId + " end"));
+													 Environment.ProcessId + " end"));
 		EngineTest.Run(state, FakeHost.LocalTargetBackendChunk);
 	}
 

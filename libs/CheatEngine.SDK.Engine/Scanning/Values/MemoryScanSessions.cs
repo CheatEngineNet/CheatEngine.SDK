@@ -157,8 +157,8 @@ public static class MemoryScanSessions
 			bool foundListRollbackFailed = !TryRollback(state, foundList, foundListHandle);
 			bool scannerRollbackFailed = !TryRollback(state, scanner, scannerHandle);
 			if ((foundListRollbackFailed || scannerRollbackFailed)
-			    && session is null
-			    && status != MemoryScanCreationStatus.Success)
+				&& session is null
+				&& status != MemoryScanCreationStatus.Success)
 			{
 				status = MemoryScanCreationStatus.RollbackUnconfirmed;
 			}

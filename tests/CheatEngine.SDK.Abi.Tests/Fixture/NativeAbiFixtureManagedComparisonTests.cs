@@ -47,7 +47,7 @@ public sealed class NativeAbiFixtureManagedComparisonTests
 			foreach (string record in comparedRecords)
 			{
 				if (nativeKey.StartsWith("offsetof." + record + ".", StringComparison.Ordinal) ||
-				    nativeKey.StartsWith("fieldsize." + record + ".", StringComparison.Ordinal))
+					nativeKey.StartsWith("fieldsize." + record + ".", StringComparison.Ordinal))
 				{
 					Assert.True(managedFacts.ContainsKey(nativeKey),
 						$"The native fixture transcribes '{nativeKey}', which has no managed field.");

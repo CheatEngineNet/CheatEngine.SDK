@@ -32,8 +32,8 @@ internal static class BridgeImage
 	public static byte[] Load()
 	{
 		using Stream stream = typeof(BridgeImage).Assembly.GetManifestResourceStream(ResourceName)
-		                      ?? throw new InvalidOperationException(
-			                      $"The embedded resource {ResourceName} is missing.");
+							  ?? throw new InvalidOperationException(
+								  $"The embedded resource {ResourceName} is missing.");
 		using MemoryStream copy = new();
 		stream.CopyTo(copy);
 		return copy.ToArray();

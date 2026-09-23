@@ -68,7 +68,7 @@ public sealed class QualificationHarnessShapeTests
 		Assert.Empty(project.Descendants("ProjectReference"));
 		Assert.Empty(project.Descendants("PackageReference"));
 		foreach (string source in Directory.EnumerateFiles(
-			         Absolute("tests/CheatEngine.SDK.QualificationTarget"), "*.cs"))
+					 Absolute("tests/CheatEngine.SDK.QualificationTarget"), "*.cs"))
 		{
 			Assert.DoesNotContain("CheatEngine.SDK.", File.ReadAllText(source), StringComparison.Ordinal);
 		}
@@ -77,7 +77,7 @@ public sealed class QualificationHarnessShapeTests
 	private static XElement Project(string path)
 	{
 		return XDocument.Load(Absolute(path)).Root ??
-		       throw new InvalidOperationException(path + " has no root element.");
+			   throw new InvalidOperationException(path + " has no root element.");
 	}
 
 	private static string? Property(XElement project, string name)
@@ -116,7 +116,7 @@ public sealed class QualificationHarnessShapeTests
 		foreach (XElement project in XDocument.Load(RepositoryRoot.SolutionPath).Descendants("Project"))
 		{
 			if (string.Equals(((string?) project.Attribute("Path"))?.Replace('\\', '/'), projectPath,
-				    StringComparison.Ordinal))
+					StringComparison.Ordinal))
 			{
 				return (string?) project.Element("Platform")?.Attribute("Project");
 			}

@@ -64,7 +64,7 @@ public readonly record struct EngineResourceOrigin
 	///     <see langword="default" /> origin is never current.
 	/// </remarks>
 	public bool IsCurrentRuntime => Runtime.AttachEpoch != 0 && LuaRuntime.IsAttached &&
-	                                Runtime == LuaRuntime.CurrentStateIdentity;
+									Runtime == LuaRuntime.CurrentStateIdentity;
 
 	/// <summary>Captures the current runtime identity, without a target component.</summary>
 	internal static EngineResourceOrigin CaptureRuntime()

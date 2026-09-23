@@ -61,7 +61,7 @@ public sealed class LivePluginClosureTests
 		{
 			string name = library.Name[..library.Name.IndexOf('/', StringComparison.Ordinal)];
 			if (name.StartsWith("CheatEngine.SDK.", StringComparison.Ordinal) &&
-			    !string.Equals(name, project, StringComparison.Ordinal))
+				!string.Equals(name, project, StringComparison.Ordinal))
 			{
 				sdkLibraries.Add(name);
 			}
@@ -153,7 +153,7 @@ public sealed class LivePluginClosureTests
 		{
 			TypeDefinition type = reader.GetTypeDefinition(typeHandle);
 			if (!string.Equals(reader.GetString(type.Namespace), "CESDK", StringComparison.Ordinal)
-			    || !string.Equals(reader.GetString(type.Name), "CESDK", StringComparison.Ordinal))
+				|| !string.Equals(reader.GetString(type.Name), "CESDK", StringComparison.Ordinal))
 			{
 				continue;
 			}

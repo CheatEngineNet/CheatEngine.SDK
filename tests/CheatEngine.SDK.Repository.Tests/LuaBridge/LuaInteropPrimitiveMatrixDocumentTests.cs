@@ -183,7 +183,7 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 		}
 
 		if (string.Equals(decision, "BridgeRequired", StringComparison.Ordinal) && bridge is null &&
-		    !string.Equals(member, "lua_error", StringComparison.Ordinal))
+			!string.Equals(member, "lua_error", StringComparison.Ordinal))
 		{
 			problems.Add(
 				$"{member}: BridgeRequired names no bridge operation (only lua_error, raised by the bridge's C code, may).");
@@ -225,12 +225,12 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 		string manualClass = ClassOfMarker(marker);
 		string raises = row.GetProperty("raises").GetString()!;
 		bool agrees = string.Equals(manualClass, raises, StringComparison.Ordinal) ||
-		              (string.Equals(manualClass, "Never", StringComparison.Ordinal) &&
-		               string.Equals(raises, "NotApplicable", StringComparison.Ordinal));
+					  (string.Equals(manualClass, "Never", StringComparison.Ordinal) &&
+					   string.Equals(raises, "NotApplicable", StringComparison.Ordinal));
 		bool recorded = divergences.TryGetValue(member, out JsonElement divergence) &&
-		                string.Equals(divergence.GetProperty("manualClass").GetString(), manualClass,
-			                StringComparison.Ordinal) &&
-		                string.Equals(divergence.GetProperty("sdkClass").GetString(), raises, StringComparison.Ordinal);
+						string.Equals(divergence.GetProperty("manualClass").GetString(), manualClass,
+							StringComparison.Ordinal) &&
+						string.Equals(divergence.GetProperty("sdkClass").GetString(), raises, StringComparison.Ordinal);
 		if (agrees == recorded)
 		{
 			problems.Add(agrees
@@ -255,7 +255,7 @@ public sealed class LuaInteropPrimitiveMatrixDocumentTests
 	{
 		return RepositoryRoot.EnumerateSourceFiles("*.cs")
 			.Where(static file => file.StartsWith("libs/", StringComparison.Ordinal) &&
-			                      !file.StartsWith(RawApiDirectory, StringComparison.Ordinal))
+								  !file.StartsWith(RawApiDirectory, StringComparison.Ordinal))
 			.Order(StringComparer.Ordinal);
 	}
 }

@@ -27,7 +27,7 @@ internal static class LuaClassParser
 		string? luaName = LuaBindingSymbols.ReadSdkAttributeName(context.Attributes, compilation,
 			LuaBindingsGenerator.LuaClassAttributeMetadataName);
 		bool isValid = isSdkAttribute && LuaNames.IsValidName(luaName)
-		                              && IsBorrowedHandleShape(type, compilation, cancellationToken);
+									  && IsBorrowedHandleShape(type, compilation, cancellationToken);
 
 		return new LuaClassModel(ContainingTypeParser.Parse(type), luaName ?? string.Empty, isValid);
 	}
@@ -71,7 +71,7 @@ internal static class LuaClassParser
 		{
 			ImmutableArray<AttributeData> attributes = ImmutableArray.Create(attribute);
 			if (LuaBindingSymbols.ContainsSdkAttribute(attributes, compilation,
-				    LuaBindingsGenerator.LuaClassAttributeMetadataName))
+					LuaBindingsGenerator.LuaClassAttributeMetadataName))
 			{
 				return LuaNames.IsValidName(LuaBindingSymbols.ReadSdkAttributeName(
 					attributes,
@@ -89,7 +89,7 @@ internal static class LuaClassParser
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			if (reference.GetSyntax(cancellationToken) is StructDeclarationSyntax declaration
-			    && declaration.Modifiers.Any(SyntaxKind.ReadOnlyKeyword))
+				&& declaration.Modifiers.Any(SyntaxKind.ReadOnlyKeyword))
 			{
 				return true;
 			}
@@ -103,10 +103,10 @@ internal static class LuaClassParser
 	private static bool HasGeneratedIdentityCollision(INamedTypeSymbol type, INamedTypeSymbol? ceObject)
 	{
 		return LuaClassGeneratedNames.IsGeneratedType(type.Name)
-		       || HasGeneratedMember(type, ceObject)
-		       || HasMember(type, "op_Equality")
-		       || HasMember(type, "op_Inequality")
-		       || HasCEObjectConstructor(type, ceObject);
+			   || HasGeneratedMember(type, ceObject)
+			   || HasMember(type, "op_Equality")
+			   || HasMember(type, "op_Inequality")
+			   || HasCEObjectConstructor(type, ceObject);
 	}
 
 	private static bool HasCEObjectConstructor(INamedTypeSymbol type, INamedTypeSymbol? ceObject)
@@ -125,7 +125,7 @@ internal static class LuaClassParser
 
 			IParameterSymbol parameter = constructor.Parameters[0];
 			if (parameter.RefKind == RefKind.None
-			    && SymbolEqualityComparer.Default.Equals(parameter.Type, ceObject))
+				&& SymbolEqualityComparer.Default.Equals(parameter.Type, ceObject))
 			{
 				return true;
 			}
@@ -139,7 +139,7 @@ internal static class LuaClassParser
 		foreach (ISymbol member in type.GetMembers())
 		{
 			if (LuaClassGeneratedNames.IsGeneratedMember(member.Name)
-			    || LuaClassGeneratedNames.IsGeneratedAccessorCollision(member, ceObject))
+				|| LuaClassGeneratedNames.IsGeneratedAccessorCollision(member, ceObject))
 			{
 				return true;
 			}

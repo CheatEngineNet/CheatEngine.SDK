@@ -573,8 +573,8 @@ public sealed class AobBoundedScanTests
 		MemScanTestHost.HostObjects objects = MemScanTestHost.Install(L);
 		SetAddresses(L, "100000000");
 		MemScanTestHost.Run(L, "scan_first_hook = function() opened_process_id = " +
-		                       MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture) +
-		                       " end");
+							   MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture) +
+							   " end");
 		Address[] destination = [new(0xA11CE)];
 
 		AobBoundedScanResult result = Scan(ModuleBounds, destination);
@@ -850,8 +850,8 @@ public sealed class AobBoundedScanTests
 	{
 		int count = 0;
 		for (int index = text.IndexOf(value, StringComparison.Ordinal);
-		     index >= 0;
-		     index = text.IndexOf(value, index + value.Length, StringComparison.Ordinal))
+			 index >= 0;
+			 index = text.IndexOf(value, index + value.Length, StringComparison.Ordinal))
 		{
 			count++;
 		}

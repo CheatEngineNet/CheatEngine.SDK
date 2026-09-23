@@ -279,8 +279,8 @@ public sealed partial class GovernanceDocumentTests
 				foreach (string sentence in Sentences(text))
 				{
 					if (sentence.Contains("runtimeconfig", StringComparison.OrdinalIgnoreCase)
-					    && EditInstruction().IsMatch(sentence)
-					    && !NegationPattern().IsMatch(sentence))
+						&& EditInstruction().IsMatch(sentence)
+						&& !NegationPattern().IsMatch(sentence))
 					{
 						offenders.Add($"{path}: '{sentence}'");
 					}
@@ -302,7 +302,7 @@ public sealed partial class GovernanceDocumentTests
 			string line = rawLine.TrimEnd();
 			string trimmedStart = line.TrimStart();
 			if (trimmedStart.StartsWith("```", StringComparison.Ordinal) ||
-			    trimmedStart.StartsWith("~~~", StringComparison.Ordinal))
+				trimmedStart.StartsWith("~~~", StringComparison.Ordinal))
 			{
 				inFence = !inFence;
 				continue;

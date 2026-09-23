@@ -238,9 +238,9 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
 			.. run.OutputCompilation
 				.GetDiagnostics(TestContext.Current.CancellationToken)
 				.Where(static diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning
-				                            && !(string.Equals(diagnostic.Id, "CS1591", StringComparison.Ordinal)
-				                                 && diagnostic.Location.SourceTree is { FilePath: string path } &&
-				                                 !path.EndsWith(".g.cs", StringComparison.Ordinal)))
+											&& !(string.Equals(diagnostic.Id, "CS1591", StringComparison.Ordinal)
+												 && diagnostic.Location.SourceTree is { FilePath: string path } &&
+												 !path.EndsWith(".g.cs", StringComparison.Ordinal)))
 		];
 		Diagnostic problem = Assert.Single(problems);
 		Assert.Equal("CS8601", problem.Id);

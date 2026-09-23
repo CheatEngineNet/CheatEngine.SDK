@@ -27,7 +27,9 @@ public sealed partial class BridgeAuditManifestTests
 
 	private static readonly JsonSerializerOptions s_manifestFormat = new()
 	{
-		WriteIndented = true, IndentSize = 2, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+		WriteIndented = true,
+		IndentSize = 2,
+		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
 	};
 
 	[Fact]
@@ -150,7 +152,7 @@ public sealed partial class BridgeAuditManifestTests
 	private static async Task<string> StaleMessageAsync()
 	{
 		return $"{ManifestPath} does not describe the committed bridge. Replace it with:{Environment.NewLine}" +
-		       await ExpectedManifestJsonAsync().ConfigureAwait(false);
+			   await ExpectedManifestJsonAsync().ConfigureAwait(false);
 	}
 
 	private static async Task<BridgeFacts> ReadCommittedBridgeAsync()
@@ -215,7 +217,7 @@ public sealed partial class BridgeAuditManifestTests
 	private static JsonNode ReadManifest()
 	{
 		return JsonNode.Parse(File.ReadAllText(RepositoryLayout.PathOf(ManifestPath)))
-		       ?? throw new InvalidDataException($"{ManifestPath} is empty.");
+			   ?? throw new InvalidDataException($"{ManifestPath} is empty.");
 	}
 
 	private static string BridgeInput(string fileName)
@@ -226,7 +228,7 @@ public sealed partial class BridgeAuditManifestTests
 	private static JsonObject Object(JsonNode parent, string name)
 	{
 		return parent[name] as JsonObject
-		       ?? throw new InvalidDataException($"{ManifestPath} has no '{name}' object.");
+			   ?? throw new InvalidDataException($"{ManifestPath} has no '{name}' object.");
 	}
 
 	private static JsonArray JsonStrings(IReadOnlyList<string> values)
@@ -257,7 +259,7 @@ public sealed partial class BridgeAuditManifestTests
 	private static bool SetEquals(IReadOnlyList<string> expected, List<string> actual)
 	{
 		return expected.Count == actual.Count
-		       && new HashSet<string>(expected, StringComparer.Ordinal).SetEquals(actual);
+			   && new HashSet<string>(expected, StringComparer.Ordinal).SetEquals(actual);
 	}
 
 	private static string Sha256(byte[] content)

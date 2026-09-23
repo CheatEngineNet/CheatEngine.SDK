@@ -263,7 +263,7 @@ internal static class TargetArchitectureProbe
 				// CE pushes these with lua_pushinteger. A float, even an integral one, and a value outside int are
 				// refused rather than rounded or truncated.
 				if (!state.IsInteger(-1) || !state.TryReadInteger(-1, out long raw) ||
-				    raw is < int.MinValue or > int.MaxValue)
+					raw is < int.MinValue or > int.MaxValue)
 				{
 					return TargetProbeStatus.InvalidResult;
 				}
@@ -325,7 +325,7 @@ internal static class TargetArchitectureProbe
 				Absent |= TargetProbeFacts.SelectedProcess;
 			}
 			else if (status is TargetProbeStatus.Success or TargetProbeStatus.NoTargetSelected
-			         or TargetProbeStatus.FileAsProcess)
+					 or TargetProbeStatus.FileAsProcess)
 			{
 				Resolved |= TargetProbeFacts.SelectedProcess;
 			}

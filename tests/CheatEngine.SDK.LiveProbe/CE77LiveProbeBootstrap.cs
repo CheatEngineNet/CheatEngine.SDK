@@ -2,7 +2,9 @@ using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Diagnostics;
 
-namespace LiveProbe;
+using LiveProbe;
+
+namespace CESDK;
 
 /// <summary>
 ///     The intentionally hand-written CE managed bootstrap used only by the CE 7.7 live-probe plugin.

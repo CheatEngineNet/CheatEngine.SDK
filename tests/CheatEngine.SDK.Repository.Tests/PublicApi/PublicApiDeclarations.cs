@@ -90,7 +90,7 @@ internal static partial class PublicApiDeclarations
 				keys.Add($"{type}.{SimpleName(type)}");
 				break;
 			case 'M' when member.StartsWith("get_", StringComparison.Ordinal)
-			              || member.StartsWith("set_", StringComparison.Ordinal):
+						  || member.StartsWith("set_", StringComparison.Ordinal):
 				AddPropertyKeys(keys, type, accessorName);
 				break;
 			case 'M' when member.StartsWith("add_", StringComparison.Ordinal):

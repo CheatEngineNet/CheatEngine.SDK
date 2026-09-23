@@ -120,7 +120,7 @@ public sealed class HostLogContainmentTests : IDisposable
 		HostLog.Sink = new CallbackLogSink(message =>
 		{
 			if (string.Equals(message, "RecordingPlugin.OnDisable observed", StringComparison.Ordinal)
-			    && acquiredDuringOnDisable is null)
+				&& acquiredDuringOnDisable is null)
 			{
 				// OnDisable still runs on the captured main thread while the runtime is attached (operation
 				// admission itself does not close until after OnDisable returns): the acquisition succeeds and

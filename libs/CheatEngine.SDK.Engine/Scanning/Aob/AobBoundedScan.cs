@@ -97,7 +97,7 @@ internal static class AobBoundedScan
 			}
 
 			if (staging is not null &&
-			    facts.Kind is AobBoundedScanOutcomeKind.Matches or AobBoundedScanOutcomeKind.NoMatches)
+				facts.Kind is AobBoundedScanOutcomeKind.Matches or AobBoundedScanOutcomeKind.NoMatches)
 			{
 				staging.AsSpan(0, facts.Written).CopyTo(destination);
 			}
@@ -323,7 +323,11 @@ internal static class AobBoundedScan
 
 	private static AobBoundedScanResult Refused(AobBoundedScanOutcomeKind kind)
 	{
-		AobBoundedScanFacts facts = new() { Kind = kind, Termination = MemoryScanTerminationStatus.NotRequired };
+		AobBoundedScanFacts facts = new()
+		{
+			Kind = kind,
+			Termination = MemoryScanTerminationStatus.NotRequired
+		};
 		return new AobBoundedScanResult(in facts);
 	}
 

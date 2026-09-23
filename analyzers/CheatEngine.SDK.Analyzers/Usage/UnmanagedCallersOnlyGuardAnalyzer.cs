@@ -82,7 +82,7 @@ public sealed class UnmanagedCallersOnlyGuardAnalyzer : DiagnosticAnalyzer
 	{
 		IMethodBodyOperation body = (IMethodBodyOperation) context.Operation;
 		if (context.ContainingSymbol is not IMethodSymbol method ||
-		    !IsUnmanagedCallersOnly(method, unmanagedCallersOnly))
+			!IsUnmanagedCallersOnly(method, unmanagedCallersOnly))
 		{
 			return;
 		}

@@ -62,32 +62,32 @@ public sealed class LuaBindingAnalyzerTests
 	{
 		{
 			"valid function", ShapeUsings +
-			                  "public static partial class Functions { [LuaFunction(\"add\")] public static long Add(long a, long b) => a + b; }",
+							  "public static partial class Functions { [LuaFunction(\"add\")] public static long Add(long a, long b) => a + b; }",
 			true
 		},
 		{
 			"instance method", ShapeUsings +
-			                   "public partial class Functions { [LuaFunction(\"add\")] public long Add(long a, long b) => a + b; }",
+							   "public partial class Functions { [LuaFunction(\"add\")] public long Add(long a, long b) => a + b; }",
 			false
 		},
 		{
 			"not partial container", ShapeUsings +
-			                         "public static class Functions { [LuaFunction(\"add\")] public static long Add(long a, long b) => a + b; }",
+									 "public static class Functions { [LuaFunction(\"add\")] public static long Add(long a, long b) => a + b; }",
 			false
 		},
 		{
 			"invalid lua name", ShapeUsings +
-			                    "public static partial class Functions { [LuaFunction(\"end\")] public static long Add(long a, long b) => a + b; }",
+								"public static partial class Functions { [LuaFunction(\"end\")] public static long Add(long a, long b) => a + b; }",
 			false
 		},
 		{
 			"valid global try form", ShapeUsings +
-			                         "public static partial class Bindings { [LuaGlobal(\"readInteger\")] public static partial bool TryReadInt32(nuint address, out int value); }",
+									 "public static partial class Bindings { [LuaGlobal(\"readInteger\")] public static partial bool TryReadInt32(nuint address, out int value); }",
 			true
 		},
 		{
 			"global try form returning int instead of bool", ShapeUsings +
-			                                                 "public static partial class Bindings { [LuaGlobal(\"readInteger\")] public static partial int TryReadInt32(nuint address, out int value); }",
+															 "public static partial class Bindings { [LuaGlobal(\"readInteger\")] public static partial int TryReadInt32(nuint address, out int value); }",
 			false
 		},
 		{
@@ -112,47 +112,47 @@ public sealed class LuaBindingAnalyzerTests
 	{
 		{
 			"optional arguments of a global", OptionalUsings +
-			                                  "public static partial class Bindings { [LuaGlobal(\"load\")] public static partial void Load(string path, LuaOptional<bool> merge, LuaOptional<int> flags); }",
+											  "public static partial class Bindings { [LuaGlobal(\"load\")] public static partial void Load(string path, LuaOptional<bool> merge, LuaOptional<int> flags); }",
 			true
 		},
 		{
 			"optional results of a global", OptionalUsings +
-			                                "public static partial class Bindings { [LuaGlobal(\"read\")] public static partial LuaOperationStatus Read(int mode, out long first, out LuaOptional<string> second); }",
+											"public static partial class Bindings { [LuaGlobal(\"read\")] public static partial LuaOperationStatus Read(int mode, out long first, out LuaOptional<string> second); }",
 			true
 		},
 		{
 			"variadic outcome of a global", OptionalUsings +
-			                                "public static partial class Bindings { [LuaGlobal(\"seq\")] public static partial LuaOperationStatus Seq(int n, Span<long> values, out int count); }",
+											"public static partial class Bindings { [LuaGlobal(\"seq\")] public static partial LuaOperationStatus Seq(int n, Span<long> values, out int count); }",
 			true
 		},
 		{
 			"optional parameter of a function", OptionalUsings +
-			                                    "public static partial class Functions { [LuaFunction(\"f\")] public static int F(int a, LuaOptional<string> b) => a; }",
+												"public static partial class Functions { [LuaFunction(\"f\")] public static int F(int a, LuaOptional<string> b) => a; }",
 			true
 		},
 		{
 			"optional argument before a required one", OptionalUsings +
-			                                           "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial int G(LuaOptional<int> a, int b); }",
+													   "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial int G(LuaOptional<int> a, int b); }",
 			false
 		},
 		{
 			"required result after an optional one", OptionalUsings +
-			                                         "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial bool TryG(out LuaOptional<int> a, out int b); }",
+													 "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial bool TryG(out LuaOptional<int> a, out int b); }",
 			false
 		},
 		{
 			"variadic pair on the try form", OptionalUsings +
-			                                 "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial bool TryG(Span<long> v, out int c); }",
+											 "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial bool TryG(Span<long> v, out int c); }",
 			false
 		},
 		{
 			"optional nullable string", OptionalUsings +
-			                            "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial int G(LuaOptional<string?> a); }",
+										"public static partial class Bindings { [LuaGlobal(\"g\")] public static partial int G(LuaOptional<string?> a); }",
 			false
 		},
 		{
 			"optional throwing return", OptionalUsings +
-			                            "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial LuaOptional<int> G(int a); }",
+										"public static partial class Bindings { [LuaGlobal(\"g\")] public static partial LuaOptional<int> G(int a); }",
 			false
 		}
 	};
@@ -475,10 +475,10 @@ public sealed class LuaBindingAnalyzerTests
 			static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaBindingContainingType, StringComparison.Ordinal));
 		Assert.Contains(diagnostics,
 			static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal) &&
-			            d.GetMessage(CultureInfo.InvariantCulture).Contains("reserved word", StringComparison.Ordinal));
+						d.GetMessage(CultureInfo.InvariantCulture).Contains("reserved word", StringComparison.Ordinal));
 		Assert.Contains(diagnostics,
 			static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal) &&
-			            d.GetMessage(CultureInfo.InvariantCulture).Contains("default value", StringComparison.Ordinal));
+						d.GetMessage(CultureInfo.InvariantCulture).Contains("default value", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -516,11 +516,11 @@ public sealed class LuaBindingAnalyzerTests
 		ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(compilation);
 		Assert.Contains(diagnostics,
 			static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal) &&
-			            d.GetMessage(CultureInfo.InvariantCulture)
-				            .Contains("parameter type", StringComparison.Ordinal));
+						d.GetMessage(CultureInfo.InvariantCulture)
+							.Contains("parameter type", StringComparison.Ordinal));
 		Assert.Contains(diagnostics,
 			static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaGlobal, StringComparison.Ordinal) &&
-			            d.GetMessage(CultureInfo.InvariantCulture).Contains("argument type", StringComparison.Ordinal));
+						d.GetMessage(CultureInfo.InvariantCulture).Contains("argument type", StringComparison.Ordinal));
 	}
 
 	[Theory]
@@ -585,7 +585,7 @@ public sealed class LuaBindingAnalyzerTests
 	public async Task Required_result_after_an_optional_result_reports_CESDK2011()
 	{
 		ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync(OptionalUsings +
-		                                                            "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial bool TryG(out LuaOptional<int> a, out int b); }",
+																	"public static partial class Bindings { [LuaGlobal(\"g\")] public static partial bool TryG(out LuaOptional<int> a, out int b); }",
 			true);
 
 		Diagnostic diagnostic = Assert.Single(diagnostics);

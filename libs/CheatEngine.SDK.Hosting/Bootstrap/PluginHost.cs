@@ -124,8 +124,8 @@ public static unsafe partial class PluginHost
 		lock (SAdmissionGate)
 		{
 			if (Phase is not PluginHostLifecyclePhase.Enabled ||
-			    !ReferenceEquals(context, Volatile.Read(ref s_context)) ||
-			    Volatile.Read(ref s_acceptingMainThreadWork) == 0)
+				!ReferenceEquals(context, Volatile.Read(ref s_context)) ||
+				Volatile.Read(ref s_acceptingMainThreadWork) == 0)
 			{
 				throw new InvalidOperationException(
 					"The plugin is stopping or disabled and no longer accepts new main-thread dispatch work.");

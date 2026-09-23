@@ -109,8 +109,8 @@ internal sealed class LuaHostSubscription : IDisposable
 		}
 
 		if (result is LuaRuntime.LuaCallbackDisposeOperationResult.AdmissionClosed
-		    or LuaRuntime.LuaCallbackDisposeOperationResult.ThreadNotAdmitted
-		    or LuaRuntime.LuaCallbackDisposeOperationResult.ExternalStateReset)
+			or LuaRuntime.LuaCallbackDisposeOperationResult.ThreadNotAdmitted
+			or LuaRuntime.LuaCallbackDisposeOperationResult.ExternalStateReset)
 		{
 			// The lifecycle transition still owns the linked registration and has the only state allowed to unregister
 			// it. In particular, do not consume the action here: a failed transition can reopen the old binding, and a
@@ -240,9 +240,9 @@ internal sealed class LuaHostSubscription : IDisposable
 		{
 			callback = null!;
 			if (!_acceptCallbacks
-			    || !LuaRuntime.IsAttached
-			    || LuaRuntime.CurrentStateIdentity != Identity
-			    || _callback is null)
+				|| !LuaRuntime.IsAttached
+				|| LuaRuntime.CurrentStateIdentity != Identity
+				|| _callback is null)
 			{
 				return false;
 			}

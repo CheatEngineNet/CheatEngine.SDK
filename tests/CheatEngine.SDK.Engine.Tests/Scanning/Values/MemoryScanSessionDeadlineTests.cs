@@ -344,7 +344,7 @@ public sealed class MemoryScanSessionDeadlineTests
 		MemScanTestHost.Run(L, "scan_wait_mode = 'false'");
 		Assert.Equal(MemoryScanTerminationStatus.WaitTimedOut, session.TryTerminateScan(Deadline));
 		MemScanTestHost.Run(L, "opened_process_id = " +
-		                       MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
+							   MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 		MemScanTestHost.ClearTrace(L);
 
 		MemoryScanReleaseOutcome outcome = session.ReleaseWithOutcome();
@@ -504,7 +504,7 @@ public sealed class MemoryScanSessionDeadlineTests
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
 		MemScanTestHost.Run(L, "scan_error_string = 'unread'; opened_process_id = " +
-		                       MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
+							   MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 
 		bool read = session.TryGetHostErrorText(out string? text, out bool truncated);
 

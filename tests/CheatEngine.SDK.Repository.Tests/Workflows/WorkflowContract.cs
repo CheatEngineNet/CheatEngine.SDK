@@ -151,8 +151,8 @@ internal static class WorkflowContract
 		foreach (PendingViolation pending in Pending)
 		{
 			if (string.Equals(pending.Rule, rule, StringComparison.Ordinal) &&
-			    string.Equals(pending.File, violation.File, StringComparison.Ordinal) &&
-			    string.Equals(pending.Subject, violation.Subject, StringComparison.Ordinal))
+				string.Equals(pending.File, violation.File, StringComparison.Ordinal) &&
+				string.Equals(pending.Subject, violation.Subject, StringComparison.Ordinal))
 			{
 				return pending;
 			}

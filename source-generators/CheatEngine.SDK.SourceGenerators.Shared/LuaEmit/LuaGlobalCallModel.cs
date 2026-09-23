@@ -149,15 +149,15 @@ internal sealed record LuaGlobalCallModel(
 
 	/// <summary>The concrete static marshaller for the throwing-form return value.</summary>
 	public string ReturnMarshallerTypeName => ReturnMarshaller?.MarshallerTypeName ??
-	                                          LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);
+											  LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);
 
 	/// <summary>The C# type spelling for the generated return and result local.</summary>
 	public string ReturnTypeName => ReturnMarshaller?.ValueTypeName ??
-	                                LuaValueKinds.TypeName(ReturnKind!.Value, ReturnIsNullable);
+									LuaValueKinds.TypeName(ReturnKind!.Value, ReturnIsNullable);
 
 	/// <summary>The Lua-facing expected type for a throwing-form result failure.</summary>
 	public string ExpectedReturnTypeName => ReturnMarshaller?.ExpectedTypeName ??
-	                                        LuaValueKinds.ExpectedResult(ReturnKind!.Value);
+											LuaValueKinds.ExpectedResult(ReturnKind!.Value);
 
 	/// <summary>Whether the body reads the state from <see cref="StateParameterName" /> rather than from the runtime.</summary>
 	public bool TakesState => StateParameterName.Length > 0;

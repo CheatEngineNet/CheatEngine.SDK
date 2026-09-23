@@ -54,8 +54,8 @@ internal static class LibraryProbeContract
 		foreach (string exportName in exportNames)
 		{
 			if (!exportName.StartsWith(NativePluginPrefix, StringComparison.Ordinal) &&
-			    !Contains(NativeAotLibraryProbeExportNames.Required, exportName) &&
-			    !Contains(AllowedRuntimeExports, exportName))
+				!Contains(NativeAotLibraryProbeExportNames.Required, exportName) &&
+				!Contains(AllowedRuntimeExports, exportName))
 			{
 				violations.Add($"The file exposes the unexpected export '{exportName}'.");
 			}

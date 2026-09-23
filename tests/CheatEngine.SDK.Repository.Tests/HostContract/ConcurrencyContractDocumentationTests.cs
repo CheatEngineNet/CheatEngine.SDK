@@ -25,12 +25,12 @@ public sealed class ConcurrencyContractDocumentationTests
 	{
 		List<string> offenders = [];
 		foreach (string relative in RepositoryRoot.EnumerateSourceFiles("*.cs")
-			         .Concat(RepositoryRoot.EnumerateSourceFiles("*.md"))
-			         .Where(static path => (path.StartsWith("libs/", StringComparison.Ordinal)
-			                                || path.StartsWith("tests/", StringComparison.Ordinal))
-			                               && !string.Equals(path, SelfPath, StringComparison.Ordinal))
-			         .Distinct(StringComparer.Ordinal)
-			         .Order(StringComparer.Ordinal))
+					 .Concat(RepositoryRoot.EnumerateSourceFiles("*.md"))
+					 .Where(static path => (path.StartsWith("libs/", StringComparison.Ordinal)
+											|| path.StartsWith("tests/", StringComparison.Ordinal))
+										   && !string.Equals(path, SelfPath, StringComparison.Ordinal))
+					 .Distinct(StringComparer.Ordinal)
+					 .Order(StringComparer.Ordinal))
 		{
 			string text = File.ReadAllText(Path.Combine(RepositoryRoot.Path, relative));
 			foreach (Match match in UnqualifiedCardinalityClaim.Matches(text))

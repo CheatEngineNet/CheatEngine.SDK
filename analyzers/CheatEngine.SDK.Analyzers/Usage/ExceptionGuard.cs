@@ -113,16 +113,16 @@ internal sealed class ExceptionGuard(
 		}
 
 		return hasCatchAll
-		       && (tryOperation.Finally is null
-		           || !ContainsThrow(tryOperation.Finally, doesNotReturnAttribute, environmentType));
+			   && (tryOperation.Finally is null
+				   || !ContainsThrow(tryOperation.Finally, doesNotReturnAttribute, environmentType));
 	}
 
 	// 'catch { }' has the exception type System.Object; 'catch (Exception)' names the root of the hierarchy.
 	private static bool IsCatchAll(ICatchClauseOperation catchClause, INamedTypeSymbol exceptionType)
 	{
 		return catchClause.Filter is null
-		       && (catchClause.ExceptionType.SpecialType == SpecialType.System_Object
-		           || SymbolEqualityComparer.Default.Equals(catchClause.ExceptionType, exceptionType));
+			   && (catchClause.ExceptionType.SpecialType == SpecialType.System_Object
+				   || SymbolEqualityComparer.Default.Equals(catchClause.ExceptionType, exceptionType));
 	}
 
 	private static bool ContainsThrow(IOperation block, INamedTypeSymbol? doesNotReturnAttribute,
@@ -131,8 +131,8 @@ internal sealed class ExceptionGuard(
 		foreach (IOperation descendant in block.Descendants())
 		{
 			if (descendant.Kind == OperationKind.Throw
-			    || (descendant is IInvocationOperation invocation
-			        && NeverReturnsByThrowing(invocation.TargetMethod, doesNotReturnAttribute, environmentType)))
+				|| (descendant is IInvocationOperation invocation
+					&& NeverReturnsByThrowing(invocation.TargetMethod, doesNotReturnAttribute, environmentType)))
 			{
 				return true;
 			}
@@ -148,7 +148,7 @@ internal sealed class ExceptionGuard(
 		INamedTypeSymbol? environmentType)
 	{
 		if (doesNotReturnAttribute is null
-		    || SymbolEqualityComparer.Default.Equals(method.ContainingType, environmentType))
+			|| SymbolEqualityComparer.Default.Equals(method.ContainingType, environmentType))
 		{
 			return false;
 		}
@@ -199,7 +199,7 @@ internal sealed class ExceptionGuard(
 			} => true,
 
 			IConversionOperation conversion => IsNonThrowingConversion(conversion) &&
-			                                   IsTriviallyNonThrowing(conversion.Operand),
+											   IsTriviallyNonThrowing(conversion.Operand),
 
 			// '-x', '+x', '~x', '!x' outside a checked context. 'dynamic' and 'decimal' operands run code, and so does
 			// the fifth built-in unary operator: '^x' constructs a System.Index, which rejects negative values.
@@ -229,7 +229,7 @@ internal sealed class ExceptionGuard(
 	{
 		Conversion conversion = operation.GetConversion();
 		if (!conversion.Exists || conversion.IsUserDefined || conversion.MethodSymbol is not null ||
-		    conversion.IsDynamic)
+			conversion.IsDynamic)
 		{
 			return false;
 		}
@@ -246,15 +246,15 @@ internal sealed class ExceptionGuard(
 		if (conversion.IsImplicit)
 		{
 			return conversion.IsNumeric
-			       || conversion.IsReference
-			       || conversion.IsPointer
-			       || (conversion.IsNullable && IsNullableWrapping(source, target));
+				   || conversion.IsReference
+				   || conversion.IsPointer
+				   || (conversion.IsNullable && IsNullableWrapping(source, target));
 		}
 
 		return !operation.IsChecked
-		       && (conversion.IsNumeric || conversion.IsEnumeration || conversion.IsPointer)
-		       && IsPrimitiveEnumOrPointer(source)
-		       && IsPrimitiveEnumOrPointer(target);
+			   && (conversion.IsNumeric || conversion.IsEnumeration || conversion.IsPointer)
+			   && IsPrimitiveEnumOrPointer(source)
+			   && IsPrimitiveEnumOrPointer(target);
 	}
 
 	// 'int -> int?', 'int -> long?', 'int? -> long?', 'Guid -> Guid?'. An implicit nullable conversion can also
@@ -265,9 +265,9 @@ internal sealed class ExceptionGuard(
 		ITypeSymbol? from = UnwrapNullable(source);
 		ITypeSymbol? to = UnwrapNullable(target);
 		return from is not null
-		       && to is not null
-		       && (SymbolEqualityComparer.Default.Equals(from, to) ||
-		           (IsPrimitiveOrEnum(from) && IsPrimitiveOrEnum(to)));
+			   && to is not null
+			   && (SymbolEqualityComparer.Default.Equals(from, to) ||
+				   (IsPrimitiveOrEnum(from) && IsPrimitiveOrEnum(to)));
 	}
 
 	private static ITypeSymbol? UnwrapNullable(ITypeSymbol? type)
@@ -287,12 +287,12 @@ internal sealed class ExceptionGuard(
 	private static bool IsPrimitiveOrEnum(ITypeSymbol? type)
 	{
 		return type is { TypeKind: TypeKind.Enum }
-		       || type?.SpecialType is SpecialType.System_Boolean or SpecialType.System_Char
-			       or SpecialType.System_SByte or SpecialType.System_Byte
-			       or SpecialType.System_Int16 or SpecialType.System_UInt16
-			       or SpecialType.System_Int32 or SpecialType.System_UInt32
-			       or SpecialType.System_Int64 or SpecialType.System_UInt64
-			       or SpecialType.System_IntPtr or SpecialType.System_UIntPtr
-			       or SpecialType.System_Single or SpecialType.System_Double;
+			   || type?.SpecialType is SpecialType.System_Boolean or SpecialType.System_Char
+				   or SpecialType.System_SByte or SpecialType.System_Byte
+				   or SpecialType.System_Int16 or SpecialType.System_UInt16
+				   or SpecialType.System_Int32 or SpecialType.System_UInt32
+				   or SpecialType.System_Int64 or SpecialType.System_UInt64
+				   or SpecialType.System_IntPtr or SpecialType.System_UIntPtr
+				   or SpecialType.System_Single or SpecialType.System_Double;
 	}
 }

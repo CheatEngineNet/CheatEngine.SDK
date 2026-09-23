@@ -35,7 +35,7 @@ internal static class PwshScript
 		using TemporaryDirectory directory = new();
 		string scriptPath = Path.Combine(directory.Path, "script.ps1");
 		string preamble = "Set-StrictMode -Version Latest" + Environment.NewLine +
-		                  "$ErrorActionPreference = 'Stop'" + Environment.NewLine;
+						  "$ErrorActionPreference = 'Stop'" + Environment.NewLine;
 		await File.WriteAllTextAsync(scriptPath, preamble + scriptText, new UTF8Encoding(false),
 			TestContext.Current.CancellationToken);
 		return await RunFileAsync(scriptPath, [], environment);
@@ -86,7 +86,7 @@ internal static class PwshScript
 		timeout.CancelAfter(s_timeout);
 
 		using Process process = Process.Start(startInfo)
-		                        ?? throw new InvalidOperationException($"'{startInfo.FileName}' did not start.");
+								?? throw new InvalidOperationException($"'{startInfo.FileName}' did not start.");
 		process.StandardInput.Close();
 		Task<string> standardOutput = process.StandardOutput.ReadToEndAsync(timeout.Token);
 		Task<string> standardError = process.StandardError.ReadToEndAsync(timeout.Token);

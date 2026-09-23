@@ -124,11 +124,11 @@ public sealed class AddressListExitTests
 		List<MemoryRecordMutationOutcome> mutations = [];
 		List<MemoryRecordActivationOutcome> activations = [];
 		using (FakeHost.InstallReentrantHook(host.State, "table_script", () =>
-		       {
-			       mutations.Add(AddressListMutations.Delete(new MemoryRecordId(1)));
-			       mutations.Add(AddressListMutations.SetParent(new MemoryRecordId(1), new MemoryRecordId(2)));
-			       activations.Add(AddressListMutations.SetActive(new MemoryRecordId(1), true));
-		       }))
+			   {
+				   mutations.Add(AddressListMutations.Delete(new MemoryRecordId(1)));
+				   mutations.Add(AddressListMutations.SetParent(new MemoryRecordId(1), new MemoryRecordId(2)));
+				   activations.Add(AddressListMutations.SetActive(new MemoryRecordId(1), true));
+			   }))
 		{
 			host.Execute("loadTable = function(path, merge) table_script() end");
 

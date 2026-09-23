@@ -108,9 +108,9 @@ internal static unsafe partial class LoadIdentification
 		string abiVersion = ReadInformationalVersion(typeof(AbiConstants).Assembly);
 
 		bool consistent = string.Equals(hostingVersion, luaVersion, StringComparison.Ordinal)
-		                  && string.Equals(hostingVersion, luaInteropVersion, StringComparison.Ordinal)
-		                  && string.Equals(hostingVersion, abiVersion, StringComparison.Ordinal)
-		                  && !string.Equals(hostingVersion, Unknown, StringComparison.Ordinal);
+						  && string.Equals(hostingVersion, luaInteropVersion, StringComparison.Ordinal)
+						  && string.Equals(hostingVersion, abiVersion, StringComparison.Ordinal)
+						  && !string.Equals(hostingVersion, Unknown, StringComparison.Ordinal);
 
 		AppendField(builder, "sdk.version", hostingVersion);
 		AppendField(builder, "sdk.commit", ParseCommit(hostingVersion));
@@ -217,7 +217,7 @@ internal static unsafe partial class LoadIdentification
 		try
 		{
 			if (!NativeLibrary.TryLoad("cheatengine-sdk-lua-bridge", typeof(PluginHost).Assembly,
-				    DllImportSearchPath.AssemblyDirectory, out nint handle))
+					DllImportSearchPath.AssemblyDirectory, out nint handle))
 			{
 				return;
 			}
@@ -225,7 +225,7 @@ internal static unsafe partial class LoadIdentification
 			try
 			{
 				if (NativeLibrary.TryGetExport(handle, "cheatengine_sdk_lua_bridge_source_fingerprint",
-					    out nint export))
+						out nint export))
 				{
 					string? text = ReadBoundedAnsiString((byte*) export, 160);
 					if (text is not null && BridgeFingerprintPattern().IsMatch(text))

@@ -95,7 +95,7 @@ internal static class FieldLayoutGate
 	{
 		ArgumentNullException.ThrowIfNull(field);
 		Type declaringType = field.DeclaringType ??
-		                     throw new ArgumentException("A field has a declaring type.", nameof(field));
+							 throw new ArgumentException("A field has a declaring type.", nameof(field));
 		if (!declaringType.IsValueType || field.IsStatic)
 		{
 			throw new ArgumentException("Only instance fields of structures have a layout offset.", nameof(field));

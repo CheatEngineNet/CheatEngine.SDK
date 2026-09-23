@@ -76,7 +76,7 @@ internal static class CoexistencePluginLayout
 	private static string RequireMetadata(string key)
 	{
 		foreach (AssemblyMetadataAttribute attribute in typeof(CoexistencePluginLayout).Assembly
-			         .GetCustomAttributes<AssemblyMetadataAttribute>())
+					 .GetCustomAttributes<AssemblyMetadataAttribute>())
 		{
 			if (string.Equals(attribute.Key, key, StringComparison.Ordinal) && !string.IsNullOrEmpty(attribute.Value))
 			{

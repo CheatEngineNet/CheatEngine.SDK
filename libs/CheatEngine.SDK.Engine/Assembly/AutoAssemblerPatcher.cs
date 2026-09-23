@@ -360,7 +360,7 @@ public static class AutoAssemblerPatcher
 		{
 			snapshot = AutoAssemblerDisableInfoSnapshot.Read(state, detail, options);
 			patch = patchFactory(script, disableInfo, origin, snapshot, postCheck) ??
-			        throw new InvalidOperationException("The Auto Assembler patch factory returned no patch.");
+					throw new InvalidOperationException("The Auto Assembler patch factory returned no patch.");
 		}
 		catch (Exception exception)
 		{

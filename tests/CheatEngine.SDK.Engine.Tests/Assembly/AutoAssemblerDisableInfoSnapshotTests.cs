@@ -146,7 +146,11 @@ public sealed class AutoAssemblerDisableInfoSnapshotTests
 		                    symbols = { short = 1, far_too_long_a_name = 2 },
 		                  }
 		                  """u8);
-		AutoAssemblerOptions options = new() { MaxDisableInfoEntries = 2, MaxDisableInfoNameBytes = 8 };
+		AutoAssemblerOptions options = new()
+		{
+			MaxDisableInfoEntries = 2,
+			MaxDisableInfoNameBytes = 8
+		};
 
 		AutoAssemblerApplyOutcome outcome =
 			AutoAssemblerPatcher.TryApplyWithOutcome("success", options, out AutoAssemblerPatch? patch);

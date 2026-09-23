@@ -154,9 +154,9 @@ public sealed class DiagnosticCatalogTests
 		{
 			string[] cells = line.Split('|');
 			if (cells.Length >= 3
-			    && string.Equals(cells[0].Trim(), descriptor.Id, StringComparison.Ordinal)
-			    && string.Equals(cells[1].Trim(), descriptor.Category, StringComparison.Ordinal)
-			    && string.Equals(cells[2].Trim(), descriptor.DefaultSeverity.ToString(), StringComparison.Ordinal))
+				&& string.Equals(cells[0].Trim(), descriptor.Id, StringComparison.Ordinal)
+				&& string.Equals(cells[1].Trim(), descriptor.Category, StringComparison.Ordinal)
+				&& string.Equals(cells[2].Trim(), descriptor.DefaultSeverity.ToString(), StringComparison.Ordinal))
 			{
 				return true;
 			}

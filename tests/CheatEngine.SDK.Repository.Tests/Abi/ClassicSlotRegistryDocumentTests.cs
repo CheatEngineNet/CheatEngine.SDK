@@ -239,7 +239,7 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 
 		// Lot observations are extra rows, never replacements: each is a source observation of the pinned source.
 		foreach (JsonElement row in divergences.Where(static row =>
-			         string.Equals(row.GetProperty("origin").GetString(), "LotObservation", StringComparison.Ordinal)))
+					 string.Equals(row.GetProperty("origin").GetString(), "LotObservation", StringComparison.Ordinal)))
 		{
 			Assert.Equal("ObservedSource", row.GetProperty("evidenceKind").GetString());
 		}
@@ -277,7 +277,7 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 
 		// D12: every slot of the cell section that the host assigns a direct @ expression (not @@, not nil).
 		int[] direct = SlotsWhere(static slot => slot.GetProperty("slot").GetInt32() is >= 18 and <= 81 &&
-		                                         IsKind(slot, "FunctionAddress"));
+												 IsKind(slot, "FunctionAddress"));
 		Assert.Equal(direct, slotsById["D12"]);
 	}
 
@@ -360,7 +360,7 @@ public sealed partial class ClassicSlotRegistryDocumentTests
 				Assert.Equal("ObservedSource", slot.GetProperty("evidenceKind").GetString());
 			});
 		Assert.All(Slots.Where(static slot => IsKind(slot, "FunctionAddress") &&
-		                                      slot.GetProperty("hostImplementation").ValueKind == JsonValueKind.Null),
+											  slot.GetProperty("hostImplementation").ValueKind == JsonValueKind.Null),
 			static slot => Assert.Equal("ToQualify", slot.GetProperty("evidenceKind").GetString()));
 	}
 

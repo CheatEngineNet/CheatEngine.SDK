@@ -52,7 +52,7 @@ public sealed partial class WorkflowContractTests
 			WorkflowFile.ScalarValues(Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(config, "allow-licenses"))),
 			StringComparer.Ordinal);
 		foreach (string purl in WorkflowFile.ScalarValues(
-			         Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(config, "allow-dependencies-licenses"))))
+					 Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(config, "allow-dependencies-licenses"))))
 		{
 			Assert.StartsWith("pkg:nuget/", purl, StringComparison.Ordinal);
 		}

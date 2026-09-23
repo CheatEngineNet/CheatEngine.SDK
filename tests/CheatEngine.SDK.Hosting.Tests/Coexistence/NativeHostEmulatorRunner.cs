@@ -48,7 +48,10 @@ internal static class NativeHostEmulatorRunner
 		AddArgument(startInfo, "--alc", route == NativeHostEmulatorAlcRoute.Default ? "default" : "component");
 		AddArgument(startInfo, "--facts", factsPath);
 
-		using Process process = new() { StartInfo = startInfo };
+		using Process process = new()
+		{
+			StartInfo = startInfo
+		};
 		process.Start();
 		string standardOutput = process.StandardOutput.ReadToEnd();
 		string standardError = process.StandardError.ReadToEnd();

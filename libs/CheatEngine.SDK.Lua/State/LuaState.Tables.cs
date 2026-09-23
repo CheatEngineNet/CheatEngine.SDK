@@ -86,7 +86,7 @@ public readonly unsafe partial struct LuaState
 	{
 		int keyType = lua_type(Pointer, -2);
 		if (keyType == LUA_TNIL || (keyType == LUA_TNUMBER && lua_isinteger(Pointer, -2) == 0 &&
-		                            double.IsNaN(lua_tonumberx(Pointer, -2, null))))
+									double.IsNaN(lua_tonumberx(Pointer, -2, null))))
 		{
 			lua_settop(Pointer, -3);
 			return false;

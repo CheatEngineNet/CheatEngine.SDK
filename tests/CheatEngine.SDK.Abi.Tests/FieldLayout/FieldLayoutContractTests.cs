@@ -60,7 +60,7 @@ public sealed unsafe class FieldLayoutContractTests
 				stale.Add($"{row.TypeFullName}.{row.FieldName} (duplicate)");
 			}
 			else if (!structures.TryGetValue(row.TypeFullName, out Type? structure) ||
-			         structure.GetField(row.FieldName, FieldLayoutGate.InstanceFields) is null)
+					 structure.GetField(row.FieldName, FieldLayoutGate.InstanceFields) is null)
 			{
 				stale.Add($"{row.TypeFullName}.{row.FieldName}");
 			}
@@ -251,14 +251,14 @@ public sealed unsafe class FieldLayoutContractTests
 	{
 		Type structure = AbiStructures.AbiAssembly.GetType(row.TypeFullName, true, false)!;
 		return structure.GetField(row.FieldName, FieldLayoutGate.InstanceFields)
-		       ?? throw new InvalidOperationException($"{row.TypeFullName} has no field {row.FieldName}.");
+			   ?? throw new InvalidOperationException($"{row.TypeFullName} has no field {row.FieldName}.");
 	}
 
 	private static void AssertSameOffset<T>(string fieldName, int addressOfOffset)
 		where T : unmanaged
 	{
 		FieldInfo field = typeof(T).GetField(fieldName, FieldLayoutGate.InstanceFields)
-		                  ?? throw new InvalidOperationException($"{typeof(T).Name} has no field {fieldName}.");
+						  ?? throw new InvalidOperationException($"{typeof(T).Name} has no field {fieldName}.");
 		Assert.Equal(addressOfOffset, FieldLayoutGate.OffsetOf(field));
 	}
 

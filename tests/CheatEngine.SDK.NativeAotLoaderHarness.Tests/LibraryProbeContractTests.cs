@@ -40,7 +40,7 @@ public sealed class LibraryProbeContractTests
 		Assert.Contains("CEPlugin_GetVersion", names, StringComparer.Ordinal);
 		Assert.Contains(LibraryProbeContract.FindViolations(names),
 			static violation => violation.Contains("'CEPlugin_GetVersion'", StringComparison.Ordinal) &&
-			                    violation.Contains("native-plugin entry point", StringComparison.Ordinal));
+								violation.Contains("native-plugin entry point", StringComparison.Ordinal));
 	}
 
 	[Theory]

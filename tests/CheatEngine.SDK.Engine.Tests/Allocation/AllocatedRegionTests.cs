@@ -14,7 +14,10 @@ public sealed class AllocatedRegionTests
 	[Fact]
 	public void Dispose_releases_the_original_target_address_and_size_exactly_once()
 	{
-		AllocationOperationsFake operations = new() { AllocatedAddress = new Address(0x7FF6_3000_0000) };
+		AllocationOperationsFake operations = new()
+		{
+			AllocatedAddress = new Address(0x7FF6_3000_0000)
+		};
 		AllocatedRegion region = Allocate(operations, 12288);
 
 		region.Dispose();
@@ -31,7 +34,10 @@ public sealed class AllocatedRegionTests
 	[Fact]
 	public void Dispose_when_CE_reports_failure_is_no_throw_and_consumes_ownership()
 	{
-		AllocationOperationsFake operations = new() { DeallocationResult = false };
+		AllocationOperationsFake operations = new()
+		{
+			DeallocationResult = false
+		};
 		AllocatedRegion region = Allocate(operations, 4096);
 
 		region.Dispose();
@@ -44,7 +50,10 @@ public sealed class AllocatedRegionTests
 	[Fact]
 	public void Release_when_CE_reports_failure_throws_the_expected_failure_and_never_retries()
 	{
-		AllocationOperationsFake operations = new() { DeallocationResult = false };
+		AllocationOperationsFake operations = new()
+		{
+			DeallocationResult = false
+		};
 		AllocatedRegion region = Allocate(operations, 4096);
 
 		EngineOperationFailedException exception = Assert.Throws<EngineOperationFailedException>(region.Release);
@@ -60,7 +69,10 @@ public sealed class AllocatedRegionTests
 	public void Release_when_the_protected_lua_call_fails_preserves_the_failure_and_consumes_ownership()
 	{
 		EngineLuaException failure = new("TargetMemoryDeallocate", LuaStatus.RuntimeError);
-		AllocationOperationsFake operations = new() { DeallocationException = failure };
+		AllocationOperationsFake operations = new()
+		{
+			DeallocationException = failure
+		};
 		AllocatedRegion region = Allocate(operations, 4096);
 
 		EngineLuaException thrown = Assert.Throws<EngineLuaException>(region.Release);
@@ -75,7 +87,10 @@ public sealed class AllocatedRegionTests
 	public void Release_when_the_required_global_is_unavailable_preserves_the_distinct_failure()
 	{
 		EngineGlobalUnavailableException failure = new("TargetMemoryDeallocate");
-		AllocationOperationsFake operations = new() { DeallocationException = failure };
+		AllocationOperationsFake operations = new()
+		{
+			DeallocationException = failure
+		};
 		AllocatedRegion region = Allocate(operations, 4096);
 
 		EngineGlobalUnavailableException thrown = Assert.Throws<EngineGlobalUnavailableException>(region.Release);
@@ -91,7 +106,10 @@ public sealed class AllocatedRegionTests
 	{
 		EngineBindingException failure = new("TargetMemoryDeallocate",
 			"the generated binding returned an incompatible result");
-		AllocationOperationsFake operations = new() { DeallocationException = failure };
+		AllocationOperationsFake operations = new()
+		{
+			DeallocationException = failure
+		};
 		AllocatedRegion region = Allocate(operations, 4096);
 
 		EngineBindingException thrown = Assert.Throws<EngineBindingException>(region.Release);
@@ -106,7 +124,10 @@ public sealed class AllocatedRegionTests
 	{
 		EngineMarshallingException failure = new("TargetMemoryDeallocate", EngineMarshallingDirection.Result,
 			"a boolean", "a table");
-		AllocationOperationsFake operations = new() { DeallocationException = failure };
+		AllocationOperationsFake operations = new()
+		{
+			DeallocationException = failure
+		};
 		AllocatedRegion region = Allocate(operations, 4096);
 
 		EngineMarshallingException thrown = Assert.Throws<EngineMarshallingException>(region.Release);
@@ -137,7 +158,10 @@ public sealed class AllocatedRegionTests
 	public void Dispose_when_an_EngineException_occurs_preserves_the_structured_failure_kind_and_consumes_ownership()
 	{
 		EngineException failure = new EngineLuaException("TargetMemoryDeallocate", LuaStatus.RuntimeError);
-		AllocationOperationsFake operations = new() { DeallocationException = failure };
+		AllocationOperationsFake operations = new()
+		{
+			DeallocationException = failure
+		};
 		AllocatedRegion region = Allocate(operations, 4096);
 
 		region.Dispose();

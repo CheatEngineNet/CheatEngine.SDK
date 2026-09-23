@@ -111,9 +111,9 @@ internal static class LuaValueKindMapper
 	public static bool IsSpanOfOther(ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? element)
 	{
 		if (type is INamedTypeSymbol { Arity: 1, ContainingType: null } named
-		    && string.Equals(named.Name, "Span", StringComparison.Ordinal)
-		    && named.ContainingNamespace is { Name: "System", ContainingNamespace.IsGlobalNamespace: true }
-		    && named.TypeArguments[0].SpecialType != SpecialType.System_Byte)
+			&& string.Equals(named.Name, "Span", StringComparison.Ordinal)
+			&& named.ContainingNamespace is { Name: "System", ContainingNamespace.IsGlobalNamespace: true }
+			&& named.TypeArguments[0].SpecialType != SpecialType.System_Byte)
 		{
 			element = named.TypeArguments[0];
 			return true;
@@ -144,8 +144,8 @@ internal static class LuaValueKindMapper
 	private static bool IsSystemSpanOfByte(ITypeSymbol type, string name)
 	{
 		return type is INamedTypeSymbol { Arity: 1, ContainingType: null } named
-		       && string.Equals(named.Name, name, StringComparison.Ordinal)
-		       && named.TypeArguments[0].SpecialType == SpecialType.System_Byte
-		       && named.ContainingNamespace is { Name: "System", ContainingNamespace.IsGlobalNamespace: true };
+			   && string.Equals(named.Name, name, StringComparison.Ordinal)
+			   && named.TypeArguments[0].SpecialType == SpecialType.System_Byte
+			   && named.ContainingNamespace is { Name: "System", ContainingNamespace.IsGlobalNamespace: true };
 	}
 }

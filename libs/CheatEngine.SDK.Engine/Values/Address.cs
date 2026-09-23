@@ -574,7 +574,7 @@ public readonly struct Address :
 	private static void ThrowFormat(ReadOnlySpan<char> text)
 	{
 		throw new FormatException("'" + text.ToString() +
-		                          "' is not a hexadecimal address (digits with an optional 0x prefix).");
+								  "' is not a hexadecimal address (digits with an optional 0x prefix).");
 	}
 
 	[DoesNotReturn]

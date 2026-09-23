@@ -67,7 +67,10 @@ internal static class LuaFunctionTables
 		{
 			string baseName = tables[i].ContainingType.HintBaseName;
 			string hintName = HintNames.AllocateUnique(baseName, LuaFunctionTableModel.HintSuffix, used);
-			tables[i] = tables[i] with { HintName = hintName };
+			tables[i] = tables[i] with
+			{
+				HintName = hintName
+			};
 		}
 
 		return tables;

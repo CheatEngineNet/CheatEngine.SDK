@@ -31,8 +31,8 @@ public static class StringLists
 		LuaState state = operation.State;
 		using LuaFrame frame = new(state);
 		if (!LuaGlobalFunctions.TryPush(state, SCreateStringList, "createStringlist"u8) ||
-		    !state.TryCall(0, 1).IsOk ||
-		    !CEObject.TryRead(state, -1, out CEObject handle))
+			!state.TryCall(0, 1).IsOk ||
+			!CEObject.TryRead(state, -1, out CEObject handle))
 		{
 			list = null;
 			return false;

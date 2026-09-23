@@ -69,7 +69,7 @@ internal static class ModelGraph
 		}
 
 		foreach (FieldInfo field in
-		         type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+				 type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
 		{
 			Visit(field.GetValue(value), $"{path}.{field.Name}", visited, depth + 1);
 		}

@@ -158,8 +158,8 @@ public static class SymbolLists
 		try
 		{
 			lease = leaseFactory(transferred, true) ??
-			        throw new InvalidOperationException(
-				        "The symbol-list registration lease factory returned no lease.");
+					throw new InvalidOperationException(
+						"The symbol-list registration lease factory returned no lease.");
 		}
 		catch (Exception exception)
 		{

@@ -37,8 +37,8 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 		GeneratorRun run = roslyn.Run(BindingSources.Functions, BindingSources.Globals, ObjectBindings);
 
 		foreach (string stepName in run.Result.TrackedSteps.Keys
-			         .Where(TrackingNames.IsCheatEngineSdkStep)
-			         .Order(StringComparer.Ordinal))
+					 .Where(TrackingNames.IsCheatEngineSdkStep)
+					 .Order(StringComparer.Ordinal))
 		{
 			Assert.All(StepAssert.Reasons(run.Result, stepName),
 				static reason => Assert.Equal(IncrementalStepRunReason.New, reason));
@@ -329,8 +329,8 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 
 		int visited = 0;
 		foreach (string stepName in run.Result.TrackedSteps.Keys
-			         .Where(TrackingNames.IsCheatEngineSdkStep)
-			         .Order(StringComparer.Ordinal))
+					 .Where(TrackingNames.IsCheatEngineSdkStep)
+					 .Order(StringComparer.Ordinal))
 		{
 			Assert.True(
 				run.Result.TrackedSteps.TryGetValue(stepName, out ImmutableArray<IncrementalGeneratorRunStep> steps),

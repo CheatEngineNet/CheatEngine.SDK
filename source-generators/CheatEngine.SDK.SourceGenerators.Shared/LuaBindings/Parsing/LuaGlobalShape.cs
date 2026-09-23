@@ -193,7 +193,7 @@ internal static class LuaGlobalShape
 		}
 
 		if (LuaContractTypes.IsLookAlike(method.ReturnType, contracts.LuaOperationStatus,
-			    LuaContractTypes.LuaOperationStatusMetadataName))
+				LuaContractTypes.LuaOperationStatusMetadataName))
 		{
 			return LuaGlobalShapeIssues.LookAlikeContractType;
 		}
@@ -239,9 +239,9 @@ internal static class LuaGlobalShape
 		}
 
 		if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, method.ReturnType,
-			    method.GetReturnTypeAttributes(), contracts.LuaMarshallerAttribute, contracts.LuaMarshallerContract,
-			    out returnMarshaller, out _)
-		    || (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
+				method.GetReturnTypeAttributes(), contracts.LuaMarshallerAttribute, contracts.LuaMarshallerContract,
+				out returnMarshaller, out _)
+			|| (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
 		{
 			return LuaGlobalShapeIssues.UnsupportedReturnType;
 		}
@@ -252,7 +252,7 @@ internal static class LuaGlobalShape
 		}
 
 		if (!LuaValueKindMapper.TryMap(method.ReturnType, out LuaValueKind kind, out returnIsNullable) ||
-		    !LuaValueKinds.CanBeResult(kind))
+			!LuaValueKinds.CanBeResult(kind))
 		{
 			return LuaGlobalShapeIssues.UnsupportedReturnType;
 		}
@@ -429,9 +429,9 @@ internal static class LuaGlobalShape
 			}
 
 			if (!LuaMarshallerResolver.TryResolve(compilation, bindingType, parameter.Type, parameter.GetAttributes(),
-				    contracts.LuaMarshallerAttribute, contracts.LuaMarshallerContract,
-				    out LuaCustomMarshallerModel? customMarshaller, out _)
-			    || (customMarshaller is not null && parameter.Type.IsRefLikeType))
+					contracts.LuaMarshallerAttribute, contracts.LuaMarshallerContract,
+					out LuaCustomMarshallerModel? customMarshaller, out _)
+				|| (customMarshaller is not null && parameter.Type.IsRefLikeType))
 			{
 				return issues | LuaGlobalShapeIssues.UnsupportedResultType;
 			}
@@ -443,7 +443,7 @@ internal static class LuaGlobalShape
 			}
 
 			if (!LuaValueKindMapper.TryMap(parameter.Type, out LuaValueKind kind, out bool isNullable) ||
-			    !LuaValueKinds.CanBeResult(kind))
+				!LuaValueKinds.CanBeResult(kind))
 			{
 				return issues | LuaGlobalShapeIssues.UnsupportedResultType;
 			}
@@ -457,8 +457,8 @@ internal static class LuaGlobalShape
 		{
 			LuaGlobalShapeIssues issues = EnterResult(false);
 			if (index + 1 >= parameters.Length
-			    || parameters[index + 1] is
-				    not { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Int32 } written)
+				|| parameters[index + 1] is
+					not { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Int32 } written)
 			{
 				return issues | LuaGlobalShapeIssues.UnsupportedResultType;
 			}
@@ -482,8 +482,8 @@ internal static class LuaGlobalShape
 
 			HasVariadicResult = true;
 			if (index + 1 >= parameters.Length
-			    || parameters[index + 1] is
-				    not { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Int32 } count)
+				|| parameters[index + 1] is
+					not { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Int32 } count)
 			{
 				return issues | LuaGlobalShapeIssues.UnsupportedResultType;
 			}
@@ -491,7 +491,7 @@ internal static class LuaGlobalShape
 			IParameterSymbol values = parameters[index];
 			index++;
 			if (!LuaValueKindMapper.TryMap(element, out LuaValueKind kind, out _)
-			    || !LuaValueKinds.CanBeVariadicElement(kind))
+				|| !LuaValueKinds.CanBeVariadicElement(kind))
 			{
 				return issues | LuaGlobalShapeIssues.UnsupportedVariadicElement;
 			}
@@ -541,8 +541,8 @@ internal static class LuaGlobalShape
 			}
 
 			if (!LuaMarshallerResolver.TryResolve(compilation, bindingType, parameter.Type, parameter.GetAttributes(),
-				    contracts.LuaMarshallerAttribute, contracts.LuaMarshallerContract,
-				    out LuaCustomMarshallerModel? customMarshaller, out _))
+					contracts.LuaMarshallerAttribute, contracts.LuaMarshallerContract,
+					out LuaCustomMarshallerModel? customMarshaller, out _))
 			{
 				return issues | LuaGlobalShapeIssues.UnsupportedParameterType;
 			}

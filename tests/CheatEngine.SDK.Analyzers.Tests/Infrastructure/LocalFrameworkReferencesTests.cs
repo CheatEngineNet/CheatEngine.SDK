@@ -42,7 +42,7 @@ public sealed class LocalFrameworkReferencesTests
 		foreach (MetadataReference reference in LocalFrameworkReferences.References)
 		{
 			string path = Assert.IsType<PortableExecutableReference>(reference, false).FilePath
-			              ?? throw new InvalidOperationException("A framework reference without a file path.");
+						  ?? throw new InvalidOperationException("A framework reference without a file path.");
 			Assert.True(File.Exists(path), path);
 			hasSystemRuntime |= string.Equals(Path.GetFileName(path), "System.Runtime.dll",
 				StringComparison.OrdinalIgnoreCase);

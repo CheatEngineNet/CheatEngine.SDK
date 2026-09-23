@@ -139,7 +139,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		if (SGate.IsHeldByCurrentThread)
 		{
 			HostLog.Error(callback +
-			              ": re-entered from plugin code while OnEnable or OnDisable is running on this thread; the call is refused and the outer transition decides the state.");
+						  ": re-entered from plugin code while OnEnable or OnDisable is running on this thread; the call is refused and the outer transition decides the state.");
 			return false;
 		}
 
@@ -149,7 +149,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		}
 
 		HostLog.Error(callback +
-		              ": another lifecycle transition is already running; concurrent callbacks fail immediately and do not wait for plugin code.");
+					  ": another lifecycle transition is already running; concurrent callbacks fail immediately and do not wait for plugin code.");
 		return false;
 	}
 
@@ -220,7 +220,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 			if (Phase is not PluginHostLifecyclePhase.Registered)
 			{
 				HostLog.Error("EnablePlugin: the plugin lifecycle is in " + Phase +
-				              "; enable is valid only from Registered.");
+							  "; enable is valid only from Registered.");
 				return LifecycleStart.Refused;
 			}
 
@@ -537,17 +537,17 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		if (context is null)
 		{
 			HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
-			              "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
+						  "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
 			return LifecycleStart.Refused;
 		}
 
 		if (Phase is PluginHostLifecyclePhase.Disabling)
 		{
 			if (Volatile.Read(ref s_incompleteEnableCleanup) == 0
-			    || Volatile.Read(ref s_incompleteEnableCleanupActive) != 0)
+				|| Volatile.Read(ref s_incompleteEnableCleanupActive) != 0)
 			{
 				HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
-				              "; a disable transition is already completing.");
+							  "; a disable transition is already completing.");
 				return LifecycleStart.Refused;
 			}
 
@@ -557,7 +557,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		if (Phase is not PluginHostLifecyclePhase.Enabled)
 		{
 			HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
-			              "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
+						  "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
 			return LifecycleStart.Refused;
 		}
 

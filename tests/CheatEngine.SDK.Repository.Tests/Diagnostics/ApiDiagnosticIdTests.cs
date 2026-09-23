@@ -39,8 +39,8 @@ public sealed partial class ApiDiagnosticIdTests
 		IReadOnlyList<ApiDiagnosticId> ids = ScanApiDiagnosticIds();
 
 		Assert.Contains(ids, static id => id is { Kind: ApiDiagnosticKind.Obsolete, Id: "CESDK7001" } &&
-		                                  string.Equals(id.File, "libs/CheatEngine.SDK.Engine/Runtime/PointerSize.cs",
-			                                  StringComparison.Ordinal));
+										  string.Equals(id.File, "libs/CheatEngine.SDK.Engine/Runtime/PointerSize.cs",
+											  StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -241,7 +241,7 @@ public sealed partial class ApiDiagnosticIdTests
 		foreach (string file in RepositoryRoot.EnumerateSourceFiles("*.cs"))
 		{
 			if (!file.StartsWith("libs/", StringComparison.Ordinal) &&
-			    !file.StartsWith("src/", StringComparison.Ordinal))
+				!file.StartsWith("src/", StringComparison.Ordinal))
 			{
 				continue;
 			}

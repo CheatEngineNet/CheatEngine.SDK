@@ -77,7 +77,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 	{
 		INamedTypeSymbol type = (INamedTypeSymbol) context.Symbol;
 		if (symbols.LuaClassAttribute is not null
-		    && FindAttribute(type, symbols.LuaClassAttribute) is { } luaClassAttribute)
+			&& FindAttribute(type, symbols.LuaClassAttribute) is { } luaClassAttribute)
 		{
 			string problem = LuaClassProblem(type, luaClassAttribute, context.CancellationToken);
 			if (problem.Length > 0)
@@ -100,7 +100,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 	{
 		IMethodSymbol method = (IMethodSymbol) context.Symbol;
 		if (symbols.LuaMethodAttribute is not null
-		    && FindAttribute(method, symbols.LuaMethodAttribute) is { } luaMethodAttribute)
+			&& FindAttribute(method, symbols.LuaMethodAttribute) is { } luaMethodAttribute)
 		{
 			string problem = LuaMethodProblem(method, luaMethodAttribute, symbols, context.CancellationToken);
 			if (problem.Length > 0)
@@ -114,7 +114,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 	{
 		IPropertySymbol property = (IPropertySymbol) context.Symbol;
 		if (symbols.LuaPropertyAttribute is null
-		    || FindAttribute(property, symbols.LuaPropertyAttribute) is not { } luaPropertyAttribute)
+			|| FindAttribute(property, symbols.LuaPropertyAttribute) is not { } luaPropertyAttribute)
 		{
 			return;
 		}
@@ -150,12 +150,12 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		foreach (ISymbol member in type.GetMembers())
 		{
 			if (member is IMethodSymbol { MethodKind: MethodKind.UserDefinedOperator } method
-			    && method.Name is "op_Equality" or "op_Inequality")
+				&& method.Name is "op_Equality" or "op_Inequality")
 			{
 				ReportCollision(context, member, "operator " +
-				                                 (string.Equals(method.Name, "op_Equality", StringComparison.Ordinal)
-					                                 ? "=="
-					                                 : "!="));
+												 (string.Equals(method.Name, "op_Equality", StringComparison.Ordinal)
+													 ? "=="
+													 : "!="));
 			}
 		}
 
@@ -167,8 +167,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		foreach (IMethodSymbol constructor in type.InstanceConstructors)
 		{
 			if (constructor.Parameters.Length == 1
-			    && constructor.Parameters[0].RefKind == RefKind.None
-			    && SymbolEqualityComparer.Default.Equals(constructor.Parameters[0].Type, ceObject))
+				&& constructor.Parameters[0].RefKind == RefKind.None
+				&& SymbolEqualityComparer.Default.Equals(constructor.Parameters[0].Type, ceObject))
 			{
 				ReportCollision(context, constructor, type.Name + "(CEObject)");
 			}
@@ -203,7 +203,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		foreach (ISymbol member in type.GetMembers())
 		{
 			if (member is not IMethodSymbol method
-			    || FindAttribute(method, symbols.LuaFunctionAttribute) is not { } attribute)
+				|| FindAttribute(method, symbols.LuaFunctionAttribute) is not { } attribute)
 			{
 				continue;
 			}
@@ -252,7 +252,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		foreach (ISymbol member in type.GetMembers())
 		{
 			if (member is not IMethodSymbol method
-			    || FindAttribute(method, symbols.LuaGlobalAttribute) is not { } attribute)
+				|| FindAttribute(method, symbols.LuaGlobalAttribute) is not { } attribute)
 			{
 				continue;
 			}
@@ -434,7 +434,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 			{
 				hasOutResult = true;
 				if (!LuaContractTypes.Is(parameter.Type, symbols.LuaOptional)
-				    && !IsScalar(parameter.Type, false, symbols.ReadOnlySpan))
+					&& !IsScalar(parameter.Type, false, symbols.ReadOnlySpan))
 				{
 					return "out results must be supported scalar values";
 				}
@@ -464,7 +464,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 
 			// LuaOptional<T> on an object member is CESDK2013 (LuaBindingAnalyzer), not a generic unsupported type.
 			if (!LuaContractTypes.Is(parameter.Type, symbols.LuaOptional)
-			    && !IsScalar(parameter.Type, true, symbols.ReadOnlySpan))
+				&& !IsScalar(parameter.Type, true, symbols.ReadOnlySpan))
 			{
 				return "parameters must be supported scalar values";
 			}
@@ -514,7 +514,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		}
 
 		if (!LuaContractTypes.Is(property.Type, symbols.LuaOptional)
-		    && !IsScalar(property.Type, false, symbols.ReadOnlySpan))
+			&& !IsScalar(property.Type, false, symbols.ReadOnlySpan))
 		{
 			return "the property type must be a supported scalar value";
 		}
@@ -531,7 +531,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		CancellationToken cancellationToken)
 	{
 		if (symbols.LuaClassAttribute is null
-		    || FindAttribute(containingType, symbols.LuaClassAttribute) is not { } luaClassAttribute)
+			|| FindAttribute(containingType, symbols.LuaClassAttribute) is not { } luaClassAttribute)
 		{
 			return "the containing type must carry [LuaClass]";
 		}
@@ -593,7 +593,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 			}
 
 			if (!hasPartialModifier || declaration.AccessorList is null ||
-			    declaration.AccessorList.Accessors.Count == 0)
+				declaration.AccessorList.Accessors.Count == 0)
 			{
 				return false;
 			}
@@ -606,8 +606,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 			foreach (AccessorDeclarationSyntax accessor in declaration.AccessorList.Accessors)
 			{
 				if (accessor.Kind() is not SyntaxKind.GetAccessorDeclaration and not SyntaxKind.SetAccessorDeclaration
-				    || accessor.Body is not null || accessor.ExpressionBody is not null
-				    || !HasSupportedAccessorModifiers(accessor))
+					|| accessor.Body is not null || accessor.ExpressionBody is not null
+					|| !HasSupportedAccessorModifiers(accessor))
 				{
 					return false;
 				}
@@ -622,7 +622,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		foreach (SyntaxToken modifier in accessor.Modifiers)
 		{
 			if (modifier.Kind() is not (SyntaxKind.PublicKeyword or SyntaxKind.PrivateKeyword
-			    or SyntaxKind.ProtectedKeyword or SyntaxKind.InternalKeyword))
+				or SyntaxKind.ProtectedKeyword or SyntaxKind.InternalKeyword))
 			{
 				return false;
 			}
@@ -634,15 +634,15 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 	private static bool IsScalar(ITypeSymbol type, bool allowReadOnlySpan, INamedTypeSymbol? readOnlySpan)
 	{
 		if (type.SpecialType is SpecialType.System_Int32 or SpecialType.System_Int64 or SpecialType.System_Single
-		    or SpecialType.System_Double or SpecialType.System_Boolean or SpecialType.System_UIntPtr
-		    or SpecialType.System_String)
+			or SpecialType.System_Double or SpecialType.System_Boolean or SpecialType.System_UIntPtr
+			or SpecialType.System_String)
 		{
 			return true;
 		}
 
 		if (!allowReadOnlySpan || readOnlySpan is null || type is not INamedTypeSymbol { IsGenericType: true } named
-		    || !SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, readOnlySpan)
-		    || named.TypeArguments.Length != 1)
+			|| !SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, readOnlySpan)
+			|| named.TypeArguments.Length != 1)
 		{
 			return false;
 		}
@@ -761,8 +761,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		} = ceObject;
 
 		public bool HasAnyLuaObjectAnnotation => LuaClassAttribute is not null || LuaMethodAttribute is not null
-		                                                                       || LuaPropertyAttribute is not null ||
-		                                                                       LuaFunctionAttribute is not null
-		                                                                       || LuaGlobalAttribute is not null;
+																			   || LuaPropertyAttribute is not null ||
+																			   LuaFunctionAttribute is not null
+																			   || LuaGlobalAttribute is not null;
 	}
 }

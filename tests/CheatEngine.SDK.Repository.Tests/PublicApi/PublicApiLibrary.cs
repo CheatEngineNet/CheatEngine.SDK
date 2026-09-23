@@ -113,7 +113,7 @@ internal sealed class PublicApiLibrary
 		foreach (string directory in EnumerateLibraryDirectories())
 		{
 			if (File.Exists(FullPath($"{directory}/{ShippedFileName}"))
-			    && File.Exists(FullPath($"{directory}/{UnshippedFileName}")))
+				&& File.Exists(FullPath($"{directory}/{UnshippedFileName}")))
 			{
 				libraries.Add(new PublicApiLibrary(directory));
 			}

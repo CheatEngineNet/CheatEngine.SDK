@@ -362,13 +362,13 @@ public sealed class SymbolListTests
 		foreach (Type type in typeof(SymbolList).Assembly.GetExportedTypes())
 		{
 			foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance |
-			                                              BindingFlags.Static | BindingFlags.DeclaredOnly))
+														  BindingFlags.Static | BindingFlags.DeclaredOnly))
 			{
 				bool takesBorrowedList = (type == typeof(SymbolList) && !method.IsStatic) ||
-				                         Array.Exists(method.GetParameters(),
-					                         static parameter => parameter.ParameterType == typeof(SymbolList));
+										 Array.Exists(method.GetParameters(),
+											 static parameter => parameter.ParameterType == typeof(SymbolList));
 				bool lifecycleName = method.Name.Contains("register", StringComparison.OrdinalIgnoreCase) ||
-				                     method.Name.Contains("destroy", StringComparison.OrdinalIgnoreCase);
+									 method.Name.Contains("destroy", StringComparison.OrdinalIgnoreCase);
 				if (takesBorrowedList && lifecycleName)
 				{
 					offenders.Add(type.Name + "." + method.Name);

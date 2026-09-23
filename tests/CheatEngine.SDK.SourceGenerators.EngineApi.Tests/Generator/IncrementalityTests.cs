@@ -121,7 +121,7 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 	public void Pipeline_editing_an_optional_argument_reruns_only_that_files_output()
 	{
 		string optional = SpecSources.Ce77Header("Demo.Optional", "Optional") +
-		                  "global: load\nmethod: Load\nform: throwing\narg: path:string\nopt: merge:boolean\nnil: none\ndoc: Loads.\n";
+						  "global: load\nmethod: Load\nform: throwing\narg: path:string\nopt: merge:boolean\nnil: none\ndoc: Loads.\n";
 		InMemoryAdditionalText original = new("a.cheatengine-sdk-api.txt", optional);
 		InMemoryAdditionalText other = new("b.cheatengine-sdk-api.txt", SpecSources.BeepOnly);
 		CSharpCompilation compilation = roslyn.CreateCompilation();
@@ -146,7 +146,7 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 	public void Pipeline_step_values_hold_no_roslyn_objects()
 	{
 		string optional = SpecSources.Ce77Header("Demo.Optional", "Optional") +
-		                  "global: g\nmethod: G\nform: outcome\narg: a:address\nopt: b:int32\nresult: r:int64\nopt-result: s:address\nrest: values:double\nnil: absence\ndoc: d.\n";
+						  "global: g\nmethod: G\nform: outcome\narg: a:address\nopt: b:int32\nresult: r:int64\nopt-result: s:address\nrest: values:double\nnil: absence\ndoc: d.\n";
 		GeneratorRun run = roslyn.Run(("a.cheatengine-sdk-api.txt", SpecSources.Memory),
 			("b.cheatengine-sdk-api.txt", optional));
 		Assert.Equal(2, run.GeneratedSources.Length);
@@ -155,7 +155,7 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 		foreach (string stepName in EngineApiTrackingNames.All)
 		{
 			if (string.Equals(stepName, EngineApiTrackingNames.SpecTextFile, StringComparison.Ordinal))
-				// Legitimately holds the raw AdditionalText: that is the point of this filter step.
+			// Legitimately holds the raw AdditionalText: that is the point of this filter step.
 			{
 				continue;
 			}

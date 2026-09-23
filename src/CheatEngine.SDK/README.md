@@ -128,13 +128,13 @@ graph with Native AOT. A successful probe establishes only the analysed graph an
 Cheat Engine plugin and says nothing about whether CE can host or unload a Native AOT artifact. **A NativeAOT publish
 success is never a Cheat Engine load success.**
 
-| Profile                                                               | Status                          |
-|-----------------------------------------------------------------------|---------------------------------|
-| Historical CLR route (`MSCorEE.dll` hosting, string entry point)      | Documentary only, not supported |
-| Managed hostfxr route (`CESDK.CESDK.CEPluginInitialize(IntPtr, int)`) | The only supported profile      |
-| NativeAOT plugin DLL                                                  | Not supported                   |
-| Classic native plugin exporting `CEPlugin_*`                          | Not provided by the SDK         |
-| x86 or ARM64 host                                                     | Not supported                   |
+| Profile | Status |
+|---|---|
+| Historical CLR route (`MSCorEE.dll` hosting, string entry point) | Documentary only, not supported |
+| Managed hostfxr route (`CESDK.CESDK.CEPluginInitialize(IntPtr, int)`) | The only supported profile |
+| NativeAOT plugin DLL | Not supported |
+| Classic native plugin exporting `CEPlugin_*` | Not provided by the SDK |
+| x86 or ARM64 host | Not supported |
 
 Cheat Engine's native loader removes a plugin with
 `FreeLibrary`,

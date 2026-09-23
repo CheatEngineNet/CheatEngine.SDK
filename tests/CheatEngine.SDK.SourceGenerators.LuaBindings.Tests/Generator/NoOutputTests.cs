@@ -461,8 +461,8 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void Generator_non_trailing_optional_argument_emits_nothing()
 	{
 		const string Source = "using CheatEngine.SDK.Annotations.Lua;\nusing CheatEngine.SDK.Lua.Marshalling;\n" +
-		                      "namespace Demo; public static partial class T { [LuaGlobal(\"g\")] public static partial int G(LuaOptional<int> a, int b); " +
-		                      "[LuaFunction(\"f\")] public static int F(LuaOptional<int> a, long b) => 0; }";
+							  "namespace Demo; public static partial class T { [LuaGlobal(\"g\")] public static partial int G(LuaOptional<int> a, int b); " +
+							  "[LuaFunction(\"f\")] public static int F(LuaOptional<int> a, long b) => 0; }";
 
 		roslyn.Run(Source).AssertNoOutput();
 	}
@@ -562,7 +562,7 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void Generator_no_attribute_emits_nothing()
 	{
 		GeneratorRun run = roslyn.Run(Usings +
-		                              "public static partial class T { public static int F(int a) => a; public static partial int G(int a); public static partial int G(int a) => a; }");
+									  "public static partial class T { public static int F(int a) => a; public static partial int G(int a); public static partial int G(int a) => a; }");
 
 		run.AssertNoOutput();
 	}
@@ -575,7 +575,7 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 		foreach (MetadataReference reference in roslyn.Environment.SdkReferences)
 		{
 			if (string.Equals(reference.Display, typeof(LuaState).Assembly.Location,
-				    StringComparison.OrdinalIgnoreCase))
+					StringComparison.OrdinalIgnoreCase))
 			{
 				continue;
 			}
@@ -729,8 +729,8 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	{
 		int count = 0;
 		for (int index = text.IndexOf(needle, StringComparison.Ordinal);
-		     index >= 0;
-		     index = text.IndexOf(needle, index + needle.Length, StringComparison.Ordinal))
+			 index >= 0;
+			 index = text.IndexOf(needle, index + needle.Length, StringComparison.Ordinal))
 		{
 			count++;
 		}

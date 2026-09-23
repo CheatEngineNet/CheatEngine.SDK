@@ -57,8 +57,8 @@ internal static class PluginClassRewriter
 		// 'private protected' and 'protected internal' are two keywords: drop the second one, but not what the
 		// author wrote around it. Its comments move behind the modifier in front of it, which always exists.
 		for (int next = IndexOfAccessibility(modifiers, first + 1);
-		     next >= 0;
-		     next = IndexOfAccessibility(modifiers, next))
+			 next >= 0;
+			 next = IndexOfAccessibility(modifiers, next))
 		{
 			SyntaxToken dropped = modifiers[next];
 			SyntaxToken previous = modifiers[next - 1];
@@ -79,7 +79,7 @@ internal static class PluginClassRewriter
 		foreach (SyntaxTrivia item in trivia)
 		{
 			if (kept.Count > 0 ||
-			    !(item.IsKind(SyntaxKind.WhitespaceTrivia) || item.IsKind(SyntaxKind.EndOfLineTrivia)))
+				!(item.IsKind(SyntaxKind.WhitespaceTrivia) || item.IsKind(SyntaxKind.EndOfLineTrivia)))
 			{
 				kept = kept.Add(item);
 			}
@@ -111,7 +111,7 @@ internal static class PluginClassRewriter
 		for (int index = start; index < modifiers.Count; index++)
 		{
 			if (modifiers[index].Kind() is SyntaxKind.PublicKeyword or SyntaxKind.InternalKeyword
-			    or SyntaxKind.ProtectedKeyword or SyntaxKind.PrivateKeyword)
+				or SyntaxKind.ProtectedKeyword or SyntaxKind.PrivateKeyword)
 			{
 				return index;
 			}

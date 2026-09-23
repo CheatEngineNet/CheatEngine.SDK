@@ -10,6 +10,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
+$script:SignatureEntry = '.signature.p7s'
 $script:FingerprintPattern = '[0-9a-f]{64}:[0-9a-f]{64}'
 $script:AbsoluteLocalPathPattern = '[A-Za-z]:\\|\\Users\\|/home/|/Users/|file://'
 
@@ -22,7 +23,7 @@ function Get-Sha256Hex {
     [Parameter(Mandatory, ParameterSetName = 'Bytes')] [AllowEmptyCollection()] [byte[]] $Bytes
   )
   if ($PSCmdlet.ParameterSetName -eq 'Path') { $Bytes = [IO.File]::ReadAllBytes($Path) }
-  return [Convert]::ToHexStringLower([Security.Cryptography.SHA256]::HashData($Bytes))
+  return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($Bytes)).ToLowerInvariant()
 }
 
 function Get-Sha512Base64 {
@@ -236,8 +237,187 @@ function ConvertFrom-Sha256SumsText {
   return $result
 }
 
+function Compare-SignedPackageContent {
+  <#
+  .SYNOPSIS
+  Compares the repository-signed nuget.org copy with the attested unsigned package: the signed copy must hold exactly
+  the attested entries plus '.signature.p7s', and every common entry must be byte-identical.
+  #>
+  [CmdletBinding()]
+  [OutputType([pscustomobject])]
+  param(
+    [Parameter(Mandatory)] [string] $AttestedPath,
+    [Parameter(Mandatory)] [string] $SignedPath
+  )
+  $attested = Get-ZipEntryHashTable -Path $AttestedPath
+  $signed = Get-ZipEntryHashTable -Path $SignedPath
+  $missing = [Collections.Generic.List[string]]::new()
+  $changed = [Collections.Generic.List[string]]::new()
+  $unexpected = [Collections.Generic.List[string]]::new()
+  foreach ($name in $attested.Keys) {
+    if (-not $signed.ContainsKey($name)) { $missing.Add($name) }
+    elseif ($signed[$name] -cne $attested[$name]) { $changed.Add($name) }
+  }
+  foreach ($name in $signed.Keys) {
+    if (-not $attested.ContainsKey($name) -and $name -cne $script:SignatureEntry) { $unexpected.Add($name) }
+  }
+  $hasSignature = $signed.ContainsKey($script:SignatureEntry)
+  return [pscustomobject]@{
+    IsMatch      = ($missing.Count -eq 0) -and ($changed.Count -eq 0) -and ($unexpected.Count -eq 0) -and $hasSignature
+    HasSignature = $hasSignature
+    Missing      = $missing.ToArray()
+    Changed      = $changed.ToArray()
+    Unexpected   = $unexpected.ToArray()
+    Compared     = $attested.Count
+  }
+}
+
+function Get-ZipEntryHashTable {
+  <# .SYNOPSIS Entry name -> SHA-256 of its bytes, ordinal keys. #>
+  [CmdletBinding()]
+  [OutputType([Collections.Generic.Dictionary[string, string]])]
+  param([Parameter(Mandatory)] [string] $Path)
+  $hashes = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
+  $archive = [IO.Compression.ZipFile]::OpenRead($Path)
+  try {
+    foreach ($entry in $archive.Entries) {
+      $stream = $entry.Open()
+      try {
+        $hashes[$entry.FullName] = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($stream)).ToLowerInvariant()
+      }
+      finally {
+        $stream.Dispose()
+      }
+    }
+  }
+  finally {
+    $archive.Dispose()
+  }
+  return , $hashes
+}
+
+function Test-VerifyOutputContainsContentHash {
+  <#
+  .SYNOPSIS
+  Whether 'dotnet nuget verify' output names the expected content hash as a whole base64 token. The label around it is
+  localized ('Content hash', 'Hachage du contenu', ...), so only the value is checked.
+  #>
+  [CmdletBinding()]
+  [OutputType([bool])]
+  param(
+    [Parameter(Mandatory)] [AllowEmptyString()] [string] $Output,
+    [Parameter(Mandatory)] [string] $ContentHash
+  )
+  if ($ContentHash -cnotmatch '^[A-Za-z0-9+/]{86}==$') { throw "'$ContentHash' is not a base64 SHA-512." }
+  $pattern = '(?<![A-Za-z0-9+/=])' + [regex]::Escape($ContentHash) + '(?![A-Za-z0-9+/=])'
+  return [regex]::IsMatch($Output, $pattern)
+}
+
+function Get-ReleaseAssetPlan {
+  <#
+  .SYNOPSIS
+  Decides what the draft-release job may do with the GitHub release of a tag. No release: create a draft with every
+  asset. A draft: upload the missing assets and replace only -ReplaceableName when it differs; any other difference
+  needs a human. A published release: never upload; it is fine only when every asset except -ReplaceableName is present
+  with the same SHA-256.
+  .PARAMETER LocalAsset
+  Asset name -> SHA-256 (lowercase hex) of the files this run produced.
+  .PARAMETER Release
+  The parsed 'gh release view <tag> --json isDraft,assets' object, or $null when the tag has no release.
+  #>
+  [CmdletBinding()]
+  [OutputType([pscustomobject])]
+  param(
+    [Parameter(Mandatory)] [Collections.IDictionary] $LocalAsset,
+    [Parameter(Mandatory)] [AllowNull()] [object] $Release,
+    [Parameter(Mandatory)] [string] $ReplaceableName
+  )
+  $names = [string[]]@($LocalAsset.Keys)
+  [Array]::Sort($names, [StringComparer]::Ordinal)
+  $upload = [Collections.Generic.List[string]]::new()
+  $replace = [Collections.Generic.List[string]]::new()
+  $problems = [Collections.Generic.List[string]]::new()
+
+  if ($null -eq $Release) {
+    return [pscustomobject]@{ Action = 'Create'; Upload = $names; Replace = @(); Problems = @() }
+  }
+
+  $remote = @{}
+  foreach ($asset in @(Get-JsonValue -InputObject $Release -Name 'assets')) {
+    if ($null -eq $asset) { continue }
+    $digest = [string](Get-JsonValue -InputObject $asset -Name 'digest')
+    $remote[[string](Get-JsonValue -InputObject $asset -Name 'name' -Required)] =
+      if ($digest -cmatch '^sha256:[0-9a-f]{64}$') { $digest.Substring(7) } else { '' }
+  }
+  $isDraft = [bool](Get-JsonValue -InputObject $Release -Name 'isDraft')
+
+  foreach ($name in $names) {
+    $expected = [string]$LocalAsset[$name]
+    $isReplaceable = [string]::Equals($name, $ReplaceableName, [StringComparison]::Ordinal)
+    if (-not $remote.ContainsKey($name)) {
+      if ($isDraft) { $upload.Add($name) }
+      elseif (-not $isReplaceable) { $problems.Add("the published release has no '$name'") }
+      continue
+    }
+    $actual = [string]$remote[$name]
+    if ($actual -ceq $expected) { continue }
+    if ($isReplaceable) {
+      if ($isDraft) { $replace.Add($name) }
+      continue
+    }
+    $shown = if ($actual) { $actual } else { 'no digest' }
+    $problems.Add("'$name' on the release has SHA-256 $shown, this run produced $expected")
+  }
+
+  # A refusal carries no action at all: a maintainer decides, nothing is half-uploaded first.
+  if ($problems.Count -gt 0) {
+    return [pscustomobject]@{ Action = 'Refuse'; Upload = @(); Replace = @(); Problems = $problems.ToArray() }
+  }
+  $action = if ($isDraft) { 'Complete' } else { 'AlreadyPublished' }
+  return [pscustomobject]@{ Action = $action; Upload = $upload.ToArray(); Replace = $replace.ToArray(); Problems = @() }
+}
+
+function Select-ReleasePullRequest {
+  <#
+  .SYNOPSIS
+  Picks the pull request the release tuple names for a commit, from the parsed 'GET /repos/{repo}/commits/{sha}/pulls'
+  answer. A tag points to the squash (merge) commit on main, so the pull request whose merge_commit_sha is the commit
+  wins; a dry run from a branch has no merged pull request, so the single pull request whose head is the commit is used
+  instead. Anything ambiguous or absent gives $null: the tuple then records no pull request, never a guessed one.
+  #>
+  [CmdletBinding()]
+  [OutputType([pscustomobject])]
+  param(
+    [Parameter(Mandatory)] [AllowNull()] [AllowEmptyCollection()] [object[]] $PullRequest,
+    [Parameter(Mandatory)] [string] $Commit
+  )
+  if ($Commit -cnotmatch '^[0-9a-f]{40}$') { throw "'$Commit' is not a 40-hex commit." }
+  $merged = [Collections.Generic.List[object]]::new()
+  $headed = [Collections.Generic.List[object]]::new()
+  foreach ($candidate in @($PullRequest)) {
+    if ($null -eq $candidate) { continue }
+    $mergedAt = [string](Get-JsonValue -InputObject $candidate -Name 'merged_at')
+    if ($mergedAt -and [string](Get-JsonValue -InputObject $candidate -Name 'merge_commit_sha') -ceq $Commit) { $merged.Add($candidate) }
+    elseif ([string](Get-JsonValue -InputObject $candidate -Name 'head.sha') -ceq $Commit) { $headed.Add($candidate) }
+  }
+  $chosen = if ($merged.Count -eq 1) { $merged[0] } elseif ($merged.Count -eq 0 -and $headed.Count -eq 1) { $headed[0] } else { $null }
+  if ($null -eq $chosen) { return $null }
+
+  $number = [string](Get-JsonValue -InputObject $chosen -Name 'number')
+  $headSha = [string](Get-JsonValue -InputObject $chosen -Name 'head.sha')
+  if ($number -cnotmatch '^[1-9][0-9]*$' -or $headSha -cnotmatch '^[0-9a-f]{40}$') {
+    throw 'The pull request of the commit has no valid number or head SHA.'
+  }
+  return [pscustomobject]@{
+    Number  = $number
+    HeadSha = $headSha
+    Merged  = $merged.Count -eq 1
+  }
+}
+
 Export-ModuleMember -Function @(
   'Get-Sha256Hex', 'Get-Sha512Base64', 'Get-NormalizedTextSha256', 'Get-ZipEntryName', 'Read-ZipEntry',
   'Get-NuspecIdentity', 'Get-BridgeSourceFingerprint', 'Get-JsonValue', 'ConvertTo-ReleaseJson', 'Write-Utf8File',
-  'Test-AbsoluteLocalPath', 'ConvertTo-Sha256SumsText', 'ConvertFrom-Sha256SumsText'
+  'Test-AbsoluteLocalPath', 'ConvertTo-Sha256SumsText', 'ConvertFrom-Sha256SumsText', 'Compare-SignedPackageContent',
+  'Test-VerifyOutputContainsContentHash', 'Get-ReleaseAssetPlan', 'Select-ReleasePullRequest'
 )

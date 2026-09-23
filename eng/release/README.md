@@ -8,16 +8,30 @@ synthetic inputs and on the package under test.
 
 ## Scripts
 
-| File | What it does |
-|------|--------------|
-| `ReleaseTools.psm1` | Pure functions shared by the scripts: hashes, zip entries, nuspec identity, bridge fingerprint, `SHA256SUMS` text, JSON writing. No environment, network or step-summary access. |
-| `Export-PackageSbom.ps1` | Extracts `_manifest/spdx_2.2/manifest.spdx.json` from the nupkg byte for byte. Fails when it is absent, is not `SPDX-2.2`, or disagrees with the `.sha256` file the SBOM tool writes next to it. |
-| `New-Sha256Sums.ps1` | Writes `SHA256SUMS`: `<sha256>  <name>` per asset, ordinal order, LF, final newline, UTF-8 without BOM, the format `sha256sum -c` reads. |
-| `New-ReleaseTuple.ps1` | Writes `CheatEngine.SDK.<version>.tuple.json` (schema [`release-tuple.v0.schema.json`](release-tuple.v0.schema.json)), `PrePublish` or `Published`. |
-| `release-tuple.v0.schema.json` | JSON Schema (draft 2020-12) of the tuple. `ReleaseTupleSchemaTests` keeps it equal to the C# validator the tests use. |
+| File | What it does | Runs in `release.yml` |
+|------|--------------|-----------------------|
+| `ReleaseTools.psm1` | Pure functions shared by the scripts and the workflow: hashes, zip entries, nuspec identity, bridge fingerprint, `SHA256SUMS` text, JSON writing, the signed-copy comparison, the draft-release asset plan and the pull request lookup. No environment, network or step-summary access. | every job below |
+| `Export-PackageSbom.ps1` | Extracts `_manifest/spdx_2.2/manifest.spdx.json` from the nupkg byte for byte. Fails when it is absent, is not `SPDX-2.2`, or disagrees with the `.sha256` file the SBOM tool writes next to it. | `attest` |
+| `New-Sha256Sums.ps1` | Writes `SHA256SUMS`: `<sha256>  <name>` per asset, ordinal order, LF, final newline, UTF-8 without BOM, the format `sha256sum -c` reads. | `attest` |
+| `New-ReleaseTuple.ps1` | Writes `CheatEngine.SDK.<version>.tuple.json` (schema [`release-tuple.v0.schema.json`](release-tuple.v0.schema.json)), `PrePublish` or `Published`. | `attest` (`PrePublish`), `finalize-release` (`Published`) |
+| `Test-PublishedPackage.ps1` | Polls the nuget.org flat container (resolved from the service index) until the version is listed, downloads the repository-signed file, runs `dotnet nuget verify --all` on it, checks that it reports the content hash of the attested package and a nuget.org repository signature, and that the signed copy is the attested package plus `.signature.p7s`, every other entry byte-identical. Writes the signed SHA-256 and SHA-512. | `verify-publication` |
+| `release-tuple.v0.schema.json` | JSON Schema (draft 2020-12) of the tuple. `ReleaseTupleSchemaTests` keeps it equal to the C# validator the tests use. | — |
 
 Every script fails with a single `::error::` line, which is also an annotation on the workflow run, and writes no
-absolute local path into any file it produces.
+absolute local path into any file it produces. `Test-PublishedPackage.ps1` never runs `dotnet nuget verify` on the
+unsigned CI package: an unsigned package has no signature to verify
+([NU3004](https://learn.microsoft.com/nuget/reference/errors-and-warnings/nu3004)).
+
+## How the jobs hand the assets over
+
+| Job | Reads | Produces |
+|-----|-------|----------|
+| `ci` (`ci.yml`) | the tag | `nuget-package` (the one nupkg the Release leg packed and tested), `build-info` |
+| `attest` | `nuget-package`, `build-info`, the checkout | the SBOM, the two attestation bundles (tag runs only), `SHA256SUMS` and the `PrePublish` tuple, uploaded as `attestation-bundles` (never a second copy of the nupkg) |
+| `draft-release` | `nuget-package`, `attestation-bundles`, `release-notes` | the draft release with every asset; on a re-run, only the missing assets (only the tuple may be replaced) |
+| `publish` | `nuget-package`, `attestation-bundles` | the push of the nupkg whose SHA-256 `SHA256SUMS` lists |
+| `verify-publication` | `nuget-package`, nuget.org | the nuget.org repository-signed SHA-256 and SHA-512 (job outputs) |
+| `finalize-release` | `nuget-package`, `attestation-bundles`, `build-info` | the `Published` tuple and its attestation bundle on the draft, then the published release, verified as downloaded |
 
 ## Release assets
 

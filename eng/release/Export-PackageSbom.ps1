@@ -63,3 +63,4 @@ $directory = [IO.Path]::GetDirectoryName($OutputPath)
 [void][IO.Directory]::CreateDirectory($directory)
 [IO.File]::WriteAllBytes($OutputPath, $sbom)
 Write-Host "Exported the $spdxVersion SBOM of $packageFile ($sha256) to $([IO.Path]::GetFileName($OutputPath))."
+exit 0

@@ -33,10 +33,12 @@ internal static class PowerShellScript
 	/// </summary>
 	public static Task<ProcessResult> RunWithReleaseToolsAsync(string command)
 	{
-		string script = "$ErrorActionPreference = 'Stop'; Set-StrictMode -Version Latest; " +
+		string script = "$ErrorActionPreference = 'Stop'; Set-StrictMode -Version Latest; $PSStyle.OutputRendering = 'PlainText'; " +
 						$"Import-Module {Literal(ReleaseToolsModule)}; {command}";
 		string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
-		return RunAsync(["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded]);
+
+		// -OutputFormat Text: without it, an -EncodedCommand run reports errors on stderr as CLIXML, unreadable in a failure.
+		return RunAsync(["-NoLogo", "-NoProfile", "-NonInteractive", "-OutputFormat", "Text", "-EncodedCommand", encoded]);
 	}
 
 	/// <summary>A single-quoted PowerShell string literal of <paramref name="value" />.</summary>

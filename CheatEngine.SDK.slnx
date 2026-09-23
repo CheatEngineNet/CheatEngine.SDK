@@ -115,6 +115,7 @@
     <File Path="eng/release/README.md"/>
     <File Path="eng/release/release-tuple.v0.schema.json"/>
     <File Path="eng/release/ReleaseTools.psm1"/>
+    <File Path="eng/release/Test-PublishedPackage.ps1"/>
   </Folder>
   <Folder Name="/docs/">
     <File Path="docs/README.md"/>

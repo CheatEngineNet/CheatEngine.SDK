@@ -323,3 +323,4 @@ if ($env:GITHUB_STEP_SUMMARY) {
     ''
   ) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 }
+exit 0

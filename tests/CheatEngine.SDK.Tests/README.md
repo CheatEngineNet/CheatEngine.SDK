@@ -198,3 +198,12 @@ the TRX report names the file the facts are about.
   (`Sha256SumsScriptTests`).
 - On the package under test, the SBOM export, `SHA256SUMS` and a `PrePublish` tuple succeed and describe that exact file
   (`Pre_publish_tuple_of_the_package_under_test_is_valid`).
+- The post-publication check accepts nuget.org's copy only when it is the attested package plus `.signature.p7s`, every
+  other entry byte-identical, and rejects a changed, missing or extra entry and a copy without a signature; the content
+  hash is found in `dotnet nuget verify` output by its value, whatever the language of the label around it
+  (`PublishedPackageComparisonTests`).
+- The draft-release plan creates a draft with every asset for a new tag, completes a draft with its missing assets and
+  replaces only the tuple, leaves a published release that already carries the same assets untouched, and never
+  uploads to a published release or past a differing asset (`ReleaseAssetPlanTests`).
+- The tuple names the pull request squash-merged as the released commit, or on a dry run the single pull request that
+  commit heads, and records none when the answer is absent, ambiguous or unrelated (`ReleasePullRequestSelectionTests`).

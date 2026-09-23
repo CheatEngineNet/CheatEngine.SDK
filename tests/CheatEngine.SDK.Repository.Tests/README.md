@@ -25,6 +25,7 @@ health-check rules, the repository-settings plan) against test vectors, offline.
 | `PublicApi/` | PublicAPI files, `CompatibilitySuppressions.xml` and the `eng/api/*.txt` lists: file shape, declared breaks, Client-induced breaks, enum contracts. |
 | `Workflows/` | `WorkflowContractTests` parse `.github/workflows/*.yml` and the composite actions with YamlDotNet and freeze the CI contract; `CoverageBaselineTests`, `BuildInfoSchemaTests` and `ClientCanaryScriptTests` check the files and scripts of `eng/ci/` that CI runs. |
 | `Governance/` | Pull request policy script and workflow, CodeQL/Scorecard/zizmor/dependency-submission/scheduled-health workflow invariants, Dependabot, CODEOWNERS, SECURITY.md, issue forms and repository-settings payloads. |
+| `Release/` | `ReleaseWorkflowContractTests` reads `.github/workflows/release.yml`: the draft-first job chain, tag guards, write scopes, trusted publishing placement and the reserved artifact names. |
 
 Later work adds one folder per contract (for example `Documentation/`, `Workflows/`, `Qualification/`).
 
@@ -272,6 +273,25 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
 - Every PowerShell script and module under `eng/ci` and `eng/github` parses: PSScriptAnalyzer's `Error, Warning`
   profile does not report syntax errors, and most of these scripts run only weekly or after merge
   (`GovernanceScriptSyntaxTests`: `Every_governance_script_parses_without_errors`).
+- The release workflow is draft-first (`verify → ci → attest → draft-release → publish → verify-publication →
+  finalize-release`), runs for `v*.*.*` tags and manual dry runs without cancelling a run in progress, and calls `ci.yml`
+  with the tag version, a 90-day retention and no Sonar (`Release_jobs_form_the_draft_first_chain`,
+  `Release_runs_for_version_tags_and_manual_dry_runs_without_cancelling`,
+  `Release_calls_ci_with_the_tag_version_ninety_day_retention_and_no_sonar`).
+- Publication jobs and every attestation step run only for tags of this repository; the attest job attests the package
+  provenance and its SPDX 2.2 SBOM; only `publish` uses the `nuget` environment, with the NuGet login right before the
+  push; `id-token`, `attestations` and `contents` write scopes are limited to the jobs that need them
+  (`Publication_jobs_run_only_for_tags_of_this_repository`, `Attest_job_attests_the_package_provenance_and_its_spdx_2_2_sbom`,
+  `Only_the_publish_job_uses_the_nuget_environment_and_nuget_login`, `Id_token_write_is_limited_to_attest_publish_and_finalize`,
+  `Contents_write_is_limited_to_draft_release_and_finalize_release`).
+- The release is created as a draft by `draft-release` only and published by `finalize-release` only, after
+  `verify-publication` checked nuget.org; the published tuple takes the nuget.org identities from that job, and the
+  package is checked against `SHA256SUMS` before the push (`Release_is_created_as_a_draft_and_published_only_by_finalize`,
+  `Publication_is_verified_on_nuget_org_before_the_release_is_published`).
+- Release jobs use pinned runners with timeouts, upload only `release-notes` and `attestation-bundles` (never a second
+  copy of the nupkg), and install the pinned SDK without a package cache where they run `dotnet`
+  (`Release_jobs_have_a_timeout_and_a_pinned_runner`, `Release_uploads_only_reserved_artifact_names`,
+  `Release_jobs_that_run_dotnet_install_the_pinned_sdk_and_never_cache_packages`).
 
 ## Run the tests
 

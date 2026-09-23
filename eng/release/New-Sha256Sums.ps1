@@ -57,3 +57,4 @@ foreach ($asset in $names) {
 
 Write-Utf8File -Path $OutputPath -Content (ConvertTo-Sha256SumsText -Hashes $hashes)
 Write-Host "Wrote $($hashes.Count) checksum(s) to $([IO.Path]::GetFileName($OutputPath))."
+exit 0

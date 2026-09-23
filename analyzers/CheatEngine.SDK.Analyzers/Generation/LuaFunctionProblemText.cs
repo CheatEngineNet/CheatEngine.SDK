@@ -1,6 +1,9 @@
 using System.Collections.Immutable;
 
+using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Model;
+
+using Microsoft.CodeAnalysis;
 
 namespace CheatEngine.SDK.Analyzers.Generation;
 
@@ -29,8 +32,26 @@ internal static class LuaFunctionProblemText
 		LuaFunctionShapeIssues.StateParameterNotFirst,
 		LuaFunctionShapeIssues.UnsupportedParameterType,
 		LuaFunctionShapeIssues.UnsupportedReturnType,
-		LuaFunctionShapeIssues.DuplicateName
+		LuaFunctionShapeIssues.DuplicateName,
+		LuaFunctionShapeIssues.OptionalArgumentNotTrailing,
+		LuaFunctionShapeIssues.LookAlikeContractType,
+		LuaFunctionShapeIssues.OptionalNotSupportedHere
 	];
+
+	/// <summary>
+	///     The rule that reports <paramref name="problem" /> for one method: CESDK2010, CESDK2012 or CESDK2013 for the
+	///     optional and contract-identity flags, CESDK2003 for every other local flag.
+	/// </summary>
+	public static DiagnosticDescriptor DescriptorFor(LuaFunctionShapeIssues problem)
+	{
+		return problem switch
+		{
+			LuaFunctionShapeIssues.OptionalArgumentNotTrailing => DiagnosticDescriptors.NonTrailingOptionalLuaArgument,
+			LuaFunctionShapeIssues.LookAlikeContractType => DiagnosticDescriptors.LookAlikeLuaContractType,
+			LuaFunctionShapeIssues.OptionalNotSupportedHere => DiagnosticDescriptors.UnsupportedLuaOptionalPosition,
+			_ => DiagnosticDescriptors.InvalidLuaFunction
+		};
+	}
 
 	/// <summary>Returns the message fragment of a single flag.</summary>
 	public static string Describe(LuaFunctionShapeIssues problem)
@@ -59,6 +80,12 @@ internal static class LuaFunctionProblemText
 				"must return void or a type a marshaller pushes: int, long, float, double, bool, nuint, ReadOnlySpan<byte> or string",
 			LuaFunctionShapeIssues.DuplicateName =>
 				"must not share its Lua name with another [LuaFunction] of the same containing type: one registration table cannot bind a name twice",
+			LuaFunctionShapeIssues.OptionalArgumentNotTrailing =>
+				"must declare every LuaOptional<T> parameter after the required ones: only trailing Lua arguments can be absent",
+			LuaFunctionShapeIssues.LookAlikeContractType =>
+				"must use the LuaOptional<T> type of CheatEngine.SDK.Lua, not a same-named type from source or another assembly",
+			LuaFunctionShapeIssues.OptionalNotSupportedHere =>
+				"must use LuaOptional<T> only for a parameter, with T one of int, long, float, double, bool, nuint or string (never string?, a custom-marshalled or nested type, or with [LuaMarshaller]); a thunk cannot return one",
 			_ => "cannot be exported by a generated thunk"
 		};
 	}

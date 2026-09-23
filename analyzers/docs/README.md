@@ -28,6 +28,10 @@ separate EngineApi generator owns
 | [CESDK2005](CESDK2005.md) | Lua function name is duplicated                                  | Error    | Give one valid export a distinct Lua name                                                    |
 | [CESDK2006](CESDK2006.md) | Lua annotation target cannot receive generated code              | Error    | Declare the supported borrowed-handle/member shape                                           |
 | [CESDK2007](CESDK2007.md) | User member collides with a generated Lua binding identity       | Error    | Rename the member or change the binding declaration                                          |
+| [CESDK2010](CESDK2010.md) | Optional Lua argument is not in a trailing run                   | Error    | Declare optional arguments after the required ones                                           |
+| [CESDK2011](CESDK2011.md) | Optional or variadic Lua result shape is invalid                 | Error    | Required, then optional results; one variadic pair last                                      |
+| [CESDK2012](CESDK2012.md) | Type impersonates an SDK Lua contract type                       | Error    | Use the CheatEngine.SDK.Lua type                                                             |
+| [CESDK2013](CESDK2013.md) | LuaOptional is not supported in this position                    | Error    | Use an argument or an `out` result of a supported kind                                       |
 
 Configure a rule like any other analyzer diagnostic:
 

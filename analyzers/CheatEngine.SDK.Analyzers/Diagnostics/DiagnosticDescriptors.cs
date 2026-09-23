@@ -231,4 +231,57 @@ internal static class DiagnosticDescriptors
 		+ "handle members. A source declaration with the same identity prevents compilation. This rule identifies the user "
 		+ "declaration before generated code is emitted.",
 		HelpLinkBase + DiagnosticIds.GeneratedLuaIdentityCollision + ".md");
+
+	/// <summary>CESDK2010. Message arguments: the method name, then the sentence fragment describing the problem.</summary>
+	public static readonly DiagnosticDescriptor NonTrailingOptionalLuaArgument = new(
+		DiagnosticIds.NonTrailingOptionalLuaArgument,
+		"Optional Lua argument is not in a trailing run",
+		"Lua binding '{0}' {1}",
+		DiagnosticCategories.Generation,
+		DiagnosticSeverity.Error,
+		true,
+		"A LuaOptional<T> argument of a [LuaGlobal] or [LuaFunction] binding can be omitted, and Lua cannot receive an argument "
+		+ "after an absent one. Every required argument therefore comes before the first optional one. The generator emits "
+		+ "nothing for a declaration that breaks this rule.",
+		HelpLinkBase + DiagnosticIds.NonTrailingOptionalLuaArgument + ".md");
+
+	/// <summary>CESDK2011. Message arguments: the method name, then the sentence fragment describing the problem.</summary>
+	public static readonly DiagnosticDescriptor InvalidOptionalOrVariadicLuaResult = new(
+		DiagnosticIds.InvalidOptionalOrVariadicLuaResult,
+		"Optional or variadic Lua result shape is invalid",
+		"Lua global binding '{0}' {1}",
+		DiagnosticCategories.Generation,
+		DiagnosticSeverity.Error,
+		true,
+		"The results of a [LuaGlobal] binding are read in order: required results, then 'out LuaOptional<T>' results, then at "
+		+ "most one variadic 'Span<T> values, out int count' pair of int, long, float, double, bool or nuint, declared last "
+		+ "and only on the form that returns LuaOperationStatus. The generator emits nothing for another result order or shape.",
+		HelpLinkBase + DiagnosticIds.InvalidOptionalOrVariadicLuaResult + ".md");
+
+	/// <summary>CESDK2012. Message arguments: the member name, then the sentence fragment describing the problem.</summary>
+	public static readonly DiagnosticDescriptor LookAlikeLuaContractType = new(
+		DiagnosticIds.LookAlikeLuaContractType,
+		"Type impersonates an SDK Lua contract type",
+		"Lua binding '{0}' {1}",
+		DiagnosticCategories.Generation,
+		DiagnosticSeverity.Error,
+		true,
+		"LuaOptional<T> and LuaOperationStatus are contracts of the CheatEngine.SDK.Lua assembly. A type with the same namespace, "
+		+ "name and arity declared in source or in another assembly is not that contract, so the generator never selects the "
+		+ "optional or outcome shape for it and emits nothing for the declaration.",
+		HelpLinkBase + DiagnosticIds.LookAlikeLuaContractType + ".md");
+
+	/// <summary>CESDK2013. Message arguments: the member name, then the sentence fragment describing the problem.</summary>
+	public static readonly DiagnosticDescriptor UnsupportedLuaOptionalPosition = new(
+		DiagnosticIds.UnsupportedLuaOptionalPosition,
+		"LuaOptional is not supported in this position",
+		"Lua binding '{0}' {1}",
+		DiagnosticCategories.Generation,
+		DiagnosticSeverity.Error,
+		true,
+		"LuaOptional<T> is supported for a [LuaGlobal] argument or 'out' result and for a [LuaFunction] parameter, with T one of "
+		+ "int, long, float, double, bool, nuint or string. It is not supported as a return value, on [LuaMethod] or "
+		+ "[LuaProperty] members, with string?, a custom-marshalled or nested type argument, or together with [LuaMarshaller]. "
+		+ "The generator emits nothing for such a member.",
+		HelpLinkBase + DiagnosticIds.UnsupportedLuaOptionalPosition + ".md");
 }

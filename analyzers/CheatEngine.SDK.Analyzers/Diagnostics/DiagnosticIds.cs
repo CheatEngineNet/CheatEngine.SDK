@@ -61,4 +61,16 @@ public static class DiagnosticIds
 
 	/// <summary>A user declaration collides with a member that a Lua binding generator must emit.</summary>
 	public const string GeneratedLuaIdentityCollision = "CESDK2007";
+
+	/// <summary>A <c>LuaOptional&lt;T&gt;</c> argument of a Lua binding is followed by a required argument.</summary>
+	public const string NonTrailingOptionalLuaArgument = "CESDK2010";
+
+	/// <summary>The optional or variadic results of a <c>[LuaGlobal]</c> binding do not have a valid shape.</summary>
+	public const string InvalidOptionalOrVariadicLuaResult = "CESDK2011";
+
+	/// <summary>A binding names a type that has the metadata name of an SDK Lua contract type but is not that type.</summary>
+	public const string LookAlikeLuaContractType = "CESDK2012";
+
+	/// <summary><c>LuaOptional&lt;T&gt;</c> is used in a position or with a type argument that is not supported.</summary>
+	public const string UnsupportedLuaOptionalPosition = "CESDK2013";
 }

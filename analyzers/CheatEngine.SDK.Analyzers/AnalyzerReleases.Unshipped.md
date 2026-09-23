@@ -13,3 +13,7 @@
  CESDK2005 | CheatEngine.SDK.Generation | Error    | LuaBindingAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK2005.md)
  CESDK2006 | CheatEngine.SDK.Generation | Error    | LuaBindingAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK2006.md)
  CESDK2007 | CheatEngine.SDK.Generation | Error    | LuaBindingAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK2007.md)
+ CESDK2010 | CheatEngine.SDK.Generation | Error    | LuaBindingAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK2010.md)
+ CESDK2011 | CheatEngine.SDK.Generation | Error    | LuaBindingAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK2011.md)
+ CESDK2012 | CheatEngine.SDK.Generation | Error    | LuaBindingAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK2012.md)
+ CESDK2013 | CheatEngine.SDK.Generation | Error    | LuaBindingAnalyzer, [Documentation](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/CESDK2013.md)

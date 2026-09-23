@@ -284,6 +284,72 @@ public sealed class LuaFunctionEndToEndTests(RoslynFixture roslyn) : IClassFixtu
 		});
 	}
 
+	[Fact]
+	public void Optional_argument_reads_absent_as_omitted_and_nil_as_nil()
+	{
+		LuaTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		LuaState L = LuaTest.View(state);
+		using RuntimeScope scope = new(state);
+		RegisterOptional(GeneratedAssembly.Load(roslyn.Run(OptionalBindingSources.FunctionSuite)), L);
+
+		Assert.Equal("1|omitted|omitted", LuaTest.RunForString(L, "return optdescribe(1)"u8));
+		Assert.Equal("1|nil|omitted", LuaTest.RunForString(L, "return optdescribe(1, nil)"u8));
+		Assert.Equal("1|nil|nil", LuaTest.RunForString(L, "return optdescribe(1, nil, nil)"u8));
+		Assert.Equal("1|2|x", LuaTest.RunForString(L, "return optdescribe(1, 2, 'x')"u8));
+		Assert.Equal("omitted", LuaTest.RunForString(L, "return optflag()"u8));
+		Assert.Equal("yes", LuaTest.RunForString(L, "return optflag(true)"u8));
+		Assert.Equal("no", LuaTest.RunForString(L, "return optflag(false)"u8));
+		Assert.Equal("nil", LuaTest.RunForString(L, "return optflag(nil)"u8));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	public void Optional_argument_count_outside_the_accepted_range_names_the_range()
+	{
+		LuaTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		LuaState L = LuaTest.View(state);
+		using RuntimeScope scope = new(state);
+		RegisterOptional(GeneratedAssembly.Load(roslyn.Run(OptionalBindingSources.FunctionSuite)), L);
+
+		Assert.Equal("test:1: wrong number of arguments to 'optdescribe' (1 to 3 expected)",
+			LuaTest.RunForError(L, "return pcall(function() optdescribe() end)"u8));
+		Assert.Equal("test:1: wrong number of arguments to 'optdescribe' (1 to 3 expected)",
+			LuaTest.RunForError(L, "return pcall(function() optdescribe(1, 2, 'x', 4) end)"u8));
+		Assert.Equal("test:1: wrong number of arguments to 'optflag' (0 to 1 expected)",
+			LuaTest.RunForError(L, "return pcall(function() optflag(true, true) end)"u8));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	public void Wrong_kind_for_an_optional_argument_is_a_bad_argument_error()
+	{
+		LuaTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		LuaState L = LuaTest.View(state);
+		using RuntimeScope scope = new(state);
+		RegisterOptional(GeneratedAssembly.Load(roslyn.Run(OptionalBindingSources.FunctionSuite)), L);
+
+		Assert.Equal("test:1: bad argument #2 (integer expected, got string)",
+			LuaTest.RunForError(L, "return pcall(function() optdescribe(1, 'x') end)"u8));
+		Assert.Equal("test:1: bad argument #3 (string expected, got boolean)",
+			LuaTest.RunForError(L, "return pcall(function() optdescribe(1, 2, true) end)"u8));
+		Assert.Equal("test:1: bad argument #1 (boolean expected, got number)",
+			LuaTest.RunForError(L, "return pcall(function() optflag(1) end)"u8));
+		Assert.Equal("1|2|x", LuaTest.RunForString(L, "return optdescribe(1, 2, 'x')"u8));
+		Assert.Equal(0, L.Top);
+	}
+
+	private static void RegisterOptional(GeneratedAssembly assembly, LuaState L)
+	{
+		LuaStatus status = (LuaStatus) assembly.Method("Demo.OptionalFunctions", "RegisterLuaFunctions")
+			.Invoke(null, [L])!;
+		Assert.True(status.IsOk,
+			"Registration failed: " + (status.IsOk ? string.Empty : LuaError.FromStack(L, status).ToString()));
+		Assert.Equal(0, L.Top);
+	}
+
 	private static GeneratedAssembly LoadSuite(RoslynFixture roslyn)
 	{
 		return GeneratedAssembly.Load(roslyn.Run(BindingSources.FunctionSuite));

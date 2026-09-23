@@ -24,6 +24,39 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
 			run.SingleGeneratedText, StringComparison.Ordinal);
 	}
 
+	[Theory]
+	[InlineData("LuaOptional<int> count", "global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<int> count")]
+	[InlineData("LuaOptional<string> text", "global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<string> text")]
+	[InlineData("LuaOptional<nuint> address", "global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<nuint> address")]
+	public void Generator_repeats_optional_argument_and_result_types_exactly(string declared, string generated)
+	{
+		string source = Usings + "using CheatEngine.SDK.Lua.Calls;\nusing CheatEngine.SDK.Lua.Marshalling;\n" +
+						"namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(int first, " +
+						declared + ", out LuaOptional<long> result); }";
+
+		GeneratorRun run = roslyn.Run(source);
+
+		run.AssertCompilesClean();
+		Assert.Contains(
+			"public static partial bool TryG(int first, " + generated +
+			", out global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<long> result)",
+			run.SingleGeneratedText, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Generator_repeats_an_explicit_scoped_variadic_span()
+	{
+		const string Source = Usings + "using CheatEngine.SDK.Lua.Calls;\n" +
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial LuaOperationStatus G(scoped System.Span<long> values, out int count); }";
+
+		GeneratorRun run = roslyn.Run(Source);
+
+		run.AssertCompilesClean();
+		Assert.Contains(
+			"G(scoped global::System.Span<long> values, out int count)", run.SingleGeneratedText,
+			StringComparison.Ordinal);
+	}
+
 	[Fact]
 	public void Generator_omits_scoped_when_the_defining_declaration_did()
 	{

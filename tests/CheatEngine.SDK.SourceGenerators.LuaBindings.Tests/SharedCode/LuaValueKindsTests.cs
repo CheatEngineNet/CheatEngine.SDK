@@ -58,6 +58,37 @@ public sealed class LuaValueKindsTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q21")]
+	public void Integer_and_address_kinds_never_use_the_double_marshaller()
+	{
+		foreach (LuaValueKind kind in (LuaValueKind[]) [LuaValueKind.Int32, LuaValueKind.Int64, LuaValueKind.Address])
+		{
+			Assert.DoesNotContain("Double", LuaValueKinds.MarshallerTypeName(kind), StringComparison.Ordinal);
+			Assert.DoesNotContain("Single", LuaValueKinds.MarshallerTypeName(kind), StringComparison.Ordinal);
+			Assert.Equal("integer", LuaValueKinds.ExpectedArgument(kind));
+		}
+
+		Assert.Equal("global::CheatEngine.SDK.Lua.Marshalling.Int64Marshaller",
+			LuaValueKinds.MarshallerTypeName(LuaValueKind.Int64));
+		Assert.Equal("global::CheatEngine.SDK.Lua.Marshalling.AddressMarshaller",
+			LuaValueKinds.MarshallerTypeName(LuaValueKind.Address));
+	}
+
+	[Fact]
+	public void Optional_and_variadic_kinds_are_the_marshalled_scalars()
+	{
+		foreach (LuaValueKind kind in Enum.GetValues<LuaValueKind>())
+		{
+			Assert.Equal(kind != LuaValueKind.Utf8, LuaValueKinds.CanBeOptional(kind));
+			Assert.Equal(kind is not (LuaValueKind.Utf8 or LuaValueKind.String),
+				LuaValueKinds.CanBeVariadicElement(kind));
+		}
+
+		Assert.Equal("global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<string>",
+			LuaValueKinds.OptionalTypeName(LuaValueKind.String));
+	}
+
+	[Fact]
 	public void Utf8_is_the_only_kind_that_cannot_be_a_result()
 	{
 		foreach (LuaValueKind kind in Enum.GetValues<LuaValueKind>())

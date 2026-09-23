@@ -53,6 +53,24 @@ internal sealed record LuaThunkModel(
 	/// <summary>Whether the target returns one Lua value.</summary>
 	public bool HasReturn => ReturnKind is not null || ReturnMarshaller is not null;
 
+	/// <summary>
+	///     The number of Lua arguments a call must pass: every argument before the trailing run of optional ones (all of
+	///     them when none is optional).
+	/// </summary>
+	public int RequiredArgumentCount
+	{
+		get
+		{
+			int count = 0;
+			while (count < Arguments.Length && !Arguments[count].IsOptional)
+			{
+				count++;
+			}
+
+			return count;
+		}
+	}
+
 	/// <summary>The concrete static marshaller for the return value.</summary>
 	public string ReturnMarshallerTypeName => ReturnMarshaller?.MarshallerTypeName ??
 											  LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);

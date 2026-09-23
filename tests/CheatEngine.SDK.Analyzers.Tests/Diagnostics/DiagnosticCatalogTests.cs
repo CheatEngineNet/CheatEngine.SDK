@@ -48,14 +48,19 @@ public sealed class DiagnosticCatalogTests
 			DiagnosticIds.InvalidLuaGlobal,
 			DiagnosticIds.DuplicateLuaName,
 			DiagnosticIds.InvalidLuaAnnotationTarget,
-			DiagnosticIds.GeneratedLuaIdentityCollision
+			DiagnosticIds.GeneratedLuaIdentityCollision,
+			DiagnosticIds.NonTrailingOptionalLuaArgument,
+			DiagnosticIds.InvalidOptionalOrVariadicLuaResult,
+			DiagnosticIds.LookAlikeLuaContractType,
+			DiagnosticIds.UnsupportedLuaOptionalPosition
 		];
 
 		Assert.Equal(expected, SortedIds(AllDescriptors()), StringComparer.Ordinal);
 		Assert.Equal(
 			[
 				"CESDK0001", "CESDK0002", "CESDK0003", "CESDK0004", "CESDK0005", "CESDK1001", "CESDK1003", "CESDK1004",
-				"CESDK1005", "CESDK2001", "CESDK2002", "CESDK2003", "CESDK2004", "CESDK2005", "CESDK2006", "CESDK2007"
+				"CESDK1005", "CESDK2001", "CESDK2002", "CESDK2003", "CESDK2004", "CESDK2005", "CESDK2006", "CESDK2007",
+				"CESDK2010", "CESDK2011", "CESDK2012", "CESDK2013"
 			],
 			expected,
 			StringComparer.Ordinal);
@@ -175,6 +180,10 @@ public sealed class DiagnosticCatalogTests
 	[InlineData(DiagnosticIds.DuplicateLuaName, true)]
 	[InlineData(DiagnosticIds.InvalidLuaAnnotationTarget, false)]
 	[InlineData(DiagnosticIds.GeneratedLuaIdentityCollision, false)]
+	[InlineData(DiagnosticIds.NonTrailingOptionalLuaArgument, false)]
+	[InlineData(DiagnosticIds.InvalidOptionalOrVariadicLuaResult, false)]
+	[InlineData(DiagnosticIds.LookAlikeLuaContractType, false)]
+	[InlineData(DiagnosticIds.UnsupportedLuaOptionalPosition, false)]
 	public void Compilation_end_tag_is_on_the_rules_reported_at_compilation_end(string id, bool compilationEnd)
 	{
 		Assert.Equal(compilationEnd,

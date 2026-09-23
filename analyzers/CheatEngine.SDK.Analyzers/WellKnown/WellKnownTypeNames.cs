@@ -1,4 +1,5 @@
 using CheatEngine.SDK.SourceGenerators.Shared;
+using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
 
 namespace CheatEngine.SDK.Analyzers.WellKnown;
 
@@ -71,4 +72,10 @@ internal static class WellKnownTypeNames
 
 	/// <summary>The real Lua state symbol that LuaMethod does not accept as an argument.</summary>
 	public const string LuaState = "CheatEngine.SDK.Lua.State.LuaState";
+
+	/// <summary>The explicit optional value of a generated binding (CESDK2010 to CESDK2013).</summary>
+	public const string LuaOptional = LuaContractTypes.LuaOptionalMetadataName;
+
+	/// <summary>The outcome value that selects the Outcome form of a <c>[LuaGlobal]</c> binding (CESDK2012).</summary>
+	public const string LuaOperationStatus = LuaContractTypes.LuaOperationStatusMetadataName;
 }

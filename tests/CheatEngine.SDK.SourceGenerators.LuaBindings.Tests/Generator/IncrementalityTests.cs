@@ -276,11 +276,54 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 	}
 
 	[Fact]
+	public void Pipeline_optional_signature_edited_reruns_the_global_output_only()
+	{
+		CSharpCompilation compilation =
+			roslyn.CreateCompilation(BindingSources.Functions, OptionalBindingSources.GlobalSuite);
+		GeneratorRun first = RoslynFixture.Run(compilation);
+
+		SyntaxTree original = compilation.SyntaxTrees.Last();
+		string edited = OptionalBindingSources.GlobalSuite.Replace(
+			"Kinds(long first, LuaOptional<long> second)", "Kinds(long first, LuaOptional<int> second)",
+			StringComparison.Ordinal);
+		Assert.NotEqual(OptionalBindingSources.GlobalSuite, edited, StringComparer.Ordinal);
+		GeneratorRun second = GeneratorRun.Execute(first.Driver,
+			compilation.ReplaceSyntaxTree(original, RoslynFixture.Parse(edited, original.FilePath)));
+
+		Assert.Contains(IncrementalStepRunReason.Modified,
+			StepAssert.Reasons(second.Result, LuaBindingsTrackingNames.LuaGlobal));
+		Assert.Equal([IncrementalStepRunReason.Modified],
+			StepAssert.Reasons(second.Result, LuaBindingsTrackingNames.LuaGlobalOutput));
+		AssertUntouched(second.Result, LuaBindingsTrackingNames.LuaFunction, LuaBindingsTrackingNames.LuaFunctionTables,
+			LuaBindingsTrackingNames.LuaFunctionOutput);
+		Assert.Contains("Kinds(long first, global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<int> second)",
+			second.GeneratedText("Demo.Optionals.LuaGlobals.g.cs"), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Pipeline_reordering_optional_bindings_keeps_hint_names_and_member_names()
+	{
+		string[] members = OptionalMembers();
+		string forward = OptionalType(members);
+		string reversed = OptionalType([.. members.Reverse()]);
+		Assert.NotEqual(forward, reversed, StringComparer.Ordinal);
+
+		GeneratorRun first = roslyn.Run(forward);
+		GeneratorRun second = roslyn.Run(reversed);
+
+		Assert.Equal(first.HintNames, second.HintNames);
+		Assert.Equal(first.SingleGeneratedText, second.SingleGeneratedText);
+		first.AssertCompilesClean();
+	}
+
+	[Fact]
 	public void Pipeline_step_values_hold_no_roslyn_objects()
 	{
 		GeneratorRun run = roslyn.Run(
 			BindingSources.FunctionSuite,
 			BindingSources.GlobalSuite,
+			OptionalBindingSources.GlobalSuite,
+			OptionalBindingSources.FunctionSuite,
 			"namespace Demo; public static partial class Broken { [CheatEngine.SDK.Annotations.Lua.LuaFunction(\"bad\")] public static int Bad(object o) => 0; [CheatEngine.SDK.Annotations.Lua.LuaGlobal(\"bad\")] public static partial bool TryBad(out object o); }",
 			ObjectBindings);
 
@@ -303,6 +346,26 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 		}
 
 		Assert.True(visited > 0, "No model object was visited: the assertion would be vacuous.");
+	}
+
+	// The attributed members of OptionalBindingSources.GlobalSuite, one declaration each.
+	private static string[] OptionalMembers()
+	{
+		string body = OptionalBindingSources.GlobalSuite.ReplaceLineEndings("\n");
+		int open = body.IndexOf("{\n", body.IndexOf("class Optionals", StringComparison.Ordinal), StringComparison.Ordinal);
+		int close = body.LastIndexOf('}');
+		return
+		[
+			.. body[(open + 2)..close]
+				.Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+		];
+	}
+
+	private static string OptionalType(string[] members)
+	{
+		string suite = OptionalBindingSources.GlobalSuite.ReplaceLineEndings("\n");
+		string header = suite[..suite.IndexOf("public static partial class Optionals", StringComparison.Ordinal)];
+		return header + "public static partial class Optionals\n{\n" + string.Join("\n\n", members) + "\n}\n";
 	}
 
 	private static void AssertUntouched(GeneratorRunResult result, params string[] stepNames)

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Globalization;
 
+using CheatEngine.SDK.Analyzers.Diagnostics;
 using CheatEngine.SDK.Analyzers.Generation;
 using CheatEngine.SDK.Analyzers.Tests.Infrastructure;
 
@@ -14,6 +15,14 @@ namespace CheatEngine.SDK.Analyzers.Tests.Generation;
 public sealed class LuaObjectBindingAnalyzerTests
 {
 	private static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14);
+
+	// The real SDK assemblies: LuaOptional<T> is recognised only as the type CheatEngine.SDK.Lua defines.
+	private static readonly ImmutableArray<MetadataReference> RealSdkReferences =
+	[
+		MetadataReference.CreateFromFile(typeof(CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute).Assembly.Location),
+		MetadataReference.CreateFromFile(typeof(CheatEngine.SDK.Lua.Interop.Api.LuaApi).Assembly.Location),
+		MetadataReference.CreateFromFile(typeof(CheatEngine.SDK.Lua.State.LuaState).Assembly.Location)
+	];
 
 	[Fact]
 	public async Task Invalid_lua_class_name_reserved_method_parameter_and_property_shape_report_CESDK2006()
@@ -162,8 +171,70 @@ public sealed class LuaObjectBindingAnalyzerTests
 
 			    [LuaGlobal("readResult")]
 			    static partial void ReadResult(int {|CESDK2007:__result|});
+
+			    [LuaGlobal("readResolution")]
+			    static partial void ReadResolution(int {|CESDK2007:__resolution|});
+
+			    [LuaGlobal("readException")]
+			    static partial void ReadException(int {|CESDK2007:__exception|});
+
+			    [LuaGlobal("readArgc")]
+			    static partial void ReadArgc(int {|CESDK2007:__argc|});
+
+			    [LuaGlobal("readRest")]
+			    static partial void ReadRest(int {|CESDK2007:__rest|});
 			}
 			""");
+	}
+
+	[Fact]
+	public async Task LuaOptional_on_a_lua_method_reports_CESDK2013_until_object_members_support_it()
+	{
+		const string Source = """
+		                      using CheatEngine.SDK.Annotations.Lua;
+		                      using CheatEngine.SDK.Lua.Marshalling;
+
+		                      namespace Demo;
+
+		                      [LuaClass("Object")]
+		                      public readonly partial struct Handle
+		                      {
+		                          [LuaMethod("load")]
+		                          public partial void Load(int path, LuaOptional<bool> merge);
+
+		                          [LuaMethod("read")]
+		                          public partial bool TryRead(out LuaOptional<int> value);
+
+		                          [LuaProperty("Value")]
+		                          public partial LuaOptional<int> Value { get; }
+
+		                          [LuaMethod("count")]
+		                          public partial int Count(int first);
+		                      }
+		                      """;
+		CSharpCompilation compilation = CSharpCompilation.Create(
+			"LuaObjectOptionalTestAssembly",
+			[
+				CSharpSyntaxTree.ParseText(TestText.Normalize(Source), ParseOptions, "Test.cs",
+					cancellationToken: TestContext.Current.CancellationToken)
+			],
+			LocalFrameworkReferences.References.AddRange(RealSdkReferences),
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+				nullableContextOptions: NullableContextOptions.Enable, allowUnsafe: true));
+
+		ImmutableArray<Diagnostic> diagnostics = await compilation
+			.WithAnalyzers([new LuaObjectBindingAnalyzer(), new LuaBindingAnalyzer()], options: null)
+			.GetAnalyzerDiagnosticsAsync(TestContext.Current.CancellationToken);
+
+		Assert.Equal(["Load", "TryRead", "Value"],
+			diagnostics.Where(static d => string.Equals(d.Id, DiagnosticIds.UnsupportedLuaOptionalPosition, StringComparison.Ordinal))
+				.Select(static d => d.GetMessage(CultureInfo.InvariantCulture).Split('\'')[1]).Order(StringComparer.Ordinal),
+			StringComparer.Ordinal);
+		Assert.All(diagnostics.Where(static d => string.Equals(d.Id, DiagnosticIds.UnsupportedLuaOptionalPosition, StringComparison.Ordinal)),
+			static d => Assert.Contains("[LuaMethod] and [LuaProperty] members do not support optional values yet",
+				d.GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal));
+		// The optional position is explained once, by CESDK2013, not a second time as an unsupported type (CESDK2006).
+		Assert.DoesNotContain(diagnostics, static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaAnnotationTarget, StringComparison.Ordinal));
 	}
 
 	[Fact]

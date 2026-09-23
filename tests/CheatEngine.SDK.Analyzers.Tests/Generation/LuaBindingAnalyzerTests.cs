@@ -36,6 +36,9 @@ namespace CheatEngine.SDK.Analyzers.Tests.Generation;
 public sealed class LuaBindingAnalyzerTests
 {
 	private const string ShapeUsings = "using CheatEngine.SDK.Annotations.Lua;\nnamespace Demo;\n";
+
+	private const string OptionalUsings =
+		"using System;\nusing CheatEngine.SDK.Annotations.Lua;\nusing CheatEngine.SDK.Lua.Calls;\nusing CheatEngine.SDK.Lua.Marshalling;\nnamespace Demo;\n";
 	private static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp14);
 
 	// The real SDK assemblies the shape checks are written against, taken from the copies loaded in this test
@@ -100,6 +103,56 @@ public sealed class LuaBindingAnalyzerTests
 			                                   }
 			                                   """,
 			true
+		}
+	};
+
+	// The LuaOptional<T>, optional-result and variadic shapes (CESDK2010 to CESDK2013), kept apart from Shapes only for length.
+	public static TheoryData<string, string, bool> OptionalShapes => new()
+	{
+		{
+			"optional arguments of a global", OptionalUsings +
+											  "public static partial class Bindings { [LuaGlobal(\"load\")] public static partial void Load(string path, LuaOptional<bool> merge, LuaOptional<int> flags); }",
+			true
+		},
+		{
+			"optional results of a global", OptionalUsings +
+											"public static partial class Bindings { [LuaGlobal(\"read\")] public static partial LuaOperationStatus Read(int mode, out long first, out LuaOptional<string> second); }",
+			true
+		},
+		{
+			"variadic outcome of a global", OptionalUsings +
+											"public static partial class Bindings { [LuaGlobal(\"seq\")] public static partial LuaOperationStatus Seq(int n, Span<long> values, out int count); }",
+			true
+		},
+		{
+			"optional parameter of a function", OptionalUsings +
+												"public static partial class Functions { [LuaFunction(\"f\")] public static int F(int a, LuaOptional<string> b) => a; }",
+			true
+		},
+		{
+			"optional argument before a required one", OptionalUsings +
+													   "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial int G(LuaOptional<int> a, int b); }",
+			false
+		},
+		{
+			"required result after an optional one", OptionalUsings +
+													 "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial bool TryG(out LuaOptional<int> a, out int b); }",
+			false
+		},
+		{
+			"variadic pair on the try form", OptionalUsings +
+											 "public static partial class Bindings { [LuaGlobal(\"g\")] public static partial bool TryG(Span<long> v, out int c); }",
+			false
+		},
+		{
+			"optional nullable string", OptionalUsings +
+										"public static partial class Bindings { [LuaGlobal(\"g\")] public static partial int G(LuaOptional<string?> a); }",
+			false
+		},
+		{
+			"optional throwing return", OptionalUsings +
+										"public static partial class Bindings { [LuaGlobal(\"g\")] public static partial LuaOptional<int> G(int a); }",
+			false
 		}
 	};
 
@@ -471,6 +524,7 @@ public sealed class LuaBindingAnalyzerTests
 
 	[Theory]
 	[MemberData(nameof(Shapes))]
+	[MemberData(nameof(OptionalShapes))]
 	public async Task Generator_and_analyzer_agree_on_every_shape(string shape, string source, bool expectedValid)
 	{
 		CSharpCompilation compilation = CreateCompilation(source, true);
@@ -480,13 +534,218 @@ public sealed class LuaBindingAnalyzerTests
 		bool analyzerReportsShapeProblem = diagnostics.Any(static d =>
 			string.Equals(d.Id, DiagnosticIds.InvalidLuaBindingContainingType, StringComparison.Ordinal)
 			|| string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal)
-			|| string.Equals(d.Id, DiagnosticIds.InvalidLuaGlobal, StringComparison.Ordinal));
+			|| string.Equals(d.Id, DiagnosticIds.InvalidLuaGlobal, StringComparison.Ordinal)
+			|| string.Equals(d.Id, DiagnosticIds.NonTrailingOptionalLuaArgument, StringComparison.Ordinal)
+			|| string.Equals(d.Id, DiagnosticIds.InvalidOptionalOrVariadicLuaResult, StringComparison.Ordinal)
+			|| string.Equals(d.Id, DiagnosticIds.LookAlikeLuaContractType, StringComparison.Ordinal)
+			|| string.Equals(d.Id, DiagnosticIds.UnsupportedLuaOptionalPosition, StringComparison.Ordinal));
 
 		Assert.True(generatorEmits == expectedValid,
 			$"'{shape}': the generator {(generatorEmits ? "emitted" : "stayed silent")}, expected {(expectedValid ? "output" : "silence")}.");
 		Assert.True(
 			analyzerReportsShapeProblem != expectedValid,
 			$"'{shape}': the analyzer {(analyzerReportsShapeProblem ? "reported" : "stayed silent")} a shape problem, expected it to {(expectedValid ? "stay silent" : "report")}.");
+	}
+
+	[Fact]
+	public async Task Non_trailing_optional_argument_reports_CESDK2010()
+	{
+		ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync(OptionalUsings + """
+			public static partial class Bindings
+			{
+			    [LuaGlobal("g")]
+			    public static partial int G(LuaOptional<int> a, int b);
+
+			    [LuaFunction("f")]
+			    public static int F(LuaOptional<int> a, long b) => 0;
+			}
+			""", true);
+
+		Diagnostic[] reported =
+			[.. diagnostics.Where(static d => string.Equals(d.Id, DiagnosticIds.NonTrailingOptionalLuaArgument, StringComparison.Ordinal))];
+		Assert.Equal(2, reported.Length);
+		Assert.Contains(reported, static d => d.GetMessage(CultureInfo.InvariantCulture).StartsWith("Lua binding 'G' must declare every LuaOptional<T> argument after the required ones", StringComparison.Ordinal));
+		Assert.Contains(reported, static d => d.GetMessage(CultureInfo.InvariantCulture).StartsWith("Lua binding 'F' must declare every LuaOptional<T> parameter after the required ones", StringComparison.Ordinal));
+		Assert.DoesNotContain(diagnostics, static d => string.Equals(d.Id, DiagnosticIds.InvalidLuaGlobal, StringComparison.Ordinal)
+													 || string.Equals(d.Id, DiagnosticIds.InvalidLuaFunction, StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public async Task Required_result_after_an_optional_result_reports_CESDK2011()
+	{
+		ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync(OptionalUsings +
+			"public static partial class Bindings { [LuaGlobal(\"g\")] public static partial bool TryG(out LuaOptional<int> a, out int b); }",
+			true);
+
+		Diagnostic diagnostic = Assert.Single(diagnostics);
+		Assert.Equal(DiagnosticIds.InvalidOptionalOrVariadicLuaResult, diagnostic.Id);
+		Assert.Contains("after the required results", diagnostic.GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public async Task Variadic_pair_outside_the_outcome_form_reports_CESDK2011()
+	{
+		ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync(OptionalUsings + """
+			public static partial class Bindings
+			{
+			    [LuaGlobal("g")]
+			    public static partial bool TryG(Span<long> values, out int count);
+
+			    [LuaGlobal("h")]
+			    public static partial LuaOperationStatus H(Span<long> values, out int count, Span<int> more, out int moreCount);
+
+			    [LuaGlobal("k")]
+			    public static partial LuaOperationStatus K(Span<string> values, out int count);
+			}
+			""", true);
+
+		string[] messages =
+		[
+			.. diagnostics
+				.Where(static d => string.Equals(d.Id, DiagnosticIds.InvalidOptionalOrVariadicLuaResult, StringComparison.Ordinal))
+				.Select(static d => d.GetMessage(CultureInfo.InvariantCulture))
+		];
+		Assert.Contains(messages, static m => m.StartsWith("Lua global binding 'TryG' must return LuaOperationStatus", StringComparison.Ordinal));
+		Assert.Contains(messages, static m => m.StartsWith("Lua global binding 'H' must declare at most one variadic", StringComparison.Ordinal));
+		Assert.Contains(messages, static m => m.StartsWith("Lua global binding 'H' must declare the variadic", StringComparison.Ordinal));
+		Assert.Contains(messages, static m => m.StartsWith("Lua global binding 'K' must use int, long, float, double, bool or nuint", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public async Task Same_named_LuaOptional_from_source_reports_CESDK2012_and_the_generator_emits_nothing()
+	{
+		const string Source = """
+		                      using CheatEngine.SDK.Annotations.Lua;
+
+		                      namespace CheatEngine.SDK.Lua.Marshalling
+		                      {
+		                          public readonly struct LuaOptional<T>
+		                          {
+		                          }
+		                      }
+
+		                      namespace Demo
+		                      {
+		                          using CheatEngine.SDK.Lua.Marshalling;
+
+		                          public static partial class Bindings
+		                          {
+		                              [LuaGlobal("g")]
+		                              public static partial int G(int a, LuaOptional<int> b);
+
+		                              [LuaFunction("f")]
+		                              public static int F(LuaOptional<int> b) => 0;
+		                          }
+		                      }
+		                      """;
+		CSharpCompilation compilation = CreateCompilation(Source, true);
+
+		Assert.False(RunGenerator(compilation));
+		Diagnostic[] reported =
+		[
+			.. (await GetDiagnosticsAsync(compilation))
+				.Where(static d => string.Equals(d.Id, DiagnosticIds.LookAlikeLuaContractType, StringComparison.Ordinal))
+		];
+		Assert.Equal(2, reported.Length);
+		Assert.All(reported, static d => Assert.Contains("not a same-named type", d.GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public async Task Same_named_LuaOperationStatus_from_source_reports_CESDK2012_instead_of_selecting_the_outcome_form()
+	{
+		const string Source = """
+		                      using CheatEngine.SDK.Annotations.Lua;
+
+		                      namespace CheatEngine.SDK.Lua.Calls
+		                      {
+		                          public readonly struct LuaOperationStatus
+		                          {
+		                          }
+		                      }
+
+		                      namespace Demo
+		                      {
+		                          using CheatEngine.SDK.Lua.Calls;
+
+		                          public static partial class Bindings
+		                          {
+		                              [LuaGlobal("readInteger")]
+		                              public static partial LuaOperationStatus TryReadInt32(nuint address, out int value);
+		                          }
+		                      }
+		                      """;
+		CSharpCompilation compilation = CreateCompilation(Source, true);
+
+		Assert.False(RunGenerator(compilation));
+		ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(compilation);
+		Diagnostic diagnostic = Assert.Single(diagnostics);
+		Assert.Equal(DiagnosticIds.LookAlikeLuaContractType, diagnostic.Id);
+		Assert.StartsWith("Lua binding 'TryReadInt32' must use the LuaOptional<T> and LuaOperationStatus types of CheatEngine.SDK.Lua",
+			diagnostic.GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public async Task LuaOptional_of_nullable_string_reports_CESDK2013()
+	{
+		ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync(OptionalUsings + """
+			public static partial class Bindings
+			{
+			    [LuaGlobal("g")]
+			    public static partial int G(LuaOptional<string?> a);
+
+			    [LuaGlobal("h")]
+			    public static partial bool TryH(out LuaOptional<object> a);
+
+			    [LuaFunction("f")]
+			    public static int F(LuaOptional<LuaOptional<int>> a) => 0;
+			}
+			""", true);
+
+		Assert.Equal(["F", "G", "TryH"],
+			diagnostics.Where(static d => string.Equals(d.Id, DiagnosticIds.UnsupportedLuaOptionalPosition, StringComparison.Ordinal))
+				.Select(static d => d.GetMessage(CultureInfo.InvariantCulture).Split('\'')[1]).Order(StringComparer.Ordinal),
+			StringComparer.Ordinal);
+	}
+
+	[Fact]
+	public async Task LuaOptional_return_reports_CESDK2013()
+	{
+		ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync(OptionalUsings + """
+			public static partial class Bindings
+			{
+			    [LuaGlobal("g")]
+			    public static partial LuaOptional<int> G(int a);
+
+			    [LuaFunction("f")]
+			    public static LuaOptional<int> F(int a) => default;
+			}
+			""", true);
+
+		Diagnostic[] reported =
+			[.. diagnostics.Where(static d => string.Equals(d.Id, DiagnosticIds.UnsupportedLuaOptionalPosition, StringComparison.Ordinal))];
+		Assert.Equal(2, reported.Length);
+		Assert.Contains(reported, static d => d.GetMessage(CultureInfo.InvariantCulture).Contains("the throwing form cannot return one", StringComparison.Ordinal));
+		Assert.Contains(reported, static d => d.GetMessage(CultureInfo.InvariantCulture).Contains("a thunk cannot return one", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public async Task Valid_optional_and_variadic_shapes_report_nothing()
+	{
+		ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync(OptionalUsings + """
+			public static partial class Bindings
+			{
+			    [LuaGlobal("load")]
+			    public static partial void Load(string path, LuaOptional<bool> merge);
+
+			    [LuaGlobal("read")]
+			    public static partial LuaOperationStatus Read(int mode, out long first, out LuaOptional<string> second, Span<double> rest, out int restCount);
+
+			    [LuaFunction("f")]
+			    public static int F(int a, LuaOptional<nuint> b) => a;
+			}
+			""", true);
+
+		Assert.Empty(diagnostics);
 	}
 
 	private static CSharpCompilation CreateCompilation(string source, bool allowUnsafe)

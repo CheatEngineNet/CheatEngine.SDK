@@ -59,6 +59,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaMarshallerAttribute),
 			SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.ILuaMarshaller),
 			SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaState),
+			SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaOptional),
+			SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaOperationStatus),
 			context.Compilation.GetTypeByMetadataName("System.ReadOnlySpan`1"),
 			context.Compilation.GetTypeByMetadataName("CheatEngine.SDK.Engine.Objects.CEObject"));
 		if (!symbols.HasAnyLuaObjectAnnotation)
@@ -209,7 +211,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 			string? name = ReadName(attribute);
 			LuaFunctionShapeIssues issues = LuaFunctionShape.Inspect(context.Compilation, method, symbols.LuaState,
 				symbols.LuaMarshallerAttribute,
-				symbols.LuaMarshallerContract, out _);
+				symbols.LuaMarshallerContract, symbols.LuaOptional, out _);
 			if (!LuaNames.IsValidName(name))
 			{
 				issues |= LuaFunctionShapeIssues.InvalidName;
@@ -258,7 +260,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 			string? name = ReadName(attribute);
 			LuaGlobalShapeIssues issues = LuaGlobalShape.Inspect(context.Compilation, method, symbols.LuaState,
 				symbols.LuaMarshallerAttribute,
-				symbols.LuaMarshallerContract, out _);
+				symbols.LuaMarshallerContract, symbols.LuaOptional, symbols.LuaOperationStatus, out _);
 			if (!LuaNames.IsValidName(name))
 			{
 				issues |= LuaGlobalShapeIssues.InvalidName;
@@ -279,7 +281,7 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 	{
 		foreach (IParameterSymbol parameter in method.Parameters)
 		{
-			if (IsLuaGlobalGeneratedLocalName(parameter.Name))
+			if (LuaGlobalCallEmitter.IsReservedLocal(parameter.Name))
 			{
 				ReportCollision(context, parameter, "generated local " + parameter.Name);
 			}
@@ -411,7 +413,9 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 			return parameterProblem;
 		}
 
-		return LuaMethodReturnProblem(method, hasOutResult, symbols.ReadOnlySpan);
+		return LuaContractTypes.Is(method.ReturnType, symbols.LuaOptional)
+			? string.Empty
+			: LuaMethodReturnProblem(method, hasOutResult, symbols.ReadOnlySpan);
 	}
 
 	private static string LuaMethodParameterProblem(IMethodSymbol method, LuaObjectContractSymbols symbols,
@@ -429,7 +433,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 			if (parameter.RefKind == RefKind.Out)
 			{
 				hasOutResult = true;
-				if (!IsScalar(parameter.Type, false, symbols.ReadOnlySpan))
+				if (!LuaContractTypes.Is(parameter.Type, symbols.LuaOptional)
+					&& !IsScalar(parameter.Type, false, symbols.ReadOnlySpan))
 				{
 					return "out results must be supported scalar values";
 				}
@@ -457,7 +462,9 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 				return "LuaMethod does not take a LuaState parameter";
 			}
 
-			if (!IsScalar(parameter.Type, true, symbols.ReadOnlySpan))
+			// LuaOptional<T> on an object member is CESDK2013 (LuaBindingAnalyzer), not a generic unsupported type.
+			if (!LuaContractTypes.Is(parameter.Type, symbols.LuaOptional)
+				&& !IsScalar(parameter.Type, true, symbols.ReadOnlySpan))
 			{
 				return "parameters must be supported scalar values";
 			}
@@ -506,7 +513,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 			return "ref and ref readonly properties are not supported";
 		}
 
-		if (!IsScalar(property.Type, false, symbols.ReadOnlySpan))
+		if (!LuaContractTypes.Is(property.Type, symbols.LuaOptional)
+			&& !IsScalar(property.Type, false, symbols.ReadOnlySpan))
 		{
 			return "the property type must be a supported scalar value";
 		}
@@ -647,11 +655,6 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		return name is "__ceState" or "__ceOperation" or "__ceTop" or "__ceStatus" or "__ceResult";
 	}
 
-	private static bool IsLuaGlobalGeneratedLocalName(string name)
-	{
-		return name is "__L" or "__operation" or "__top" or "__ok" or "__status" or "__result";
-	}
-
 	private static AttributeData? FindAttribute(ISymbol symbol, INamedTypeSymbol attributeClass)
 	{
 		foreach (AttributeData attribute in symbol.GetAttributes())
@@ -692,6 +695,8 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		INamedTypeSymbol? luaMarshallerAttribute,
 		INamedTypeSymbol? luaMarshallerContract,
 		INamedTypeSymbol? luaState,
+		INamedTypeSymbol? luaOptional,
+		INamedTypeSymbol? luaOperationStatus,
 		INamedTypeSymbol? readOnlySpan,
 		INamedTypeSymbol? ceObject)
 	{
@@ -734,6 +739,16 @@ public sealed class LuaObjectBindingAnalyzer : DiagnosticAnalyzer
 		{
 			get;
 		} = luaState;
+
+		public INamedTypeSymbol? LuaOptional
+		{
+			get;
+		} = luaOptional;
+
+		public INamedTypeSymbol? LuaOperationStatus
+		{
+			get;
+		} = luaOperationStatus;
 
 		public INamedTypeSymbol? ReadOnlySpan
 		{

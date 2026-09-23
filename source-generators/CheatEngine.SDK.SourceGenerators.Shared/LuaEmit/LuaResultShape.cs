@@ -14,5 +14,18 @@ internal enum LuaResultShape
 	///     <c>Span&lt;byte&gt; destination</c>, <see langword="out" /> <see langword="int" /> written (
 	///     <c>LuaState.TryCopyUtf8</c>).
 	/// </summary>
-	CopyOut
+	CopyOut,
+
+	/// <summary>
+	///     An <see langword="out" /> <c>LuaOptional&lt;T&gt;</c> after every required result: a position Lua did not
+	///     return is <c>Omitted</c>, a <c>nil</c> is <c>Nil</c>, a readable value is present. A declaration with such a
+	///     result calls with <c>LUA_MULTRET</c> and reads the factual result count.
+	/// </summary>
+	Optional,
+
+	/// <summary>
+	///     The last result of an Outcome form: <c>Span&lt;T&gt; values, out int count</c>, every value Lua returned after
+	///     the fixed and optional results, copied while still on the stack (<c>LuaCallSupport.ReadResults</c>).
+	/// </summary>
+	Variadic
 }

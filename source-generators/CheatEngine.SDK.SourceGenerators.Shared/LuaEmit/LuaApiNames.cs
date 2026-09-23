@@ -70,6 +70,15 @@ internal static class LuaApiNames
 	/// <summary>The static Lua marshaller contract implemented by generated class wrappers.</summary>
 	public const string ILuaMarshaller = "global::CheatEngine.SDK.Lua.Marshalling.ILuaMarshaller";
 
+	/// <summary>
+	///     The explicit optional value (omitted, <c>nil</c> or a value) and, without type arguments, its non-generic
+	///     factory class. Generated code writes <c>LuaOptional&lt;T&gt;</c> for an optional argument or result.
+	/// </summary>
+	public const string LuaOptional = "global::CheatEngine.SDK.Lua.Marshalling.LuaOptional";
+
+	/// <summary>The exception a wrapper throws before touching Lua when optional arguments leave a gap.</summary>
+	public const string ArgumentException = "global::System.ArgumentException";
+
 	/// <summary>The attribute every thunk carries, with its <c>cdecl</c> convention.</summary>
 	public const string UnmanagedCallersOnlyCdecl =
 		"[global::System.Runtime.InteropServices.UnmanagedCallersOnly(CallConvs = new[] { typeof(global::System.Runtime.CompilerServices.CallConvCdecl) })]";
@@ -82,6 +91,9 @@ internal static class LuaApiNames
 
 	/// <summary>The destination of a copy-out string result.</summary>
 	public const string SpanOfByte = "global::System.Span<byte>";
+
+	/// <summary>The generic span a variadic result pair copies into, without its type argument.</summary>
+	public const string Span = "global::System.Span";
 
 	/// <summary><c>Int32Marshaller</c>.</summary>
 	public const string Int32Marshaller = "global::CheatEngine.SDK.Lua.Marshalling.Int32Marshaller";

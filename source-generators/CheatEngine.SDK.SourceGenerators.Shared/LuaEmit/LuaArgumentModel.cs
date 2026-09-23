@@ -30,18 +30,39 @@ namespace CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 ///     An explicit marshaller selected with <c>[LuaMarshaller]</c>, or <see langword="null" /> for one of the SDK
 ///     scalar marshallers represented by <paramref name="Kind" />.
 /// </param>
+/// <param name="IsOptional">
+///     The value is a <c>LuaOptional&lt;T&gt;</c> of <paramref name="Kind" />: a wrapper pushes it only when it is not
+///     omitted (and pushes <c>nil</c> for <c>Nil</c>), a thunk reads an absent position as omitted. Optional arguments
+///     form a trailing run, after every required and fixed argument; <paramref name="Kind" /> is then a built-in kind
+///     other than <see cref="LuaValueKind.Utf8" />, <paramref name="IsNullable" /> is <see langword="false" /> and no
+///     custom marshaller is set.
+/// </param>
 internal sealed record LuaArgumentModel(
 	string Name,
 	LuaValueKind Kind,
 	bool IsNullable,
 	bool IsScoped = false,
 	string? FixedValue = null,
-	LuaCustomMarshallerModel? CustomMarshaller = null)
+	LuaCustomMarshallerModel? CustomMarshaller = null,
+	bool IsOptional = false)
 {
 	/// <summary>Initializes a built-in scalar argument model with the pre-custom-marshaller binary shape.</summary>
 	public LuaArgumentModel(string name, LuaValueKind kind, bool isNullable, bool isScoped, string? fixedValue)
 		: this(name, kind, isNullable, isScoped, fixedValue, null)
 	{
+	}
+
+	/// <summary>Initializes an argument model with the pre-optional binary shape.</summary>
+	public LuaArgumentModel(string name, LuaValueKind kind, bool isNullable, bool isScoped, string? fixedValue,
+		LuaCustomMarshallerModel? customMarshaller)
+		: this(name, kind, isNullable, isScoped, fixedValue, customMarshaller, false)
+	{
+	}
+
+	/// <summary>An optional <c>LuaOptional&lt;T&gt;</c> argument of a built-in kind.</summary>
+	public static LuaArgumentModel Optional(string name, LuaValueKind kind)
+	{
+		return new LuaArgumentModel(name, kind, false, IsOptional: true);
 	}
 
 	/// <summary>Whether this value is pushed directly instead of being supplied by a wrapper parameter.</summary>
@@ -51,8 +72,13 @@ internal sealed record LuaArgumentModel(
 	public string GeneratedMarshallerTypeName =>
 		CustomMarshaller?.MarshallerTypeName ?? LuaValueKinds.MarshallerTypeName(Kind);
 
-	/// <summary>The C# type spelling used in an emitted parameter or local.</summary>
-	public string GeneratedTypeName => CustomMarshaller?.ValueTypeName ?? LuaValueKinds.TypeName(Kind, IsNullable);
+	/// <summary>
+	///     The C# type spelling used in an emitted parameter or local: <c>LuaOptional&lt;T&gt;</c> for an optional
+	///     argument, the value type otherwise.
+	/// </summary>
+	public string GeneratedTypeName => IsOptional
+		? LuaValueKinds.OptionalTypeName(Kind)
+		: CustomMarshaller?.ValueTypeName ?? LuaValueKinds.TypeName(Kind, IsNullable);
 
 	/// <summary>The Lua-facing expected type in a generated bad-argument message.</summary>
 	public string ExpectedArgumentTypeName =>

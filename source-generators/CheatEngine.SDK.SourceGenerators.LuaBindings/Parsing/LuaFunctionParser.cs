@@ -31,7 +31,8 @@ internal static class LuaFunctionParser
 		LuaFunctionShapeIssues issues = LuaFunctionShape.Inspect(compilation, method,
 			LuaBindingSymbols.ResolveLuaState(compilation),
 			LuaBindingSymbols.ResolveLuaMarshallerAttribute(compilation),
-			LuaBindingSymbols.ResolveLuaMarshallerContract(compilation), out LuaFunctionSignature signature);
+			LuaBindingSymbols.ResolveLuaMarshallerContract(compilation),
+			LuaBindingSymbols.ResolveLuaOptional(compilation), out LuaFunctionSignature signature);
 		if (!isSdkAttribute || !LuaNames.IsValidName(luaName))
 		{
 			issues |= LuaFunctionShapeIssues.InvalidName;

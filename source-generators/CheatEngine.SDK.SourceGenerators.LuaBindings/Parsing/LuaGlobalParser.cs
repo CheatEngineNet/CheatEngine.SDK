@@ -33,7 +33,9 @@ internal static class LuaGlobalParser
 		LuaGlobalShapeIssues issues = LuaGlobalShape.Inspect(compilation, method,
 			LuaBindingSymbols.ResolveLuaState(compilation),
 			LuaBindingSymbols.ResolveLuaMarshallerAttribute(compilation),
-			LuaBindingSymbols.ResolveLuaMarshallerContract(compilation), out LuaGlobalSignature signature);
+			LuaBindingSymbols.ResolveLuaMarshallerContract(compilation),
+			LuaBindingSymbols.ResolveLuaOptional(compilation),
+			LuaBindingSymbols.ResolveLuaOperationStatus(compilation), out LuaGlobalSignature signature);
 		if (!isSdkAttribute || !LuaNames.IsValidName(luaName))
 		{
 			issues |= LuaGlobalShapeIssues.InvalidName;
@@ -150,8 +152,7 @@ internal static class LuaGlobalParser
 	{
 		foreach (IParameterSymbol parameter in method.Parameters)
 		{
-			if (parameter.Name is "__L" or "__operation" or "__top" or "__ok" or "__status" or "__result" or
-				"__resolution" or "__exception")
+			if (LuaGlobalCallEmitter.IsReservedLocal(parameter.Name))
 			{
 				return true;
 			}

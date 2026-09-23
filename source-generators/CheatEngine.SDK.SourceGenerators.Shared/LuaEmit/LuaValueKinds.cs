@@ -61,6 +61,36 @@ internal static class LuaValueKinds
 	}
 
 	/// <summary>
+	///     The <c>global::</c>-qualified <c>LuaOptional&lt;T&gt;</c> spelling of an optional value of
+	///     <paramref name="kind" />: <c>global::CheatEngine.SDK.Lua.Marshalling.LuaOptional&lt;long&gt;</c>. The type
+	///     argument is never nullable: <c>nil</c> is a state of the optional, not a <see langword="null" /> value.
+	/// </summary>
+	public static string OptionalTypeName(LuaValueKind kind)
+	{
+		return LuaApiNames.LuaOptional + "<" + TypeName(kind) + ">";
+	}
+
+	/// <summary>
+	///     Whether a value of this kind can be a <c>LuaOptional&lt;T&gt;</c> argument or result: every built-in kind
+	///     except <see cref="LuaValueKind.Utf8" />, a <c>ReadOnlySpan&lt;byte&gt;</c> that cannot be a type argument.
+	/// </summary>
+	public static bool CanBeOptional(LuaValueKind kind)
+	{
+		return kind != LuaValueKind.Utf8;
+	}
+
+	/// <summary>
+	///     Whether a value of this kind can be the element of a variadic <c>Span&lt;T&gt; values, out int count</c> result:
+	///     the unmanaged scalar kinds. <see langword="string" /> and <c>ReadOnlySpan&lt;byte&gt;</c> are not, and a
+	///     <c>Span&lt;byte&gt;</c> destination stays the UTF-8 copy-out pair.
+	/// </summary>
+	public static bool CanBeVariadicElement(LuaValueKind kind)
+	{
+		return kind is LuaValueKind.Int32 or LuaValueKind.Int64 or LuaValueKind.Single or LuaValueKind.Double
+			or LuaValueKind.Boolean or LuaValueKind.Address;
+	}
+
+	/// <summary>
 	///     The Lua type a thunk expects for an argument of this kind, in Lua's own words
 	///     (<c language="lua">integer</c>, <c language="lua">number</c>, <c language="lua">boolean</c>,
 	///     <c language="lua">string</c>).

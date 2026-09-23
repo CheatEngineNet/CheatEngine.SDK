@@ -7,6 +7,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     runtime and the package boundary contains precisely the assets that direct consumers require.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class PackedConsumerBindingTests(PackagedUmbrellaFixture fixture)
 {
 	private static readonly string[] RequiredAotWarningIds = ["IL2026", "IL3050", "IL3058"];

@@ -7,6 +7,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     a project that references that package. Those behaviors belong only to a direct CheatEngine.SDK PackageReference.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class DirectReferenceIsolationTests(PackagedUmbrellaFixture fixture)
 {
 	[Theory]

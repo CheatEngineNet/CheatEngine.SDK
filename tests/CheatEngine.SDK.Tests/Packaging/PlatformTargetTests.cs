@@ -8,6 +8,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     architecture for the consumer and an indirect package reference never imports this target.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class PlatformTargetTests(PackagedUmbrellaFixture fixture)
 {
 	public static TheoryData<string, string> SupportedPlatformTargets =>

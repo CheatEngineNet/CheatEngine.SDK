@@ -15,6 +15,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     (<c>dotnet restore --packages</c>); this test is the check that would fail if that isolation were ever dropped.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class RestoreIsolationTests(PackagedUmbrellaFixture fixture)
 {
 	[Fact]

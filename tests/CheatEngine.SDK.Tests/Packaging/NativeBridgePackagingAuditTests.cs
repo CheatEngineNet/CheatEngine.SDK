@@ -9,6 +9,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     the exact audited bridge, rather than another native asset that merely happens to share its file name.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class NativeBridgePackagingAuditTests(PackagedUmbrellaFixture fixture)
 {
 	private const string BridgeRelativePath =

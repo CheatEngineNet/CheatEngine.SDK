@@ -16,7 +16,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     is loaded for execution: assemblies are read with System.Reflection.Metadata.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
-[Trait("Category", "Packaging")]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed partial class SupplyChainPackageTests(PackagedUmbrellaFixture fixture)
 {
 	private const string SbomEntry = "_manifest/spdx_2.2/manifest.spdx.json";

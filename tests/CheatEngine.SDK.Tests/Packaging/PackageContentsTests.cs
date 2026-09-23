@@ -9,6 +9,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     repository-internal and does not ship.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class PackageContentsTests(PackagedUmbrellaFixture fixture)
 {
 	private static readonly string[] ExpectedLibraries =

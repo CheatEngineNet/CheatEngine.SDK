@@ -14,12 +14,22 @@ A project reference proves that the source compiles, not that the installed pack
 
 ## How it works
 
-1. One collection fixture (`PackagedUmbrellaFixture`) packs `src/CheatEngine.SDK/CheatEngine.SDK.csproj` in Release
-   into a temporary local feed. The package id, that project path and the lower-cased id NuGet uses as the extraction
-   folder name live in one place, `UmbrellaPackage`.
+1. One collection fixture (`PackagedUmbrellaFixture`) puts one `CheatEngine.SDK` package into a temporary local feed.
+   Its origin is decided first, by `UmbrellaPackageSource`:
+   - `CESDK_PACKAGED_UMBRELLA_NUPKG` set: it must be the absolute path of a `CheatEngine.SDK.<version>.nupkg` file. The
+     fixture copies exactly that file and never packs. This is the CI Release leg: it packs once, passes the packed file,
+     and the same file is uploaded as `nuget-package`, attested and published, so these tests are evidence about the
+     shipped file.
+   - Unset while `CI=true`: the fixture fails at once with an actionable message. A CI run must test the file it ships,
+     and the Debug leg excludes these tests with `--filter-not-trait "Category=Packaging"`.
+   - Unset outside CI: the fixture packs `src/CheatEngine.SDK/CheatEngine.SDK.csproj` in Release itself. That package is
+     built from your working tree; it is evidence about the source (C1/C2), not about a file that was ever shipped.
+
+   The package id, that project path, the variable name, the `Packaging` category and the lower-cased id NuGet uses as
+   the extraction folder name live in one place, `UmbrellaPackage`. Every class of the `PackagedUmbrellaSuite`
+   collection, and no other class, carries `[Trait("Category", "Packaging")]`.
 2. It restores the consumers below and builds them in Release. Every consumer shares the fixture-local package
-   directory,
-   which is isolated from other fixture runs.
+   directory, which is isolated from other fixture runs.
 3. The generated `NuGet.Config` maps the exact `CheatEngine.SDK` package id to the freshly packed local feed, never an
    earlier NuGet extraction or another package source. Nuget.org remains available for other package ids. The packed Lua
    runtime consumer then runs against the checked-in offline Lua 5.3 fixture.
@@ -63,9 +73,33 @@ repository, so they import none of its build settings. Each generated `NuGet.Con
 
 ## Run the tests
 
+Local run: the fixture packs the working tree (it needs nuget.org once, for package validation against 1.0.0).
+
 ```powershell
-dotnet test --project tests/CheatEngine.SDK.Tests
+dotnet test --project tests/CheatEngine.SDK.Tests --fail-skips on
 ```
+
+Fast run without the fixture, as the Debug CI leg does it (no pack, no consumer build):
+
+```powershell
+dotnet test --project tests/CheatEngine.SDK.Tests --fail-skips on --filter-not-trait "Category=Packaging"
+```
+
+Exact-package run, as the Release CI leg does it: pack once, then hand the fixture that file. Restore nothing from
+this package into the machine-wide NuGet folder; the fixture restores into its own isolated folder.
+
+```powershell
+dotnet build CheatEngine.SDK.slnx -c Release
+$feed = Join-Path ([IO.Path]::GetTempPath()) 'cheatengine-sdk-exact-feed'
+Remove-Item $feed -Recurse -Force -ErrorAction SilentlyContinue
+dotnet pack src/CheatEngine.SDK -c Release --no-restore -o $feed
+$env:CESDK_PACKAGED_UMBRELLA_NUPKG = (Get-ChildItem $feed -Filter 'CheatEngine.SDK.*.nupkg').FullName
+dotnet test --project tests/CheatEngine.SDK.Tests -c Release --no-build --fail-skips on
+Remove-Item Env:CESDK_PACKAGED_UMBRELLA_NUPKG
+```
+
+`PackageProvenanceTests` writes `Consumed <file> sha256=<hex> origin=<Prebuilt|SelfPacked>` to the test output, so
+the TRX report names the file the facts are about.
 
 ## Promise
 
@@ -109,6 +143,12 @@ dotnet test --project tests/CheatEngine.SDK.Tests
   `NativeBridgePackagingAuditTests`; the bridge contract is described in the
   [bridge README](../../native/cheatengine-sdk-lua-bridge/README.md)).
 - Consumers build against the package packed by this run, never an earlier extraction (`RestoreIsolationTests`).
+- With `CESDK_PACKAGED_UMBRELLA_NUPKG` set, every packaging fact is about exactly that file: the feed copy is
+  byte-identical to it and the fixture never packs; without it, only a run outside CI may pack, and a CI run fails
+  before any work (`PackageProvenanceTests`). The selection rules reject a relative or missing path, the relay carrier
+  and symbol packages, and a missing variable under `CI=true` (`UmbrellaPackageSourceTests`). Every class sharing the
+  fixture carries the `Packaging` category and no other class does, so the Debug filter never packs and never empties
+  the module (`PackagedUmbrellaTraitTests`).
 - The packed `.nupkg` embeds an SPDX 2.2 SBOM at `_manifest/spdx_2.2/manifest.spdx.json` that describes this package id
   and version and lists every other entry of the package with its SHA-256, including the seven libraries, the five
   Roslyn components and the native bridge (`Package_embeds_an_spdx_2_2_sbom_describing_itself`,

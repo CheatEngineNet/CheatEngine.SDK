@@ -9,6 +9,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     itself.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class BuildPropertyDefaultsTests(PackagedUmbrellaFixture fixture)
 {
 	[Fact]

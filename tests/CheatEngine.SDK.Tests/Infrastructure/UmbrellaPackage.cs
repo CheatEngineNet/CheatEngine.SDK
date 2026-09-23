@@ -14,6 +14,19 @@ internal static class UmbrellaPackage
 	public const string ProjectPath = "src/CheatEngine.SDK/CheatEngine.SDK.csproj";
 
 	/// <summary>
+	///     The environment variable through which CI hands the fixture the exact <c>.nupkg</c> its Release leg packed,
+	///     uploads as <c>nuget-package</c>, attests and publishes: an absolute file path. When it is
+	///     set, <see cref="PackagedUmbrellaFixture" /> never packs; see <see cref="UmbrellaPackageSource" />.
+	/// </summary>
+	public const string PrebuiltPackageVariable = "CESDK_PACKAGED_UMBRELLA_NUPKG";
+
+	/// <summary>
+	///     The <c>Category</c> trait value of every class that shares <see cref="PackagedUmbrellaFixture" />. The Debug CI leg
+	///     excludes them with <c>--filter-not-trait "Category=Packaging"</c>, so it never packs.
+	/// </summary>
+	public const string PackagingCategory = "Packaging";
+
+	/// <summary>
 	///     The folder name NuGet extracts <see cref="Id" /> into inside a global-packages folder
 	///     (<c>&lt;packages&gt;/cheatengine.sdk/&lt;version&gt;</c>): NuGet lower-cases the id there.
 	/// </summary>

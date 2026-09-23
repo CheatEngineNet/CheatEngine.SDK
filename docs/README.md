@@ -10,14 +10,15 @@ audit; none is a restored copy of an earlier document.
 
 ## Contents
 
-| Area                                                                                       | Page                                                                                 | Status          |
-|--------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|-----------------|
-| Qualification: support profiles, Q01–Q48 matrix, receipts of executed runs, local protocol | [qualification/README.md](qualification/README.md)                                   | Placeholder     |
-| ABI and NativeAOT restrictions                                                             | [abi/README.md](abi/README.md), [abi/nativeaot-profile.md](abi/nativeaot-profile.md) | Placeholder     |
-| Lua surface catalogue, deferred families, four coverage measures                           | [catalog/README.md](catalog/README.md)                                               | Placeholder     |
-| Audit traceability                                                                         | `audit-2026-09-22-traceability.md`, added at the end of the remediation              | Not written yet |
+| Area                                                                                       | Page                                                                                                                                                                                         | Status                                 |
+|--------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
+| Qualification: support profiles, Q01–Q48 matrix, receipts of executed runs, local protocol | [qualification/README.md](qualification/README.md), [qualification/support-profile.md](qualification/support-profile.md), [qualification/local-protocol.md](qualification/local-protocol.md) | Written; no C3 or C4 cell executed yet |
+| ABI and NativeAOT restrictions                                                             | [abi/README.md](abi/README.md), [abi/nativeaot-profile.md](abi/nativeaot-profile.md)                                                                                                         | Placeholder                            |
+| Lua surface catalogue, deferred families, four coverage measures                           | [catalog/README.md](catalog/README.md)                                                                                                                                                       | Placeholder                            |
+| Audit traceability                                                                         | `audit-2026-09-22-traceability.md`, added at the end of the remediation                                                                                                                      | Not written yet                        |
 
-A placeholder page states its scope and the work that replaces it; it records no evidence yet.
+A placeholder page states its scope and the work that replaces it; it records no evidence yet. The qualification pages
+are written, but they record no exact-host result until a receipt is committed.
 
 ## Evidence levels
 

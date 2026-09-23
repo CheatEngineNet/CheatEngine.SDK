@@ -375,6 +375,7 @@ public sealed class MemoryApiTests
 		// Baseline is 1, not 0: LuaRuntime.Attach makes one eager provider call of its own to stamp the universe
 		// (WI-3, external-reset detection), before any of the empty read/write calls below.
 		int baseline = FakeHost.ProviderCalls;
+		Assert.Equal(1, baseline);
 		Assert.True(TargetMemory.TryReadBytes(1UL, [], out MemoryAccessFailure failure));
 		Assert.Equal(MemoryAccessFailure.None, failure);
 		Assert.Equal(baseline + 1, FakeHost.ProviderCalls);

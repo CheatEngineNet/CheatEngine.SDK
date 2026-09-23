@@ -5,7 +5,8 @@ Tests for the `CheatEngine.SDK` NuGet package as a plugin author receives it.
 ## Objective
 
 Pack `src/CheatEngine.SDK`, build throwaway plugin projects against the packed package, run the required package-only
-executables, and check what they get. The local pack is test input, not a package publication.
+executables, and check what they get; and test the release tooling that ships it (`eng/release`). The local pack is
+test input, not a package publication.
 
 ## Why it exists
 
@@ -51,6 +52,11 @@ A project reference proves that the source compiles, not that the installed pack
 | `AnyCpuPlatformTargetConsumer`                            | `PlatformTarget=AnyCPU`                                     | The direct package target accepts a managed library loadable in the x64 CE host                                                                                                                          |
 | `X64PlatformTargetConsumer`                               | `PlatformTarget=x64`                                        | The direct package target accepts the explicit supported architecture                                                                                                                                    |
 | `X86/Arm/Arm64/Itanium/UnsupportedPlatformTargetConsumer` | Explicit unsupported target                                 | The direct package target rejects every unsupported architecture with `CESDK9101`                                                                                                                        |
+
+The `Release/` folder tests the scripts of [`eng/release`](../../eng/release/README.md) without the fixture: it builds
+a small synthetic nupkg, SBOM, `build-info.json` and asset folder in a temporary directory and runs the scripts with
+`pwsh` 7 (`PowerShellScript` removes the GitHub Actions file-command variables from their environment, so a test run
+never writes into a CI job's summary). `Packaging/ReleaseTupleTests` runs the same scripts on the package under test.
 
 The build consumers are `net10.0` class libraries with one valid plugin class, in a temporary directory outside the
 repository. The packed Lua runtime consumer and package-only AOT publication consumer are temporary executables. The
@@ -176,3 +182,19 @@ the TRX report names the file the facts are about.
   files, lock files) is packed (`Package_version_is_on_the_minver_minimum_line_or_later`,
   `Embedded_assemblies_carry_the_package_major_as_assembly_version`, `Package_carries_no_repository_contract_file`).
   The pack itself also runs package validation against the published 1.0.0 baseline, so it needs nuget.org once.
+- The release tuple schema and the C# validator the tests use have the same required, enum and const lists, and every
+  schema object rejects unknown properties (`ReleaseTupleSchemaTests`); the validator itself rejects unknown or missing
+  properties, mixed stages, local paths, and asset lists or tags that do not match the package
+  (`ReleaseTupleValidatorTests`).
+- `New-ReleaseTuple.ps1` writes a valid tuple (UTF-8 without BOM, LF) that mirrors the package, its bridge, its SBOM,
+  `build-info.json` and `SHA256SUMS`; it fails when build-info names another package or another bridge fingerprint,
+  reports a packed bridge that differs from the audited one without failing, records `null` hashes and no receipt when
+  the qualification files are absent, lists committed receipts and never their event logs, requires the nuget.org
+  identities and both bundles for a `Published` tuple, and writes no local path (`ReleaseTupleScriptTests`).
+- The byte scan that reads the bridge fingerprint on Linux finds exactly the value the committed DLL exports, and
+  refuses bytes without exactly one fingerprint (`BridgeFingerprintExtractionTests`); `Export-PackageSbom.ps1` exports
+  the embedded SBOM byte for byte and refuses a package without an SPDX 2.2 one (`PackageSbomScriptTests`);
+  `New-Sha256Sums.ps1` writes the `sha256sum -c` format and refuses duplicate or non-local names
+  (`Sha256SumsScriptTests`).
+- On the package under test, the SBOM export, `SHA256SUMS` and a `PrePublish` tuple succeed and describe that exact file
+  (`Pre_publish_tuple_of_the_package_under_test_is_valid`).

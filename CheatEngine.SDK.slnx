@@ -108,6 +108,14 @@
     <File Path="eng/github/rulesets/protect-main.json"/>
     <File Path="eng/github/rulesets/protect-release-tags.json"/>
   </Folder>
+  <Folder Name="/eng/release/">
+    <File Path="eng/release/Export-PackageSbom.ps1"/>
+    <File Path="eng/release/New-ReleaseTuple.ps1"/>
+    <File Path="eng/release/New-Sha256Sums.ps1"/>
+    <File Path="eng/release/README.md"/>
+    <File Path="eng/release/release-tuple.v0.schema.json"/>
+    <File Path="eng/release/ReleaseTools.psm1"/>
+  </Folder>
   <Folder Name="/docs/">
     <File Path="docs/README.md"/>
   </Folder>

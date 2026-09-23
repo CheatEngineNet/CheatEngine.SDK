@@ -1,0 +1,65 @@
+# Release tooling
+
+PowerShell 7 scripts that turn the package CI tested into verifiable release evidence: the SBOM it embeds, the
+checksums of every release asset, and the release tuple that ties the attested package to its source, build, native
+bridge, Cheat Engine profile and qualification evidence. `.github/workflows/release.yml` runs them; the C# tests in
+`tests/CheatEngine.SDK.Tests/Release` and `tests/CheatEngine.SDK.Tests/Packaging/ReleaseTupleTests.cs` run them on
+synthetic inputs and on the package under test.
+
+## Scripts
+
+| File | What it does |
+|------|--------------|
+| `ReleaseTools.psm1` | Pure functions shared by the scripts: hashes, zip entries, nuspec identity, bridge fingerprint, `SHA256SUMS` text, JSON writing. No environment, network or step-summary access. |
+| `Export-PackageSbom.ps1` | Extracts `_manifest/spdx_2.2/manifest.spdx.json` from the nupkg byte for byte. Fails when it is absent, is not `SPDX-2.2`, or disagrees with the `.sha256` file the SBOM tool writes next to it. |
+| `New-Sha256Sums.ps1` | Writes `SHA256SUMS`: `<sha256>  <name>` per asset, ordinal order, LF, final newline, UTF-8 without BOM, the format `sha256sum -c` reads. |
+| `New-ReleaseTuple.ps1` | Writes `CheatEngine.SDK.<version>.tuple.json` (schema [`release-tuple.v0.schema.json`](release-tuple.v0.schema.json)), `PrePublish` or `Published`. |
+| `release-tuple.v0.schema.json` | JSON Schema (draft 2020-12) of the tuple. `ReleaseTupleSchemaTests` keeps it equal to the C# validator the tests use. |
+
+Every script fails with a single `::error::` line, which is also an annotation on the workflow run, and writes no
+absolute local path into any file it produces.
+
+## Release assets
+
+| Asset | Content |
+|-------|---------|
+| `CheatEngine.SDK.<version>.nupkg` | The unsigned package CI packed, tested with `CESDK_PACKAGED_UMBRELLA_NUPKG`, attested and pushed to nuget.org. |
+| `CheatEngine.SDK.<version>.spdx.json` | The SPDX 2.2 SBOM embedded in that package, extracted byte for byte. |
+| `CheatEngine.SDK.<version>.provenance.sigstore.json` | Sigstore bundle of the SLSA provenance attestation of the nupkg. |
+| `CheatEngine.SDK.<version>.sbom.sigstore.json` | Sigstore bundle of the SBOM attestation of the nupkg (predicate `https://spdx.dev/Document/v2.2`). |
+| `SHA256SUMS` | SHA-256 of the four files above. |
+| `CheatEngine.SDK.<version>.tuple.json` | The release tuple: `PrePublish` on the draft, replaced by the `Published` tuple before the release is published. Its `assets` mirror `SHA256SUMS`. |
+| `CheatEngine.SDK.<version>.tuple.sigstore.json` | Sigstore bundle of the provenance attestation of the `Published` tuple. |
+
+A dry run (`workflow_dispatch`) produces the SBOM, `SHA256SUMS` and a `PrePublish` tuple without attestations, and no
+release.
+
+## The release tuple
+
+The tuple is built from files, never from workflow inputs:
+
+- the nupkg: SHA-256, SHA-512 (the NuGet `contentHash` of the unsigned package, the value consumer lock files store),
+  nuspec id, version and repository commit, the packed bridge `build/native/cheatengine-sdk-lua-bridge.dll` (SHA-256
+  and the source fingerprint found in its bytes, without loading it) and the embedded SBOM;
+- `build-info.json` of the CI run that packed it: commit, tree, run URL, .NET SDK, runner image, native toolchain, and
+  the package and bridge it describes. A build-info that names another package, another bridge SHA-256 or another
+  fingerprint fails the script; a nuspec commit other than the build-info commit fails it too;
+- `native/cheatengine-sdk-lua-bridge/bridge-audit-manifest.json`: when the packed bridge bytes differ from the
+  committed, audited bridge, the script emits a notice and a step-summary line, never a failure (CI rebuilds the bridge
+  with its pinned toolset);
+- `docs/qualification/support-profile.json` (the `Qualifiable` profile id and the file hash), `matrix.json` (its hash)
+  and every committed receipt `docs/qualification/receipts/*/R-*.json` (id, scenario, level, status, hash; event logs
+  are not listed). When a file is absent the tuple records `null` and the workflow shows a warning; a scenario without
+  a committed receipt is not listed, so no host result is ever invented;
+- `SHA256SUMS` of the release assets, each hash checked against its file.
+
+Hashes of committed JSON documents are taken after CRLF to LF normalization, so they equal the git blob hash input on
+every checkout. A `Published` tuple also requires the nuget.org repository-signed SHA-256 and SHA-512, the verified
+repository signature, both attestation bundles and the tag.
+
+## Reproducibility
+
+The promise is at the level of the DLLs and the native bridge: MinVer stamps the tag version, `ContinuousIntegrationBuild`
+normalizes paths, and the bridge is built twice and compared by the `native` job. The nupkg itself is not
+byte-reproducible, because the SBOM it embeds carries a generated document namespace and a creation time. The attested
+nupkg and its hashes in the tuple are therefore the identity of a release, not a rebuild of it.

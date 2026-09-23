@@ -321,6 +321,7 @@ public sealed class MemoryScanSessionDeadlineTests
 		MemoryScanReleaseOutcome outcome = session.ReleaseWithOutcome();
 
 		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.Equal(expected, outcome.Termination);
 		Assert.Equal(TargetReleaseStatus.Released, outcome.FoundList.Status);
 		Assert.Equal(TargetReleaseStatus.Released, outcome.MemScan.Status);
 		Assert.Equal("list.destroy,scan.destroy", MemScanTestHost.ReadTrace(L));

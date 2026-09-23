@@ -36,10 +36,17 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 ///         release the readable view; this is a session invariant, not a claim that CE rejects every other raw sequence.
 ///     </para>
 ///     <para>
-///         Dispose is idempotent and releases a ready found list before destroying the found-list child, then destroys the
-///         scanner parent. It must run while the plugin is enabled and on the Cheat Engine main thread so the contained
-///         <see cref="Owned{T}" /> values can reach <c>destroy()</c>. As with <see cref="Owned{T}" />, no finalizer runs
-///         native cleanup from an arbitrary thread.
+///         Dispose is idempotent. When a scan may still be running (a first or next scan was started and no wait,
+///         confirmed stop or reset has ended it), it first asks CE for a cooperative stop, <c>terminateScan(false)</c>,
+///         and waits for it with <c>waitTillDone(5000)</c>, each once. It then releases a ready found list, destroys the
+///         found-list child and finally destroys the scanner parent, each exactly once, even when the stop was not
+///         confirmed: CE's own destroy of a scanner stops and waits for its scan controller rather than freeing memory
+///         under a running scan thread (ObservedSource: cheat-engine/cheat-engine@ec45d5f
+///         <c>Cheat Engine/memscan.pas</c> lines 7942-7946 and 8929-8955). Disposing a scanning session therefore blocks
+///         CE's main thread for at most the five-second settle wait plus whatever CE's destroy waits; the stop is
+///         cooperative and never forced. It must run while the plugin is enabled and on the Cheat Engine main thread so
+///         the contained <see cref="Owned{T}" /> values can reach <c>destroy()</c>. As with <see cref="Owned{T}" />, no
+///         finalizer runs native cleanup from an arbitrary thread.
 ///     </para>
 ///     <para>
 ///         <see cref="WaitForCompletion" /> uses CE's no-timeout <c>waitTillDone()</c> form. CE 7.7.0.10621 also has a
@@ -214,7 +221,9 @@ public sealed class MemoryScanSession : IDisposable
 	/// <remarks>
 	///     Use <see cref="ReleaseWithOutcome" /> when the factual child and parent outcomes matter. This method is
 	///     idempotent; it performs neither a target-dependent destroy on a worker nor a retry after an uncertain native
-	///     destroy. It records safe refusal or an unconfirmed result in <see cref="LastReleaseOutcome" /> instead.
+	///     destroy. It records safe refusal or an unconfirmed result in <see cref="LastReleaseOutcome" /> instead. When a
+	///     scan may still be running it first requests one cooperative stop and waits for it (at most five seconds), so it
+	///     can block CE's main thread; see <see cref="ReleaseWithOutcome" />.
 	/// </remarks>
 	[MainThreadOnly]
 	public void Dispose()
@@ -230,10 +239,23 @@ public sealed class MemoryScanSession : IDisposable
 	///     unconfirmed cleanup. The same result is returned after the session is already disposed.
 	/// </returns>
 	/// <remarks>
-	///     This method never throws and never retries a destroy. If cleanup cannot safely begin (for example, a worker
-	///     thread, detached runtime, changed Lua identity, or changed target), it consumes the managed owners through
-	///     <see cref="Owned{T}.Abandon" /> and reports the refusal or unavailable cleanup rather than routing handles into
-	///     a different CE context. A protected destroy failure consumes the corresponding owner and remains unconfirmed.
+	///     <para>
+	///         This method never throws and never retries a destroy. If cleanup cannot safely begin (for example, a worker
+	///         thread, detached runtime, changed Lua identity, or changed target), it consumes the managed owners through
+	///         <see cref="Owned{T}.Abandon" /> and reports the refusal or unavailable cleanup rather than routing handles
+	///         into a different CE context; <see cref="MemoryScanReleaseOutcome.Termination" /> is then
+	///         <see cref="MemoryScanTerminationStatus.NotInvoked" /> when a scan may still run. A protected destroy failure
+	///         consumes the corresponding owner and remains unconfirmed.
+	///     </para>
+	///     <para>
+	///         When a scan may still be running (after a first or next scan call, including one that failed after CE may
+	///         have started, or after a wait that failed or timed out) and no stop was requested yet, the release calls
+	///         <c>terminateScan(false)</c> and then <c>waitTillDone(5000)</c>, each once, before the child and parent
+	///         destroys. A stop that is not confirmed is reported in <see cref="MemoryScanReleaseOutcome.Termination" />
+	///         and the child and parent are still destroyed once each; a stop already requested through
+	///         <see cref="TryTerminateScan" /> is never repeated. This can block CE's main thread for up to five seconds plus
+	///         CE's own destroy wait.
+	///     </para>
 	/// </remarks>
 	public MemoryScanReleaseOutcome ReleaseWithOutcome()
 	{
@@ -1191,31 +1213,51 @@ public sealed class MemoryScanSession : IDisposable
 	{
 		Owned<FoundList>? foundList = _foundList;
 		Owned<MemScan>? scanner = _scanner;
+		MemoryScanTerminationStatus termination = StopRunningScanForRelease(state);
 		if (State == MemoryScanState.ResultsReady && foundList is not null && !foundList.IsDisposed)
 		{
 			using LuaFrame frame = new(state);
 			_ = foundList.Value.Handle.TryCallMethod(state, "deinitialize"u8, 0, 0);
 		}
 
+		// Destroy the child, then the parent, each exactly once, even after an unconfirmed stop (audit A13-26).
 		TargetReleaseOutcome foundListOutcome = ReleaseOwned(state, foundList);
 		TargetReleaseOutcome scannerOutcome = ReleaseOwned(state, scanner);
-		return CompleteRelease(foundListOutcome, scannerOutcome);
+		return CompleteRelease(foundListOutcome, scannerOutcome, termination);
+	}
+
+	// The release's one cooperative stop. A stop already requested through TryTerminateScan (or by the bounded AOB
+	// route after its deadline) is never repeated: its unconfirmed status is reported instead.
+	private MemoryScanTerminationStatus StopRunningScanForRelease(LuaState state)
+	{
+		if (!_scanMayBeRunning)
+		{
+			return MemoryScanTerminationStatus.NotRequired;
+		}
+
+		return _terminationAttempted
+			? _termination
+			: TerminateAndSettleCore(state, ReleaseTerminationWaitMilliseconds);
 	}
 
 	private MemoryScanReleaseOutcome ConsumeWithoutCleanup(TargetReleaseOutcome outcome)
 	{
+		MemoryScanTerminationStatus termination = _scanMayBeRunning
+			? MemoryScanTerminationStatus.NotInvoked
+			: MemoryScanTerminationStatus.NotRequired;
 		ConsumeOwner(_foundList);
 		ConsumeOwner(_scanner);
-		return CompleteRelease(outcome, outcome);
+		return CompleteRelease(outcome, outcome, termination);
 	}
 
 	private MemoryScanReleaseOutcome CompleteRelease(TargetReleaseOutcome foundListOutcome,
-		TargetReleaseOutcome scannerOutcome)
+		TargetReleaseOutcome scannerOutcome, MemoryScanTerminationStatus termination)
 	{
 		_foundList = null;
 		_scanner = null;
 		State = MemoryScanState.Disposed;
-		LastReleaseOutcome = new MemoryScanReleaseOutcome(foundListOutcome, scannerOutcome, true, true);
+		LastReleaseOutcome =
+			new MemoryScanReleaseOutcome(foundListOutcome, scannerOutcome, true, true, termination);
 		return LastReleaseOutcome;
 	}
 

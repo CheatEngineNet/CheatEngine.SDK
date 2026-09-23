@@ -527,6 +527,7 @@ CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.MemScan.get -> C
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.MemScanOwnershipConsumed.get -> bool
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.MemoryScanReleaseOutcome() -> void
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.OwnershipConsumed.get -> bool
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.Termination.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.Address.get -> CheatEngine.SDK.Engine.Values.Address
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.Address.init -> void

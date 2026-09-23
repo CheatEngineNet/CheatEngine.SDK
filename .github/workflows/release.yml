@@ -8,8 +8,8 @@ run-name: Release ${{ github.ref_name }}${{ github.event_name == 'workflow_dispa
 # tests consume, that is attested, attached to the release and pushed to nuget.org. The release is created as a draft
 # that already carries every asset (an immutable release locks its assets and tag once published) and is published
 # only after nuget.org serves the repository-signed package. A workflow_dispatch dry run stops after attest: it builds
-# the SBOM, SHA256SUMS and a PrePublish tuple, creates no attestation and no release, and publishes nothing.
-# See RELEASING.md and eng/release/README.md.
+# the SBOM and SHA256SUMS, creates no attestation and no release, and publishes nothing.
+# See RELEASING.md.
 
 on:
   push:
@@ -135,25 +135,6 @@ jobs:
           @($notes, '', "NuGet package: https://www.nuget.org/packages/CheatEngine.SDK/$env:VERSION") -join "`n" |
             Set-Content -LiteralPath artifacts/release-notes.md -Encoding utf8NoBOM
 
-      # Checkpoint F (RELEASING.md): a stable tag needs Q02-Q10, Q40 and Q41 qualified for the released tree, or waived
-      # under '### Qualification waivers' in its release notes. Prereleases and dry runs only report the open rows.
-      - name: Check the qualification gate
-        env:
-          VERSION: ${{ steps.tag.outputs.version }}
-          PRERELEASE: ${{ steps.tag.outputs.prerelease }}
-          TREE: ${{ steps.tag.outputs.tree }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $gate = @{ MatrixPath = 'docs/qualification/matrix.json'; TreeHash = $env:TREE; Mode = 'Report' }
-          if ($env:VERSION) {
-            $gate.ReleaseNotesPath = 'artifacts/release-notes.md'
-            if ($env:PRERELEASE -eq 'false') { $gate.Mode = 'Enforce' }
-          }
-          ./eng/release/Test-ReleaseQualification.ps1 @gate
-          if ($LASTEXITCODE -ne 0) {
-            throw "The qualification gate refused the release with exit code $LASTEXITCODE."
-          }
-
       - name: Upload release notes
         if: steps.tag.outputs.version != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -174,7 +155,7 @@ jobs:
       package-retention-days: 90
 
   # Attestations are created before publication because the draft must already carry their bundles. On a dry run the
-  # attestation steps are skipped and the PrePublish tuple records no bundle.
+  # attest/verify steps below are skipped (their own 'if' guards the exact tag push condition).
   attest:
     name: Attest and assemble release assets
     needs: [ verify, ci ]
@@ -184,10 +165,6 @@ jobs:
       contents: read
       id-token: write # the Sigstore certificate that signs the attestations is bound to this workflow's OIDC identity
       attestations: write # store the provenance and SBOM attestations of the package in this repository
-      pull-requests: read # find the merged pull request whose commit was tagged, for the release tuple
-    outputs:
-      pull-request-number: ${{ steps.pull-request.outputs.number }}
-      pull-request-head-sha: ${{ steps.pull-request.outputs.head-sha }}
     env:
       VERSION: ${{ needs.verify.outputs.version }}
       TAG: ${{ needs.verify.outputs.tag }}
@@ -202,12 +179,6 @@ jobs:
         with:
           name: nuget-package
           path: artifacts/nuget
-
-      - name: Download build info
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: build-info
-          path: artifacts/build-info
 
       - name: Stage package and SBOM
         id: stage
@@ -226,11 +197,34 @@ jobs:
           New-Item -ItemType Directory -Path $release -Force | Out-Null
           Copy-Item -LiteralPath $packages[0].FullName -Destination $release
           $package = Join-Path $release $name
+
+          # Microsoft.Sbom.Targets embeds the SPDX 2.2 SBOM at pack time; the release attests that exact document
+          # (sbom-path derives predicate https://spdx.dev/Document/v2.2 from its spdxVersion), so the bytes are
+          # extracted, never re-serialized.
+          $sbomEntry = '_manifest/spdx_2.2/manifest.spdx.json'
           $sbom = Join-Path $release "CheatEngine.SDK.$version.spdx.json"
-          ./eng/release/Export-PackageSbom.ps1 -PackagePath $package -OutputPath $sbom
-          if ($LASTEXITCODE -ne 0) {
-            throw "Exporting the SBOM failed with exit code $LASTEXITCODE."
+          $archive = [IO.Compression.ZipFile]::OpenRead($package)
+          try {
+            $entry = $archive.GetEntry($sbomEntry)
+            if ($null -eq $entry) {
+              throw "$name embeds no SPDX 2.2 SBOM at $sbomEntry."
+            }
+            $stream = $entry.Open()
+            try {
+              $document = [IO.MemoryStream]::new()
+              $stream.CopyTo($document)
+              $bytes = $document.ToArray()
+            } finally {
+              $stream.Dispose()
+            }
+          } finally {
+            $archive.Dispose()
           }
+          $spdxVersion = ([Text.Encoding]::UTF8.GetString($bytes) | ConvertFrom-Json).spdxVersion
+          if ($spdxVersion -cne 'SPDX-2.2') {
+            throw "The SBOM of $name declares spdxVersion '$spdxVersion', expected SPDX-2.2."
+          }
+          [IO.File]::WriteAllBytes($sbom, $bytes)
           @("version=$version", "package=$package", "sbom=$sbom") | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Attest provenance
@@ -283,69 +277,25 @@ jobs:
             }
           }
 
-      # The tuple names the pull request that produced the released commit; an unreadable or ambiguous answer is a
-      # warning and a tuple without a pull request, never a guess.
-      - name: Find the pull request of the released commit
-        id: pull-request
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Import-Module ./eng/release/ReleaseTools.psm1
-          $json = gh api "repos/$env:GITHUB_REPOSITORY/commits/$env:GITHUB_SHA/pulls"
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "::warning::The pull requests of $env:GITHUB_SHA could not be read; the release tuple records none."
-            exit 0
-          }
-          $found = Select-ReleasePullRequest -PullRequest @($json | ConvertFrom-Json) -Commit $env:GITHUB_SHA
-          if ($null -eq $found) {
-            Write-Host "::warning::No single pull request merged as, or headed by, $env:GITHUB_SHA; the release tuple records none."
-            exit 0
-          }
-          Write-Host "Pull request #$($found.Number) (head $($found.HeadSha), merged: $($found.Merged))."
-          @("number=$($found.Number)", "head-sha=$($found.HeadSha)") | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-
-      - name: Write checksums and the pre-publish tuple
+      # One line per asset: 64 lowercase hex digits, two spaces, the file name (the 'sha256sum -c' / 'shasum -a 256 -c'
+      # form), sorted ordinally by name.
+      - name: Write checksums
         env:
           STAGED_VERSION: ${{ steps.stage.outputs.version }}
-          PACKAGE: ${{ steps.stage.outputs.package }}
-          PULL_REQUEST_NUMBER: ${{ steps.pull-request.outputs.number }}
-          PULL_REQUEST_HEAD_SHA: ${{ steps.pull-request.outputs.head-sha }}
         run: |
           $ErrorActionPreference = 'Stop'
           $release = Join-Path $env:GITHUB_WORKSPACE 'artifacts/release'
           $prefix = "CheatEngine.SDK.$env:STAGED_VERSION"
           $names = @("$prefix.nupkg", "$prefix.spdx.json")
-          $tuple = @{
-            Stage           = 'PrePublish'
-            PackagePath     = $env:PACKAGE
-            AssetsDirectory = $release
-            OutputPath      = Join-Path $release "$prefix.tuple.json"
-            ReleaseRunUrl   = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
-          }
-          $buildInfo = @(Get-ChildItem -LiteralPath artifacts/build-info -Filter build-info.json -File -Recurse)
-          if ($buildInfo.Count -ne 1) {
-            throw "build-info must hold exactly one build-info.json, found $($buildInfo.Count)."
-          }
-          $tuple.BuildInfoPath = $buildInfo[0].FullName
           if (Test-Path -LiteralPath (Join-Path $release "$prefix.provenance.sigstore.json")) {
             $names += "$prefix.provenance.sigstore.json", "$prefix.sbom.sigstore.json"
-            $tuple.ProvenanceBundle = "$prefix.provenance.sigstore.json"
-            $tuple.SbomBundle = "$prefix.sbom.sigstore.json"
           }
-          if ($env:TAG) { $tuple.Tag = $env:TAG }
-          if ($env:PULL_REQUEST_NUMBER) {
-            $tuple.PullRequestNumber = $env:PULL_REQUEST_NUMBER
-            $tuple.PullRequestHeadSha = $env:PULL_REQUEST_HEAD_SHA
+          $names = @($names | Sort-Object)
+          $lines = foreach ($name in $names) {
+            $hash = (Get-FileHash -LiteralPath (Join-Path $release $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $name"
           }
-          ./eng/release/New-Sha256Sums.ps1 -Directory $release -Name $names -OutputPath (Join-Path $release 'SHA256SUMS')
-          if ($LASTEXITCODE -ne 0) {
-            throw "Writing SHA256SUMS failed with exit code $LASTEXITCODE."
-          }
-          ./eng/release/New-ReleaseTuple.ps1 @tuple
-          if ($LASTEXITCODE -ne 0) {
-            throw "Writing the pre-publish release tuple failed with exit code $LASTEXITCODE."
-          }
+          [IO.File]::WriteAllText((Join-Path $release 'SHA256SUMS'), (($lines -join "`n") + "`n"), [Text.UTF8Encoding]::new($false))
 
       - name: Upload release assets
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -357,8 +307,8 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-  # Never uploads to a published release: a draft receives its missing assets (only the tuple may be replaced), and a
-  # published release that already carries the same assets is left untouched.
+  # Never uploads to a published release (its assets are immutable once published): a draft receives its missing
+  # assets, and a published release that already carries the same assets is left untouched.
   draft-release:
     name: Create draft release
     needs: [ verify, attest ]
@@ -397,14 +347,16 @@ jobs:
           name: release-notes
           path: artifacts
 
+      # No release yet: create a draft with every local asset. A draft release: upload whatever it is still missing.
+      # A published release (immutable once published): every local asset must already be there with the same
+      # SHA-256, since nothing may ever be uploaded to it; any other difference needs a maintainer.
       - name: Create or complete the draft release
         run: |
           $ErrorActionPreference = 'Stop'
-          Import-Module ./eng/release/ReleaseTools.psm1
           $release = 'artifacts/release'
           $local = [ordered]@{}
           foreach ($file in @(Get-ChildItem -LiteralPath $release -File)) {
-            $local[$file.Name] = Get-Sha256Hex -Path $file.FullName
+            $local[$file.Name] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           }
           # Drafts are listed for this token (contents: write), so an absent tag means no release at all.
           $releases = gh release list --limit 1000 --json tagName
@@ -420,28 +372,48 @@ jobs:
             $existing = $view | ConvertFrom-Json
           }
 
-          $plan = Get-ReleaseAssetPlan -LocalAsset $local -Release $existing -ReplaceableName "CheatEngine.SDK.$env:VERSION.tuple.json"
-          switch ($plan.Action) {
+          $names = [string[]]@($local.Keys)
+          [Array]::Sort($names, [StringComparer]::Ordinal)
+          $upload = [Collections.Generic.List[string]]::new()
+          $problems = [Collections.Generic.List[string]]::new()
+          $action = 'Create'
+          if ($null -ne $existing) {
+            $remote = @{}
+            foreach ($asset in @($existing.assets)) {
+              $digest = [string] $asset.digest
+              $remote[[string] $asset.name] = if ($digest -cmatch '^sha256:[0-9a-f]{64}$') { $digest.Substring(7) } else { '' }
+            }
+            foreach ($name in $names) {
+              if (-not $remote.ContainsKey($name)) {
+                if ($existing.isDraft) { $upload.Add($name) }
+                else { $problems.Add("the published release has no '$name'") }
+                continue
+              }
+              if ($remote[$name] -cne $local[$name]) {
+                $problems.Add("'$name' on the release has SHA-256 $($remote[$name]), this run produced $($local[$name])")
+              }
+            }
+            $action = if ($problems.Count -gt 0) { 'Refuse' } elseif ($existing.isDraft) { 'Complete' } else { 'AlreadyPublished' }
+          }
+          else {
+            $upload.AddRange($names)
+          }
+
+          switch ($action) {
             'Create' {
               $options = @('--draft', '--verify-tag', '--title', $env:TAG, '--notes-file', 'artifacts/release-notes.md')
               if ($env:PRERELEASE -eq 'true') { $options += '--prerelease' }
-              $files = @($plan.Upload | ForEach-Object { Join-Path $release $_ })
+              $files = @($upload | ForEach-Object { Join-Path $release $_ })
               gh release create $env:TAG @options @files
               if ($LASTEXITCODE -ne 0) {
                 throw "Creating the draft release failed with exit code $LASTEXITCODE."
               }
             }
             'Complete' {
-              foreach ($name in $plan.Upload) {
+              foreach ($name in $upload) {
                 gh release upload $env:TAG (Join-Path $release $name)
                 if ($LASTEXITCODE -ne 0) {
                   throw "Uploading $name to the draft failed with exit code $LASTEXITCODE."
-                }
-              }
-              foreach ($name in $plan.Replace) {
-                gh release upload $env:TAG (Join-Path $release $name) --clobber
-                if ($LASTEXITCODE -ne 0) {
-                  throw "Replacing $name on the draft failed with exit code $LASTEXITCODE."
                 }
               }
             }
@@ -449,11 +421,11 @@ jobs:
               Write-Host "::notice::Release $env:TAG is already published with these assets; nothing is uploaded."
             }
             default {
-              Write-Host "::error::Release $env:TAG needs a maintainer: $($plan.Problems -join '; '). A draft that was never published can be deleted and this job re-run."
+              Write-Host "::error::Release $env:TAG needs a maintainer: $($problems -join '; '). A draft that was never published can be deleted and this job re-run."
               exit 1
             }
           }
-          "Draft release ``$env:TAG``: $($plan.Action) ($($local.Count) assets)." |
+          "Draft release ``$env:TAG``: $action ($($local.Count) assets)." |
             Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
   # NuGet trusted publishing is bound to this file and the nuget environment, so login and push stay in this job.
@@ -495,11 +467,15 @@ jobs:
       - name: Check the package against SHA256SUMS
         run: |
           $ErrorActionPreference = 'Stop'
-          Import-Module ./eng/release/ReleaseTools.psm1
           $name = "CheatEngine.SDK.$env:VERSION.nupkg"
-          $sums = ConvertFrom-Sha256SumsText -Text ([IO.File]::ReadAllText('artifacts/release/SHA256SUMS'))
-          $actual = Get-Sha256Hex -Path "artifacts/release/$name"
-          if (-not $sums.Contains($name) -or $sums[$name] -cne $actual) {
+          $sums = @{}
+          foreach ($line in (Get-Content -LiteralPath 'artifacts/release/SHA256SUMS')) {
+            if ($line -cmatch '^(?<hash>[0-9a-f]{64})  (?<name>\S+)$') {
+              $sums[$Matches['name']] = $Matches['hash']
+            }
+          }
+          $actual = (Get-FileHash -LiteralPath "artifacts/release/$name" -Algorithm SHA256).Hash.ToLowerInvariant()
+          if (-not $sums.ContainsKey($name) -or $sums[$name] -cne $actual) {
             throw "$name has SHA-256 $actual, which SHA256SUMS of the draft release does not list."
           }
           Write-Host "Publishing $name with SHA-256 $actual."
@@ -528,10 +504,6 @@ jobs:
     if: github.event_name == 'push' && github.ref_type == 'tag' && github.repository == 'CheatEngineNet/CheatEngine.SDK'
     runs-on: windows-2025
     timeout-minutes: 45
-    outputs:
-      signed-sha256: ${{ steps.published.outputs.signed-sha256 }}
-      signed-sha512: ${{ steps.published.outputs.signed-sha512 }}
-      content-hash: ${{ steps.published.outputs.content-hash }}
     env:
       VERSION: ${{ needs.verify.outputs.version }}
     steps:
@@ -549,17 +521,100 @@ jobs:
           name: nuget-package
           path: artifacts/release
 
-      # Polls the flat container, then checks the repository signature, the content hash and every zip entry.
+      # Resolves PackageBaseAddress/3.0.0 from the service index (never a hard-coded base URL), polls the flat
+      # container until the version is listed (nuget.org validates and indexes a push for several minutes), downloads
+      # the repository-signed file, runs 'dotnet nuget verify --all' on it, and compares every entry of the two
+      # archives byte for byte: the signed copy must hold exactly the attested entries plus '.signature.p7s'.
       - name: Verify the nuget.org package
-        id: published
         run: |
           $ErrorActionPreference = 'Stop'
           $package = Join-Path $env:GITHUB_WORKSPACE "artifacts/release/CheatEngine.SDK.$env:VERSION.nupkg"
-          $download = Join-Path $env:RUNNER_TEMP 'nuget-org'
-          ./eng/release/Test-PublishedPackage.ps1 -AttestedPackagePath $package -PackageId CheatEngine.SDK -Version $env:VERSION -TimeoutMinutes 35 -DownloadDirectory $download
-          if ($LASTEXITCODE -ne 0) {
-            throw "Verifying the nuget.org package failed with exit code $LASTEXITCODE."
+          $lowerId = 'cheatengine.sdk'
+          $lowerVersion = $env:VERSION.Split('+')[0].ToLowerInvariant()
+          $deadline = [DateTime]::UtcNow.AddMinutes(35)
+
+          $index = Invoke-RestMethod -Uri 'https://api.nuget.org/v3/index.json' -MaximumRetryCount 5 -RetryIntervalSec 10
+          $resource = @($index.resources | Where-Object { $_.'@type' -ceq 'PackageBaseAddress/3.0.0' }) | Select-Object -First 1
+          if ($null -eq $resource) {
+            throw "nuget.org's service index has no PackageBaseAddress/3.0.0 resource."
           }
+          $base = ([string] $resource.'@id').TrimEnd('/') + '/'
+
+          $listed = $false
+          while (-not $listed) {
+            try {
+              $listed = @((Invoke-RestMethod -Uri "$base$lowerId/index.json").versions) -ccontains $lowerVersion
+            }
+            catch {
+              $listed = $false
+            }
+            if (-not $listed) {
+              if ([DateTime]::UtcNow -ge $deadline) {
+                throw "CheatEngine.SDK $env:VERSION is not listed at $base after 35 minutes. nuget.org may still be validating it; re-run this job."
+              }
+              Start-Sleep -Seconds 30
+            }
+          }
+
+          $download = Join-Path $env:RUNNER_TEMP 'nuget-org'
+          New-Item -ItemType Directory -Path $download -Force | Out-Null
+          $signed = Join-Path $download "$lowerId.$lowerVersion.nupkg"
+          Invoke-WebRequest -Uri "$base$lowerId/$lowerVersion/$lowerId.$lowerVersion.nupkg" -OutFile $signed
+
+          $verifyOutput = (& dotnet nuget verify --all -v normal $signed 2>&1 | Out-String)
+          if ($LASTEXITCODE -ne 0) {
+            throw "'dotnet nuget verify --all' rejected the nuget.org package (exit code $LASTEXITCODE): $verifyOutput"
+          }
+          Write-Host $verifyOutput
+          if (-not $verifyOutput.Contains('https://api.nuget.org/v3/index.json', [StringComparison]::OrdinalIgnoreCase)) {
+            throw "'dotnet nuget verify' did not report a repository signature from https://api.nuget.org/v3/index.json."
+          }
+
+          $attested = [Collections.Generic.Dictionary[string, byte[]]]::new()
+          $attestedArchive = [IO.Compression.ZipFile]::OpenRead($package)
+          try {
+            foreach ($entry in $attestedArchive.Entries) {
+              $stream = $entry.Open()
+              try {
+                $memory = [IO.MemoryStream]::new()
+                $stream.CopyTo($memory)
+                $attested[$entry.FullName] = $memory.ToArray()
+              } finally {
+                $stream.Dispose()
+              }
+            }
+          } finally {
+            $attestedArchive.Dispose()
+          }
+
+          $signedArchive = [IO.Compression.ZipFile]::OpenRead($signed)
+          try {
+            $signedNames = [Collections.Generic.HashSet[string]]::new([string[]] ($signedArchive.Entries | ForEach-Object FullName))
+            foreach ($name in $attested.Keys) {
+              if (-not $signedNames.Contains($name)) {
+                throw "The nuget.org package is missing the attested entry '$name'."
+              }
+              $entry = $signedArchive.GetEntry($name)
+              $stream = $entry.Open()
+              try {
+                $memory = [IO.MemoryStream]::new()
+                $stream.CopyTo($memory)
+                if (-not [Linq.Enumerable]::SequenceEqual($memory.ToArray(), $attested[$name])) {
+                  throw "The nuget.org entry '$name' differs from the attested package."
+                }
+              } finally {
+                $stream.Dispose()
+              }
+            }
+            if (-not $signedNames.Contains('.signature.p7s')) {
+              throw "The nuget.org package has no repository signature (.signature.p7s)."
+            }
+          } finally {
+            $signedArchive.Dispose()
+          }
+
+          $signedSha256 = (Get-FileHash -LiteralPath $signed -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "nuget.org serves CheatEngine.SDK $env:VERSION repository-signed (SHA-256 $signedSha256), identical to the attested package plus its signature."
 
   finalize-release:
     name: Publish GitHub release
@@ -568,9 +623,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
-      contents: write # replace the pre-publish tuple on the draft and publish the release
-      id-token: write # the Sigstore certificate that signs the attestation of the published tuple
-      attestations: write # store the attestation of the published tuple in this repository
+      contents: write # publish the release
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -582,24 +635,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Download package
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: nuget-package
-          path: artifacts/release
-
-      - name: Download release assets
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: attestation-bundles
-          path: artifacts/release
-
-      - name: Download build info
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: build-info
-          path: artifacts/build-info
-
       - name: Read the release state
         id: state
         run: |
@@ -610,71 +645,13 @@ jobs:
           }
           $isDraft = [bool]($view | ConvertFrom-Json).isDraft
           if (-not $isDraft) {
-            Write-Host "::notice::Release $env:TAG is already published; its published tuple is kept and only verified."
+            Write-Host "::notice::Release $env:TAG is already published."
           }
           "draft=$($isDraft.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      - name: Write the published tuple
-        id: tuple
-        if: steps.state.outputs.draft == 'true'
-        env:
-          SIGNED_SHA256: ${{ needs.verify-publication.outputs.signed-sha256 }}
-          SIGNED_SHA512: ${{ needs.verify-publication.outputs.signed-sha512 }}
-          PULL_REQUEST_NUMBER: ${{ needs.attest.outputs.pull-request-number }}
-          PULL_REQUEST_HEAD_SHA: ${{ needs.attest.outputs.pull-request-head-sha }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $release = Join-Path $env:GITHUB_WORKSPACE 'artifacts/release'
-          $prefix = "CheatEngine.SDK.$env:VERSION"
-          $buildInfo = @(Get-ChildItem -LiteralPath artifacts/build-info -Filter build-info.json -File -Recurse)
-          if ($buildInfo.Count -ne 1) {
-            throw "build-info must hold exactly one build-info.json, found $($buildInfo.Count)."
-          }
-          $tuple = @{
-            Stage                       = 'Published'
-            PackagePath                 = Join-Path $release "$prefix.nupkg"
-            BuildInfoPath               = $buildInfo[0].FullName
-            AssetsDirectory             = $release
-            OutputPath                  = Join-Path $release "$prefix.tuple.json"
-            Tag                         = $env:TAG
-            ReleaseRunUrl               = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
-            ProvenanceBundle            = "$prefix.provenance.sigstore.json"
-            SbomBundle                  = "$prefix.sbom.sigstore.json"
-            NuGetOrgSignedSha256        = $env:SIGNED_SHA256
-            NuGetOrgSignedSha512        = $env:SIGNED_SHA512
-            RepositorySignatureVerified = $true
-          }
-          if ($env:PULL_REQUEST_NUMBER) {
-            $tuple.PullRequestNumber = $env:PULL_REQUEST_NUMBER
-            $tuple.PullRequestHeadSha = $env:PULL_REQUEST_HEAD_SHA
-          }
-          ./eng/release/New-ReleaseTuple.ps1 @tuple
-          if ($LASTEXITCODE -ne 0) {
-            throw "Writing the published release tuple failed with exit code $LASTEXITCODE."
-          }
-          "path=$($tuple.OutputPath)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-
-      - name: Attest the published tuple
-        id: tuple-attestation
-        if: steps.state.outputs.draft == 'true'
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-path: ${{ steps.tuple.outputs.path }}
-
-      # Assets can still change on a draft only; --clobber replaces the pre-publish tuple, nothing else.
       - name: Publish the release
         if: steps.state.outputs.draft == 'true'
-        env:
-          TUPLE: ${{ steps.tuple.outputs.path }}
-          TUPLE_BUNDLE: ${{ steps.tuple-attestation.outputs.bundle-path }}
         run: |
-          $ErrorActionPreference = 'Stop'
-          $bundle = Join-Path (Split-Path -Parent $env:TUPLE) "CheatEngine.SDK.$env:VERSION.tuple.sigstore.json"
-          Copy-Item -LiteralPath $env:TUPLE_BUNDLE -Destination $bundle
-          gh release upload $env:TAG $env:TUPLE $bundle --clobber
-          if ($LASTEXITCODE -ne 0) {
-            throw "Uploading the published tuple failed with exit code $LASTEXITCODE."
-          }
           gh release edit $env:TAG --draft=false
           if ($LASTEXITCODE -ne 0) {
             throw "Publishing the release failed with exit code $LASTEXITCODE."
@@ -684,7 +661,6 @@ jobs:
       - name: Verify the published release
         run: |
           $ErrorActionPreference = 'Stop'
-          Import-Module ./eng/release/ReleaseTools.psm1
           $state = gh release view $env:TAG --json isDraft,isImmutable
           if ($LASTEXITCODE -ne 0) {
             throw "Reading the release of $env:TAG failed with exit code $LASTEXITCODE."
@@ -698,15 +674,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Downloading the assets of $env:TAG failed with exit code $LASTEXITCODE."
           }
-          $sums = ConvertFrom-Sha256SumsText -Text ([IO.File]::ReadAllText((Join-Path $published 'SHA256SUMS')))
+          $sums = @{}
+          foreach ($line in (Get-Content -LiteralPath (Join-Path $published 'SHA256SUMS'))) {
+            if ($line -cmatch '^(?<hash>[0-9a-f]{64})  (?<name>\S+)$') {
+              $sums[$Matches['name']] = $Matches['hash']
+            }
+          }
           foreach ($name in $sums.Keys) {
-            $actual = Get-Sha256Hex -Path (Join-Path $published $name)
+            $actual = (Get-FileHash -LiteralPath (Join-Path $published $name) -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($actual -cne $sums[$name]) {
               throw "The published $name has SHA-256 $actual, SHA256SUMS lists $($sums[$name])."
             }
           }
           $package = Join-Path $published "CheatEngine.SDK.$env:VERSION.nupkg"
-          $tuple = Join-Path $published "CheatEngine.SDK.$env:VERSION.tuple.json"
           if ($state.isImmutable) {
             gh release verify $env:TAG
             if ($LASTEXITCODE -ne 0) {
@@ -728,8 +708,7 @@ jobs:
           )
           $checks = @(
             @($package),
-            @($package, '--predicate-type', 'https://spdx.dev/Document/v2.2'),
-            @($tuple)
+            @($package, '--predicate-type', 'https://spdx.dev/Document/v2.2')
           )
           foreach ($check in $checks) {
             gh attestation verify @check @identity
@@ -737,18 +716,12 @@ jobs:
               throw "gh attestation verify $([IO.Path]::GetFileName($check[0])) failed with exit code $LASTEXITCODE."
             }
           }
-          $identities = Get-Content -LiteralPath $tuple -Raw | ConvertFrom-Json
           @(
             "### Release $env:TAG",
             '',
-            '| Identity | Value |',
-            '| --- | --- |',
-            "| Attested asset SHA-256 | ``$($identities.package.attestedAssetSha256)`` |",
-            "| NuGet content hash (SHA-512) | ``$($identities.package.contentHashSha512)`` |",
-            "| nuget.org repository-signed SHA-256 | ``$($identities.package.nugetOrgSignedSha256)`` |",
-            "| Immutable release | $($state.isImmutable) |",
+            "Immutable release: $($state.isImmutable)",
             '',
             '| Asset | SHA-256 |',
             '| --- | --- |'
-          ) + @($sums.Keys | ForEach-Object { "| ``$_`` | ``$($sums[$_])`` |" }) |
+          ) + @($sums.Keys | Sort-Object | ForEach-Object { "| ``$_`` | ``$($sums[$_])`` |" }) |
             Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

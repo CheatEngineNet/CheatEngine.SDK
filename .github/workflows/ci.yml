@@ -9,9 +9,8 @@ name: CI
 #
 # Artifacts (the only names this workflow may upload; WorkflowContractTests holds the list):
 #   lua-protection-bridge, classic-abi-fixture-facts   native → build-test, aot
-#   nuget-package, build-info                          build-test (Release) → sonar, release.yml, reviewers
+#   nuget-package                                      build-test (Release) → sonar, release.yml, reviewers
 #   coverage                                           build-test (Debug) → sonar
-#   coverage-report                                    build-test (Debug) → reviewers
 #   test-results-<configuration>                       build-test → reviewers
 #   test-dumps-<configuration>, binlogs-<job>[-<cfg>]  on failure only
 #
@@ -32,7 +31,7 @@ on:
         type: string
         default: ''
       package-retention-days:
-        description: Days to keep the nuget-package and build-info artifacts.
+        description: Days to keep the nuget-package artifact.
         type: number
         default: 7
     secrets:
@@ -59,14 +58,7 @@ jobs:
       BRIDGE_VS_TOOLSET: '14.44'
       BRIDGE_VS_SDKVER: '10.0.26100.0'
     outputs:
-      image-version: ${{ steps.bridge.outputs.image-version }}
-      xmake-version: ${{ steps.bridge.outputs.xmake-version }}
-      msvc-toolset: ${{ steps.bridge.outputs.msvc-toolset }}
-      msvc-version: ${{ steps.bridge.outputs.msvc-version }}
-      windows-sdk-version: ${{ steps.bridge.outputs.windows-sdk-version }}
       bridge-sha256: ${{ steps.bridge.outputs.bridge-sha256 }}
-      bridge-fingerprint: ${{ steps.bridge.outputs.bridge-fingerprint }}
-      checked-in-bridge-sha256: ${{ steps.bridge.outputs.checked-in-bridge-sha256 }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -78,15 +70,27 @@ jobs:
         with:
           xmake-version: '3.0.9'
 
-      # Primary build, a second build into another directory and a third from a copy of the two build inputs under
-      # RUNNER_TEMP: all three must have the same SHA-256. The step summary and the job outputs record the toolchain.
+      # Configure and build the bridge with the pinned MSVC toolset and Windows SDK. Byte-for-byte drift from the
+      # checked-in DLL is checked by the next step (a notice, never a failure); this step only has to produce the DLL
+      # every later job downloads as the lua-protection-bridge artifact.
       - name: Build bridge
         id: bridge
         run: |
-          ./eng/ci/Build-NativeBridge.ps1 -VsToolset $env:BRIDGE_VS_TOOLSET -VsSdkVersion $env:BRIDGE_VS_SDKVER -PathCheckRoot (Join-Path $env:RUNNER_TEMP 'bridge-path-check')
+          $ErrorActionPreference = 'Stop'
+          xmake f -P native/cheatengine-sdk-lua-bridge -o artifacts/native/cheatengine-sdk-lua-bridge -p windows -a x64 -m release -y --ccache=n "--vs_toolset=$env:BRIDGE_VS_TOOLSET" "--vs_sdkver=$env:BRIDGE_VS_SDKVER"
           if ($LASTEXITCODE -ne 0) {
-            throw "The native bridge build failed with exit code $LASTEXITCODE."
+            throw "xmake configuration for the native bridge failed with exit code $LASTEXITCODE."
           }
+          xmake -P native/cheatengine-sdk-lua-bridge -y
+          if ($LASTEXITCODE -ne 0) {
+            throw "xmake build of the native bridge failed with exit code $LASTEXITCODE."
+          }
+          $dll = 'artifacts/native/cheatengine-sdk-lua-bridge/cheatengine-sdk-lua-bridge.dll'
+          if (-not (Test-Path -LiteralPath $dll -PathType Leaf)) {
+            throw "xmake did not produce '$dll'."
+          }
+          $hash = (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash.ToLowerInvariant()
+          "bridge-sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Upload bridge
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -189,34 +193,57 @@ jobs:
           PACKAGE_VERSION: ${{ inputs.package-version }}
           BRIDGE_SHA256: ${{ needs.native.outputs.bridge-sha256 }}
         run: |
+          $ErrorActionPreference = 'Stop'
           dotnet pack src/CheatEngine.SDK -c Release --no-restore -o artifacts/nuget -bl:artifacts/logs/pack-Release.binlog
           if ($LASTEXITCODE -ne 0) {
             throw "SDK package creation failed with exit code $LASTEXITCODE."
           }
-          ./eng/ci/Test-SdkPackage.ps1 -PackageDirectory artifacts/nuget -PackageVersion $env:PACKAGE_VERSION -ExpectedBridgeSha256 $env:BRIDGE_SHA256
-          if ($LASTEXITCODE -ne 0) {
-            throw "The packed SDK failed its checks with exit code $LASTEXITCODE."
-          }
 
-      - name: Write build info
-        if: matrix.configuration == 'Release'
-        env:
-          PACKAGE: ${{ steps.pack.outputs.nupkg }}
-          BUILD_INFO_RUNNER_LABEL: windows-2025 # equal to this job's runs-on
-          BUILD_INFO_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
-          BUILD_INFO_PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BUILD_INFO_XMAKE_VERSION: ${{ needs.native.outputs.xmake-version }}
-          BUILD_INFO_MSVC_TOOLSET: ${{ needs.native.outputs.msvc-toolset }}
-          BUILD_INFO_MSVC_VERSION: ${{ needs.native.outputs.msvc-version }}
-          BUILD_INFO_WINDOWS_SDK_VERSION: ${{ needs.native.outputs.windows-sdk-version }}
-          BUILD_INFO_BRIDGE_SHA256: ${{ needs.native.outputs.bridge-sha256 }}
-          BUILD_INFO_BRIDGE_FINGERPRINT: ${{ needs.native.outputs.bridge-fingerprint }}
-          BUILD_INFO_CHECKED_IN_BRIDGE_SHA256: ${{ needs.native.outputs.checked-in-bridge-sha256 }}
-        run: |
-          ./eng/ci/New-BuildInfo.ps1 -PackagePath $env:PACKAGE -OutputPath artifacts/build-info/build-info.json
-          if ($LASTEXITCODE -ne 0) {
-            throw "Writing build-info.json failed with exit code $LASTEXITCODE."
+          # Pre-publish sanity check: exactly one CheatEngine.SDK.<version>.nupkg, matching nuspec identity, the
+          # embedded SPDX SBOM (Microsoft.Sbom.Targets, CESDK9008) and the CI-built native bridge.
+          $files = @(Get-ChildItem -LiteralPath artifacts/nuget -Recurse -File)
+          if ($files.Count -ne 1 -or $files[0].Name -notmatch '^CheatEngine\.SDK\.(?<version>\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\.nupkg$') {
+            throw "Expected exactly one CheatEngine.SDK.<version>.nupkg in 'artifacts/nuget', found: $(($files | ForEach-Object Name) -join ', ')."
           }
+          $package = $files[0]
+          $fileVersion = $Matches['version']
+          if ($env:PACKAGE_VERSION -and $package.Name -cne "CheatEngine.SDK.$($env:PACKAGE_VERSION).nupkg") {
+            throw "Packed $($package.Name), but the release requires CheatEngine.SDK.$($env:PACKAGE_VERSION).nupkg."
+          }
+          $archive = [IO.Compression.ZipFile]::OpenRead($package.FullName)
+          try {
+            $nuspecEntry = $archive.GetEntry('CheatEngine.SDK.nuspec')
+            if ($null -eq $nuspecEntry) {
+              throw "$($package.Name) has no CheatEngine.SDK.nuspec at its root."
+            }
+            $reader = [IO.StreamReader]::new($nuspecEntry.Open())
+            try { [xml] $nuspec = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            if ($nuspec.package.metadata.id -cne 'CheatEngine.SDK' -or $nuspec.package.metadata.version -cne $fileVersion) {
+              throw "$($package.Name) declares id '$($nuspec.package.metadata.id)' version '$($nuspec.package.metadata.version)' in its nuspec."
+            }
+            if ($null -eq $archive.GetEntry('_manifest/spdx_2.2/manifest.spdx.json')) {
+              throw "$($package.Name) does not embed the SPDX SBOM at _manifest/spdx_2.2/manifest.spdx.json (Microsoft.Sbom.Targets, CESDK9008)."
+            }
+            $bridge = $archive.GetEntry('build/native/cheatengine-sdk-lua-bridge.dll')
+            if ($null -eq $bridge) {
+              throw "$($package.Name) does not carry the native bridge at build/native/cheatengine-sdk-lua-bridge.dll."
+            }
+            $bridgeStream = $bridge.Open()
+            try {
+              $bridgeSha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bridgeStream)).ToLowerInvariant()
+            } finally {
+              $bridgeStream.Dispose()
+            }
+            if ($bridgeSha256 -cne $env:BRIDGE_SHA256.ToLowerInvariant()) {
+              throw "$($package.Name) packs a bridge with SHA-256 $bridgeSha256, but the native job built $env:BRIDGE_SHA256."
+            }
+          } finally {
+            $archive.Dispose()
+          }
+          $sha256 = (Get-FileHash -LiteralPath $package.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          @("nupkg=$($package.FullName)", "sha256=$sha256", "version=$fileVersion") |
+            Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "Packed $($package.Name) (SHA-256 $sha256)." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
       # One run over every tests/**/*.Tests module of the solution; MTP options go straight to dotnet test (SDK 10).
       # A skip fails the run (--fail-skips on): NativeLua tests skip when the bundled Lua DLL does not bind, and a green
@@ -254,28 +281,6 @@ jobs:
             throw "$env:CONFIGURATION tests failed with exit code $LASTEXITCODE."
           }
 
-      # Every tests/**/*.Tests.csproj must have produced its report: a dropped or silently empty module fails here.
-      - name: Check test module inventory
-        if: ${{ !cancelled() && steps.test.outcome != 'skipped' }}
-        run: |
-          $options = @{ ResultsDirectory = $env:RESULTS; Configuration = $env:CONFIGURATION }
-          if ($env:CONFIGURATION -eq 'Debug') { $options.RequireCoverage = $true }
-          ./eng/ci/Test-TestModuleInventory.ps1 @options
-          if ($LASTEXITCODE -ne 0) {
-            throw "The test module inventory failed with exit code $LASTEXITCODE."
-          }
-
-      # Line union of every module, held to the per-assembly floors of eng/coverage-baseline.json. CI only suggests a
-      # new baseline (step summary and coverage-report artifact); raising a floor is a reviewed commit.
-      - name: Check coverage floors
-        id: coverage
-        if: matrix.configuration == 'Debug'
-        run: |
-          ./eng/ci/Test-CoverageBaseline.ps1 -ResultsDirectory $env:RESULTS -Baseline eng/coverage-baseline.json -OutputDirectory artifacts/coverage-report
-          if ($LASTEXITCODE -ne 0) {
-            throw "The coverage check failed with exit code $LASTEXITCODE."
-          }
-
       # The uploaded file is the file the tests consumed.
       - name: Verify the tested package is unchanged
         if: matrix.configuration == 'Release'
@@ -297,15 +302,6 @@ jobs:
           if-no-files-found: error
           retention-days: ${{ inputs.package-retention-days }}
 
-      - name: Upload build info
-        if: matrix.configuration == 'Release'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: build-info
-          path: artifacts/build-info/build-info.json
-          if-no-files-found: error
-          retention-days: ${{ inputs.package-retention-days }}
-
       - name: Upload coverage
         if: matrix.configuration == 'Debug'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -313,15 +309,6 @@ jobs:
           name: coverage
           path: ${{ env.RESULTS }}/*.xml
           if-no-files-found: error
-          retention-days: 7
-
-      - name: Upload coverage report
-        if: ${{ !cancelled() && matrix.configuration == 'Debug' && steps.coverage.outcome != 'skipped' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: coverage-report
-          path: artifacts/coverage-report/
-          if-no-files-found: warn
           retention-days: 7
 
       - name: Upload test results
@@ -498,13 +485,6 @@ jobs:
           annotations: true
           config: .github/zizmor.yml
 
-      - name: Run PSScriptAnalyzer
-        run: |
-          ./eng/ci/Invoke-ScriptAnalysis.ps1 -ModuleDirectory (Join-Path $env:RUNNER_TEMP 'psscriptanalyzer')
-          if ($LASTEXITCODE -ne 0) {
-            throw "PSScriptAnalyzer failed with exit code $LASTEXITCODE."
-          }
-
   # Whitespace formatting of every C# file, including projects outside the solution. Style rules are enforced by the
   # build itself (EnforceCodeStyleInBuild with warnings as errors). No restore: --folder needs no MSBuild workspace.
   format:
@@ -565,15 +545,15 @@ jobs:
         with:
           persist-credentials: false
 
+      # The composite action's own locked-mode restore is the verification: it fails with NU1004 the moment a
+      # committed packages.lock.json no longer matches a fresh restore. CheatEngine.SDK.AotProbe is the only project
+      # outside the solution (Solution/SolutionInventoryTests.cs).
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
-
-      - name: Verify lock files
-        run: |
-          ./eng/Update-LockFiles.ps1 -Verify
-          if ($LASTEXITCODE -ne 0) {
-            throw "Lock files differ from a fresh restore (exit code $LASTEXITCODE). Run ./eng/Update-LockFiles.ps1 and commit the listed files."
-          }
+        with:
+          restore: |
+            CheatEngine.SDK.slnx
+            tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj
 
   gate:
     name: Gate

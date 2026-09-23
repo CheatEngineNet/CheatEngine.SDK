@@ -13,7 +13,7 @@ inputs:
     description: >-
       Cache the NuGet package folder, keyed on every packages.lock.json. Keep 'false' in every job reachable from a
       release, Sonar or CodeQL run (ci.yml, sonar.yml, codeql.yml, release.yml): a cache written by a pull request run
-      must never feed a published build. WorkflowContractTests enforces it; only scheduled-health.yml may pass 'true'.
+      must never feed a published build. WorkflowContractTests enforces it.
     default: 'false'
 
 runs:
@@ -48,6 +48,6 @@ runs:
         foreach ($target in $targets) {
           dotnet restore $target --locked-mode
           if ($LASTEXITCODE -ne 0) {
-            throw "Locked restore of '$target' failed with exit code $LASTEXITCODE. If a dependency, global.json or a project changed, regenerate the lock files with ./eng/Update-LockFiles.ps1 and commit them."
+            throw "Locked restore of '$target' failed with exit code $LASTEXITCODE. If a dependency, global.json or a project changed, regenerate its lock file with a forced re-evaluation restore (never --locked-mode together with it, NU1005) and commit it."
           }
         }

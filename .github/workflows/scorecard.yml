@@ -6,7 +6,7 @@
 # repository's `defaults: run: shell: pwsh` convention.
 # Publication works from the default branch only: the first run happens after merge. Expected low checks, explained
 # rather than chased: Binary-Artifacts (the Lua fixture and the bridge, see SECURITY.md), Code-Review (single
-# maintainer), Branch-Protection (until eng/github/Set-RepositorySettings.ps1 is applied).
+# maintainer), Branch-Protection (until the maintainer configures it in the repository's GitHub settings).
 name: Scorecard
 
 on:

@@ -113,7 +113,7 @@ jobs:
         run: |
           dotnet restore CheatEngine.SDK.slnx --configfile $env:NUGET_CONFIG --locked-mode
           if ($LASTEXITCODE -ne 0) {
-            throw "Sonar restore failed with exit code $LASTEXITCODE. If a dependency changed, regenerate the lock files with ./eng/Update-LockFiles.ps1."
+            throw "Sonar restore failed with exit code $LASTEXITCODE. If a dependency changed, regenerate CheatEngine.SDK.slnx's lock file with a forced re-evaluation restore."
           }
 
       - name: Install scanner

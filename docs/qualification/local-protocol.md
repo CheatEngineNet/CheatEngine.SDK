@@ -46,8 +46,8 @@ Nothing in this protocol runs in CI, and a C1/C2 result is never a substitute fo
    ```
 
 3. The runner reads the id and version from the package's `.nuspec`, never from the file name, and records three
-   identities in each receipt: the SHA-256 of the `.nupkg`, the NuGet content hash (SHA-512, base64) computed by an
-   isolated restore, and the CI run URL. It builds every plugin from that package only, with an isolated NuGet packages
+   identities in each receipt: the SHA-256 of the `.nupkg`, the NuGet content hash (SHA-512, base64) that its
+   isolated restore recorded, which is the value consumer lock files hold, and the CI run URL. It builds every plugin from that package only, with an isolated NuGet packages
    folder, so a package already in your global NuGet cache can never be used instead.
 
 ## Running

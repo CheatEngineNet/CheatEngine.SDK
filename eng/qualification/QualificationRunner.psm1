@@ -526,6 +526,35 @@ function Test-QualificationBundleClosure {
     return $problems.ToArray()
 }
 
+function Get-RestoredPackageContentHash {
+    <#
+    .SYNOPSIS
+        The NuGet content hash (SHA-512, base64) an isolated restore recorded for a package, as lock files hold it.
+    .DESCRIPTION
+        Reads contentHash from the restore's .nupkg.metadata. The .nupkg.sha512 file beside it is the SHA-512 of the
+        file bytes, which differs from the lock-file value for a signed package (a nuget.org download); it is used
+        only when no metadata file exists. Returns $null when the packages folder does not hold the package.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)] [string] $PackagesDirectory,
+        [Parameter(Mandatory)] [string] $Id,
+        [Parameter(Mandatory)] [string] $Version
+    )
+
+    $versionDirectory = Join-Path $PackagesDirectory "$($Id.ToLowerInvariant())/$($Version.ToLowerInvariant())"
+    $metadata = Join-Path $versionDirectory '.nupkg.metadata'
+    if (Test-Path -LiteralPath $metadata -PathType Leaf) {
+        $contentHash = Get-OptionalProperty -InputObject (Get-Content -LiteralPath $metadata -Raw | ConvertFrom-Json) -Name 'contentHash'
+        if ($contentHash) { return [string] $contentHash }
+    }
+
+    $bytesHash = Join-Path $versionDirectory "$($Id.ToLowerInvariant()).$($Version.ToLowerInvariant()).nupkg.sha512"
+    if (Test-Path -LiteralPath $bytesHash -PathType Leaf) { return (Get-Content -LiteralPath $bytesHash -Raw).Trim() }
+    return $null
+}
+
 function Test-QualificationWorkRoot {
     <#
     .SYNOPSIS
@@ -881,6 +910,7 @@ Export-ModuleMember -Function @(
     'Get-BundleFileManifest'
     'Test-EntryPointExport'
     'Test-QualificationBundleClosure'
+    'Get-RestoredPackageContentHash'
     'Test-QualificationWorkRoot'
     'Get-CiEnvironmentVariable'
     'Test-HasProperty'

@@ -292,6 +292,36 @@ public sealed class LocalQualificationRunnerTests
 	}
 
 	[Fact]
+	public void Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash()
+	{
+		// For a signed package the restore's .nupkg.metadata contentHash (what lock files hold) differs from the
+		// .nupkg.sha512 file (SHA-512 of the file bytes); the receipt records the former.
+		string lockFileHash = new string('A', 86) + "==";
+		string bytesHash = new string('Q', 86) + "==";
+		string packages = Path.Combine(Path.GetTempPath(), "cesdk-packages-" + Guid.NewGuid().ToString("N"));
+		string version = Path.Combine(packages, "cheatengine.sdk", "2.0.0-alpha.0.12");
+		Directory.CreateDirectory(version);
+		try
+		{
+			File.WriteAllText(Path.Combine(version, "cheatengine.sdk.2.0.0-alpha.0.12.nupkg.sha512"), bytesHash);
+			string bytesOnly = ContentHash(packages);
+			File.WriteAllText(Path.Combine(version, ".nupkg.metadata"),
+				$$"""{ "version": 2, "contentHash": "{{lockFileHash}}", "source": "qualified-package" }""");
+			string withMetadata = ContentHash(packages);
+			Directory.Delete(version, true);
+			string absent = ContentHash(packages);
+
+			Assert.Equal(bytesHash, bytesOnly);
+			Assert.Equal(lockFileHash, withMetadata);
+			Assert.Equal("absent", absent);
+		}
+		finally
+		{
+			Directory.Delete(packages, true);
+		}
+	}
+
+	[Fact]
 	public void Every_Checkpoint_B_scenario_exists_and_cites_harness_commands_that_exist()
 	{
 		JsonElement plan = QualificationDocuments.LoadJson(Scenarios);
@@ -452,6 +482,14 @@ public sealed class LocalQualificationRunnerTests
 	{
 		return RunJson(ModuleImport +
 					   $"ConvertTo-Json -Compress -InputObject @(Test-QualificationBundleClosure -BundleDirectory {PowerShellProcess.Quote(bundle)} -PluginFileName 'Plugin.dll' -PackagedBridgeSha256 '{packagedBridge}')");
+	}
+
+	private static string ContentHash(string packages)
+	{
+		JsonElement result = RunJson(ModuleImport +
+									 $"$hash = Get-RestoredPackageContentHash -PackagesDirectory {PowerShellProcess.Quote(packages)} -Id 'CheatEngine.SDK' -Version '2.0.0-alpha.0.12'; " +
+									 "ConvertTo-Json -Compress -InputObject $(if ($null -eq $hash) { 'absent' } else { $hash })");
+		return result.GetString()!;
 	}
 
 	private static JsonElement RunJson(string script)

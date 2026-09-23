@@ -391,13 +391,12 @@ $($compile -join "`n")
     $problems = @(Test-QualificationBundleClosure -BundleDirectory $bundleDirectory -PluginFileName "$($definition.Assembly).dll" -PackagedBridgeSha256 $Package.bridgeSha256)
     if ($problems.Count -gt 0) { throw "Bundle $Name is not closed over the package: $($problems -join ' ')" }
 
-    $contentHashFile = Join-Path $packagesDirectory ("$($Package.id)/$($Package.version)/$($Package.id).$($Package.version).nupkg.sha512".ToLowerInvariant())
     return [ordered]@{
         name        = $Name
         directory   = $bundleDirectory
         plugin      = Join-Path $bundleDirectory "$($definition.Assembly).dll"
         warnings    = @($buildOutput | Where-Object { $_ -match ': warning ' } | Select-Object -Unique)
-        contentHash = if (Test-Path -LiteralPath $contentHashFile) { (Get-Content -LiteralPath $contentHashFile -Raw).Trim() } else { $null }
+        contentHash = Get-RestoredPackageContentHash -PackagesDirectory $packagesDirectory -Id $Package.id -Version $Package.version
     }
 }
 
@@ -751,6 +750,7 @@ try {
     if ($needed -contains 'CoexistenceShared') { $needed = @($needed | Where-Object { $_ -ne 'CoexistenceShared' }) + @('CoexistenceA', 'CoexistenceB') | Select-Object -Unique }
     foreach ($name in $needed) { $bundles[$name] = Build-Harness -Name $name -RepositoryRoot $RepositoryRoot -RunDirectory $runDirectory -Package $package -FeedDirectory $feed }
     $package.contentHashSha512 = @($bundles.Values | ForEach-Object contentHash | Where-Object { $_ }) | Select-Object -First 1
+    if (-not $package.contentHashSha512) { Exit-Qualification -Code 6 -Reason "The isolated restore recorded no NuGet content hash for $($package.id) $($package.version)." }
     $driverBundles = [ordered]@{}
     foreach ($name in $bundles.Keys) { $driverBundles[$name] = $bundles[$name].plugin.Replace('\', '/') }
     if ($selected | Where-Object { @($_.harnesses) -contains 'CoexistenceShared' }) {

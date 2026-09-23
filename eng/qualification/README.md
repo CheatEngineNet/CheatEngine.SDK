@@ -16,7 +16,7 @@ operator's Cheat Engine settings changed.
 | File                                          | Content                                                                                                                                                  |
 |-----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Invoke-LocalQualification.ps1`               | The runner: guard, preflight, mutex, sandbox, bundles, targets, registry, Cheat Engine session, receipts.                                                |
-| `QualificationRunner.psm1`                    | Pure helpers the runner and the tests share: hashing with the LF rule, registry parsing and name-only diff, redaction, event log bounding, receipt id and assembly, Lua literals, bundle closure, pass-rule evaluation. |
+| `QualificationRunner.psm1`                    | Pure helpers the runner and the tests share: hashing with the LF rule, registry parsing and name-only diff, redaction, event log bounding, receipt id and assembly, Lua literals, bundle closure, restored content hash, pass-rule evaluation. |
 | `driver/zz_cesdk_qualification.template.lua`  | The autorun Lua driver template: runs one scenario step per timer tick under `pcall`, appends one JSON event per line, resumes after a Lua state reset. |
 | `scenarios.json`                              | The Checkpoint B plan: harnesses, target, steps (Lua or Operator), observed values and a declarative pass rule per scenario.                           |
 
@@ -39,7 +39,9 @@ operator's Cheat Engine settings changed.
    paths, `.runtimeconfig.json`, and the bridge equal to the package's `build/native` copy. Q09.a merges A and B into one
    folder and refuses a same-named file with different bytes. Each bundle gets `bundle-manifest.<name>.json` (every file
    with its SHA-256, and the build warnings).
-6. **Bridge identity.** SHA-256 of the packaged bridge and its exported source fingerprint.
+6. **Package and bridge identity.** SHA-256 of the `.nupkg`; the NuGet content hash from the isolated restore's
+   `.nupkg.metadata` (the lock-file value, which differs from a SHA-512 of the file bytes for a signed package); SHA-256
+   of the packaged bridge and its exported source fingerprint.
 7. **Targets.** Publishes `tests/CheatEngine.SDK.QualificationTarget` for the needed architectures, starts it and reads
    its ready record; writes the LiveProbe authorization manifest and, for fault scenarios, `liveprobe.fault.json`.
 8. **HKCU before.** `reg export` of `HKCU\Software\Cheat Engine` into the session folder.
@@ -110,7 +112,8 @@ authorization manifest contain private data and must never be committed.
   (`Receipt_builder_produces_a_schema_valid_receipt_from_a_recorded_event_log`); redaction removes user paths and keeps
   scenario values (`Redaction_removes_user_paths_and_keeps_scenario_values`); registry differences carry names only
   (`Registry_diff_reports_value_names_only`); an incomplete bundle is refused
-  (`Bundle_closure_check_rejects_a_missing_bridge_or_a_workspace_project_entry`).
+  (`Bundle_closure_check_rejects_a_missing_bridge_or_a_workspace_project_entry`); the recorded content hash is the
+  lock-file value (`Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash`).
 - Every Checkpoint B scenario names a matrix cell and only Lua functions its harnesses declare
   (`Every_Checkpoint_B_scenario_exists_and_cites_harness_commands_that_exist`), and every generated driver compiles
   with Cheat Engine's Lua 5.3 module (`Driver_templates_are_valid_Lua`).

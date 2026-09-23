@@ -1,0 +1,17 @@
+# zizmor configuration: the lint job of ci.yml passes it explicitly (offline audits, pinned zizmor version), and a
+# local `zizmor --offline .github` discovers it. Every entry below ignores or disables one audit, with the reason in
+# the comment directly above it; WorkflowContractTests fails on an entry without one. Findings in composite actions
+# cannot be ignored here: they carry an inline `# zizmor: ignore[<audit>] <reason>` comment instead.
+# https://docs.zizmor.sh/configuration/
+rules:
+  # Temporary. .github/dependabot.yml has no `cooldown` yet; the Dependabot hardening of the audit remediation adds it.
+  # Remove this entry in the commit that adds a cooldown to both update blocks.
+  dependabot-cooldown:
+    ignore:
+      - dependabot.yml
+
+  # zizmor suggests GitHub's `uses: $/<path>` self-repository syntax for local actions and reusable workflows, but the
+  # pinned actionlint 1.7.12 rejects it ("invalid format because ref is missing"). Keep the documented `./<path>` form
+  # until the pinned actionlint accepts the new syntax.
+  self-repository:
+    disable: true

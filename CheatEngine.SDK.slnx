@@ -16,6 +16,7 @@
   </Folder>
   <Folder Name="/.github/">
     <File Path=".github/dependabot.yml"/>
+    <File Path=".github/zizmor.yml"/>
   </Folder>
   <Folder Name="/.github/actions/setup-dotnet/">
     <File Path=".github/actions/setup-dotnet/action.yml"/>
@@ -34,6 +35,7 @@
     <File Path="eng/api/README.md"/>
     <File Path="eng/BannedSymbols.txt"/>
     <File Path="eng/coverage-baseline.json"/>
+    <File Path="eng/PSScriptAnalyzerSettings.psd1"/>
     <File Path="eng/RoslynComponent.props"/>
     <File Path="eng/Shipping.props"/>
     <File Path="eng/Tests.props"/>
@@ -51,6 +53,7 @@
   <Folder Name="/eng/ci/">
     <File Path="eng/ci/build-info.v0.schema.json"/>
     <File Path="eng/ci/Build-NativeBridge.ps1"/>
+    <File Path="eng/ci/Invoke-ScriptAnalysis.ps1"/>
     <File Path="eng/ci/New-BuildInfo.ps1"/>
     <File Path="eng/ci/Test-CoverageBaseline.ps1"/>
     <File Path="eng/ci/Test-SdkPackage.ps1"/>

@@ -15,7 +15,10 @@ namespace CheatEngine.SDK.Repository.Tests.Diagnostics;
 ///     This project has no ProjectReference by design, so the attributes are read from the committed sources of
 ///     <c>libs/</c> and <c>src/</c> rather than by reflection over built assemblies. Only code is scanned: comments,
 ///     including XML documentation that quotes an attribute in a <c>&lt;c&gt;</c> element, and string or character
-///     literals never count as a declaration.
+///     literals never count as a declaration. An attribute is found alone, inside an attribute list
+///     (<c>[EditorBrowsable(...), Obsolete(...)]</c>) and after a target specifier (<c>[method: Obsolete(...)]</c>).
+///     Because the scan reads text, an identifier must be written as a <c>"CESDKnnnn"</c> string literal: a constant or
+///     any other expression is reported rather than skipped.
 /// </remarks>
 public sealed partial class ApiDiagnosticIdTests
 {
@@ -40,12 +43,33 @@ public sealed partial class ApiDiagnosticIdTests
 	}
 
 	[Fact]
+	public void every_obsolete_or_experimental_diagnostic_id_is_a_cesdk_string_literal()
+	{
+		List<string> offenders = [];
+		foreach (ApiDiagnosticId id in ScanApiDiagnosticIds())
+		{
+			if (!id.IsLiteral)
+			{
+				offenders.Add($"{id.File}: {id.Kind} identifier '{id.Id}' is not a \"CESDKnnnn\" string literal.");
+			}
+		}
+
+		Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+	}
+
+	[Fact]
 	public void every_obsolete_or_experimental_diagnostic_id_has_a_documentation_page_and_a_readme_row()
 	{
 		string readme = File.ReadAllText(Path.Combine(RepositoryRoot.Path, "analyzers", "docs", "README.md"));
 		List<string> offenders = [];
 		foreach (ApiDiagnosticId id in ScanApiDiagnosticIds())
 		{
+			if (!id.IsLiteral)
+			{
+				// Reported by every_obsolete_or_experimental_diagnostic_id_is_a_cesdk_string_literal.
+				continue;
+			}
+
 			string page = Path.Combine(RepositoryRoot.Path, "analyzers", "docs", id.Id + ".md");
 			if (!File.Exists(page))
 			{
@@ -86,6 +110,12 @@ public sealed partial class ApiDiagnosticIdTests
 		List<string> offenders = [];
 		foreach (ApiDiagnosticId id in ScanApiDiagnosticIds())
 		{
+			if (!id.IsLiteral)
+			{
+				// Reported by every_obsolete_or_experimental_diagnostic_id_is_a_cesdk_string_literal.
+				continue;
+			}
+
 			char rangeDigit = id.Id["CESDK".Length];
 			bool inRange = id.Kind == ApiDiagnosticKind.Obsolete
 				? rangeDigit == '7' || s_reviewedObsoleteIdsOutsideTheRange.Contains(id.Id)
@@ -172,6 +202,36 @@ public sealed partial class ApiDiagnosticIdTests
 		Assert.Equal(expected, Scan("sample.cs", Source));
 	}
 
+	[Fact]
+	public void the_scan_reads_attribute_lists_and_targets_and_reports_identifiers_that_are_not_cesdk_literals()
+	{
+		const string Source = """
+		                      [EditorBrowsable(EditorBrowsableState.Never), Obsolete("listed", DiagnosticId = "CESDK7909", UrlFormat = "a")]
+		                      [method: Obsolete("targeted", DiagnosticId = "CESDK7910", UrlFormat = "b")]
+		                      [return: global::System.Diagnostics.CodeAnalysis.ExperimentalAttribute("CESDK5908")]
+		                      [Experimental("CESDK5909"), EditorBrowsable(EditorBrowsableState.Never)]
+		                      [Obsolete(nameof(Old), DiagnosticId = "CESDK7911", UrlFormat = "c")]
+		                      [Obsolete("constant", DiagnosticId = Ids.Old, UrlFormat = "d")]
+		                      [Experimental(Ids.Gate)]
+		                      [Obsolete("foreign", DiagnosticId = "SYSLIB0999")]
+		                      private static int Call(int x) => Math.Max(x, Obsolete(x)) + Invoke(1, Experimental(2));
+		                      """;
+
+		ApiDiagnosticId[] expected =
+		[
+			new("sample.cs", ApiDiagnosticKind.Obsolete, "CESDK7909", "a"),
+			new("sample.cs", ApiDiagnosticKind.Obsolete, "CESDK7910", "b"),
+			new("sample.cs", ApiDiagnosticKind.Experimental, "CESDK5908", null),
+			new("sample.cs", ApiDiagnosticKind.Experimental, "CESDK5909", null),
+			new("sample.cs", ApiDiagnosticKind.Obsolete, "CESDK7911", "c"),
+			new("sample.cs", ApiDiagnosticKind.Obsolete, "Ids.Old", "d", IsLiteral: false),
+			new("sample.cs", ApiDiagnosticKind.Experimental, "Ids.Gate", null, IsLiteral: false),
+			new("sample.cs", ApiDiagnosticKind.Obsolete, "\"SYSLIB0999\"", null, IsLiteral: false)
+		];
+
+		Assert.Equal(expected, Scan("sample.cs", Source));
+	}
+
 	private static List<ApiDiagnosticId> ScanApiDiagnosticIds()
 	{
 		List<ApiDiagnosticId> ids = [];
@@ -197,22 +257,33 @@ public sealed partial class ApiDiagnosticIdTests
 			Group argumentsGroup = attribute.Groups["arguments"];
 			string arguments = code.Substring(argumentsGroup.Index, argumentsGroup.Length);
 			bool experimental = attribute.Groups["name"].Value.EndsWith("Experimental", StringComparison.Ordinal);
+			ApiDiagnosticKind kind = experimental ? ApiDiagnosticKind.Experimental : ApiDiagnosticKind.Obsolete;
+			Match url = UrlFormatPattern().Match(arguments);
+			string? urlFormat = url.Success ? url.Groups["url"].Value : null;
 			Match id = experimental ? ExperimentalIdPattern().Match(arguments) : ObsoleteIdPattern().Match(arguments);
-			if (!id.Success)
+			if (id.Success)
 			{
+				yield return new ApiDiagnosticId(file, kind, id.Groups["id"].Value, urlFormat);
 				continue;
 			}
 
-			Match url = UrlFormatPattern().Match(arguments);
-			yield return new ApiDiagnosticId(file,
-				experimental ? ApiDiagnosticKind.Experimental : ApiDiagnosticKind.Obsolete, id.Groups["id"].Value,
-				url.Success ? url.Groups["url"].Value : null);
+			// An [Experimental] always names an identifier; an [Obsolete] names one only through DiagnosticId.
+			Match expression = experimental
+				? ExperimentalExpressionPattern().Match(arguments)
+				: ObsoleteExpressionPattern().Match(arguments);
+			if (expression.Success)
+			{
+				yield return new ApiDiagnosticId(file, kind, expression.Groups["expression"].Value.Trim(), urlFormat,
+					IsLiteral: false);
+			}
 		}
 	}
 
+	// An attribute opens a list ("[", with an optional "target:" specifier) or follows a comma inside one, and is followed
+	// by "]" or ",". The arguments are paren-balanced in the structure view, where literals hold no parenthesis.
 	[GeneratedRegex(
-		@"\[\s*(?<name>(?:global::)?(?:System\.)?Obsolete|(?:global::)?(?:System\.Diagnostics\.CodeAnalysis\.)?Experimental)(?:Attribute)?\s*\((?<arguments>.*?)\)\s*\]",
-		RegexOptions.Singleline | RegexOptions.CultureInvariant, 1000)]
+		@"(?:\[\s*(?:[A-Za-z_][A-Za-z0-9_]*\s*:(?!:)\s*)?|,\s*)(?<name>(?:global::)?(?:System\.)?Obsolete|(?:global::)?(?:System\.Diagnostics\.CodeAnalysis\.)?Experimental)(?:Attribute)?\s*\((?<arguments>(?>[^()]+|\((?<depth>)|\)(?<-depth>))*)(?(depth)(?!))\)\s*(?=[\],])",
+		RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex AttributePattern();
 
 	[GeneratedRegex("""DiagnosticId\s*=\s*"(?<id>CESDK\d{4})"\s*""", RegexOptions.CultureInvariant, 1000)]
@@ -220,6 +291,12 @@ public sealed partial class ApiDiagnosticIdTests
 
 	[GeneratedRegex("""^\s*"(?<id>CESDK\d{4})"\s*""", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex ExperimentalIdPattern();
+
+	[GeneratedRegex("""DiagnosticId\s*=\s*(?<expression>[^,]+)""", RegexOptions.CultureInvariant, 1000)]
+	private static partial Regex ObsoleteExpressionPattern();
+
+	[GeneratedRegex("""^\s*(?<expression>[^,]+)""", RegexOptions.CultureInvariant, 1000)]
+	private static partial Regex ExperimentalExpressionPattern();
 
 	[GeneratedRegex("""UrlFormat\s*=\s*"(?<url>[^"]*)"\s*""", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex UrlFormatPattern();
@@ -231,7 +308,13 @@ public sealed partial class ApiDiagnosticIdTests
 		Experimental = 2
 	}
 
-	private sealed record ApiDiagnosticId(string File, ApiDiagnosticKind Kind, string Id, string? UrlFormat);
+	/// <summary>One declared identifier; <c>Id</c> holds the expression text when it is not a CESDK string literal.</summary>
+	private sealed record ApiDiagnosticId(
+		string File,
+		ApiDiagnosticKind Kind,
+		string Id,
+		string? UrlFormat,
+		bool IsLiteral = true);
 
 	/// <summary>
 	///     Two same-length views of a C# source. <see cref="Code" /> blanks comments (<c>//</c>, <c>///</c>,

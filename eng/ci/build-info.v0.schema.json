@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/eng/ci/build-info.v0.schema.json",
+  "title": "CheatEngine.SDK build info v0",
+  "description": "Where a CheatEngine.SDK package built by CI came from: source, run, toolchain, native bridge and package hashes. Written by eng/ci/New-BuildInfo.ps1 in the Release leg of ci.yml and uploaded as the build-info artifact; precursor of the release tuple manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "repository",
+    "commit",
+    "treeHash",
+    "ref",
+    "event",
+    "runId",
+    "runAttempt",
+    "runUrl",
+    "pullRequest",
+    "dotnetSdk",
+    "globalJsonSha256",
+    "runner",
+    "toolchain",
+    "nativeBridge",
+    "packages",
+    "createdUtc"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cheatengine-build-info/v0"
+    },
+    "repository": {
+      "description": "GITHUB_REPOSITORY, owner/name.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$"
+    },
+    "commit": {
+      "description": "GITHUB_SHA: the commit that was built (a merge commit for pull requests).",
+      "$ref": "#/$defs/gitObjectId"
+    },
+    "treeHash": {
+      "description": "git rev-parse HEAD^{tree}: survives squash merges, unlike the commit.",
+      "$ref": "#/$defs/gitObjectId"
+    },
+    "ref": {
+      "type": "string",
+      "pattern": "^refs/"
+    },
+    "event": {
+      "enum": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ]
+    },
+    "runId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "runAttempt": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "runUrl": {
+      "type": "string",
+      "pattern": "^https://"
+    },
+    "pullRequest": {
+      "description": "Null outside pull_request events.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "number",
+            "headSha"
+          ],
+          "properties": {
+            "number": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "headSha": {
+              "$ref": "#/$defs/gitObjectId"
+            }
+          }
+        }
+      ]
+    },
+    "dotnetSdk": {
+      "description": "dotnet --version, equal to global.json sdk.version.",
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "globalJsonSha256": {
+      "description": "SHA-256 of global.json with CRLF normalized to LF (the committed blob).",
+      "$ref": "#/$defs/sha256"
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "imageOs",
+        "imageVersion"
+      ],
+      "properties": {
+        "label": {
+          "enum": [
+            "windows-2025",
+            "ubuntu-24.04"
+          ]
+        },
+        "imageOs": {
+          "type": "string",
+          "minLength": 1
+        },
+        "imageVersion": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "toolchain": {
+      "description": "The native bridge toolchain the native job resolved.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "xmake",
+        "msvcToolset",
+        "msvcVersion",
+        "windowsSdk"
+      ],
+      "properties": {
+        "xmake": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "msvcToolset": {
+          "description": "VC\\Tools\\MSVC folder version, for example 14.44.35207.",
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "msvcVersion": {
+          "description": "cl.exe banner version, for example 19.44.35229.",
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(\\.\\d+)?$"
+        },
+        "windowsSdk": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+\\.\\d+$"
+        }
+      }
+    },
+    "nativeBridge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "checkedInSha256",
+        "sourceFingerprint",
+        "driftFromCheckedIn"
+      ],
+      "properties": {
+        "sha256": {
+          "description": "The CI-built bridge, which is also the file packed at build/native/cheatengine-sdk-lua-bridge.dll.",
+          "$ref": "#/$defs/sha256"
+        },
+        "checkedInSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sourceFingerprint": {
+          "description": "<SHA-256 of cheatengine_sdk_lua_bridge.c>:<SHA-256 of xmake.lua>.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}:[0-9a-f]{64}$"
+        },
+        "driftFromCheckedIn": {
+          "type": "boolean"
+        }
+      }
+    },
+    "packages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "version",
+          "file",
+          "sha256",
+          "sha512",
+          "sbomEntry"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "file": {
+            "type": "string",
+            "pattern": "^[^/\\\\:]+\\.nupkg$"
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "sha512": {
+            "description": "Standard base64 with padding, as NuGet writes contentHash.",
+            "type": "string",
+            "pattern": "^[A-Za-z0-9+/]{86}==$"
+          },
+          "sbomEntry": {
+            "const": "_manifest/spdx_2.2/manifest.spdx.json"
+          }
+        }
+      }
+    },
+    "createdUtc": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    }
+  },
+  "$defs": {
+    "gitObjectId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

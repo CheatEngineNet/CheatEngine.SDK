@@ -27,7 +27,7 @@ on:
         type: string
         default: ''
       package-retention-days:
-        description: Days to keep the nuget-package artifact.
+        description: Days to keep the nuget-package and build-info artifacts.
         type: number
         default: 7
     secrets:
@@ -206,6 +206,26 @@ jobs:
             throw "The packed SDK failed its checks with exit code $LASTEXITCODE."
           }
 
+      - name: Write build info
+        if: matrix.configuration == 'Release'
+        env:
+          PACKAGE: ${{ steps.pack.outputs.nupkg }}
+          BUILD_INFO_RUNNER_LABEL: windows-2025 # equal to this job's runs-on
+          BUILD_INFO_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+          BUILD_INFO_PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BUILD_INFO_XMAKE_VERSION: ${{ needs.native.outputs.xmake-version }}
+          BUILD_INFO_MSVC_TOOLSET: ${{ needs.native.outputs.msvc-toolset }}
+          BUILD_INFO_MSVC_VERSION: ${{ needs.native.outputs.msvc-version }}
+          BUILD_INFO_WINDOWS_SDK_VERSION: ${{ needs.native.outputs.windows-sdk-version }}
+          BUILD_INFO_BRIDGE_SHA256: ${{ needs.native.outputs.bridge-sha256 }}
+          BUILD_INFO_BRIDGE_FINGERPRINT: ${{ needs.native.outputs.bridge-fingerprint }}
+          BUILD_INFO_CHECKED_IN_BRIDGE_SHA256: ${{ needs.native.outputs.checked-in-bridge-sha256 }}
+        run: |
+          ./eng/ci/New-BuildInfo.ps1 -PackagePath $env:PACKAGE -OutputPath artifacts/build-info/build-info.json
+          if ($LASTEXITCODE -ne 0) {
+            throw "Writing build-info.json failed with exit code $LASTEXITCODE."
+          }
+
       # One run over every tests/**/*.Tests module of the solution; MTP options go straight to dotnet test (SDK 10).
       # A skip fails the run (--fail-skips on): NativeLua tests skip when the bundled Lua DLL does not bind, and a green
       # check must not hide that. Hang and crash dumps need the extensions every module gets from eng/Tests.props.
@@ -282,6 +302,15 @@ jobs:
         with:
           name: nuget-package
           path: artifacts/nuget/*.nupkg
+          if-no-files-found: error
+          retention-days: ${{ inputs.package-retention-days }}
+
+      - name: Upload build info
+        if: matrix.configuration == 'Release'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-info
+          path: artifacts/build-info/build-info.json
           if-no-files-found: error
           retention-days: ${{ inputs.package-retention-days }}
 

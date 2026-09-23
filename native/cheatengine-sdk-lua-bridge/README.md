@@ -69,8 +69,9 @@ Never commit a locally built DLL: a local Visual Studio toolset is not the runne
 different bytes than the bridge CI builds, tests and packs. After changing `cheatengine_sdk_lua_bridge.c` or
 `xmake.lua`, use the CI round trip:
 
-1. Push the change. The `native` job builds the bridge twice, requires identical bytes, uploads it as the
-   `lua-protection-bridge` artifact, and then fails its fingerprint check because the committed DLL is now stale.
+1. Push the change. The `native` job builds the bridge three times (a second output directory and a copy of the
+   build inputs outside the repository), requires identical bytes, uploads it as the `lua-protection-bridge`
+   artifact, and then fails its fingerprint check because the committed DLL is now stale.
 2. Download that run's artifact over the checked-in asset:
    `gh run download <run-id> -n lua-protection-bridge -D native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native`.
 3. Commit the DLL, run

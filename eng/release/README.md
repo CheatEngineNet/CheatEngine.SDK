@@ -4,7 +4,9 @@ PowerShell 7 scripts that turn the package CI tested into verifiable release evi
 checksums of every release asset, and the release tuple that ties the attested package to its source, build, native
 bridge, Cheat Engine profile and qualification evidence. `.github/workflows/release.yml` runs them; the C# tests in
 `tests/CheatEngine.SDK.Tests/Release` and `tests/CheatEngine.SDK.Tests/Packaging/ReleaseTupleTests.cs` run them on
-synthetic inputs and on the package under test.
+synthetic inputs and on the package under test. How to prepare, publish and verify a release is in
+[RELEASING.md](../../RELEASING.md): the [consumer verification procedure](../../RELEASING.md#verify-a-release), the
+[qualification gate](../../RELEASING.md#qualification-gate) and the [tuple fields](../../RELEASING.md#the-release-tuple).
 
 ## Scripts
 
@@ -76,6 +78,7 @@ repository signature, both attestation bundles and the tag.
 ## Reproducibility
 
 The promise is at the level of the DLLs and the native bridge: MinVer stamps the tag version, `ContinuousIntegrationBuild`
-normalizes paths, and the bridge is built twice and compared by the `native` job. The nupkg itself is not
-byte-reproducible, because the SBOM it embeds carries a generated document namespace and a creation time. The attested
-nupkg and its hashes in the tuple are therefore the identity of a release, not a rebuild of it.
+normalizes paths, and the `native` job builds the bridge three times, once from a copy outside the repository, and
+requires identical bytes. The nupkg itself is not byte-reproducible, because the SBOM it embeds carries a generated
+document namespace and a creation time. The attested nupkg and its hashes in the tuple are therefore the identity of a
+release, not a rebuild of it.

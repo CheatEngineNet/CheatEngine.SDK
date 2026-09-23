@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.CompilerServices;
 using CheatEngine.SDK.Lua.Marshalling;
@@ -176,6 +177,44 @@ public static class AobScanner
 		return TryScanOutcomeCore(pattern, options, PublishResultList, out results);
 	}
 
+	/// <summary>
+	///     Runs AOBScan with explicit CE protection/alignment options, reports a structured result, and reports the
+	///     target observations made immediately before and after the call.
+	/// </summary>
+	/// <param name="pattern">CE's AOB pattern string, passed without normalization.</param>
+	/// <param name="options">The optional CE arguments and their exact positions.</param>
+	/// <param name="results">
+	///     The caller-owned list when <see cref="AobScanOutcome.IsSuccess" /> is <see langword="true" />; otherwise
+	///     <see langword="null" />. Copy required entries before disposing the owner exactly once.
+	/// </param>
+	/// <param name="targetContext">
+	///     The Cheat Engine target selection observed immediately before and after the <c>AOBScan</c> call, within the
+	///     same admitted Lua operation.
+	/// </param>
+	/// <returns>
+	///     The same factual outcome as <see cref="TryScanOutcome(string, AobScanOptions, out Owned{StringList}?)" />
+	///     for the same host response. The target observations never refuse the scan and never change its kind.
+	/// </returns>
+	/// <exception cref="ArgumentNullException"><paramref name="pattern" /> is <see langword="null" />.</exception>
+	/// <remarks>
+	///     <para>
+	///         <c>AOBScan</c> scans CE's current selection. When
+	///         <see cref="AobScanTargetContext.IsSameQualifiedIncarnation" /> is <see langword="false" />, the returned
+	///         addresses may belong to another target (the selection changed during the call, or it could not be qualified
+	///         before or after it); the caller decides what to do with them.
+	///     </para>
+	///     <para>
+	///         A managed failure while publishing the owner is a lifecycle fault: the SDK destroys the unpublished list
+	///         once and rethrows the original exception.
+	///     </para>
+	/// </remarks>
+	[RequiresPluginEnabled]
+	public static AobScanOutcome TryScanOutcome(string pattern, AobScanOptions options,
+		out Owned<StringList>? results, out AobScanTargetContext targetContext)
+	{
+		return TryScanOutcomeCore(pattern, options, PublishResultList, out results, out targetContext);
+	}
+
 	// Test seam: the same protected call and classification as TryScanDetailed, with a substitutable owner
 	// publication. Production callers always pass PublishResultList.
 	internal static AobScanStatus TryScanDetailedCore(string pattern, AobScanOptions options,
@@ -202,6 +241,24 @@ public static class AobScanner
 		LuaState state = operation.State;
 		using LuaFrame frame = new(state);
 		AobScanStatus status = TryScanCore(state, pattern, options, publisher, out results, out LuaStatus luaStatus);
+		return Classify(status, luaStatus, ref results);
+	}
+
+	// The target-context variant: the observations bracket the protected AOBScan call inside the same admitted
+	// operation. They are facts only; the classification is exactly the one of the variant above.
+	internal static AobScanOutcome TryScanOutcomeCore(string pattern, AobScanOptions options,
+		AobResultListPublisher publisher, out Owned<StringList>? results, out AobScanTargetContext targetContext)
+	{
+		ArgumentNullException.ThrowIfNull(pattern);
+		ArgumentNullException.ThrowIfNull(publisher);
+
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		LuaState state = operation.State;
+		using LuaFrame frame = new(state);
+		TargetSelectionObservation before = ObserveTarget(state);
+		AobScanStatus status = TryScanCore(state, pattern, options, publisher, out results, out LuaStatus luaStatus);
+		TargetSelectionObservation after = ObserveTarget(state);
+		targetContext = new AobScanTargetContext(before, after);
 		return Classify(status, luaStatus, ref results);
 	}
 
@@ -332,6 +389,19 @@ public static class AobScanner
 	private static Owned<StringList> PublishResultList(StringList list)
 	{
 		return new Owned<StringList>(list);
+	}
+
+	private static TargetSelectionObservation ObserveTarget(LuaState state)
+	{
+		int top = state.Top;
+		try
+		{
+			return TargetSelection.ObserveCurrent(state);
+		}
+		finally
+		{
+			state.SetTop(top);
+		}
 	}
 
 	private static LuaStatus ToFailureStatus(LuaStatus luaStatus)

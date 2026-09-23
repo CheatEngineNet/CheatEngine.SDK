@@ -462,6 +462,12 @@ CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.LuaFailure = 3 -> CheatEngine.
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.NoResult = 4 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.Success = 1 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.After.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.AobScanTargetContext() -> void
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.Before.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.Equals(CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext other) -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.IsSameQualifiedIncarnation.get -> bool
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone.CancelledBeforeNativeCall = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone.None = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
@@ -639,6 +645,7 @@ override CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.GetHashCode()
 override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.Equals(object? obj) -> bool
 override CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.GetHashCode() -> int
@@ -777,9 +784,12 @@ static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.ProtectedLuaFailure(Ch
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.ResultListCountUnavailable.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.operator !=(CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome right) -> bool
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.operator ==(CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.operator !=(CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.operator ==(CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext right) -> bool
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanDetailed(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Objects.StringList>? results) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanDetailed(string! pattern, out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Objects.StringList>? results) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanOutcome(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Objects.StringList>? results) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanOutcome(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Objects.StringList>? results, out CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext targetContext) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanOutcome(string! pattern, out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Objects.StringList>? results) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
 static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.operator !=(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome left, CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome right) -> bool
 static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.operator ==(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome left, CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome right) -> bool
@@ -828,6 +838,8 @@ static CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.operator ==(Che
 ~override CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.ToString() -> string
 ~override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Equals(object obj) -> bool
 ~override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ToString() -> string
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.ToString() -> string
 ~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.Equals(object obj) -> bool
 ~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.ToString() -> string
 ~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.Equals(object obj) -> bool

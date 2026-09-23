@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Lua.State;
@@ -112,6 +115,19 @@ internal static class AobStringListTestHost
 		                        return aob_results
 		                      end
 		                      """u8);
+	}
+
+	/// <summary>
+	///     Models CE's target selection: <c>getOpenedProcessID</c> returns the global <c>opened_process_id</c> (initially
+	///     <paramref name="processId" />) and, as every fixture of a qualified local target does, <c>isConnectedToCEServer</c>
+	///     returns <see langword="false" />.
+	/// </summary>
+	public static void InstallTarget(LuaState state, long processId)
+	{
+		EngineTest.Run(state, Encoding.UTF8.GetBytes(
+			"opened_process_id = " + processId.ToString(CultureInfo.InvariantCulture) + "\n" +
+			"function getOpenedProcessID() return opened_process_id end\n" +
+			"function isConnectedToCEServer() return false end"));
 	}
 
 	/// <summary>Installs the exact CE factory spelling and makes it return the supplied fresh fake list.</summary>

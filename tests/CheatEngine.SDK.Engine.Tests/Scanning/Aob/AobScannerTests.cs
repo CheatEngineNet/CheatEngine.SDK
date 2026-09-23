@@ -3,6 +3,7 @@ using System.Text;
 using CheatEngine.SDK.Engine.Enums;
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Scanning.Aob;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Runtime;
@@ -603,6 +604,105 @@ public sealed class AobScannerTests
 		Assert.Equal(0, L.Top);
 	}
 
+	[Fact]
+	public void TryScanOutcome_with_target_context_reports_the_same_qualified_incarnation_before_and_after()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallTarget(L, Environment.ProcessId);
+		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("48 8B", AobScanOptions.Default,
+			out Owned<StringList>? results, out AobScanTargetContext context);
+
+		using Owned<StringList> owned = Assert.IsType<Owned<StringList>>(results);
+		Assert.Equal(AobScanOutcome.Matches(2), outcome);
+		Assert.True(context.Before.IsQualified);
+		Assert.True(context.After.IsQualified);
+		Assert.Equal(Environment.ProcessId, context.Before.Incarnation!.Value.ProcessId);
+		Assert.Equal(context.Before.Incarnation, context.After.Incarnation);
+		Assert.True(context.IsSameQualifiedIncarnation);
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	public void TryScanOutcome_with_target_context_reports_a_target_change_without_reclassifying_the_scan()
+	{
+		const int OtherProcessId = 2_147_483_644;
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallTarget(L, Environment.ProcessId);
+		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+		EngineTest.Run(L, "aob_retarget_pid = 2147483644"u8);
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("retarget", AobScanOptions.Default,
+			out Owned<StringList>? results, out AobScanTargetContext context);
+
+		using Owned<StringList> owned = Assert.IsType<Owned<StringList>>(results);
+		Assert.Equal(AobScanOutcome.Matches(2), outcome);
+		Assert.True(context.Before.IsQualified);
+		Assert.Equal(Environment.ProcessId, context.Before.SelectedProcessId);
+		Assert.Equal(OtherProcessId, context.After.SelectedProcessId);
+		Assert.False(context.After.IsQualified);
+		Assert.False(context.IsSameQualifiedIncarnation);
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	public void TryScanOutcome_with_target_context_and_no_target_still_scans_and_reports_unqualified_facts()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallTarget(L, 0);
+		AobStringListTestHost.InstallAobScan(L, AobStringListTestHost.CreateList(L));
+
+		AobScanOutcome outcome = AobScanner.TryScanOutcome("48 8B", AobScanOptions.Default,
+			out Owned<StringList>? results, out AobScanTargetContext context);
+
+		using Owned<StringList> owned = Assert.IsType<Owned<StringList>>(results);
+		Assert.Equal(AobScanOutcome.Matches(2), outcome);
+		Assert.Equal(TargetSelectionObservationStatus.NoTargetSelected, context.Before.Status);
+		Assert.Equal(TargetSelectionObservationStatus.NoTargetSelected, context.After.Status);
+		Assert.False(context.IsSameQualifiedIncarnation);
+		EngineTest.Run(L, "return aob_calls"u8, 1);
+		Assert.Equal(1, EngineTest.ReadInteger(L, -1));
+		L.SetTop(0);
+	}
+
+	[Theory]
+	[InlineData("48 8B")]
+	[InlineData("zero-values")]
+	[InlineData("nil-result")]
+	[InlineData("raise")]
+	[InlineData("invalid-result")]
+	[InlineData("empty")]
+	public void TryScanOutcome_with_target_context_classifies_exactly_like_the_three_argument_overload(string mode)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		AobStringListTestHost.InstallTarget(L, Environment.ProcessId);
+		AobStringListTestHost.InstallAobScan(L, CreateListFor(L, mode));
+
+		AobScanOutcome plain = AobScanner.TryScanOutcome(mode, AobScanOptions.Default, out Owned<StringList>? first);
+		first?.Dispose();
+		AobStringListTestHost.SetGlobalObject(L, "aob_results"u8, CreateListFor(L, mode));
+		AobScanOutcome withContext = AobScanner.TryScanOutcome(mode, AobScanOptions.Default,
+			out Owned<StringList>? second, out _);
+		second?.Dispose();
+
+		Assert.Equal(plain, withContext);
+		Assert.Equal(first is null, second is null);
+		Assert.Equal(0, L.Top);
+	}
+
 	[Theory]
 	[InlineData(AobScanStatus.Unknown)]
 	[InlineData(AobScanStatus.Success)]
@@ -629,5 +729,12 @@ public sealed class AobScannerTests
 
 		Assert.Equal(expected, outcome.Kind);
 		Assert.False(outcome.IsSuccess);
+	}
+
+	private static CEObject CreateListFor(LuaState state, string mode)
+	{
+		return string.Equals(mode, "empty", StringComparison.Ordinal)
+			? AobStringListTestHost.CreateEmptyList(state)
+			: AobStringListTestHost.CreateList(state);
 	}
 }

@@ -13,4 +13,16 @@
     <ProjectReference Include="../CheatEngine.SDK.Tests.Shared/CheatEngine.SDK.Tests.Shared.csproj"/>
   </ItemGroup>
 
+  <!--
+    Coexistence/NativeHostEmulatorTests.cs (WI-7): the two Coexistence plugins are consumed as prebuilt outputs of
+    the ordinary solution build, never as a ProjectReference, so this module never changes the packages.lock.json of
+    tests/CheatEngine.SDK.LivePlugin.Coexistence/{PluginA,PluginB}. These three values are how the test locates that
+    output and the emulator's own source tree without hardcoding a path in source.
+  -->
+  <ItemGroup>
+    <AssemblyMetadata Include="CoexistencePluginBinRoot" Value="$(ArtifactsPath)\bin"/>
+    <AssemblyMetadata Include="CoexistencePluginConfiguration" Value="$(Configuration)"/>
+    <AssemblyMetadata Include="RepoRoot" Value="$(RepoRoot)"/>
+  </ItemGroup>
+
 </Project>

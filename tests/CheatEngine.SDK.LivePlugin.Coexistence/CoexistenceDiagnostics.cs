@@ -5,6 +5,7 @@ using System.Runtime.Loader;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Context;
 using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace LivePlugin.Coexistence;
 
@@ -27,12 +28,17 @@ internal static class CoexistenceDiagnostics
 		AssemblyLoadContext? pluginLoadContext = AssemblyLoadContext.GetLoadContext(pluginAssembly);
 		AssemblyLoadContext? hostingLoadContext = AssemblyLoadContext.GetLoadContext(hostingAssembly);
 
+		// Appended (WI-7, F03 C2): the SDK's own attach epoch and the PluginHost static-state identity, so a C2
+		// host-emulated run and a future exact-host run can tell whether two enabled plugins share one Hosting
+		// instance. Appended at the end, after the existing fields: the Checkpoint B runner and receipts parse the
+		// existing prefix and must keep working unmodified.
 		return string.Create(
 			CultureInfo.InvariantCulture,
 			$"Plugin={pluginLabel}; PluginAssembly={pluginAssembly.FullName}; PluginMvid={pluginAssembly.ManifestModule.ModuleVersionId}; " +
 			$"HostingAssembly={hostingAssembly.FullName}; HostingMvid={hostingAssembly.ManifestModule.ModuleVersionId}; " +
 			$"PluginALC={Describe(pluginLoadContext)}; HostingALC={Describe(hostingLoadContext)}; " +
-			$"SameALC={ReferenceEquals(pluginLoadContext, hostingLoadContext)}");
+			$"SameALC={ReferenceEquals(pluginLoadContext, hostingLoadContext)}; " +
+			$"Epoch={LuaRuntime.Epoch}; HostingTypeHandle=0x{typeof(PluginHost).TypeHandle.Value:X}");
 	}
 
 	private static string Describe(AssemblyLoadContext? loadContext)

@@ -16,6 +16,7 @@
   </Folder>
   <Folder Name="/.github/">
     <File Path=".github/dependabot.yml"/>
+    <File Path=".github/dependency-review-config.yml"/>
     <File Path=".github/zizmor.yml"/>
   </Folder>
   <Folder Name="/.github/actions/setup-dotnet/">

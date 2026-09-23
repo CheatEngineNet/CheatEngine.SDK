@@ -65,7 +65,9 @@ public readonly struct PointerSize : IEquatable<PointerSize>
 	/// </returns>
 	/// <remarks>
 	///     This is explicit primitive marshalling, not an unmanaged-struct projection. A 32-bit target still consumes
-	///     four bytes when this SDK runs in CE's supported 64-bit host process.
+	///     four bytes when this SDK runs in CE's supported 64-bit host process. Little-endian byte order is an assumption
+	///     of the local x86/x64 target profile (audit A12-04), not a general Cheat Engine fact: the SDK does not observe
+	///     a target's byte order.
 	/// </remarks>
 	public bool TryReadLittleEndian(ReadOnlySpan<byte> source, out ulong value)
 	{
@@ -112,7 +114,8 @@ public readonly struct PointerSize : IEquatable<PointerSize>
 	/// </returns>
 	/// <remarks>
 	///     This is explicit primitive marshalling, not an unmanaged-struct projection. A 32-bit target rejects high
-	///     bits instead of silently truncating them through the x64 host process.
+	///     bits instead of silently truncating them through the x64 host process. Little-endian byte order is an
+	///     assumption of the local x86/x64 target profile (audit A12-04), not a general Cheat Engine fact.
 	/// </remarks>
 	public bool TryWriteLittleEndian(ulong value, Span<byte> destination)
 	{

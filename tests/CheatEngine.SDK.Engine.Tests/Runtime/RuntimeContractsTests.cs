@@ -1,3 +1,4 @@
+using CheatEngine.SDK.Engine.Inspection;
 using CheatEngine.SDK.Engine.Runtime;
 
 namespace CheatEngine.SDK.Engine.Tests.Runtime;
@@ -122,6 +123,166 @@ public sealed class RuntimeContractsTests
 		Assert.Equal(CheatEngineArchitecture.Arm64, arm64);
 		Assert.Equal(CheatEngineArchitecture.Unknown, both);
 		Assert.Equal(CheatEngineArchitecture.Unknown, neither);
+	}
+
+	[Theory]
+	[InlineData(0, CheatEngineOperatingSystem.Windows)]
+	[InlineData(1, CheatEngineOperatingSystem.MacOS)]
+	[InlineData(2, CheatEngineOperatingSystem.Linux)]
+	public void try_decode_operating_system_known_codes_decode(int code, CheatEngineOperatingSystem expected)
+	{
+		Assert.True(RuntimeInfo.TryDecodeOperatingSystem(code, out CheatEngineOperatingSystem operatingSystem));
+		Assert.Equal(expected, operatingSystem);
+	}
+
+	[Theory]
+	[InlineData(-1)]
+	[InlineData(3)]
+	[InlineData(int.MaxValue)]
+	public void try_decode_operating_system_unknown_code_is_rejected(int code)
+	{
+		Assert.False(RuntimeInfo.TryDecodeOperatingSystem(code, out CheatEngineOperatingSystem operatingSystem));
+		Assert.Equal(CheatEngineOperatingSystem.Unknown, operatingSystem);
+	}
+
+	[Fact]
+	public void try_decode_file_version_splits_the_packed_integer()
+	{
+		// Spike C3 D5: CE 7.7.0.10621 x64 returned 0x700070000297D (1970354901756285).
+		Assert.True(RuntimeInfo.TryDecodeFileVersion(0x7_0007_0000_297DL, out CheatEngineVersion ce77));
+		Assert.Equal(CheatEngineVersion.Ce77010621, ce77);
+
+		// The largest non-negative Lua integer: every 16-bit field at its maximum, the major field at 0x7FFF.
+		Assert.True(RuntimeInfo.TryDecodeFileVersion(long.MaxValue, out CheatEngineVersion largest));
+		Assert.Equal(new CheatEngineVersion(32767, 65535, 65535, 65535), largest);
+
+		Assert.True(RuntimeInfo.TryDecodeFileVersion(0x0001_0002_0003_0004L, out CheatEngineVersion ordered));
+		Assert.Equal(new CheatEngineVersion(1, 2, 3, 4), ordered);
+
+		// A negative packed value (all 64 bits set, or any sign bit) is not a version.
+		Assert.False(RuntimeInfo.TryDecodeFileVersion(-1L, out CheatEngineVersion negative));
+		Assert.Equal(default, negative);
+		Assert.False(RuntimeInfo.TryDecodeFileVersion(long.MinValue, out _));
+	}
+
+	[Fact]
+	public void target_architecture_observation_computed_members_never_infer_missing_facts()
+	{
+		TargetProcessId pid = new(4242);
+		TargetArchitectureObservation onlyBitness = new(pid, TargetBackend.Unknown, PointerSize.Bit64, null, null,
+			null, null, null);
+		TargetArchitectureObservation onlyX86 = new(pid, TargetBackend.LocalProcess, PointerSize.Bit64, true, null,
+			false, 0, 8);
+		TargetArchitectureObservation unknownBitness = new(pid, TargetBackend.LocalProcess, PointerSize.Unknown, true,
+			false, false, 0, 8);
+		TargetArchitectureObservation odd = new(pid, TargetBackend.LocalProcess, PointerSize.Bit64, true, false, false,
+			9, 2);
+
+		Assert.Equal(CheatEngineArchitecture.Unknown, onlyBitness.Architecture);
+		Assert.Equal(PointerSize.Unknown, onlyBitness.ConfiguredPointerSize);
+		Assert.Null(onlyBitness.ConfiguredPointerSizeDiffersFromBitness);
+		Assert.Equal(TargetAbi.Unknown, onlyBitness.Abi);
+		Assert.Null(onlyBitness.IsAndroid);
+
+		// The ARM fact is absent, so no architecture is derived even though the x86 family is reported.
+		Assert.Equal(CheatEngineArchitecture.Unknown, onlyX86.Architecture);
+		Assert.Equal(PointerSize.Bit64, onlyX86.ConfiguredPointerSize);
+
+		Assert.Equal(CheatEngineArchitecture.Unknown, unknownBitness.Architecture);
+		Assert.Null(unknownBitness.ConfiguredPointerSizeDiffersFromBitness);
+
+		// Any integer is kept raw; only 4 and 8 become a PointerSize; an undocumented ABI code stays raw.
+		Assert.Equal(2, odd.ConfiguredPointerSizeBytes);
+		Assert.Equal(PointerSize.Unknown, odd.ConfiguredPointerSize);
+		Assert.True(odd.ConfiguredPointerSizeDiffersFromBitness);
+		Assert.Equal(9, odd.AbiCode);
+		Assert.Equal(TargetAbi.Unknown, odd.Abi);
+		Assert.Equal(CheatEngineArchitecture.X64, odd.Architecture);
+	}
+
+	[Fact]
+	public void target_architecture_observation_is_a_value_that_compares_every_fact()
+	{
+		TargetProcessId pid = new(4242);
+		TargetArchitectureObservation x64 = new(pid, TargetBackend.LocalProcess, PointerSize.Bit64, true, false, false,
+			0, 8);
+		TargetArchitectureObservation same = new(pid, TargetBackend.LocalProcess, PointerSize.Bit64, true, false, false,
+			0, 8);
+		TargetArchitectureObservation remote = new(pid, TargetBackend.CEServer, PointerSize.Bit64, true, false, false,
+			0, 8);
+		TargetArchitectureObservation narrowed = new(pid, TargetBackend.LocalProcess, PointerSize.Bit64, true, false,
+			false, 0, 4);
+
+		Assert.Equal(x64, same);
+		Assert.NotEqual(x64, remote);
+		Assert.NotEqual(x64, narrowed);
+		Assert.Equal(TargetBackend.LocalProcess, x64.Backend);
+		Assert.Equal(pid, x64.ProcessId);
+	}
+
+	[Fact]
+	public void runtime_capability_identifiers_are_stable_distinct_and_not_lua_global_names()
+	{
+		RuntimeCapabilityId[] identifiers =
+		[
+			RuntimeCapabilityId.CheatEngineVersion, RuntimeCapabilityId.SystemArchitecture,
+			RuntimeCapabilityId.TargetArchitecture, RuntimeCapabilityId.CurrentProcess,
+			RuntimeCapabilityId.ProcessSelection, RuntimeCapabilityId.TargetAbi,
+			RuntimeCapabilityId.ConfiguredPointerSize, RuntimeCapabilityId.CheatEngineBitness,
+			RuntimeCapabilityId.OperatingSystem, RuntimeCapabilityId.TargetAndroid, RuntimeCapabilityId.TargetBackend
+		];
+		string[] luaGlobals =
+		[
+			"getCheatEngineFileVersion", "getCEVersion", "getSystemArchitecture", "cheatEngineIs64Bit",
+			"getOperatingSystem", "getOpenedProcessID", "openProcess", "targetIs64Bit", "targetIsX86", "targetIsArm",
+			"targetIsAndroid", "getABI", "getPointerSize", "isConnectedToCEServer"
+		];
+
+		Assert.Equal("Runtime.ConfiguredPointerSize", RuntimeCapabilityId.ConfiguredPointerSize.Value);
+		Assert.Equal("Runtime.CheatEngineBitness", RuntimeCapabilityId.CheatEngineBitness.Value);
+		Assert.Equal("Runtime.OperatingSystem", RuntimeCapabilityId.OperatingSystem.Value);
+		Assert.Equal("Runtime.TargetAndroid", RuntimeCapabilityId.TargetAndroid.Value);
+		Assert.Equal("Runtime.TargetBackend", RuntimeCapabilityId.TargetBackend.Value);
+		Assert.Equal(identifiers.Length, identifiers.Distinct().Count());
+		foreach (RuntimeCapabilityId identifier in identifiers)
+		{
+			Assert.False(identifier.IsEmpty);
+			Assert.DoesNotContain(identifier.Value, luaGlobals, StringComparer.OrdinalIgnoreCase);
+			Assert.Contains(".", identifier.Value, StringComparison.Ordinal);
+		}
+	}
+
+	[Fact]
+	public void target_backend_and_operating_system_values_are_pinned()
+	{
+		Assert.Equal(0, (byte) TargetBackend.Unknown);
+		Assert.Equal(1, (byte) TargetBackend.LocalProcess);
+		Assert.Equal(2, (byte) TargetBackend.FileAsProcess);
+		Assert.Equal(3, (byte) TargetBackend.CEServer);
+		Assert.Equal(4, Enum.GetValues<TargetBackend>().Length);
+
+		Assert.Equal(0, (byte) CheatEngineOperatingSystem.Unknown);
+		Assert.Equal(1, (byte) CheatEngineOperatingSystem.Windows);
+		Assert.Equal(2, (byte) CheatEngineOperatingSystem.MacOS);
+		Assert.Equal(3, (byte) CheatEngineOperatingSystem.Linux);
+		Assert.Equal(4, Enum.GetValues<CheatEngineOperatingSystem>().Length);
+	}
+
+	[Fact]
+	public void cheat_engine_host_observation_keeps_each_fact_separate()
+	{
+		CheatEngineHostObservation host = new(null, CheatEngineArchitecture.X64, null,
+			CheatEngineOperatingSystem.Unknown);
+		CheatEngineHostObservation reported = host with
+		{
+			CheatEngineIs64Bit = false
+		};
+
+		Assert.Null(host.FileVersion);
+		Assert.Null(host.CheatEngineIs64Bit);
+		Assert.Equal(CheatEngineArchitecture.X64, host.SystemArchitecture);
+		Assert.False(reported.CheatEngineIs64Bit);
+		Assert.NotEqual(host, reported);
 	}
 
 	[Fact]

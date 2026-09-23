@@ -149,6 +149,60 @@ public sealed class RuntimeInfo
 		return true;
 	}
 
+	/// <summary>Decodes a CE 7.7 <c>getOperatingSystem</c> result: 0=Windows, 1=macOS, 2=Linux.</summary>
+	/// <param name="code">The raw CE Lua integer.</param>
+	/// <param name="operatingSystem">The decoded operating system, or <see cref="CheatEngineOperatingSystem.Unknown" />.</param>
+	/// <returns><see langword="true" /> only for a code documented by the CE 7.7 Lua catalogue.</returns>
+	/// <remarks>
+	///     The codes follow <c>celua.txt:14</c> (CE 7.7.0.10621 x64, ExactInstalledFile). The public CE source at ec45d5f
+	///     returns 1 for every non-Windows build (<c>LuaHandler.pas:14863-14867</c>, ObservedSource), so a non-Windows
+	///     code is catalogue evidence only; only 0 was observed on the qualified profile (spike C3).
+	/// </remarks>
+	public static bool TryDecodeOperatingSystem(int code, out CheatEngineOperatingSystem operatingSystem)
+	{
+		switch (code)
+		{
+			case 0:
+				operatingSystem = CheatEngineOperatingSystem.Windows;
+				return true;
+			case 1:
+				operatingSystem = CheatEngineOperatingSystem.MacOS;
+				return true;
+			case 2:
+				operatingSystem = CheatEngineOperatingSystem.Linux;
+				return true;
+			default:
+				operatingSystem = CheatEngineOperatingSystem.Unknown;
+				return false;
+		}
+	}
+
+	/// <summary>
+	///     Splits the packed integer that <c>getCheatEngineFileVersion</c> returns first into a complete file version:
+	///     major, minor, release and build, 16 bits each from the most significant.
+	/// </summary>
+	/// <param name="packed">The non-negative packed Lua integer, for example <c>0x700070000297D</c> for 7.7.0.10621.</param>
+	/// <param name="version">The four components, or the default value when <paramref name="packed" /> is negative.</param>
+	/// <returns><see langword="false" /> for a negative value, which no 16-bit major component can produce.</returns>
+	/// <remarks>
+	///     The layout (<c>major shl 48 or minor shl 32 or release shl 16 or build</c>) was observed on CE 7.7.0.10621 x64
+	///     (spike C3 D5, Lua-only, ObservedHost design input) and matches <c>lua_getFileVersion</c> in the public source
+	///     (<c>LuaHandler.pas:13271-13318</c> at ec45d5f, ObservedSource). This never converts <c>getCEVersion</c>'s
+	///     floating-point value.
+	/// </remarks>
+	public static bool TryDecodeFileVersion(long packed, out CheatEngineVersion version)
+	{
+		if (packed < 0)
+		{
+			version = default;
+			return false;
+		}
+
+		version = new CheatEngineVersion((int) ((packed >> 48) & 0xFFFF), (int) ((packed >> 32) & 0xFFFF),
+			(int) ((packed >> 16) & 0xFFFF), (int) (packed & 0xFFFF));
+		return true;
+	}
+
 	/// <summary>Decodes a CE 7.7 <c>getABI</c> result: 0 for Windows and 1 for Unix/Linux.</summary>
 	/// <param name="code">The raw CE Lua integer.</param>
 	/// <param name="abi">The decoded ABI family, or <see cref="TargetAbi.Unknown" />.</param>

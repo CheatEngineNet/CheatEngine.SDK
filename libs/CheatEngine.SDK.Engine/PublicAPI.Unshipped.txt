@@ -215,8 +215,47 @@ CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.TargetNotAttached = 
 CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.Unknown = 0 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
 CheatEngine.SDK.Engine.Processes.RuntimeHostOperations
 CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.CheatEngineHostObservation() -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.CheatEngineHostObservation(CheatEngine.SDK.Engine.Runtime.CheatEngineVersion? FileVersion, CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture SystemArchitecture, bool? CheatEngineIs64Bit, CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem OperatingSystem) -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.CheatEngineIs64Bit.get -> bool?
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.CheatEngineIs64Bit.init -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.Deconstruct(out CheatEngine.SDK.Engine.Runtime.CheatEngineVersion? FileVersion, out CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture SystemArchitecture, out bool? CheatEngineIs64Bit, out CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem OperatingSystem) -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.Equals(CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation other) -> bool
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.FileVersion.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineVersion?
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.FileVersion.init -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.OperatingSystem.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.OperatingSystem.init -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.SystemArchitecture.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.SystemArchitecture.init -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem.Linux = 3 -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem.MacOS = 2 -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem.Unknown = 0 -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem.Windows = 1 -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
 CheatEngine.SDK.Engine.Runtime.PointerSize.TryReadLittleEndian(System.ReadOnlySpan<byte> source, out ulong value) -> bool
 CheatEngine.SDK.Engine.Runtime.PointerSize.TryWriteLittleEndian(ulong value, System.Span<byte> destination) -> bool
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Abi.get -> CheatEngine.SDK.Engine.Runtime.TargetAbi
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.AbiCode.get -> int?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Architecture.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Backend.get -> CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Bitness.get -> CheatEngine.SDK.Engine.Runtime.PointerSize
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ConfiguredPointerSize.get -> CheatEngine.SDK.Engine.Runtime.PointerSize
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ConfiguredPointerSizeBytes.get -> int?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ConfiguredPointerSizeDiffersFromBitness.get -> bool?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Equals(CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation other) -> bool
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.IsAndroid.get -> bool?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.IsArmFamily.get -> bool?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.IsX86Family.get -> bool?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ProcessId.get -> CheatEngine.SDK.Engine.Inspection.TargetProcessId
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.TargetArchitectureObservation() -> void
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.TargetArchitectureObservation(CheatEngine.SDK.Engine.Inspection.TargetProcessId processId, CheatEngine.SDK.Engine.Runtime.TargetBackend backend, CheatEngine.SDK.Engine.Runtime.PointerSize bitness, bool? isX86Family, bool? isArmFamily, bool? isAndroid, int? abiCode, int? configuredPointerSizeBytes) -> void
+CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Runtime.TargetBackend.CEServer = 3 -> CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Runtime.TargetBackend.FileAsProcess = 2 -> CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Runtime.TargetBackend.LocalProcess = 1 -> CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Runtime.TargetBackend.Unknown = 0 -> CheatEngine.SDK.Engine.Runtime.TargetBackend
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.AobScanOutcome() -> void
 CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.Equals(CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome other) -> bool
@@ -388,6 +427,8 @@ override CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.GetHashCode
 override CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.Equals(object? obj) -> bool
 override CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.Equals(object? obj) -> bool
 override CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.GetHashCode() -> int
@@ -459,14 +500,31 @@ static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.TargetChanged.get
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.TargetNotAttached.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.operator !=(CheatEngine.SDK.Engine.Processes.ProcessOperationStatus left, CheatEngine.SDK.Engine.Processes.ProcessOperationStatus right) -> bool
 static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.operator ==(CheatEngine.SDK.Engine.Processes.ProcessOperationStatus left, CheatEngine.SDK.Engine.Processes.ProcessOperationStatus right) -> bool
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.ObserveHost(out CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation host) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetCheatEngineFileVersion(out CheatEngine.SDK.Engine.Runtime.CheatEngineVersion version) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
 static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetCheatEngineVersion(out double version) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetOperatingSystem(out CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem operatingSystem) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
 static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetSystemArchitecture(out CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture architecture) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
 static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetTargetAbi(out CheatEngine.SDK.Engine.Runtime.TargetAbi abi) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryIsCheatEngine64Bit(out bool is64Bit) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
 static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.ObserveCurrent(out CheatEngine.SDK.Engine.Processes.CurrentProcessObservation observation) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.ObserveTargetArchitecture(out CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation observation) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
 static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.SelectAndObserve(CheatEngine.SDK.Engine.Inspection.TargetProcessId processId, out CheatEngine.SDK.Engine.Processes.CurrentProcessObservation observation) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.TryGetConfiguredPointerSize(out int rawBytes, out CheatEngine.SDK.Engine.Runtime.PointerSize pointerSize) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.operator !=(CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation left, CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation right) -> bool
+static CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.operator ==(CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation left, CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation right) -> bool
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.CheatEngineBitness.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.ConfiguredPointerSize.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
 static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.CurrentProcess.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.OperatingSystem.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
 static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.ProcessSelection.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.TargetAndroid.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.TargetBackend.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeInfo.TryDecodeFileVersion(long packed, out CheatEngine.SDK.Engine.Runtime.CheatEngineVersion version) -> bool
+static CheatEngine.SDK.Engine.Runtime.RuntimeInfo.TryDecodeOperatingSystem(int code, out CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem operatingSystem) -> bool
 static CheatEngine.SDK.Engine.Runtime.RuntimeInfo.TryDeriveTargetArchitecture(bool isX86Family, bool isArmFamily, bool is64Bit, out CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture architecture) -> bool
+static CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.operator !=(CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation left, CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation right) -> bool
+static CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.operator ==(CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation left, CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation right) -> bool
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.GlobalUnavailable.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.InvalidResult.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
 static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.Matches(int resultCount) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
@@ -515,6 +573,10 @@ static CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.operator ==(Che
 ~override CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.ToString() -> string
 ~override CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.Equals(object obj) -> bool
 ~override CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.ToString() -> string
+~override CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.ToString() -> string
+~override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ToString() -> string
 ~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.Equals(object obj) -> bool
 ~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.ToString() -> string
 ~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.Equals(object obj) -> bool

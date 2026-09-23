@@ -44,6 +44,21 @@ public readonly struct RuntimeCapabilityId : IEquatable<RuntimeCapabilityId>
 	/// <summary>Gets the SDK capability for the target ABI query.</summary>
 	public static RuntimeCapabilityId TargetAbi => new("Runtime.TargetAbi");
 
+	/// <summary>Gets the SDK capability for Cheat Engine's configured pointer size, which is not the target bitness.</summary>
+	public static RuntimeCapabilityId ConfiguredPointerSize => new("Runtime.ConfiguredPointerSize");
+
+	/// <summary>Gets the SDK capability for whether the Cheat Engine host process is 64-bit.</summary>
+	public static RuntimeCapabilityId CheatEngineBitness => new("Runtime.CheatEngineBitness");
+
+	/// <summary>Gets the SDK capability for the operating system Cheat Engine reports.</summary>
+	public static RuntimeCapabilityId OperatingSystem => new("Runtime.OperatingSystem");
+
+	/// <summary>Gets the SDK capability for whether Cheat Engine reports an Android target.</summary>
+	public static RuntimeCapabilityId TargetAndroid => new("Runtime.TargetAndroid");
+
+	/// <summary>Gets the SDK capability for establishing the target backend (local process or CEServer).</summary>
+	public static RuntimeCapabilityId TargetBackend => new("Runtime.TargetBackend");
+
 	/// <inheritdoc />
 	public bool Equals(RuntimeCapabilityId other)
 	{

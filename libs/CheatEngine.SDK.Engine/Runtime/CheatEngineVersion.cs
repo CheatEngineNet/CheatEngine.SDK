@@ -10,9 +10,10 @@ namespace CheatEngine.SDK.Engine.Runtime;
 /// </summary>
 /// <remarks>
 ///     CE 7.7 exposes the complete <c>major</c>, <c>minor</c>, <c>release</c> and <c>build</c> fields through
-///     <c>getCheatEngineFileVersion</c>. The current EngineApi grammar cannot marshal that Lua table, so this type must
-///     not be constructed by converting <c>getCEVersion</c>'s floating-point result. It is immutable and does not query
-///     Cheat Engine.
+///     <c>getCheatEngineFileVersion</c>, which the SDK reads with
+///     <c>CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetCheatEngineFileVersion</c> (a hand-written
+///     binding: the call returns a packed integer and a table). This type must never be constructed by converting
+///     <c>getCEVersion</c>'s floating-point result. It is immutable and does not query Cheat Engine.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct CheatEngineVersion : IEquatable<CheatEngineVersion>, IComparable<CheatEngineVersion>

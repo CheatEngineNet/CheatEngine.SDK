@@ -5,7 +5,7 @@ early_access: false
 
 reviews:
   # Assertive and advisory: CodeRabbit reviews thoroughly but never approves, requests changes or sets a required
-  # status. The only merge requirement is the CI / Gate check.
+  # status. The merge requirements are the CI / Gate and PR policy checks; there is no merge queue.
   profile: assertive
   request_changes_workflow: false
   review_details: false
@@ -39,11 +39,13 @@ reviews:
       mode: warning
       requirements: >-
         Pull requests are squash-merged and the title becomes the commit subject: a short imperative sentence such as
-        "Fix CI validation findings", at most 72 characters, no trailing period.
+        "Fix CI validation findings", at most 72 characters, no trailing period, no Conventional Commit or area prefix,
+        starting with an uppercase letter. The required PR policy check enforces these rules; this check only reports
+        them earlier.
     description:
       mode: warning
     issue_assessment:
-      mode: 'off' # issues are disabled on this repository
+      mode: 'off' # pull requests are not required to link an issue
     docstrings:
       mode: 'off' # CS1591 already fails the build for undocumented public APIs
     custom_checks:
@@ -88,12 +90,29 @@ reviews:
         mode: warning
         instructions: >-
           Applies only to changes under .github/; otherwise pass. Fail when an action is referenced by tag or branch
-          instead of a full 40-character commit SHA with a version comment; pull_request_target is used;
-          actions/checkout omits persist-credentials: false; a permission is widened without a comment giving the
-          reason; a PowerShell step runs a native command (dotnet, xmake, git, gh, tar, actionlint) without checking
-          $LASTEXITCODE; SONAR_TOKEN or NUGET_USER can reach fork or Dependabot runs; a job added to ci.yml is missing
-          from the Gate's needs; or NuGet/login moves out of the release.yml publish job that uses environment nuget.
-          Otherwise pass.
+          instead of a full 40-character commit SHA with a version comment; pull_request_target or a merge_group
+          trigger is used; a job runs on a -latest label or on any label other than windows-2025 or ubuntu-24.04, or
+          has no timeout-minutes; actions/checkout omits persist-credentials: false; a permission is widened without a
+          comment giving the reason; a PowerShell step runs a native command (dotnet, xmake, git, gh, tar, actionlint)
+          without checking $LASTEXITCODE; a restore is not locked, or a job of ci.yml, sonar.yml, codeql.yml or
+          release.yml enables a package cache; SONAR_TOKEN or NUGET_USER can reach fork or Dependabot runs; a job added
+          to ci.yml is missing from the Gate's needs (WorkflowContractTests also fails; only the advisory client-canary
+          job may stay out); a zizmor finding is ignored in .github/zizmor.yml without a reason; or NuGet/login moves
+          out of the release.yml publish job that uses environment nuget. scorecard.yml is exempt from the pwsh
+          defaults and run-step rules, because Scorecard's publication verifier rejects them. The advisory workflows
+          (codeql, scorecard, zizmor-online, dependency-submission, scheduled-health) stay outside the Gate, and
+          pr-policy stays a separate workflow. Otherwise pass.
+      - name: Public API and compatibility
+        mode: warning
+        instructions: >-
+          Applies when the pull request changes public or protected API under libs/ or src/, a PublicAPI.Shipped.txt
+          or PublicAPI.Unshipped.txt file, src/CheatEngine.SDK/CompatibilitySuppressions.xml, eng/api/, or a
+          packages.lock.json file; otherwise pass. Pass when every public API change is recorded in the owning
+          library's PublicAPI.Unshipped.txt (a changed or removed shipped declaration also gets a *REMOVED* line);
+          PublicAPI.Shipped.txt changes only in a release pull request that moves Unshipped into it;
+          CompatibilitySuppressions.xml changes only together with an intentional break that the description and the
+          CHANGELOG declare; and every packages.lock.json change comes from ./eng/Update-LockFiles.ps1 (never a hand
+          edit) together with the package, project or global.json change that caused it. Fail otherwise.
   finishing_touches:
     docstrings:
       enabled: false
@@ -157,29 +176,64 @@ reviews:
     - path: 'tests/**'
       instructions: >-
         Tests use xUnit v3 with Microsoft.Testing.Platform. CI runs the whole solution once in Debug and once in
-        Release with --fail-skips on, so a skipped test fails both. Distinguish fixture, package and NativeAOT probes
-        from actual live Cheat Engine host qualification.
+        Release with --fail-skips on, so a skipped test fails both. Debug excludes the packaging tests by the trait
+        Category=Packaging (never by Skip); Release runs them against the exact nupkg it packed
+        (CESDK_PACKAGED_UMBRELLA_NUPKG). A test that evidences a qualification scenario carries
+        [Trait("Qualification", "Qxx")] and its docs/qualification/matrix.json cell changes in the same pull request.
+        Distinguish fixture, package and NativeAOT probes from actual live Cheat Engine host qualification.
     - path: 'CHANGELOG.md'
       instructions: >-
         Keep a Changelog 1.1.0. The release workflow publishes the body of the "## [X.Y.Z]" section (or [Unreleased]
         for a prerelease) as the GitHub release notes, so keep version headings exact and link references at the end.
     - path: '.github/**'
       instructions: >-
-        pull-request-ci.yml, main-ci.yml and release.yml are thin callers of the reusable ci.yml (native, build-test
-        matrix Debug/Release, aot, sonar through sonar.yml, lint, gate) and must stay thin. Jobs exchange artifacts
-        instead of redoing work: lua-protection-bridge and classic-abi-fixture-facts from native; nuget-package,
-        coverage and test-results-<configuration> from build-test; release-notes from the release verify job. Do not
-        reintroduce per-project test matrices, a second test run of the same configuration, or rebuilds of what an
-        upstream job produced. NativeBridgePeAuditTests asserts the native job text. The Gate evaluates toJSON(needs)
-        and only sonar may be skipped. NuGet/login stays in release.yml with environment nuget (trusted publishing
-        binding). Require SHA-pinned actions, least privilege, persist-credentials: false and $LASTEXITCODE checks.
-        actionlint already runs in CI; do not ask for a duplicate CodeRabbit actionlint run. Never use
-        pull_request_target. Sonar secrets must stay unavailable to forks and Dependabot.
+        pull-request-ci.yml and main-ci.yml are thin callers of the reusable ci.yml (native, build-test matrix
+        Debug/Release, aot, sonar through sonar.yml, lint, format, dependency-review, lock-files, gate) and must stay
+        thin. Jobs exchange artifacts instead of redoing work: lua-protection-bridge and classic-abi-fixture-facts from
+        native; nuget-package, build-info, coverage, coverage-report and test-results-<configuration> from build-test.
+        The Release leg packs before it tests, and the packaging tests consume that exact nupkg. Do not reintroduce
+        per-project test matrices, a second test run of the same configuration, or rebuilds of what an upstream job
+        produced. NativeBridgePeAuditTests asserts the native job text, and WorkflowContractTests freezes job ids and
+        names, gate.needs, runners, pins, locked restores and the reserved artifact names. Every job runs on
+        windows-2025 or ubuntu-24.04 (never -latest) with a timeout, restores with --locked-mode, and no job of ci.yml,
+        sonar.yml, codeql.yml or release.yml uses a package cache. The Gate evaluates toJSON(needs): every job must
+        succeed, and sonar must match SONAR_EXPECTED (it runs exactly when expected and is skipped only for forks,
+        Dependabot, the dormant merge_group clause and release runs); no other job may be skipped. The required checks
+        are CI / Gate and PR policy (pr-policy.yml: title rules and the CHANGELOG entry, rerun on every edit). CodeQL,
+        Scorecard, zizmor-online, dependency-submission and scheduled-health are advisory and stay out of the Gate;
+        scorecard.yml keeps no defaults, env or run steps. release.yml is draft-first (verify, ci, attest,
+        draft-release, publish, verify-publication, finalize-release); publication jobs run only for v* tags of this
+        repository, never upload to a published release, and keep NuGet/login in the publish job with environment
+        nuget (trusted publishing binding). Require SHA-pinned actions, least privilege, persist-credentials: false,
+        user-controlled values only through env, and $LASTEXITCODE checks; eng/ci scripts are linted by
+        PSScriptAnalyzer. actionlint and zizmor already run in the lint job; do not ask for a duplicate CodeRabbit
+        run. Never use pull_request_target. Sonar secrets must stay unavailable to forks and Dependabot.
+    - path: 'docs/**'
+      instructions: >-
+        Pages under docs/ are rebuilt from the 2026-09-22 audit and start with the "Recreated 2026-09" header. Never
+        restore or link the retired documentations/ tree; claims about hosts, runtime policy or qualification must
+        cite docs/qualification or say "not executed"; placeholder pages are replaced only by their owning work.
+    - path: '**/*.md'
+      instructions: >-
+        Never restore or link the retired documentations/ tree; claims about hosts, runtime policy or qualification
+        must cite docs/qualification or say "not executed". Relative links keep the exact case of the target; READMEs
+        packed into the NuGet package use absolute links only. DocumentationIntegrityTests enforces these rules.
+    - path: 'docs/qualification/**'
+      instructions: >-
+        Qualification evidence. No global percentage or score. A C1 or C2 result never counts as C3 or C4, and a C3
+        or C4 cell changes only with a committed receipt from eng/qualification. Profile ids are frozen. The SHA-256 of
+        a committed JSON document is computed after CRLF to LF normalization. Never copy Cheat Engine documentation
+        prose; cite names, locators and hashes only.
+    - path: 'eng/qualification/**'
+      instructions: >-
+        The local exact-host qualification runner. The CI guard stays the first statement; the runner never writes to
+        the Cheat Engine installation, restores HKCU only after a non-empty registry diff, and is never referenced by
+        a workflow.
   tools:
     # CodeRabbit is used as the GitHub App; pipeline failures are surfaced through its GitHub Checks integration.
     github-checks:
       enabled: true
-    # The ci.yml lint job is the deterministic actionlint owner.
+    # actionlint and zizmor run in the lint job of ci.yml, the deterministic owner of both.
     actionlint:
       enabled: false
 

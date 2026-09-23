@@ -12,9 +12,11 @@
     1. Read sdk.version of global.json and derive its channel (10.0.401 -> 10.0).
     2. Take -SdkVersion, or latest-sdk of the channel's release metadata
        (https://builds.dotnet.microsoft.com/dotnet/release-metadata/<channel>/releases.json).
-    3. Rewrite only sdk.version, keeping rollForward, allowPrerelease, errorMessage and the test runner section:
-       removing global.json would also drop "test": { "runner": "Microsoft.Testing.Platform" } and put the test command
-       in VSTest mode. https://learn.microsoft.com/dotnet/core/tools/global-json
+    3. Rewrite sdk.version, and the pinned version where errorMessage names it (the Release tests of the canary include
+       ToolchainPinTests, which require errorMessage to name the selected SDK and its install command), keeping
+       rollForward, allowPrerelease and the test runner section: removing global.json would also drop
+       "test": { "runner": "Microsoft.Testing.Platform" } and put the test command in VSTest mode.
+       https://learn.microsoft.com/dotnet/core/tools/global-json
     4. Write pinned-version, sdk-version and changed to GITHUB_OUTPUT, and a line to the job summary.
 
     The rewrite happens in the CI runner's checkout (or a throwaway local clone): never commit it. A new SDK reaches the
@@ -63,7 +65,7 @@ else {
 }
 
 $changed = $newest -cne $pinned
-if ($changed -and $PSCmdlet.ShouldProcess($GlobalJsonPath, "Set sdk.version to $newest")) {
+if ($changed -and $PSCmdlet.ShouldProcess($GlobalJsonPath, "Set sdk.version (and its errorMessage mentions) to $newest")) {
     $rewritten = Get-UpdatedGlobalJson -Json $json -Version $newest
     [System.IO.File]::WriteAllText($GlobalJsonPath, $rewritten + [Environment]::NewLine, [System.Text.UTF8Encoding]::new($false))
 }

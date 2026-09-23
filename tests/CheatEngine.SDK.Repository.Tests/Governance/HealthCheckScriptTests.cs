@@ -74,17 +74,32 @@ public sealed class HealthCheckScriptTests(HealthCheckFixture fixture) : IClassF
 	}
 
 	[Fact]
-	public void Global_json_rewrite_changes_only_the_sdk_version()
+	public void Global_json_rewrite_moves_the_sdk_version_and_its_error_message_together()
 	{
 		JsonObject original = Assert.IsType<JsonObject>(JsonNode.Parse(RepositoryFile.ReadText("global.json")));
 		JsonObject rewritten = Assert.IsType<JsonObject>(JsonNode.Parse(String(HealthCheckFixture.GlobalJsonCase)!));
+		string pinned = (string?) original["sdk"]!["version"] ?? "";
+		string message = (string?) original["sdk"]!["errorMessage"] ?? "";
 
-		Assert.Equal(HealthCheckFixture.CanaryVersion, (string?) rewritten["sdk"]!["version"]);
+		// The canary's Release tests include ToolchainPinTests, whose invariant the rewritten file must keep: errorMessage
+		// names the selected SDK and its install command.
+		AssertErrorMessageNamesTheSdk(rewritten, HealthCheckFixture.CanaryVersion, pinned);
+
+		// Everything else (rollForward, allowPrerelease, the rest of the message, the Microsoft.Testing.Platform runner)
+		// survives, in order.
 		original["sdk"]!["version"] = HealthCheckFixture.CanaryVersion;
-		// rollForward, allowPrerelease, errorMessage and the Microsoft.Testing.Platform runner survive, in order.
-		Assert.True(JsonNode.DeepEquals(original, rewritten), $"Only sdk.version may change:{Environment.NewLine}{rewritten}");
+		original["sdk"]!["errorMessage"] = message.Replace(pinned, HealthCheckFixture.CanaryVersion, StringComparison.Ordinal);
+		Assert.True(JsonNode.DeepEquals(original, rewritten),
+			$"Only sdk.version and its mentions in errorMessage may change:{Environment.NewLine}{rewritten}");
 		Assert.Equal(KeysOf(original), KeysOf(rewritten));
 		Assert.Equal(KeysOf(original["sdk"]!.AsObject()), KeysOf(rewritten["sdk"]!.AsObject()));
+
+		Assert.Equal("Needs 10.0.402 (v10.0.402), not 10.0.4012, 110.0.401 or 10.0.401.1. Run: install --version 10.0.402.",
+			ErrorMessageOf("global_json_error_message_follows_the_version"));
+		Assert.Equal("Install the SDK global.json names.", ErrorMessageOf("global_json_error_message_without_a_version"));
+		JsonObject withoutMessage = Assert.IsType<JsonObject>(JsonNode.Parse(String("global_json_without_error_message")!));
+		Assert.Equal(["version", "rollForward"], KeysOf(withoutMessage["sdk"]!.AsObject()));
+		Assert.Equal("10.0.402", (string?) withoutMessage["sdk"]!["version"]);
 
 		Assert.Contains("not a full .NET SDK version", Error("global_json_rejects_invalid_version"), StringComparison.Ordinal);
 		Assert.Contains("no sdk.version property", Error("global_json_without_sdk_version"), StringComparison.Ordinal);
@@ -235,7 +250,7 @@ public sealed class HealthCheckScriptTests(HealthCheckFixture fixture) : IClassF
 	}
 
 	[Fact]
-	public async Task Canary_pin_rewrites_only_the_sdk_version_and_writes_the_step_outputs()
+	public async Task Canary_pin_selects_the_sdk_in_global_json_and_writes_the_step_outputs()
 	{
 		using TemporaryDirectory directory = new();
 		string globalJson = directory.File("global.json");
@@ -249,6 +264,7 @@ public sealed class HealthCheckScriptTests(HealthCheckFixture fixture) : IClassF
 		Assert.True(run.ExitCode == 0, run.Transcript);
 		JsonObject rewritten = Assert.IsType<JsonObject>(JsonNode.Parse(await File.ReadAllTextAsync(globalJson, TestContext.Current.CancellationToken)));
 		Assert.Equal("10.0.499", (string?) rewritten["sdk"]!["version"]);
+		AssertErrorMessageNamesTheSdk(rewritten, "10.0.499", pinned);
 		Assert.Equal("Microsoft.Testing.Platform", (string?) rewritten["test"]!["runner"]);
 		Assert.Equal("disable", (string?) rewritten["sdk"]!["rollForward"]);
 		string[] outputs = await File.ReadAllLinesAsync(directory.File("output.txt"), TestContext.Current.CancellationToken);
@@ -354,6 +370,25 @@ public sealed class HealthCheckScriptTests(HealthCheckFixture fixture) : IClassF
 		string? error = fixture.Result(caseName).Error;
 		Assert.True(error is not null, $"{caseName} was expected to throw.");
 		return error;
+	}
+
+	private string? ErrorMessageOf(string caseName)
+	{
+		JsonObject document = Assert.IsType<JsonObject>(JsonNode.Parse(String(caseName)!));
+		return (string?) document["sdk"]!["errorMessage"];
+	}
+
+	/// <summary>
+	///     The invariant of <c>ToolchainPinTests.Global_json_error_message_names_the_pinned_sdk_version</c>, which the canary's
+	///     Release tests run against the rewritten file: the message names the selected SDK and its install command, and no
+	///     longer the committed pin.
+	/// </summary>
+	private static void AssertErrorMessageNamesTheSdk(JsonObject globalJson, string version, string previousVersion)
+	{
+		string message = (string?) globalJson["sdk"]!["errorMessage"] ?? "";
+		Assert.Contains(version, message, StringComparison.Ordinal);
+		Assert.Contains($"--version {version}", message, StringComparison.Ordinal);
+		Assert.DoesNotContain(previousVersion, message, StringComparison.Ordinal);
 	}
 
 	private static List<string> KeysOf(JsonObject node)

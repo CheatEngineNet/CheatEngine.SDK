@@ -232,15 +232,17 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   `Scheduled_health_uploads_diagnostics_under_their_reserved_names`).
 - The decisions of the health scripts (`eng/ci/health/HealthCheck.psm1`) match their vectors: the newest plain release
   tag, the bridge drift classification (`Reproduced`, `ToolchainDrift`, `Failed`), full SDK versions of the pinned
-  channel, a `global.json` rewrite that keeps everything but `sdk.version`, TRX counters, package-list reports, link
-  extraction and verdicts, and a health issue body built from closed vocabularies; the canary pin and the issue
-  publisher run end to end (the publisher with `gh` replaced by a recorder) (`HealthCheckScriptTests`:
-  `Every_exported_health_function_has_vectors`, `Release_tag_selection_takes_the_newest_plain_version`,
+  channel, a `global.json` rewrite that changes `sdk.version` and the versions `sdk.errorMessage` names (so the
+  rewritten file still passes `ToolchainPinTests` in the canary's Release tests) and keeps everything else, TRX
+  counters, package-list reports, link extraction and verdicts, and a health issue body built from closed vocabularies;
+  the canary pin and the issue publisher run end to end (the publisher with `gh` replaced by a recorder)
+  (`HealthCheckScriptTests`: `Every_exported_health_function_has_vectors`, `Release_tag_selection_takes_the_newest_plain_version`,
   `Bridge_drift_classification_matches_the_vectors`, `Sdk_versions_are_full_versions_of_the_pinned_channel`,
-  `Global_json_rewrite_changes_only_the_sdk_version`, `Package_list_reports_flatten_to_one_row_per_package`,
+  `Global_json_rewrite_moves_the_sdk_version_and_its_error_message_together`,
+  `Package_list_reports_flatten_to_one_row_per_package`,
   `External_links_skip_fences_local_hosts_templates_and_offline_checked_self_links`,
   `Only_not_found_and_gone_count_as_broken_links`, `Health_issue_body_carries_only_closed_vocabularies`,
-  `Canary_pin_rewrites_only_the_sdk_version_and_writes_the_step_outputs`,
+  `Canary_pin_selects_the_sdk_in_global_json_and_writes_the_step_outputs`,
   `Canary_pin_refuses_a_version_of_another_channel`, `Health_issue_publisher_creates_the_issue_when_none_is_open`,
   `Health_issue_publisher_comments_on_the_open_issue`, `Health_issue_publisher_only_warns_when_issues_are_disabled`).
 - The repository-settings payloads require exactly `CI / Gate` and `PR policy` from the GitHub Actions app (names that

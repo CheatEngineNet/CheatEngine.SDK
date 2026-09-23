@@ -164,6 +164,15 @@ internal static class HealthCheckCases
 			("Version", "latest")),
 		Call("global_json_without_sdk_version", "Get-UpdatedGlobalJson", ("Json", """{ "test": { "runner": "Microsoft.Testing.Platform" } }"""),
 			("Version", "10.0.402")),
+		// errorMessage follows the version, as whole versions only; a message that names no version stays as it is.
+		Call("global_json_error_message_follows_the_version", "Get-UpdatedGlobalJson",
+			("Json", """{ "sdk": { "version": "10.0.401", "errorMessage": "Needs 10.0.401 (v10.0.401), not 10.0.4012, 110.0.401 or 10.0.401.1. Run: install --version 10.0.401." } }"""),
+			("Version", "10.0.402")),
+		Call("global_json_error_message_without_a_version", "Get-UpdatedGlobalJson",
+			("Json", """{ "sdk": { "version": "10.0.401", "errorMessage": "Install the SDK global.json names." } }"""),
+			("Version", "10.0.402")),
+		Call("global_json_without_error_message", "Get-UpdatedGlobalJson",
+			("Json", """{ "sdk": { "version": "10.0.401", "rollForward": "disable" } }"""), ("Version", "10.0.402")),
 
 		Call("package_reference_present", "Test-PackageReference",
 			("ProjectText", """<ItemGroup><PackageReference Include="Microsoft.Testing.Extensions.HangDump"/></ItemGroup>"""),

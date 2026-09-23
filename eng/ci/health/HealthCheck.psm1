@@ -14,7 +14,7 @@
       Get-BridgeDriftClassification     Reproduced, ToolchainDrift or Failed for a rebuilt release bridge
       Get-SdkChannel                    the release channel (major.minor) of an SDK version
       Get-NewestSdkVersion              latest-sdk of a release-metadata releases.json document
-      Get-UpdatedGlobalJson             global.json text with only sdk.version replaced
+      Get-UpdatedGlobalJson             global.json text with sdk.version (and its mentions in errorMessage) replaced
       Test-PackageReference             whether an MSBuild file references a package
       Get-TrxSummary                    the counters of a TRX test report
       ConvertFrom-PackageListReport     rows of a `package list --format json` report (vulnerable or deprecated)
@@ -189,8 +189,16 @@ function Get-NewestSdkVersion {
 
 <#
 .SYNOPSIS
-    Returns the global.json text with sdk.version set to -Version. Every other property (rollForward, allowPrerelease,
-    errorMessage, the test runner) is kept, in order: without the test section `dotnet test` would fall back to VSTest.
+    Returns the global.json text with sdk.version set to -Version, and every mention of the previous version in
+    sdk.errorMessage replaced by -Version. Every other property (rollForward, allowPrerelease, the test runner) is kept,
+    in order: without the test section `dotnet test` would fall back to VSTest.
+
+.DESCRIPTION
+    The repository keeps global.json self-consistent: errorMessage names the pinned version and its install command
+    (ToolchainPinTests.Global_json_error_message_names_the_pinned_sdk_version). The canary runs every Release test with
+    the rewritten file, so a rewrite that left the old version in errorMessage would fail that test for every newer SDK,
+    the very case the canary exists for. A mention is replaced only as a whole version: 10.0.401 in "10.0.4010" or
+    "10.0.401.1" is not a mention.
 #>
 function Get-UpdatedGlobalJson {
     [CmdletBinding()]
@@ -207,7 +215,16 @@ function Get-UpdatedGlobalJson {
         throw 'global.json has no sdk.version property.'
     }
 
-    $document['sdk']['version'] = $Version
+    $sdk = $document['sdk']
+    $previous = [string] $sdk['version']
+    $sdk['version'] = $Version
+    if ($previous -and $sdk.Contains('errorMessage') -and $sdk['errorMessage'] -is [string]) {
+        # $Version passed Get-SdkChannel (digits and dots only), so it holds no substitution token.
+        $mention = '(?<![0-9.])' + [regex]::Escape($previous) + '(?![0-9]|\.[0-9])'
+        $sdk['errorMessage'] = [regex]::Replace($sdk['errorMessage'], $mention, $Version,
+            [System.Text.RegularExpressions.RegexOptions]::CultureInvariant, $RegexTimeout)
+    }
+
     return ($document | ConvertTo-Json -Depth 10)
 }
 

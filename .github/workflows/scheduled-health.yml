@@ -62,8 +62,9 @@ jobs:
           fetch-depth: 0 # MinVer versions the package, and the canary diffs the lock files against HEAD
           persist-credentials: false
 
-      # Before the composite action, which installs exactly the SDK global.json names (rollForward: disable). Only
-      # sdk.version changes, in this checkout only; the test runner section stays.
+      # Before the composite action, which installs exactly the SDK global.json names (rollForward: disable). In this
+      # checkout only, sdk.version changes, and errorMessage follows it (ToolchainPinTests runs in the Release tests);
+      # the test runner section stays.
       - name: Select the newest SDK of the channel
         id: sdk
         run: |

@@ -47,9 +47,12 @@ implicitly (ILLink, ILCompiler). The canary tells, before the Dependabot `dotnet
 next SDK of the same channel changes:
 
 1. `Set-CanarySdkVersion.ps1` reads `latest-sdk` of the channel's
-   [release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json) and rewrites only
-   `sdk.version` in the runner's checkout (the test runner section stays: without it `dotnet test` would use VSTest).
-   It runs before the composite setup action, which installs exactly the SDK `global.json` names.
+   [release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json) and rewrites
+   `sdk.version` in the runner's checkout, together with the pinned version where `sdk.errorMessage` names it: the
+   Release tests include `ToolchainPinTests`, which require the message to name the selected SDK and its
+   `--version` install command. `rollForward`, `allowPrerelease` and the test runner section stay (without the runner
+   section `dotnet test` would use VSTest). It runs before the composite setup action, which installs exactly the SDK
+   `global.json` names.
 2. `Invoke-SdkCanary.ps1` regenerates the lock files with `./eng/Update-LockFiles.ps1`, saves the difference as
    `lock-files.patch`, builds the solution in Release, packs `src/CheatEngine.SDK` and runs every Release test module with
    `CESDK_PACKAGED_UMBRELLA_NUPKG` set to that package.
@@ -65,7 +68,8 @@ git apply lock-files.patch            # from the health-sdk-canary artifact of a
 ./eng/Update-LockFiles.ps1 -Verify    # must pass with the new SDK
 ```
 
-Then update the SDK version mentioned in `global.json`'s `errorMessage` and in the documentation, commit and push.
+Then make `global.json`'s `errorMessage` name the new version, as the canary's rewrite does (`ToolchainPinTests`
+requires it), update the documentation that names the SDK, commit and push.
 Dependabot stops rebasing a pull request once someone else pushes to it.
 
 ## Flaky tests

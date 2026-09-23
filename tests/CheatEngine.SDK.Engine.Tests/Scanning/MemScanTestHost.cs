@@ -43,7 +43,8 @@ namespace CheatEngine.SDK.Engine.Tests.Scanning;
 ///         </item>
 ///         <item>
 ///             <c>scan_first_raises</c> with <c>scan_first_error_payload</c>, <c>scan_first_hook</c>,
-///             <c>scan_next_raises</c> with <c>scan_next_error_payload</c>, <c>scan_set_only_one_raises</c>,
+///             <c>scan_next_raises</c> with <c>scan_next_error_payload</c>, <c>scan_saved_results</c> (the saved-result
+///             names a ten-argument <c>nextScan</c> accepts; any other name raises), <c>scan_set_only_one_raises</c>,
 ///             <c>scan_terminate_raises</c>, <c>scan_new_raises</c>, <c>scan_destroy_raises</c>.
 ///         </item>
 ///         <item>
@@ -84,6 +85,10 @@ internal static class MemScanTestHost
 	                                          o.props.nextScan = function(...)
 	                                            next_scan_args = table.pack(...)
 	                                            table.insert(trace, 'scan.next:' .. next_scan_args.n)
+	                                            local saved = next_scan_args[10]
+	                                            if saved ~= nil and not (scan_saved_results and scan_saved_results[saved]) then
+	                                              error('saved result ' .. tostring(saved) .. ' does not exist')
+	                                            end
 	                                            if scan_next_raises then error(scan_next_error_payload) end
 	                                          end
 	                                          o.props.waitTillDone = function(...)

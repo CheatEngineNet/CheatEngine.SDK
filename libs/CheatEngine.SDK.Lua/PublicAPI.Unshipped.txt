@@ -24,6 +24,15 @@ CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.LuaFailure = 3 -> Cheat
 CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.Success = 1 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
 CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.Unavailable = 2 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
 CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus.Unknown = 0 -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushStatus
+CheatEngine.SDK.Lua.Marshalling.LuaOptional
+CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>
+CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.Equals(CheatEngine.SDK.Lua.Marshalling.LuaOptional<T> other) -> bool
+CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.HasValue.get -> bool
+CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.IsNil.get -> bool
+CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.IsOmitted.get -> bool
+CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.LuaOptional() -> void
+CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.TryGetValue(out T value) -> bool
+CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.Value.get -> T
 CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy
 CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy.RejectExisting = 0 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy
 CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy.ReplaceExisting = 1 -> CheatEngine.SDK.Lua.Registration.LuaRegistrationCollisionPolicy
@@ -91,6 +100,9 @@ CheatEngine.SDK.Lua.Registration.LuaRegistrationSet
 CheatEngine.SDK.Lua.State.LuaState.TryPushGeneratedFunction(CheatEngine.SDK.Lua.Callbacks.LuaNativeFunction thunk, CheatEngine.SDK.Lua.Runtime.LuaStateIdentity identity, bool requiresAttachedRuntime) -> CheatEngine.SDK.Lua.Calls.LuaStatus
 override CheatEngine.SDK.Lua.Calls.LuaOperationStatus.Equals(object? obj) -> bool
 override CheatEngine.SDK.Lua.Calls.LuaOperationStatus.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.Equals(object? obj) -> bool
+override CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.GetHashCode() -> int
+override CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.ToString() -> string!
 override CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.GetHashCode() -> int
 override CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.GetHashCode() -> int
 override CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseOutcome.GetHashCode() -> int
@@ -110,6 +122,11 @@ static CheatEngine.SDK.Lua.CompilerServices.LuaGlobalFunctions.TryPushWithStatus
 static CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.LuaFailure(CheatEngine.SDK.Lua.Calls.LuaStatus luaStatus) -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome
 static CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.Success.get -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome
 static CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome.Unavailable.get -> CheatEngine.SDK.Lua.CompilerServices.LuaGlobalPushOutcome
+static CheatEngine.SDK.Lua.Marshalling.LuaOptional.Nil<T>() -> CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>
+static CheatEngine.SDK.Lua.Marshalling.LuaOptional.Of<T>(T value) -> CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>
+static CheatEngine.SDK.Lua.Marshalling.LuaOptional.Omitted<T>() -> CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>
+static CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.operator !=(CheatEngine.SDK.Lua.Marshalling.LuaOptional<T> left, CheatEngine.SDK.Lua.Marshalling.LuaOptional<T> right) -> bool
+static CheatEngine.SDK.Lua.Marshalling.LuaOptional<T>.operator ==(CheatEngine.SDK.Lua.Marshalling.LuaOptional<T> left, CheatEngine.SDK.Lua.Marshalling.LuaOptional<T> right) -> bool
 static CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.operator !=(CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure left, CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure right) -> bool
 static CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure.operator ==(CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure left, CheatEngine.SDK.Lua.Registration.LuaRegistrationFailure right) -> bool
 static CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure.operator !=(CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure left, CheatEngine.SDK.Lua.Registration.LuaRegistrationReleaseFailure right) -> bool

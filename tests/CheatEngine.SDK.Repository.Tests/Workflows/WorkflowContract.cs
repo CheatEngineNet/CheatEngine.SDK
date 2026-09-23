@@ -118,19 +118,7 @@ internal static class WorkflowContract
 	///     Known violations in files other work items own, each with the work that removes it. The list only shrinks: a
 	///     test fails when an entry no longer matches a violation, so the entry is deleted in the commit that fixes it.
 	/// </summary>
-	public static readonly PendingViolation[] Pending =
-	[
-		new("release.yml", Rules.Runner, "verify",
-			"The release workflow rework (contract 1.11) moves every job to windows-2025 or ubuntu-24.04."),
-		new("release.yml", Rules.Runner, "publish",
-			"The release workflow rework (contract 1.11) moves every job to windows-2025 or ubuntu-24.04."),
-		new("release.yml", Rules.Runner, "github-release",
-			"The release workflow rework (contract 1.11) replaces this job with draft-release and finalize-release."),
-		new("release.yml", Rules.DotnetSetup, "publish",
-			"The publish job runs dotnet nuget push without the pinned SDK; the release workflow rework adds the composite action."),
-		new("release.yml", Rules.ExitCode, "github-release",
-			"The release workflow rework removes the gh release upload fallback (contract 1.11) and this branching.")
-	];
+	public static readonly PendingViolation[] Pending = [];
 
 	/// <summary>Reports <paramref name="violations" /> minus the pending ones, and pending entries that no longer match.</summary>
 	public static void AssertNoViolations(string rule, IReadOnlyCollection<Violation> violations)

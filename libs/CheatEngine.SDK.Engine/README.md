@@ -258,7 +258,12 @@ ships in the `CheatEngine.SDK` package under `lib/net10.0`.
 
 Cheat Engine reports each runtime fact through its own Lua global. The SDK reads each one separately, keeps an absent
 global as `null` or `Unknown` (never `false`), and never derives one fact from another. Every observation of a target
-reads `getOpenedProcessID` first and last, and reads no target fact when it is 0.
+reads `getOpenedProcessID` first, and reads no target fact when it is 0 or the file-as-process sentinel. The fact
+observations `RuntimeProcessOperations.ObserveTargetArchitecture` and `TryGetConfiguredPointerSize`,
+`RuntimeObservations.TryObserveRuntimeInfo` and `InstructionProfiles.TryObserveCurrent` also read it last and report a
+difference as `TargetChanged`; instruction operations re-check it before and after their Cheat Engine call.
+`TargetSelection.ObserveCurrent` and `RuntimeProcessOperations.ObserveCurrent` read it once, before their other probes,
+and `RuntimeProcessOperations.SelectAndObserve` reads it once, after `openProcess`, to confirm the selection.
 
 | Fact                                 | CE global                   | SDK member                                                                                           | When unknown                                  |
 |--------------------------------------|-----------------------------|------------------------------------------------------------------------------------------------------|-----------------------------------------------|

@@ -8,10 +8,10 @@ Versions 0.1.0 to 0.2.1 were published under the former `CESDK` package ID befor
 rewrite published as `CheatEngine.SDK`; it is neither source nor binary compatible with them. Read the breaking changes
 under [1.0.0](#100---2026-09-20) before upgrading.
 
-## [Unreleased]
+## [2.0.0] - 2026-09-24
 
-The next release line is 2.0.0. Every pack is validated against the published 1.0.0 package, and each intentional break
-is declared in `src/CheatEngine.SDK/CompatibilitySuppressions.xml` and marked **Breaking** below.
+Every pack is validated against the published 1.0.0 package, and each intentional break is declared in
+`src/CheatEngine.SDK/CompatibilitySuppressions.xml` and marked **Breaking** below.
 
 ### Added
 
@@ -161,5 +161,5 @@ is declared in `src/CheatEngine.SDK/CompatibilitySuppressions.xml` and marked **
 - The earlier project-specific exception hierarchy.
 - The NLog dependency.
 
-[Unreleased]: https://github.com/CheatEngineNet/CheatEngine.SDK/compare/v1.0.0...HEAD
+[2.0.0]: https://github.com/CheatEngineNet/CheatEngine.SDK/releases/tag/v2.0.0
 [1.0.0]: https://github.com/CheatEngineNet/CheatEngine.SDK/releases/tag/v1.0.0

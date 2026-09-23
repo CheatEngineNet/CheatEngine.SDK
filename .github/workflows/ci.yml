@@ -253,6 +253,17 @@ jobs:
             throw "The test module inventory failed with exit code $LASTEXITCODE."
           }
 
+      # Line union of every module, held to the per-assembly floors of eng/coverage-baseline.json. CI only suggests a
+      # new baseline (step summary and coverage-report artifact); raising a floor is a reviewed commit.
+      - name: Check coverage floors
+        id: coverage
+        if: matrix.configuration == 'Debug'
+        run: |
+          ./eng/ci/Test-CoverageBaseline.ps1 -ResultsDirectory $env:RESULTS -Baseline eng/coverage-baseline.json -OutputDirectory artifacts/coverage-report
+          if ($LASTEXITCODE -ne 0) {
+            throw "The coverage check failed with exit code $LASTEXITCODE."
+          }
+
       # The uploaded file is the file the tests consumed.
       - name: Verify the tested package is unchanged
         if: matrix.configuration == 'Release'
@@ -281,6 +292,15 @@ jobs:
           name: coverage
           path: ${{ env.RESULTS }}/*.xml
           if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload coverage report
+        if: ${{ !cancelled() && matrix.configuration == 'Debug' && steps.coverage.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report
+          path: artifacts/coverage-report/
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Upload test results

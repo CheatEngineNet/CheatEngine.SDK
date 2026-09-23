@@ -1,0 +1,39 @@
+{
+  "schema": "cheatengine-coverage-baseline/v0",
+  "tolerance": 0.5,
+  "assemblies": {
+    "CheatEngine.SDK.Abi": {
+      "line": 83.1
+    },
+    "CheatEngine.SDK.Analyzers": {
+      "line": 88.9
+    },
+    "CheatEngine.SDK.Analyzers.CodeFixes": {
+      "line": 88.0
+    },
+    "CheatEngine.SDK.Annotations": {
+      "line": 0.0
+    },
+    "CheatEngine.SDK.Engine": {
+      "line": 79.7
+    },
+    "CheatEngine.SDK.Hosting": {
+      "line": 90.7
+    },
+    "CheatEngine.SDK.Lua": {
+      "line": 86.4
+    },
+    "CheatEngine.SDK.Lua.Interop": {
+      "line": 93.9
+    },
+    "CheatEngine.SDK.SourceGenerators.EntryPoint": {
+      "line": 98.6
+    },
+    "CheatEngine.SDK.SourceGenerators.LuaBindings": {
+      "line": 95.2
+    },
+    "CheatEngine.SDK.SourceGenerators.Shared": {
+      "line": 94.6
+    }
+  }
+}

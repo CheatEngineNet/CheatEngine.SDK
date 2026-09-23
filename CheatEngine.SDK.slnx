@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path=".config/dotnet-tools.json"/>
     <File Path=".editorconfig"/>
     <File Path=".gitattributes"/>
     <File Path=".gitignore"/>
@@ -32,6 +33,7 @@
     <File Path="eng/api/client-induced-breaks.txt"/>
     <File Path="eng/api/README.md"/>
     <File Path="eng/BannedSymbols.txt"/>
+    <File Path="eng/coverage-baseline.json"/>
     <File Path="eng/RoslynComponent.props"/>
     <File Path="eng/Shipping.props"/>
     <File Path="eng/Tests.props"/>
@@ -48,6 +50,7 @@
   </Folder>
   <Folder Name="/eng/ci/">
     <File Path="eng/ci/Build-NativeBridge.ps1"/>
+    <File Path="eng/ci/Test-CoverageBaseline.ps1"/>
     <File Path="eng/ci/Test-SdkPackage.ps1"/>
     <File Path="eng/ci/Test-TestModuleInventory.ps1"/>
   </Folder>

@@ -40,7 +40,7 @@
 
   <!-- Added to every project as build-only assets (PrivateAssets=all). -->
   <ItemGroup Label="Every project">
-    <GlobalPackageReference Include="Meziantou.Analyzer" Version="3.0.270"/>
+    <GlobalPackageReference Include="Meziantou.Analyzer" Version="3.0.283"/>
     <!-- Global so that every assembly embedded in the CheatEngine.SDK package carries the same version. -->
     <GlobalPackageReference Include="MinVer" Version="8.0.0"/>
   </ItemGroup>

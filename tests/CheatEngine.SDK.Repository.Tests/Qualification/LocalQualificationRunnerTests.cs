@@ -91,6 +91,7 @@ public sealed class LocalQualificationRunnerTests
 				firstStatement = $statements[0].Extent.Text
 				strictMode = @($statements | Where-Object { $_.Extent.Text -eq 'Set-StrictMode -Version Latest' }).Count
 				stopOnError = @($statements | Where-Object { $_.Extent.Text -eq '$ErrorActionPreference = ''Stop''' }).Count
+				traps = @($ast.EndBlock.Traps | ForEach-Object { $_.Extent.Text })
 			} | ConvertTo-Json -Compress
 			""");
 
@@ -106,6 +107,10 @@ public sealed class LocalQualificationRunnerTests
 		Assert.Contains("exit 3", first, StringComparison.Ordinal);
 		Assert.Equal(1, facts.GetProperty("strictMode").GetInt32());
 		Assert.Equal(1, facts.GetProperty("stopOnError").GetInt32());
+
+		// An unhandled error maps to the documented exit code 6, not to PowerShell's generic 1.
+		JsonElement trap = Assert.Single(facts.GetProperty("traps").EnumerateArray());
+		Assert.Contains("exit 6", trap.GetString(), StringComparison.Ordinal);
 	}
 
 	[Fact]

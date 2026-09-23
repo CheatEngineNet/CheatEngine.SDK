@@ -16,8 +16,8 @@
     eng/qualification/README.md and docs/qualification/local-protocol.md.
 
     Exit codes: 0 success; 2 invalid arguments; 3 CI environment; 4 host or profile mismatch; 5 unsafe environment;
-    6 Cheat Engine, build or driver failure; 7 HKCU restore or verification failure (critical: the restore command and
-    the backup path are printed).
+    6 Cheat Engine, build, driver or any other unhandled failure; 7 HKCU restore or verification failure (critical: the
+    restore command and the backup path are printed).
 
 .PARAMETER Scenario
     Scenario ids of eng/qualification/scenarios.json (for example Q04, Q09.a) or CheckpointB for every runnable one.
@@ -69,6 +69,14 @@ foreach ($ciMarker in 'CI', 'GITHUB_ACTIONS', 'TF_BUILD') {
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $InformationPreference = 'Continue'
+
+# Any error nothing handles (a failing build, a missing tool, a target that never gets ready) ends the run with the
+# documented code 6 instead of PowerShell's generic 1. Every finally block still runs first: the target is stopped,
+# the driver, manifest and fault switch are removed, HKCU is compared and restored, and Global\ce-lab is released.
+trap {
+    [System.Console]::Error.WriteLine("Invoke-LocalQualification.ps1: $($_.Exception.Message) (exit 6)")
+    exit 6
+}
 
 Import-Module (Join-Path $PSScriptRoot 'QualificationRunner.psm1') -Force
 

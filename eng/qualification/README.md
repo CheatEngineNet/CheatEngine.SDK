@@ -79,7 +79,7 @@ operator's Cheat Engine settings changed.
 | `-PackagePath <path>`              | The exact `CheatEngine.SDK` `.nupkg`. Required unless `-PreflightOnly`.                                    |
 | `-PackageSource CiArtifact\|NuGetOrg` | Where the package came from (default `CiArtifact`).                                                    |
 | `-CiRunUrl <url>`                  | The CI run that produced the artifact; required for `CiArtifact` receipts.                                |
-| `-PullRequest <n>`, `-HeadSha <sha>` | Pull request identity recorded in receipts (both or neither).                                           |
+| `-PullRequest <n>`, `-HeadSha <sha>` | Pull request identity recorded in receipts (both or neither; the SHA is 40 lowercase hexadecimal characters). |
 | `-Operator <handle>`               | GitHub handle recorded in receipts; required for receipts.                                                |
 | `-CheatEnginePath <path>`          | The installation to copy; default `%ProgramFiles%\Cheat Engine`. Read and copied only.                   |
 | `-WorkRoot <path>`                 | Default `%LOCALAPPDATA%\CheatEngineNet\qualification`; refused when it holds a non-ASCII character (the driver writes through Cheat Engine's ANSI file API), overlaps `-CheatEnginePath`, lies inside a git work tree or below the repository's parent directory. |

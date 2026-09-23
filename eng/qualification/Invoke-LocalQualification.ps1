@@ -726,7 +726,8 @@ if (-not $PreflightOnly) {
     if (-not $Smoke) {
         if ($PackageSource -eq 'CiArtifact' -and $CiRunUrl -notmatch '^https://github\.com/CheatEngineNet/CheatEngine\.SDK/actions/runs/\d+(/attempts/\d+)?$') { Exit-Qualification -Code 2 -Reason '-CiRunUrl must name the CI run that produced the artifact.' }
         if ($Operator -notmatch '^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$') { Exit-Qualification -Code 2 -Reason '-Operator must be the GitHub handle recorded in the receipts.' }
-        if (($PullRequest -gt 0) -xor ($HeadSha -match '^[0-9a-f]{40}$')) { Exit-Qualification -Code 2 -Reason '-PullRequest and -HeadSha go together.' }
+        if ($HeadSha -and $HeadSha -cnotmatch '^[0-9a-f]{40}$') { Exit-Qualification -Code 2 -Reason '-HeadSha must be the 40-character lowercase hexadecimal head commit of the pull request.' }
+        if (($PullRequest -gt 0) -xor [bool] $HeadSha) { Exit-Qualification -Code 2 -Reason '-PullRequest and -HeadSha go together.' }
     }
 }
 

@@ -10,12 +10,20 @@
 
 namespace: CheatEngine.SDK.Engine.Generated
 type: RuntimeCapabilityProbes
+contract: ce77
+provenance: ExactInstalledFile: CE 7.7.0.10621 celua.txt, SHA-256 AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00
+minimum-ce: 7.7.0.10621
+architecture: x64
+# No CE GUI-thread proof exists for these probes: `unknown` grants no thread-safety claim (audit SRC02-02).
+thread: unknown
+ownership: none
 
 # getCEVersion(): CE's legacy floating-point display version.
 global: getCEVersion
 method: GetCheatEngineVersion
 form: throwing
 return: double
+nil: none
 doc: Gets Cheat Engine's legacy floating-point version value; it is not a complete file version.
 
 # getSystemArchitecture(): 0=i386, 1=x86_64, 2=arm32, 3=arm64 in CE 7.7.
@@ -23,6 +31,7 @@ global: getSystemArchitecture
 method: GetSystemArchitectureCode
 form: throwing
 return: int32
+nil: none
 doc: Gets Cheat Engine's documented host architecture code for the current runtime.
 
 # getABI(): 0=Windows, 1=Unix/Linux target calling-convention family in CE 7.7.
@@ -30,28 +39,33 @@ global: getABI
 method: GetTargetAbiCode
 form: throwing
 return: int32
+nil: none
 doc: Gets Cheat Engine's documented target ABI family code for the current runtime.
 
 global: cheatEngineIs64Bit
 method: IsCheatEngine64Bit
 form: throwing
 return: boolean
+nil: none
 doc: Gets whether Cheat Engine reports itself as a 64-bit process.
 
 global: targetIs64Bit
 method: IsTarget64Bit
 form: throwing
 return: boolean
+nil: none
 doc: Gets whether Cheat Engine reports the selected target as a 64-bit process.
 
 global: targetIsX86
 method: IsTargetX86
 form: throwing
 return: boolean
+nil: none
 doc: Gets whether Cheat Engine reports the selected target as x86 based.
 
 global: targetIsArm
 method: IsTargetArm
 form: throwing
 return: boolean
+nil: none
 doc: Gets whether Cheat Engine reports the selected target as ARM based.

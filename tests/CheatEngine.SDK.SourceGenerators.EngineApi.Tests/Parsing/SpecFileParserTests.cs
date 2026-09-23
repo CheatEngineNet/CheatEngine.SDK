@@ -74,6 +74,13 @@ public sealed class SpecFileParserTests
 		                    namespace: Demo
 		                    # a comment between header keys
 		                    type: T
+		                    contract: ce77
+		                    # a comment between contract keys
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    # a comment before an entry
 		                    global: readInteger
@@ -82,6 +89,7 @@ public sealed class SpecFileParserTests
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: Reads an integer.
 		                    # a trailing comment
 		                    """;
@@ -97,7 +105,8 @@ public sealed class SpecFileParserTests
 	{
 		string text = SpecSources.SingleTry.Replace("\r\n", "\n", StringComparison.Ordinal)
 			.Replace("\n", "\r\n", StringComparison.Ordinal);
-		text = "  namespace: Demo.One\r\n  type: One\r\n\r\n" +
+		text = "  namespace: Demo.One\r\n  type: One\r\n" +
+			   SpecSources.Ce77.Replace("\n", "\r\n    ", StringComparison.Ordinal) + "\r\n" +
 			   text[text.IndexOf("global:", StringComparison.Ordinal)..];
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
@@ -133,12 +142,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace:
 		                    type: Root
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: TryReadInt32
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: Reads an integer.
 		                    """;
 
@@ -155,12 +171,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global readInteger
 		                    method: TryReadInt32
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: Reads an integer.
 		                    """;
 
@@ -247,6 +270,7 @@ public sealed class SpecFileParserTests
 		               form: try
 		               arg: address:address
 		               result: value:int32
+		               nil: none
 		               doc: Reads an integer.
 		               """;
 
@@ -254,7 +278,7 @@ public sealed class SpecFileParserTests
 			'\n',
 			entry.Split('\n').Where(line => !line.StartsWith(missingKey + ":", StringComparison.Ordinal)));
 
-		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", "namespace: Demo\ntype: T\n\n" + edited);
+		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", SpecSources.Ce77Header("Demo", "T") + edited);
 
 		Assert.Empty(spec.Calls.AsSpan().ToArray());
 		Assert.Contains(spec.Issues, issue => issue.Message.Contains("'" + missingKey + "'", StringComparison.Ordinal));
@@ -266,12 +290,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: TryReadInt32
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: Reads an integer.
 		                    extra: nonsense
 		                    """;
@@ -289,6 +320,12 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    global: writeInteger
@@ -296,6 +333,7 @@ public sealed class SpecFileParserTests
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: Reads an integer.
 		                    """;
 
@@ -312,8 +350,8 @@ public sealed class SpecFileParserTests
 	[InlineData("end")] // a Lua reserved word
 	public void An_invalid_lua_global_name_drops_the_entry(string badName)
 	{
-		string text = "namespace: Demo\ntype: T\n\nglobal: " + badName +
-					  "\nmethod: M\nform: try\narg: address:address\nresult: value:int32\ndoc: d.\n";
+		string text = "namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: " + badName +
+					  "\nmethod: M\nform: try\narg: address:address\nresult: value:int32\nnil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -328,12 +366,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: 1Bad
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: d.
 		                    """;
 
@@ -350,12 +395,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: class
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: d.
 		                    """;
 
@@ -371,12 +423,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: M
 		                    form: maybe
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: d.
 		                    """;
 
@@ -393,11 +452,18 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: M
 		                    form: try
 		                    arg: address:address
+		                    nil: none
 		                    doc: d.
 		                    """;
 
@@ -414,6 +480,12 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: M
@@ -421,6 +493,7 @@ public sealed class SpecFileParserTests
 		                    arg: address:address
 		                    result: value:int32
 		                    return: int32
+		                    nil: none
 		                    doc: d.
 		                    """;
 
@@ -437,12 +510,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: writeInteger
 		                    method: M
 		                    form: throwing
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: d.
 		                    """;
 
@@ -459,10 +539,17 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: beep
 		                    method: Beep
 		                    form: throwing
+		                    nil: none
 		                    doc: Calls a global with no arguments and no result.
 		                    """;
 
@@ -480,8 +567,8 @@ public sealed class SpecFileParserTests
 	[InlineData("arg: 1bad:address")]
 	public void A_malformed_or_unknown_kind_argument_drops_the_entry(string argLine)
 	{
-		string text = "namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: M\nform: try\n" + argLine +
-					  "\nresult: value:int32\ndoc: d.\n";
+		string text = "namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: M\nform: try\n" + argLine +
+					  "\nresult: value:int32\nnil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -495,8 +582,8 @@ public sealed class SpecFileParserTests
 	[InlineData("fixed: boolean:true; System.Console.WriteLine()")]
 	public void A_fixed_argument_accepts_only_boolean_literals(string fixedLine)
 	{
-		string text = "namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: M\nform: try\narg: address:address\n" +
-					  fixedLine + "\nresult: value:int32\ndoc: d.\n";
+		string text = "namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: M\nform: try\narg: address:address\n" +
+					  fixedLine + "\nresult: value:int32\nnil: none\ndoc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
 
@@ -511,12 +598,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: M
 		                    form: try
 		                    arg: address:address
 		                    result: value:utf8
+		                    nil: none
 		                    doc: d.
 		                    """;
 
@@ -533,12 +627,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: M
 		                    form: throwing
 		                    arg: address:address
 		                    return: utf8
+		                    nil: none
 		                    doc: d.
 		                    """;
 
@@ -555,12 +656,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: M
 		                    form: throwing
 		                    arg: address:address
 		                    return: notakind
+		                    nil: none
 		                    doc: d.
 		                    """;
 
@@ -577,12 +685,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: upper
 		                    method: Upper
 		                    form: throwing
 		                    arg: text:string?
 		                    return: string
+		                    nil: none
 		                    doc: Upper-cases a string.
 		                    """;
 
@@ -600,12 +715,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: M
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: first.
 
 		                    global: readQword
@@ -613,6 +735,7 @@ public sealed class SpecFileParserTests
 		                    form: try
 		                    arg: address:address
 		                    result: value:int64
+		                    nil: none
 		                    doc: second.
 		                    """;
 
@@ -631,12 +754,19 @@ public sealed class SpecFileParserTests
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: notAName!
 		                    method: Bad
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: bad.
 
 		                    global: readInteger
@@ -644,6 +774,7 @@ public sealed class SpecFileParserTests
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: good.
 		                    """;
 
@@ -733,12 +864,12 @@ public sealed class SpecFileParserTests
 	public void An_invalid_argument_kind_records_its_value_column()
 	{
 		const string Text =
-			"namespace: Demo\ntype: T\n\n    global: readInteger\n    method: M\n    form: try\n    arg: address:notakind\n    result: value:int32\n    doc: d.\n";
+			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\n    global: readInteger\n    method: M\n    form: try\n    arg: address:notakind\n    result: value:int32\n    nil: none\n    doc: d.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
 
 		SpecIssue issue = Assert.Single(spec.Issues);
-		Assert.Equal(7, issue.Line);
+		Assert.Equal(13, issue.Line);
 		Assert.Equal(10, issue.Column);
 	}
 
@@ -747,7 +878,7 @@ public sealed class SpecFileParserTests
 	public void Parameter_and_generated_member_identity_collisions_drop_the_affected_entries()
 	{
 		const string Text =
-			"namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: BadParameter\nform: try\narg: __L:int32\nresult: value:int32\ndoc: bad.\n\nglobal: readInteger\nmethod: Read\nform: try\narg: address:address\nresult: value:int32\ndoc: raw core.\n\nglobal: readQword\nmethod: __ReadRaw\nform: try\nresult: value:int64\ndoc: collision.\n";
+			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: BadParameter\nform: try\narg: __L:int32\nresult: value:int32\nnil: none\ndoc: bad.\n\nglobal: readInteger\nmethod: Read\nform: try\narg: address:address\nresult: value:int32\nnil: none\ndoc: raw core.\n\nglobal: readQword\nmethod: __ReadRaw\nform: try\nresult: value:int64\nnil: none\ndoc: collision.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
 
@@ -762,7 +893,7 @@ public sealed class SpecFileParserTests
 	public void A_parameter_named_operation_is_rejected_as_an_emitter_local_collision()
 	{
 		const string Text =
-			"namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: BadOperation\nform: try\narg: __operation:int32\nresult: value:int32\ndoc: bad.\n";
+			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: BadOperation\nform: try\narg: __operation:int32\nresult: value:int32\nnil: none\ndoc: bad.\n";
 
 		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", Text);
 
@@ -770,6 +901,142 @@ public sealed class SpecFileParserTests
 		SpecIssue issue = Assert.Single(spec.Issues.AsSpan().ToArray());
 		Assert.Contains("__operation", issue.Message, StringComparison.Ordinal);
 		Assert.Contains("reserved local", issue.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Spec_with_entries_without_contract_reports_the_missing_ce77_contract()
+	{
+		const string Legacy =
+			"# a legacy fixture\nnamespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: TryReadInt32\nform: try\narg: address:address\nresult: value:int32\ndoc: d.\n";
+
+		SpecFileModel spec = SpecFileParser.Parse("legacy.cheatengine-sdk-api.txt", Legacy);
+
+		Assert.Empty(spec.Calls.AsSpan().ToArray());
+		SpecIssue issue = Assert.Single(spec.Issues);
+		Assert.Equal(SpecIssueKind.MissingContract, issue.Kind);
+		Assert.Equal(2, issue.Line);
+		Assert.Equal(1, issue.Column);
+		Assert.Contains("'contract: ce77'", issue.Message, StringComparison.Ordinal);
+
+		// A header-only reservation stays readable without the contract: it generates nothing either way.
+		SpecFileModel reservation = SpecFileParser.Parse("reservation.cheatengine-sdk-api.txt", "namespace: Demo\ntype: T\n");
+		Assert.True(reservation.Issues.IsEmpty);
+		Assert.Null(reservation.Contract);
+	}
+
+	[Fact]
+	public void Fixed_and_optional_arguments_keep_their_declaration_order()
+	{
+		string text = SpecSources.Ce77Header("Demo", "T") +
+					  "global: g\nmethod: G\nform: throwing\narg: a:int32\nfixed: boolean:true\narg: b:int64\nopt: c:address\nopt: d:string\nnil: none\ndoc: d.\n";
+
+		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
+
+		Assert.True(spec.Issues.IsEmpty);
+		LuaArgumentModel[] arguments = spec.Calls[0].Call.Arguments.AsSpan().ToArray();
+		Assert.Equal(["a", "true", "b", "c", "d"], arguments.Select(static a => a.Name), StringComparer.Ordinal);
+		Assert.Equal([false, true, false, false, false], arguments.Select(static a => a.IsFixed));
+		Assert.Equal([false, false, false, true, true], arguments.Select(static a => a.IsOptional));
+		Assert.Equal(LuaValueKind.Address, arguments[3].Kind);
+		Assert.Equal("global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<string>", arguments[4].GeneratedTypeName);
+	}
+
+	[Theory]
+	[InlineData("opt: a:int32\narg: b:int32\n", "'b:int32' follows an 'opt' argument")]
+	[InlineData("opt: a:int32\nfixed: boolean:true\n", "'boolean:true' follows an 'opt' argument")]
+	[InlineData("opt: a:utf8\n", "'utf8' cannot be an 'opt' kind")]
+	[InlineData("opt: a:string?\n", "'string?' cannot be an 'opt' kind")]
+	public void Argument_after_an_optional_argument_is_refused(string arguments, string message)
+	{
+		string text = SpecSources.Ce77Header("Demo", "T") + "global: g\nmethod: G\nform: throwing\n" + arguments +
+					  "nil: none\ndoc: d.\n";
+
+		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
+
+		Assert.Empty(spec.Calls.AsSpan().ToArray());
+		SpecIssue issue = Assert.Single(spec.Issues);
+		Assert.Equal(SpecIssueKind.OptionalArgument, issue.Kind);
+		Assert.Contains(message, issue.Message, StringComparison.Ordinal);
+	}
+
+	[Theory]
+	[InlineData("try", "opt-result: a:int32\nresult: b:int32\n", "'b:int32' is a required 'result' after an 'opt-result'")]
+	[InlineData("outcome", "rest: a:int64\nresult: b:int32\n", "'b:int32' must be declared before the 'rest' result")]
+	[InlineData("outcome", "opt-result: a:string?\n", "'string?' cannot be an 'opt-result' kind")]
+	[InlineData("outcome", "rest: a:address\n", "'address' cannot be a 'rest' kind")]
+	[InlineData("outcome", "rest: a:string\n", "'string' cannot be a 'rest' kind")]
+	public void Optional_result_before_a_required_result_is_refused(string form, string results, string message)
+	{
+		string text = SpecSources.Ce77Header("Demo", "T") + "global: g\nmethod: G\nform: " + form + "\n" + results +
+					  "nil: none\ndoc: d.\n";
+
+		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
+
+		Assert.Empty(spec.Calls.AsSpan().ToArray());
+		SpecIssue issue = Assert.Single(spec.Issues);
+		Assert.Equal(SpecIssueKind.ResultShape, issue.Kind);
+		Assert.Contains(message, issue.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Outcome_form_is_parsed()
+	{
+		string text = SpecSources.Ce77Header("Demo", "T") +
+					  "global: g\nmethod: G\nform: outcome\narg: a:address\nresult: first:int64\nopt-result: second:address\nrest: values:double\nnil: absence\ndoc: d.\n\n" +
+					  "global: beep\nmethod: Beep\nform: outcome\nnil: none\ndoc: d.\n";
+
+		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
+
+		Assert.True(spec.Issues.IsEmpty);
+		SpecCallModel beep = spec.Calls[0];
+		Assert.Equal(LuaCallForm.Outcome, beep.Call.Form);
+		Assert.True(beep.Call.Results.IsEmpty);
+		LuaGlobalCallModel call = spec.Calls[1].Call;
+		Assert.Equal(LuaCallForm.Outcome, call.Form);
+		Assert.Equal([LuaResultShape.Value, LuaResultShape.Optional, LuaResultShape.Variadic],
+			call.Results.AsSpan().ToArray().Select(static r => r.Shape));
+		Assert.Equal("values", call.Results[2].DestinationName);
+		Assert.Equal("valuesCount", call.Results[2].Name);
+		Assert.True(call.HasDynamicResults);
+	}
+
+	[Fact]
+	public void Rest_result_requires_the_outcome_form()
+	{
+		string text = SpecSources.Ce77Header("Demo", "T") +
+					  "global: g\nmethod: TryG\nform: try\nresult: first:int32\nrest: values:int32\nnil: none\ndoc: d.\n";
+
+		SpecFileModel spec = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", text);
+
+		Assert.Empty(spec.Calls.AsSpan().ToArray());
+		SpecIssue issue = Assert.Single(spec.Issues);
+		Assert.Equal(SpecIssueKind.ResultShape, issue.Kind);
+		Assert.Equal(14, issue.Line);
+		Assert.Equal(7, issue.Column);
+		Assert.Contains("only the 'outcome' form", issue.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Reformatting_a_spec_keeps_its_contract_and_call_model()
+	{
+		string compact = SpecSources.Ce77Header("Demo", "T") +
+						 "global: g\nmethod: G\nform: outcome\narg: a:int32\nopt: b:address\nresult: r:int64\nopt-result: s:string\nnil: absence\ndoc: Reads.\n";
+		string reformatted = "# reformatted\r\n  namespace:   Demo  \r\n\ttype: T\r\n" +
+							 SpecSources.Ce77.Replace("\n", "\r\n  # a comment inside the header\r\n", StringComparison.Ordinal) +
+							 "\r\n\r\n   # a comment before the entry\r\n  global:  g\r\n  method: G\r\n  # a comment inside the entry\r\n" +
+							 "  form:outcome\r\n  arg:   a:int32\r\n  opt: b:address  \r\n  result: r:int64\r\n  opt-result: s:string\r\n" +
+							 "  nil: absence\r\n  doc: Reads.\r\n\r\n";
+
+		SpecFileModel first = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", compact);
+		SpecFileModel second = SpecFileParser.Parse("x.cheatengine-sdk-api.txt", reformatted);
+
+		Assert.True(first.Issues.IsEmpty);
+		Assert.True(second.Issues.IsEmpty,
+			string.Join(" | ", second.Issues.AsImmutableArray().Select(static i => i.Line + ": " + i.Message)));
+		Assert.Equal(first.Contract, second.Contract);
+		Assert.Equal(first.Calls[0].Call, second.Calls[0].Call);
+		Assert.Equal(first.Calls[0].Contract, second.Calls[0].Contract);
+		Assert.Equal(first.Calls[0].Summary, second.Calls[0].Summary);
 	}
 
 	private static void AssertIssue(SpecFileModel spec, string messageFragment, int line, int column)

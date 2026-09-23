@@ -61,7 +61,16 @@ internal static class SpecFileParser
 			out SpecFileContract? fileContract);
 
 		List<SpecCallModel> parsed = [];
-		if (headerOk)
+		if (headerOk && fileContract is null && blocks.Count > 1)
+		{
+			// Header-only reservations stay readable without the contract; a file that would generate API may not.
+			issues.Add(new SpecIssue(blocks[0].StartLine,
+				"The spec file declares entries but no 'contract: ce77' header: add 'contract: ce77' with its provenance, "
+				+ "minimum-ce, architecture, thread and ownership keys, and a 'nil' key on every entry. No entry was generated.",
+				blocks[0].StartColumn, SpecIssueKind.MissingContract));
+			headerOk = false;
+		}
+		else if (headerOk)
 		{
 			for (int i = 1; i < blocks.Count; i++)
 			{
@@ -565,30 +574,21 @@ internal static class SpecFileParser
 			return null;
 		}
 
-		if (!ValidateRequiredText(fields, block.StartLine, fileContract is not null, issues, out bool isTry,
-				out bool isThrowing))
+		if (!ValidateRequiredText(fields, block.StartLine, fileContract is not null, issues, out LuaCallForm form))
 		{
 			return null;
 		}
 
-		if (!ValidateResultShape(fields, isTry, isThrowing, block.StartLine, issues))
+		if (!ValidateResultShape(fields, form, block.StartLine, issues))
 		{
 			return null;
 		}
 
-		List<LuaArgumentModel>? arguments = ParseArguments(fields.ArgTokens, issues);
+		List<LuaArgumentModel>? arguments = ParseArguments(fields.ArgumentTokens, issues);
 		if (arguments is null)
 		{
 			return null;
 		}
-
-		List<LuaArgumentModel>? fixedArguments = ParseFixedArguments(fields.FixedTokens, issues);
-		if (fixedArguments is null)
-		{
-			return null;
-		}
-
-		arguments.AddRange(fixedArguments);
 
 		List<LuaResultModel>? results = ParseResults(fields.ResultTokens, issues);
 		if (results is null)
@@ -596,13 +596,13 @@ internal static class SpecFileParser
 			return null;
 		}
 
-		if (!TryParseReturnKind(fields, isThrowing, block.StartLine, issues, out LuaValueKind? returnKind,
-				out bool returnIsNullable))
+		if (!TryParseReturnKind(fields, form == LuaCallForm.Throwing, block.StartLine, issues,
+				out LuaValueKind? returnKind, out bool returnIsNullable))
 		{
 			return null;
 		}
 
-		LuaGlobalCallModel call = CreateLuaGlobalCall(fields, arguments, isTry, results, returnKind, returnIsNullable);
+		LuaGlobalCallModel call = CreateLuaGlobalCall(fields, arguments, form, results, returnKind, returnIsNullable);
 
 		if (!ValidateParameterAndLocalIdentities(arguments, results, call, block.StartLine, issues))
 		{
@@ -613,7 +613,7 @@ internal static class SpecFileParser
 	}
 
 	private static LuaGlobalCallModel CreateLuaGlobalCall(EntryFields fields, List<LuaArgumentModel> arguments,
-		bool isTry, List<LuaResultModel> results, LuaValueKind? returnKind, bool returnIsNullable)
+		LuaCallForm form, List<LuaResultModel> results, LuaValueKind? returnKind, bool returnIsNullable)
 	{
 		string globalName = fields.Global!;
 		return new LuaGlobalCallModel(
@@ -623,7 +623,7 @@ internal static class SpecFileParser
 			SpecIdentifiers.Escape(fields.Method!),
 			string.Empty,
 			new EquatableArray<LuaArgumentModel>([.. arguments]),
-			isTry ? LuaCallForm.Try : LuaCallForm.Throwing,
+			form,
 			new EquatableArray<LuaResultModel>([.. results]),
 			returnKind,
 			returnIsNullable);
@@ -681,13 +681,22 @@ internal static class SpecFileParser
 			case "return":
 				return TrySetReturn(fields, singular, field, issues);
 			case "arg":
-				fields.ArgTokens.Add((field.Line, field.ValueColumn, field.Value));
+				fields.ArgumentTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value, TokenRole.Argument));
+				return true;
+			case "opt":
+				fields.ArgumentTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value, TokenRole.Optional));
 				return true;
 			case "fixed":
-				fields.FixedTokens.Add((field.Line, field.ValueColumn, field.Value));
+				fields.ArgumentTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value, TokenRole.Fixed));
 				return true;
 			case "result":
-				fields.ResultTokens.Add((field.Line, field.ValueColumn, field.Value));
+				fields.ResultTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value, TokenRole.Argument));
+				return true;
+			case "opt-result":
+				fields.ResultTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value, TokenRole.Optional));
+				return true;
+			case "rest":
+				fields.ResultTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value, TokenRole.Rest));
 				return true;
 			default:
 				issues.Add(new SpecIssue(field.Line, "Unknown entry key '" + field.Key + "'.", field.KeyColumn));
@@ -747,10 +756,9 @@ internal static class SpecFileParser
 	}
 
 	private static bool ValidateRequiredText(EntryFields fields, int startLine, bool requiresCe77Contract,
-		List<SpecIssue> issues, out bool isTry, out bool isThrowing)
+		List<SpecIssue> issues, out LuaCallForm form)
 	{
-		isTry = false;
-		isThrowing = false;
+		form = LuaCallForm.Throwing;
 
 		if (!ValidateRequiredPresence(fields, startLine, issues)
 			|| !ValidateNilContract(fields, startLine, requiresCe77Contract, issues))
@@ -772,38 +780,82 @@ internal static class SpecFileParser
 			return false;
 		}
 
-		isTry = string.Equals(fields.Form, "try", StringComparison.Ordinal);
-		isThrowing = string.Equals(fields.Form, "throwing", StringComparison.Ordinal);
-		if (!isTry && !isThrowing)
+		switch (fields.Form)
 		{
-			issues.Add(new SpecIssue(fields.FormLine,
-				"'" + fields.Form + "' is not a valid form: expected 'try' or 'throwing'.", fields.FormColumn));
-			return false;
+			case "try":
+				form = LuaCallForm.Try;
+				return true;
+			case "throwing":
+				form = LuaCallForm.Throwing;
+				return true;
+			case "outcome":
+				form = LuaCallForm.Outcome;
+				return true;
+			default:
+				issues.Add(new SpecIssue(fields.FormLine,
+					"'" + fields.Form + "' is not a valid form: expected 'try', 'throwing' or 'outcome'.",
+					fields.FormColumn));
+				return false;
 		}
-
-		return true;
 	}
 
-	private static bool ValidateResultShape(EntryFields fields, bool isTry, bool isThrowing, int startLine,
+	private static bool ValidateResultShape(EntryFields fields, LuaCallForm form, int startLine,
 		List<SpecIssue> issues)
 	{
-		if (isThrowing && fields.ResultTokens.Count > 0)
+		if (form == LuaCallForm.Throwing && fields.ResultTokens.Count > 0)
 		{
 			issues.Add(new SpecIssue(startLine,
-				"A 'throwing' entry must not declare 'result' (its value, if any, is 'return')."));
+				"A 'throwing' entry must not declare 'result', 'opt-result' or 'rest' (its value, if any, is 'return')."));
 			return false;
 		}
 
-		if (isTry && fields.SawReturn)
+		if (form != LuaCallForm.Throwing && fields.SawReturn)
 		{
-			issues.Add(new SpecIssue(startLine, "A 'try' entry must not declare 'return' (its values are 'result')."));
+			issues.Add(new SpecIssue(startLine,
+				"A '" + fields.Form + "' entry must not declare 'return' (its values are 'result')."));
 			return false;
 		}
 
-		if (isTry && fields.ResultTokens.Count == 0)
+		if (form == LuaCallForm.Try && fields.ResultTokens.Count == 0)
 		{
-			issues.Add(new SpecIssue(startLine, "A 'try' entry needs at least one 'result'."));
+			issues.Add(new SpecIssue(startLine, "A 'try' entry needs at least one 'result' or 'opt-result'."));
 			return false;
+		}
+
+		return ValidateResultOrder(fields.ResultTokens, form, issues);
+	}
+
+	// Results are read in order: required, then optional, then at most one variadic tail, which only the outcome form
+	// can report failures of.
+	private static bool ValidateResultOrder(List<SpecToken> tokens, LuaCallForm form, List<SpecIssue> issues)
+	{
+		bool sawOptional = false;
+		bool sawRest = false;
+		foreach (SpecToken token in tokens)
+		{
+			string? problem = null;
+			if (sawRest)
+			{
+				problem = "must be declared before the 'rest' result, which is last";
+			}
+			else if (token.Role == TokenRole.Argument && sawOptional)
+			{
+				problem = "is a required 'result' after an 'opt-result': optional results come after every required one";
+			}
+			else if (token.Role == TokenRole.Rest && form != LuaCallForm.Outcome)
+			{
+				problem = "is a 'rest' result, which only the 'outcome' form can declare";
+			}
+
+			if (problem is not null)
+			{
+				issues.Add(new SpecIssue(token.Line, "'" + token.Value + "' " + problem + ".", token.Column,
+					SpecIssueKind.ResultShape));
+				return false;
+			}
+
+			sawOptional |= token.Role == TokenRole.Optional;
+			sawRest |= token.Role == TokenRole.Rest;
 		}
 
 		return true;
@@ -844,78 +896,146 @@ internal static class SpecFileParser
 		return true;
 	}
 
-	private static List<LuaArgumentModel>? ParseArguments(List<(int Line, int Column, string Value)> tokens,
-		List<SpecIssue> issues)
+	// 'arg', 'fixed' and 'opt' in their textual order, which is the push order. An 'opt' argument becomes a
+	// LuaOptional<T> parameter and may be omitted, so only more 'opt' arguments may follow it.
+	private static List<LuaArgumentModel>? ParseArguments(List<SpecToken> tokens, List<SpecIssue> issues)
 	{
 		List<LuaArgumentModel> arguments = new(tokens.Count);
-		foreach ((int line, int column, string value) in tokens)
+		bool sawOptional = false;
+		foreach (SpecToken token in tokens)
 		{
-			if (!TryParseNamedValue(value, out string name, out string kindToken)
-				|| !SpecIdentifiers.IsValidIdentifier(name)
-				|| !SpecValueKinds.TryParse(kindToken, out LuaValueKind kind, out bool nullable))
+			if (sawOptional && token.Role != TokenRole.Optional)
 			{
-				issues.Add(new SpecIssue(line, "'" + value + "' is not a valid 'name:kind' argument.", column));
+				issues.Add(new SpecIssue(token.Line,
+					"'" + token.Value + "' follows an 'opt' argument: only more 'opt' arguments may follow one, because Lua "
+					+ "cannot receive an argument after an omitted one.", token.Column, SpecIssueKind.OptionalArgument));
 				return null;
 			}
 
-			arguments.Add(new LuaArgumentModel(SpecIdentifiers.Escape(name), kind, nullable));
+			LuaArgumentModel? argument = token.Role == TokenRole.Fixed
+				? ParseFixedArgument(token, issues)
+				: ParseValueArgument(token, issues);
+			if (argument is null)
+			{
+				return null;
+			}
+
+			sawOptional |= token.Role == TokenRole.Optional;
+			arguments.Add(argument);
 		}
 
 		return arguments;
+	}
+
+	private static LuaArgumentModel? ParseValueArgument(SpecToken token, List<SpecIssue> issues)
+	{
+		if (!TryParseNamedValue(token.Value, out string name, out string kindToken)
+			|| !SpecIdentifiers.IsValidIdentifier(name)
+			|| !SpecValueKinds.TryParse(kindToken, out LuaValueKind kind, out bool nullable))
+		{
+			issues.Add(new SpecIssue(token.Line, "'" + token.Value + "' is not a valid 'name:kind' argument.",
+				token.Column));
+			return null;
+		}
+
+		if (token.Role != TokenRole.Optional)
+		{
+			return new LuaArgumentModel(SpecIdentifiers.Escape(name), kind, nullable);
+		}
+
+		if (nullable || !LuaValueKinds.CanBeOptional(kind))
+		{
+			issues.Add(new SpecIssue(token.Line,
+				"'" + kindToken + "' cannot be an 'opt' kind: nil is the Nil state of LuaOptional<T>, and a span cannot be "
+				+ "optional; use 'string' for optional text.", token.Column, SpecIssueKind.OptionalArgument));
+			return null;
+		}
+
+		return LuaArgumentModel.Optional(SpecIdentifiers.Escape(name), kind);
 	}
 
 	// A fixed argument has the narrow, host-facing grammar 'kind:value'. It is pushed in call order but deliberately
 	// omitted from the generated C# signature. Only boolean literals are needed by the curated CE surface today; keep
 	// that vocabulary explicit rather than accepting arbitrary C# expressions in a repository text file.
-	private static List<LuaArgumentModel>? ParseFixedArguments(List<(int Line, int Column, string Value)> tokens,
-		List<SpecIssue> issues)
+	private static LuaArgumentModel? ParseFixedArgument(SpecToken token, List<SpecIssue> issues)
 	{
-		List<LuaArgumentModel> arguments = new(tokens.Count);
-		foreach ((int line, int column, string value) in tokens)
+		if (!TryParseNamedValue(token.Value, out string kindToken, out string literal)
+			|| !string.Equals(kindToken, "boolean", StringComparison.Ordinal)
+			|| !(string.Equals(literal, "true", StringComparison.Ordinal)
+				 || string.Equals(literal, "false", StringComparison.Ordinal)))
 		{
-			if (!TryParseNamedValue(value, out string kindToken, out string literal)
-				|| !string.Equals(kindToken, "boolean", StringComparison.Ordinal)
-				|| !(string.Equals(literal, "true", StringComparison.Ordinal)
-					 || string.Equals(literal, "false", StringComparison.Ordinal)))
-			{
-				issues.Add(new SpecIssue(line,
-					"'" + value + "' is not a valid fixed argument: expected 'boolean:true' or 'boolean:false'.",
-					column));
-				return null;
-			}
-
-			arguments.Add(new LuaArgumentModel(literal, LuaValueKind.Boolean, false, FixedValue: literal));
+			issues.Add(new SpecIssue(token.Line,
+				"'" + token.Value + "' is not a valid fixed argument: expected 'boolean:true' or 'boolean:false'.",
+				token.Column));
+			return null;
 		}
 
-		return arguments;
+		return new LuaArgumentModel(literal, LuaValueKind.Boolean, false, FixedValue: literal);
 	}
 
-	private static List<LuaResultModel>? ParseResults(List<(int Line, int Column, string Value)> tokens,
-		List<SpecIssue> issues)
+	private static List<LuaResultModel>? ParseResults(List<SpecToken> tokens, List<SpecIssue> issues)
 	{
 		List<LuaResultModel> results = new(tokens.Count);
-		foreach ((int line, int column, string value) in tokens)
+		foreach (SpecToken token in tokens)
 		{
-			if (!TryParseNamedValue(value, out string name, out string kindToken)
+			if (!TryParseNamedValue(token.Value, out string name, out string kindToken)
 				|| !SpecIdentifiers.IsValidIdentifier(name)
 				|| !SpecValueKinds.TryParse(kindToken, out LuaValueKind kind, out bool nullable))
 			{
-				issues.Add(new SpecIssue(line, "'" + value + "' is not a valid 'name:kind' result.", column));
+				issues.Add(new SpecIssue(token.Line, "'" + token.Value + "' is not a valid 'name:kind' result.",
+					token.Column));
 				return null;
 			}
 
 			if (!LuaValueKinds.CanBeResult(kind))
 			{
-				issues.Add(new SpecIssue(line,
+				issues.Add(new SpecIssue(token.Line,
 					"'" + kindToken + "' cannot be a result: the span would dangle once the stack is restored.",
-					column));
+					token.Column));
 				return null;
 			}
 
-			results.Add(LuaResultModel.Value(kind, SpecIdentifiers.Escape(name), nullable));
+			LuaResultModel? result = CreateResult(token, SpecIdentifiers.Escape(name), kind, nullable, kindToken,
+				issues);
+			if (result is null)
+			{
+				return null;
+			}
+
+			results.Add(result);
 		}
 
 		return results;
+	}
+
+	private static LuaResultModel? CreateResult(SpecToken token, string name, LuaValueKind kind, bool nullable,
+		string kindToken, List<SpecIssue> issues)
+	{
+		switch (token.Role)
+		{
+			case TokenRole.Optional when nullable:
+				issues.Add(new SpecIssue(token.Line,
+					"'string?' cannot be an 'opt-result' kind: nil is the Nil state of LuaOptional<T>; use 'string'.",
+					token.Column, SpecIssueKind.ResultShape));
+				return null;
+			case TokenRole.Optional:
+				return LuaResultModel.Optional(kind, name);
+			case TokenRole.Rest when !LuaValueKinds.CanBeVariadicElement(kind) || kind == LuaValueKind.Address:
+				issues.Add(new SpecIssue(token.Line,
+					"'" + kindToken + "' cannot be a 'rest' kind: expected 'int32', 'int64', 'single', 'double' or 'boolean'.",
+					token.Column, SpecIssueKind.ResultShape));
+				return null;
+			case TokenRole.Rest:
+				return LuaResultModel.Variadic(kind, name, RestCountName(name));
+			default:
+				return LuaResultModel.Value(kind, name, nullable);
+		}
+	}
+
+	// 'rest: values:int64' yields 'Span<long> values, out int valuesCount'.
+	private static string RestCountName(string name)
+	{
+		return (name[0] == '@' ? name.Substring(1) : name) + "Count";
 	}
 
 	// "name:kind" (or "name:string?"): split on the FIRST colon, so the '?' of a nullable string kind is part of
@@ -1017,14 +1137,20 @@ internal static class SpecFileParser
 
 		foreach (LuaResultModel result in results)
 		{
-			if (parameters.ContainsKey(result.Name))
+			string[] names = result.Shape == LuaResultShape.Variadic
+				? [result.DestinationName, result.Name]
+				: [result.Name];
+			foreach (string name in names)
 			{
-				issues.Add(new SpecIssue(line,
-					"Generated parameter '" + result.Name + "' is declared more than once in this entry."));
-				return false;
-			}
+				if (parameters.ContainsKey(name))
+				{
+					issues.Add(new SpecIssue(line,
+						"Generated parameter '" + name + "' is declared more than once in this entry."));
+					return false;
+				}
 
-			parameters.Add(result.Name, 0);
+				parameters.Add(name, 0);
+			}
 		}
 
 		foreach (string name in parameters.Keys)
@@ -1101,12 +1227,7 @@ internal static class SpecFileParser
 
 	private static bool IsReservedBodyLocal(string name, LuaGlobalCallModel call)
 	{
-		if (string.Equals(name, "__L", StringComparison.Ordinal)
-			|| string.Equals(name, "__operation", StringComparison.Ordinal)
-			|| string.Equals(name, "__top", StringComparison.Ordinal)
-			|| string.Equals(name, "__ok", StringComparison.Ordinal)
-			|| string.Equals(name, "__status", StringComparison.Ordinal)
-			|| string.Equals(name, "__result", StringComparison.Ordinal))
+		if (LuaGlobalCallEmitter.IsReservedLocal(name))
 		{
 			return true;
 		}
@@ -1117,12 +1238,13 @@ internal static class SpecFileParser
 		}
 
 		if (string.Equals(name, "__engineApiSucceeded", StringComparison.Ordinal)
+			|| string.Equals(name, "__engineApiStatus", StringComparison.Ordinal)
 			|| string.Equals(name, "__engineApiRawResult", StringComparison.Ordinal))
 		{
 			return true;
 		}
 
-		if (call.Form != LuaCallForm.Try)
+		if (call.Form == LuaCallForm.Throwing)
 		{
 			return false;
 		}
@@ -1317,9 +1439,8 @@ internal static class SpecFileParser
 	// The raw fields of one entry block, read once by ReadEntryFields and consumed by the validators below.
 	private sealed class EntryFields
 	{
-		public readonly List<(int Line, int Column, string Value)> ArgTokens = [];
-		public readonly List<(int Line, int Column, string Value)> FixedTokens = [];
-		public readonly List<(int Line, int Column, string Value)> ResultTokens = [];
+		public readonly List<SpecToken> ArgumentTokens = [];
+		public readonly List<SpecToken> ResultTokens = [];
 		public string? Doc;
 		public string? Form;
 		public int FormColumn;
@@ -1340,4 +1461,16 @@ internal static class SpecFileParser
 	}
 
 	private readonly record struct SpecField(int Line, int KeyColumn, int ValueColumn, string Key, string Value);
+
+	// One 'arg'/'opt'/'fixed' or 'result'/'opt-result'/'rest' value with its source position and role.
+	private readonly record struct SpecToken(int Line, int Column, string Value, TokenRole Role);
+
+	// Argument: 'arg' or 'result'. Optional: 'opt' or 'opt-result'. Fixed: 'fixed'. Rest: 'rest'.
+	private enum TokenRole
+	{
+		Argument,
+		Optional,
+		Fixed,
+		Rest
+	}
 }

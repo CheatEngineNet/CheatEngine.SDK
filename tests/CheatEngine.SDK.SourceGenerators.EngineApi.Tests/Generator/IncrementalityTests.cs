@@ -118,9 +118,38 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 	}
 
 	[Fact]
+	public void Pipeline_editing_an_optional_argument_reruns_only_that_files_output()
+	{
+		string optional = SpecSources.Ce77Header("Demo.Optional", "Optional") +
+						  "global: load\nmethod: Load\nform: throwing\narg: path:string\nopt: merge:boolean\nnil: none\ndoc: Loads.\n";
+		InMemoryAdditionalText original = new("a.cheatengine-sdk-api.txt", optional);
+		InMemoryAdditionalText other = new("b.cheatengine-sdk-api.txt", SpecSources.BeepOnly);
+		CSharpCompilation compilation = roslyn.CreateCompilation();
+		GeneratorRun first = GeneratorRun.Execute(RoslynFixture.CreateDriver(original, other), compilation);
+		Assert.Equal(2, first.GeneratedSources.Length);
+
+		InMemoryAdditionalText edited = new("a.cheatengine-sdk-api.txt",
+			optional.Replace("opt: merge:boolean", "opt: merge:int32", StringComparison.Ordinal));
+		GeneratorRun second = GeneratorRun.Execute(first.Driver.ReplaceAdditionalText(original, edited), compilation);
+
+		Assert.Contains(IncrementalStepRunReason.Modified,
+			StepAssert.Reasons(second.Result, EngineApiTrackingNames.ParsedSpec));
+		Assert.Contains(IncrementalStepRunReason.Modified,
+			StepAssert.Reasons(second.Result, EngineApiTrackingNames.SpecFileOutput));
+		Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<int> merge",
+			second.GeneratedTextByContent("Load("), StringComparison.Ordinal);
+		Assert.Equal(first.GeneratedTextByContent("Beep"), second.GeneratedTextByContent("Beep"),
+			StringComparer.Ordinal);
+	}
+
+	[Fact]
 	public void Pipeline_step_values_hold_no_roslyn_objects()
 	{
-		GeneratorRun run = roslyn.Run("a.cheatengine-sdk-api.txt", SpecSources.Memory);
+		string optional = SpecSources.Ce77Header("Demo.Optional", "Optional") +
+						  "global: g\nmethod: G\nform: outcome\narg: a:address\nopt: b:int32\nresult: r:int64\nopt-result: s:address\nrest: values:double\nnil: absence\ndoc: d.\n";
+		GeneratorRun run = roslyn.Run(("a.cheatengine-sdk-api.txt", SpecSources.Memory),
+			("b.cheatengine-sdk-api.txt", optional));
+		Assert.Equal(2, run.GeneratedSources.Length);
 
 		int visited = 0;
 		foreach (string stepName in EngineApiTrackingNames.All)

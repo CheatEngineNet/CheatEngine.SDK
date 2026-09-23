@@ -20,6 +20,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The production specs and the project that wires them, embedded so the policy tests never need a workspace path at run time
+         (https://learn.microsoft.com/dotnet/core/resources/manifest-file-names#logicalname-metadata). -->
+    <EmbeddedResource Include="../../source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/Specs/*.cheatengine-sdk-api.txt"
+                      LogicalName="CheatEngine.SDK.EngineApi.Tests.Specs.%(Filename)%(Extension)" WithCulture="false"/>
+    <EmbeddedResource Include="../../libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj"
+                      LogicalName="CheatEngine.SDK.EngineApi.Tests.EngineProject.xml" WithCulture="false"/>
+    <!-- The committed text of the generated MemoryScalars file (the generator version is a placeholder). -->
+    <EmbeddedResource Include="Expected/*.txt" LogicalName="CheatEngine.SDK.EngineApi.Tests.Expected.%(Filename)%(Extension)"
+                      WithCulture="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Native Lua fixture (tests/CheatEngine.SDK.Tests.Shared/README.md). -->
     <ProjectReference Include="../CheatEngine.SDK.Tests.Shared/CheatEngine.SDK.Tests.Shared.csproj"/>
   </ItemGroup>

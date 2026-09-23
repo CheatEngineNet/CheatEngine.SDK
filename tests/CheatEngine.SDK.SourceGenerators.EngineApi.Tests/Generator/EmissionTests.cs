@@ -140,12 +140,19 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 		const string Text = """
 		                    namespace:
 		                    type: Root
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: readInteger
 		                    method: TryReadInt32
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: Reads an integer.
 		                    """;
 
@@ -162,7 +169,7 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void An_address_try_result_is_exposed_as_Address_and_converted_from_the_raw_core()
 	{
 		const string Text =
-			"namespace: Demo\ntype: Addresses\n\nglobal: getAddress\nmethod: TryGetAddress\nform: try\nresult: value:address\ndoc: Gets a target address.\n";
+			"namespace: Demo\ntype: Addresses\n" + SpecSources.Ce77 + "\nglobal: getAddress\nmethod: TryGetAddress\nform: try\nresult: value:address\nnil: none\ndoc: Gets a target address.\n";
 
 		GeneratorRun run = roslyn.Run("address-result.cheatengine-sdk-api.txt", Text);
 
@@ -183,7 +190,7 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void An_address_throwing_return_is_exposed_as_Address_and_converted_from_the_raw_core()
 	{
 		const string Text =
-			"namespace: Demo\ntype: Addresses\n\nglobal: getAddress\nmethod: GetAddress\nform: throwing\nreturn: address\ndoc: Gets a target address.\n";
+			"namespace: Demo\ntype: Addresses\n" + SpecSources.Ce77 + "\nglobal: getAddress\nmethod: GetAddress\nform: throwing\nreturn: address\nnil: none\ndoc: Gets a target address.\n";
 
 		GeneratorRun run = roslyn.Run("address-return.cheatengine-sdk-api.txt", Text);
 
@@ -203,7 +210,7 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void Address_arguments_and_try_results_keep_the_complete_public_signature_strongly_typed()
 	{
 		const string Text =
-			"namespace: Demo\ntype: Addresses\n\nglobal: resolvePointer\nmethod: TryResolvePointer\nform: try\narg: address:address\nresult: result:address\ndoc: Resolves a target pointer.\n";
+			"namespace: Demo\ntype: Addresses\n" + SpecSources.Ce77 + "\nglobal: resolvePointer\nmethod: TryResolvePointer\nform: try\narg: address:address\nresult: result:address\nnil: none\ndoc: Resolves a target pointer.\n";
 
 		GeneratorRun run = roslyn.Run("address-argument-and-result.cheatengine-sdk-api.txt", Text);
 
@@ -214,6 +221,116 @@ public sealed class EmissionTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 			text, StringComparison.Ordinal);
 		Assert.DoesNotContain("public static bool TryResolvePointer(nuint", text, StringComparison.Ordinal);
 		Assert.Contains("unchecked((nuint)address.ToUInt64())", text, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Optional_address_argument_is_converted_by_the_facade_without_losing_its_state()
+	{
+		string text = SpecSources.Ce77Header("Demo", "Allocation") +
+					  "global: allocateMemory\nmethod: TryAllocate\nform: try\narg: size:int64\nopt: preferredBaseAddress:address\nopt: protection:int32\nresult: address:address\nnil: expected-failure\ndoc: Allocates.\n";
+
+		GeneratorRun run = roslyn.Run("allocation.cheatengine-sdk-api.txt", text);
+
+		run.AssertCompilesClean();
+		string generated = run.SingleGeneratedText;
+		Assert.Contains(
+			"private static bool __TryAllocateRaw(long size, global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<nuint> preferredBaseAddress, global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<int> protection, out nuint address)",
+			generated, StringComparison.Ordinal);
+		Assert.Contains(
+			"public static bool TryAllocate(long size, global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<global::CheatEngine.SDK.Engine.Values.Address> preferredBaseAddress, global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<int> protection, out global::CheatEngine.SDK.Engine.Values.Address address)",
+			generated, StringComparison.Ordinal);
+		Assert.Contains(
+			"__TryAllocateRaw(size, (preferredBaseAddress.HasValue ? global::CheatEngine.SDK.Lua.Marshalling.LuaOptional.Of(unchecked((nuint)preferredBaseAddress.Value.ToUInt64())) : preferredBaseAddress.IsNil ? global::CheatEngine.SDK.Lua.Marshalling.LuaOptional.Nil<nuint>() : default), protection, out __engineApiRawResult0)",
+			generated, StringComparison.Ordinal);
+		Assert.Contains("int __argc = !protection.IsOmitted ? 3 : !preferredBaseAddress.IsOmitted ? 2 : 1;", generated,
+			StringComparison.Ordinal);
+		Assert.Contains(
+			"return: bool with out results; nil: expected-failure; provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture.",
+			generated, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Outcome_form_with_address_results_is_exposed_through_the_facade()
+	{
+		string text = SpecSources.Ce77Header("Demo", "Symbols") +
+					  "global: getAddressSafe\nmethod: ResolveAddress\nform: outcome\narg: expression:string\nresult: address:address\nopt-result: alternate:address\nnil: absence\ndoc: Resolves.\n";
+
+		GeneratorRun run = roslyn.Run("symbols.cheatengine-sdk-api.txt", text);
+
+		run.AssertCompilesClean();
+		string generated = run.SingleGeneratedText;
+		Assert.Contains(
+			"private static global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus __ResolveAddressRaw(string expression, out nuint address, out global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<nuint> alternate)",
+			generated, StringComparison.Ordinal);
+		Assert.Contains(
+			"public static global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus ResolveAddress(string expression, out global::CheatEngine.SDK.Engine.Values.Address address, out global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<global::CheatEngine.SDK.Engine.Values.Address> alternate)",
+			generated, StringComparison.Ordinal);
+		Assert.Contains(
+			"global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus __engineApiStatus = __ResolveAddressRaw(expression, out __engineApiRawResult0, out __engineApiRawResult1);",
+			generated, StringComparison.Ordinal);
+		Assert.Contains(
+			"alternate = __engineApiRawResult1.HasValue ? global::CheatEngine.SDK.Lua.Marshalling.LuaOptional.Of(new global::CheatEngine.SDK.Engine.Values.Address(unchecked((ulong)__engineApiRawResult1.Value))) : __engineApiRawResult1.IsNil ? global::CheatEngine.SDK.Lua.Marshalling.LuaOptional.Nil<global::CheatEngine.SDK.Engine.Values.Address>() : default;",
+			generated, StringComparison.Ordinal);
+		Assert.Contains("return __engineApiStatus;", generated, StringComparison.Ordinal);
+		Assert.Contains("return: LuaOperationStatus with out results; nil: absence;", generated, StringComparison.Ordinal);
+		Assert.Contains("global::CheatEngine.SDK.Lua.State.LuaState.MultipleResults", generated, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Rest_result_is_a_span_and_a_count_in_the_outcome_form()
+	{
+		string text = SpecSources.Ce77Header("Demo", "Bytes") +
+					  "global: readBytes\nmethod: ReadBytes\nform: outcome\narg: address:address\narg: count:int32\nrest: values:int32\nnil: expected-failure\ndoc: Reads bytes.\n";
+
+		GeneratorRun run = roslyn.Run("bytes.cheatengine-sdk-api.txt", text);
+
+		run.AssertCompilesClean();
+		string generated = run.SingleGeneratedText;
+		Assert.Contains(
+			"public static global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus ReadBytes(global::CheatEngine.SDK.Engine.Values.Address address, int count, global::System.Span<int> values, out int valuesCount)",
+			generated, StringComparison.Ordinal);
+		Assert.Contains("return __ReadBytesRaw(unchecked((nuint)address.ToUInt64()), count, values, out valuesCount);",
+			generated, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q21")]
+	public void Address_facade_converts_through_ulong_without_a_floating_point_step()
+	{
+		GeneratorRun run = roslyn.Run("memory-scalars.cheatengine-sdk-api.txt", SpecSources.Memory);
+
+		string generated = run.SingleGeneratedText;
+		Assert.Contains("unchecked((nuint)address.ToUInt64())", generated, StringComparison.Ordinal);
+		Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.AddressMarshaller.Push(__L, address);", generated,
+			StringComparison.Ordinal);
+		Assert.Contains("global::CheatEngine.SDK.Lua.Marshalling.Int64Marshaller.Push(__L, value);", generated,
+			StringComparison.Ordinal);
+		foreach (string lossy in (string[]) ["double", "float", "DoubleMarshaller", "SingleMarshaller", "PushNumber"])
+		{
+			Assert.DoesNotContain(lossy, generated, StringComparison.Ordinal);
+		}
+	}
+
+	[Fact]
+	public void Memory_scalars_output_is_unchanged_by_the_new_grammar()
+	{
+		GeneratorRun run = roslyn.Run("memory-scalars.cheatengine-sdk-api.txt",
+			ProductionSpecs.Text("memory-scalars.cheatengine-sdk-api.txt"));
+		string version = typeof(EngineApiGenerator).Assembly.GetName().Version!.ToString();
+		string expected = ExpectedText("memory-scalars.EngineApi.g.cs.txt")
+			.Replace("{GeneratorVersion}", version, StringComparison.Ordinal);
+
+		run.AssertCompilesClean();
+		Assert.Equal(expected, run.SingleGeneratedText.ReplaceLineEndings("\n"));
+	}
+
+	private static string ExpectedText(string fileName)
+	{
+		using Stream stream = typeof(EmissionTests).Assembly.GetManifestResourceStream(
+								  "CheatEngine.SDK.EngineApi.Tests.Expected." + fileName)
+							  ?? throw new InvalidOperationException("Missing expected text " + fileName + ".");
+		using StreamReader reader = new(stream);
+		return reader.ReadToEnd().ReplaceLineEndings("\n");
 	}
 
 	private static int CountOccurrences(string text, string value)

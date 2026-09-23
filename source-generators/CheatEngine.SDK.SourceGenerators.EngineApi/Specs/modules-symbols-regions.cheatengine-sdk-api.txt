@@ -9,6 +9,12 @@
 
 namespace: CheatEngine.SDK.Engine.Generated
 type: InspectionPrimitives
+contract: ce77
+provenance: ExactInstalledFile: CE 7.7.0.10621 celua.txt, SHA-256 AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00
+minimum-ce: 7.7.0.10621
+architecture: x64
+thread: unknown
+ownership: none
 
 # The two optional flags are deliberately emitted as fixed false values. The
 # public EngineInspection wrapper has a richer typed options contract and uses
@@ -20,4 +26,5 @@ arg: expression:utf8
 fixed: boolean:false
 fixed: boolean:false
 result: address:address
+nil: absence
 doc: Resolves a Cheat Engine symbol expression with the default safe lookup flags.

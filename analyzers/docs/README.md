@@ -32,6 +32,11 @@ separate EngineApi generator owns
 | [CESDK2011](CESDK2011.md) | Optional or variadic Lua result shape is invalid                 | Error    | Required, then optional results; one variadic pair last                                      |
 | [CESDK2012](CESDK2012.md) | Type impersonates an SDK Lua contract type                       | Error    | Use the CheatEngine.SDK.Lua type                                                             |
 | [CESDK2013](CESDK2013.md) | LuaOptional is not supported in this position                    | Error    | Use an argument or an `out` result of a supported kind                                       |
+| [CESDK3001](CESDK3001.md) | Engine API specification is invalid                              | Error    | Correct the reported spec line                                                               |
+| [CESDK3002](CESDK3002.md) | Engine API specification has a generated-identity conflict       | Error    | Keep one spec file per generated type                                                        |
+| [CESDK3003](CESDK3003.md) | Engine API specification does not declare the ce77 contract      | Error    | Add the `contract: ce77` header                                                              |
+| [CESDK3004](CESDK3004.md) | Engine API optional argument is invalid                          | Error    | Declare `opt:` arguments last                                                                |
+| [CESDK3005](CESDK3005.md) | Engine API optional or variadic result is invalid                | Error    | `result:`, then `opt-result:`, then one `rest:`                                              |
 
 Configure a rule like any other analyzer diagnostic:
 

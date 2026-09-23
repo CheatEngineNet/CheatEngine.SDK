@@ -14,7 +14,7 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void An_invalid_entry_reports_its_additional_file_line_and_column_while_a_valid_sibling_is_emitted()
 	{
 		const string Text =
-			"namespace: Demo\ntype: T\n\nglobal: readInteger\nmethod: Bad\nform: try\nresult: value:int32\ndoc: bad.\nextra: value\n\nglobal: readQword\nmethod: Good\nform: try\nresult: value:int64\ndoc: good.\n";
+			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: Bad\nform: try\nresult: value:int32\nnil: none\ndoc: bad.\nextra: value\n\nglobal: readQword\nmethod: Good\nform: try\nresult: value:int64\nnil: none\ndoc: good.\n";
 		const string Path = "Specs/diagnostics.cheatengine-sdk-api.txt";
 
 		GeneratorRun run = roslyn.Run(Path, Text);
@@ -27,7 +27,7 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 		Assert.Equal(LocationKind.ExternalFile, diagnostic.Location.Kind);
 		FileLinePositionSpan span = diagnostic.Location.GetLineSpan();
 		Assert.Equal(Path, span.Path);
-		Assert.Equal(8, span.StartLinePosition.Line);
+		Assert.Equal(15, span.StartLinePosition.Line);
 		Assert.Equal(0, span.StartLinePosition.Character);
 		Assert.Contains("Unknown entry key 'extra'", diagnostic.GetMessage(CultureInfo.InvariantCulture),
 			StringComparison.Ordinal);
@@ -60,9 +60,9 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void Conflicting_specs_report_each_participant_and_emit_neither_while_an_independent_type_is_emitted()
 	{
 		const string First =
-			"namespace: Demo\ntype: Duplicate\n\nglobal: readInteger\nmethod: First\nform: try\nresult: value:int32\ndoc: first.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: First\nform: try\nresult: value:int32\nnil: none\ndoc: first.\n";
 		const string Second =
-			"namespace: Demo\ntype: Duplicate\n\nglobal: readQword\nmethod: Second\nform: try\nresult: value:int64\ndoc: second.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\nglobal: readQword\nmethod: Second\nform: try\nresult: value:int64\nnil: none\ndoc: second.\n";
 
 		GeneratorRun run = roslyn.Run(
 			("Specs/first.cheatengine-sdk-api.txt", First),
@@ -89,9 +89,9 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void Conflicting_member_and_cache_identities_are_diagnosed_on_both_spec_files()
 	{
 		const string First =
-			"namespace: Demo\ntype: Duplicate\n\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  doc: first.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  nil: none\n  doc: first.\n";
 		const string Second =
-			"namespace: Demo\ntype: Duplicate\n\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  doc: second.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  nil: none\n  doc: second.\n";
 
 		GeneratorRun run = roslyn.Run(
 			("Specs/first.cheatengine-sdk-api.txt", First),
@@ -106,10 +106,10 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK3002", StringComparison.Ordinal)
 								 && diagnostic.GetMessage(CultureInfo.InvariantCulture)
 									 .Contains("cache field", StringComparison.Ordinal));
-		AssertConflictLocation(run, "Generated member", "Specs/first.cheatengine-sdk-api.txt", 4, 10);
-		AssertConflictLocation(run, "Generated member", "Specs/second.cheatengine-sdk-api.txt", 4, 10);
-		AssertConflictLocation(run, "Generated cache field", "Specs/first.cheatengine-sdk-api.txt", 3, 10);
-		AssertConflictLocation(run, "Generated cache field", "Specs/second.cheatengine-sdk-api.txt", 3, 10);
+		AssertConflictLocation(run, "Generated member", "Specs/first.cheatengine-sdk-api.txt", 10, 10);
+		AssertConflictLocation(run, "Generated member", "Specs/second.cheatengine-sdk-api.txt", 10, 10);
+		AssertConflictLocation(run, "Generated cache field", "Specs/first.cheatengine-sdk-api.txt", 9, 10);
+		AssertConflictLocation(run, "Generated cache field", "Specs/second.cheatengine-sdk-api.txt", 9, 10);
 	}
 
 	/// <summary>Repeated file names from different directories always receive separate deterministic source hint names.</summary>
@@ -117,11 +117,11 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void Three_same_named_spec_files_receive_unique_case_insensitive_hint_names()
 	{
 		const string First =
-			"namespace: Demo\ntype: First\n\nglobal: first\nmethod: LoadFirst\nform: throwing\ndoc: first.\n";
+			"namespace: Demo\ntype: First\n" + SpecSources.Ce77 + "\nglobal: first\nmethod: LoadFirst\nform: throwing\nnil: none\ndoc: first.\n";
 		const string Second =
-			"namespace: Demo\ntype: Second\n\nglobal: second\nmethod: LoadSecond\nform: throwing\ndoc: second.\n";
+			"namespace: Demo\ntype: Second\n" + SpecSources.Ce77 + "\nglobal: second\nmethod: LoadSecond\nform: throwing\nnil: none\ndoc: second.\n";
 		const string Third =
-			"namespace: Demo\ntype: Third\n\nglobal: third\nmethod: LoadThird\nform: throwing\ndoc: third.\n";
+			"namespace: Demo\ntype: Third\n" + SpecSources.Ce77 + "\nglobal: third\nmethod: LoadThird\nform: throwing\nnil: none\ndoc: third.\n";
 
 		GeneratorRun run = roslyn.Run(
 			("One/shared.cheatengine-sdk-api.txt", First),
@@ -132,6 +132,59 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 		Assert.Equal(3, run.HintNames.Length);
 		HashSet<string> distinct = new(run.HintNames, StringComparer.OrdinalIgnoreCase);
 		Assert.Equal(3, distinct.Count);
+	}
+
+	[Fact]
+	public void A_spec_with_entries_and_no_contract_reports_CESDK3003_on_its_header()
+	{
+		const string Path = "Specs/legacy.cheatengine-sdk-api.txt";
+		const string Text =
+			"# legacy\nnamespace: Demo\ntype: Legacy\n\nglobal: readInteger\nmethod: TryReadInt32\nform: try\nresult: value:int32\ndoc: d.\n";
+
+		GeneratorRun run = roslyn.Run(Path, Text);
+
+		run.AssertNoGeneratedSource();
+		AssertLocated(Assert.Single(run.GeneratorDiagnostics), "CESDK3003", Path, 1, 0, "'contract: ce77'");
+	}
+
+	[Fact]
+	public void An_argument_after_an_optional_one_reports_CESDK3004_at_the_argument()
+	{
+		const string Path = "Specs/optional.cheatengine-sdk-api.txt";
+		string text = SpecSources.Ce77Header("Demo", "Optional") +
+					  "global: g\nmethod: G\nform: throwing\nopt: a:int32\narg: b:int64\nnil: none\ndoc: d.\n";
+
+		GeneratorRun run = roslyn.Run(Path, text);
+
+		run.AssertNoGeneratedSource();
+		AssertLocated(Assert.Single(run.GeneratorDiagnostics), "CESDK3004", Path, 13, 5, "follows an 'opt' argument");
+	}
+
+	[Fact]
+	public void A_required_result_after_an_optional_one_reports_CESDK3005_at_the_result()
+	{
+		const string Path = "Specs/results.cheatengine-sdk-api.txt";
+		string text = SpecSources.Ce77Header("Demo", "Results") +
+					  "global: g\nmethod: G\nform: outcome\nopt-result: a:int32\nresult: b:int64\nnil: none\ndoc: d.\n";
+
+		GeneratorRun run = roslyn.Run(Path, text);
+
+		run.AssertNoGeneratedSource();
+		AssertLocated(Assert.Single(run.GeneratorDiagnostics), "CESDK3005", Path, 13, 8, "after an 'opt-result'");
+	}
+
+	private static void AssertLocated(Diagnostic diagnostic, string id, string path, int line, int character,
+		string messageFragment)
+	{
+		Assert.Equal(id, diagnostic.Id);
+		Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+		Assert.Equal("https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/" + id + ".md",
+			diagnostic.Descriptor.HelpLinkUri);
+		FileLinePositionSpan span = diagnostic.Location.GetLineSpan();
+		Assert.Equal(path, span.Path);
+		Assert.Equal(line, span.StartLinePosition.Line);
+		Assert.Equal(character, span.StartLinePosition.Character);
+		Assert.Contains(messageFragment, diagnostic.GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
 	}
 
 	private static void AssertConflictLocation(GeneratorRun run, string messageFragment, string path, int line,

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using YamlDotNet.RepresentationModel;
@@ -425,6 +426,154 @@ public sealed partial class GovernanceWorkflowTests
 				}
 			}
 		}
+	}
+
+	[Fact]
+	public void Dependency_submission_runs_on_main_dispatch_and_same_repository_pull_requests_only()
+	{
+		YamlDocument workflow = YamlDocument.Load(GovernanceWorkflows.DependencySubmission);
+
+		Assert.Equal(["push", "pull_request", "workflow_dispatch"], workflow.Triggers);
+		Assert.Equal(["main"], YamlDocument.Scalars(workflow.Trigger("push"), "branches"));
+		string condition = YamlDocument.NormalizeWhitespace(YamlDocument.Scalar(workflow.Job("detect"), "if") ?? "");
+		Assert.Equal(
+			"github.event_name != 'pull_request' || (!github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository)",
+			condition);
+		// submit only follows a successful detect, so it inherits the fork and draft exclusion.
+		Assert.Equal(["detect"], YamlDocument.Scalars(workflow.Job("submit"), "needs"));
+		Assert.Null(YamlDocument.Child(workflow.Job("submit"), "if"));
+	}
+
+	[Fact]
+	public void Only_the_dependency_submit_job_holds_contents_write()
+	{
+		List<string> writers = [];
+		foreach (string path in GovernanceWorkflows.Existing())
+		{
+			foreach (KeyValuePair<string, YamlMappingNode> job in YamlDocument.Load(path).Jobs)
+			{
+				if (YamlDocument.Permissions(job.Value) is { } permissions
+					&& permissions.TryGetValue("contents", out string? access)
+					&& string.Equals(access, "write", StringComparison.Ordinal))
+				{
+					writers.Add($"{path}#{job.Key}");
+				}
+			}
+		}
+
+		Assert.Equal([GovernanceWorkflows.DependencySubmission + "#submit"], writers);
+		Assert.Null(YamlDocument.Permissions(YamlDocument.Load(GovernanceWorkflows.DependencySubmission).Job("detect")));
+	}
+
+	[Fact]
+	public void Dependency_submit_job_runs_no_third_party_code()
+	{
+		YamlDocument workflow = YamlDocument.Load(GovernanceWorkflows.DependencySubmission);
+		IReadOnlyList<YamlMappingNode> steps = YamlDocument.Steps(workflow.Job("submit"));
+
+		Assert.Equal(2, steps.Count);
+		Assert.True(YamlDocument.UsesAction(steps[0], "actions/download-artifact"), "submit starts by downloading the snapshot.");
+		Assert.Equal("dependency-snapshot", YamlDocument.Scalar(YamlDocument.Child(steps[0], "with"), "name"));
+		Assert.Null(YamlDocument.Uses(steps[1]));
+		string run = YamlDocument.Scalar(steps[1], "run") ?? "";
+		Assert.Contains("gh api --method POST", run, StringComparison.Ordinal);
+
+		// Detection and submission name the same commit, ref and correlator.
+		YamlMappingNode detect = Assert.Single(YamlDocument.Steps(workflow.Job("detect")),
+			static step => YamlDocument.Child(step, "env") is not null);
+		foreach (string variable in (string[]) ["SNAPSHOT_SHA", "SNAPSHOT_REF", "SNAPSHOT_CORRELATOR"])
+		{
+			Assert.Equal(YamlDocument.Scalar(YamlDocument.Child(detect, "env"), variable),
+				YamlDocument.Scalar(YamlDocument.Child(steps[1], "env"), variable));
+		}
+
+		// The official action fetches the latest Component Detection at run time next to the write token.
+		Assert.DoesNotContain("component-detection-dependency-submission-action", workflow.Text, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Dependency_detection_uses_a_pinned_hash_verified_component_detection()
+	{
+		string script = RepositoryFile.ReadText("eng/ci/New-DependencySnapshot.ps1");
+
+		Assert.Matches(new Regex(@"^\$DetectorVersion = '\d+\.\d+\.\d+'\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1)), script);
+		Assert.Matches(new Regex(@"^\$DetectorSha256 = '[0-9a-f]{64}'\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1)), script);
+		Assert.Contains("releases/download/v$DetectorVersion/$DetectorAsset", script, StringComparison.Ordinal);
+		Assert.Contains("Get-FileHash -LiteralPath $detector -Algorithm SHA256", script, StringComparison.Ordinal);
+		Assert.Contains("'--locked-mode'", script, StringComparison.Ordinal);
+		Assert.DoesNotContain("releases/latest", script, StringComparison.Ordinal);
+		Assert.DoesNotContain("dependency-graph/snapshots", script, StringComparison.Ordinal);
+	}
+
+	[Theory]
+	[InlineData("valid", true)]
+	[InlineData("other_commit", false)]
+	[InlineData("other_ref", false)]
+	[InlineData("other_correlator", false)]
+	[InlineData("extra_property", false)]
+	[InlineData("no_manifest", false)]
+	public async Task Dependency_submit_step_submits_only_a_snapshot_of_this_run(string variant, bool submitted)
+	{
+		const string Sha = "0123456789abcdef0123456789abcdef01234567";
+		const string Ref = "refs/heads/main";
+		using TemporaryDirectory directory = new();
+		Directory.CreateDirectory(directory.File("snapshot"));
+		Dictionary<string, object> snapshot = new(StringComparer.Ordinal)
+		{
+			["version"] = 0,
+			["sha"] = Is(variant, "other_commit") ? new string('f', 40) : Sha,
+			["ref"] = Is(variant, "other_ref") ? "refs/heads/feature" : Ref,
+			["job"] = new Dictionary<string, string>(StringComparer.Ordinal)
+			{
+				["correlator"] = Is(variant, "other_correlator") ? "other" : "sdk-nuget",
+				["id"] = "1"
+			},
+			["detector"] = new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = "d", ["version"] = "1", ["url"] = "u" },
+			["scanned"] = "2026-09-23T00:00:00Z",
+			["manifests"] = Is(variant, "no_manifest")
+				? new Dictionary<string, object>(StringComparer.Ordinal)
+				: new Dictionary<string, object>(StringComparer.Ordinal) { ["src/A.csproj"] = new Dictionary<string, object>(StringComparer.Ordinal) }
+		};
+		if (Is(variant, "extra_property"))
+		{
+			snapshot["extra"] = 1;
+		}
+
+		await File.WriteAllTextAsync(directory.File("snapshot/snapshot.json"), JsonSerializer.Serialize(snapshot),
+			TestContext.Current.CancellationToken);
+
+		YamlMappingNode submit = YamlDocument.Steps(YamlDocument.Load(GovernanceWorkflows.DependencySubmission).Job("submit"))[1];
+		string marker = directory.File("gh-called.txt");
+		string script = $"Set-Location -LiteralPath {PwshScript.Quote(directory.Path)}" + Environment.NewLine +
+						$"function gh {{ $args -join ' ' | Set-Content -LiteralPath {PwshScript.Quote(marker)}; $global:LASTEXITCODE = 0 }}" +
+						Environment.NewLine + YamlDocument.Scalar(submit, "run");
+		Dictionary<string, string> environment = new(StringComparer.Ordinal)
+		{
+			["REPOSITORY"] = "CheatEngineNet/CheatEngine.SDK",
+			["SNAPSHOT_SHA"] = Sha,
+			["SNAPSHOT_REF"] = Ref,
+			["SNAPSHOT_CORRELATOR"] = "sdk-nuget",
+			["GITHUB_STEP_SUMMARY"] = directory.File("summary.md")
+		};
+
+		PwshResult run = await PwshScript.RunTextAsync(script, environment);
+
+		Assert.True(submitted == (run.ExitCode == 0), run.Transcript);
+		Assert.Equal(submitted, File.Exists(marker));
+		if (submitted)
+		{
+			Assert.StartsWith("api --method POST repos/CheatEngineNet/CheatEngine.SDK/dependency-graph/snapshots",
+				await File.ReadAllTextAsync(marker, TestContext.Current.CancellationToken), StringComparison.Ordinal);
+		}
+		else
+		{
+			Assert.Contains("nothing was submitted", run.StandardError + run.StandardOutput, StringComparison.Ordinal);
+		}
+	}
+
+	private static bool Is(string value, string expected)
+	{
+		return string.Equals(value, expected, StringComparison.Ordinal);
 	}
 
 	private static YamlNode? WithOf(YamlMappingNode job, string action)

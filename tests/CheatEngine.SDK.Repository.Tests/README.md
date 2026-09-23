@@ -210,6 +210,14 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   `Scorecard_workflow_has_no_defaults_env_or_run_steps`, `Scorecard_steps_use_only_the_actions_the_verifier_allows`,
   `Only_the_scorecard_job_requests_an_id_token`, `Zizmor_online_pins_the_tool_version_and_enables_online_audits`,
   `Online_and_gate_zizmor_runs_pin_the_same_version`).
+- Dependency submission detects on a read-only token with a pinned, hash-verified Component Detection over the locked
+  restore, and submits from a separate job that is the only governance job holding `contents: write`, runs no
+  third-party code and refuses a snapshot of another commit, ref or correlator; it runs on `main`, dispatch and
+  same-repository pull requests only (`GovernanceWorkflowTests`:
+  `Dependency_submission_runs_on_main_dispatch_and_same_repository_pull_requests_only`,
+  `Only_the_dependency_submit_job_holds_contents_write`, `Dependency_submit_job_runs_no_third_party_code`,
+  `Dependency_detection_uses_a_pinned_hash_verified_component_detection`,
+  `Dependency_submit_step_submits_only_a_snapshot_of_this_run`).
 
 ## Run the tests
 

@@ -33,6 +33,7 @@
   <Folder Name="/.github/workflows/">
     <File Path=".github/workflows/ci.yml"/>
     <File Path=".github/workflows/codeql.yml"/>
+    <File Path=".github/workflows/dependency-submission.yml"/>
     <File Path=".github/workflows/main-ci.yml"/>
     <File Path=".github/workflows/release.yml"/>
     <File Path=".github/workflows/scorecard.yml"/>
@@ -70,6 +71,7 @@
     <File Path="eng/ci/Invoke-ClientCanary.ps1"/>
     <File Path="eng/ci/Invoke-ScriptAnalysis.ps1"/>
     <File Path="eng/ci/New-BuildInfo.ps1"/>
+    <File Path="eng/ci/New-DependencySnapshot.ps1"/>
     <File Path="eng/ci/PullRequestPolicy.psm1"/>
     <File Path="eng/ci/README.md"/>
     <File Path="eng/ci/Test-CoverageBaseline.ps1"/>

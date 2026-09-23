@@ -50,9 +50,9 @@ declares `contract: ce77` and parses without an issue, and they fall in three gr
 
 A reviewed or reserved spec is not silently generated, and its presence does not imply that a wrapper exists. The
 number of entries is not a coverage measure: the four `MemoryScalars` entries are four explicit contracts, not the Lua
-surface of `CheatEngine.SDK.Engine`, most of which is hand-written (audit AX06-18; coverage is measured by the
-catalogue, `docs/catalog/`). `Parsing/ProductionSpecsTests.cs` reads the committed specs and the Engine project file
-and fails when a spec with entries is neither wired nor in the reviewed list.
+surface of `CheatEngine.SDK.Engine`, most of which is hand-written (audit AX06-18; coverage is measured by the Lua
+surface catalogue, not by this generator's spec count). `Parsing/ProductionSpecsTests.cs` reads the committed specs
+and the Engine project file and fails when a spec with entries is neither wired nor in the reviewed list.
 
 1. The generator keeps additional files whose name ends in `.cheatengine-sdk-api.txt`, ignoring case, and parses each
    one into a

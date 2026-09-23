@@ -424,13 +424,13 @@ public sealed class RuntimeContractsTests
 			CheatEngineOperatingSystem.Windows);
 		TargetArchitectureObservation narrowed = new(new TargetProcessId(4242), TargetBackend.LocalProcess,
 			PointerSize.Bit64, true, false, false, 0, 4);
-		TargetArchitectureObservation odd = narrowed with
-		{
-		};
+		TargetArchitectureObservation widened = new(new TargetProcessId(4242), TargetBackend.LocalProcess,
+			PointerSize.Bit32, true, false, false, 0, 8);
 		TargetArchitectureObservation unknownFamilies = new(new TargetProcessId(4242), TargetBackend.Unknown,
 			PointerSize.Bit64, null, null, null, 9, 2);
 
 		RuntimeInfo info = new(host, narrowed, RuntimeCapabilities.Empty);
+		RuntimeInfo widenedInfo = new(host, widened, RuntimeCapabilities.Empty);
 		RuntimeInfo withoutTarget = new(host with
 		{
 			FileVersion = null
@@ -439,13 +439,17 @@ public sealed class RuntimeContractsTests
 
 		Assert.Equal(host, info.Host);
 		Assert.Equal(narrowed, info.Target);
-		Assert.Equal(odd, info.Target);
 		Assert.Equal(CheatEngineVersion.Ce77010621, info.Version);
 		Assert.Equal(CheatEngineArchitecture.X64, info.SystemArchitecture);
 		Assert.Equal(CheatEngineArchitecture.X64, info.TargetArchitecture);
 		Assert.Equal(PointerSize.Bit32, info.PointerSize);
 		Assert.Equal(PointerSize.Bit64, info.Target?.Bitness);
 		Assert.Equal(TargetAbi.Windows, info.TargetAbi);
+
+		// The other direction: an x86 target whose configured size was raised to 8 reports 8, never its bitness.
+		Assert.Equal(CheatEngineArchitecture.X86, widenedInfo.TargetArchitecture);
+		Assert.Equal(PointerSize.Bit64, widenedInfo.PointerSize);
+		Assert.Equal(PointerSize.Bit32, widenedInfo.Target?.Bitness);
 
 		Assert.Null(withoutTarget.Target);
 		Assert.Equal(default, withoutTarget.Version);

@@ -34,6 +34,16 @@ is declared in `src/CheatEngine.SDK/CompatibilitySuppressions.xml` and marked **
 - Diagnostics `CESDK9102` (a direct plugin-library consumer sets `PublishAot=true`) and `CESDK0006` (a method exports
   a classic `CEPlugin_*` native entry point) flag the two plugin shapes CheatEngine.SDK does not support; `CESDK1020`
   flags a `PointerSize` built from the plugin process width instead of a Cheat Engine observation.
+- `LuaRuntime.AdmitWorkerThreads()` (`[Experimental("CESDK5001")]`) and `AdmitMainThreadOnly()` switch the Lua thread
+  admission policy read by the new `LuaRuntime.ThreadAdmission` property; `TryAcquireOperationWithOutcome` reports the
+  factual `LuaAdmissionStatus` (`Admitted`, `Detached`, `ThreadNotAdmitted`, `ExternalStateReset`, …) of an admission
+  attempt instead of only a boolean or an exception.
+- `LuaRuntime.ExternalStateResetDetected` reports that Lua was reset outside the SDK's own `resetLuaState` path.
+- `HostLog.IdentifyOnEnable` and the `CHEATENGINE_SDK_IDENTIFY_ON_ENABLE` environment variable opt into one bounded,
+  path-free `CheatEngineSdkIdentification: …` log entry per enable attempt (SDK version and commit, bridge and Lua
+  module fingerprints, host and runtime facts).
+- A C2 native hostfxr host emulator (`tests/native-host-emulator`) measures plugin coexistence (separate and shared
+  loader folders, the default and component ALC routes) in CI without contacting a live Cheat Engine host.
 
 ### Changed
 
@@ -71,6 +81,18 @@ is declared in `src/CheatEngine.SDK/CompatibilitySuppressions.xml` and marked **
 - **Breaking, not reported by ApiCompat:** `LuaClassAttribute` and `LuaPropertyAttribute` no longer set
   `Inherited = false`, and `MemoryScanSession.Scanner` and `MemoryScanSession.Results` are now marked
   `[RequiresPluginEnabled]`, so calling them from plugin startup code reports `CESDK1001`.
+- **Breaking, behavioral, not reported by ApiCompat (ADR-07, F04):** Lua operations are admitted only on the
+  plugin's captured main thread, or inside a callback the host itself invoked, by default; a worker thread that was
+  previously admitted is now refused before Cheat Engine's Lua state provider is ever called. `MainThread.Invoke`'s
+  worker-side `synchronize` hand-off is unaffected: it is the one documented default exception. Admitting arbitrary
+  worker threads is the new `[Experimental("CESDK5001")]` opt-in above, held unqualified until Q19 passes at both a
+  local and a two-copy qualification run.
+- Every remaining unqualified "one Lua binding per plugin" or "one load context hosts one plugin" claim in source and
+  README text was reworded to what the SDK can actually observe: one binding per loaded `CheatEngine.SDK.Lua`
+  assembly instance.
+- The generated plugin name is still copied through the process ANSI code page; a non-ASCII name's exact behavior is
+  documented as unqualified pending a future host-based validation run (no local Cheat Engine qualification is
+  available for this release).
 
 ### Removed
 
@@ -85,6 +107,12 @@ is declared in `src/CheatEngine.SDK/CompatibilitySuppressions.xml` and marked **
 - A scan is stopped before its session is released, a disposed session refuses further scan members, and a release
   requested from inside the session's own Cheat Engine wait is deferred instead of re-entering it; a bounded scan's
   session is released if staging its allocation fails.
+- A log sink that writes back into `HostLog` from its own callback, or that re-enters a plugin lifecycle transition,
+  is contained instead of recursing or deadlocking; a registration-rejection log no longer runs while the
+  registration lock is held.
+- An `resetLuaState()` call the SDK was not told about is now detected on the next admitted Lua operation: old
+  callback and subscription owners are refused deterministically, and nothing is released into the replacement Lua
+  registry by number. There is still no public SDK reset API.
 
 ## [1.0.0] - 2026-09-20
 

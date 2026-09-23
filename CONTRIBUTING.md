@@ -56,6 +56,7 @@ a bespoke script: run the commands in a job's steps locally to rehearse it.
 | `native`                      | Builds the Lua protection bridge with the pinned xmake, MSVC toolset and Windows SDK; checks that the checked-in DLL was built from the checked-in sources; builds the classic ABI fixture facts. A CI-built DLL that differs from the checked-in one is a notice, not a failure.                                                                                                                                    |
 | `build-test` (Debug, Release) | Builds the solution once per configuration. Release packs first and checks the single nupkg, its nuspec identity, its SBOM and its bridge; the packaging tests then consume that exact file through `CESDK_PACKAGED_UMBRELLA_NUPKG`, and the same file is uploaded as `nuget-package`. Debug excludes the packaging tests by trait (`--filter-not-trait "Category=Packaging"`), compares the ABI fixture facts and collects coverage. |
 | `aot`                         | Publishes and runs the Native AOT probes.                                                                                                                                                                                                                                                                                                                                                                             |
+| `native-host-emulator`        | Builds the C2 hostfxr host emulator (`tests/native-host-emulator`) under the pinned MSVC toolset; the Debug `build-test` leg downloads it and runs `NativeHostEmulatorTests` against it. It never contacts or qualifies a live Cheat Engine host.                                                                                                                                                                   |
 | `sonar`                       | Analyzes the code with SonarQube Cloud from the Debug coverage.                                                                                                                                                                                                                                                                                                                                                       |
 | `lint`                        | Runs actionlint and zizmor with offline audits, each pinned by version (and, for actionlint, checksum).                                                                                                                                                                                                                                                                                                               |
 | `format`                      | Verifies the whitespace formatting of every C# file, including projects outside the solution.                                                                                                                                                                                                                                                                                                                        |
@@ -108,6 +109,29 @@ actionlint                                                                     #
 zizmor --offline .github                                                       # 1.30.1, reads .github/zizmor.yml
 dotnet restore CheatEngine.SDK.slnx --locked-mode                             # the lock-files job
 ```
+
+### Running the native host emulator locally
+
+```powershell
+./tests/native-host-emulator/build.ps1 -OutputDirectory artifacts/native-host-emulator
+$env:CESDK_NATIVE_HOST_EMULATOR_DIR = (Resolve-Path artifacts/native-host-emulator).Path
+$env:CESDK_NATIVE_HOST_EMULATOR_REQUIRED = 'true'
+dotnet test tests/CheatEngine.SDK.Hosting.Tests/CheatEngine.SDK.Hosting.Tests.csproj -c Debug --filter-class "*NativeHostEmulatorTests"
+```
+
+Without the environment variables, the module is green through the same required-mode opt-out pattern as the classic
+ABI fixture; with `CESDK_NATIVE_HOST_EMULATOR_REQUIRED` unset or `false`, an absent emulator directory is skipped, not
+required.
+
+## Lua concurrency contract
+
+`LuaRuntime` admits Lua work only on the plugin's captured main thread by default (ADR-07), with one documented
+exception: the worker-side half of `MainThread.Invoke`'s `synchronize` hand-off. Admitting arbitrary worker threads is
+an explicit, `[Experimental("CESDK5001")]` opt-in (`LuaRuntime.AdmitWorkerThreads()`), held unqualified until Q19
+passes at both C3 (local qualification) and C4 (two-copy qualification) — see
+[`libs/CheatEngine.SDK.Hosting/README.md`](libs/CheatEngine.SDK.Hosting/README.md) for the full contract text and
+[`analyzers/docs/CESDK5001.md`](analyzers/docs/CESDK5001.md) for the diagnostic. An external `resetLuaState()` call the
+SDK was not told about is detected deterministically and refuses old owners; there is no public SDK reset API.
 
 ## Style and analyzers
 

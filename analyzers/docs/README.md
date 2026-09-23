@@ -8,7 +8,8 @@ written for the plugin author who just saw the message: cause, reason, exact def
 Identifier ranges: `CESDK0xxx` plugin shape and bootstrap (category `CheatEngine.SDK.Plugin`), `CESDK1xxx`
 runtime-safety usage (`CheatEngine.SDK.Usage`), `CESDK2xxx` Lua generator input (`CheatEngine.SDK.Generation`). The
 separate EngineApi generator owns
-`CESDK3xxx` for curated-spec grammar and generated-identity diagnostics. `CESDK7xxx` marks members obsoleted after
+`CESDK3xxx` for curated-spec grammar and generated-identity diagnostics. `CESDK5xxx` marks compiler-enforced
+`[Experimental]` API gates, held unqualified until their audit criteria pass. `CESDK7xxx` marks members obsoleted after
 1.0.0 (`[Obsolete(DiagnosticId = …)]`). Identifiers are never renumbered or reused.
 
 | Id                        | Title                                                            | Severity | Code fix                                                                                     |

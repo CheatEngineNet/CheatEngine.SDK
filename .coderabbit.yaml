@@ -69,6 +69,23 @@ reviews:
           path (conversion failure, callback exception, protected-call error) and that registry references and
           callbacks are released. Fail when such code changes without those assertions, or when a raw Lua call that
           can raise is added outside a protected boundary.
+      - name: Lua concurrency contract
+        mode: warning
+        instructions: >-
+          Applies only when the pull request changes libs/CheatEngine.SDK.Lua/Runtime/**; otherwise pass. Fail when
+          worker-thread Lua admission is widened, exposed or defaulted to on without staying behind
+          `[Experimental("CESDK5001")]`, when a comment or doc claims worker-thread admission is qualified before the
+          Q19 C3 and C4 receipts both pass, or when new code assumes the SDK serializes two plugins or two SDK copies
+          against each other (ADR-07: admission protects only this copy's attach/reset/detach transitions, never the
+          shared Lua heap). Otherwise pass.
+      - name: Native host emulator evidence
+        mode: warning
+        instructions: >-
+          Applies only when the pull request changes tests/native-host-emulator/** or
+          tests/CheatEngine.SDK.Hosting.Tests/Coexistence/**; otherwise pass. Fail when a description, comment or test
+          name presents the emulator's facts as live Cheat Engine host behavior or as a C4 (two-copy) qualification
+          receipt, rather than C2 hostfxr component-route evidence; or when an absolute path can reach the emitted
+          `--facts` output. Otherwise pass.
       - name: Public API documentation and changelog
         mode: warning
         instructions: >-

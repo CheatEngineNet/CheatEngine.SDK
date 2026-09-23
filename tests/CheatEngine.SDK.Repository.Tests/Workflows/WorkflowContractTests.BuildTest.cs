@@ -33,7 +33,7 @@ public sealed partial class WorkflowContractTests
 		Assert.Equal("false", WorkflowFile.Scalar(strategy, "fail-fast"));
 		YamlMappingNode matrix = Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(strategy, "matrix"));
 		Assert.Equal(["Debug", "Release"], WorkflowFile.ScalarValues(Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(matrix, "configuration"))));
-		Assert.Equal(["native"], job.Needs());
+		Assert.Equal(["native", "native-host-emulator"], job.Needs());
 
 		// One build of the whole solution per leg, logged for failure analysis; every later step reuses it.
 		string build = WorkflowFile.Scalar(job.Step("Build"), "run") ?? "";
@@ -105,6 +105,9 @@ public sealed partial class WorkflowContractTests
 
 		// The Debug leg keeps the managed ABI comparison against the native fixture mandatory (audit A04-04).
 		Assert.Contains("$env:CE77_NATIVE_ABI_REQUIRED = 'true'", run, StringComparison.Ordinal);
+
+		// The Debug leg keeps the C2 native host emulator's coexistence evidence mandatory (SDK-COEX-1, A20-Q09-1).
+		Assert.Contains("$env:CESDK_NATIVE_HOST_EMULATOR_REQUIRED = 'true'", run, StringComparison.Ordinal);
 	}
 
 	[Fact]

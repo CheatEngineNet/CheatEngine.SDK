@@ -61,7 +61,7 @@ public sealed class NameEscapingTests(RoslynFixture roslyn) : IClassFixture<Rosl
 		// Holds because the plugin type of these cases (Demo.DemoPlugin) is ASCII: whatever the display name is, the
 		// literal adds no other character. Identifiers are written as declared (PluginLocationTests, non-ASCII case).
 		Assert.All(generated,
-			static c => Assert.True(c is '\n' or >= ' ' and <= '~',
+			static c => Assert.True(c is '\n' or (>= ' ' and <= '~'),
 				$"Non-ASCII character U+{(int) c:X4} in generated text."));
 		run.AssertCompilesClean();
 	}

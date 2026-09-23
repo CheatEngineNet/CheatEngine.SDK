@@ -527,7 +527,7 @@ internal static class SpecFileParser
 				continue;
 			}
 
-			if (character < '0' || character > '9')
+			if (character is < '0' or > '9')
 			{
 				return false;
 			}

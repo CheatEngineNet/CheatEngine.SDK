@@ -80,8 +80,8 @@ internal static class LuaObjectMethodParser
 		valid &= DescribeParameters(method.Parameters, arguments, results);
 
 		LuaCallForm form = results.Count == 0 ? LuaCallForm.Throwing : LuaCallForm.Try;
-		LuaValueKind? returnKind = null;
-		bool returnNullable = false;
+		LuaValueKind? returnKind;
+		bool returnNullable;
 		valid &= TryDescribeReturn(method, form, out returnKind, out returnNullable);
 
 		model = new LuaObjectMethodModel(

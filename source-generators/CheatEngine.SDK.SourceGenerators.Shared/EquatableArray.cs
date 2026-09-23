@@ -129,7 +129,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
 		for (int i = 0; i < items.Length; i++)
 		{
 			T? item = items[i];
-			hash = unchecked(hash * 31 + (item is null ? 0 : comparer.GetHashCode(item)));
+			hash = unchecked((hash * 31) + (item is null ? 0 : comparer.GetHashCode(item)));
 		}
 
 		return hash;

@@ -82,7 +82,7 @@ internal static class LuaIntegerReader
 		bool accepted = state.TypeOf(index) switch
 		{
 			// lua_tointegerx already refused a non-integral, infinite or NaN float and one outside the long range.
-			LuaType.Number => value > -FloatExactLimit && value < FloatExactLimit,
+			LuaType.Number => value is > -FloatExactLimit and < FloatExactLimit,
 			LuaType.String => acceptIntegerNumerals && state.TryReadUtf8(index, out ReadOnlySpan<byte> text) &&
 							  IsIntegerNumeral(text),
 			_ => false

@@ -77,7 +77,7 @@ internal static class PortableExecutableExportReader
 			}
 
 			long fileOffset = section.PointerToRawData + (relativeVirtualAddress - sectionStart);
-			if (fileOffset < 0 || fileOffset > int.MaxValue)
+			if (fileOffset is < 0 or > int.MaxValue)
 			{
 				throw new InvalidOperationException("The export directory resolves outside the file.");
 			}

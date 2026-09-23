@@ -215,7 +215,7 @@ public sealed unsafe partial class NativeHostEmulatorTests
 			return;
 		}
 
-		NativeHostEmulatorResult result = RunSeparateComponentScenario(emulatorDirectory, out string factsPath);
+		NativeHostEmulatorResult result = RunSeparateComponentScenario(emulatorDirectory, out _);
 
 		foreach (KeyValuePair<string, string> fact in result.Facts)
 		{

@@ -50,7 +50,7 @@ public sealed unsafe class ManagedExportedFunctionsTests
 		Unsafe.WriteUnaligned(raw, 48);
 		for (int slot = 1; slot <= 5; slot++)
 		{
-			Unsafe.WriteUnaligned(raw + slot * 8, (ulong) slot * 0x1000_0000_1000UL);
+			Unsafe.WriteUnaligned(raw + (slot * 8), (ulong) slot * 0x1000_0000_1000UL);
 		}
 
 		ManagedExportedFunctions copy = *(ManagedExportedFunctions*) raw;

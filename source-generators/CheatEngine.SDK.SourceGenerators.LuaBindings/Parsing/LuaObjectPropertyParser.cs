@@ -60,11 +60,11 @@ internal static class LuaObjectPropertyParser
 	private static bool TryDescribe(IPropertySymbol property, PropertyDeclarationSyntax? declaration,
 		out LuaObjectPropertyModel model)
 	{
-		LuaValueKind kind = default;
-		bool isNullable = false;
-		string modifiers = string.Empty;
+		LuaValueKind kind;
+		bool isNullable;
 		bool typeIsSupported = LuaValueKindMapper.TryMap(property.Type, out kind, out isNullable)
 							   && LuaValueKinds.CanBeResult(kind);
+		string modifiers;
 		bool definitionIsSupported = IsSupportedDefinition(property, declaration, typeIsSupported,
 			out modifiers);
 		bool accessorsAreSupported = TryDescribeAccessors(declaration, out bool hasGetter, out string getterModifiers,

@@ -61,7 +61,7 @@ internal static class IlReader
 			OperandType.ShortInlineBrTarget or OperandType.ShortInlineI or OperandType.ShortInlineVar => 1,
 			OperandType.InlineVar => 2,
 			OperandType.InlineI8 or OperandType.InlineR => 8,
-			OperandType.InlineSwitch => 4 + 4 * BitConverter.ToInt32(il, offset),
+			OperandType.InlineSwitch => 4 + (4 * BitConverter.ToInt32(il, offset)),
 			_ => 4
 		};
 	}

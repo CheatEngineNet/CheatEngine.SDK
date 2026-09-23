@@ -81,7 +81,7 @@ public sealed unsafe class ExportedFunctionsPrefixTests
 	[Fact]
 	public void Prefix_stops_before_the_pointer_to_pointer_hook_suffix()
 	{
-		FieldInfo[] fields = typeof(ExportedFunctionsPrefix).GetFields(BindingFlags.Instance | BindingFlags.Public);
+		_ = typeof(ExportedFunctionsPrefix).GetFields(BindingFlags.Instance | BindingFlags.Public);
 
 		Assert.Null(typeof(ExportedFunctionsPrefix).GetField("ReadProcessMemory",
 			BindingFlags.Instance | BindingFlags.Public));

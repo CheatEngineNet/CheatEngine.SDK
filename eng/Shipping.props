@@ -3,10 +3,22 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <!-- Implies IsTrimmable and the trim, single-file and AOT analyzers. -->
+    <!--
+      IsAotCompatible already implies every property below it (IsTrimmable, EnableTrimAnalyzer,
+      EnableAotAnalyzer, EnableSingleFileAnalyzer); they are restated explicitly so the guarantee
+      survives a future SDK change to what IsAotCompatible implies, matching this file's existing
+      preference for explicit over implicit (dotnet_style_require_accessibility_modifiers=always,
+      the var_* rules in .editorconfig). Confirmed zero behavior change against the implied defaults.
+    -->
     <IsAotCompatible>true</IsAotCompatible>
+    <IsTrimmable>true</IsTrimmable>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
     <!-- Fail the shipping graph when a referenced assembly has not declared its AOT compatibility. -->
     <VerifyReferenceAotCompatibility>true</VerifyReferenceAotCompatibility>
+    <!-- Trim-compatibility (IL2125) is a distinct opt-in from AOT-compatibility (IL3058) verification above. -->
+    <VerifyReferenceTrimCompatibility>true</VerifyReferenceTrimCompatibility>
     <!-- Interop-heavy code: raise three analysis categories and keep the rest at recommended. -->
     <AnalysisModeInteroperability>All</AnalysisModeInteroperability>
     <AnalysisModeSecurity>All</AnalysisModeSecurity>

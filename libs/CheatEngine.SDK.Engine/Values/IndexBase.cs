@@ -69,7 +69,7 @@ public static class IndexBase
 	/// <returns><see langword="false" /> when the key is below one or the index would not fit an <see cref="int" />.</returns>
 	public static bool TryFromLuaKey(long luaKey, out int zeroBasedIndex)
 	{
-		if (luaKey < FirstLuaKey || luaKey > int.MaxValue + FirstLuaKey)
+		if (luaKey is < FirstLuaKey or > (int.MaxValue + FirstLuaKey))
 		{
 			zeroBasedIndex = 0;
 			return false;

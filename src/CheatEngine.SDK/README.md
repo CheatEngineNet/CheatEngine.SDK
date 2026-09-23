@@ -120,17 +120,28 @@ Windows x64-only. These build assets never flow through an intermediate NuGet pa
   logged, cleanup still completes, and Cheat Engine receives success to record the disabled state. Neither propagates
   into Cheat Engine (`EnablePluginTests` and `DisablePluginTests`, which run against Cheat Engine's own Lua DLL).
 
-## AOT status
+## Load profiles and limits
 
 The shipping libraries set `IsAotCompatible=true` and verify that their runtime references carry equivalent AOT
 metadata. `tests/CheatEngine.SDK.AotProbe` is a standalone Windows x64 executable that publishes the complete shipping
 graph with Native AOT. A successful probe establishes only the analysed graph and that publish invocation; it is not a
-Cheat Engine plugin and says nothing about whether CE can host or unload a Native AOT artifact. In particular, Native
-AOT class-library exports require explicit `UnmanagedCallersOnly` exports and Native AOT DLLs do not support
-`FreeLibrary`
-unloading. [Microsoft's Native AOT library guidance](https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries)
-and [single-file deployment guidance](https://learn.microsoft.com/dotnet/core/deploying/single-file/overview) describe
-different deployment models from this framework-dependent plugin folder.
+Cheat Engine plugin and says nothing about whether CE can host or unload a Native AOT artifact. **A NativeAOT publish
+success is never a Cheat Engine load success.**
+
+| Profile | Status |
+|---|---|
+| Historical CLR route (`MSCorEE.dll` hosting, string entry point) | Documentary only, not supported |
+| Managed hostfxr route (`CESDK.CESDK.CEPluginInitialize(IntPtr, int)`) | The only supported profile |
+| NativeAOT plugin DLL | Not supported |
+| Classic native plugin exporting `CEPlugin_*` | Not provided by the SDK |
+| x86 or ARM64 host | Not supported |
+
+Cheat Engine's native loader removes a plugin with
+`FreeLibrary`, and [Microsoft's Native AOT library guidance](https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries)
+states that .NET does not support unloading a NativeAOT library that way; only `UnmanagedCallersOnly` methods of the
+published assembly become native exports, so the package itself can never add classic `CEPlugin_*` exports for a
+consumer. See the [full restrictions, evidence and diagnostics](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/libs/CheatEngine.SDK.Abi/README.md)
+(`CESDK9102`, `CESDK0006`).
 
 ## Requirements
 

@@ -108,6 +108,45 @@ public sealed class SupportProfileTests
 	}
 
 	[Fact]
+	public void Measurement_locators_name_repository_lines_that_declare_the_measured_hash()
+	{
+		List<string> problems = [];
+		int locators = 0;
+		foreach (JsonElement measurement in SupportProfile.GetProperty("measurements").EnumerateArray())
+		{
+			string sha256 = measurement.GetProperty("sha256").GetString()!;
+			foreach (JsonElement declared in measurement.GetProperty("declaredIn").EnumerateArray())
+			{
+				locators++;
+				string locator = declared.GetString()!;
+				int colon = locator.LastIndexOf(':');
+				string file = locator[..colon];
+				int line = int.Parse(locator[(colon + 1)..], System.Globalization.CultureInfo.InvariantCulture);
+				if (!QualificationDocuments.Exists(file))
+				{
+					problems.Add($"{locator}: {file} does not exist.");
+					continue;
+				}
+
+				string[] lines = QualificationDocuments.ReadNormalizedText(file).Split('\n');
+				if (line >= 1 && line <= lines.Length &&
+					lines[line - 1].Contains(sha256, StringComparison.OrdinalIgnoreCase))
+				{
+					continue;
+				}
+
+				int actual = Array.FindIndex(lines, text => text.Contains(sha256, StringComparison.OrdinalIgnoreCase));
+				problems.Add(actual < 0
+					? $"{locator}: {file} no longer declares {sha256}."
+					: $"{locator}: the hash is now declared at {file}:{actual + 1}; update declaredIn.");
+			}
+		}
+
+		Assert.True(locators >= 4, "The measurement record lost its repository locators.");
+		Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
+	}
+
+	[Fact]
 	public void Profile_celua_hash_is_the_audit_reference()
 	{
 		foreach (JsonElement profile in SupportProfile.GetProperty("profiles").EnumerateArray())

@@ -41,6 +41,7 @@
     <File Path="eng/qualification/Invoke-LocalQualification.ps1"/>
     <File Path="eng/qualification/QualificationRunner.psm1"/>
     <File Path="eng/qualification/scenarios.json"/>
+    <File Path="eng/qualification/README.md"/>
   </Folder>
   <Folder Name="/eng/qualification/driver/">
     <File Path="eng/qualification/driver/zz_cesdk_qualification.template.lua"/>
@@ -64,6 +65,7 @@
     <File Path="docs/qualification/support-profile.md"/>
     <File Path="docs/qualification/README.md"/>
     <File Path="docs/qualification/matrix.json"/>
+    <File Path="docs/qualification/local-protocol.md"/>
   </Folder>
   <Folder Name="/docs/qualification/schemas/">
     <File Path="docs/qualification/schemas/qualification-events.v0.schema.json"/>

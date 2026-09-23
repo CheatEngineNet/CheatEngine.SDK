@@ -114,20 +114,20 @@ fixture's own `CE77_NATIVE_ABI_FACTS_PATH`/`CE77_NATIVE_ABI_REQUIRED` pair: unse
 tests return after asserting that documented opt-out; `REQUIRED=true` without the directory is an actionable error,
 never a silent skip.
 
-## Known local dependency (read before treating a red run as this program's fault)
+## Formerly known local dependency (now fixed)
 
 `tests/CheatEngine.SDK.LivePlugin.Coexistence/CoexistencePlugin.props` builds both plugins through a direct
 `ProjectReference` chain, never through the packaged `CheatEngine.SDK` NuGet's `build/CheatEngine.SDK.props` asset.
-That packaged asset is the **only** place in this repository that sets
-`CheatEngineSdkGenerateEntryPoint=true` and registers it as a `CompilerVisibleProperty`; without both, the
-`CheatEngine.SDK.SourceGenerators.EntryPoint` generator stays silent (by its own documented design — see
+That packaged asset was the **only** place in this repository that set `CheatEngineSdkGenerateEntryPoint=true` and
+registered it as a `CompilerVisibleProperty`; without both, the `CheatEngine.SDK.SourceGenerators.EntryPoint`
+generator stayed silent (by its own documented design — see
 `source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/README.md`, "an indirect package reference leaves it
-absent and produces no bootstrap") and neither plugin assembly contains a `CESDK.CESDK` type. hostfxr's
-`load_assembly_and_get_function_pointer` therefore never even resolves an entry point to call: this program's own
-`plugin.entryResolved` stays `false`, so every fact that depends on a call into the plugin (`{a,b}.bootstrap.*`,
-`{a,b}.getversion`, `{a,b}.enable.*`) reports `skipped` — not `failed` — because `boolText()` reports `skipped`
-whenever the call itself was never attempted. This program and the generator are both working exactly as designed;
-the plugin fixture itself is simply missing the two-line opt-in the packaged consumer gets for free:
+absent and produces no bootstrap") and neither plugin assembly contained a `CESDK.CESDK` type. hostfxr's
+`load_assembly_and_get_function_pointer` therefore never resolved an entry point to call, so this program's own
+`plugin.entryResolved` stayed `false` and every fact that depends on a call into the plugin (`{a,b}.bootstrap.*`,
+`{a,b}.getversion`, `{a,b}.enable.*`) reported `skipped` — not `failed`, because `boolText()` reports `skipped`
+whenever the call itself was never attempted. `CoexistencePlugin.props` now carries the same two-line opt-in the
+packaged consumer gets for free:
 
 ```xml
 <PropertyGroup>
@@ -138,11 +138,6 @@ the plugin fixture itself is simply missing the two-line opt-in the packaged con
 </ItemGroup>
 ```
 
-`CoexistencePlugin.props` is outside S-HOST's owned and narrow-edit file lists (it belongs to the Coexistence test
-fixture as a whole, shared with other lots), so this repository does not carry that two-block change yet. It is
-requested from the integrator in the S-HOST lot report (`requestsForOtherFiles`) verbatim as the snippet above,
-added to `CoexistencePlugin.props`'s existing `<PropertyGroup>`/`<ItemGroup>` elements. Once it lands, rebuild the
-slnx and re-run `NativeHostEmulatorTests` with `CESDK_NATIVE_HOST_EMULATOR_DIR`/`REQUIRED=true` set: every
-`AssertBootstrapAndEnableSucceeded` assertion must go from `skipped` to `ok`/`true` before this work item is
-treated as green. As of this report, it is **not** green: 5 of 9 `NativeHostEmulatorTests` fail for exactly this
-reason.
+With the fix landed, `load_assembly_and_get_function_pointer` resolves the bootstrap for both plugins and every
+`AssertBootstrapAndEnableSucceeded` assertion reports `ok`/`true` instead of `skipped`: all 9
+`NativeHostEmulatorTests` pass with `CESDK_NATIVE_HOST_EMULATOR_DIR`/`REQUIRED=true` set.

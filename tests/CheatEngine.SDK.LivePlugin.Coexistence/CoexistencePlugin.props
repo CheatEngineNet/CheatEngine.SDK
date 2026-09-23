@@ -9,7 +9,15 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(ArtifactsPath)\obj\$(MSBuildProjectName)\generated\$(Configuration)</CompilerGeneratedFilesOutputPath>
     <IsPackable>false</IsPackable>
+    <!-- Mirrors the packaged src/CheatEngine.SDK/build/CheatEngine.SDK.props asset: a direct ProjectReference chain
+         does not carry this opt-in, so without it CheatEngine.SDK.SourceGenerators.EntryPoint stays silent and
+         neither fixture assembly gets a CESDK.CESDK bootstrap type (see tests/native-host-emulator/README.md). -->
+    <CheatEngineSdkGenerateEntryPoint>true</CheatEngineSdkGenerateEntryPoint>
   </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="CheatEngineSdkGenerateEntryPoint"/>
+  </ItemGroup>
 
   <!-- Match the component set of a managed plugin consumer. The fixture observes the host loader; it does not configure one. -->
   <ItemGroup>

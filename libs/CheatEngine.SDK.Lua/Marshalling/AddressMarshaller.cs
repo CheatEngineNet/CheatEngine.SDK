@@ -12,13 +12,16 @@ namespace CheatEngine.SDK.Lua.Marshalling;
 ///     comes back intact.
 /// </summary>
 /// <remarks>
-///     Reading is strict about the Lua type: only a number is accepted (an integer, or a float with an exact integral
-///     value). A string is refused even when Lua could convert it, because Cheat Engine returns some addresses as
-///     hexadecimal <i>text</i> and Lua's own string-to-number rule would read <c>"10"</c> as ten and <c>"00400000"</c> as
-///     four hundred thousand: a wrong address rather than a failure. The number-or-hex-string convention is decoded one
-///     layer up (<c>CheatEngine.SDK.Engine</c>'s address reader: a number through this marshaller, a string through
-///     <see cref="LuaState.TryReadUtf8" /> and a hexadecimal parse). On a 32-bit process a value that does not fit is
-///     reported as <see langword="false" />. One C API call to push, two to read; allocates nothing.
+///     Reading is strict about the Lua type: only a number is accepted, an integer subtype (every bit kept, an address
+///     above 4 GiB or above <see cref="long.MaxValue" /> included) or a float with an exact integral value of magnitude
+///     below 2^53. A float at or above 2^53 is refused: a 64-bit address never passes through a lossy
+///     <see cref="double" /> (audit A07-02, Q21). A string is refused even when Lua could convert it, because Cheat Engine
+///     returns some addresses as hexadecimal <i>text</i> and Lua's own string-to-number rule would read <c>"10"</c> as ten
+///     and <c>"00400000"</c> as four hundred thousand: a wrong address rather than a failure. The number-or-hex-string
+///     convention is decoded one layer up (<c>CheatEngine.SDK.Engine</c>'s address reader: a number through this
+///     marshaller, a string through <see cref="LuaState.TryReadUtf8" /> and a hexadecimal parse). On a 32-bit process a
+///     value that does not fit is reported as <see langword="false" />. One C API call to push, two to read an integer
+///     subtype; allocates nothing.
 /// </remarks>
 public readonly struct AddressMarshaller : ILuaMarshaller<nuint>
 {
@@ -35,7 +38,7 @@ public readonly struct AddressMarshaller : ILuaMarshaller<nuint>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static bool TryRead(LuaState state, int index, out nuint value)
 	{
-		if (state.TypeOf(index) != LuaType.Number || !state.TryReadInteger(index, out long bits))
+		if (!LuaIntegerReader.TryRead(state, index, false, out long bits))
 		{
 			value = 0;
 			return false;

@@ -267,6 +267,7 @@ internal sealed class ThrowawayConsumer
 	                                        using CheatEngine.SDK.Lua.Calls;
 	                                        using CheatEngine.SDK.Lua.Interop.Api;
 	                                        using CheatEngine.SDK.Lua.Interop.Types;
+	                                        using CheatEngine.SDK.Lua.Marshalling;
 	                                        using CheatEngine.SDK.Lua.Runtime;
 	                                        using CheatEngine.SDK.Lua.State;
 
@@ -276,6 +277,15 @@ internal sealed class ThrowawayConsumer
 	                                        {
 	                                            [LuaGlobal("sdk022_aot_probe")]
 	                                            public static partial LuaOperationStatus TryProbe(LuaState state);
+
+	                                            // The optional and variadic shapes: their emitted code must publish with no IL2xxx/IL3xxx warning.
+	                                            [LuaGlobal("sdk022_aot_optional")]
+	                                            public static partial LuaOperationStatus TryOptional(LuaState state, int first, LuaOptional<int> second,
+	                                                out LuaOptional<long> sum);
+
+	                                            [LuaGlobal("sdk022_aot_sequence")]
+	                                            public static partial LuaOperationStatus TrySequence(LuaState state, int count, Span<long> values,
+	                                                out int valueCount);
 	                                        }
 
 	                                        // This is a standalone native-Lua probe. It uses the test fixture's Lua 5.3 DLL,
@@ -342,6 +352,8 @@ internal sealed class ThrowawayConsumer
 	                                                            0, "=sdk022-aot-assertion"u8);
 	                                                        if (!invocationCount.IsOk)
 	                                                            throw new InvalidOperationException("The generated AOT binding invocation assertion failed with " + invocationCount + ".");
+
+	                                                        RunOptionalAndVariadicShapes(state);
 	                                                    }
 	                                                    finally
 	                                                    {
@@ -353,6 +365,28 @@ internal sealed class ThrowawayConsumer
 	                                                {
 	                                                    LuaApi.lua_close(statePointer);
 	                                                }
+	                                            }
+
+	                                            private static void RunOptionalAndVariadicShapes(LuaState state)
+	                                            {
+	                                                LuaStatus setup = state.TryExecute(
+	                                                    "function sdk022_aot_optional(first, second) if second == nil then return end return first + second end function sdk022_aot_sequence(n) local t = {} for i = 1, n do t[i] = i * 3 end return table.unpack(t, 1, n) end"u8,
+	                                                    0, "=sdk022-aot-shapes"u8);
+	                                                if (!setup.IsOk)
+	                                                    throw new InvalidOperationException("The Lua fixture shape setup failed with " + setup + ".");
+
+	                                                if (!GeneratedAotBinding.TryOptional(state, 40, LuaOptional.Of(2), out LuaOptional<long> sum).IsSuccess || sum != LuaOptional.Of(42L))
+	                                                    throw new InvalidOperationException("The generated optional binding returned " + sum + " instead of 42.");
+
+	                                                if (!GeneratedAotBinding.TryOptional(state, 1, default, out LuaOptional<long> none).IsSuccess || !none.IsOmitted)
+	                                                    throw new InvalidOperationException("The generated optional binding did not report zero results as omitted.");
+
+	                                                Span<long> values = stackalloc long[4];
+	                                                if (!GeneratedAotBinding.TrySequence(state, 3, values, out int count).IsSuccess || count != 3 || values[0] != 3 || values[2] != 9)
+	                                                    throw new InvalidOperationException("The generated variadic binding returned " + count + " values.");
+
+	                                                if (GeneratedAotBinding.TrySequence(state, 5, values, out int needed).Kind != LuaOperationStatusKind.ResultCapacityExceeded || needed != 5)
+	                                                    throw new InvalidOperationException("The generated variadic binding accepted more values than its capacity.");
 	                                            }
 
 	                                            [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]

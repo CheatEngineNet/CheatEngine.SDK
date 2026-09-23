@@ -97,18 +97,21 @@ local function emit(source, kind, message)
   return true
 end
 
+-- The progress file holds "<run id> <completed step index> <T0>". A driver that autorun loads again (after a Lua state
+-- reset) resumes after the completed step and keeps the first driver's T0, so every event of the session shares one
+-- time base (getTickCount is process-wide, not per Lua state) and the runner's time-ordered log does not interleave.
 local function readProgress()
   local text = readAll(RUN.progress)
-  if text == nil then return 0 end
-  local runId, index = text:match('^(%S+)%s+(%d+)')
-  if runId ~= RUN.id then return 0 end
-  return tonumber(index)
+  if text == nil then return 0, nil end
+  local runId, index, t0 = text:match('^(%S+)%s+(%d+)%s*(%-?%d*)')
+  if runId ~= RUN.id then return 0, nil end
+  return tonumber(index), tonumber(t0)
 end
 
 local function writeProgress(index)
   local f = io.open(RUN.progress, 'wb')
   if f == nil then return end
-  f:write(RUN.id, ' ', tostring(index))
+  f:write(RUN.id, ' ', tostring(index), ' ', string.format('%d', T0))
   f:close()
 end
 
@@ -161,8 +164,14 @@ local function finish(reason)
   emit('Driver', 'Completed', reason)
   local f = io.open(RUN.done, 'wb')
   if f ~= nil then f:write(RUN.id) f:close() end
-  if state.timer ~= nil then
-    pcall(function() state.timer.Enabled = false end)
+  -- Release the timer exactly once (spike-c3 D5): disable, then destroy, and forget the reference. finish runs inside
+  -- the timer's own OnTimer, where a destroy was observed safe (spike-c3 P6, T3); OnTimer is not cleared from inside
+  -- its own callback, which was not observed.
+  local timer = state.timer
+  state.timer = nil
+  if timer ~= nil then
+    pcall(function() timer.Enabled = false end)
+    pcall(function() timer.destroy() end)
   end
   pcall(closeCE)
 end
@@ -221,7 +230,9 @@ end
 
 local function start()
   if fileExists(RUN.done) then return end
-  state.index = readProgress()
+  local index, t0 = readProgress()
+  state.index = index
+  if index > 0 and math.type(t0) == 'integer' then T0 = t0 end
   emit('Driver', state.index == 0 and 'Started' or 'Resumed',
     encode({ runId = RUN.id, step = state.index, inMainThread = (type(inMainThread) == 'function') and inMainThread() or nil }))
   local timer = createTimer(nil, false)

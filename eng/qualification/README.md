@@ -17,7 +17,7 @@ operator's Cheat Engine settings changed.
 |-----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Invoke-LocalQualification.ps1`               | The runner: guard, preflight, mutex, sandbox, bundles, targets, registry, Cheat Engine session, receipts.                                                |
 | `QualificationRunner.psm1`                    | Pure helpers the runner and the tests share: hashing with the LF rule, registry parsing, name-only diff and restore decision, redaction, event log bounding, receipt id and assembly, Lua literals, bundle closure, restored content hash, pass-rule evaluation. |
-| `driver/zz_cesdk_qualification.template.lua`  | The autorun Lua driver template: runs one scenario step per timer tick under `pcall`, appends one JSON event per line, resumes after a Lua state reset. |
+| `driver/zz_cesdk_qualification.template.lua`  | The autorun Lua driver template: runs one scenario step per timer tick under `pcall`, appends one JSON event per line, resumes after a Lua state reset on the first driver's time base, and disables and destroys its timer once before `closeCE()`. |
 | `scenarios.json`                              | The Checkpoint B plan: harnesses, target, steps (Lua or Operator), observed values and a declarative pass rule per scenario.                           |
 
 ### Stages

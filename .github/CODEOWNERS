@@ -1,0 +1,16 @@
+# Informational only: the "Protect main" ruleset does not require a code-owner review (single active maintainer; a
+# required review would block every maintainer and Dependabot pull request). GitHub still requests a review from the
+# owners below. Owners must have write access; confirm co-owners with the maintainer before adding them.
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# The last matching pattern wins, so the catch-all comes first.
+*                             @AriusII
+
+# Native authority: the protection bridge, the ABI layouts and the build assets consumers import.
+/native/                      @AriusII
+/libs/CheatEngine.SDK.Abi/    @AriusII
+/src/CheatEngine.SDK/build/   @AriusII
+
+# Build, release and governance: workflows, the PR policy code and repository settings.
+/.github/                     @AriusII
+/eng/                         @AriusII
+/SECURITY.md                  @AriusII

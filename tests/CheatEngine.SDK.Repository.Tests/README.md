@@ -174,6 +174,22 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   `Pr_policy_triggers_on_edited_and_has_no_path_filter`, `Pr_policy_job_is_named_PR_policy_and_runs_on_ubuntu_24_04`,
   `Pull_request_title_body_and_author_reach_the_script_only_through_env`,
   `Changelog_path_pattern_matches_the_shared_contract`, `Every_consumer_visible_root_of_the_changelog_rule_exists`).
+- `SECURITY.md` names private reporting, scope, response targets, supported versions and release verification, and
+  describes the two committed binaries with their real hash; `CODE_OF_CONDUCT.md` routes reports through private
+  reporting without an e-mail address; `.github/CODEOWNERS` is the only CODEOWNERS file, starts with `*`, names known
+  maintainers and existing paths with exact case (`GovernanceDocumentTests`:
+  `Security_policy_names_private_reporting_scope_response_and_supported_versions`,
+  `Security_policy_describes_the_committed_binaries_with_their_real_hash`,
+  `Code_of_conduct_routes_reports_through_private_reporting_without_an_email_address`,
+  `Codeowners_patterns_point_to_existing_paths_and_known_owners`, `Codeowners_exists_only_in_the_github_folder`).
+- The compatibility issue form requires the complete support tuple (package version and lock-file `contentHash`,
+  bridge hash, Cheat Engine build and executable hash, Lua DLL hash, runtime-configuration hash and origin, load
+  profile, target architecture, what was actually run from C0 to C4, build options, OS and .NET), never presents a
+  profile as supported or qualified, and no form tells users to edit `ce.runtimeconfig.json`; blank issues are off and
+  the chooser links private reporting (`GovernanceDocumentTests`: `Compatibility_issue_form_requires_the_full_tuple`,
+  `Compatibility_form_never_presents_a_profile_as_qualified_or_supported`,
+  `Issue_form_element_ids_are_unique_and_valid`, `Issue_forms_disable_blank_issues_and_link_private_reporting`,
+  `Issue_forms_never_instruct_editing_the_cheat_engine_runtime_configuration`).
 
 ## Run the tests
 

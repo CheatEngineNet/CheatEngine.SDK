@@ -131,7 +131,9 @@ internal static class TargetArchitectureProbe
 				return TargetProbeStatus.LuaFailure;
 			}
 
-			if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out long raw))
+			// getOpenedProcessID pushes a Lua integer; a float, even an integral one, is malformed like every other
+			// integer fact the probe reads.
+			if (!state.IsInteger(-1) || !state.TryReadInteger(-1, out long raw))
 			{
 				return TargetProbeStatus.InvalidProcessId;
 			}

@@ -91,6 +91,35 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Fact]
+	public void integral_float_codes_are_invalid_in_every_api_that_reads_the_same_integer_global()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState lua = scope.State;
+		FakeHost.InstallCe77HostFacts(lua);
+		FakeHost.InstallCe77X64TargetFacts(lua, 4242);
+		EngineTest.Run(lua, """
+		                    rt_system_architecture = 1.0
+		                    rt_operating_system = 0.0
+		                    rt_abi = 0.0
+		                    """u8);
+
+		LuaOperationStatus architectureStatus = RuntimeHostOperations.TryGetSystemArchitecture(out _);
+		LuaOperationStatus operatingSystemStatus = RuntimeHostOperations.TryGetOperatingSystem(out _);
+		LuaOperationStatus abiStatus = RuntimeHostOperations.TryGetTargetAbi(out _);
+		LuaOperationStatus hostStatus = RuntimeHostOperations.ObserveHost(out _);
+		ProcessOperationStatus targetStatus = RuntimeProcessOperations.ObserveTargetArchitecture(out _);
+
+		Assert.Equal(LuaOperationStatusKind.InvalidResult, architectureStatus.Kind);
+		Assert.Equal(LuaOperationStatusKind.InvalidResult, operatingSystemStatus.Kind);
+		Assert.Equal(LuaOperationStatusKind.InvalidResult, abiStatus.Kind);
+		Assert.Equal(LuaOperationStatusKind.InvalidResult, hostStatus.Kind);
+		Assert.Equal(ProcessOperationStatusKind.InvalidResult, targetStatus.Kind);
+		Assert.Equal(0, lua.Top);
+	}
+
+	[Fact]
 	public void RuntimeHostOperations_absent_global_reports_unavailability_without_entering_a_call()
 	{
 		EngineTest.RequireNativeLua();
@@ -153,6 +182,7 @@ public sealed class RuntimeProcessOperationsTests
 	[InlineData("-1")]
 	[InlineData("2147483648")]
 	[InlineData("'42'")]
+	[InlineData("4242.0")]
 	public void ObserveCurrent_malformed_process_identifier_is_not_converted_to_target_absence(string luaResult)
 	{
 		EngineTest.RequireNativeLua();

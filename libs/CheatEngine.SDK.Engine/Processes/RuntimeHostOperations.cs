@@ -228,8 +228,9 @@ public static class RuntimeHostOperations
 			return LuaOperationStatus.LuaFailure(status);
 		}
 
-		if (state.TypeOf(-1) != LuaType.Number || !state.TryReadInteger(-1, out long raw) ||
-			raw is < int.MinValue or > int.MaxValue)
+		// Cheat Engine pushes these codes as Lua integers; a float, even an integral one, is malformed. The target probe
+		// applies the same rule to getABI and getPointerSize, so one global is never classified two ways.
+		if (!state.IsInteger(-1) || !state.TryReadInteger(-1, out long raw) || raw is < int.MinValue or > int.MaxValue)
 		{
 			value = default;
 			return state.IsNil(-1) ? LuaOperationStatus.NilResult : LuaOperationStatus.InvalidResult;

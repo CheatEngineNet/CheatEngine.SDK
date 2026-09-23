@@ -30,7 +30,9 @@ public sealed class LuaOperationStatusTests
 			(LuaOperationStatus.GlobalUnavailable, LuaOperationStatusKind.GlobalUnavailable),
 			(LuaOperationStatus.NilResult, LuaOperationStatusKind.NilResult),
 			(LuaOperationStatus.InvalidResult, LuaOperationStatusKind.InvalidResult),
-			(LuaOperationStatus.StackUnavailable, LuaOperationStatusKind.StackUnavailable)
+			(LuaOperationStatus.StackUnavailable, LuaOperationStatusKind.StackUnavailable),
+			(LuaOperationStatus.MissingResult, LuaOperationStatusKind.MissingResult),
+			(LuaOperationStatus.ResultCapacityExceeded, LuaOperationStatusKind.ResultCapacityExceeded)
 		];
 
 		foreach ((LuaOperationStatus status, LuaOperationStatusKind kind) in named)
@@ -58,6 +60,8 @@ public sealed class LuaOperationStatusTests
 		Assert.Equal(4, (int) LuaOperationStatusKind.NilResult);
 		Assert.Equal(5, (int) LuaOperationStatusKind.InvalidResult);
 		Assert.Equal(6, (int) LuaOperationStatusKind.StackUnavailable);
-		Assert.Equal(7, Enum.GetValues<LuaOperationStatusKind>().Length);
+		Assert.Equal(7, (int) LuaOperationStatusKind.MissingResult);
+		Assert.Equal(8, (int) LuaOperationStatusKind.ResultCapacityExceeded);
+		Assert.Equal(9, Enum.GetValues<LuaOperationStatusKind>().Length);
 	}
 }

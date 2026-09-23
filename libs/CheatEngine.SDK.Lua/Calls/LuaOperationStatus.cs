@@ -57,6 +57,13 @@ public readonly struct LuaOperationStatus : IEquatable<LuaOperationStatus>
 	/// <summary>Gets a status for a stack-capacity failure before the call begins.</summary>
 	public static LuaOperationStatus StackUnavailable => new(LuaOperationStatusKind.StackUnavailable, LuaStatus.Ok);
 
+	/// <summary>Gets a status for a call that returned fewer values than the declaration requires.</summary>
+	public static LuaOperationStatus MissingResult => new(LuaOperationStatusKind.MissingResult, LuaStatus.Ok);
+
+	/// <summary>Gets a status for more variadic results than the destination can hold.</summary>
+	public static LuaOperationStatus ResultCapacityExceeded =>
+		new(LuaOperationStatusKind.ResultCapacityExceeded, LuaStatus.Ok);
+
 	/// <summary>Gets a status for a protected Lua failure.</summary>
 	/// <param name="luaStatus">The unmodified status returned by the protected Lua primitive.</param>
 	public static LuaOperationStatus LuaFailure(LuaStatus luaStatus)

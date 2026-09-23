@@ -31,5 +31,18 @@ public enum LuaOperationStatusKind
 	InvalidResult = 5,
 
 	/// <summary>The Lua stack could not grow enough to begin the declared call.</summary>
-	StackUnavailable = 6
+	StackUnavailable = 6,
+
+	/// <summary>
+	///     The call completed but returned fewer values than the declaration requires. Only a declaration that reads the
+	///     factual result count (an optional or variadic result) can tell this apart from <see cref="NilResult" />: Lua
+	///     pads a fixed-count call with <c>nil</c>.
+	/// </summary>
+	MissingResult = 7,
+
+	/// <summary>
+	///     The call completed but returned more variadic values than the destination span can hold. Nothing was copied;
+	///     the count output holds the number of values Lua returned.
+	/// </summary>
+	ResultCapacityExceeded = 8
 }

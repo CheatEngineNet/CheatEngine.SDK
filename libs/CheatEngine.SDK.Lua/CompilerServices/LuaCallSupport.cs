@@ -1,9 +1,12 @@
+using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 
+using CheatEngine.SDK.Annotations.Lua;
 using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Marshalling;
 using CheatEngine.SDK.Lua.State;
 
 namespace CheatEngine.SDK.Lua.CompilerServices;
@@ -95,6 +98,153 @@ public static class LuaCallSupport
 		state.SetTop(top);
 		result = default!;
 		return status;
+	}
+
+	/// <summary>
+	///     Pushes an optional argument that a generated wrapper decided to pass: its value through
+	///     <typeparamref name="TMarshaller" />, or <c>nil</c> for <see cref="LuaOptional{T}.IsNil" />. A wrapper never
+	///     calls this for an omitted argument: it computes the argument count first and pushes only up to the last
+	///     argument that is not omitted.
+	/// </summary>
+	/// <typeparam name="T">The value type.</typeparam>
+	/// <typeparam name="TMarshaller">The marshaller of <typeparamref name="T" />.</typeparam>
+	/// <param name="state">The state to push on.</param>
+	/// <param name="value">The value or <c>nil</c>.</param>
+	/// <exception cref="ArgumentException"><paramref name="value" /> is omitted: an omitted argument is never pushed.</exception>
+	[LuaStackEffect(1)]
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static void PushOptional<T, TMarshaller>(LuaState state, LuaOptional<T> value)
+		where T : notnull
+		where TMarshaller : ILuaMarshaller<T>
+	{
+		if (value.TryGetValue(out T? present))
+		{
+			TMarshaller.Push(state, present);
+		}
+		else if (value.IsNil)
+		{
+			state.PushNil();
+		}
+		else
+		{
+			ThrowOmittedArgument(nameof(value));
+		}
+	}
+
+	/// <summary>
+	///     Reads an optional value at a positive, absolute stack <paramref name="index" /> without changing the stack: a
+	///     position above the top is <see cref="LuaOptional{T}.IsOmitted" /> (the caller or the callee passed fewer
+	///     values), <c>nil</c> is <see cref="LuaOptional{T}.IsNil" />, and a value <typeparamref name="TMarshaller" /> reads
+	///     is present. Generated thunks read optional arguments and generated wrappers read optional results with it.
+	/// </summary>
+	/// <typeparam name="T">The value type.</typeparam>
+	/// <typeparam name="TMarshaller">The marshaller of <typeparamref name="T" />.</typeparam>
+	/// <param name="state">The state to read from.</param>
+	/// <param name="index">A positive, absolute stack index; never touched when it is above the top.</param>
+	/// <param name="value">The optional value; omitted when the read fails.</param>
+	/// <returns>
+	///     <see langword="false" /> only when a non-<c>nil</c> value is present that <typeparamref name="TMarshaller" />
+	///     cannot read (a value of another kind).
+	/// </returns>
+	[LuaStackEffect(0)]
+	public static bool TryReadOptional<T, TMarshaller>(LuaState state, int index, out LuaOptional<T> value)
+		where T : notnull
+		where TMarshaller : ILuaMarshaller<T>
+	{
+		if (index <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(index), index, "An optional value is read at a positive, absolute index.");
+		}
+
+		if (index > state.Top)
+		{
+			value = default;
+			return true;
+		}
+
+		if (state.IsNil(index))
+		{
+			value = LuaOptional.Nil<T>();
+			return true;
+		}
+
+		if (TMarshaller.TryRead(state, index, out T? read))
+		{
+			value = LuaOptional<T>.FromValue(read);
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+
+	/// <summary>
+	///     Copies every value from the positive, absolute stack index <paramref name="firstIndex" /> to the top into
+	///     <paramref name="destination" /> through <typeparamref name="TMarshaller" />, without changing the stack: the
+	///     variadic tail of a generated Outcome wrapper.
+	/// </summary>
+	/// <typeparam name="T">The unmanaged element type.</typeparam>
+	/// <typeparam name="TMarshaller">The marshaller of <typeparamref name="T" />.</typeparam>
+	/// <param name="state">The state to read from.</param>
+	/// <param name="firstIndex">The absolute index of the first value; above the top means no value.</param>
+	/// <param name="destination">Receives the values, in stack order.</param>
+	/// <param name="count">
+	///     The number of values copied on success; on <see cref="LuaOperationStatusKind.ResultCapacityExceeded" /> the
+	///     number of values Lua returned (the capacity needed); otherwise 0.
+	/// </param>
+	/// <returns>
+	///     <see cref="LuaOperationStatus.Success" />; <see cref="LuaOperationStatus.ResultCapacityExceeded" /> when there
+	///     are more values than <paramref name="destination" /> holds (nothing copied);
+	///     <see cref="LuaOperationStatus.NilResult" /> or <see cref="LuaOperationStatus.InvalidResult" /> for the first
+	///     value that cannot be read (<paramref name="destination" /> is cleared up to that position). No error text is
+	///     read.
+	/// </returns>
+	[LuaStackEffect(0)]
+	public static LuaOperationStatus ReadResults<T, TMarshaller>(LuaState state, int firstIndex, Span<T> destination,
+		out int count)
+		where T : unmanaged
+		where TMarshaller : ILuaMarshaller<T>
+	{
+		if (firstIndex <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(firstIndex), firstIndex,
+				"Results are read from a positive, absolute index.");
+		}
+
+		int available = state.Top - firstIndex + 1;
+		if (available <= 0)
+		{
+			count = 0;
+			return LuaOperationStatus.Success;
+		}
+
+		if (available > destination.Length)
+		{
+			count = available;
+			return LuaOperationStatus.ResultCapacityExceeded;
+		}
+
+		for (int i = 0; i < available; i++)
+		{
+			int index = firstIndex + i;
+			if (!TMarshaller.TryRead(state, index, out destination[i]))
+			{
+				destination[..(i + 1)].Clear();
+				count = 0;
+				return state.IsNil(index) ? LuaOperationStatus.NilResult : LuaOperationStatus.InvalidResult;
+			}
+		}
+
+		count = available;
+		return LuaOperationStatus.Success;
+	}
+
+	[DoesNotReturn]
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	private static void ThrowOmittedArgument(string parameterName)
+	{
+		throw new ArgumentException("An omitted optional Lua argument is never pushed; the wrapper stops before it.",
+			parameterName);
 	}
 
 	/// <summary>

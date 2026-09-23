@@ -35,6 +35,9 @@ affects every managed plugin of that host: record your host's runtime policy and
 configuration just to run a plugin. See the
 [live-plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md#run-it-in-cheat-engine).
 
+A NativeAOT plugin DLL is not a supported profile: Cheat Engine unloads a plugin with `FreeLibrary`, which .NET does
+not support for a NativeAOT library. See [load profiles and limits](src/CheatEngine.SDK/README.md#load-profiles-and-limits).
+
 ## Install
 
 Create a class library and add the package:

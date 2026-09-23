@@ -99,7 +99,9 @@ public static class SymbolLists
 	/// <exception cref="ObjectDisposedException"><paramref name="list" /> no longer owns a list.</exception>
 	/// <exception cref="InvalidOperationException">
 	///     The plugin is not enabled, the calling thread has no Lua state, or <paramref name="list" /> was created in a
-	///     previous Lua runtime identity.
+	///     previous Lua runtime identity. Unlike a stale <see cref="Owned{T}" />'s own <c>Dispose</c>/<c>TryDestroy</c>/
+	///     <see cref="Owned{T}.ReleaseWithOutcome" />, this throw does not consume <paramref name="list" />: no register
+	///     call was attempted, so the caller can still dispose the list itself through its normal destroy path.
 	/// </exception>
 	/// <exception cref="SymbolListRegistrationHandoffException">
 	///     Cheat Engine registered the list but the lease could not be constructed; the exception reports the one

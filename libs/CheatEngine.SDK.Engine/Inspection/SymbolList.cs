@@ -462,21 +462,14 @@ public readonly struct SymbolList : IEquatable<SymbolList>, ICEObject<SymbolList
 	internal LuaOperationStatus TryInvokeRegistration(LuaState state, ReadOnlySpan<byte> method, out bool invoked)
 	{
 		invoked = false;
-		try
+		LuaOperationStatus status = TryPushMember(state, method);
+		if (!status.IsSuccess)
 		{
-			LuaOperationStatus status = TryPushMember(state, method);
-			if (!status.IsSuccess)
-			{
-				return status;
-			}
+			return status;
+		}
 
-			invoked = true;
-			return Call(state, 0, 0);
-		}
-		catch (LuaException exception)
-		{
-			return LuaOperationStatus.LuaFailure(exception.Status);
-		}
+		invoked = true;
+		return Call(state, 0, 0);
 	}
 
 	// Pushes obj.member (the bound function Cheat Engine returns), leaving the object below it for the caller's restore:

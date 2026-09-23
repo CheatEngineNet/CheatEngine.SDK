@@ -505,6 +505,7 @@ public sealed class AutoAssemblerPatcherTests
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("auto_assembler_target_process_id = " +
 													 Environment.ProcessId +
 													 "\nfunction getOpenedProcessID() return auto_assembler_target_process_id end"));
+		EngineTest.Run(state, FakeHost.LocalTargetBackendChunk);
 		EngineTest.Run(state, """
 		                      auto_assembler_apply_count = 0
 		                      auto_assembler_disable_count = 0

@@ -425,6 +425,7 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
 	{
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("function getOpenedProcessID() return " +
 													 Environment.ProcessId + " end"));
+		EngineTest.Run(state, FakeHost.LocalTargetBackendChunk);
 	}
 
 	private static void AssertLuaInteger(LuaState state, string name, long expected)

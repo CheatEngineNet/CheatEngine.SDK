@@ -236,6 +236,7 @@ public sealed class MemoryScanSessionFactoryTests
 		                                           function getOpenedProcessID()
 		                                             return {{Environment.ProcessId}}
 		                                           end
+		                                           function isConnectedToCEServer() return false end
 		                                           """));
 
 		MemoryScanCreationStatus status = MemoryScanSessions.TryCreateDetailed(out MemoryScanSession? created);
@@ -276,6 +277,7 @@ public sealed class MemoryScanSessionFactoryTests
 		                                           function getOpenedProcessID()
 		                                             return {{Environment.ProcessId}}
 		                                           end
+		                                           function isConnectedToCEServer() return false end
 		                                           """));
 
 		MemoryScanCreationStatus status = MemoryScanSessions.TryCreateDetailed(out MemoryScanSession? created);
@@ -356,6 +358,7 @@ public sealed class MemoryScanSessionFactoryTests
 		                                               function getOpenedProcessID()
 		                                                 return {{Environment.ProcessId}}
 		                                               end
+		                                               function isConnectedToCEServer() return false end
 		                                               """));
 	}
 
@@ -364,6 +367,7 @@ public sealed class MemoryScanSessionFactoryTests
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("function getOpenedProcessID() return " +
 													 Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
 													 " end"));
+		EngineTest.Run(state, FakeHost.LocalTargetBackendChunk);
 	}
 
 	private static void SetGlobalObject(LuaState state, ReadOnlySpan<byte> name, CEObject value)

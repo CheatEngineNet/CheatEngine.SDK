@@ -839,6 +839,7 @@ public sealed class MemoryScanSessionTests
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("opened_process_id = " +
 													 Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
 													 "; function getOpenedProcessID() return opened_process_id end"));
+		EngineTest.Run(state, FakeHost.LocalTargetBackendChunk);
 	}
 
 	private static string ScanInitializer(bool firstScanRaises, bool waitRaises)

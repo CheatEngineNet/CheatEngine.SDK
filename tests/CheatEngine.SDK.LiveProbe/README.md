@@ -68,7 +68,7 @@ authorization manifest, the target image and CE's opened PID immediately before 
 |-----------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
 | `ce77_live_probe_status()`                                                        | Human-readable: bootstrap calls, the raw second integer (`opaqueSecondInt`, never labelled size or version), `PluginHost.LastInitRecordArgument`, phase, plugin id, epoch, reported exports size, gates, prior observations. | operator               |
 | `ce77_live_probe_status_json()`                                                   | The same facts as one `ce77-live-probe-status-v1` JSON object, plus assembly locations, MVIDs, the Hosting load context and every fault-switch decision. Not gated: it reads process-local facts only. | Q03, Q04, Q05, Q06, Q08, Q40 |
-| `ce77_live_probe_host_profile()`                                                  | One `ce77-live-host-profile-v1` JSON identity record for the authorized CE host, loaded Lua module, adjacent bridge, plugin and disposable target.                               | Q40                    |
+| `ce77_live_probe_host_profile()`                                                  | One `ce77-live-host-profile-v1` JSON identity record for the authorized CE host, loaded Lua module, loaded bridge, plugin and disposable target.                                 | Q40                    |
 | `ce77_live_probe_throw_managed_exception()`                                       | Throws `InvalidOperationException("CE 7.7 live probe deliberate managed exception (Q14).")` inside the generated thunk; call it under `pcall` and record the Lua error.         | Q14                    |
 | `ce77_live_probe_pump_messages(seconds)`                                          | Pumps CE's messages for 1–60 seconds from admitted main-thread work and returns a `ce77-live-probe-pump-v1` JSON record of the lifecycle phases seen. The operator unticks the plugin meanwhile. An observation, not a promise. | Q07                    |
 | `ce77_live_probe_begin_synchronize()` then `ce77_live_probe_synchronize_status()` | Worker, thunk and nested-invoke managed thread IDs; return round-trip and propagated exception.                                                                                  | operator               |
@@ -154,7 +154,9 @@ disposable target through its normal cleanup route. Do not force-unload assembli
 - The fault switch is never read without authorization, selects exactly the requested stage, and ignores and reports an
   absent, unreadable or unknown switch (`LiveProbeFaultInjectionTests`).
 - Missing, locked or vanishing identity files are reported as typed outcomes, never as a crash
-  (`HostProfileObservationTests`).
+  (`HostProfileObservationTests`), and the bridge identity is the module the process loaded, never a file guessed next
+  to the application
+  (`HostProfileObservationTests.Host_profile_records_the_loaded_bridge_module_and_never_a_file_next_to_the_application`).
 - No live test is invoked by `dotnet test`, normal CI, Release validation or packaging: the solution only compiles it,
   and no workflow references the runner (`LocalQualificationRunnerTests.No_workflow_references_the_local_qualification_runner`).
 

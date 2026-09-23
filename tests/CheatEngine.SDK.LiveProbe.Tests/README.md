@@ -28,7 +28,7 @@ because the harness keeps process-wide static state.
 | `LiveProbeStateTests`            | Fresh authorization and target-PID checks before host-profile capture and every protected command.                          |
 | `LiveProbeStatusTests`           | Text and JSON status (plugin id, epoch, exports size, raw second bootstrap integer), the exception hook and the pump hook. |
 | `LiveProbeFaultInjectionTests`   | The `liveprobe.fault.json` switch: never read without authorization, exact stage selection, ignored and reported failures. |
-| `HostProfileObservationTests`    | Typed outcomes for missing, locked, vanishing or protected identity files.                                                  |
+| `HostProfileObservationTests`    | Typed outcomes for missing, locked, vanishing or protected identity files; the bridge record names the loaded module only.  |
 
 ## Promise
 
@@ -41,7 +41,9 @@ because the harness keeps process-wide static state.
   any host call (`LiveProbeStatusTests`).
 - The fault switch is ignored without authorization, selects exactly the requested stage, and treats an absent file as
   no fault (`LiveProbeFaultInjectionTests`).
-- Identity-file failures are reported as typed outcomes (`HostProfileObservationTests`).
+- Identity-file failures are reported as typed outcomes (`HostProfileObservationTests`), and the bridge identity is the
+  module the process loaded, never a file next to the application
+  (`HostProfileObservationTests.Host_profile_records_the_loaded_bridge_module_and_never_a_file_next_to_the_application`).
 
 ## Run the tests
 

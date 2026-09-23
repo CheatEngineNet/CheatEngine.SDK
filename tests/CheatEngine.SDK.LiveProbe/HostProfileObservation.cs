@@ -36,7 +36,9 @@ internal static class HostProfileObservation
 
 			WriteFileIdentity(writer, "host", authorization.HostPath, authorization.HostSha256);
 			WriteFileIdentity(writer, "lua", FindLoadedModulePath(LuaModule.CheatEngine64ModuleName), null);
-			WriteFileIdentity(writer, "bridge", Path.Combine(AppContext.BaseDirectory, BridgeFileName), null);
+			// The bridge module the process actually loaded (through the plugin's dependency resolution), never a file
+			// guessed next to AppContext.BaseDirectory: under Cheat Engine's hostfxr runtime that is not the plugin folder.
+			WriteFileIdentity(writer, "bridge", FindLoadedModulePath(BridgeFileName), null);
 			WriteFileIdentity(writer, "plugin", typeof(HostProfileObservation).Assembly.Location, null);
 
 			writer.WriteStartObject("target");

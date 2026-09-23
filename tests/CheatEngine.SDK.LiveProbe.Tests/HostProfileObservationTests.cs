@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Text.Json;
+
 using LiveProbe;
 
 namespace CheatEngine.SDK.LiveProbe.Tests;
@@ -71,5 +74,41 @@ public sealed class HostProfileObservationTests
 			static _ => throw new UnauthorizedAccessException());
 
 		Assert.Equal("unavailable: UnauthorizedAccessException", outcome);
+	}
+
+	[Fact]
+	public void Host_profile_records_the_loaded_bridge_module_and_never_a_file_next_to_the_application()
+	{
+		// The test output folder holds a cheatengine-sdk-lua-bridge.dll that this process does not need to load. The
+		// record may name a bridge only when the process loaded it; modules stay loaded, so a module listed after the
+		// capture was loaded when the record named it.
+		string record = HostProfileObservation.Capture(AuthorizationDecision.Denied("test"));
+		using JsonDocument document = JsonDocument.Parse(record);
+		JsonElement bridge = document.RootElement.GetProperty("bridge");
+		string[] loaded = LoadedModulePaths("cheatengine-sdk-lua-bridge.dll");
+
+		if (bridge.TryGetProperty("path", out JsonElement path))
+		{
+			Assert.Contains(path.GetString()!, loaded, StringComparer.OrdinalIgnoreCase);
+		}
+		else
+		{
+			Assert.Equal("not-observed", bridge.GetProperty("outcome").GetString());
+		}
+	}
+
+	private static string[] LoadedModulePaths(string fileName)
+	{
+		using Process process = Process.GetCurrentProcess();
+		List<string> paths = [];
+		foreach (ProcessModule module in process.Modules)
+		{
+			if (string.Equals(Path.GetFileName(module.FileName), fileName, StringComparison.OrdinalIgnoreCase))
+			{
+				paths.Add(module.FileName);
+			}
+		}
+
+		return [.. paths];
 	}
 }

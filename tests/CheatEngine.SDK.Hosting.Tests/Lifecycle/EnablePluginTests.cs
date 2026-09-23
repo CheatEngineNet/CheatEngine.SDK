@@ -346,7 +346,12 @@ public sealed unsafe class EnablePluginTests
 			Assert.False(nestedResult);
 			Assert.True(LuaRuntime.IsAttached);
 			Assert.Equal(PluginHostLifecyclePhase.Disabling, PluginHost.Phase);
-			Assert.True(sink.HasEntry(HostLogLevel.Error, "a disable transition is already completing"));
+			// WI-6: the nested call's own "a disable transition is already completing" log happens while this
+			// thread is still inside the outer HostLog.Write that dispatched to sink.OnMessage, so it is a
+			// reentrant write on the same thread. It is dropped and counted instead of reaching the sink, which is
+			// exactly the containment the nested lifecycle refusal above (nestedResult == false) does not depend on.
+			Assert.False(sink.HasEntry(HostLogLevel.Error, "a disable transition is already completing"));
+			Assert.True(HostLog.DroppedReentrantEntries > 0);
 
 			LuaCallbackRegistry.AfterReleaseForTesting = null;
 			sink.OnMessage = null;

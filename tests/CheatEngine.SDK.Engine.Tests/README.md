@@ -23,6 +23,7 @@ native code. See [
 | Piece                         | Role                                                                                                                                                                                                                           |
 |-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Support/FakeHost.cs`         | Stands in for `GetLuaState` and `LuaPushClassInstance`, not for Lua. A Lua model supplies object, list, scanner and address-list stand-ins, getters and setters that can raise, zero-based `obj[i]` and `destroy` bookkeeping. |
+| `Support/FakeHost.SRes.cs`    | Adds the S-RES fixtures: a controlled state replacement (`ReplaceStateGeneration`), a symbol-list class, a qualified local target, and a re-entrant host hook that calls back into the SDK from inside a Lua call.             |
 | `Support/HostScope.cs`        | Attaches `LuaRuntime` to a fixture state for one test and detaches on dispose. Tests attach the runtime only through it, and tests that need it unattached call `LuaRuntime.Detach()` first.                                   |
 | `Support/DebugAssertScope.cs` | Turns a failed `Debug.Assert` into an exception, so the Debug-only main-thread guard of `Owned<T>` is testable. That test skips in Release.                                                                                    |
 | `Support/EngineTest.cs`       | `RequireNativeLua()` skips without a Lua library. `RunOnWorker` runs work on a fresh thread and returns what it threw.                                                                                                         |
@@ -41,8 +42,10 @@ behavior.
 - Hot paths allocate exactly zero bytes after warm-up, measured by `Support/AllocationGate.cs`: typed get, set and call,
   stack-level primitives, `Address` and enum marshalling, enum name lookup.
 - A typed operation acquires the state once and pushes the object once (`HostCallCountTests`).
-- `Owned<T>` destroys the object exactly once. After the plugin is disabled, `Dispose` skips the destroy call and leaves
-  the object alive.
+- `Owned<T>` destroys the object exactly once. After the plugin is disabled, `Dispose` throws and leaves the object
+  alive; after a re-enable or a controlled state replacement, every release path consumes the owner without a call and
+  reports `RefusedRuntimeChanged`. `ReleaseWithOutcome` never throws, and a transfer keeps the origin
+  (`OwnedTests`, `EngineResourceOriginTests`, `OwnershipSurfaceTests`).
 - Enum values and Cheat Engine names are pinned by literals.
 - `RuntimeInfo`/`RuntimeCapabilities` retain explicit unknown facts. `TargetMemory` and `HostMemory` keep their address
   types separate, preserve byte ordering through span calls, and distinguish expected read/write failures.
@@ -56,9 +59,19 @@ behavior.
   fixture that models a qualified local target therefore defines `isConnectedToCEServer` (use
   `FakeHost.LocalTargetBackendChunk`).
 - Inspection snapshots distinguish documented `nil` from malformed results. Allocation ownership is consumed exactly
-  once even when the underlying release fails. AOB and StringList results are explicit `Owned<T>` values.
+  once even when the underlying release fails; `TryAllocate` reports every result with its effect state and never
+  leaves a live address without an owner or one reported compensation; a released region never frees a later
+  allocation at the same address (`TargetMemoryAllocatorTests`, `AllocationLifecycleTests`). AOB and StringList results
+  are explicit `Owned<T>` values.
+- Auto Assembler activation reports a factual outcome, copies CE text only on request and bounded, and publishes a
+  bounded disable-info snapshot that never fails the activation (`AutoAssemblerOutcomeTests`,
+  `AutoAssemblerDisableInfoSnapshotTests`).
+- Symbol leases never unregister a replaced or removed name, and a registered symbol list is unregistered before it is
+  destroyed (`SymbolLeaseReplacementTests`, `SymbolListTests`).
 - A scan session enforces its state machine and destroys its owned `FoundList` before its `MemScan`. Address-list and
-  memory-record handles remain CE-borrowed and are never implicitly owned.
+  memory-record handles remain CE-borrowed and are never implicitly owned. Activation reports its before and after
+  state and never retries, and a table load refuses re-entrant mutations (`MemoryRecordActivationTests`,
+  `AddressListExitTests`).
 - Address-list and memory-record wrappers also omit `MainThreadOnly` metadata until the CE 7.7 dispatcher probe turns
   their GUI affinity inference into an enforceable contract (`AddressListValueTests`).
 - Memory text keeps embedded NULs and raw invalid UTF-8 in the byte forms, `maximumLength` and the wide flag reach CE

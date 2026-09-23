@@ -25,6 +25,7 @@ workflow's own "submit" step text against a mocked `gh`, offline.
 | `Release/`         | `ReleaseWorkflowContractTests` reads `.github/workflows/release.yml`: the draft-first job chain, tag guards, write scopes, trusted publishing placement and the reserved artifact names. |
 | `Governance/`      | `GovernanceWorkflowTests` freeze CodeQL, Scorecard, the online zizmor run and dependency submission; `DependabotConfigurationTests` checks `.github/dependabot.yml`; `GovernanceDocumentTests` checks `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS` and the issue forms. |
 | `Generation/`      | `GeneratorInventoryTests` pins the reviewed source generator projects, keeps the extended analyzer rules on every Roslyn component and refuses a local Cheat Engine path in their sources. |
+| `Ownership/`       | `OwnershipPolicyTests` scans the shipping sources: no finalizer, and no binding of Cheat Engine's global that deletes every registered symbol. |
 
 ## Promise
 
@@ -153,6 +154,11 @@ workflow's own "submit" step text against a mocked `gh`, offline.
 - The source generator projects are exactly the reviewed set, every analyzer and generator keeps
   `EnforceExtendedAnalyzerRules`, and no component source names `Program Files`, a drive-rooted path or
   `celua.txt` (`GeneratorInventoryTests`).
+- No shipping library declares a finalizer, and no shipping source or generator spec binds the Cheat Engine global that
+  deletes every registered symbol; the finalizer scan is self-tested against comments and the bitwise complement
+  operator (`OwnershipPolicyTests`: `No_shipping_library_declares_a_finalizer`,
+  `No_shipping_library_binds_delete_all_registered_symbols`,
+  `Finalizer_scan_finds_a_destructor_and_ignores_comments_and_operators`).
 
 ## Run the tests
 

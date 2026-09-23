@@ -418,8 +418,9 @@ function Get-BundleFileManifest {
 function Test-EntryPointExport {
     <#
     .SYNOPSIS
-        True when the assembly declares the public static class CESDK.CESDK with a public static
-        int CEPluginInitialize(nint, int), read with System.Reflection.Metadata without loading the assembly.
+        True when the assembly declares the top-level static class CESDK.CESDK (public, or internal as the package's
+        entry-point generator emits it) with a public static int CEPluginInitialize(nint, int), read with
+        System.Reflection.Metadata without loading the assembly.
     #>
     [CmdletBinding()]
     [OutputType([bool])]
@@ -435,10 +436,15 @@ function Test-EntryPointExport {
                 $type = $reader.GetTypeDefinition($typeHandle)
                 if ($reader.GetString($type.Namespace) -cne 'CESDK' -or $reader.GetString($type.Name) -cne 'CESDK') { continue }
                 $typeAttributes = $type.Attributes
-                $isPublicStatic = (($typeAttributes -band [System.Reflection.TypeAttributes]::VisibilityMask) -eq [System.Reflection.TypeAttributes]::Public) -and
+                # Top-level visibility is Public or NotPublic (internal); a static class is abstract and sealed. Cheat Engine
+                # resolves the type by name through the runtime host, which does not require it to be public.
+                $visibility = $typeAttributes -band [System.Reflection.TypeAttributes]::VisibilityMask
+                $isTopLevel = $visibility -eq [System.Reflection.TypeAttributes]::Public -or $visibility -eq [System.Reflection.TypeAttributes]::NotPublic
+                $isStaticClass = $isTopLevel -and
+                    (($typeAttributes -band [System.Reflection.TypeAttributes]::Interface) -eq 0) -and
                     (($typeAttributes -band [System.Reflection.TypeAttributes]::Abstract) -ne 0) -and
                     (($typeAttributes -band [System.Reflection.TypeAttributes]::Sealed) -ne 0)
-                if (-not $isPublicStatic) { return $false }
+                if (-not $isStaticClass) { return $false }
                 foreach ($methodHandle in $type.GetMethods()) {
                     $method = $reader.GetMethodDefinition($methodHandle)
                     if ($reader.GetString($method.Name) -cne 'CEPluginInitialize') { continue }
@@ -466,19 +472,73 @@ function Test-EntryPointExport {
     }
 }
 
+function Get-DepsJsonProblem {
+    <#
+    .SYNOPSIS
+        The problems of a plugin's .deps.json: a "project" library other than the plugin's own root entry
+        (<PluginName>/<version>, which every .deps.json lists), a missing "package" library for the qualified package
+        when -PackageLibrary names it (for example CheatEngine.SDK/2.0.0-alpha.0.12), or an absolute path.
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param(
+        [Parameter(Mandatory)] [AllowEmptyString()] [string] $Text,
+        [Parameter(Mandatory)] [string] $PluginName,
+        [string] $PackageLibrary = ''
+    )
+
+    $problems = [System.Collections.Generic.List[string]]::new()
+    $fileName = "$PluginName.deps.json"
+    if ($Text -match '(?<![A-Za-z0-9])[A-Za-z]:(\\\\|/)') {
+        $problems.Add("$fileName contains an absolute path.")
+    }
+
+    try { $document = $Text | ConvertFrom-Json -AsHashtable -Depth 64 }
+    catch {
+        $problems.Add("$fileName is not valid JSON.")
+        return $problems.ToArray()
+    }
+
+    $libraries = if ($document -is [System.Collections.IDictionary]) { $document['libraries'] } else { $null }
+    if ($libraries -isnot [System.Collections.IDictionary]) {
+        $problems.Add("$fileName has no libraries object.")
+        return $problems.ToArray()
+    }
+
+    $packageFound = $false
+    foreach ($library in $libraries.GetEnumerator()) {
+        $name = ([string] $library.Key).Split('/')[0]
+        $type = if ($library.Value -is [System.Collections.IDictionary]) { [string] $library.Value['type'] } else { '' }
+        if ($type -ceq 'project' -and -not $name.Equals($PluginName, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $problems.Add("$fileName contains the workspace project entry '$($library.Key)'; the SDK must come from the package.")
+        }
+        if ($PackageLibrary -and ([string] $library.Key).Equals($PackageLibrary, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $packageFound = $type -ceq 'package'
+        }
+    }
+
+    if ($PackageLibrary -and -not $packageFound) {
+        $problems.Add("$fileName has no package library '$PackageLibrary'; the plugin was not built from the qualified package.")
+    }
+
+    return $problems.ToArray()
+}
+
 function Test-QualificationBundleClosure {
     <#
     .SYNOPSIS
         Checks that a plugin folder built from the exact package is self-contained: the plugin with the CESDK.CESDK entry
-        point, the six SDK assemblies, a .deps.json without workspace project entries or absolute paths, the
-        .runtimeconfig.json, and the native bridge equal to the package's build/native copy. Returns the problems found.
+        point, the six SDK assemblies, a .deps.json whose only project entry is the plugin itself (and, with
+        -PackageLibrary, that lists the package), without absolute paths, the .runtimeconfig.json, and the native bridge
+        equal to the package's build/native copy. Returns the problems found.
     #>
     [CmdletBinding()]
     [OutputType([string[]])]
     param(
         [Parameter(Mandatory)] [string] $BundleDirectory,
         [Parameter(Mandatory)] [string] $PluginFileName,
-        [Parameter(Mandatory)] [ValidatePattern('^[0-9a-fA-F]{64}$')] [string] $PackagedBridgeSha256
+        [Parameter(Mandatory)] [ValidatePattern('^[0-9a-fA-F]{64}$')] [string] $PackagedBridgeSha256,
+        [string] $PackageLibrary = ''
     )
 
     $problems = [System.Collections.Generic.List[string]]::new()
@@ -487,7 +547,7 @@ function Test-QualificationBundleClosure {
         $problems.Add("The plugin $PluginFileName is missing.")
     }
     elseif (-not (Test-EntryPointExport -AssemblyPath $plugin)) {
-        $problems.Add("$PluginFileName declares no public static CESDK.CESDK.CEPluginInitialize(nint, int).")
+        $problems.Add("$PluginFileName declares no static class CESDK.CESDK with a public static int CESDK.CESDK.CEPluginInitialize(nint, int).")
     }
 
     foreach ($assembly in $script:SdkAssemblies) {
@@ -502,12 +562,8 @@ function Test-QualificationBundleClosure {
         $problems.Add("$baseName.deps.json is missing.")
     }
     else {
-        $depsText = [System.IO.File]::ReadAllText($deps)
-        if ($depsText -match '"type"\s*:\s*"project"') {
-            $problems.Add("$baseName.deps.json contains a workspace project entry; the SDK must come from the package.")
-        }
-        if ($depsText -match '(?<![A-Za-z0-9])[A-Za-z]:(\\\\|/)') {
-            $problems.Add("$baseName.deps.json contains an absolute path.")
+        foreach ($problem in @(Get-DepsJsonProblem -Text ([System.IO.File]::ReadAllText($deps)) -PluginName $baseName -PackageLibrary $PackageLibrary)) {
+            $problems.Add($problem)
         }
     }
 
@@ -923,6 +979,7 @@ Export-ModuleMember -Function @(
     'Expand-QualificationDriver'
     'Get-BundleFileManifest'
     'Test-EntryPointExport'
+    'Get-DepsJsonProblem'
     'Test-QualificationBundleClosure'
     'Test-CheatEngineProcessName'
     'Get-RestoredPackageContentHash'

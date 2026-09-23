@@ -34,9 +34,11 @@ operator's Cheat Engine settings changed.
    throw-away consumer project with empty `Directory.Build.*` and `Directory.Packages.props`, a copy of `global.json`,
    `Compile` items for the harness sources, a `PackageReference` to the exact package version read from its `.nuspec`, a
    `NuGet.Config` with `<clear/>` and package source mapping, and an isolated `NUGET_PACKAGES`; restored with
-   `--no-http-cache --force-evaluate`, published, then checked: plugin with `CESDK.CESDK.CEPluginInitialize(nint, int)`
-   (read with System.Reflection.Metadata), the six SDK assemblies, `.deps.json` without project entries or absolute
-   paths, `.runtimeconfig.json`, and the bridge equal to the package's `build/native` copy. Q09.a merges A and B into one
+   `--no-http-cache --force-evaluate`, published, then checked: plugin with a static `CESDK.CESDK` class, public or
+   internal as the package's entry-point generator emits it, and a public static `CEPluginInitialize(nint, int)` (read
+   with System.Reflection.Metadata), the six SDK assemblies, a `.deps.json` whose only `project` library is the plugin's
+   own root entry, that lists `CheatEngine.SDK/<version>` as a `package` and holds no absolute path,
+   `.runtimeconfig.json`, and the bridge equal to the package's `build/native` copy. Q09.a merges A and B into one
    folder and refuses a same-named file with different bytes. Each bundle gets `bundle-manifest.<name>.json` (every file
    with its SHA-256, and the build warnings).
 6. **Package and bridge identity.** SHA-256 of the `.nupkg`; the NuGet content hash from the isolated restore's
@@ -112,7 +114,10 @@ authorization manifest contain private data and must never be committed.
   (`Receipt_builder_produces_a_schema_valid_receipt_from_a_recorded_event_log`); redaction removes user paths and keeps
   scenario values (`Redaction_removes_user_paths_and_keeps_scenario_values`); registry differences carry names only
   (`Registry_diff_reports_value_names_only`); an incomplete bundle is refused
-  (`Bundle_closure_check_rejects_a_missing_bridge_or_a_workspace_project_entry`); the recorded content hash is the
+  (`Bundle_closure_check_rejects_a_missing_bridge_or_a_workspace_project_entry`) and a bundle built from the package,
+  with the generated internal entry point, is accepted
+  (`Bundle_closure_check_accepts_a_package_consumer_bundle_with_the_generated_internal_entry_point`); the recorded
+  content hash is the
   lock-file value (`Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash`); only Cheat
   Engine's own executables count as another instance, never a process such as a `CheatEngine.*` test host
   (`Only_Cheat_Engine_executables_count_as_another_instance`).

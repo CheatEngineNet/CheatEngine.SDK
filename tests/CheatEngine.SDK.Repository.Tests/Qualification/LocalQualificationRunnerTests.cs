@@ -25,6 +25,23 @@ public sealed class LocalQualificationRunnerTests
 		"Q39", "Q40"
 	];
 
+	private const string PackageConsumerDeps = """
+		{
+		  "runtimeTarget": { "name": ".NETCoreApp,Version=v10.0", "signature": "" },
+		  "compilationOptions": {},
+		  "targets": {
+		    ".NETCoreApp,Version=v10.0": {
+		      "Plugin/1.0.0": { "dependencies": { "CheatEngine.SDK": "2.0.0-alpha.0.12" }, "runtime": { "Plugin.dll": {} } },
+		      "CheatEngine.SDK/2.0.0-alpha.0.12": { "runtime": { "lib/net10.0/CheatEngine.SDK.Hosting.dll": { "assemblyVersion": "2.0.0.0", "fileVersion": "2.0.0.0" } } }
+		    }
+		  },
+		  "libraries": {
+		    "Plugin/1.0.0": { "type": "project", "serviceable": false, "sha512": "" },
+		    "CheatEngine.SDK/2.0.0-alpha.0.12": { "type": "package", "serviceable": true, "sha512": "sha512-AAAA", "path": "cheatengine.sdk/2.0.0-alpha.0.12", "hashPath": "cheatengine.sdk.2.0.0-alpha.0.12.nupkg.sha512" }
+		  }
+		}
+		""";
+
 	private static string ModuleImport =>
 		"Import-Module " + PowerShellProcess.Quote(QualificationDocuments.Absolute(RunnerModule)) + " -Force; ";
 
@@ -292,6 +309,39 @@ public sealed class LocalQualificationRunnerTests
 	}
 
 	[Fact]
+	public void Bundle_closure_check_accepts_a_package_consumer_bundle_with_the_generated_internal_entry_point()
+	{
+		string root = Path.Combine(Path.GetTempPath(), "cesdk-bundle-" + Guid.NewGuid().ToString("N"));
+		string bundle = Path.Combine(root, "bundle");
+		string variants = Path.Combine(root, "variants");
+		Directory.CreateDirectory(variants);
+		try
+		{
+			string bridgeSha256 = WritePackageConsumerBundle(bundle);
+
+			JsonElement result = RunJson(EntryPointAndClosureScript(bundle, variants, bridgeSha256));
+
+			Assert.True(result.GetProperty("accepted").GetArrayLength() == 0, result.GetProperty("accepted").GetRawText());
+			string otherPackage = Assert.Single(result.GetProperty("otherPackage").EnumerateArray()).GetString()!;
+			Assert.Contains("no package library 'CheatEngine.SDK/2.0.0-alpha.0.13'", otherPackage, StringComparison.Ordinal);
+			Dictionary<string, bool> entryPoints = result.GetProperty("entryPoints").EnumerateObject()
+				.ToDictionary(static property => property.Name, static property => property.Value.GetBoolean(), StringComparer.Ordinal);
+			Assert.Equal(new Dictionary<string, bool>(StringComparer.Ordinal)
+			{
+				["internalStatic"] = true,
+				["publicStatic"] = true,
+				["notStatic"] = false,
+				["privateMethod"] = false,
+				["wrongSignature"] = false,
+				["otherNamespace"] = false
+			}, entryPoints);
+		}
+		finally
+		{
+			Directory.Delete(root, true);
+		}
+	}
+	[Fact]
 	public void Only_Cheat_Engine_executables_count_as_another_instance()
 	{
 		// A false positive refuses the preflight and, after a session, turns a due HKCU restore into exit code 7.
@@ -495,6 +545,51 @@ public sealed class LocalQualificationRunnerTests
 		}
 
 		return names;
+	}
+
+	// What a harness built from the exact package looks like: the plugin's own root "project" entry and a "package" entry
+	// for CheatEngine.SDK. Returns the SHA-256 of the bundle's bridge.
+	private static string WritePackageConsumerBundle(string bundle)
+	{
+		Directory.CreateDirectory(bundle);
+		foreach (string assembly in (string[]) ["Abi", "Annotations", "Engine", "Hosting", "Lua", "Lua.Interop"])
+		{
+			File.WriteAllText(Path.Combine(bundle, "CheatEngine.SDK." + assembly + ".dll"), string.Empty);
+		}
+
+		File.WriteAllText(Path.Combine(bundle, "Plugin.deps.json"), PackageConsumerDeps);
+		File.WriteAllText(Path.Combine(bundle, "Plugin.runtimeconfig.json"), "{}");
+		string bridge = Path.Combine(bundle, "cheatengine-sdk-lua-bridge.dll");
+		File.WriteAllText(bridge, "the packaged bridge");
+		return Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(bridge)));
+	}
+
+	// Compiles the plugin with the entry point the package's generator emits (internal static class CESDK.CESDK) and
+	// entry-point variants, then runs the entry-point and closure checks on them.
+	private static string EntryPointAndClosureScript(string bundle, string variants, string bridgeSha256)
+	{
+		return ModuleImport + $$"""
+			function New-Assembly([string] $Path, [string] $Source) { Add-Type -TypeDefinition $Source -OutputAssembly $Path -OutputType Library }
+			New-Assembly {{PowerShellProcess.Quote(Path.Combine(bundle, "Plugin.dll"))}} 'namespace CESDK { internal static class CESDK { public static int CEPluginInitialize(System.IntPtr args, int opaqueArgument) { return 1; } } }'
+			$variants = [ordered]@{
+				publicStatic = 'namespace CESDK { public static class CESDK { public static int CEPluginInitialize(System.IntPtr args, int opaqueArgument) { return 1; } } }'
+				notStatic = 'namespace CESDK { internal class CESDK { public static int CEPluginInitialize(System.IntPtr args, int opaqueArgument) { return 1; } } }'
+				privateMethod = 'namespace CESDK { internal static class CESDK { private static int CEPluginInitialize(System.IntPtr args, int opaqueArgument) { return 1; } } }'
+				wrongSignature = 'namespace CESDK { internal static class CESDK { public static int CEPluginInitialize(int args, int opaqueArgument) { return 1; } } }'
+				otherNamespace = 'namespace Plugin { internal static class CESDK { public static int CEPluginInitialize(System.IntPtr args, int opaqueArgument) { return 1; } } }'
+			}
+			$entryPoints = [ordered]@{ internalStatic = Test-EntryPointExport -AssemblyPath {{PowerShellProcess.Quote(Path.Combine(bundle, "Plugin.dll"))}} }
+			foreach ($name in $variants.Keys) {
+				$path = Join-Path {{PowerShellProcess.Quote(variants)}} "$name.dll"
+				New-Assembly $path $variants[$name]
+				$entryPoints[$name] = Test-EntryPointExport -AssemblyPath $path
+			}
+			[ordered]@{
+				accepted = @(Test-QualificationBundleClosure -BundleDirectory {{PowerShellProcess.Quote(bundle)}} -PluginFileName 'Plugin.dll' -PackagedBridgeSha256 '{{bridgeSha256}}' -PackageLibrary 'CheatEngine.SDK/2.0.0-alpha.0.12')
+				otherPackage = @(Test-QualificationBundleClosure -BundleDirectory {{PowerShellProcess.Quote(bundle)}} -PluginFileName 'Plugin.dll' -PackagedBridgeSha256 '{{bridgeSha256}}' -PackageLibrary 'CheatEngine.SDK/2.0.0-alpha.0.13')
+				entryPoints = $entryPoints
+			} | ConvertTo-Json -Compress -Depth 4
+			""";
 	}
 
 	private static JsonElement Closure(string bundle, string packagedBridge)

@@ -388,7 +388,7 @@ $($compile -join "`n")
         $env:NUGET_PACKAGES = $previousPackages
     }
 
-    $problems = @(Test-QualificationBundleClosure -BundleDirectory $bundleDirectory -PluginFileName "$($definition.Assembly).dll" -PackagedBridgeSha256 $Package.bridgeSha256)
+    $problems = @(Test-QualificationBundleClosure -BundleDirectory $bundleDirectory -PluginFileName "$($definition.Assembly).dll" -PackagedBridgeSha256 $Package.bridgeSha256 -PackageLibrary "$($Package.id)/$($Package.version)")
     if ($problems.Count -gt 0) { throw "Bundle $Name is not closed over the package: $($problems -join ' ')" }
 
     return [ordered]@{

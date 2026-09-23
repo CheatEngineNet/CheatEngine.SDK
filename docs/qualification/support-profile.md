@@ -87,7 +87,9 @@ unknown.
 - Editing that file is never harmless or universal: it changes the runtime of every managed plugin of the installation.
   Nothing in this repository edits an installed Cheat Engine, and no guide treats such an edit as a setup step.
 - The qualification runner copies the installation into a sandbox and records the runtime configuration hash in every
-  receipt; a different hash makes the run `NotApplicable`, never `Passed`.
+  receipt. A different hash (or any other host fact that differs from this profile) stops the runner before Cheat
+  Engine starts, and no receipt is written; a receipt produced by other means for another host could only be
+  `NotApplicable` with a justification, never `Passed`.
 - .NET runtimes observed on the qualification machine: x64 `Microsoft.NETCore.App`, `Microsoft.WindowsDesktop.App` and
   `Microsoft.AspNetCore.App` 10.0.8, 10.0.11 and 10.0.12, plus x64 `Microsoft.NETCore.App` and
   `Microsoft.WindowsDesktop.App` 8.0.31; x86 `Microsoft.NETCore.App` and `Microsoft.WindowsDesktop.App` 6.0.36 only. A

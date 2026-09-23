@@ -212,7 +212,13 @@ function Invoke-Preflight {
     try { $facts.dotnetSdk = (Invoke-Native -FilePath 'dotnet' -ArgumentList @('--version') | Select-Object -First 1).Trim() }
     finally { Pop-Location }
     $facts.expectedDotnetSdk = $globalJson.sdk.version
-    $facts.dotnetRuntimes = @(Invoke-Native -FilePath 'dotnet' -ArgumentList @('--list-runtimes') | ForEach-Object { ($_ -replace '\s*\[.*\]\s*$', '').Trim() } | Where-Object { $_ })
+    # Both architectures, prefixed like the profile's dotnetRuntimesObserved (x86 runtimes live in their own dotnet.exe).
+    $runtimes = @(Invoke-Native -FilePath 'dotnet' -ArgumentList @('--list-runtimes') | ForEach-Object { 'x64 ' + ($_ -replace '\s*\[.*\]\s*$', '').Trim() } | Where-Object { $_ -ne 'x64 ' })
+    $x86Dotnet = Join-Path ${env:ProgramFiles(x86)} 'dotnet\dotnet.exe'
+    if (${env:ProgramFiles(x86)} -and (Test-Path -LiteralPath $x86Dotnet -PathType Leaf)) {
+        $runtimes += @(Invoke-Native -FilePath $x86Dotnet -ArgumentList @('--list-runtimes') | ForEach-Object { 'x86 ' + ($_ -replace '\s*\[.*\]\s*$', '').Trim() } | Where-Object { $_ -ne 'x86 ' })
+    }
+    $facts.dotnetRuntimes = $runtimes
     $facts.osVersion = [System.Environment]::OSVersion.VersionString
     return $facts
 }
@@ -380,8 +386,10 @@ $($compile -join "`n")
         $sdk = (Invoke-Native -FilePath 'dotnet' -ArgumentList @('--version') | Select-Object -First 1).Trim()
         $pinned = (Get-Content -LiteralPath (Join-Path $RepositoryRoot 'global.json') -Raw | ConvertFrom-Json).sdk.version
         if ($sdk -ne $pinned) { throw "The bundle build directory resolves SDK $sdk, global.json pins $pinned." }
-        $null = Invoke-Native -FilePath 'dotnet' -ArgumentList @('restore', $projectPath, '--configfile', (Join-Path $buildDirectory 'NuGet.Config'), '--packages', $packagesDirectory, '--no-http-cache', '--force-evaluate', '--nologo')
-        $buildOutput = Invoke-Native -FilePath 'dotnet' -ArgumentList @('publish', $projectPath, '-c', 'Release', '--no-restore', '--nologo', '-o', $bundleDirectory)
+        # --disable-build-servers: no compiler or MSBuild server outlives the build, so the runner never has to shut down
+        # the operator's own build servers (https://learn.microsoft.com/dotnet/core/tools/dotnet-publish#options).
+        $null = Invoke-Native -FilePath 'dotnet' -ArgumentList @('restore', $projectPath, '--configfile', (Join-Path $buildDirectory 'NuGet.Config'), '--packages', $packagesDirectory, '--no-http-cache', '--force-evaluate', '--disable-build-servers', '--nologo')
+        $buildOutput = Invoke-Native -FilePath 'dotnet' -ArgumentList @('publish', $projectPath, '-c', 'Release', '--no-restore', '--disable-build-servers', '--nologo', '-o', $bundleDirectory)
     }
     finally {
         Pop-Location
@@ -465,7 +473,7 @@ function Publish-QualificationTarget {
 
     $output = Join-Path $RunDirectory "target-$Architecture"
     if ($PSCmdlet.ShouldProcess($output, "publish the qualification target for win-$Architecture")) {
-        $null = Invoke-Native -FilePath 'dotnet' -ArgumentList @('publish', (Join-Path $RepositoryRoot 'tests/CheatEngine.SDK.QualificationTarget/CheatEngine.SDK.QualificationTarget.csproj'), '-c', 'Release', '-r', "win-$Architecture", '-o', $output, '--nologo')
+        $null = Invoke-Native -FilePath 'dotnet' -ArgumentList @('publish', (Join-Path $RepositoryRoot 'tests/CheatEngine.SDK.QualificationTarget/CheatEngine.SDK.QualificationTarget.csproj'), '-c', 'Release', '-r', "win-$Architecture", '-o', $output, '--disable-build-servers', '--nologo')
     }
 
     return Join-Path $output 'CheatEngine.SDK.QualificationTarget.exe'
@@ -627,7 +635,17 @@ function Invoke-CheatEngineSession {
             $offset = $read.offset
             foreach ($line in $read.lines) {
                 $session.events.Add($line)
-                if ($line.kind -eq 'AwaitOperator') { Invoke-OperatorStep -Request ($line.message | ConvertFrom-Json) -Definition $Definition -HandshakeDirectory $handshakeDirectory -Answers $session.answers -FaultFile $FaultFile -Events $session.events }
+                if ($line.kind -eq 'AwaitOperator') {
+                    $request = $line.message | ConvertFrom-Json
+                    if ($session.answers.Contains([string] $request.id)) {
+                        # A driver that autorun loaded again (for example after resetLuaState) resumes at the pending
+                        # operator step and asks again; its handshake file already holds the answer, so keep it.
+                        $session.events.Add([pscustomobject]@{ tMs = -1; source = 'Runner'; kind = 'AwaitOperatorRepeated'; message = "Step $($request.step) ($($request.id)) was requested again by a resumed driver; the recorded answer is kept." })
+                    }
+                    else {
+                        Invoke-OperatorStep -Request $request -Definition $Definition -HandshakeDirectory $handshakeDirectory -Answers $session.answers -FaultFile $FaultFile -Events $session.events
+                    }
+                }
                 elseif ($line.kind -eq 'StepResult') { Write-Information "  step $($line.message)" }
             }
             Start-Sleep -Milliseconds 200
@@ -681,7 +699,7 @@ $qualifiable = @($supportProfile.profiles | Where-Object { $_.id -eq $ProfileId 
 $matrix = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'docs/qualification/matrix.json') -Raw | ConvertFrom-Json -Depth 64
 $plan = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'scenarios.json') -Raw | ConvertFrom-Json -Depth 64
 
-$workRootProblem = Test-QualificationWorkRoot -WorkRoot $WorkRoot -RepositoryRoot $RepositoryRoot
+$workRootProblem = Test-QualificationWorkRoot -WorkRoot $WorkRoot -RepositoryRoot $RepositoryRoot -CheatEnginePath $CheatEnginePath
 if ($workRootProblem) { Exit-Qualification -Code 5 -Reason $workRootProblem }
 
 $selected = [System.Collections.Generic.List[object]]::new()
@@ -773,9 +791,6 @@ try {
         $targetExecutables[$architecture] = Publish-QualificationTarget -RepositoryRoot $RepositoryRoot -RunDirectory $runDirectory -Architecture $architecture
     }
 
-    # The builds above leave compiler and MSBuild servers behind; stop them so they do not load the machine during the runs.
-    $null = Invoke-Native -FilePath 'dotnet' -ArgumentList @('build-server', 'shutdown')
-
     $tree = (Invoke-Native -FilePath 'git' -ArgumentList @('-C', $RepositoryRoot, 'rev-parse', 'HEAD^{tree}') | Select-Object -First 1).Trim()
     $commit = (Invoke-Native -FilePath 'git' -ArgumentList @('-C', $RepositoryRoot, 'rev-parse', 'HEAD') | Select-Object -First 1).Trim()
     $scriptSha256 = Get-QualificationTextSha256 -Text ([System.IO.File]::ReadAllText($PSCommandPath))
@@ -795,6 +810,8 @@ try {
         $registryAfter = Join-Path $sessionDirectory 'hkcu-after.reg'
         $session = $null
         $registry = $null
+        $existedBefore = $false
+        $registryCaptured = $false
         Write-Information "== $($definition.id) ($($definition.level))"
         try {
             # Stage 7, targets and authorization.
@@ -820,6 +837,7 @@ try {
             # Stage 8, HKCU before.
             $existedBefore = Export-CheatEngineRegistry -Path $registryBefore
             if (-not $existedBefore) { [System.IO.File]::WriteAllText($registryBefore, '', [System.Text.Encoding]::Unicode) }
+            $registryCaptured = $true
 
             # Stages 9-10, driver and launch.
             $ceStart = $sessionClock.ElapsedMilliseconds
@@ -828,25 +846,52 @@ try {
             $runnerEvents.Add([pscustomobject]@{ tMs = $sessionClock.ElapsedMilliseconds; source = 'Runner'; kind = 'CheatEngineExited'; message = "exit code $($session.exitCode); killed by watchdog: $($session.killed)" })
         }
         finally {
-            # Stage 11, cleanup.
-            Stop-QualificationTarget -Target $target
-            foreach ($stray in @(Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($sandbox, [System.StringComparison]::OrdinalIgnoreCase) })) { Stop-Process -Id $stray.Id -Force }
-            foreach ($file in @($manifestPath, $faultFile)) { if ($file -and (Test-Path -LiteralPath $file)) { Remove-Item -LiteralPath $file -Force } }
-            Remove-Item Env:CE_SDK_LIVE_PROBE_ACKNOWLEDGEMENT -ErrorAction SilentlyContinue
-            Remove-Item Env:CE_SDK_LIVE_PROBE_AUTHORIZATION_FILE -ErrorAction SilentlyContinue
-
-            # Stage 12, HKCU after, compare, restore only a non-empty difference.
-            $existsAfter = Export-CheatEngineRegistry -Path $registryAfter
-            if (-not $existsAfter) { [System.IO.File]::WriteAllText($registryAfter, '', [System.Text.Encoding]::Unicode) }
-            $diff = Compare-RegistrySnapshot -Before (Read-RegistryExport -Path $registryBefore) -After (Read-RegistryExport -Path $registryAfter) -RootKey 'HKEY_CURRENT_USER\Software\Cheat Engine'
-            $registry = [ordered]@{ key = $RegistryKey; exportBeforeSha256 = Get-QualificationFileSha256 -Path $registryBefore; exportAfterSha256 = Get-QualificationFileSha256 -Path $registryAfter; restored = $false; diff = $diff }
-            if (($diff.added + $diff.removed + $diff.changed) -gt 0) {
-                if ((Get-CheatEngineProcess).Count -gt 0) {
-                    Exit-Qualification -Code 7 -Reason "HKCU changed ($($diff.valueNames -join ', ')) while another Cheat Engine instance runs; restore it by hand after closing it: reg delete `"$RegistryKey`" /f; reg import `"$registryBefore`""
-                }
-                $registry.restored = Restore-CheatEngineRegistry -Before $registryBefore -ExistedBefore $existedBefore -Verify (Join-Path $sessionDirectory 'hkcu-restored.reg')
-                if (-not $registry.restored) { Exit-Qualification -Code 7 -Reason "HKCU restore could not be verified. Backup: $registryBefore; command: reg delete `"$RegistryKey`" /f; reg import `"$registryBefore`"" }
+            # Stage 11, cleanup. A failing cleanup step is reported but never skips the HKCU comparison below.
+            try {
+                Stop-QualificationTarget -Target $target
+                foreach ($stray in @(Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($sandbox, [System.StringComparison]::OrdinalIgnoreCase) })) { Stop-Process -Id $stray.Id -Force }
+                foreach ($file in @($manifestPath, $faultFile)) { if ($file -and (Test-Path -LiteralPath $file)) { Remove-Item -LiteralPath $file -Force } }
             }
+            catch {
+                [System.Console]::Error.WriteLine("Invoke-LocalQualification.ps1: cleanup of $($definition.id) failed: $($_.Exception.Message)")
+                $exitCode = 6
+            }
+            finally {
+                Remove-Item Env:CE_SDK_LIVE_PROBE_ACKNOWLEDGEMENT -ErrorAction SilentlyContinue
+                Remove-Item Env:CE_SDK_LIVE_PROBE_AUTHORIZATION_FILE -ErrorAction SilentlyContinue
+            }
+
+            # Stage 12, HKCU after, compare, restore only a non-empty difference. Skipped when Cheat Engine never
+            # started (no export before). Any failure here is the critical exit 7 with the manual restore command,
+            # never the generic exit 6 of the script trap.
+            if ($registryCaptured) {
+                $manualRestore = "Backup: $registryBefore; command: reg delete `"$RegistryKey`" /f; reg import `"$registryBefore`""
+                $otherInstances = $false
+                try {
+                    $existsAfter = Export-CheatEngineRegistry -Path $registryAfter
+                    if (-not $existsAfter) { [System.IO.File]::WriteAllText($registryAfter, '', [System.Text.Encoding]::Unicode) }
+                    $diff = Compare-RegistrySnapshot -Before (Read-RegistryExport -Path $registryBefore) -After (Read-RegistryExport -Path $registryAfter) -RootKey 'HKEY_CURRENT_USER\Software\Cheat Engine'
+                    $registry = [ordered]@{ key = $RegistryKey; exportBeforeSha256 = Get-QualificationFileSha256 -Path $registryBefore; exportAfterSha256 = Get-QualificationFileSha256 -Path $registryAfter; restored = $false; diff = $diff }
+                    $otherInstances = ($diff.added + $diff.removed + $diff.changed) -gt 0 -and (Get-CheatEngineProcess).Count -gt 0
+                    if (-not $otherInstances -and ($diff.added + $diff.removed + $diff.changed) -gt 0) {
+                        $registry.restored = Restore-CheatEngineRegistry -Before $registryBefore -ExistedBefore $existedBefore -Verify (Join-Path $sessionDirectory 'hkcu-restored.reg')
+                    }
+                }
+                catch {
+                    Exit-Qualification -Code 7 -Reason "HKCU could not be compared or restored after $($definition.id) ($($_.Exception.Message)). $manualRestore"
+                }
+
+                if ($otherInstances) {
+                    Exit-Qualification -Code 7 -Reason "HKCU changed ($($diff.valueNames -join ', ')) while another Cheat Engine instance runs; restore it by hand after closing it. $manualRestore"
+                }
+                if (($diff.added + $diff.removed + $diff.changed) -gt 0 -and -not $registry.restored) { Exit-Qualification -Code 7 -Reason "HKCU restore could not be verified. $manualRestore" }
+            }
+        }
+
+        if ($null -eq $registry -or $null -eq $session) {
+            # Unreachable in practice: an error before Cheat Engine started propagates to the trap (exit 6) after the
+            # finally block above.
+            Exit-Qualification -Code 6 -Reason "Scenario $($definition.id) produced no session."
         }
 
         # Stage 13, redaction, outcome, receipt.

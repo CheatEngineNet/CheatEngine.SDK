@@ -26,7 +26,9 @@ operator's Cheat Engine settings changed.
 2. **Preflight** (read-only). Hashes `cheatengine-x86_64.exe`, `lua53-64.dll`, `ce.runtimeconfig.json` and `celua.txt`,
    reads the file version and PE machine and compares them with [`support-profile.json`](../../docs/qualification/support-profile.json);
    refuses an elevated runner, another Cheat Engine instance, build processes and a dirty tree unless allowed; checks
-   that `dotnet --version` equals `global.json`; records `dotnet --list-runtimes`.
+   that `dotnet --version` equals `global.json`; records `dotnet --list-runtimes` of the x64 and, when installed, the x86
+   `dotnet`, each entry prefixed with its architecture. A host that differs from the profile stops the run here (exit 4):
+   no receipt is ever written for another host.
 3. **Mutex** `Global\ce-lab` (an abandoned mutex is taken over).
 4. **Sandbox.** `robocopy /MIR` of the installation into `<WorkRoot>\sandbox`, then a SHA-256 comparison of every file;
    a stale driver is removed.
@@ -34,11 +36,12 @@ operator's Cheat Engine settings changed.
    throw-away consumer project with empty `Directory.Build.*` and `Directory.Packages.props`, a copy of `global.json`,
    `Compile` items for the harness sources, a `PackageReference` to the exact package version read from its `.nuspec`, a
    `NuGet.Config` with `<clear/>` and package source mapping, and an isolated `NUGET_PACKAGES`; restored with
-   `--no-http-cache --force-evaluate`, published, then checked: plugin with a static `CESDK.CESDK` class, public or
-   internal as the package's entry-point generator emits it, and a public static `CEPluginInitialize(nint, int)` (read
-   with System.Reflection.Metadata), the six SDK assemblies, a `.deps.json` whose only `project` library is the plugin's
-   own root entry, that lists `CheatEngine.SDK/<version>` as a `package` and holds no absolute path,
-   `.runtimeconfig.json`, and the bridge equal to the package's `build/native` copy. Q09.a merges A and B into one
+   `--no-http-cache --force-evaluate`, published with `--disable-build-servers` (no compiler or MSBuild server outlives
+   the build, so the runner never shuts down the operator's own servers), then checked: plugin with a static
+   `CESDK.CESDK` class, public or internal as the package's entry-point generator emits it, and a public static
+   `CEPluginInitialize(nint, int)` (read with System.Reflection.Metadata), the six SDK assemblies, a `.deps.json` whose
+   only `project` library is the plugin's own root entry, that lists `CheatEngine.SDK/<version>` as a `package` and holds
+   no absolute path, `.runtimeconfig.json`, and the bridge equal to the package's `build/native` copy. Q09.a merges A and B into one
    folder and refuses a same-named file with different bytes. Each bundle gets `bundle-manifest.<name>.json` (every file
    with its SHA-256, and the build warnings).
 6. **Package and bridge identity.** SHA-256 of the `.nupkg`; the NuGet content hash from the isolated restore's
@@ -50,11 +53,15 @@ operator's Cheat Engine settings changed.
 9. **Driver.** Generates `autorun\zz_cesdk_qualification.lua` in the sandbox from the template with the steps, bundle
    paths and target PIDs.
 10. **Launch.** Starts the sandbox `cheatengine-x86_64.exe`, not elevated, and serves operator steps through handshake
-    files; the watchdog (`-CeTimeoutSeconds`) kills Cheat Engine and fails the scenario.
+    files; the watchdog (`-CeTimeoutSeconds`) kills Cheat Engine and fails the scenario. The watchdog is checked
+    between driver events: while the runner waits at an operator prompt it is suspended, and the operator, who is
+    present by definition, closes a hung Cheat Engine. A driver that autorun loads again (for example after
+    `resetLuaState()`) resumes at the pending operator step; the runner keeps the first answer and does not ask twice.
 11. **Cleanup** (always): stops the target and stray sandbox processes, removes the driver, the manifest, the fault
-    switch and the environment variables.
+    switch and the environment variables. A failing cleanup step is reported (exit 6) and never skips stage 12.
 12. **HKCU after.** Exports, compares by value names, restores only a non-empty difference with no other Cheat Engine
-    running, and verifies the restore (exit 7 otherwise, with the manual command and the backup path).
+    running, and verifies the restore. Any failure of this stage, including a failing `reg export`, is exit 7 with the
+    manual command and the backup path, never the generic exit 6.
 13. **Redaction and receipt.** Replaces the work root, sandbox, bundles, repository, installation, user and machine
     names with placeholders, bounds the event log, evaluates the pass rule and writes `<receiptId>.json` and
     `<receiptId>.events.json` (receipt id `R-<start UTC>-<Qid>-<first 8 hex of the package SHA-256>`).
@@ -72,7 +79,7 @@ operator's Cheat Engine settings changed.
 | `-PullRequest <n>`, `-HeadSha <sha>` | Pull request identity recorded in receipts (both or neither).                                           |
 | `-Operator <handle>`               | GitHub handle recorded in receipts; required for receipts.                                                |
 | `-CheatEnginePath <path>`          | The installation to copy; default `%ProgramFiles%\Cheat Engine`. Read and copied only.                   |
-| `-WorkRoot <path>`                 | Default `%LOCALAPPDATA%\CheatEngineNet\qualification`; refused inside a git work tree or below the repository's parent directory. |
+| `-WorkRoot <path>`                 | Default `%LOCALAPPDATA%\CheatEngineNet\qualification`; refused when it holds a non-ASCII character (the driver writes through Cheat Engine's ANSI file API), overlaps `-CheatEnginePath`, lies inside a git work tree or below the repository's parent directory. |
 | `-CeTimeoutSeconds <n>`            | Watchdog per scenario session (default 900).                                                              |
 | `-MutexTimeoutMinutes <n>`         | How long to wait for `Global\ce-lab` (default 30).                                                        |
 | `-PreflightOnly`                   | Stage 2 only; prints the preflight record and exits 0 when the host matches the profile.                  |
@@ -116,10 +123,11 @@ authorization manifest contain private data and must never be committed.
   (`Registry_diff_reports_value_names_only`); an incomplete bundle is refused
   (`Bundle_closure_check_rejects_a_missing_bridge_or_a_workspace_project_entry`) and a bundle built from the package,
   with the generated internal entry point, is accepted
-  (`Bundle_closure_check_accepts_a_package_consumer_bundle_with_the_generated_internal_entry_point`); a coexistence
-  receipt passes only when plugin A was observably removed and Q07 only when the plugin is still enabled after the pump
-  (`Pass_rules_require_the_observed_removal_of_plugin_A_and_a_plugin_still_enabled_after_the_refused_disable`); the
-  recorded content hash is the
+  (`Bundle_closure_check_accepts_a_package_consumer_bundle_with_the_generated_internal_entry_point`); an unsafe work
+  root is refused (`Work_root_is_refused_when_it_overlaps_Cheat_Engine_holds_non_ASCII_or_sees_the_workspace`); a
+  coexistence receipt passes only when plugin A was observably removed and Q07 only when the plugin is still enabled
+  after the pump (`Pass_rules_require_the_observed_removal_of_plugin_A_and_a_plugin_still_enabled_after_the_refused_disable`);
+  the recorded content hash is the
   lock-file value (`Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash`); only Cheat
   Engine's own executables count as another instance, never a process such as a `CheatEngine.*` test host
   (`Only_Cheat_Engine_executables_count_as_another_instance`).

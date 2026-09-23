@@ -24,7 +24,10 @@ Nothing in this protocol runs in CI, and a C1/C2 result is never a substitute fo
 - **Never elevated.** Run PowerShell as your normal user; Cheat Engine then starts as the invoking user.
 - **Sandbox only.** The installation under `%ProgramFiles%\Cheat Engine` is read and copied, never written, launched or
   configured. The runner mirrors it into `<WorkRoot>\sandbox`, compares every file by SHA-256, and starts
-  `cheatengine-x86_64.exe` from there; never the launcher or the SSE4-AVX2 executable.
+  `cheatengine-x86_64.exe` from there; never the launcher or the SSE4-AVX2 executable. The work root must not overlap
+  the installation and must be an ASCII path (Cheat Engine's Lua file API is ANSI); the runner refuses otherwise.
+- **Stay at the prompt.** The watchdog is suspended while the runner waits for your answer to an operator step; if
+  Cheat Engine hangs meanwhile, close it yourself and answer `n`.
 - **Registry.** Every copy of Cheat Engine shares `HKCU\Software\Cheat Engine`. The runner exports it before and after
   each scenario, records the difference as counts and value names, and restores it only when the difference is
   non-empty. If another Cheat Engine instance runs, stop it first; with `-AllowOtherCheatEngineInstances` the runner never

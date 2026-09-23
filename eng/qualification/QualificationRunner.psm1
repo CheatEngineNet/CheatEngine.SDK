@@ -46,7 +46,8 @@ function Get-QualificationTextSha256 {
     param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Text)
 
     $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($Text.Replace("`r`n", "`n"))
-    return [System.Convert]::ToHexStringLower([System.Security.Cryptography.SHA256]::HashData($bytes))
+    # Convert.ToHexString (.NET 5+) rather than ToHexStringLower (.NET 9): the scripts require pwsh 7.4, which runs on .NET 8.
+    return [System.Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
 }
 
 function ConvertFrom-RegistryExport {
@@ -628,23 +629,40 @@ function Get-RestoredPackageContentHash {
 function Test-QualificationWorkRoot {
     <#
     .SYNOPSIS
-        Returns why a work root is unsafe (inside a git work tree, or below the repository's parent directory), or $null.
+        Returns why a work root is unsafe, or $null: it holds a non-ASCII character (the driver's paths go through
+        Cheat Engine's ANSI io.open), it overlaps the Cheat Engine directory (the sandbox mirror would write into the
+        installation or mirror it onto itself), it lies below the repository's parent directory, or inside a git work tree.
     #>
     [CmdletBinding()]
     [OutputType([string])]
     param(
         [Parameter(Mandatory)] [string] $WorkRoot,
-        [Parameter(Mandatory)] [string] $RepositoryRoot
+        [Parameter(Mandatory)] [string] $RepositoryRoot,
+        [string] $CheatEnginePath = ''
     )
 
     $full = [System.IO.Path]::GetFullPath($WorkRoot).TrimEnd('\') + '\'
+    if ($full -match '[^\x20-\x7E]') {
+        return "The work root '$WorkRoot' contains a non-ASCII character; the driver writes its events through Cheat Engine's ANSI file API. Pass -WorkRoot with an ASCII path."
+    }
+
+    if ($CheatEnginePath) {
+        $installation = [System.IO.Path]::GetFullPath($CheatEnginePath).TrimEnd('\') + '\'
+        if ($full.StartsWith($installation, [System.StringComparison]::OrdinalIgnoreCase) -or $installation.StartsWith($full, [System.StringComparison]::OrdinalIgnoreCase)) {
+            return "The work root '$WorkRoot' overlaps the Cheat Engine directory '$CheatEnginePath'; the sandbox must be a separate copy."
+        }
+    }
+
     $repositoryParent = [System.IO.Path]::GetFullPath((Join-Path $RepositoryRoot '..')).TrimEnd('\') + '\'
     if ($full.StartsWith($repositoryParent, [System.StringComparison]::OrdinalIgnoreCase)) {
         return "The work root '$WorkRoot' is below the repository's parent directory; bundles must not see workspace files."
     }
 
     for ($directory = [System.IO.DirectoryInfo]::new($full); $null -ne $directory; $directory = $directory.Parent) {
-        if (Test-Path -LiteralPath (Join-Path $directory.FullName '.git')) {
+        # .git is a directory in a clone and a file in a linked worktree; Path.Combine also works for a drive that does
+        # not exist yet (Join-Path does not).
+        $gitEntry = [System.IO.Path]::Combine($directory.FullName, '.git')
+        if ([System.IO.Directory]::Exists($gitEntry) -or [System.IO.File]::Exists($gitEntry)) {
             return "The work root '$WorkRoot' is inside the git work tree '$($directory.FullName)'."
         }
     }

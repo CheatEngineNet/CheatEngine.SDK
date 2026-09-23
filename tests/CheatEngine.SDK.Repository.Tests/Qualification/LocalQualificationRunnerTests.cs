@@ -342,6 +342,36 @@ public sealed class LocalQualificationRunnerTests
 		}
 	}
 	[Fact]
+	public void Work_root_is_refused_when_it_overlaps_Cheat_Engine_holds_non_ASCII_or_sees_the_workspace()
+	{
+		string repository = Infrastructure.RepositoryRoot.Path;
+		JsonElement result = RunJson(ModuleImport + $$"""
+			$repository = {{PowerShellProcess.Quote(repository)}}
+			$cases = [ordered]@{
+				separate = @('Q:\ce-lab\work', 'Q:\Cheat Engine')
+				insideInstallation = @('Q:\Cheat Engine\qualification', 'Q:\Cheat Engine')
+				containsInstallation = @('Q:\lab', 'Q:\lab\Cheat Engine\')
+				sameNamePrefix = @('Q:\Cheat Engine 2\work', 'Q:\Cheat Engine')
+				nonAscii = @("Q:\lab\J$([char] 0xE9)r$([char] 0xF4)me\work", 'Q:\Cheat Engine')
+				workspace = @((Join-Path $repository '..\qualification-work'), 'Q:\Cheat Engine')
+			}
+			$result = [ordered]@{}
+			foreach ($name in $cases.Keys) {
+				$problem = Test-QualificationWorkRoot -WorkRoot $cases[$name][0] -RepositoryRoot $repository -CheatEnginePath $cases[$name][1]
+				$result[$name] = if ($null -eq $problem) { 'accepted' } else { $problem }
+			}
+			$result | ConvertTo-Json -Compress
+			""");
+
+		Assert.Equal("accepted", result.GetProperty("separate").GetString());
+		Assert.Equal("accepted", result.GetProperty("sameNamePrefix").GetString());
+		Assert.Contains("overlaps the Cheat Engine directory", result.GetProperty("insideInstallation").GetString(), StringComparison.Ordinal);
+		Assert.Contains("overlaps the Cheat Engine directory", result.GetProperty("containsInstallation").GetString(), StringComparison.Ordinal);
+		Assert.Contains("non-ASCII", result.GetProperty("nonAscii").GetString(), StringComparison.Ordinal);
+		Assert.Contains("repository's parent directory", result.GetProperty("workspace").GetString(), StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void Pass_rules_require_the_observed_removal_of_plugin_A_and_a_plugin_still_enabled_after_the_refused_disable()
 	{
 		JsonElement result = RunJson(ModuleImport + $$"""

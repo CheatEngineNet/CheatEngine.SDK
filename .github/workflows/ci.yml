@@ -1,16 +1,19 @@
 name: CI
 
-# Reusable pipeline for pull-request-ci.yml, main-ci.yml and release.yml.
+# Reusable pipeline for pull-request-ci.yml, main-ci.yml and release.yml. Its gate job is the required check
+# "CI / Gate"; the caller job id `ci` (name CI) and the job name Gate are frozen.
 #
-#   native ─► build-test (Debug, Release) ─► sonar ─┐
-#          └► aot ─────────────────────────────────┼─► gate   (the only required check: "CI / Gate")
-#   lint ──────────────────────────────────────────┘
+#   native ─┬─► build-test (Debug, Release) ─► sonar ─┐
+#           └─► aot ───────────────────────────────────┤
+#   lint, format, dependency-review, lock-files ───────┴─► gate
 #
-# Jobs never rebuild what an upstream job produced; they exchange artifacts:
+# Artifacts (the only names this workflow may upload; WorkflowContractTests holds the list):
 #   lua-protection-bridge, classic-abi-fixture-facts   native → build-test, aot
+#   nuget-package, build-info                          build-test (Release) → sonar, release.yml, reviewers
 #   coverage                                           build-test (Debug) → sonar
-#   nuget-package                                      build-test (Release) → sonar, release publish, reviewers
-#   test-results-<configuration>                       build-test → humans
+#   coverage-report                                    build-test (Debug) → reviewers
+#   test-results-<configuration>                       build-test → reviewers
+#   test-dumps-<configuration>, binlogs-<job>[-<cfg>]  on failure only
 #
 # No job restores or saves a NuGet cache: every job is reachable from the tag release run. Every restore is locked
 # against the committed packages.lock.json files (.github/actions/setup-dotnet).
@@ -19,7 +22,9 @@ on:
   workflow_call:
     inputs:
       sonar:
-        description: Run the SonarQube Cloud analysis. Merge-queue runs, fork pull requests and Dependabot always skip it.
+        description: >-
+          Run the SonarQube Cloud analysis. The gate then requires it (SONAR_EXPECTED), except for fork pull requests
+          and Dependabot, which receive no secrets.
         type: boolean
         default: false
       package-version:
@@ -446,19 +451,21 @@ jobs:
           if-no-files-found: ignore
           retention-days: 5
 
-  # Secrets never reach fork or Dependabot runs, and a merge-queue branch is analysed again once it lands on main.
-  # Pull requests fail on the quality gate; main only reports it.
+  # SONAR_EXPECTED: the same expression is the gate's SONAR_EXPECTED variable (env is not available in jobs.<id>.if;
+  # WorkflowContractTests keeps the two texts equal). Secrets never reach fork or Dependabot runs, the dormant merge_group
+  # clause stays as defense in depth, and release.yml never passes sonar. github.actor is deliberate: a maintainer who
+  # pushes onto a Dependabot branch has the token and must be analysed. Outside push events the quality gate is awaited.
   sonar:
     name: Sonar
     needs: build-test
     if: >-
-      inputs.sonar
-      && github.event_name != 'merge_group'
-      && github.actor != 'dependabot[bot]'
-      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      ${{ inputs.sonar
+          && github.event_name != 'merge_group'
+          && github.actor != 'dependabot[bot]'
+          && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     uses: ./.github/workflows/sonar.yml
     with:
-      wait-quality-gate: ${{ github.event_name == 'pull_request' }}
+      wait-quality-gate: ${{ github.event_name != 'push' }}
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -593,20 +600,58 @@ jobs:
       - name: Check results
         env:
           NEEDS: ${{ toJSON(needs) }}
+          SONAR_EXPECTED: >-
+            ${{ inputs.sonar
+                && github.event_name != 'merge_group'
+                && github.actor != 'dependabot[bot]'
+                && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+          EVENT: ${{ github.event_name }}
         run: |
-          # Every job must succeed. Only sonar may be skipped: its own condition turns it off for releases, the merge
-          # queue, forks and Dependabot. A sonar skipped because build-test failed is caught by build-test's result.
-          $mayBeSkipped = @('sonar')
-          $needs = $env:NEEDS | ConvertFrom-Json -AsHashtable
-          $failed = [Collections.Generic.List[string]]::new()
-          $rows = foreach ($job in @($needs.Keys | Sort-Object)) {
-            $result = $needs[$job].result
-            $allowed = if ($job -in $mayBeSkipped) { 'success', 'skipped' } else { 'success' }
-            if ($result -notin $allowed) { $failed.Add("$job ($result)") }
-            "| $job | $result |"
-          }
-          @('| Job | Result |', '| --- | --- |') + $rows | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          if ($failed.Count -gt 0) {
-            Write-Host "::error::Not successful: $($failed -join ', ')."
+          # Every job must succeed, except sonar, which must match SONAR_EXPECTED: success when it is true, skipped when it
+          # is false (fork, Dependabot, merge_group or release run). A sonar run that was not expected means the job
+          # condition and this expression drifted apart, which fails the gate too. No other job may ever be skipped.
+          $ErrorActionPreference = 'Stop'
+          if ($env:SONAR_EXPECTED -notin @('true', 'false')) {
+            Write-Host "::error title=Gate::SONAR_EXPECTED must be 'true' or 'false', got '$env:SONAR_EXPECTED'."
             exit 1
           }
+          $sonarExpected = $env:SONAR_EXPECTED -eq 'true'
+          $needs = $env:NEEDS | ConvertFrom-Json -AsHashtable
+          if ($needs.Count -eq 0) {
+            Write-Host '::error title=Gate::The gate received no job results.'
+            exit 1
+          }
+          $mismatches = [Collections.Generic.List[string]]::new()
+          $rows = [Collections.Generic.List[string]]::new()
+          foreach ($job in @($needs.Keys | Sort-Object)) {
+            $result = [string] $needs[$job].result
+            $required = 'success'
+            $reason = 'every job must succeed'
+            if ($job -eq 'sonar') {
+              if ($sonarExpected) {
+                $reason = "SONAR_EXPECTED=true on ${env:EVENT}: the analysis must run and pass"
+                if ($result -eq 'skipped') {
+                  $upstream = [string] $needs['build-test'].result
+                  $reason += ($upstream -ne 'success') ? "; skipped because build-test was $upstream" : '; skipped although expected: the sonar condition drifted'
+                }
+              }
+              else {
+                $required = 'skipped'
+                $reason = "SONAR_EXPECTED=false on ${env:EVENT} (fork, Dependabot, merge_group or release run)"
+                if ($result -ne 'skipped') {
+                  $reason += '; it ran although not expected: the sonar condition drifted'
+                }
+              }
+            }
+            if ($result -ne $required) {
+              $mismatches.Add("$job is $result, required $required")
+            }
+            $rows.Add("| $job | $result | $required | $reason |")
+          }
+          @('### Gate', '', '| Job | Result | Required | Reason |', '| --- | --- | --- | --- |') + $rows |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          if ($mismatches.Count -gt 0) {
+            Write-Host "::error title=Gate::$($mismatches -join '; ')."
+            exit 1
+          }
+          Write-Host "All $($needs.Count) jobs have their required result."

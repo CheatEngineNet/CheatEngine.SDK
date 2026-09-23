@@ -1,13 +1,13 @@
 name: Main CI
 
+# Every commit that lands on main, and manual runs on any branch. There is no merge queue, so there is no merge_group
+# trigger: an event path that never runs must not live in the required check.
 on:
   push:
     branches: [ main ]
-  merge_group:
-    types: [ checks_requested ]
   workflow_dispatch:
 
-# No concurrency group: every main commit and merge group keeps its own complete run.
+# No concurrency group: every main commit keeps its own complete run.
 
 permissions:
   contents: read
@@ -21,6 +21,6 @@ jobs:
     name: CI
     uses: ./.github/workflows/ci.yml
     with:
-      sonar: true # ci.yml skips it for the merge queue and only reports the quality gate outside pull requests
+      sonar: true # a push to main reports the quality gate; a manual run waits for it
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

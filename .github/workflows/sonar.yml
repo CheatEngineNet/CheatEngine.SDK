@@ -1,7 +1,9 @@
 name: Sonar
 
-# Reusable SonarQube Cloud analysis, called by ci.yml after build-test. It reuses the coverage and nuget-package
-# artifacts of the same run; only the instrumented build is repeated, because the scanner must observe a compilation.
+# Reusable SonarQube Cloud analysis, called by ci.yml after build-test when SONAR_EXPECTED is true; the gate then
+# requires it to succeed. It reuses the coverage and nuget-package artifacts of the same run; only the instrumented build
+# is repeated, because the scanner must observe a compilation. No binary log is kept here: it would record the scanner
+# environment. New Code of non-main branches is measured against the reference branch main (a SonarQube Cloud setting).
 
 on:
   workflow_call:
@@ -15,7 +17,7 @@ on:
         type: string
         default: cheatenginenet
       wait-quality-gate:
-        description: Fail the job when the quality gate fails. Pull requests wait for it; main only reports it.
+        description: Fail the job when the quality gate fails. Every event but push waits for it; main pushes only report it.
         type: boolean
         default: true
     secrets:
@@ -135,8 +137,8 @@ jobs:
             Write-Host '::error::The coverage artifact holds no report.'
             exit 1
           }
-          # The new-code period follows sonar.projectVersion. The core version of the package built in this run (1.0.1
-          # for 1.0.1-alpha.0.37) changes only at a release, so new code on main means changes since the last release.
+          # sonar.projectVersion is the core version of the package built in this run (2.0.0 for 2.0.0-alpha.0.37),
+          # which changes only at a release.
           $packages = @(Get-ChildItem -Path "$env:RUNNER_TEMP/package" -Filter 'CheatEngine.SDK.*.nupkg' -File)
           if ($packages.Count -ne 1 -or $packages[0].Name -notmatch '^CheatEngine\.SDK\.(?<version>\d+\.\d+\.\d+)') {
             Write-Host '::error::The nuget-package artifact must hold exactly one CheatEngine.SDK package.'
@@ -179,10 +181,12 @@ jobs:
             "/k:$env:SONAR_PROJECT_KEY"
             "/o:$env:SONAR_ORGANIZATION"
             "/v:$version"
-            '/d:sonar.exclusions=artifacts/**,tests/CheatEngine.SDK.Benchmarks/**,tests/CheatEngine.SDK.LivePlugin/**'
+            # Not analysed: build output, harnesses that are not product or test code, catalogue tooling and docs.
+            # Tests stay analysed (the tests/** issue ignores above exist for them) but never count for coverage.
+            '/d:sonar.exclusions=artifacts/**,tests/CheatEngine.SDK.Benchmarks/**,tests/CheatEngine.SDK.LivePlugin/**,tests/CheatEngine.SDK.QualificationTarget/**,tests/native-host-emulator/**,eng/tools/**,docs/**'
             # CI publishes managed coverage only. Keep build-time tooling and test-only sources out of the product
             # coverage metric instead of presenting an incomplete report as if it covered those paths.
-            '/d:sonar.coverage.exclusions=tests/**,eng/**'
+            '/d:sonar.coverage.exclusions=tests/**,eng/**,docs/**'
             "/d:sonar.issue.ignore.multicriteria=$(($ignoredIssues.Key) -join ',')"
             "/d:sonar.cs.vscoveragexml.reportsPaths=$coverage/**/*.xml"
             "/d:sonar.qualitygate.wait=$env:SONAR_WAIT_QUALITY_GATE"

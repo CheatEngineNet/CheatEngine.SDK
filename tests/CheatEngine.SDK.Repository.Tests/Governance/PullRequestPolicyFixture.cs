@@ -5,12 +5,18 @@ namespace CheatEngine.SDK.Repository.Tests.Governance;
 
 /// <summary>
 ///     Evaluates every <see cref="PullRequestPolicyCases" /> vector in a single <c>pwsh</c> process that imports
-///     <c>eng/ci/PullRequestPolicy.psm1</c>. Inputs and outputs travel through UTF-8 JSON files, so no title or path is
-///     ever interpolated into script text.
+///     <c>eng/ci/PullRequestPolicy.psm1</c>, together with one case per committed pull request template (its text as the
+///     description of a consumer-visible change). Inputs and outputs travel through UTF-8 JSON files, so no title or path
+///     is ever interpolated into script text.
 /// </summary>
 public sealed class PullRequestPolicyFixture : IAsyncLifetime
 {
+	private const string TemplateCasePrefix = "pull_request_template:";
+
 	private readonly Dictionary<string, List<PolicyRuleResult>> _results = new(StringComparer.Ordinal);
+
+	/// <summary>The committed pull request templates that were evaluated (repository-relative).</summary>
+	internal IReadOnlyList<string> PullRequestTemplates { get; private set; } = [];
 
 	/// <summary>The rule results of a case, in reported order.</summary>
 	internal IReadOnlyList<PolicyRuleResult> ResultsOf(string caseName)
@@ -20,14 +26,28 @@ public sealed class PullRequestPolicyFixture : IAsyncLifetime
 		return results;
 	}
 
+	/// <summary>The rule results of a pull request whose description is the template's text.</summary>
+	internal IReadOnlyList<PolicyRuleResult> ResultsOfTemplate(string templatePath)
+	{
+		return ResultsOf(TemplateCasePrefix + templatePath);
+	}
+
 	public async ValueTask InitializeAsync()
 	{
 		using TemporaryDirectory directory = new();
 		string casesPath = directory.File("cases.json");
 		string resultsPath = directory.File("results.json");
 
+		List<PullRequestPolicyCase> policyCases = [.. PullRequestPolicyCases.All];
+		PullRequestTemplates = Governance.PullRequestTemplates.Find();
+		foreach (string template in PullRequestTemplates)
+		{
+			policyCases.Add(new PullRequestPolicyCase(TemplateCasePrefix + template, "Fix AOB outcome",
+				[PullRequestPolicyCases.ScanningSource], [PullRequestPolicyCases.ChangelogEntry], RepositoryFile.ReadText(template)));
+		}
+
 		List<Dictionary<string, object>> cases = [];
-		foreach (PullRequestPolicyCase policyCase in PullRequestPolicyCases.All)
+		foreach (PullRequestPolicyCase policyCase in policyCases)
 		{
 			cases.Add(new Dictionary<string, object>(StringComparer.Ordinal)
 			{

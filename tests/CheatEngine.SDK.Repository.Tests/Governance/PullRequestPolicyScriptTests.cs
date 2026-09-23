@@ -74,6 +74,44 @@ public sealed class PullRequestPolicyScriptTests(PullRequestPolicyFixture fixtur
 		Assert.Contains("`libs/CheatEngine.SDK.Engine/Scanning/A.cs`", changelog.Message, StringComparison.Ordinal);
 		Assert.Contains("## [Unreleased]", changelog.Message, StringComparison.Ordinal);
 		Assert.Contains("<!-- changelog: not-needed -->", changelog.Message, StringComparison.Ordinal);
+		Assert.Contains("on a line of its own", changelog.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Changelog_failure_explains_that_a_quoted_marker_does_not_waive_the_rule()
+	{
+		PolicyRuleResult changelog = Assert.Single(fixture.ResultsOf("template_checklist_quotes_the_marker"),
+			static result => string.Equals(result.Rule, PullRequestPolicyCases.ChangelogEntry, StringComparison.Ordinal));
+
+		Assert.False(changelog.Passed);
+		Assert.Contains("mentions the marker only inside code", changelog.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Pull_request_templates_never_waive_the_changelog_rule()
+	{
+		// GitHub prefills every description with the template, so a template that satisfied the waiver would switch the
+		// CHANGELOG rule off for every pull request that keeps its text. Each committed template (none is also fine) is
+		// evaluated as the description of a change under libs/.
+		if (RepositoryFile.ExistsWithExactCase(".github/PULL_REQUEST_TEMPLATE.md", out bool isDirectory) && !isDirectory)
+		{
+			Assert.Contains(".github/PULL_REQUEST_TEMPLATE.md", fixture.PullRequestTemplates, StringComparer.Ordinal);
+		}
+
+		List<string> waived = [];
+		foreach (string template in fixture.PullRequestTemplates)
+		{
+			PolicyRuleResult changelog = Assert.Single(fixture.ResultsOfTemplate(template),
+				static result => string.Equals(result.Rule, PullRequestPolicyCases.ChangelogEntry, StringComparison.Ordinal));
+			if (changelog.Passed)
+			{
+				waived.Add(template);
+			}
+		}
+
+		Assert.True(waived.Count == 0,
+			$"These pull request templates waive the CHANGELOG rule by themselves; quote the marker in a code span instead of " +
+			$"writing it on a line of its own: {string.Join(", ", waived)}");
 	}
 
 	[Fact]

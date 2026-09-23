@@ -17,7 +17,15 @@ internal static class PullRequestPolicyCases
 	public static readonly string[] Rules =
 		[TitleLength, TitleNoTrailingPeriod, TitleNoConventionalPrefix, TitleStartsUppercase, TitleImperative, ChangelogEntry];
 
-	private const string ScanningSource = "libs/CheatEngine.SDK.Engine/Scanning/A.cs";
+	/// <summary>A consumer-visible path: the CHANGELOG rule applies.</summary>
+	public const string ScanningSource = "libs/CheatEngine.SDK.Engine/Scanning/A.cs";
+
+	/// <summary>
+	///     The checklist line planned for <c>.github/PULL_REQUEST_TEMPLATE.md</c> in the lot brief: it quotes the marker, and
+	///     GitHub prefills every description with it, so it must never waive the rule.
+	/// </summary>
+	public const string PlannedTemplateChecklistLine =
+		"- [ ] Consumer-visible changes are recorded under `[Unreleased]`, or the description contains `<!-- changelog: not-needed -->` with a reason";
 
 	public static readonly PullRequestPolicyCase[] All =
 	[
@@ -49,8 +57,37 @@ internal static class PullRequestPolicyCases
 		new("waiver_marker", "Fix AOB outcome", [ScanningSource], [],
 			"Internal rename only.\n\n<!-- changelog: not-needed -->"),
 		new("waiver_marker_spacing", "Fix AOB outcome", [ScanningSource], [], "<!--changelog:not-needed-->"),
+		// Descriptions edited on github.com end their lines with CR LF.
+		new("waiver_marker_crlf_description", "Fix AOB outcome", [ScanningSource], [],
+			"Internal rename only.\r\n\r\n<!-- changelog: not-needed -->\r\n"),
+		new("waiver_marker_indented_up_to_three_spaces", "Fix AOB outcome", [ScanningSource], [], "   <!-- changelog: not-needed -->  "),
+		new("waiver_marker_after_a_closed_fence", "Fix AOB outcome", [ScanningSource], [],
+			"```text\nsample\n```\n<!-- changelog: not-needed -->"),
+		new("waiver_marker_after_a_closed_comment", "Fix AOB outcome", [ScanningSource], [],
+			"<!-- Describe the change.\nKeep it short. -->\nInternal rename only.\n<!-- changelog: not-needed -->"),
 		new("waiver_marker_is_case_sensitive", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
 			"<!-- CHANGELOG: NOT-NEEDED -->"),
+		// Text that quotes the marker (the pull request template, CONTRIBUTING.md) never waives the rule.
+		new("template_checklist_quotes_the_marker", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
+			PlannedTemplateChecklistLine),
+		new("waiver_marker_in_a_code_span_line", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
+			"`<!-- changelog: not-needed -->`"),
+		new("waiver_marker_in_a_fenced_block", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
+			"```md\n<!-- changelog: not-needed -->\n```"),
+		new("waiver_marker_in_a_tilde_fence", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
+			"~~~\n<!-- changelog: not-needed -->\n~~~"),
+		new("waiver_marker_in_an_unclosed_fence", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
+			"```\n<!-- changelog: not-needed -->"),
+		new("waiver_marker_after_a_shorter_closing_fence", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
+			"````\n```\n<!-- changelog: not-needed -->\n````"),
+		new("waiver_marker_indented_as_code", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
+			"Example:\n\n    <!-- changelog: not-needed -->"),
+		new("waiver_marker_within_a_sentence", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
+			"No consumer impact <!-- changelog: not-needed --> here."),
+		new("waiver_marker_inside_a_longer_comment", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
+			"<!-- To waive the rule, add the line\n<!-- changelog: not-needed -->\n-->"),
+		new("waiver_marker_in_a_block_quote", "Fix AOB outcome", [ScanningSource], [ChangelogEntry],
+			"> <!-- changelog: not-needed -->"),
 		new("lock_file_only_under_libs", "Refresh the lock file", ["libs/CheatEngine.SDK.Lua/packages.lock.json"], []),
 		new("native_readme_change", "Document the bridge exports", ["native/cheatengine-sdk-lua-bridge/README.md"],
 			[ChangelogEntry]),

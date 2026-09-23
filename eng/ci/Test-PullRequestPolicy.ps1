@@ -17,7 +17,8 @@
     Pull request title. Defaults to $env:PR_TITLE.
 
 .PARAMETER Body
-    Pull request description. Defaults to $env:PR_BODY. Only searched for the waiver marker.
+    Pull request description. Defaults to $env:PR_BODY. Only searched for the waiver marker, which counts on a line of
+    its own outside code (quoting it, as the pull request template does, never waives the rule).
 
 .PARAMETER Author
     Login of the pull request author. Defaults to $env:PR_AUTHOR. Dependabot pull requests are exempt.

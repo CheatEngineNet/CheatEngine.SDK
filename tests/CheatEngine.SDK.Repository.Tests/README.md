@@ -162,10 +162,14 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   `Specific_nuget_groups_come_before_the_catch_all_group`).
 - The `PR policy` required check evaluates the title (at most 72 characters, no trailing period, no type or area prefix,
   uppercase start, imperative first word) and the CHANGELOG entry for `libs/`, `src/`, `analyzers/`, `source-generators/`
-  and `native/` changes (lock files excluded, waiver marker, Dependabot exempt), against vectors that include real pull
-  request titles; the entry script annotates each failed rule, writes the summary table and never prints the description
+  and `native/` changes (lock files excluded, Dependabot exempt), against vectors that include real pull
+  request titles. The waiver marker counts only on a line of its own outside fenced code and other comments, so a
+  quoted marker (code span, code block, sentence) never waives the rule, and no committed pull request template waives
+  it by itself; the entry script annotates each failed rule, writes the summary table and never prints the description
   (`PullRequestPolicyScriptTests`: `Policy_verdict_matches_the_expected_rules`, `Every_rule_is_exercised_by_a_failing_vector`,
   `Dependabot_authored_pull_requests_are_exempt_from_every_rule`, `Changelog_failure_names_the_paths_and_both_remedies`,
+  `Changelog_failure_explains_that_a_quoted_marker_does_not_waive_the_rule`,
+  `Pull_request_templates_never_waive_the_changelog_rule`,
   `Entry_script_exits_non_zero_and_annotates_each_failed_rule`, `Entry_script_writes_a_rule_table_to_the_step_summary`,
   `Entry_script_exempts_dependabot_and_never_prints_the_description`,
   `Entry_script_refuses_commit_ids_that_are_not_full_hashes`).

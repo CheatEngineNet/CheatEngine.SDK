@@ -16,7 +16,15 @@
       TitleStartsUppercase       the first character is an uppercase letter.
       TitleImperative            the first word reads as an imperative verb (heuristic with an allowlist).
       ChangelogEntry             a change under a consumer-visible path (lock files excluded) also changes CHANGELOG.md,
-                                 unless the description contains the waiver marker <!-- changelog: not-needed -->.
+                                 unless the description waives it: the marker <!-- changelog: not-needed --> on a line
+                                 of its own, outside fenced code and outside another HTML comment.
+
+    The waiver counts only as a bare line because the pull request template and CONTRIBUTING.md quote the marker to
+    explain it: text that merely mentions the marker (in a code span, a code block, a sentence or a longer comment) must
+    never waive the rule, or every description that keeps the template text would. In CommonMark a line that starts
+    with "<!--" (after at most three spaces) begins an HTML block, even inside a paragraph, so a bare marker line is a
+    real, invisible comment and never part of a code span.
+    https://spec.commonmark.org/0.31.2/#html-blocks
 
     Pull requests opened by Dependabot pass every rule: their titles are generated and their lock-file changes under
     libs/ are not consumer-visible on their own.
@@ -44,6 +52,12 @@ $ImperativeFirstWords = @(
 )
 $MaximumListedPaths = 10
 $RegexTimeout = [TimeSpan]::FromSeconds(1)
+
+# The waiver marker alone on a line, after at most three spaces (four would make an indented code block).
+$ChangelogWaiverLinePattern = '^ {0,3}' + $ChangelogWaiverPattern + '[ \t]*$'
+# A fence opens or closes a fenced code block; a backtick fence whose info string holds a backtick is a code span.
+$CodeFencePattern = '^ {0,3}(?<fence>`{3,}|~{3,})(?<info>.*)$'
+$CodeSpanPattern = '(?<!`)(?<ticks>`+)(?!`).*?(?<!`)\k<ticks>(?!`)'
 
 function Test-RegexMatch {
     param(
@@ -150,6 +164,65 @@ function Test-PullRequestTitle {
     )
 }
 
+# True when the text leaves an HTML comment open at its end: comments do not nest, so the last "<!--" decides. Code
+# spans are removed first, so a quoted "<!--" opens nothing.
+function Test-OpenHtmlComment {
+    param(
+        [AllowEmptyString()] [Parameter(Mandatory)] [string] $Text
+    )
+
+    $prose = [regex]::Replace($Text, $CodeSpanPattern, ' ', [System.Text.RegularExpressions.RegexOptions]::CultureInvariant, $RegexTimeout)
+    $open = $prose.LastIndexOf('<!--', [StringComparison]::Ordinal)
+    return $open -ge 0 -and $prose.IndexOf('-->', $open + 4, [StringComparison]::Ordinal) -lt 0
+}
+
+# True when the description waives the CHANGELOG rule: the marker on a line of its own that is neither inside a fenced
+# code block nor inside a longer HTML comment. A quoted marker (code span, code block, sentence) never waives it.
+function Test-ChangelogWaiver {
+    param(
+        [AllowEmptyString()] [Parameter(Mandatory)] [string] $Body
+    )
+
+    $fence = ''
+    $inComment = $false
+    foreach ($line in [regex]::Split($Body, '\r\n|\r|\n', [System.Text.RegularExpressions.RegexOptions]::None, $RegexTimeout)) {
+        if ($inComment) {
+            # The line that closes a comment belongs to it, even when it looks like the marker.
+            $close = $line.IndexOf('-->', [StringComparison]::Ordinal)
+            if ($close -ge 0) {
+                $inComment = Test-OpenHtmlComment -Text $line.Substring($close + 3)
+            }
+
+            continue
+        }
+
+        $fenceMatch = [regex]::Match($line, $CodeFencePattern, [System.Text.RegularExpressions.RegexOptions]::CultureInvariant, $RegexTimeout)
+        if ($fence) {
+            # A closing fence repeats the opening character at least as many times and carries no info string.
+            if ($fenceMatch.Success -and [string]::IsNullOrWhiteSpace($fenceMatch.Groups['info'].Value) -and
+                $fenceMatch.Groups['fence'].Value[0] -ceq $fence[0] -and $fenceMatch.Groups['fence'].Value.Length -ge $fence.Length) {
+                $fence = ''
+            }
+
+            continue
+        }
+
+        if ($fenceMatch.Success -and -not ($fenceMatch.Groups['fence'].Value[0] -ceq [char] '`' -and
+                $fenceMatch.Groups['info'].Value.Contains([char] '`'))) {
+            $fence = $fenceMatch.Groups['fence'].Value
+            continue
+        }
+
+        if (Test-RegexMatch -InputText $line -Pattern $ChangelogWaiverLinePattern) {
+            return $true
+        }
+
+        $inComment = Test-OpenHtmlComment -Text $line
+    }
+
+    return $false
+}
+
 function Test-ChangelogEntry {
     param(
         [AllowEmptyString()] [Parameter(Mandatory)] [string] $Body,
@@ -172,16 +245,23 @@ function Test-ChangelogEntry {
         return ConvertTo-RuleResult -Rule 'ChangelogEntry' -Passed $true -Message "$ChangelogFile changes with the consumer-visible paths."
     }
 
-    if (Test-RegexMatch -InputText $Body -Pattern $ChangelogWaiverPattern) {
+    if (Test-ChangelogWaiver -Body $Body) {
         return ConvertTo-RuleResult -Rule 'ChangelogEntry' -Passed $true -Message 'The description waives the CHANGELOG entry (<!-- changelog: not-needed -->).'
     }
 
     $listed = @($visible | Select-Object -First $MaximumListedPaths | ForEach-Object { "``$_``" })
     $more = if ($visible.Count -gt $MaximumListedPaths) { " and $($visible.Count - $MaximumListedPaths) more" } else { '' }
+    $quoted = if (Test-RegexMatch -InputText $Body -Pattern $ChangelogWaiverPattern) {
+        ' The description mentions the marker only inside code, inside another comment or within a line of text, which does not waive the rule.'
+    }
+    else {
+        ''
+    }
+
     return ConvertTo-RuleResult -Rule 'ChangelogEntry' -Passed $false -Message (
         "Consumer-visible paths changed without $ChangelogFile ($($listed -join ', ')$more). " +
         "Add an entry under '## [Unreleased]' in $ChangelogFile, or, when no consumer can observe the change, " +
-        'put <!-- changelog: not-needed --> in the pull request description with the reason.')
+        'put <!-- changelog: not-needed --> on a line of its own in the pull request description, with the reason.' + $quoted)
 }
 
 <#

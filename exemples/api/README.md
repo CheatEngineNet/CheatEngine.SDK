@@ -328,7 +328,7 @@ returns the Cheat Engine name as UTF-8 (empty for an undefined value or a flag c
 The normal public API is organized by domain; raw Lua names stay inside the binding layer. Every slice distinguishes a
 disabled plugin (a lifecycle error) from a CE-reported failure, an unavailable global, protected Lua failure, or an
 invalid marshalled result. Its source, CE version, architecture, thread requirement, ownership, and normal return
-semantics belong in the [Lua surface catalogue](../../docs/catalog/README.md).
+semantics are catalogued in the audit dossier, not republished in this repository.
 
 | Domain                   | Public direction                                                                                                                                             | Ownership and thread boundary                                                                                                                                   |
 |--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -345,7 +345,7 @@ semantics belong in the [Lua surface catalogue](../../docs/catalog/README.md).
 The owned `AutoAssemblerPatch` is the low-level primitive; high-level Auto Assembler capabilities, arbitrary
 execution/injection, debugger, DBK/DBVM, UI/D3D, network, and SQL domains remain intentionally opt-in and outside the
 ordinary API path until they have a capability, authorization, lifetime, rollback, and live-test contract. Their
-dispositions belong to the deferred families of the [Lua surface catalogue](../../docs/catalog/README.md).
+dispositions are tracked as deferred families in the audit dossier, not republished in this repository.
 
 ## Threads
 

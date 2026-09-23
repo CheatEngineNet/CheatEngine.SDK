@@ -51,7 +51,7 @@ the exact CE build:
 | Tests     | Fixture tests for stack/cleanup plus an isolated, opt-in CE 7.7 live probe                                                             |
 
 That work belongs to the evidence and capability process, not to a recipe that guesses from an object pointer. Its
-disposition belongs to the deferred families of the [Lua surface catalogue](../../../docs/catalog/README.md).
+disposition is tracked as a deferred family in the audit dossier, not republished in this repository.
 
 ## Before you move on
 

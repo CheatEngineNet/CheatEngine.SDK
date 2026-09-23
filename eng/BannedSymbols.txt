@@ -32,3 +32,10 @@ M:System.Activator.CreateInstance``1;No reflection-based activation: construct t
 M:System.Activator.CreateInstanceFrom(System.String,System.String);No reflection-based activation: construct through generated code or a static abstract factory.
 M:System.Activator.CreateInstanceFrom(System.String,System.String,System.Object[]);No reflection-based activation: construct through generated code or a static abstract factory.
 M:System.Activator.CreateInstanceFrom(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[]);No reflection-based activation: construct through generated code or a static abstract factory.
+// Reflection type discovery: enumerating or resolving types by name is not trim or AOT safe either.
+M:System.Reflection.Assembly.GetTypes;No reflection-based type discovery: the plugin type is known at compile time and constructed by the generated bootstrap (audit A04-13).
+M:System.Reflection.Assembly.GetExportedTypes;No reflection-based type discovery: the plugin type is known at compile time and constructed by the generated bootstrap (audit A04-13).
+M:System.Reflection.Module.GetTypes;No reflection-based type discovery: the plugin type is known at compile time and constructed by the generated bootstrap (audit A04-13).
+M:System.Type.GetType(System.String);No reflection-based type discovery: the plugin type is known at compile time and constructed by the generated bootstrap (audit A04-13).
+M:System.Type.GetType(System.String,System.Boolean);No reflection-based type discovery: the plugin type is known at compile time and constructed by the generated bootstrap (audit A04-13).
+M:System.Type.GetType(System.String,System.Boolean,System.Boolean);No reflection-based type discovery: the plugin type is known at compile time and constructed by the generated bootstrap (audit A04-13).

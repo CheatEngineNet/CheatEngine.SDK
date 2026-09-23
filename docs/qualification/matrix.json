@@ -2354,6 +2354,49 @@
         "expectedCategory": "Effect"
       },
       "levels": {
+        "C1": {
+          "status": "Passed",
+          "passKind": "Functional",
+          "evidenceKind": "ObservedSource",
+          "evidence": [
+            {
+              "kind": "Automated",
+              "project": "tests/CheatEngine.SDK.Tests/CheatEngine.SDK.Tests.csproj",
+              "file": "tests/CheatEngine.SDK.Tests/Packaging/CleanConsumerIsolationTests.cs",
+              "test": "CleanConsumerIsolationTests.Default_consumer_deps_json_resolves_the_sdk_as_the_package_under_test",
+              "trait": "Qualification=Q40"
+            },
+            {
+              "kind": "Automated",
+              "project": "tests/CheatEngine.SDK.Tests/CheatEngine.SDK.Tests.csproj",
+              "file": "tests/CheatEngine.SDK.Tests/Packaging/CleanConsumerIsolationTests.cs",
+              "test": "CleanConsumerIsolationTests.Default_consumer_deps_json_has_no_project_typed_sdk_library",
+              "trait": "Qualification=Q40"
+            },
+            {
+              "kind": "Automated",
+              "project": "tests/CheatEngine.SDK.Tests/CheatEngine.SDK.Tests.csproj",
+              "file": "tests/CheatEngine.SDK.Tests/Packaging/CleanConsumerIsolationTests.cs",
+              "test": "CleanConsumerIsolationTests.Consumer_manifests_contain_no_repository_or_developer_path",
+              "trait": "Qualification=Q40"
+            },
+            {
+              "kind": "Automated",
+              "project": "tests/CheatEngine.SDK.Tests/CheatEngine.SDK.Tests.csproj",
+              "file": "tests/CheatEngine.SDK.Tests/Packaging/CleanConsumerIsolationTests.cs",
+              "test": "CleanConsumerIsolationTests.Every_deployed_sdk_assembly_is_byte_identical_to_its_packed_lib_entry",
+              "trait": "Qualification=Q40"
+            },
+            {
+              "kind": "Automated",
+              "project": "tests/CheatEngine.SDK.Tests/CheatEngine.SDK.Tests.csproj",
+              "file": "tests/CheatEngine.SDK.Tests/Packaging/CleanConsumerIsolationTests.cs",
+              "test": "CleanConsumerIsolationTests.Deployment_and_publish_folders_contain_no_lua_runtime",
+              "trait": "Qualification=Q40"
+            }
+          ],
+          "date": "2026-09-23"
+        },
         "C3": {
           "status": "NotExecuted",
           "evidenceKind": "ToQualify",

@@ -119,7 +119,7 @@ Generated from [`matrix.json`](matrix.json) and checked by
 | Q37 | Hotkey callback during module shutdown | SDK | C3 | – | – | – | Not executed | – |
 | Q38 | Debug or process-watcher event on a secondary thread | SDK | C3 | – | – | – | Not applicable | – |
 | Q39 | Reduced or mutated classic exports table | SDK | C1, C3 | – | Passed (refusal verified) | – | Not applicable | – |
-| Q40 | Clean installation from the package | Both | C3 | – | – | – | Not executed | – |
+| Q40 | Clean installation from the package | Both | C3 | – | Passed | – | Not executed | – |
 | Q41 | NativeAOT publish and export inspection | SDK | C0, C2 | Not executed | – | Not executed | – | – |
 | Q42 | Removal of a NativeAOT plugin profile | SDK | C3, C4 | – | – | – | Not applicable | Not applicable |
 | Q43 | Client cleanup with a faulty module | Client | C1, C3 | – | Not applicable | – | Not applicable | – |

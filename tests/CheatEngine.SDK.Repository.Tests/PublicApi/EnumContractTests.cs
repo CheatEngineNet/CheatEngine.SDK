@@ -41,6 +41,7 @@ public sealed class EnumContractTests
 		["CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationEffect"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind"] = EnumCategory.StatusOrOutcome,
+		["CheatEngine.SDK.Engine.Assembly.AssemblePreference"] = EnumCategory.Policy,
 		["CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind"] = EnumCategory.StatusOrOutcome,

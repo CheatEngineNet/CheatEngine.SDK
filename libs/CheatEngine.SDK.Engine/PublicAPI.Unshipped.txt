@@ -76,6 +76,11 @@ CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.Succeeded = 1
 CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.TargetIdentityMismatch = 9 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
 CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable = 8 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
 CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.Unspecified = 0 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.AssemblePreference.Far = 3 -> CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.AssemblePreference.Long = 2 -> CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.AssemblePreference.None = 0 -> CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.AssemblePreference.Short = 1 -> CheatEngine.SDK.Engine.Assembly.AssemblePreference
 CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch
 CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.Dispose() -> void
 CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.IsDisposed.get -> bool
@@ -87,6 +92,25 @@ CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.RequiresManualRecovery.get ->
 CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.TargetIncarnation.get -> CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation
 CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatcher
 CheatEngine.SDK.Engine.Assembly.InstructionAssembler
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Deconstruct(out CheatEngine.SDK.Engine.Inspection.TargetProcessId Target, out CheatEngine.SDK.Engine.Assembly.InstructionProfile Profile, out CheatEngine.SDK.Engine.Values.Address Origin, out CheatEngine.SDK.Engine.Assembly.AssemblePreference Preference, out bool SkipRangeCheck, out int Written, out int RequiredLength) -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Equals(CheatEngine.SDK.Engine.Assembly.InstructionAssembly other) -> bool
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.InstructionAssembly() -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.InstructionAssembly(CheatEngine.SDK.Engine.Inspection.TargetProcessId Target, CheatEngine.SDK.Engine.Assembly.InstructionProfile Profile, CheatEngine.SDK.Engine.Values.Address Origin, CheatEngine.SDK.Engine.Assembly.AssemblePreference Preference, bool SkipRangeCheck, int Written, int RequiredLength) -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Origin.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Origin.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Preference.get -> CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Preference.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Profile.get -> CheatEngine.SDK.Engine.Assembly.InstructionProfile
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Profile.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.RequiredLength.get -> int
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.RequiredLength.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.SkipRangeCheck.get -> bool
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.SkipRangeCheck.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Target.get -> CheatEngine.SDK.Engine.Inspection.TargetProcessId
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Target.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Written.get -> int
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Written.init -> void
 CheatEngine.SDK.Engine.Assembly.InstructionDisassembler
 CheatEngine.SDK.Engine.Assembly.InstructionDisassembly
 CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Address.get -> CheatEngine.SDK.Engine.Values.Address
@@ -426,6 +450,7 @@ CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.NoTargetSelected
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.Unspecified = 0 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
 override CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Assembly.InstructionAssembly.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Assembly.InstructionProfile.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.GetHashCode() -> int
@@ -466,7 +491,10 @@ static CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.operator !
 static CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.operator ==(CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome left, CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome right) -> bool
 static CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatcher.Apply(string! script) -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch!
 static CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatcher.TryApply(string! script, out CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch? patch) -> bool
+static CheatEngine.SDK.Engine.Assembly.InstructionAssembler.TryAssemble(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile targetProfile, string! instruction, CheatEngine.SDK.Engine.Values.Address address, CheatEngine.SDK.Engine.Assembly.AssemblePreference preference, bool skipRangeCheck, System.Span<byte> destination, out CheatEngine.SDK.Engine.Assembly.InstructionAssembly assembly) -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
 static CheatEngine.SDK.Engine.Assembly.InstructionAssembler.TryAssemble(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile targetProfile, string! instruction, CheatEngine.SDK.Engine.Values.Address address, System.Span<byte> destination, out int written, out int requiredLength) -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+static CheatEngine.SDK.Engine.Assembly.InstructionAssembly.operator !=(CheatEngine.SDK.Engine.Assembly.InstructionAssembly left, CheatEngine.SDK.Engine.Assembly.InstructionAssembly right) -> bool
+static CheatEngine.SDK.Engine.Assembly.InstructionAssembly.operator ==(CheatEngine.SDK.Engine.Assembly.InstructionAssembly left, CheatEngine.SDK.Engine.Assembly.InstructionAssembly right) -> bool
 static CheatEngine.SDK.Engine.Assembly.InstructionDisassembler.TryDisassemble(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile targetProfile, CheatEngine.SDK.Engine.Values.Address address, int maximumUtf8Bytes, out CheatEngine.SDK.Engine.Assembly.InstructionDisassembly instruction, out int requiredUtf8Bytes) -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
 static CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.operator !=(CheatEngine.SDK.Engine.Assembly.InstructionDisassembly left, CheatEngine.SDK.Engine.Assembly.InstructionDisassembly right) -> bool
 static CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.operator ==(CheatEngine.SDK.Engine.Assembly.InstructionDisassembly left, CheatEngine.SDK.Engine.Assembly.InstructionDisassembly right) -> bool
@@ -576,6 +604,8 @@ static CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.operator ==(Che
 ~override CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.ToString() -> string
 ~override CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.Equals(object obj) -> bool
 ~override CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.ToString() -> string
+~override CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Assembly.InstructionAssembly.ToString() -> string
 ~override CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Equals(object obj) -> bool
 ~override CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.ToString() -> string
 ~override CheatEngine.SDK.Engine.Assembly.InstructionProfile.Equals(object obj) -> bool

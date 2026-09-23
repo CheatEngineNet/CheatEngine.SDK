@@ -4,6 +4,7 @@ using CheatEngine.SDK.Engine.Assembly;
 using CheatEngine.SDK.Engine.Runtime;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
@@ -391,7 +392,7 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
-	public void Assemble_reports_a_target_change_without_copying_the_returned_bytes()
+	public void assemble_reports_a_target_change_after_the_effect_without_copying_bytes()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -434,6 +435,33 @@ public sealed class InstructionOperationsTests
 		Assert.Equal(49, instruction.Utf8ByteLength);
 		Assert.Equal(55, requiredUtf8Bytes);
 		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Fact]
+	public void disassembly_result_remains_valid_after_the_runtime_is_detached()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		InstructionDisassembly instruction;
+		Address address = 0x0000_0001_4000_1000UL;
+		using (HostScope scope = new(state))
+		{
+			InstallInstructionGlobals(scope.State);
+			InstructionTargetProfile targetProfile = Observe(scope.State);
+			Assert.Equal(InstructionOperationStatus.Success,
+				InstructionDisassembler.TryDisassemble(targetProfile, address, 256, out instruction, out _));
+		}
+
+		// The runtime is detached and the Lua state closed below: every field is a copied managed value.
+		LuaRuntime.Detach();
+		state.Dispose();
+
+		Assert.Equal(address, instruction.Address);
+		Assert.Equal("0000000140001000", instruction.AddressText);
+		Assert.Equal("E9 FB FF FF FF", instruction.Bytes);
+		Assert.Equal("jmp", instruction.Opcode);
+		Assert.Equal("0000000140001000", instruction.Extra);
+		Assert.Equal(49, instruction.Utf8ByteLength);
 	}
 
 	[Fact]

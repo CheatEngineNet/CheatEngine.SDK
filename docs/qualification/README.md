@@ -52,6 +52,8 @@ adds the test that evidences it.
 
 **Traits.** A test that evidences a scenario carries `[Trait("Qualification", "Qxx")]` on the method, and the matrix
 cites it; every trait in the test sources is cited and every citation resolves to a traited method of a CI test module.
+A trait on a top-level test class applies, as in xUnit, to every `[Fact]`/`[Theory]` method of that class, and the
+matrix then cites each of those methods.
 `dotnet test --project <tests> --filter-trait "Qualification=Q07"` runs exactly the evidence of one row. The mapping of
 the existing tests was checked against the audit's success criterion of each row; tests whose assertions do not prove
 the criterion stay untagged.
@@ -125,7 +127,7 @@ Generated from [`matrix.json`](matrix.json) and checked by
 | Q45 | Sensitive availability probe | Client | C1, C3 | – | Not applicable | – | Not applicable | – |
 | Q46 | Logs containing user data or expressions | Both | C1, C3 | – | Not executed | – | Not executed | – |
 | Q47 | Inherited property or method and public alias | SDK | C2, C3 | – | – | Not executed | Not executed | – |
-| Q48 | SDK package updated without adapting the Client | Both | C1, C3 | – | Not executed | – | Not executed | – |
+| Q48 | SDK package updated without adapting the Client | Both | C1, C3 | Passed | Not executed | – | Not executed | – |
 <!-- END GENERATED: matrix-summary -->
 
 The rows still missing evidence are listed in the [support profile](support-profile.md#not-executed).

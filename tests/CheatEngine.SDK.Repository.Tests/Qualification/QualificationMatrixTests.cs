@@ -21,6 +21,62 @@ public sealed class QualificationMatrixTests
 		"Q32.c", "Q32.d"
 	];
 
+	// A class-level trait sample. QUALIFICATION stands for the quoted trait name, so this file holds no literal trait
+	// the real scan would index.
+	private const string ClassTraitSample = """
+		namespace Sample;
+
+		/// <summary>A class-level trait, as xUnit applies it.</summary>
+		[Trait(QUALIFICATION, "Q48")]
+		public sealed class ClassTraited
+		{
+			[Fact]
+			public void First()
+			{
+			}
+
+			[Theory]
+			[InlineData(1)]
+			public void Second(int value)
+			{
+			}
+
+			[Fact]
+			[Trait(QUALIFICATION, "Q01")]
+			public void Third()
+			{
+			}
+
+			private static void Helper()
+			{
+			}
+		}
+
+		[Trait(QUALIFICATION, "Q47")]
+		public sealed class NoTests
+		{
+			public void NotATest()
+			{
+			}
+		}
+
+		public sealed class Outer
+		{
+			[Trait(QUALIFICATION, "Q46")]
+			public sealed class Nested
+			{
+				[Fact]
+				public void Inner()
+				{
+				}
+			}
+		}
+		""";
+
+	private static string[] ClassTraitSampleLines => ClassTraitSample
+		.Replace("QUALIFICATION", "\"" + TestSourceIndex.TraitName + "\"", StringComparison.Ordinal)
+		.ReplaceLineEndings("\n").Split('\n');
+
 	private static JsonElement MatrixJson => QualificationDocuments.LoadJson(QualificationDocuments.MatrixPath);
 
 	private static QualificationMatrix Matrix => QualificationMatrix.Read(MatrixJson);
@@ -239,6 +295,27 @@ public sealed class QualificationMatrixTests
 		Assert.Contains(index.Traits, static trait =>
 			string.Equals(trait.Test, "ReentrancyTests.Disable_nested_in_OnDisable_is_refused_and_OnDisable_runs_once",
 				StringComparison.Ordinal) && string.Equals(trait.Value, "Q07", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void Class_level_Qualification_traits_apply_to_every_test_method_of_the_class()
+	{
+		string[] lines = ClassTraitSampleLines;
+
+		TestSourceIndex index = TestSourceIndex.ScanSource("tests/Sample.Tests/ClassTraited.cs", lines);
+
+		Assert.Equal(["ClassTraited.First Q48", "ClassTraited.Second Q48", "ClassTraited.Third Q01", "ClassTraited.Third Q48"],
+			index.Traits.Select(static trait => trait.Test + " " + trait.Value).Order(StringComparer.Ordinal),
+			StringComparer.Ordinal);
+		Assert.Equal(2, index.Violations.Count);
+		Assert.Contains(index.Violations, static violation =>
+			violation.Contains("'Q47' is on class NoTests, which declares no [Fact] or [Theory]", StringComparison.Ordinal));
+		Assert.Contains(index.Violations, static violation =>
+			violation.Contains("'Q46' is on a nested type", StringComparison.Ordinal));
+		Assert.Equal(["Q48"], TestSourceIndex.TraitsOfMethod(lines, "ClassTraited", "Second")!);
+		Assert.Equal(["Q01", "Q48"], TestSourceIndex.TraitsOfMethod(lines, "ClassTraited", "Third")!);
+		Assert.Empty(TestSourceIndex.TraitsOfMethod(lines, "ClassTraited", "Helper")!);
+		Assert.Null(TestSourceIndex.TraitsOfMethod(lines, "ClassTraited", "Missing"));
 	}
 
 	[Fact]

@@ -50,6 +50,9 @@ $ImperativeFirstWords = @(
     'Alias', 'Bias', 'Bleed', 'Breed', 'Bring', 'Canvas', 'Embed', 'Exceed', 'Feed', 'Focus', 'Heed', 'Need', 'Ping',
     'Proceed', 'Ring', 'Seed', 'Shed', 'Shred', 'Sing', 'Speed', 'Spring', 'Sting', 'String', 'Succeed', 'Swing', 'Wring'
 )
+# Verb prefixes that keep an allowlisted verb imperative (Refocus, Reseed, Unembed, Overfeed, Restring). "Co" is left
+# out on purpose: "Coshed" is a past tense.
+$ImperativeVerbPrefixes = @('Re', 'Un', 'De', 'Pre', 'Mis', 'Out', 'Over', 'Under', 'Up')
 $MaximumListedPaths = 10
 $RegexTimeout = [TimeSpan]::FromSeconds(1)
 $ExemptionMessage = 'Dependabot pull request: title and changelog rules exempt.'
@@ -102,6 +105,14 @@ function Test-ImperativeWord {
     foreach ($allowed in $ImperativeFirstWords) {
         if ([string]::Equals($Word, $allowed, [StringComparison]::OrdinalIgnoreCase)) {
             return $null
+        }
+
+        foreach ($prefix in $ImperativeVerbPrefixes) {
+            if ($Word.Length -eq $prefix.Length + $allowed.Length -and
+                $Word.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -and
+                $Word.EndsWith($allowed, [StringComparison]::OrdinalIgnoreCase)) {
+                return $null
+            }
         }
     }
 

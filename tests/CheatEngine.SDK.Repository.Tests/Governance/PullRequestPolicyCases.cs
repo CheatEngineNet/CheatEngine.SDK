@@ -35,6 +35,8 @@ internal static class PullRequestPolicyCases
 		new("revert_title", "Revert \"Remove unavailable Sonar CI integration\"", ["docs/README.md"], []),
 		new("allowlisted_first_word", "Embed the SBOM in the package", [".github/x.yml"], []),
 		new("allowlisted_s_ending_verb", "Focus the scan on committed files", [".github/x.yml"], []),
+		new("allowlisted_verb_with_a_prefix", "Refocus the scan on committed files", [".github/x.yml"], []),
+		new("prefixed_allowlisted_verb_in_past_tense", "Reseeded the fixtures", [".github/x.yml"], [TitleImperative]),
 		new("exactly_72_characters", "Add " + new string('x', 68), ["README.md"], []),
 		new("exactly_73_characters", "Add " + new string('x', 69), ["README.md"], [TitleLength]),
 		// 72 text elements, 140 UTF-16 code units: the limit counts what a reader sees.

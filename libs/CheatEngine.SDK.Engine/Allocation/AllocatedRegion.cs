@@ -3,8 +3,10 @@ using System.Threading;
 
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Runtime;
 
 namespace CheatEngine.SDK.Engine.Allocation;
 
@@ -12,17 +14,28 @@ namespace CheatEngine.SDK.Engine.Allocation;
 ///     The sole owner of one target-process allocation returned by <see cref="TargetMemoryAllocator" />.
 /// </summary>
 /// <remarks>
-///     The region is not a managed allocation and has no finalizer: <c>deAlloc</c> must execute while the plugin remains
-///     enabled. CE 7.7's catalog establishes no GUI-thread affinity for this global, so this type intentionally carries
-///     no <c>MainThreadOnly</c> assertion until a live probe provides that evidence. Call <see cref="Dispose" /> in a
-///     <see langword="using" /> block for best-effort, no-throw cleanup, or <see cref="Release" /> when the caller must
-///     observe a
-///     failure. Both paths consume ownership before invoking CE; an expected failure, a binding/marshalling failure, or a
-///     Lua exception never causes a retry. This makes concurrent and repeated cleanup deterministic and prevents a stale
-///     address from being freed twice. Before invoking CE, the owner reads the current selection and refuses when it is
-///     not the captured process incarnation; it never selects a process for cleanup. CE exposes no primitive that makes
-///     that observation atomic with a following ambient-target Lua call, so a selection change in that external interval
-///     remains unqualified rather than being represented as a stronger guarantee.
+///     <para>
+///         The region is not a managed allocation and has no finalizer: <c>deAlloc</c> must execute while the plugin
+///         remains enabled. CE 7.7's catalog establishes no GUI-thread affinity for this global, so this type
+///         intentionally carries no <c>MainThreadOnly</c> assertion until a live probe provides that evidence. Call
+///         <see cref="Dispose" /> in a <see langword="using" /> block for best-effort, no-throw cleanup,
+///         <see cref="ReleaseWithTargetOutcome" /> for a no-throw structured result, or <see cref="Release" /> when the
+///         caller must observe a failure as an exception. Every path consumes ownership before invoking CE; an expected
+///         failure, a binding/marshalling failure, or a Lua exception never causes a retry. This makes concurrent and
+///         repeated cleanup deterministic and prevents a stale address from being freed twice.
+///     </para>
+///     <para>
+///         <b>Origin.</b> The region is bound to the Lua runtime identity and the target process incarnation that
+///         created it (<see cref="Origin" />). After a re-enable or a controlled Lua state replacement it refuses cleanup
+///         without any Cheat Engine call and reports <see cref="TargetReleaseStatus.RefusedRuntimeChanged" />: the
+///         allocation may remain in the target as a residue. After a detach, cleanup cannot begin and reports
+///         <see cref="TargetReleaseStatus.NotInvoked" />. Before invoking CE, the owner reads the current selection and
+///         refuses when it is not the captured process incarnation; it never reopens or selects a process for cleanup.
+///         CE exposes no primitive that makes that observation atomic with a following ambient-target Lua call, so a
+///         selection change in that external interval remains unqualified rather than being represented as a stronger
+///         guarantee. A later allocation that reuses the same address is never freed through this owner: after its one
+///         release attempt the owner is consumed.
+///     </para>
 /// </remarks>
 public sealed class AllocatedRegion : IDisposable
 {
@@ -33,8 +46,7 @@ public sealed class AllocatedRegion : IDisposable
 	private int _released;
 
 	internal AllocatedRegion(ITargetBoundMemoryAllocationOperations targetBoundOperations, Address address,
-		TargetAllocationSize size,
-		TargetProcessIncarnation targetIncarnation)
+		TargetAllocationSize size, TargetProcessIncarnation targetIncarnation, LuaStateIdentity runtime)
 	{
 		ArgumentNullException.ThrowIfNull(targetBoundOperations);
 		if (address.IsZero)
@@ -50,6 +62,7 @@ public sealed class AllocatedRegion : IDisposable
 
 		_targetBoundOperations = targetBoundOperations;
 		TargetIncarnation = targetIncarnation;
+		Origin = new EngineResourceOrigin(runtime, targetIncarnation);
 		_address = address;
 		_size = size;
 	}
@@ -87,12 +100,25 @@ public sealed class AllocatedRegion : IDisposable
 	public bool IsDisposed => Volatile.Read(ref _released) != 0;
 
 	/// <summary>Gets the copied process incarnation that was qualified when this allocation was created.</summary>
+	/// <remarks>The same value as the <see cref="EngineResourceOrigin.Target" /> of <see cref="Origin" />.</remarks>
 	public TargetProcessIncarnation TargetIncarnation
 	{
 		get;
 	}
 
-	/// <summary>Gets the factual outcome of the one release attempt, including a safe target refusal.</summary>
+	/// <summary>
+	///     Gets the Lua runtime identity and the target process incarnation that created this allocation. Readable after
+	///     the owner was consumed, for diagnostics.
+	/// </summary>
+	public EngineResourceOrigin Origin
+	{
+		get;
+	}
+
+	/// <summary>
+	///     Gets the factual outcome of the one release attempt: confirmed release, a safe target or runtime refusal,
+	///     cleanup that could not begin, or an attempted but unconfirmed deallocation.
+	/// </summary>
 	public TargetReleaseOutcome LastReleaseOutcome => _lastReleaseOutcome;
 
 	/// <summary>
@@ -100,14 +126,15 @@ public sealed class AllocatedRegion : IDisposable
 	/// </summary>
 	/// <remarks>
 	///     This method is intended for <see langword="using" />/<see langword="finally" /> cleanup. It intentionally discards
-	///     expected CE,
-	///     Lua, binding, and marshalling failures, but still consumes ownership so a later call never retries a possibly
-	///     partial deallocation. Call <see cref="Release" /> when the outcome must be observed.
+	///     expected CE, Lua, binding, marshalling and lifecycle failures, but still consumes ownership so a later call never
+	///     retries a possibly partial deallocation. <see cref="LastReleaseOutcome" /> records what happened, including a
+	///     refusal after a re-enable and <see cref="TargetReleaseStatus.NotInvoked" /> after a detach. Call
+	///     <see cref="Release" /> when the failure must be observed as an exception.
 	/// </remarks>
 	[RequiresPluginEnabled]
 	public void Dispose()
 	{
-		if (!TryTakeOwnership())
+		if (!TryTakeOwnership() || RefuseStaleRuntime())
 		{
 			return;
 		}
@@ -130,7 +157,13 @@ public sealed class AllocatedRegion : IDisposable
 	///     Releases the target allocation and reports every failure to the caller.
 	/// </summary>
 	/// <exception cref="ObjectDisposedException">Ownership was already released or disposed.</exception>
+	/// <exception cref="InvalidOperationException">
+	///     The allocation belongs to a previous Lua runtime identity (ownership consumed without any CE call), or a
+	///     lifecycle violation prevented the deallocation from beginning (ownership consumed; see
+	///     <see cref="LastReleaseOutcome" />).
+	/// </exception>
 	/// <exception cref="EngineOperationFailedException">Cheat Engine reported that deallocation did not complete.</exception>
+	/// <exception cref="EngineTargetIdentityException">The current target is not the captured process incarnation.</exception>
 	/// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or non-callable.</exception>
 	/// <exception cref="EngineBindingException">The CE binding cannot uphold its documented contract.</exception>
 	/// <exception cref="EngineMarshallingException">The binding returned an invalid success/failure shape.</exception>
@@ -145,6 +178,11 @@ public sealed class AllocatedRegion : IDisposable
 		if (!TryTakeOwnership())
 		{
 			ThrowDisposed();
+		}
+
+		if (RefuseStaleRuntime())
+		{
+			ThrowRuntimeChanged();
 		}
 
 		TargetMemoryOperationOutcome outcome = ReleaseTakenWithOutcome();
@@ -167,6 +205,11 @@ public sealed class AllocatedRegion : IDisposable
 	///     <see cref="LastReleaseOutcome" /> for the target-incarnation check without inspecting exception text.
 	/// </remarks>
 	/// <exception cref="ObjectDisposedException">Ownership was already released or disposed.</exception>
+	/// <exception cref="InvalidOperationException">
+	///     The allocation belongs to a previous Lua runtime identity (ownership consumed without any CE call), or a
+	///     lifecycle violation prevented the deallocation from beginning (ownership consumed; see
+	///     <see cref="LastReleaseOutcome" />).
+	/// </exception>
 	[RequiresPluginEnabled]
 	public TargetMemoryOperationOutcome ReleaseWithOutcome()
 	{
@@ -175,10 +218,27 @@ public sealed class AllocatedRegion : IDisposable
 			ThrowDisposed();
 		}
 
+		if (RefuseStaleRuntime())
+		{
+			ThrowRuntimeChanged();
+		}
+
 		return ReleaseTakenWithOutcome();
 	}
 
-	/// <summary>Releases this owner and returns the target-bound outcome, including safe target refusal.</summary>
+	/// <summary>
+	///     Releases this owner and returns the target-bound outcome. Never throws once ownership was taken.
+	/// </summary>
+	/// <returns>
+	///     <see cref="TargetReleaseStatus.Released" /> after a confirmed deallocation; a target refusal
+	///     (<see cref="TargetReleaseStatus.RefusedNoTarget" />, <see cref="TargetReleaseStatus.RefusedTargetChanged" />,
+	///     <see cref="TargetReleaseStatus.RefusedProcessReused" />,
+	///     <see cref="TargetReleaseStatus.RefusedIdentityUnavailable" />);
+	///     <see cref="TargetReleaseStatus.RefusedRuntimeChanged" /> after a re-enable or a controlled state replacement;
+	///     <see cref="TargetReleaseStatus.NotInvoked" /> when a detached runtime prevented the call; or
+	///     <see cref="TargetReleaseStatus.UnconfirmedAfterInvocation" /> after an attempted deallocation that CE did not
+	///     confirm.
+	/// </returns>
 	/// <exception cref="ObjectDisposedException">Ownership was already released or disposed.</exception>
 	[RequiresPluginEnabled]
 	public TargetReleaseOutcome ReleaseWithTargetOutcome()
@@ -188,8 +248,32 @@ public sealed class AllocatedRegion : IDisposable
 			ThrowDisposed();
 		}
 
-		_ = ReleaseTakenWithOutcome();
+		if (!RefuseStaleRuntime())
+		{
+			try
+			{
+				_ = ReleaseTakenWithOutcome();
+			}
+			catch (Exception)
+			{
+				// ReleaseTakenWithOutcome has recorded the factual outcome of the failure; nothing is retried.
+			}
+		}
+
 		return LastReleaseOutcome;
+	}
+
+	// Refuses, without any CE call, an allocation whose Lua universe is no longer current. The comparison is identity
+	// only: an "is attached" pre-check would break consumer implementations that run without an attached runtime.
+	private bool RefuseStaleRuntime()
+	{
+		if (EngineResourceOrigin.IsCurrent(Origin.Runtime))
+		{
+			return false;
+		}
+
+		_lastReleaseOutcome = TargetReleaseOutcome.RefusedRuntimeChanged();
+		return true;
 	}
 
 	private TargetMemoryOperationOutcome ReleaseTakenWithOutcome()
@@ -206,6 +290,13 @@ public sealed class AllocatedRegion : IDisposable
 				: TargetReleaseOutcome.Refused(targetCheck);
 			return outcome;
 		}
+		catch (InvalidOperationException) when (!LuaRuntime.IsAttached ||
+												!EngineResourceOrigin.IsCurrent(Origin.Runtime))
+		{
+			// The binding could not acquire a Lua operation: deAlloc never ran.
+			_lastReleaseOutcome = TargetReleaseOutcome.NotInvoked(EngineFailureKind.BindingFailure);
+			throw;
+		}
 		catch (EngineException exception)
 		{
 			_lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(exception.Kind);
@@ -213,6 +304,7 @@ public sealed class AllocatedRegion : IDisposable
 		}
 		catch (Exception)
 		{
+			// A consumer implementation may have started an effect before it threw.
 			_lastReleaseOutcome = TargetReleaseOutcome.Unconfirmed(null);
 			throw;
 		}
@@ -273,5 +365,11 @@ public sealed class AllocatedRegion : IDisposable
 	{
 		throw new ObjectDisposedException(nameof(AllocatedRegion),
 			"The target allocation is no longer owned: it was released or disposed.");
+	}
+
+	private static void ThrowRuntimeChanged()
+	{
+		throw new InvalidOperationException(
+			"The target allocation belongs to a previous Lua runtime identity; ownership was consumed without deallocating it.");
 	}
 }

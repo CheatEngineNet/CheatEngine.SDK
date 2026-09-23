@@ -64,6 +64,12 @@ public readonly record struct TargetReleaseOutcome
 		return new TargetReleaseOutcome(GetRefusalStatus(check.Kind), check, null);
 	}
 
+	// The owner belongs to a previous Lua universe (re-enable or controlled state replacement): no CE call was made.
+	internal static TargetReleaseOutcome RefusedRuntimeChanged()
+	{
+		return new TargetReleaseOutcome(TargetReleaseStatus.RefusedRuntimeChanged, null, null);
+	}
+
 	private static TargetReleaseStatus GetRefusalStatus(TargetIdentityCheckKind kind)
 	{
 		return kind switch

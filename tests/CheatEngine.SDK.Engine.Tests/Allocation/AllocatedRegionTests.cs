@@ -195,11 +195,11 @@ public sealed class AllocatedRegionTests
 	{
 		AllocationOperationsFake operations = new()
 		{
-			DeallocationException = new InvalidOperationException("injected non-Engine deallocation failure")
+			DeallocationException = new NotSupportedException("injected non-Engine deallocation failure")
 		};
 		AllocatedRegion region = Allocate(operations, 4096);
 
-		Assert.Throws<InvalidOperationException>(region.Release);
+		Assert.Throws<NotSupportedException>(region.Release);
 
 		Assert.True(region.IsDisposed);
 		Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, region.LastReleaseOutcome.Status);

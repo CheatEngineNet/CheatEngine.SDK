@@ -34,5 +34,17 @@ public enum MemoryRecordMutationProblem
 	LuaFailure,
 
 	/// <summary>CE returned a value outside the typed contract.</summary>
-	InvalidResult
+	InvalidResult,
+
+	/// <summary>
+	///     A table load (<see cref="Tables.CheatTableFiles.TryLoad" />) is running on the calling thread, so the mutation
+	///     was refused before any Lua call: the record identifiers it would resolve are being replaced.
+	/// </summary>
+	TableLoadInProgress = 11,
+
+	/// <summary>
+	///     The Lua runtime identity (attach epoch or state generation) changed between the preflight and the mutation, so
+	///     the mutation was not attempted.
+	/// </summary>
+	RuntimeIdentityChanged = 12
 }

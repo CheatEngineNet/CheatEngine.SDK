@@ -1,8 +1,10 @@
 using System;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
@@ -24,7 +26,15 @@ namespace CheatEngine.SDK.Engine.Assembly;
 ///         A Lua runtime detach, re-attach, or supported state replacement invalidates the disable-info reference.
 ///         In that case CE cannot safely execute the old <c>[DISABLE]</c> information. The owner is consumed and
 ///         <see cref="RequiresManualRecovery" /> becomes <see langword="true" /> rather than routing a stale table
-///         into a new Lua state.
+///         into a new Lua state: after a re-enable or a state replacement the outcome is
+///         <see cref="TargetReleaseStatus.RefusedRuntimeChanged" /> (the patch was made in another Lua universe, see
+///         <see cref="Origin" />); after a detach alone it is <see cref="TargetReleaseStatus.NotInvoked" />.
+///     </para>
+///     <para>
+///         <see cref="DisableInfo" /> is a bounded, diagnostic copy of the disable information. The SDK never derives a
+///         cleanup action from it and never rebuilds a <c>[DISABLE]</c> script from saved bytes: the rooted table Cheat
+///         Engine returned is the only disable authority. No rollback stronger than Cheat Engine's own is promised: a
+///         disable that returns <see langword="false" /> or raises may have applied part of its effects.
 ///     </para>
 /// </remarks>
 public sealed class AutoAssemblerPatch : IDisposable
@@ -34,13 +44,24 @@ public sealed class AutoAssemblerPatch : IDisposable
 	private TargetReleaseOutcome _lastReleaseOutcome;
 	private int _requiresManualRecovery;
 
-	internal AutoAssemblerPatch(string script, LuaRef disableInfo, TargetProcessIncarnation targetIncarnation)
+	internal AutoAssemblerPatch(string script, LuaRef disableInfo, EngineResourceOrigin origin,
+		AutoAssemblerDisableInfoSnapshot snapshot, TargetIdentityCheck? postApplyTargetCheck)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(script);
 		ArgumentNullException.ThrowIfNull(disableInfo);
+		ArgumentNullException.ThrowIfNull(snapshot);
+		if (!origin.Target.HasValue)
+		{
+			throw new ArgumentException("An Auto Assembler patch is bound to a target process incarnation.",
+				nameof(origin));
+		}
+
 		_script = script;
 		_disableInfo = disableInfo;
-		TargetIncarnation = targetIncarnation;
+		Origin = origin;
+		TargetIncarnation = origin.Target.GetValueOrDefault();
+		DisableInfo = snapshot;
+		PostApplyTargetCheck = postApplyTargetCheck;
 	}
 
 	/// <summary>
@@ -72,7 +93,32 @@ public sealed class AutoAssemblerPatch : IDisposable
 	public bool IsDisposed => Volatile.Read(ref _disableInfo) is null;
 
 	/// <summary>Gets the copied process incarnation that was qualified when this patch was applied.</summary>
+	/// <remarks>The same value as the <see cref="EngineResourceOrigin.Target" /> of <see cref="Origin" />.</remarks>
 	public TargetProcessIncarnation TargetIncarnation
+	{
+		get;
+	}
+
+	/// <summary>
+	///     Gets the Lua runtime identity and the target process incarnation in which Cheat Engine applied the script.
+	///     Readable after the owner was consumed, for diagnostics.
+	/// </summary>
+	public EngineResourceOrigin Origin
+	{
+		get;
+	}
+
+	/// <summary>Gets the bounded, diagnostic copy of the disable information Cheat Engine returned.</summary>
+	public AutoAssemblerDisableInfoSnapshot DisableInfo
+	{
+		get;
+	}
+
+	/// <summary>
+	///     Gets the validation of the captured target made right after Cheat Engine applied the script, in the same Lua
+	///     operation; a non-current check means the effect happened while the selection changed.
+	/// </summary>
+	public TargetIdentityCheck? PostApplyTargetCheck
 	{
 		get;
 	}
@@ -92,7 +138,7 @@ public sealed class AutoAssemblerPatch : IDisposable
 			return;
 		}
 
-		_ = ReleaseTakenWithTargetOutcome(disableInfo);
+		_ = ReleaseTakenWithTargetOutcome(disableInfo, out _);
 	}
 
 	/// <summary>
@@ -104,6 +150,10 @@ public sealed class AutoAssemblerPatch : IDisposable
 	/// <exception cref="EngineGlobalUnavailableException">The required CE global is absent or not a function.</exception>
 	/// <exception cref="EngineLuaException">The protected CE Lua call failed.</exception>
 	/// <exception cref="EngineMarshallingException">CE returned a non-boolean disable result.</exception>
+	/// <exception cref="InvalidOperationException">
+	///     The patch belongs to a previous Lua runtime identity (consumed without any CE call), or a lifecycle violation
+	///     prevented the disable from beginning.
+	/// </exception>
 	/// <remarks>
 	///     Ownership is consumed before the CE call. If the call returns false, raises, or cannot use an invalidated
 	///     state, <see cref="RequiresManualRecovery" /> is set and a future call cannot re-run <c>[DISABLE]</c>. A
@@ -112,46 +162,29 @@ public sealed class AutoAssemblerPatch : IDisposable
 	[RequiresPluginEnabled]
 	public void Release()
 	{
-		LuaRef disableInfo = TakeOwnership();
-		bool disableInvocationStarted = false;
-		try
+		TargetReleaseOutcome outcome = ReleaseTakenWithTargetOutcome(TakeOwnership(), out Exception? failure);
+		if (outcome.Status == TargetReleaseStatus.Released)
 		{
-			_lastReleaseOutcome = AutoAssemblerPatcher.TryDisable(_script, disableInfo, TargetIncarnation,
-				out disableInvocationStarted);
-			if (_lastReleaseOutcome.Status == TargetReleaseStatus.Released)
-			{
-				return;
-			}
+			return;
+		}
 
-			Volatile.Write(ref _requiresManualRecovery, 1);
-			if (_lastReleaseOutcome.TargetCheck.HasValue)
-			{
-				throw new EngineTargetIdentityException("AutoAssemblerDisable", _lastReleaseOutcome.TargetCheck.Value);
-			}
+		if (failure is not null)
+		{
+			ExceptionDispatchInfo.Throw(failure);
+		}
 
-			throw new EngineOperationFailedException("AutoAssemblerDisable");
-		}
-		catch (EngineTargetIdentityException)
+		if (outcome.TargetCheck.HasValue)
 		{
-			Volatile.Write(ref _requiresManualRecovery, 1);
-			throw;
+			throw new EngineTargetIdentityException("AutoAssemblerDisable", outcome.TargetCheck.Value);
 		}
-		catch (EngineException exception)
+
+		if (outcome.Status == TargetReleaseStatus.RefusedRuntimeChanged)
 		{
-			_lastReleaseOutcome = disableInvocationStarted
-				? TargetReleaseOutcome.Unconfirmed(exception.Kind)
-				: TargetReleaseOutcome.NotInvoked(exception.Kind);
-			Volatile.Write(ref _requiresManualRecovery, 1);
-			throw;
+			throw new InvalidOperationException(
+				"The Auto Assembler patch belongs to a previous Lua runtime identity; ownership was consumed without disabling it.");
 		}
-		catch
-		{
-			_lastReleaseOutcome = disableInvocationStarted
-				? TargetReleaseOutcome.Unconfirmed(null)
-				: TargetReleaseOutcome.NotInvoked();
-			Volatile.Write(ref _requiresManualRecovery, 1);
-			throw;
-		}
+
+		throw new EngineOperationFailedException("AutoAssemblerDisable");
 	}
 
 	/// <summary>
@@ -159,8 +192,9 @@ public sealed class AutoAssemblerPatch : IDisposable
 	/// </summary>
 	/// <returns>
 	///     <see cref="TargetReleaseStatus.Released" /> when Cheat Engine confirmed disable, a safe refusal when the
-	///     captured target is no longer current, <see cref="TargetReleaseStatus.NotInvoked" /> when cleanup could not
-	///     begin, or an unconfirmed outcome when an attempted disable could have had partial effects.
+	///     captured target is no longer current, <see cref="TargetReleaseStatus.RefusedRuntimeChanged" /> when the patch
+	///     was applied in a previous Lua runtime identity, <see cref="TargetReleaseStatus.NotInvoked" /> when cleanup could
+	///     not begin, or an unconfirmed outcome when an attempted disable could have had partial effects.
 	/// </returns>
 	/// <exception cref="ObjectDisposedException">The owner was already released or disposed.</exception>
 	/// <remarks>
@@ -172,7 +206,7 @@ public sealed class AutoAssemblerPatch : IDisposable
 	[RequiresPluginEnabled]
 	public TargetReleaseOutcome ReleaseWithTargetOutcome()
 	{
-		return ReleaseTakenWithTargetOutcome(TakeOwnership());
+		return ReleaseTakenWithTargetOutcome(TakeOwnership(), out _);
 	}
 
 	private LuaRef TakeOwnership()
@@ -187,22 +221,27 @@ public sealed class AutoAssemblerPatch : IDisposable
 		return disableInfo;
 	}
 
-	private TargetReleaseOutcome ReleaseTakenWithTargetOutcome(LuaRef disableInfo)
+	// The one disable attempt. A failure is recorded as the factual outcome and handed back for Release to rethrow; the
+	// other paths discard it. Ownership was consumed by the caller, so nothing here can run [DISABLE] twice.
+	private TargetReleaseOutcome ReleaseTakenWithTargetOutcome(LuaRef disableInfo, out Exception? failure)
 	{
+		failure = null;
 		bool disableInvocationStarted = false;
 		try
 		{
-			_lastReleaseOutcome = AutoAssemblerPatcher.TryDisable(_script, disableInfo, TargetIncarnation,
+			_lastReleaseOutcome = AutoAssemblerPatcher.TryDisable(_script, disableInfo, Origin,
 				out disableInvocationStarted);
 		}
 		catch (EngineException exception)
 		{
+			failure = exception;
 			_lastReleaseOutcome = disableInvocationStarted
 				? TargetReleaseOutcome.Unconfirmed(exception.Kind)
 				: TargetReleaseOutcome.NotInvoked(exception.Kind);
 		}
-		catch (Exception)
+		catch (Exception exception)
 		{
+			failure = exception;
 			_lastReleaseOutcome = disableInvocationStarted
 				? TargetReleaseOutcome.Unconfirmed(null)
 				: TargetReleaseOutcome.NotInvoked();

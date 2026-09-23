@@ -86,12 +86,22 @@ internal sealed class AllocationOperationsFake : ITargetMemoryAllocationOperatio
 		set;
 	}
 
+	/// <summary>
+	///     Makes the fake allocate although its observation is unqualified: a binding that broke its contract, so the
+	///     allocator's own post-effect refusal can be observed.
+	/// </summary>
+	public bool AllocateEvenWhenUnqualified
+	{
+		get;
+		set;
+	}
+
 	public TargetMemoryAllocationOutcome AllocateBoundWithOutcome(TargetAllocationRequest request,
 		out TargetProcessIncarnation incarnation, out TargetSelectionObservation observation)
 	{
 		observation = TargetObservation;
 		incarnation = observation.Incarnation.GetValueOrDefault();
-		if (!observation.IsQualified)
+		if (!observation.IsQualified && !AllocateEvenWhenUnqualified)
 		{
 			return TargetMemoryAllocationOutcome.Failed(TargetMemoryOperationOutcome.Failed(
 				EngineFailureKind.TargetIdentityUnavailable));

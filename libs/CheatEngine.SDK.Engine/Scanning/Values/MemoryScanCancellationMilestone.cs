@@ -2,8 +2,11 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 
 /// <summary>Records how a cancellation request intersected a synchronous memory-scan operation.</summary>
 /// <remarks>
-///     Cheat Engine's documented <c>waitTillDone()</c> form has no cancellation or timeout parameter. A milestone is
-///     therefore diagnostic evidence only: it never claims that a cancellation request interrupted native scan work.
+///     The session's cancellable wait uses CE's no-timeout <c>waitTillDone()</c> form, which has no cancellation
+///     argument. CE 7.7.0.10621 also documents an optional timeout for <c>waitTillDone</c> (<c>celua.txt</c> line 2649);
+///     that form is projected separately, and experimentally, by <see cref="MemoryScanSession.TryWaitForCompletion" />.
+///     Neither form accepts a token, so a milestone is diagnostic evidence only: it never claims that a cancellation
+///     request interrupted native scan work.
 /// </remarks>
 public enum MemoryScanCancellationMilestone : byte
 {

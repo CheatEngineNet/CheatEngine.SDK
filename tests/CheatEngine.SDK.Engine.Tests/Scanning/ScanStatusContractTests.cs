@@ -42,7 +42,29 @@ public sealed class ScanStatusContractTests
 		{ typeof(MemoryScanMaterializationStatus), "TargetIdentityMismatch", 7 },
 		{ typeof(MemoryScanMaterializationStatus), "LuaFailure", 8 },
 		{ typeof(MemoryScanMaterializationStatus), "InvalidResult", 9 },
-		{ typeof(MemoryScanMaterializationStatus), "PageStartOutOfRange", 10 }
+		{ typeof(MemoryScanMaterializationStatus), "PageStartOutOfRange", 10 },
+		{ typeof(MemoryScanWaitStatus), "Unknown", 0 },
+		{ typeof(MemoryScanWaitStatus), "Completed", 1 },
+		{ typeof(MemoryScanWaitStatus), "TimedOut", 2 },
+		{ typeof(MemoryScanWaitStatus), "LuaFailure", 3 },
+		{ typeof(MemoryScanWaitStatus), "InvalidResult", 4 },
+		{ typeof(MemoryScanWaitStatus), "InitializationFailed", 5 },
+		{ typeof(MemoryScanWaitStatus), "RuntimeInvalidated", 6 },
+		{ typeof(MemoryScanWaitStatus), "TargetIdentityUnavailable", 7 },
+		{ typeof(MemoryScanWaitStatus), "TargetIdentityMismatch", 8 },
+		{ typeof(MemoryScanTerminationStatus), "Unknown", 0 },
+		{ typeof(MemoryScanTerminationStatus), "NotRequired", 1 },
+		{ typeof(MemoryScanTerminationStatus), "Confirmed", 2 },
+		{ typeof(MemoryScanTerminationStatus), "WaitTimedOut", 3 },
+		{ typeof(MemoryScanTerminationStatus), "TerminateFailed", 4 },
+		{ typeof(MemoryScanTerminationStatus), "WaitFailed", 5 },
+		{ typeof(MemoryScanTerminationStatus), "NotInvoked", 6 },
+		{ typeof(MemoryScanInvalidationReason), "None", 0 },
+		{ typeof(MemoryScanInvalidationReason), "ProtectedLuaFailure", 1 },
+		{ typeof(MemoryScanInvalidationReason), "RuntimeIdentityChanged", 2 },
+		{ typeof(MemoryScanInvalidationReason), "TargetChanged", 3 },
+		{ typeof(MemoryScanInvalidationReason), "TargetProcessReused", 4 },
+		{ typeof(MemoryScanInvalidationReason), "ScanTerminated", 5 }
 	};
 
 	[Fact]
@@ -73,6 +95,19 @@ public sealed class ScanStatusContractTests
 		Assert.Equal(MemoryScanMaterializationStatus.Unknown, status);
 		Assert.NotEqual(MemoryScanMaterializationStatus.Success, status);
 		Assert.Equal("Unknown", Enum.GetName(status));
+	}
+
+	[Fact]
+	public void MemoryScanWaitStatus_and_MemoryScanTerminationStatus_defaults_are_unknown_and_never_success()
+	{
+		MemoryScanWaitStatus wait = default;
+		MemoryScanTerminationStatus termination = default;
+
+		Assert.Equal(MemoryScanWaitStatus.Unknown, wait);
+		Assert.NotEqual(MemoryScanWaitStatus.Completed, wait);
+		Assert.Equal(MemoryScanTerminationStatus.Unknown, termination);
+		Assert.NotEqual(MemoryScanTerminationStatus.Confirmed, termination);
+		Assert.NotEqual(MemoryScanTerminationStatus.NotRequired, termination);
 	}
 
 	[Fact]

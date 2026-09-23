@@ -16,5 +16,11 @@ public enum MemoryScanInvalidationReason : byte
 	TargetChanged = 3,
 
 	/// <summary>The observed target reused the original process identifier with a different start time.</summary>
-	TargetProcessReused = 4
+	TargetProcessReused = 4,
+
+	/// <summary>
+	///     A cooperative stop of the running scan was requested; its results are never exposed. Whether the stop was
+	///     confirmed is reported by the termination status that the request returned.
+	/// </summary>
+	ScanTerminated = 5
 }

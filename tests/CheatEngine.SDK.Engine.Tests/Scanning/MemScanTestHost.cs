@@ -1,9 +1,13 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
 using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Scanning.Values;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Lua.State;
 
@@ -258,6 +262,58 @@ internal static class MemScanTestHost
 		using LuaFrame frame = new(state);
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("return " + expression), 1);
 		return EngineTest.ReadInteger(state, -1);
+	}
+
+	/// <summary>
+	///     Returns the identifier of another live process whose start time is readable, so that CE "selecting" it gives
+	///     a qualified observation of a different target. The oldest such process is chosen because it is the least
+	///     likely to exit during the test.
+	/// </summary>
+	public static int FindOtherQualifiedProcessId()
+	{
+		int selected = 0;
+		DateTime oldest = DateTime.MaxValue;
+		foreach (Process process in Process.GetProcesses())
+		{
+			using (process)
+			{
+				if (process.Id == Environment.ProcessId || process.Id <= 4)
+				{
+					continue;
+				}
+
+				try
+				{
+					DateTime started = process.StartTime;
+					if (started < oldest)
+					{
+						oldest = started;
+						selected = process.Id;
+					}
+				}
+				catch (Exception exception) when (exception is InvalidOperationException or Win32Exception
+													  or NotSupportedException)
+				{
+					// Not readable by this user (protected or already exited): not a qualifiable target.
+				}
+			}
+		}
+
+		Assert.True(selected != 0, "No other process with a readable start time exists; a target change cannot be modelled.");
+		return selected;
+	}
+
+	/// <summary>
+	///     Replaces the target incarnation a session captured at creation. This models a process-identifier reuse that
+	///     cannot be produced with real processes in a unit test (the current process's start time is fixed): the
+	///     session's next context check then observes the same identifier with a different start time.
+	/// </summary>
+	public static void ReplaceCapturedTarget(MemoryScanSession session, TargetProcessIncarnation incarnation)
+	{
+		FieldInfo field = typeof(MemoryScanSession).GetField("_targetObservation",
+							  BindingFlags.Instance | BindingFlags.NonPublic)
+						  ?? throw new InvalidOperationException("The session's captured target field was not found.");
+		field.SetValue(session, TargetSelectionObservation.Qualified(incarnation));
 	}
 
 	private static void SetGlobalObject(LuaState state, ReadOnlySpan<byte> name, CEObject value)

@@ -68,6 +68,7 @@
     <File Path="analyzers/docs/CESDK2002.md" />
     <File Path="analyzers/docs/CESDK2003.md" />
     <File Path="analyzers/docs/CESDK2004.md" />
+    <File Path="analyzers/docs/CESDK5010.md" />
   </Folder>
   <Folder Name="/libs/">
     <Project Path="libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj" />

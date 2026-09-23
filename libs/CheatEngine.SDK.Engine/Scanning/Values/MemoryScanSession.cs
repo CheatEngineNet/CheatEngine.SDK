@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Threading;
 
 using CheatEngine.SDK.Annotations.Lifetime;
@@ -40,6 +41,16 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 ///         <see cref="Owned{T}" /> values can reach <c>destroy()</c>. As with <see cref="Owned{T}" />, no finalizer runs
 ///         native cleanup from an arbitrary thread.
 ///     </para>
+///     <para>
+///         <see cref="WaitForCompletion" /> uses CE's no-timeout <c>waitTillDone()</c> form. CE 7.7.0.10621 also has a
+///         timeout form returning a boolean (<c>celua.txt</c> line 2649) and a cooperative <c>terminateScan</c> (line
+///         2566); <see cref="TryWaitForCompletion" /> and <see cref="TryTerminateScan" /> project them. Their
+///         timed-out and termination paths were not observed on the pinned host (spike D4.7), so both members are
+///         <c>[Experimental("CESDK5010")]</c> until a Q29 C3 receipt observes them. The SDK never forces termination: a
+///         forced stop can kill CE's scan thread and open a modal dialog on CE's main thread.
+///         <see cref="TryGetHostErrorText" /> copies CE's <c>ErrorString</c> as a bounded, unparsed fact; no outcome
+///         category is ever derived from it.
+///     </para>
 /// </remarks>
 public sealed class MemoryScanSession : IDisposable
 {
@@ -56,6 +67,15 @@ public sealed class MemoryScanSession : IDisposable
 	private Owned<FoundList>? _foundList;
 	private bool _isBound;
 	private Owned<MemScan>? _scanner;
+
+	// True from immediately before a firstScan/nextScan call (CE may have started work even if the call then fails)
+	// until a wait reports completion, a cooperative stop is confirmed, or a reset succeeds.
+	private bool _scanMayBeRunning;
+
+	// The one cooperative stop request of the current scan, if any: it is never repeated, and its status is what a
+	// later release reports when the stop stayed unconfirmed.
+	private bool _terminationAttempted;
+	private MemoryScanTerminationStatus _termination;
 	private TargetSelectionObservation _targetObservation;
 
 	private MemoryScanSession(Owned<MemScan> scanner, Owned<FoundList> foundList)
@@ -64,6 +84,15 @@ public sealed class MemoryScanSession : IDisposable
 		_foundList = foundList;
 		State = MemoryScanState.New;
 	}
+
+	/// <summary>The maximum number of UTF-8 bytes that <see cref="TryGetHostErrorText" /> copies from CE.</summary>
+	public const int HostErrorTextMaximumUtf8Bytes = 1024;
+
+	/// <summary>
+	///     The bounded wait, in milliseconds, after the one cooperative stop request that release and the bounded AOB
+	///     route issue for a scan that may still be running.
+	/// </summary>
+	internal const int ReleaseTerminationWaitMilliseconds = 5000;
 
 	/// <summary>Gets the session's conservative, managed state.</summary>
 	public MemoryScanState State
@@ -359,8 +388,9 @@ public sealed class MemoryScanSession : IDisposable
 
 		// A CE error may happen after it accepts some scan setup. Do not report the old New state after a partial call.
 		Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
+		_scanMayBeRunning = true;
 		CallFirstScan(operation.State, _scanner!.Value, in request);
-		State = MemoryScanState.Scanning;
+		CompleteTransition(MemoryScanState.Scanning);
 		ObserveCancellationAfterNativeCall(cancellationToken);
 	}
 
@@ -398,8 +428,9 @@ public sealed class MemoryScanSession : IDisposable
 		// the conservative Invalidated state, from which Reset is the only recovery.
 		Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
 		CallNoResult(operation.State, _foundList!.Value.Handle, "deinitialize"u8, DeinitializeResultsOperation);
+		_scanMayBeRunning = true;
 		CallNextScan(operation.State, _scanner!.Value, in request);
-		State = MemoryScanState.Scanning;
+		CompleteTransition(MemoryScanState.Scanning);
 		ObserveCancellationAfterNativeCall(cancellationToken);
 	}
 
@@ -407,6 +438,10 @@ public sealed class MemoryScanSession : IDisposable
 	///     Waits through CE's no-timeout <c>waitTillDone()</c> form, then initializes the attached found list only after
 	///     CE reports completion.
 	/// </summary>
+	/// <remarks>
+	///     This is CE's documented blocking form: it has no deadline and no cancellation argument. CE 7.7.0.10621 also
+	///     has a timeout form; <see cref="TryWaitForCompletion" /> projects it experimentally.
+	/// </remarks>
 	/// <exception cref="MemoryScanStateException">The session is not scanning.</exception>
 	/// <exception cref="MemoryScanException">The protected CE call failed.</exception>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
@@ -437,11 +472,12 @@ public sealed class MemoryScanSession : IDisposable
 		try
 		{
 			CallWaitTillDone(operation.State, _scanner!.Value);
+			_scanMayBeRunning = false;
 			ObserveCancellationAfterNativeCall(cancellationToken);
 
 			Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
 			CallNoResult(operation.State, _foundList!.Value.Handle, "initialize"u8, InitializeResultsOperation);
-			State = MemoryScanState.ResultsReady;
+			CompleteTransition(MemoryScanState.ResultsReady);
 		}
 		catch
 		{
@@ -469,6 +505,10 @@ public sealed class MemoryScanSession : IDisposable
 	/// <summary>Resets the CE scan only when cancellation was not observed before the first native cleanup call.</summary>
 	/// <param name="cancellationToken">A cooperative cancellation observation token; it cannot interrupt CE.</param>
 	/// <exception cref="OperationCanceledException">Cancellation was observed before CE cleanup began.</exception>
+	/// <exception cref="MemoryScanStateException">
+	///     The session is scanning or disposed, or a cooperative stop requested through
+	///     <see cref="TryTerminateScan" /> was not confirmed (release or abandon the session instead).
+	/// </exception>
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
 	public void ResetCancellable(CancellationToken cancellationToken)
@@ -481,7 +521,8 @@ public sealed class MemoryScanSession : IDisposable
 			return;
 		}
 
-		if (State == MemoryScanState.Scanning)
+		if (State == MemoryScanState.Scanning ||
+			(_terminationAttempted && _termination != MemoryScanTerminationStatus.Confirmed))
 		{
 			ThrowWrongState("Reset");
 		}
@@ -493,9 +534,160 @@ public sealed class MemoryScanSession : IDisposable
 		Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
 		CallNoResult(operation.State, _foundList!.Value.Handle, "deinitialize"u8, DeinitializeResultsOperation);
 		CallNoResult(operation.State, _scanner!.Value.Handle, "newScan"u8, ResetOperation);
-		State = MemoryScanState.New;
-		InvalidationReason = MemoryScanInvalidationReason.None;
+
+		// CE's newScan stops a running scan controller before clearing its results (ObservedSource: cheat-engine/
+		// cheat-engine@ec45d5f memscan.pas:8360-8372), so a successful reset ends the previous scan's lifecycle.
+		_scanMayBeRunning = false;
+		_terminationAttempted = false;
+		_termination = MemoryScanTerminationStatus.Unknown;
+		CompleteTransition(MemoryScanState.New);
 		ObserveCancellationAfterNativeCall(cancellationToken);
+	}
+
+	/// <summary>
+	///     Waits for the running scan through CE's <c>waitTillDone(timeout)</c> form for at most
+	///     <paramref name="timeout" /> (the call deadline), then initializes the attached found list only after CE
+	///     reports completion.
+	/// </summary>
+	/// <param name="timeout">
+	///     The call deadline: strictly positive and at most <see cref="int.MaxValue" /> milliseconds. A sub-millisecond
+	///     value rounds up to one millisecond. <see cref="Timeout.InfiniteTimeSpan" /> is refused: use
+	///     <see cref="WaitForCompletion" /> for CE's no-timeout form.
+	/// </param>
+	/// <returns>
+	///     <see cref="MemoryScanWaitStatus.Completed" /> when results are ready; <see cref="MemoryScanWaitStatus.TimedOut" />
+	///     when the deadline expired first (the session stays scanning and the scan may still run: wait again, call
+	///     <see cref="TryTerminateScan" />, or release the session); a context status without any CE call; otherwise a
+	///     failure that invalidates the session. Categories come from the result's Lua type, never from error text.
+	/// </returns>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="timeout" /> is outside the accepted range.</exception>
+	/// <exception cref="MemoryScanStateException">The session is not scanning.</exception>
+	/// <exception cref="ObjectDisposedException">The session was disposed.</exception>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
+	/// <remarks>
+	///     The call pushes exactly one integer argument and reads exactly one boolean result. The <see langword="false" />
+	///     (timed-out) path was not observed on the pinned CE 7.7.0.10621 host (spike D4.7), which is why this member is
+	///     experimental. It blocks CE's main thread for at most the deadline.
+	/// </remarks>
+	[Experimental("CESDK5010", UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
+	[MainThreadOnly]
+	[RequiresPluginEnabled]
+	public MemoryScanWaitStatus TryWaitForCompletion(TimeSpan timeout)
+	{
+		int milliseconds = ToWaitMilliseconds(timeout, nameof(timeout));
+		RequireEnabledMainThread();
+		RequireState("TryWaitForCompletion", MemoryScanState.Scanning);
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
+		if (context != MemoryScanMaterializationStatus.Success)
+		{
+			return ToWaitStatus(context);
+		}
+
+		return WaitCore(operation.State, milliseconds, true, out _);
+	}
+
+	/// <summary>
+	///     Requests a cooperative stop of a scan that may still be running (<c>terminateScan(false)</c>), then waits for
+	///     it through <c>waitTillDone(timeout)</c> for at most <paramref name="waitTimeout" />.
+	/// </summary>
+	/// <param name="waitTimeout">
+	///     The deadline of the settle wait: strictly positive and at most <see cref="int.MaxValue" /> milliseconds; a
+	///     sub-millisecond value rounds up to one millisecond.
+	/// </param>
+	/// <returns>
+	///     <see cref="MemoryScanTerminationStatus.Confirmed" /> when CE confirmed the stop;
+	///     <see cref="MemoryScanTerminationStatus.NotInvoked" /> when the session's runtime or target context was refused
+	///     (no CE call); otherwise an unconfirmed stop. The request is made once and never retried.
+	/// </returns>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="waitTimeout" /> is outside the accepted range.</exception>
+	/// <exception cref="MemoryScanStateException">
+	///     No scan can be running (the session never started one, or a wait, a confirmed stop or a reset already ended
+	///     it), or a stop was already requested for this scan.
+	/// </exception>
+	/// <exception cref="ObjectDisposedException">The session was disposed.</exception>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
+	/// <remarks>
+	///     <para>
+	///         The stop is always cooperative: the SDK passes an explicit <see langword="false" /> force argument and exposes
+	///         no force option (a forced stop can kill CE's scan thread and open a modal dialog). The session always ends
+	///         <see cref="MemoryScanState.Invalidated" />, with <see cref="MemoryScanInvalidationReason.ScanTerminated" />
+	///         unless a context check recorded a more specific reason, and never exposes the stopped scan's results.
+	///     </para>
+	///     <para>
+	///         After <see cref="MemoryScanTerminationStatus.Confirmed" />, <see cref="Reset" /> can start a new lifecycle.
+	///         After any other status, <see cref="Reset" /> is refused; <see cref="ReleaseWithOutcome" /> and
+	///         <see cref="Abandon" /> stay available, and release reports this unconfirmed status without a second stop
+	///         request. <c>terminateScan</c> and the timed-out wait were not observed on the pinned CE 7.7.0.10621 host
+	///         (spike D4.7), which is why this member is experimental.
+	///     </para>
+	/// </remarks>
+	[Experimental("CESDK5010", UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
+	[MainThreadOnly]
+	[RequiresPluginEnabled]
+	public MemoryScanTerminationStatus TryTerminateScan(TimeSpan waitTimeout)
+	{
+		int milliseconds = ToWaitMilliseconds(waitTimeout, nameof(waitTimeout));
+		RequireEnabledMainThread();
+		ThrowIfDisposed();
+		if (!_scanMayBeRunning || _terminationAttempted)
+		{
+			ThrowWrongState("TryTerminateScan");
+		}
+
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
+		if (context != MemoryScanMaterializationStatus.Success)
+		{
+			if (State != MemoryScanState.Invalidated)
+			{
+				Invalidate(MemoryScanInvalidationReason.ScanTerminated);
+			}
+
+			return MemoryScanTerminationStatus.NotInvoked;
+		}
+
+		MemoryScanTerminationStatus status = TerminateAndSettleCore(operation.State, milliseconds);
+		Invalidate(MemoryScanInvalidationReason.ScanTerminated);
+		return status;
+	}
+
+	/// <summary>
+	///     Copies CE's <c>MemScan.ErrorString</c> text as a bounded fact, without interpreting it.
+	/// </summary>
+	/// <param name="text">
+	///     The copied text when the method returns <see langword="true" /> (possibly empty): at most
+	///     <see cref="HostErrorTextMaximumUtf8Bytes" /> UTF-8 bytes, cut back to a UTF-8 sequence boundary, with invalid
+	///     sequences decoded as U+FFFD and embedded NUL characters kept.
+	/// </param>
+	/// <param name="truncated">Whether the host text was longer than the copied prefix.</param>
+	/// <returns>
+	///     <see langword="false" /> without any scanner call when the session's runtime or target context is refused, and
+	///     <see langword="false" /> when the property read raised or did not return a Lua string. Neither changes the
+	///     session state.
+	/// </returns>
+	/// <exception cref="ObjectDisposedException">The session was disposed.</exception>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
+	/// <remarks>
+	///     Available in every state but disposed. CE's error text is a host-language diagnostic: its presence can be
+	///     reported, but the SDK never derives an outcome category from its content (it changes with CE's UI language,
+	///     and CE reports a misleading text for an empty range, spike D4.3).
+	/// </remarks>
+	[MainThreadOnly]
+	[RequiresPluginEnabled]
+	public bool TryGetHostErrorText([NotNullWhen(true)] out string? text, out bool truncated)
+	{
+		ThrowIfDisposed();
+		RequireEnabledMainThread();
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		if (TryEnsureCurrentContext(operation.State) != MemoryScanMaterializationStatus.Success)
+		{
+			text = null;
+			truncated = false;
+			return false;
+		}
+
+		return TryReadHostErrorTextCore(operation.State, out text, out truncated);
 	}
 
 	/// <summary>Attempts to read the parsed target address at a zero-based result index.</summary>
@@ -808,6 +1000,193 @@ public sealed class MemoryScanSession : IDisposable
 			: MemoryScanMaterializationStatus.InvalidResult;
 	}
 
+	// Validates a TimeSpan deadline and converts it to CE's integer milliseconds, rounding a partial millisecond up so
+	// that a positive deadline never becomes zero.
+	internal static int ToWaitMilliseconds(TimeSpan timeout, string parameterName)
+	{
+		if (timeout <= TimeSpan.Zero)
+		{
+			throw new ArgumentOutOfRangeException(parameterName, timeout,
+				"A scan wait deadline must be strictly positive; use the no-timeout wait for CE's blocking form.");
+		}
+
+		long ticks = timeout.Ticks;
+		long milliseconds = (ticks / TimeSpan.TicksPerMillisecond) + (ticks % TimeSpan.TicksPerMillisecond == 0 ? 0 : 1);
+		if (milliseconds > int.MaxValue)
+		{
+			throw new ArgumentOutOfRangeException(parameterName, timeout,
+				"A scan wait deadline cannot exceed Int32.MaxValue milliseconds, the range of CE's integer timeout.");
+		}
+
+		return (int) milliseconds;
+	}
+
+	// The shared wait: CE's no-timeout form (0 arguments, 0 results) when timeoutMilliseconds is null, otherwise the
+	// timeout form (1 integer argument, 1 boolean result). A completed wait clears the running flag; initializeResults
+	// is false only for the first-found route, whose found list must never be initialized.
+	internal MemoryScanWaitStatus WaitCore(LuaState state, int? timeoutMilliseconds, bool initializeResults,
+		out LuaStatus luaStatus)
+	{
+		MemoryScanWaitStatus waited = CallWait(state, timeoutMilliseconds, out luaStatus);
+		if (waited != MemoryScanWaitStatus.Completed)
+		{
+			if (waited != MemoryScanWaitStatus.TimedOut)
+			{
+				Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
+			}
+
+			return waited;
+		}
+
+		_scanMayBeRunning = false;
+		if (!initializeResults)
+		{
+			return MemoryScanWaitStatus.Completed;
+		}
+
+		Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
+		using LuaFrame frame = new(state);
+		luaStatus = _foundList!.Value.Handle.TryCallMethod(state, "initialize"u8, 0, 0);
+		if (!luaStatus.IsOk)
+		{
+			return MemoryScanWaitStatus.InitializationFailed;
+		}
+
+		CompleteTransition(MemoryScanState.ResultsReady);
+		return MemoryScanWaitStatus.Completed;
+	}
+
+	private MemoryScanWaitStatus CallWait(LuaState state, int? timeoutMilliseconds, out LuaStatus luaStatus)
+	{
+		using LuaFrame frame = new(state);
+		if (timeoutMilliseconds is not { } milliseconds)
+		{
+			luaStatus = _scanner!.Value.Handle.TryCallMethod(state, "waitTillDone"u8, 0, 0);
+			return luaStatus.IsOk ? MemoryScanWaitStatus.Completed : MemoryScanWaitStatus.LuaFailure;
+		}
+
+		state.PushInteger(milliseconds);
+		luaStatus = _scanner!.Value.Handle.TryCallMethod(state, "waitTillDone"u8, 1, 1);
+		if (!luaStatus.IsOk)
+		{
+			return MemoryScanWaitStatus.LuaFailure;
+		}
+
+		if (state.TypeOf(-1) != LuaType.Boolean)
+		{
+			return MemoryScanWaitStatus.InvalidResult;
+		}
+
+		return state.ToBoolean(-1) ? MemoryScanWaitStatus.Completed : MemoryScanWaitStatus.TimedOut;
+	}
+
+	// The one cooperative stop request of the current scan: terminateScan(false) (1 argument, 0 results), then
+	// waitTillDone(timeout) (1 argument, 1 boolean result). Each is called at most once and never retried; the method
+	// never throws because release relies on it.
+	internal MemoryScanTerminationStatus TerminateAndSettleCore(LuaState state, int waitMilliseconds)
+	{
+		_terminationAttempted = true;
+		MemoryScanTerminationStatus status;
+		try
+		{
+			status = RequestTermination(state)
+				? SettleAfterTermination(state, waitMilliseconds)
+				: MemoryScanTerminationStatus.TerminateFailed;
+		}
+		catch (Exception)
+		{
+			// A binding failure before or during either call leaves the stop unconfirmed; it is never retried.
+			status = MemoryScanTerminationStatus.TerminateFailed;
+		}
+
+		_termination = status;
+		if (status == MemoryScanTerminationStatus.Confirmed)
+		{
+			_scanMayBeRunning = false;
+		}
+
+		return status;
+	}
+
+	private bool RequestTermination(LuaState state)
+	{
+		using LuaFrame frame = new(state);
+		state.PushBoolean(false);
+		return _scanner!.Value.Handle.TryCallMethod(state, "terminateScan"u8, 1, 0).IsOk;
+	}
+
+	private MemoryScanTerminationStatus SettleAfterTermination(LuaState state, int waitMilliseconds)
+	{
+		using LuaFrame frame = new(state);
+		state.PushInteger(waitMilliseconds);
+		if (!_scanner!.Value.Handle.TryCallMethod(state, "waitTillDone"u8, 1, 1).IsOk ||
+			state.TypeOf(-1) != LuaType.Boolean)
+		{
+			return MemoryScanTerminationStatus.WaitFailed;
+		}
+
+		return state.ToBoolean(-1) ? MemoryScanTerminationStatus.Confirmed : MemoryScanTerminationStatus.WaitTimedOut;
+	}
+
+	// Reads the ErrorString property through a protected property read and copies at most the documented bound. Returns
+	// false when the read raised or did not produce a Lua string; never classifies the text.
+	internal bool TryReadHostErrorTextCore(LuaState state, [NotNullWhen(true)] out string? text, out bool truncated)
+	{
+		using LuaFrame frame = new(state);
+		if (!_scanner!.Value.Handle.TryGetProperty(state, "ErrorString"u8).IsOk ||
+			!state.TryReadUtf8(-1, out ReadOnlySpan<byte> utf8))
+		{
+			text = null;
+			truncated = false;
+			return false;
+		}
+
+		text = DecodeBoundedUtf8(utf8, HostErrorTextMaximumUtf8Bytes, out truncated);
+		return true;
+	}
+
+	// Decodes at most maximumBytes bytes, cutting back to the start of a UTF-8 sequence so that the copied prefix never
+	// ends inside a character. A malformed run of continuation bytes is cut at the bound; invalid sequences become
+	// U+FFFD. Embedded NUL bytes are kept.
+	internal static string DecodeBoundedUtf8(ReadOnlySpan<byte> utf8, int maximumBytes, out bool truncated)
+	{
+		if (utf8.Length <= maximumBytes)
+		{
+			truncated = false;
+			return Encoding.UTF8.GetString(utf8);
+		}
+
+		int cut = maximumBytes;
+		int lowest = Math.Max(0, maximumBytes - 3);
+		while (cut > lowest && IsUtf8Continuation(utf8[cut]))
+		{
+			cut--;
+		}
+
+		if (IsUtf8Continuation(utf8[cut]))
+		{
+			cut = maximumBytes;
+		}
+
+		truncated = true;
+		return Encoding.UTF8.GetString(utf8[..cut]);
+	}
+
+	private static bool IsUtf8Continuation(byte value)
+	{
+		return (value & 0xC0) == 0x80;
+	}
+
+	private static MemoryScanWaitStatus ToWaitStatus(MemoryScanMaterializationStatus context)
+	{
+		return context switch
+		{
+			MemoryScanMaterializationStatus.RuntimeInvalidated => MemoryScanWaitStatus.RuntimeInvalidated,
+			MemoryScanMaterializationStatus.TargetIdentityMismatch => MemoryScanWaitStatus.TargetIdentityMismatch,
+			_ => MemoryScanWaitStatus.TargetIdentityUnavailable
+		};
+	}
+
 	private MemoryScanReleaseOutcome ReleaseWithinCurrentContext(LuaState state)
 	{
 		Owned<FoundList>? foundList = _foundList;
@@ -1087,6 +1466,14 @@ public sealed class MemoryScanSession : IDisposable
 
 		State = MemoryScanState.Invalidated;
 		InvalidationReason = reason;
+	}
+
+	// Every transition first records the conservative ProtectedLuaFailure invalidation; only a transition whose native
+	// calls all completed reaches this point and clears that provisional reason.
+	private void CompleteTransition(MemoryScanState state)
+	{
+		State = state;
+		InvalidationReason = MemoryScanInvalidationReason.None;
 	}
 
 	private static void CallFirstScan(LuaState state, MemScan scanner, in FirstScanRequest request)

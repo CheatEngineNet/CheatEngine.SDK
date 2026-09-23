@@ -39,6 +39,7 @@ separate EngineApi generator owns
 | [CESDK3003](CESDK3003.md) | Engine API specification does not declare the ce77 contract      | Error    | Add the `contract: ce77` header                                                              |
 | [CESDK3004](CESDK3004.md) | Engine API optional argument is invalid                          | Error    | Declare `opt:` arguments last                                                                |
 | [CESDK3005](CESDK3005.md) | Engine API optional or variadic result is invalid                | Error    | `result:`, then `opt-result:`, then one `rest:`                                              |
+| [CESDK5010](CESDK5010.md) | Scan deadline and cooperative termination are experimental       | Error (compiler) | None                                                                                         |
 | [CESDK7001](CESDK7001.md) | PointerSize.FromArchitecture is obsolete                         | Warning  | None; use `TargetArchitectureObservation.ConfiguredPointerSize` or `Bitness`                 |
 
 Configure a rule like any other analyzer diagnostic:

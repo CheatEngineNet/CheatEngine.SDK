@@ -58,6 +58,8 @@ public sealed class EnumContractTests
 		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason"] = EnumCategory.ReasonOrEvidence,
 		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus"] = EnumCategory.StatusOrOutcome,
+		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus"] = EnumCategory.StatusOrOutcome,
+		["CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind"] = EnumCategory.StatusOrOutcome,
 		["CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence"] = EnumCategory.ReasonOrEvidence,
 		["CheatEngine.SDK.Engine.Targets.TargetReleaseStatus"] = EnumCategory.StatusOrOutcome,

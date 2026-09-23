@@ -504,6 +504,7 @@ CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.None = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.ProtectedLuaFailure = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.RuntimeIdentityChanged = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.ScanTerminated = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.TargetChanged = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.TargetProcessReused = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
@@ -550,8 +551,27 @@ CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryCopyResults(System.S
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryCopyResultsCancellable(System.Span<CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult> destination, out ulong totalCount, out int written, System.Threading.CancellationToken cancellationToken) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryCopyResultsPage(int firstResultIndex, System.Span<CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult> destination, out ulong totalCount, out int written) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryCopyResultsPageCancellable(int firstResultIndex, System.Span<CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult> destination, out ulong totalCount, out int written, System.Threading.CancellationToken cancellationToken) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryGetHostErrorText(out string? text, out bool truncated) -> bool
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.WaitForCompletionCancellable(System.Threading.CancellationToken cancellationToken) -> void
 CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSessions
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.Confirmed = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.NotInvoked = 6 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.NotRequired = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.TerminateFailed = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.WaitFailed = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.WaitTimedOut = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.Completed = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.InitializationFailed = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.InvalidResult = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.LuaFailure = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.RuntimeInvalidated = 6 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.TargetIdentityMismatch = 8 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.TargetIdentityUnavailable = 7 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.TimedOut = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
 CheatEngine.SDK.Engine.Tables.CheatTableFiles
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheck
 CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.Equals(CheatEngine.SDK.Engine.Targets.TargetIdentityCheck other) -> bool
@@ -620,12 +640,15 @@ CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.InvalidResult = 
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.LuaFailure = 5 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.NoTargetSelected = 2 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
 CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.Unspecified = 0 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+[CESDK5010]CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryTerminateScan(System.TimeSpan waitTimeout) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+[CESDK5010]CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryWaitForCompletion(System.TimeSpan timeout) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
 const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxDisableInfoEntriesLimit = 65536 -> int
 const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxDisableInfoNameBytesLimit = 4096 -> int
 const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxHostTextBytesLimit = 8192 -> int
 const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MinDisableInfoEntries = 1 -> int
 const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MinDisableInfoNameBytes = 1 -> int
 const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MinHostTextBytes = 1 -> int
+const CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.HostErrorTextMaximumUtf8Bytes = 1024 -> int
 override CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.GetHashCode() -> int
 override CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.GetHashCode() -> int

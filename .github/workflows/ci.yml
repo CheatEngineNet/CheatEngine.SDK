@@ -47,6 +47,21 @@ jobs:
     name: Build native bridge
     runs-on: windows-2025
     timeout-minutes: 15
+    env:
+      # The bridge toolchain pins. 14.44 is the default toolset of the VS 2022 image and a side-by-side component of the
+      # VS 2026 image, so the pin holds whichever image windows-2025 maps to. A bump changes the shipped DLL bytes:
+      # change both values in one reviewed commit (NativeBridgePeAuditTests reads them).
+      BRIDGE_VS_TOOLSET: '14.44'
+      BRIDGE_VS_SDKVER: '10.0.26100.0'
+    outputs:
+      image-version: ${{ steps.bridge.outputs.image-version }}
+      xmake-version: ${{ steps.bridge.outputs.xmake-version }}
+      msvc-toolset: ${{ steps.bridge.outputs.msvc-toolset }}
+      msvc-version: ${{ steps.bridge.outputs.msvc-version }}
+      windows-sdk-version: ${{ steps.bridge.outputs.windows-sdk-version }}
+      bridge-sha256: ${{ steps.bridge.outputs.bridge-sha256 }}
+      bridge-fingerprint: ${{ steps.bridge.outputs.bridge-fingerprint }}
+      checked-in-bridge-sha256: ${{ steps.bridge.outputs.checked-in-bridge-sha256 }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -58,62 +73,14 @@ jobs:
         with:
           xmake-version: '3.0.9'
 
+      # Primary build, a second build into another directory and a third from a copy of the two build inputs under
+      # RUNNER_TEMP: all three must have the same SHA-256. The step summary and the job outputs record the toolchain.
       - name: Build bridge
+        id: bridge
         run: |
-          $ErrorActionPreference = 'Stop'
-          # xmake 3.0.9 mis-parses an absolute Windows -o path when the target
-          # uses $(builddir); keep both xmake paths relative and resolve them
-          # only for PowerShell validation and cleanup.
-          $repositoryRoot = [IO.Path]::GetFullPath($PWD.Path)
-          $primaryOutput = 'artifacts/native/cheatengine-sdk-lua-bridge'
-          $reproducibilityOutput = 'artifacts/native/cheatengine-sdk-lua-bridge-repro'
-          $primaryOutputPath = [IO.Path]::GetFullPath((Join-Path $repositoryRoot $primaryOutput))
-          $reproducibilityOutputPath = [IO.Path]::GetFullPath((Join-Path $repositoryRoot $reproducibilityOutput))
-          if ([string]::Equals($primaryOutputPath, $reproducibilityOutputPath, [StringComparison]::OrdinalIgnoreCase)) {
-            throw 'The primary and reproducibility bridge output directories must be distinct.'
-          }
-
-          $workspacePrefix = "$repositoryRoot$([IO.Path]::DirectorySeparatorChar)"
-          foreach ($resolvedOutput in @($primaryOutputPath, $reproducibilityOutputPath)) {
-            if (-not $resolvedOutput.StartsWith($workspacePrefix, [StringComparison]::OrdinalIgnoreCase)) {
-              throw "Refusing to clean native bridge output outside the checkout: '$resolvedOutput'."
-            }
-            if (Test-Path -LiteralPath $resolvedOutput) {
-              Remove-Item -LiteralPath $resolvedOutput -Recurse -Force
-            }
-            New-Item -ItemType Directory -Path $resolvedOutput -Force | Out-Null
-          }
-
-          xmake f -P native/cheatengine-sdk-lua-bridge -o $primaryOutput -p windows -a x64 -m release -y
+          ./eng/ci/Build-NativeBridge.ps1 -VsToolset $env:BRIDGE_VS_TOOLSET -VsSdkVersion $env:BRIDGE_VS_SDKVER -PathCheckRoot (Join-Path $env:RUNNER_TEMP 'bridge-path-check')
           if ($LASTEXITCODE -ne 0) {
-            throw "xmake configuration for the primary bridge output failed with exit code $LASTEXITCODE."
-          }
-          xmake -P native/cheatengine-sdk-lua-bridge -y
-          if ($LASTEXITCODE -ne 0) {
-            throw "xmake build for the primary bridge output failed with exit code $LASTEXITCODE."
-          }
-          $primaryBridge = Join-Path $primaryOutputPath 'cheatengine-sdk-lua-bridge.dll'
-          if (-not (Test-Path -LiteralPath $primaryBridge -PathType Leaf)) {
-            throw "xmake did not produce '$primaryBridge'."
-          }
-
-          xmake f -P native/cheatengine-sdk-lua-bridge -o $reproducibilityOutput -p windows -a x64 -m release -y
-          if ($LASTEXITCODE -ne 0) {
-            throw "xmake configuration for the reproducibility bridge output failed with exit code $LASTEXITCODE."
-          }
-          xmake -P native/cheatengine-sdk-lua-bridge -y
-          if ($LASTEXITCODE -ne 0) {
-            throw "xmake build for the reproducibility bridge output failed with exit code $LASTEXITCODE."
-          }
-          $reproducibilityBridge = Join-Path $reproducibilityOutputPath 'cheatengine-sdk-lua-bridge.dll'
-          if (-not (Test-Path -LiteralPath $reproducibilityBridge -PathType Leaf)) {
-            throw "xmake did not produce '$reproducibilityBridge'."
-          }
-
-          $primaryHash = (Get-FileHash -LiteralPath $primaryBridge -Algorithm SHA256).Hash
-          $reproducibilityHash = (Get-FileHash -LiteralPath $reproducibilityBridge -Algorithm SHA256).Hash
-          if (-not [string]::Equals($primaryHash, $reproducibilityHash, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "The native bridge is not reproducible: '$primaryBridge' SHA-256 is $primaryHash but '$reproducibilityBridge' is $reproducibilityHash."
+            throw "The native bridge build failed with exit code $LASTEXITCODE."
           }
 
       - name: Upload bridge
@@ -124,7 +91,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      # Run after upload so a failed drift check still leaves the corrected DLL available to download.
+      # Run after upload so a failed check still leaves the corrected DLL available to download. Byte drift between the
+      # CI-built and the checked-in DLL is only a notice (previous step); a checked-in DLL built from other sources fails.
       - name: Verify checked-in bridge matches its source
         run: |
           $sourceHash = (Get-FileHash -Algorithm SHA256 native/cheatengine-sdk-lua-bridge/cheatengine_sdk_lua_bridge.c).Hash.ToLowerInvariant()

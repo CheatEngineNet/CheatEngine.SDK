@@ -46,6 +46,9 @@
   <Folder Name="/eng/qualification/driver/">
     <File Path="eng/qualification/driver/zz_cesdk_qualification.template.lua"/>
   </Folder>
+  <Folder Name="/eng/ci/">
+    <File Path="eng/ci/Build-NativeBridge.ps1"/>
+  </Folder>
   <Folder Name="/docs/">
     <File Path="docs/README.md"/>
   </Folder>

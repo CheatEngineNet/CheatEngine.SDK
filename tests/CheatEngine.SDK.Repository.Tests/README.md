@@ -239,6 +239,28 @@ Later work adds one folder per contract (for example `Documentation/`, `Workflow
   `Canary_pin_rewrites_only_the_sdk_version_and_writes_the_step_outputs`,
   `Canary_pin_refuses_a_version_of_another_channel`, `Health_issue_publisher_creates_the_issue_when_none_is_open`,
   `Health_issue_publisher_comments_on_the_open_issue`, `Health_issue_publisher_only_warns_when_issues_are_disabled`).
+- The repository-settings payloads require exactly `CI / Gate` and `PR policy` from the GitHub Actions app (names that
+  match the workflow jobs), allow only squash merges titled by the pull request, reserve release tags to
+  administrators, keep a reviewed `nuget` environment without admin bypass, require SHA-pinned actions (every `uses:` is
+  already pinned) and define every label the automation applies (`RepositorySettingsPayloadTests`:
+  `Every_payload_explains_itself_and_sets_only_known_fields`,
+  `Main_ruleset_requires_exactly_the_gate_and_pr_policy_checks_from_github_actions`,
+  `Main_ruleset_allows_only_squash_merges_without_bypass_or_code_owner_review`,
+  `Release_tag_ruleset_protects_v_tags_and_lets_only_admins_bypass`,
+  `Nuget_environment_payload_disables_admin_bypass_and_self_review_prevention`,
+  `Required_check_names_match_the_workflow_job_names`, `Actions_payload_requires_sha_pinning`,
+  `Repository_payload_allows_only_squash_merges_titled_by_the_pull_request`,
+  `Labels_payload_covers_every_label_the_automation_applies`).
+- `Set-RepositorySettings.ps1` compares payloads with live settings as subsets (arrays of objects by identity), and,
+  run offline against a recording `gh`, never calls GitHub with `-PlanOnly`, refuses CI, writes exactly the differences
+  of the settings read on 2026-09-23, writes nothing once they are applied or with `-WhatIf`, and never removes required
+  checks with `-SkipRequiredChecks` (`RepositorySettingsScriptTests`:
+  `Settings_comparison_reports_only_what_the_payload_manages`, `Unmanaged_live_fields_are_listed_without_read_only_metadata`,
+  `Environment_response_is_read_in_the_shape_of_the_put_body`, `Settings_plan_follows_the_documented_order`,
+  `Plan_only_prints_every_step_without_calling_github`, `Settings_script_refuses_to_run_in_ci`,
+  `Settings_script_writes_only_what_differs_from_the_live_settings`,
+  `Settings_script_changes_nothing_once_the_settings_are_applied`, `What_if_reads_the_live_settings_and_never_writes`,
+  `Skip_required_checks_never_removes_the_checks_already_required`).
 - Every PowerShell script and module under `eng/ci` and `eng/github` parses: PSScriptAnalyzer's `Error, Warning`
   profile does not report syntax errors, and most of these scripts run only weekly or after merge
   (`GovernanceScriptSyntaxTests`: `Every_governance_script_parses_without_errors`).

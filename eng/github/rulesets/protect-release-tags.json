@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Tag ruleset for release tags (https://docs.github.com/en/rest/repos/rules): a v* tag starts release.yml, which publishes to nuget.org through trusted publishing, so creating, moving or deleting one is reserved to repository administrators (built-in RepositoryRole 5 = Admin, bypass always).",
+    "Once immutable releases are enabled (-EnableImmutableReleases, after the draft-first release.yml is on main), GitHub also locks the tag of every published release."
+  ],
+  "name": "Protect release tags",
+  "target": "tag",
+  "enforcement": "active",
+  "bypass_actors": [
+    {
+      "actor_type": "RepositoryRole",
+      "actor_id": 5,
+      "bypass_mode": "always"
+    }
+  ],
+  "conditions": {
+    "ref_name": {
+      "include": [ "refs/tags/v*" ],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "creation"
+    },
+    {
+      "type": "update",
+      "parameters": {
+        "update_allows_fetch_and_merge": false
+      }
+    },
+    {
+      "type": "deletion"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "PUT /repos/{owner}/{repo}/actions/permissions (https://docs.github.com/en/rest/actions/permissions). Every workflow and composite action of this repository already pins actions by full commit SHA (WorkflowContractTests, GovernanceWorkflowTests); sha_pinning_required makes GitHub refuse a run that does not.",
+    "allowed_actions stays 'all': the pins, Dependabot and the online zizmor audits (known-vulnerable-actions, impostor-commit) review each action instead of an allowlist."
+  ],
+  "enabled": true,
+  "allowed_actions": "all",
+  "sha_pinning_required": true
+}

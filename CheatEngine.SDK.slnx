@@ -92,6 +92,22 @@
     <File Path="eng/ci/health/Set-CanarySdkVersion.ps1"/>
     <File Path="eng/ci/health/Test-ExternalLink.ps1"/>
   </Folder>
+  <Folder Name="/eng/github/">
+    <File Path="eng/github/actions-permissions.json"/>
+    <File Path="eng/github/actions-workflow-permissions.json"/>
+    <File Path="eng/github/labels.json"/>
+    <File Path="eng/github/README.md"/>
+    <File Path="eng/github/repository.json"/>
+    <File Path="eng/github/RepositorySettings.psm1"/>
+    <File Path="eng/github/Set-RepositorySettings.ps1"/>
+  </Folder>
+  <Folder Name="/eng/github/environments/">
+    <File Path="eng/github/environments/nuget.json"/>
+  </Folder>
+  <Folder Name="/eng/github/rulesets/">
+    <File Path="eng/github/rulesets/protect-main.json"/>
+    <File Path="eng/github/rulesets/protect-release-tags.json"/>
+  </Folder>
   <Folder Name="/docs/">
     <File Path="docs/README.md"/>
   </Folder>

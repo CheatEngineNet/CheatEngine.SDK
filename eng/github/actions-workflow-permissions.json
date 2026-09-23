@@ -1,0 +1,8 @@
+{
+  "_comment": [
+    "PUT /repos/{owner}/{repo}/actions/permissions/workflow (https://docs.github.com/en/rest/actions/permissions). A workflow without a permissions block gets a read-only GITHUB_TOKEN, and no workflow can approve a pull request.",
+    "Every workflow of this repository also declares top-level 'contents: read' and elevates per job with a comment; this default is the safety net for a workflow that forgets."
+  ],
+  "default_workflow_permissions": "read",
+  "can_approve_pull_request_reviews": false
+}

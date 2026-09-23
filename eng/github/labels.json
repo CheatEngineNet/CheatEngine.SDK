@@ -1,0 +1,33 @@
+{
+  "_comment": [
+    "Labels that the repository's automation applies: the issue forms (compatibility, bug), Dependabot (dependencies, .NET, ci) and the scheduled health issue (ci). GitHub silently drops a label that does not exist, so the script creates or updates each one (GET, then POST or PATCH /repos/{owner}/{repo}/labels).",
+    "Colors and descriptions of the existing labels are the live values; compatibility is new."
+  ],
+  "labels": [
+    {
+      "name": "compatibility",
+      "color": "c5def5",
+      "description": "A plugin fails with a specific package, bridge, Cheat Engine or runtime tuple"
+    },
+    {
+      "name": "bug",
+      "color": "d73a4a",
+      "description": "Something isn't working"
+    },
+    {
+      "name": "ci",
+      "color": "fbca04",
+      "description": "Build, release, and workflow automation"
+    },
+    {
+      "name": "dependencies",
+      "color": "0366d6",
+      "description": "Pull requests that update a dependency file"
+    },
+    {
+      "name": ".NET",
+      "color": "7121c6",
+      "description": "Pull requests that update .NET code"
+    }
+  ]
+}

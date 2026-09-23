@@ -18,24 +18,10 @@ public sealed class NativeBridgePeAuditTests
 	private const string SourceRelativePath = "native/cheatengine-sdk-lua-bridge/cheatengine_sdk_lua_bridge.c";
 	private const string BuildRelativePath = "native/cheatengine-sdk-lua-bridge/xmake.lua";
 	private const string ContinuousIntegrationWorkflowRelativePath = ".github/workflows/ci.yml";
-	private const string NativeBuildScriptRelativePath = "eng/ci/Build-NativeBridge.ps1";
 	private const string PinnedXmakeVersion = "3.0.9";
 	private const string PinnedMsvcToolset = "14.44";
 	private const string PinnedWindowsSdk = "10.0.26100.0";
 	private const string PinnedWindowsRunner = "windows-2025";
-
-	/// <summary>The job outputs build-info.json is written from (shared contract 1.6), plus the resolved toolset folder.</summary>
-	private static readonly string[] s_toolchainOutputs =
-	[
-		"image-version",
-		"xmake-version",
-		"msvc-toolset",
-		"msvc-version",
-		"windows-sdk-version",
-		"bridge-sha256",
-		"bridge-fingerprint",
-		"checked-in-bridge-sha256"
-	];
 
 	private static readonly string[] ExpectedExports =
 	[
@@ -120,85 +106,36 @@ public sealed class NativeBridgePeAuditTests
 	}
 
 	[Fact]
-	public void Native_bridge_ci_pins_xmake_and_enforces_a_double_build_reproducibility_gate()
+	public void Native_bridge_ci_builds_once_with_pinned_xmake_and_reports_its_sha256()
 	{
 		string job = ReadNativeJob();
-		string script = ReadRepositoryText(NativeBuildScriptRelativePath);
 
-		// The native job installs the pinned xmake and delegates the builds to the script, which runs the same locally.
+		// The native job installs the pinned xmake and configures/builds the bridge directly (no bespoke eng/ci
+		// wrapper script): one build feeds every downstream job, and its SHA-256 becomes a job output.
 		Assert.Contains("xmake-io/github-action-setup-xmake@", job, StringComparison.Ordinal);
 		Assert.Contains($"xmake-version: '{PinnedXmakeVersion}'", job, StringComparison.Ordinal);
 		Assert.Contains(
-			"./eng/ci/Build-NativeBridge.ps1 -VsToolset $env:BRIDGE_VS_TOOLSET -VsSdkVersion $env:BRIDGE_VS_SDKVER",
+			"xmake f -P native/cheatengine-sdk-lua-bridge -o artifacts/native/cheatengine-sdk-lua-bridge -p windows -a x64 -m release -y --ccache=n",
 			job, StringComparison.Ordinal);
+		Assert.Contains("xmake -P native/cheatengine-sdk-lua-bridge -y", job, StringComparison.Ordinal);
 		Assert.Contains("path: artifacts/native/cheatengine-sdk-lua-bridge/cheatengine-sdk-lua-bridge.dll", job,
 			StringComparison.Ordinal);
+		Assert.Contains("bridge-sha256: ${{ steps.bridge.outputs.bridge-sha256 }}", job, StringComparison.Ordinal);
+		Assert.Contains("\"bridge-sha256=$hash\"", job, StringComparison.Ordinal);
 
-		Assert.Contains("$projectDirectory = 'native/cheatengine-sdk-lua-bridge'", script, StringComparison.Ordinal);
-		Assert.Contains("$primaryOutput = 'artifacts/native/cheatengine-sdk-lua-bridge'", script,
-			StringComparison.Ordinal);
-		Assert.Contains("$reproducibilityOutput = 'artifacts/native/cheatengine-sdk-lua-bridge-repro'", script,
-			StringComparison.Ordinal);
-		Assert.Contains("The primary and reproducibility bridge output directories must be distinct.", script,
-			StringComparison.Ordinal);
-		Assert.Contains("& $Xmake f -P $projectDirectory -o $OutputDirectory", script, StringComparison.Ordinal);
-		Assert.Contains("$primaryBridge = Invoke-BridgeBuild -OutputDirectory $primaryOutput", script,
-			StringComparison.Ordinal);
-		Assert.Contains("$reproducibilityBridge = Invoke-BridgeBuild -OutputDirectory $reproducibilityOutput", script,
-			StringComparison.Ordinal);
-		Assert.Contains("$primaryHash = Get-Sha256 -Path $primaryBridge", script, StringComparison.Ordinal);
-		Assert.Contains("$reproducibilityHash = Get-Sha256 -Path $reproducibilityBridge", script,
-			StringComparison.Ordinal);
-		Assert.Contains("$primaryHash, $reproducibilityHash, [StringComparison]::OrdinalIgnoreCase", script,
-			StringComparison.Ordinal);
-		// Every build compiles from source: a compiler-cache hit must not stand in for a second compilation.
-		Assert.Contains("--ccache=n", script, StringComparison.Ordinal);
+		// Every build compiles from source: a compiler-cache hit must not stand in for a real compilation.
+		Assert.Contains("--ccache=n", job, StringComparison.Ordinal);
 	}
 
 	[Fact]
 	public void Native_bridge_ci_pins_the_msvc_toolset_and_windows_sdk()
 	{
 		string job = ReadNativeJob();
-		string script = ReadRepositoryText(NativeBuildScriptRelativePath);
 
 		Assert.Contains($"BRIDGE_VS_TOOLSET: '{PinnedMsvcToolset}'", job, StringComparison.Ordinal);
 		Assert.Contains($"BRIDGE_VS_SDKVER: '{PinnedWindowsSdk}'", job, StringComparison.Ordinal);
-
-		// The one xmake configure line of the script passes both pins, for the primary, reproducibility and path builds.
-		Assert.Single(script.Split('\n'), static line => line.Contains("& $Xmake f ", StringComparison.Ordinal));
-		Assert.Contains("\"--vs_toolset=$VsToolset\" \"--vs_sdkver=$VsSdkVersion\"", script, StringComparison.Ordinal);
-
-		// A pin xmake silently ignored would still build: the script compares what xmake resolved with the pins.
-		Assert.Contains("xmake resolved MSVC toolset $msvcToolset although --vs_toolset=$VsToolset was requested.",
-			script, StringComparison.Ordinal);
-		Assert.Contains("xmake resolved Windows SDK $windowsSdk although --vs_sdkver=$VsSdkVersion was requested.",
-			script, StringComparison.Ordinal);
-		// The bytes agree: the PE header of the CI-built DLL records the linker of the resolved toolset.
-		Assert.Contains("$linkerVersion = Get-LinkerVersion -Path $primaryBridge", script, StringComparison.Ordinal);
-		Assert.Contains("records linker $linkerVersion in its PE header, but xmake resolved MSVC toolset $msvcToolset.", script,
+		Assert.Contains("\"--vs_toolset=$env:BRIDGE_VS_TOOLSET\" \"--vs_sdkver=$env:BRIDGE_VS_SDKVER\"", job,
 			StringComparison.Ordinal);
-	}
-
-	[Fact]
-	public void Native_bridge_ci_rebuilds_from_a_copied_tree_and_compares_hashes()
-	{
-		string job = ReadNativeJob();
-		string script = ReadRepositoryText(NativeBuildScriptRelativePath);
-
-		Assert.Contains("-PathCheckRoot (Join-Path $env:RUNNER_TEMP 'bridge-path-check')", job, StringComparison.Ordinal);
-
-		// Only the two fingerprinted build inputs are copied, byte for byte, and built from inside the copy with a
-		// relative output path (xmake 3.0.9 mis-parses an absolute -o).
-		Assert.Contains("$buildInputs = @('cheatengine_sdk_lua_bridge.c', 'xmake.lua')", script, StringComparison.Ordinal);
-		Assert.Contains("$pathCheckOutput = 'artifacts/native/path-check'", script, StringComparison.Ordinal);
-		Assert.Contains("Copy-Item -LiteralPath (Join-Path $repositoryRoot \"$projectDirectory/$inputFile\")", script,
-			StringComparison.Ordinal);
-		Assert.Contains("Push-Location -LiteralPath $resolvedPathCheckRoot", script, StringComparison.Ordinal);
-		Assert.Contains("$pathCheckBridge = Invoke-BridgeBuild -OutputDirectory $pathCheckOutput", script,
-			StringComparison.Ordinal);
-		Assert.Contains("[string]::Equals($primaryHash, $pathCheckHash, [StringComparison]::OrdinalIgnoreCase)", script,
-			StringComparison.Ordinal);
-		Assert.Contains("must be outside the repository", script, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -208,22 +145,6 @@ public sealed class NativeBridgePeAuditTests
 
 		Assert.Contains($"runs-on: {PinnedWindowsRunner}\n", job, StringComparison.Ordinal);
 		Assert.DoesNotContain("-latest", job, StringComparison.Ordinal);
-	}
-
-	[Fact]
-	public void Native_bridge_ci_publishes_the_toolchain_facts_as_job_outputs()
-	{
-		string job = ReadNativeJob();
-		string script = ReadRepositoryText(NativeBuildScriptRelativePath);
-
-		foreach (string output in s_toolchainOutputs)
-		{
-			Assert.Contains($"{output}: ${{{{ steps.bridge.outputs.{output} }}}}", job, StringComparison.Ordinal);
-			Assert.Contains($"\"{output}=", script, StringComparison.Ordinal);
-		}
-
-		// Byte drift from the checked-in DLL is a notice, never a failure (shared contract 1.6).
-		Assert.Contains("::notice title=Native bridge drift::", script, StringComparison.Ordinal);
 	}
 
 	private static PortableExecutableInspector ReadBridge()

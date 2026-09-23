@@ -5,14 +5,14 @@ using CheatEngine.SDK.Repository.Tests.Infrastructure;
 namespace CheatEngine.SDK.Repository.Tests.LockFiles;
 
 /// <summary>
-///     Offline mirror of the structural checks of <c>eng/Update-LockFiles.ps1</c>, so a hand-edited, missing or
-///     IDE-reformatted lock file is caught before CI runs the script. Only the script regenerates lock files; the CI
-///     <c>lock-files</c> job (<c>-Verify</c>) proves they equal a fresh restore.
+///     Offline mirror of the structural checks NuGet locked-mode restore relies on, so a hand-edited, missing or
+///     IDE-reformatted lock file is caught before CI runs a locked restore. Only 'dotnet restore --force-evaluate'
+///     regenerates lock files; the CI <c>lock-files</c> job (<c>--locked-mode</c>) proves they equal a fresh restore.
 /// </summary>
 public sealed class LockFileTests
 {
 	private const string LockFileName = "packages.lock.json";
-	private const string RegenerateHint = "Regenerate with ./eng/Update-LockFiles.ps1 (eng/api/README.md#lock-files).";
+	private const string RegenerateHint = "Regenerate with 'dotnet restore <project> --force-evaluate', never by hand.";
 
 	[Fact]
 	public void Every_project_has_a_committed_lock_file()

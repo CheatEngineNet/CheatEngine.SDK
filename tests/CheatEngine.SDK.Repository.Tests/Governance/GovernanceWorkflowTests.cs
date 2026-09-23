@@ -8,8 +8,8 @@ namespace CheatEngine.SDK.Repository.Tests.Governance;
 
 /// <summary>
 ///     The advisory governance workflows outside <c>CI / Gate</c> (CodeQL, Scorecard, online zizmor, dependency
-///     submission, scheduled health) and the PR policy: repository conventions (shared-contracts §1.6, §1.13) and the
-///     choices that keep each one safe and useful (audit register PR-CQ-19, -22, -24, -30, -45, -55).
+///     submission): repository conventions (shared-contracts §1.6, §1.13) and the choices that keep each one safe and
+///     useful (audit register PR-CQ-19, -22, -24, -30, -45).
 /// </summary>
 public sealed partial class GovernanceWorkflowTests
 {
@@ -18,8 +18,7 @@ public sealed partial class GovernanceWorkflowTests
 	private static readonly string[] s_runnerLabels = ["windows-2025", "ubuntu-24.04"];
 
 	/// <summary>Artifact names the governance workflows may upload (requested for shared-contracts §1.9).</summary>
-	private static readonly string[] s_governanceArtifacts =
-		["binlogs-codeql", "dependency-snapshot", "health-sdk-canary", "health-bridge-drift", "health-test-repeat"];
+	private static readonly string[] s_governanceArtifacts = ["binlogs-codeql", "dependency-snapshot"];
 
 	[Fact]
 	public void Governance_workflows_pin_every_action_by_full_sha_with_a_version_comment()
@@ -519,13 +518,18 @@ public sealed partial class GovernanceWorkflowTests
 	[Fact]
 	public void Dependency_detection_uses_a_pinned_hash_verified_component_detection()
 	{
-		string script = RepositoryFile.ReadText("eng/ci/New-DependencySnapshot.ps1");
+		// Inlined directly in the workflow (no bespoke eng/ci script): the detect job's own step, never the submit job.
+		YamlMappingNode detect = YamlDocument.Load(GovernanceWorkflows.DependencySubmission).Job("detect");
+		YamlMappingNode step = Assert.Single(YamlDocument.Steps(detect),
+			static candidate => string.Equals(YamlDocument.Scalar(candidate, "name"),
+				"Run Component Detection and build the snapshot", StringComparison.Ordinal));
+		string script = YamlDocument.Scalar(step, "run") ?? "";
 
-		Assert.Matches(new Regex(@"^\$DetectorVersion = '\d+\.\d+\.\d+'\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1)), script);
-		Assert.Matches(new Regex(@"^\$DetectorSha256 = '[0-9a-f]{64}'\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1)), script);
-		Assert.Contains("releases/download/v$DetectorVersion/$DetectorAsset", script, StringComparison.Ordinal);
+		Assert.Matches(new Regex(@"^\s*\$detectorVersion = '\d+\.\d+\.\d+'\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1)), script);
+		Assert.Matches(new Regex(@"^\s*\$detectorSha256 = '[0-9a-f]{64}'\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1)), script);
+		Assert.Contains("releases/download/v$detectorVersion/$detectorAsset", script, StringComparison.Ordinal);
 		Assert.Contains("Get-FileHash -LiteralPath $detector -Algorithm SHA256", script, StringComparison.Ordinal);
-		Assert.Contains("'--locked-mode'", script, StringComparison.Ordinal);
+		Assert.Contains("--locked-mode", script, StringComparison.Ordinal);
 		Assert.DoesNotContain("releases/latest", script, StringComparison.Ordinal);
 		Assert.DoesNotContain("dependency-graph/snapshots", script, StringComparison.Ordinal);
 	}

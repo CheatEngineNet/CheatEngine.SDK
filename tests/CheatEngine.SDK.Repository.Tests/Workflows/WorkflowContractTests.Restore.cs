@@ -34,7 +34,6 @@ public sealed partial class WorkflowContractTests
 		Assert.Contains("-split \"`n\"", run, StringComparison.Ordinal);
 		Assert.Contains("foreach ($target in $targets)", run, StringComparison.Ordinal);
 		Assert.Contains("dotnet restore $target --locked-mode", run, StringComparison.Ordinal);
-		Assert.Contains("./eng/Update-LockFiles.ps1", run, StringComparison.Ordinal);
 		// NU1005: locked mode and force-evaluate cannot be combined.
 		Assert.DoesNotContain("--force-evaluate", run, StringComparison.Ordinal);
 	}

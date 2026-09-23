@@ -1,8 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
-using CheatEngine.SDK.Repository.Tests.Documentation;
-
 using YamlDotNet.RepresentationModel;
 
 namespace CheatEngine.SDK.Repository.Tests.Governance;
@@ -41,28 +39,19 @@ public sealed partial class GovernanceDocumentTests
 	[Fact]
 	public void Security_policy_names_private_reporting_scope_response_and_supported_versions()
 	{
-		MarkdownDocument policy = MarkdownDocument.Parse(RepositoryFile.ReadText(SecurityPolicy));
-
-		List<string> sections = [];
-		foreach (MarkdownHeading heading in policy.Headings)
-		{
-			if (heading.Level == 2)
-			{
-				sections.Add(heading.Text);
-			}
-		}
+		string text = RepositoryFile.ReadText(SecurityPolicy);
 
 		Assert.Equal(
 			["Supported versions", "Reporting a vulnerability", "Scope", "Response", "Verifying releases", "Binary files in this repository"],
-			sections);
-		Assert.Contains(PrivateReportingUrl, policy.Text, StringComparison.Ordinal);
-		Assert.Contains("Never report a vulnerability in a public issue", policy.Text, StringComparison.Ordinal);
-		Assert.Contains("within 7 days", policy.Text, StringComparison.Ordinal);
-		Assert.Contains("https://github.com/cheat-engine/cheat-engine", policy.Text, StringComparison.Ordinal);
+			Level2Headings(text));
+		Assert.Contains(PrivateReportingUrl, text, StringComparison.Ordinal);
+		Assert.Contains("Never report a vulnerability in a public issue", text, StringComparison.Ordinal);
+		Assert.Contains("within 7 days", text, StringComparison.Ordinal);
+		Assert.Contains("https://github.com/cheat-engine/cheat-engine", text, StringComparison.Ordinal);
 		// The package identity a report must carry comes from the consumer's lock file (audit ADR-10).
-		Assert.Contains("`contentHash`", policy.Text, StringComparison.Ordinal);
-		Assert.Contains("packages.lock.json", policy.Text, StringComparison.Ordinal);
-		Assert.Contains("[RELEASING.md](RELEASING.md)", policy.Text, StringComparison.Ordinal);
+		Assert.Contains("`contentHash`", text, StringComparison.Ordinal);
+		Assert.Contains("packages.lock.json", text, StringComparison.Ordinal);
+		Assert.Contains("[RELEASING.md](RELEASING.md)", text, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -175,7 +164,7 @@ public sealed partial class GovernanceDocumentTests
 		{
 			foreach (string sentence in Sentences(text))
 			{
-				if (QualificationClaim().IsMatch(sentence) && !DocumentationConventions.NegationPattern.IsMatch(sentence))
+				if (QualificationClaim().IsMatch(sentence) && !NegationPattern().IsMatch(sentence))
 				{
 					Assert.Fail($"{CompatibilityForm} claims support or qualification: '{sentence}'.");
 				}
@@ -224,11 +213,10 @@ public sealed partial class GovernanceDocumentTests
 			}
 
 			// Forms are public: no local path, and every link to this repository resolves on main.
-			Assert.Empty(MarkdownDocument.Parse(form.Text).FindLocalPaths());
-			foreach (Match link in DocumentationConventions.SelfLinkPattern.Matches(form.Text))
+			Assert.DoesNotMatch(AbsoluteLocalPath(), form.Text);
+			foreach (Match link in SelfLink().Matches(form.Text))
 			{
-				Assert.True(DocumentationRules.TryCheckSelfLink(link.Value, out string? problem) is false || problem is null,
-					$"{path}: {link.Value} does not resolve ({problem}).");
+				Assert.True(TryCheckSelfLink(link, out string? problem), $"{path}: {link.Value} does not resolve ({problem}).");
 			}
 		}
 	}
@@ -270,7 +258,7 @@ public sealed partial class GovernanceDocumentTests
 				{
 					if (sentence.Contains("runtimeconfig", StringComparison.OrdinalIgnoreCase)
 						&& EditInstruction().IsMatch(sentence)
-						&& !DocumentationConventions.NegationPattern.IsMatch(sentence))
+						&& !NegationPattern().IsMatch(sentence))
 					{
 						offenders.Add($"{path}: '{sentence}'");
 					}
@@ -279,6 +267,43 @@ public sealed partial class GovernanceDocumentTests
 		}
 
 		Assert.True(offenders.Count == 0, $"Issue forms must never ask users to edit ce.runtimeconfig.json: {string.Join("; ", offenders)}");
+	}
+
+	/// <summary>The <c>## </c> (ATX level-2) headings of a Markdown document, outside fenced code blocks, in order.</summary>
+	private static List<string> Level2Headings(string text)
+	{
+		List<string> headings = [];
+		bool inFence = false;
+		foreach (string rawLine in text.ReplaceLineEndings("\n").Split('\n'))
+		{
+			string line = rawLine.TrimEnd();
+			string trimmedStart = line.TrimStart();
+			if (trimmedStart.StartsWith("```", StringComparison.Ordinal) || trimmedStart.StartsWith("~~~", StringComparison.Ordinal))
+			{
+				inFence = !inFence;
+				continue;
+			}
+
+			if (!inFence && trimmedStart.StartsWith("## ", StringComparison.Ordinal))
+			{
+				headings.Add(trimmedStart[3..].Trim());
+			}
+		}
+
+		return headings;
+	}
+
+	private static bool TryCheckSelfLink(Match link, out string? problem)
+	{
+		string rest = link.Groups["rest"].Value.Split('#')[0].Split('?')[0].TrimEnd('/');
+		if (rest.Length == 0 || RepositoryFile.ExistsWithExactCase(rest, out _))
+		{
+			problem = null;
+			return true;
+		}
+
+		problem = $"'{rest}' does not exist";
+		return false;
 	}
 
 	private static List<string> IssueForms()
@@ -362,9 +387,22 @@ public sealed partial class GovernanceDocumentTests
 		matchTimeoutMilliseconds: 1000)]
 	private static partial Regex QualificationClaim();
 
+	[GeneratedRegex(@"\b(not|never|no|without)\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture,
+		matchTimeoutMilliseconds: 1000)]
+	private static partial Regex NegationPattern();
+
 	[GeneratedRegex("^[A-Za-z0-9_-]+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
 	private static partial Regex ElementId();
 
 	[GeneratedRegex(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
 	private static partial Regex EmailAddress();
+
+	/// <summary>A drive path, a user-profile folder or a <c>file:</c> URI: never valid in a public issue form.</summary>
+	[GeneratedRegex(@"[A-Za-z]:\\|\\Users\\|/home/|/Users/|file://", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	private static partial Regex AbsoluteLocalPath();
+
+	/// <summary>An absolute link back into this repository on <c>main</c>. Group <c>rest</c> is the path as written.</summary>
+	[GeneratedRegex(@"(?i:https://github\.com/CheatEngineNet/CheatEngine\.SDK)/(?:blob|tree)/main/(?<rest>[^\s)\]""'`>]*)",
+		RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+	private static partial Regex SelfLink();
 }

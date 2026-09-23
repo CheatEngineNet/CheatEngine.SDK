@@ -62,17 +62,20 @@ public sealed partial class WorkflowContractTests
 	}
 
 	[Fact]
-	public void Lock_file_job_runs_the_verification_script_on_windows()
+	public void Lock_file_job_restores_the_solution_and_every_out_of_solution_project_locked_on_windows()
 	{
 		WorkflowJob job = Pipeline().Job("lock-files");
 
 		// Native AOT lock sections record the host-RID ILCompiler packages: only a Windows restore reproduces them.
 		Assert.Equal("windows-2025", job.RunsOn);
 		Assert.Empty(job.Needs());
+
+		// The composite action's own --locked-mode restore IS the verification (NU1004 the moment a committed
+		// packages.lock.json no longer matches a fresh restore): no separate script needed. AotProbe is the only
+		// project outside the solution (Solution/SolutionInventoryTests.cs).
 		YamlMappingNode setup = Assert.Single(job.StepsUsing(WorkflowContract.SetupAction));
-		Assert.Null(WorkflowJob.With(setup, "restore"));
-		string run = job.RunText();
-		Assert.Contains("./eng/Update-LockFiles.ps1 -Verify", run, StringComparison.Ordinal);
-		Assert.Contains("[switch] $Verify", ReadRepositoryText("eng/Update-LockFiles.ps1"), StringComparison.Ordinal);
+		List<string> targets = RestoreTargets(setup);
+		Assert.Contains("CheatEngine.SDK.slnx", targets, StringComparer.Ordinal);
+		Assert.Contains("tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj", targets, StringComparer.Ordinal);
 	}
 }

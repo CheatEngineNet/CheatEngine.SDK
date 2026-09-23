@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Repository policy tests. They only read committed files (solution, Markdown, workflows, qualification and catalogue
-    documents) and never build, pack or restore, so every change can run them in seconds. Deliberately no
-    ProjectReference. The one exception is Governance/: it starts pwsh to run the repository's PowerShell policy code
-    (pull request policy, health-check rules, repository-settings plan) against test vectors, offline.
+    Repository policy tests. They only read committed files (solution, workflows, Dependabot configuration, issue
+    forms) and never build, pack or restore, so every change can run them in seconds. Deliberately no ProjectReference.
+    The one exception is one Governance/ test, which starts pwsh to run the dependency-submission workflow's own
+    "submit" step text against a mocked gh, offline.
   -->
 
   <ItemGroup>

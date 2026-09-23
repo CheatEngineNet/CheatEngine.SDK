@@ -2,34 +2,28 @@
 
 ## Objective
 
-Keep the repository's own contracts true: the solution inventory today, and the documentation, workflow,
-qualification-matrix and catalogue contracts added by the audit remediation work.
+Keep the repository's own contracts true: the solution inventory, the CI workflow contract, lock files, the public
+API surface and the release workflow.
 
 ## Why it exists
 
-Several of these rules used to live in scripts that CI stopped running, so they silently rotted (dead
-`documentations/` links, orphaned validators). Repository rules are enforced by C# tests instead, and they stay fast:
-this project only reads committed files. It never builds, packs, restores or starts Cheat Engine. The only process it
-starts is `pwsh`, to run the repository's PowerShell code against test vectors, offline: the pull request policy module
-and entry script, the health-check rules and the repository-settings plan (`Governance/`), and the local qualification
-runner (`Qualification/`).
+Repository rules are enforced by C# tests instead of custom scripts, and they stay fast: this project only reads
+committed files (solution, workflows, Dependabot configuration, issue forms, community documents). It never builds,
+packs or restores. The one exception is one Governance/ test, which starts `pwsh` to run the dependency-submission
+workflow's own "submit" step text against a mocked `gh`, offline.
 
 ## How it works
 
-| Folder            | Content                                                                                            |
-|-------------------|----------------------------------------------------------------------------------------------------|
-| `Infrastructure/` | `RepositoryRoot` finds `CheatEngine.SDK.slnx` above the test binaries and enumerates source files. |
-| `Solution/`       | `SolutionInventoryTests` compares the projects on disk with the projects listed in the solution.   |
-| `Documentation/`  | `DocumentationIntegrityTests` checks every Markdown file: links, anchors, paths, `docs/` pages.    |
-| `Toolchain/` | `ToolchainPinTests` reads `global.json`, `Directory.Build.props` and `Directory.Solution.targets`: exact SDK, analysis-level pin, NuGet audit policy. |
-| `LockFiles/` | `LockFileTests` mirror the structural checks of `eng/Update-LockFiles.ps1` over the committed `packages.lock.json` files. |
-| `PublicApi/` | PublicAPI files, `CompatibilitySuppressions.xml` and the `eng/api/*.txt` lists: file shape, declared breaks, Client-induced breaks, enum contracts. |
-| `Workflows/` | `WorkflowContractTests` parse `.github/workflows/*.yml` and the composite actions with YamlDotNet and freeze the CI contract; `CoverageBaselineTests`, `BuildInfoSchemaTests` and `ClientCanaryScriptTests` check the files and scripts of `eng/ci/` that CI runs. |
-| `Governance/` | Pull request policy script and workflow, CodeQL/Scorecard/zizmor/dependency-submission/scheduled-health workflow invariants, Dependabot, CODEOWNERS, SECURITY.md, issue forms and repository-settings payloads. |
-| `Release/` | `ReleaseWorkflowContractTests` reads `.github/workflows/release.yml`: the draft-first job chain, tag guards, write scopes, trusted publishing placement and the reserved artifact names. |
-| `Qualification/` | `QualificationSchemaTests`, `SupportProfileTests`, `QualificationMatrixTests` and `QualificationReceiptTests` check `docs/qualification/` with the C# JSON Schema subset of `Validation/`; `QualificationProjectShapeTests` and `LocalQualificationRunnerTests` check the qualification harness projects and `eng/qualification/`. |
-
-Later work adds one folder per contract (for example `Catalog/`).
+| Folder            | Content                                                                                                |
+|--------------------|--------------------------------------------------------------------------------------------------------|
+| `Infrastructure/`  | `RepositoryRoot` finds `CheatEngine.SDK.slnx` above the test binaries and enumerates source files.     |
+| `Solution/`        | `SolutionInventoryTests` compares the projects on disk with the projects listed in the solution; `QualificationHarnessShapeTests` checks the shape of the two qualification-harness projects. |
+| `Toolchain/`       | `ToolchainPinTests` reads `global.json`, `Directory.Build.props` and `Directory.Solution.targets`: exact SDK, analysis-level pin, NuGet audit policy. |
+| `LockFiles/`       | `LockFileTests` mirror the structural checks a locked restore relies on, over the committed `packages.lock.json` files. |
+| `PublicApi/`       | `PublicApiFileTests` and `EnumContractTests` check the shape of every shipping library's PublicAPI files and the classification of enums added since 1.0.0. |
+| `Workflows/`       | `WorkflowContractTests` parse `.github/workflows/*.yml` and the composite actions with YamlDotNet and freeze the CI contract (job ids, the Gate, lint, format, restore, supply-chain jobs). |
+| `Release/`         | `ReleaseWorkflowContractTests` reads `.github/workflows/release.yml`: the draft-first job chain, tag guards, write scopes, trusted publishing placement and the reserved artifact names. |
+| `Governance/`      | `GovernanceWorkflowTests` freeze CodeQL, Scorecard, the online zizmor run and dependency submission; `DependabotConfigurationTests` checks `.github/dependabot.yml`; `GovernanceDocumentTests` checks `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS` and the issue forms. |
 
 ## Promise
 
@@ -37,28 +31,6 @@ Later work adds one folder per contract (for example `Catalog/`).
   `SolutionInventoryTests` (`Every_project_on_disk_is_in_the_solution_or_explicitly_excluded`).
 - The solution lists no missing project and the exclusion list holds no stale entry
   (`Every_project_in_the_solution_exists_and_no_exclusion_is_stale`).
-- Every relative link, image, reference definition and HTML `href`/`src` of every Markdown file resolves to a committed
-  file or folder with GitHub's exact case, never above the repository root or into build output
-  (`Every_relative_markdown_link_resolves_with_exact_casing`).
-- Every `#fragment` matches a heading anchor (GitHub slug rules, duplicates suffixed) or an explicit anchor of its page
-  (`Every_markdown_anchor_matches_a_heading_of_its_target_page`).
-- No Markdown file contains an absolute local path such as a drive path, a `file:` URI or a user-profile folder
-  (`No_markdown_file_contains_an_absolute_local_path`).
-- No link points into the retired `documentations/` tree, and only `docs/README.md` names retired pages
-  (`No_markdown_file_refers_to_the_retired_documentations_tree`).
-- Absolute `blob/main` and `tree/main` links to this repository resolve on the current tree
-  (`Absolute_links_to_this_repository_on_main_resolve_on_the_current_tree`), and so do the frozen links of the README
-  published in CheatEngine.SDK 1.0.0 (`Links_of_the_published_1_0_0_package_readme_still_resolve_on_main`).
-- Every README packed by a packable project uses absolute `https://` links only, and at least one is found
-  (`Packed_readmes_contain_only_absolute_links`).
-- Every page under `docs/` carries the "Recreated 2026-09" header
-  (`Every_rebuilt_docs_page_starts_with_the_recreated_header`), every placeholder names its owning work and wave
-  (`Placeholder_pages_name_their_owning_lot_and_wave`), and the docs index links every top-level page and folder
-  (`Docs_index_links_every_top_level_page_and_folder`).
-- No Markdown file claims complete coverage or universal support unless the same line negates it
-  (`No_markdown_file_claims_complete_coverage_or_universal_support`).
-- The Markdown parser and every rule are self-tested on in-memory pages, so each gate is shown to fail on the
-  regression it exists for (`MarkdownDocumentTests`).
 - The .NET SDK is pinned exactly: `rollForward: disable`, no prerelease, and an `errorMessage` naming the pinned version
   and its install command (`Global_json_requires_the_exact_sdk_with_roll_forward_disabled`,
   `Global_json_error_message_names_the_pinned_sdk_version`).
@@ -76,15 +48,6 @@ Later work adds one folder per contract (for example `Catalog/`).
   `Public_api_files_exist_only_next_to_shipping_libraries`, `Every_public_api_file_starts_with_nullable_enable`,
   `Every_public_api_file_is_ordinally_sorted_after_its_header`, `Shipped_files_never_contain_removed_markers`,
   `Every_removed_line_names_a_line_of_the_shipped_file`, `Unshipped_never_redeclares_a_live_shipped_line`).
-- The ApiCompat baseline suppressions, the `*REMOVED*` lines and the reviewed list of changes ApiCompat cannot see
-  describe the same breaks against 1.0.0, and the suppressions that touch a Client-consumed type are exactly the listed
-  Client-induced breaks; SDK-side C0 evidence for Q48 only
-  (`Every_suppression_is_a_baseline_suppression_of_one_library_against_itself`,
-  `Every_baseline_suppression_matches_a_removed_public_api_line`,
-  `Every_removed_public_api_line_is_suppressed_or_declared_invisible_to_apicompat`,
-  `Every_invisible_change_names_a_current_removed_line_with_a_reason`,
-  `Suppressions_touching_client_consumed_types_are_listed_as_induced_client_breaks`,
-  `Every_client_consumed_type_resolves_in_the_declared_api_or_is_marked_unresolved`).
 - Enums that mirror Cheat Engine constants or appear in Client signatures keep their 1.0.0 members, every enum added
   since 1.0.0 is classified, and status/outcome enums start with a neutral zero member, except a pending list that can
   only shrink (`Enums_mirroring_cheat_engine_constants_or_client_signatures_keep_their_1_0_0_members`,
@@ -96,7 +59,7 @@ Later work adds one folder per contract (for example `Catalog/`).
   `Every_lock_file_is_version_2_because_every_project_uses_central_package_management`,
   `Version_1_lock_files_hold_no_central_transitive_entries`, `Native_aot_projects_lock_the_win_x64_ilcompiler_packages`,
   `No_lock_file_resolves_a_cheatengine_package`, `Lock_files_end_without_a_final_newline_as_nuget_writes_them`).
-- The required check `CI / Gate` keeps its shape: the three callers call `ci.yml` through job `ci` named `CI`, the gate
+- The required check `CI / Gate` keeps its shape: the caller calls `ci.yml` through job `ci` named `CI`, the gate
   job `gate` named `Gate` runs `always()` with no permissions, needs every other job except the advisory allowlist, and
   decides from a required result per job; the `ci.yml` jobs, inputs and secret are exactly the contract's
   (`Callers_invoke_ci_through_job_ci_named_CI`, `Gate_job_is_named_Gate_runs_always_and_has_no_permissions`,
@@ -107,7 +70,7 @@ Later work adds one folder per contract (for example `Catalog/`).
   (`Sonar_condition_equals_the_gate_sonar_expected_expression`, `Sonar_waits_for_the_quality_gate_outside_push_events`,
   `Sonar_excludes_non_product_trees_from_analysis_and_coverage`,
   `Pull_request_and_main_callers_request_sonar_and_the_release_run_never_does`).
-- No workflow listens to `pull_request_target` or `merge_group`, the pull-request and policy workflows filter no path,
+- No workflow listens to `pull_request_target` or `merge_group`, the pull-request workflow filters no path,
   main keeps every run and pull requests cancel superseded ones
   (`No_workflow_uses_pull_request_target_or_a_merge_group_trigger`, `Pull_request_and_policy_workflows_have_no_path_filters`,
   `Main_ci_runs_every_push_to_main_without_a_concurrency_group`, `Pull_request_ci_skips_drafts_and_cancels_superseded_runs`).
@@ -123,247 +86,69 @@ Later work adds one folder per contract (for example `Catalog/`).
   from a release, Sonar or CodeQL run uses a package cache (`Every_dotnet_job_uses_the_composite_setup_action`,
   `Composite_setup_restores_in_locked_mode`, `Every_restore_in_the_pipeline_is_locked`,
   `Release_reachable_workflows_never_enable_a_package_cache`, `Sonar_restores_locked_from_nuget_org_before_the_scanner_begins`).
-- The Release leg packs before it tests and hands the exact nupkg to the packaging tests; the Debug leg excludes them
-  by trait, never by skip; every module runs once with hang and crash dumps well inside the job timeout and is checked by
-  the inventory (`Release_leg_packs_before_testing_and_exports_the_exact_nupkg`,
+- The Release leg packs before it tests and hands the exact nupkg to the packaging tests, with an inlined pre-publish
+  sanity check (one package, its nuspec identity, the embedded SBOM and the CI-built native bridge); the Debug leg
+  excludes packaging tests by trait, never by skip; every module runs once with hang and crash dumps well inside the
+  job timeout (`Release_leg_packs_before_testing_and_exports_the_exact_nupkg`,
   `Debug_leg_excludes_packaging_tests_by_trait_never_by_skip`, `Test_step_runs_every_module_once_with_the_contract_options`,
   `Every_test_module_references_the_extensions_the_test_step_uses`,
-  `Hang_dump_timeout_is_well_below_the_build_test_job_timeout`, `Test_module_inventory_runs_in_both_legs`,
-  `Build_test_runs_both_configurations_without_fail_fast`).
+  `Hang_dump_timeout_is_well_below_the_build_test_job_timeout`, `Build_test_runs_both_configurations_without_fail_fast`).
 - Artifacts use the reserved names and retentions only, binary logs and dumps are uploaded on failure only and never
   from Sonar or release runs, jobs that version a package fetch full history, the Native AOT probes are published, and
   the live probe is compiled exactly once and never shipped (`Every_uploaded_artifact_name_is_reserved`,
   `Binlogs_are_uploaded_only_on_failure_and_never_from_sonar_or_release`, `Jobs_that_pack_or_test_fetch_full_history`,
   `Aot_job_publishes_the_native_aot_probes`, `Live_probe_is_compiled_by_the_ci_solution_build`).
-- actionlint, zizmor and PSScriptAnalyzer are pinned by version and checksum, every zizmor exception carries its reason,
-  and the format job verifies whitespace without a restore (`Lint_job_checks_out_the_repository_and_runs_every_linter`,
+- actionlint and zizmor are pinned by version and checksum, every zizmor exception carries its reason, and the format
+  job verifies whitespace without a restore (`Lint_job_checks_out_the_repository_and_runs_every_linter`,
   `Zizmor_and_actionlint_are_pinned_by_version_and_checksum`, `Every_zizmor_exception_carries_a_justification_comment`,
-  `Script_analysis_uses_a_pinned_hash_verified_psscriptanalyzer`, `Format_job_verifies_whitespace_without_restore`).
-- The dependency review never skips and reviews pull requests only, and the lock-file job verifies the committed locks
-  on Windows (`Dependency_review_job_always_runs_and_reviews_only_pull_requests`,
+  `Format_job_verifies_whitespace_without_restore`).
+- The dependency review never skips and reviews pull requests only, and the lock-file job restores the solution and
+  every out-of-solution project in locked mode on Windows (its own `--locked-mode` restore is the verification, with
+  no bespoke script) (`Dependency_review_job_always_runs_and_reviews_only_pull_requests`,
   `Dependency_review_configuration_blocks_advisories_and_unreviewed_licenses`,
-  `Lock_file_job_runs_the_verification_script_on_windows`).
-- No workflow runs the local qualification runner or generates ApiCompat suppressions
+  `Lock_file_job_restores_the_solution_and_every_out_of_solution_project_locked_on_windows`).
+- No workflow runs a local qualification runner or generates ApiCompat suppressions
   (`No_workflow_references_the_local_qualification_runner`, `No_workflow_passes_ApiCompatGenerateSuppressionFile`).
-- The coverage floors cover exactly the shipping assemblies, are percentages with an explicit tolerance, use the
-  pinned merge tool, and CI never writes them (`Coverage_baseline_lists_exactly_the_shipping_assemblies`,
-  `Coverage_floors_are_percentages_and_the_tolerance_is_explicit`, `Coverage_tool_is_pinned_in_the_local_tool_manifest`,
-  `Debug_leg_checks_the_coverage_floors_and_never_writes_the_baseline`).
-- `build-info.json` has exactly the contract fields, rejects any other, is written in full from the native job's
-  outputs and uploaded by the Release leg (`Build_info_schema_requires_exactly_the_contract_fields`,
-  `Build_info_schema_rejects_additional_properties`, `Build_info_writer_emits_every_required_field`,
-  `Release_leg_writes_and_uploads_build_info_from_the_native_job_outputs`).
-- The advisory client canary writes the fields of its report schema, isolates the branch package and never fails the
-  run because the Client breaks (`Client_canary_report_schema_requires_exactly_the_fields_the_script_writes`,
-  `Client_canary_isolates_its_packages_and_never_gates`).
-- Every Dependabot ecosystem waits at least seven days before proposing a release, the Roslyn pin and the SDK-implicit
-  packages never move on their own, the `dotnet-sdk` ecosystem ignores new majors, the composite action is updated with
-  the workflows, and no ecosystem sets a commit prefix (`DependabotConfigurationTests`:
-  `Every_ecosystem_has_a_cooldown_of_at_least_seven_days`, `Roslyn_pins_and_sdk_implicit_packages_are_ignored`,
-  `Roslyn_ignores_cover_every_package_pinned_to_the_roslyn_floor`, `Dotnet_sdk_ecosystem_ignores_major_updates`,
-  `Github_actions_updates_cover_the_composite_action_directories`, `No_ecosystem_sets_a_commit_message_prefix`,
-  `Specific_nuget_groups_come_before_the_catch_all_group`).
-- The `PR policy` required check evaluates the title (at most 72 characters, no trailing period, no type or area prefix,
-  uppercase start, imperative first word) and the CHANGELOG entry for `libs/`, `src/`, `analyzers/`, `source-generators/`
-  and `native/` changes (lock files excluded, Dependabot exempt with a notice), against vectors that include real pull
-  request titles. The waiver marker counts only on a line of its own outside fenced code and other comments, so a
-  quoted marker (code span, code block, sentence) never waives the rule, and no committed pull request template waives
-  it by itself; the entry script annotates each failed rule, writes the summary table and never prints the description
-  (`PullRequestPolicyScriptTests`: `Policy_verdict_matches_the_expected_rules`, `Every_rule_is_exercised_by_a_failing_vector`,
-  `Dependabot_authored_pull_requests_are_exempt_from_every_rule`, `Changelog_failure_names_the_paths_and_both_remedies`,
-  `Changelog_failure_explains_that_a_quoted_marker_does_not_waive_the_rule`,
-  `Pull_request_templates_never_waive_the_changelog_rule`,
-  `Entry_script_exits_non_zero_and_annotates_each_failed_rule`, `Entry_script_writes_a_rule_table_to_the_step_summary`,
-  `Entry_script_exempts_dependabot_and_never_prints_the_description`,
-  `Entry_script_refuses_commit_ids_that_are_not_full_hashes`).
-- `pr-policy.yml` runs on every title edit without path filter or condition, as the job `PR policy` on `ubuntu-24.04`,
-  and pull-request text reaches scripts only through `env:` in every workflow (`PullRequestPolicyWorkflowTests`:
-  `Pr_policy_triggers_on_edited_and_has_no_path_filter`, `Pr_policy_job_is_named_PR_policy_and_runs_on_ubuntu_24_04`,
-  `Pull_request_title_body_and_author_reach_the_script_only_through_env`,
-  `Changelog_path_pattern_matches_the_shared_contract`, `Every_consumer_visible_root_of_the_changelog_rule_exists`).
-- `SECURITY.md` names private reporting, scope, response targets, supported versions and release verification, and
-  describes the two committed binaries with their real hash; `CODE_OF_CONDUCT.md` routes reports through private
-  reporting without an e-mail address; `.github/CODEOWNERS` is the only CODEOWNERS file, starts with `*`, names known
-  maintainers and existing paths with exact case (`GovernanceDocumentTests`:
-  `Security_policy_names_private_reporting_scope_response_and_supported_versions`,
-  `Security_policy_describes_the_committed_binaries_with_their_real_hash`,
-  `Code_of_conduct_routes_reports_through_private_reporting_without_an_email_address`,
-  `Codeowners_patterns_point_to_existing_paths_and_known_owners`, `Codeowners_exists_only_in_the_github_folder`).
-- The compatibility issue form requires the complete support tuple (package version and lock-file `contentHash`,
-  bridge hash, Cheat Engine build and executable hash, Lua DLL hash, runtime-configuration hash and origin, load
-  profile, target architecture, what was actually run from C0 to C4, build options, OS and .NET), never presents a
-  profile as supported or qualified, and no form tells users to edit `ce.runtimeconfig.json`; blank issues are off and
-  the chooser links private reporting (`GovernanceDocumentTests`: `Compatibility_issue_form_requires_the_full_tuple`,
-  `Compatibility_form_never_presents_a_profile_as_qualified_or_supported`,
-  `Issue_form_element_ids_are_unique_and_valid`, `Issue_forms_disable_blank_issues_and_link_private_reporting`,
-  `Issue_forms_never_instruct_editing_the_cheat_engine_runtime_configuration`).
-- Every governance workflow pins its actions by full SHA with a version comment, uses literal `windows-2025` or
-  `ubuntu-24.04` runners with timeouts, starts from `contents: read` and comments every job-level elevation, never
-  persists checkout credentials, starts every multi-line script with `$ErrorActionPreference = 'Stop'`, checks the exit
-  code of every native command and script it runs, never uses `pull_request_target`, `merge_group` or a package cache,
-  and uploads only its reserved artifact names
-  (`GovernanceWorkflowTests`: `Governance_workflows_pin_every_action_by_full_sha_with_a_version_comment`,
-  `Governance_jobs_use_literal_runner_labels_and_timeouts`, `Governance_workflows_start_read_only_and_comment_every_job_elevation`,
-  `Governance_checkouts_never_persist_credentials`, `Governance_multi_line_scripts_stop_on_the_first_error`,
-  `Governance_scripts_check_the_exit_code_of_every_native_command`,
-  `Advisory_workflows_never_use_pull_request_target_or_merge_group`, `Governance_workflows_never_enable_a_package_cache`,
-  `Governance_workflows_upload_only_their_reserved_artifact_names`).
-- CodeQL analyses C# from a manual, traced, non-incremental Release build of the shipped product graph without the
-  compiler server, C/C++ and the workflows without a build, with no dependency or TRAP cache, on pull requests, `main`,
-  a weekly schedule and dispatch (`GovernanceWorkflowTests`: `Codeql_analyzes_csharp_cpp_and_actions_with_literal_runner_labels`,
-  `Codeql_csharp_job_builds_the_product_graph_manually_without_shared_compilation`,
-  `Codeql_workflow_never_enables_a_package_cache`, `Codeql_runs_on_pull_requests_main_a_weekly_schedule_and_dispatch`).
-- Scorecard keeps the shape its publication verifier accepts (no `defaults`, `env` or `run` steps, allowlisted actions,
-  an Ubuntu runner), only its analysis job and the release workflow request an OIDC token, and the online zizmor run
-  pins the tool version the Gate uses, enables the online audits and skips forks and drafts (`GovernanceWorkflowTests`:
-  `Scorecard_workflow_has_no_defaults_env_or_run_steps`, `Scorecard_steps_use_only_the_actions_the_verifier_allows`,
-  `Only_the_scorecard_job_requests_an_id_token`, `Zizmor_online_pins_the_tool_version_and_enables_online_audits`,
-  `Online_and_gate_zizmor_runs_pin_the_same_version`).
-- Dependency submission detects on a read-only token with a pinned, hash-verified Component Detection over the locked
-  restore, and submits from a separate job that is the only governance job holding `contents: write`, runs no
-  third-party code and refuses a snapshot of another commit, ref or correlator; it runs on `main`, dispatch and
-  same-repository pull requests only (`GovernanceWorkflowTests`:
-  `Dependency_submission_runs_on_main_dispatch_and_same_repository_pull_requests_only`,
-  `Only_the_dependency_submit_job_holds_contents_write`, `Dependency_submit_job_runs_no_third_party_code`,
-  `Dependency_detection_uses_a_pinned_hash_verified_component_detection`,
-  `Dependency_submit_step_submits_only_a_snapshot_of_this_run`).
-- The scheduled health workflow runs weekly and on dispatch, one run at a time; only its `notify` job, on scheduled
-  runs, writes issues, from closed vocabularies; the canary selects the newest SDK before the composite action installs
-  it; every job that runs the .NET CLI installs it through the composite action; the release bridge is rebuilt with the
-  toolchain pins of the `native` job; diagnostics are uploaded under reserved names (`GovernanceWorkflowTests`:
-  `Scheduled_health_runs_weekly_and_on_dispatch_one_run_at_a_time`, `Scheduled_health_opens_issues_only_from_scheduled_runs`,
-  `Scheduled_health_canary_rewrites_global_json_before_the_composite_action`,
-  `Every_scheduled_health_dotnet_job_uses_the_composite_action`, `Bridge_drift_uses_the_toolchain_pins_of_the_native_job`,
-  `Scheduled_health_uploads_diagnostics_under_their_reserved_names`).
-- The decisions of the health scripts (`eng/ci/health/HealthCheck.psm1`) match their vectors: the newest plain release
-  tag, the bridge drift classification (`Reproduced`, `ToolchainDrift`, `Failed`), full SDK versions of the pinned
-  channel, a `global.json` rewrite that changes `sdk.version` and the versions `sdk.errorMessage` names (so the
-  rewritten file still passes `ToolchainPinTests` in the canary's Release tests) and keeps everything else, TRX
-  counters, package-list reports, link extraction and verdicts, and a health issue body built from closed vocabularies;
-  the canary pin and the issue publisher run end to end (the publisher with `gh` replaced by a recorder)
-  (`HealthCheckScriptTests`: `Every_exported_health_function_has_vectors`, `Release_tag_selection_takes_the_newest_plain_version`,
-  `Bridge_drift_classification_matches_the_vectors`, `Sdk_versions_are_full_versions_of_the_pinned_channel`,
-  `Global_json_rewrite_moves_the_sdk_version_and_its_error_message_together`,
-  `Package_list_reports_flatten_to_one_row_per_package`,
-  `External_links_skip_fences_local_hosts_templates_and_offline_checked_self_links`,
-  `Only_not_found_and_gone_count_as_broken_links`, `Health_issue_body_carries_only_closed_vocabularies`,
-  `Canary_pin_selects_the_sdk_in_global_json_and_writes_the_step_outputs`,
-  `Canary_pin_refuses_a_version_of_another_channel`, `Health_issue_publisher_creates_the_issue_when_none_is_open`,
-  `Health_issue_publisher_comments_on_the_open_issue`, `Health_issue_publisher_only_warns_when_issues_are_disabled`).
-- The repository-settings payloads require exactly `CI / Gate` and `PR policy` from the GitHub Actions app (names that
-  match the workflow jobs), allow only squash merges titled by the pull request, reserve release tags to
-  administrators, keep a reviewed `nuget` environment without admin bypass, require SHA-pinned actions (every `uses:` is
-  already pinned) and define every label the automation applies (`RepositorySettingsPayloadTests`:
-  `Every_payload_explains_itself_and_sets_only_known_fields`,
-  `Main_ruleset_requires_exactly_the_gate_and_pr_policy_checks_from_github_actions`,
-  `Main_ruleset_allows_only_squash_merges_without_bypass_or_code_owner_review`,
-  `Release_tag_ruleset_protects_v_tags_and_lets_only_admins_bypass`,
-  `Nuget_environment_payload_disables_admin_bypass_and_self_review_prevention`,
-  `Required_check_names_match_the_workflow_job_names`, `Actions_payload_requires_sha_pinning`,
-  `Repository_payload_allows_only_squash_merges_titled_by_the_pull_request`,
-  `Labels_payload_covers_every_label_the_automation_applies`).
-- `Set-RepositorySettings.ps1` compares payloads with live settings as subsets (arrays of objects by identity), and,
-  run offline against a recording `gh`, never calls GitHub with `-PlanOnly`, refuses CI, writes exactly the differences
-  of the settings read on 2026-09-23, writes nothing once they are applied or with `-WhatIf`, and never removes required
-  checks with `-SkipRequiredChecks` (`RepositorySettingsScriptTests`:
-  `Settings_comparison_reports_only_what_the_payload_manages`, `Unmanaged_live_fields_are_listed_without_read_only_metadata`,
-  `Environment_response_is_read_in_the_shape_of_the_put_body`, `Settings_plan_follows_the_documented_order`,
-  `Plan_only_prints_every_step_without_calling_github`, `Settings_script_refuses_to_run_in_ci`,
-  `Settings_script_writes_only_what_differs_from_the_live_settings`,
-  `Settings_script_changes_nothing_once_the_settings_are_applied`, `What_if_reads_the_live_settings_and_never_writes`,
-  `Skip_required_checks_never_removes_the_checks_already_required`).
-- Every PowerShell script and module under `eng/ci` and `eng/github` parses: PSScriptAnalyzer's `Error, Warning`
-  profile does not report syntax errors, and most of these scripts run only weekly or after merge
-  (`GovernanceScriptSyntaxTests`: `Every_governance_script_parses_without_errors`).
 - The release workflow is draft-first (`verify → ci → attest → draft-release → publish → verify-publication →
   finalize-release`), runs for `v*.*.*` tags and manual dry runs without cancelling a run in progress, and calls `ci.yml`
   with the tag version, a 90-day retention and no Sonar (`Release_jobs_form_the_draft_first_chain`,
   `Release_runs_for_version_tags_and_manual_dry_runs_without_cancelling`,
   `Release_calls_ci_with_the_tag_version_ninety_day_retention_and_no_sonar`).
-- `verify` runs the Checkpoint F qualification gate on the released tree after extracting the release notes it reads:
-  `Enforce` for a stable version, `Report` otherwise (`Stable_tags_are_gated_on_the_qualification_matrix_before_anything_is_built`).
 - Publication jobs and every attestation step run only for tags of this repository; the attest job attests the package
-  provenance and its SPDX 2.2 SBOM; only `publish` uses the `nuget` environment, with the NuGet login right before the
-  push; `id-token`, `attestations` and `contents` write scopes are limited to the jobs that need them
-  (`Publication_jobs_run_only_for_tags_of_this_repository`, `Attest_job_attests_the_package_provenance_and_its_spdx_2_2_sbom`,
-  `Only_the_publish_job_uses_the_nuget_environment_and_nuget_login`, `Id_token_write_is_limited_to_attest_publish_and_finalize`,
+  provenance and its SPDX 2.2 SBOM extracted from the package's own embedded manifest; only `publish` uses the `nuget`
+  environment, with the NuGet login right before the push; `id-token`, `attestations` and `contents` write scopes are
+  limited to the jobs that need them (`Publication_jobs_run_only_for_tags_of_this_repository`,
+  `Attest_job_attests_the_package_provenance_and_its_spdx_2_2_sbom`,
+  `Only_the_publish_job_uses_the_nuget_environment_and_nuget_login`, `Id_token_write_is_limited_to_attest_and_publish`,
   `Contents_write_is_limited_to_draft_release_and_finalize_release`).
 - The release is created as a draft by `draft-release` only and published by `finalize-release` only, after
-  `verify-publication` checked nuget.org; the published tuple takes the nuget.org identities from that job, and the
-  package is checked against `SHA256SUMS` before the push (`Release_is_created_as_a_draft_and_published_only_by_finalize`,
+  `verify-publication` polled and byte-compared the nuget.org copy against the attested package, and the package is
+  checked against `SHA256SUMS` before the push (`Release_is_created_as_a_draft_and_published_only_by_finalize`,
   `Publication_is_verified_on_nuget_org_before_the_release_is_published`).
 - Release jobs use pinned runners with timeouts, upload only `release-notes` and `attestation-bundles` (never a second
   copy of the nupkg), and install the pinned SDK without a package cache where they run `dotnet`
   (`Release_jobs_have_a_timeout_and_a_pinned_runner`, `Release_uploads_only_reserved_artifact_names`,
   `Release_jobs_that_run_dotnet_install_the_pinned_sdk_and_never_cache_packages`).
-- The qualification schemas are draft 2020-12 documents with closed objects that use only the keywords the C#
-  validator implements, and the validator reports every kind of violation (`QualificationSchemaTests`:
-  `Every_schema_is_draft_2020_12_with_a_repository_id_and_closed_objects`,
-  `Schemas_use_only_the_keywords_the_validator_implements`, `Schema_required_and_enum_lists_equal_the_validator_constants`,
-  `Each_schema_pins_its_document_kind_identifier`,
-  `The_validator_reports_unknown_properties_missing_fields_wrong_types_and_failed_conditions`).
-- The support profile matches its schema; the public-source profile is documentary and never qualifiable; the
-  qualifiable profile names the managed hostfxr route and the local runtime-configuration modification, and its hashes
-  equal the committed Lua DLL, the LiveProbe authorization constants and the audit's `celua.txt`; the qualification
-  documents hold no absolute local path or global percentage (`SupportProfileTests`:
-  `Support_profile_matches_its_v0_schema`, `Public_source_profile_is_documentary_and_never_qualifiable`,
-  `Qualifiable_profile_names_the_managed_hostfxr_route_and_the_local_runtimeconfig_modification`,
-  `Profile_lua_hash_equals_the_committed_fixture_dll`, `Profile_host_hash_and_version_equal_the_LiveProbe_authorization_constants`,
-  `Measurement_locators_name_repository_lines_that_declare_the_measured_hash`, `Profile_celua_hash_is_the_audit_reference`,
-  `Markdown_tuple_section_names_the_checked_in_bridge_hash_and_fingerprint`, `Checkpoint_A_decisions_appear_in_json_and_markdown`,
-  `Unsupported_routes_include_nativeaot_x86_host_and_sse4_variant`, `Not_executed_section_equals_the_matrix`,
-  `Qualification_documents_contain_no_absolute_local_path_or_global_percentage`, `Json_documents_are_in_canonical_form`).
-- The matrix lists Q01 to Q48 once each with the audit's required levels; a cell passes only with a pass kind, a host
-  cell cites only the qualifiable profile and committed receipts, C1 or C2 evidence never fills a host cell, every cited
-  test is a traited method of a CI test module and every `Qualification` trait is cited, parents aggregate their
-  sub-rows, and the README summary equals the matrix (`QualificationMatrixTests`: `Matrix_matches_its_v0_schema`,
-  `Matrix_lists_Q01_to_Q48_exactly_once_with_the_audit_required_levels`, `Every_required_level_has_a_cell`,
-  `Every_row_declares_a_scenario_with_an_expected_category`, `Not_applicable_cells_carry_a_justification`,
-  `Pass_kind_is_present_exactly_when_the_cell_passed`, `Host_level_cells_cite_the_qualifiable_profile_only`,
-  `Public_source_profile_is_refused_for_any_passed_or_failed_cell`,
-  `Host_level_passed_or_failed_cells_cite_committed_receipts_with_matching_hashes`,
-  `C1_or_C2_evidence_is_never_accepted_for_a_host_level_cell`,
-  `Automated_evidence_resolves_to_a_traited_method_in_a_CI_test_module`,
-  `Every_Qualification_trait_in_the_tests_appears_in_the_matrix_and_vice_versa`,
-  `Class_level_Qualification_traits_apply_to_every_test_method_of_the_class`, `Parent_rows_aggregate_their_sub_rows`,
-  `Evidence_kind_follows_status_and_level`, `Cells_citing_another_tree_or_package_carry_a_transfer_justification`,
-  `Not_executed_cells_never_carry_evidence_or_a_date`,
-  `Client_owned_rows_are_not_applicable_in_the_SDK_matrix_and_point_to_the_Client_matrix`,
-  `Findings_link_the_rows_the_audit_register_names`, `Matrix_summary_in_the_readme_equals_the_matrix`).
-- A receipt is accepted only for the exact host, with its tree and package identity, a CI-built package, a pass kind
-  when it passed and no local path; every committed receipt is valid, hashed, redacted and cited by the cell it
-  qualifies (`QualificationReceiptTests`: `A_complete_sample_receipt_is_accepted`,
-  `A_receipt_citing_the_public_source_profile_is_refused`, `A_receipt_with_an_absolute_local_path_is_refused`,
-  `A_passed_receipt_without_a_pass_kind_is_refused`, `A_host_level_receipt_without_tree_and_package_identity_is_refused`,
-  `A_receipt_whose_package_source_is_a_local_pack_is_refused`, `Receipt_id_encodes_its_time_and_qualification_id`,
-  `A_fixture_level_receipt_is_refused`, `A_run_on_another_host_is_accepted_only_as_a_justified_not_applicable_receipt`,
-  `Every_committed_receipt_is_valid_and_its_event_log_hash_matches`,
-  `Committed_event_logs_contain_no_user_path_or_raw_debug_output`,
-  `Every_committed_receipt_is_referenced_by_the_matrix_cell_it_qualifies`).
-- The live probe and the qualification target are solution projects that never pack and are not test modules; the
-  target publishes Native AOT for x64 and x86 and references no SDK project (`QualificationProjectShapeTests`:
-  `LiveProbe_is_in_the_solution_as_an_x64_dynamic_loading_plugin_that_never_packs`,
-  `QualificationTarget_is_in_the_solution_and_publishes_native_aot_for_x64_and_x86`,
-  `Qualification_harnesses_are_not_test_modules_and_never_pack`, `QualificationTarget_references_no_SDK_project`).
-- The local qualification runner refuses CI before any side effect, starts with its guard in strict mode, never writes
-  to the Cheat Engine installation, redacts user paths, restores the registry only after a change and never next to
-  another Cheat Engine instance, checks the plugin bundle closure, applies the scenario pass rules, and records the
-  lock-file content hash; no workflow references it (`LocalQualificationRunnerTests`:
-  `Runner_refuses_to_run_under_CI_before_any_side_effect`, `No_workflow_references_the_local_qualification_runner`,
-  `Runner_guard_is_the_first_statement_and_the_script_runs_in_strict_mode`,
-  `Runner_never_writes_to_the_Cheat_Engine_source_directory`,
-  `Receipt_builder_produces_a_schema_valid_receipt_from_a_recorded_event_log`,
-  `Redaction_removes_user_paths_and_keeps_scenario_values`, `Registry_diff_reports_value_names_only`,
-  `Bundle_closure_check_rejects_a_missing_bridge_or_a_workspace_project_entry`,
-  `Bundle_closure_check_accepts_a_package_consumer_bundle_with_the_generated_internal_entry_point`,
-  `Work_root_is_refused_when_it_overlaps_Cheat_Engine_holds_non_ASCII_or_sees_the_workspace`,
-  `Pass_rules_require_the_observed_removal_of_plugin_A_and_a_plugin_still_enabled_after_the_refused_disable`,
-  `A_load_step_passes_only_with_the_non_negative_index_loadPlugin_returns_on_success`,
-  `Only_Cheat_Engine_executables_count_as_another_instance`,
-  `Registry_is_restored_only_after_a_change_and_never_next_to_another_Cheat_Engine_instance`,
-  `Stage_12_counts_Cheat_Engine_instances_in_strict_mode_with_none_one_or_several_running`,
-  `Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash`,
-  `Every_Checkpoint_B_scenario_exists_and_cites_harness_commands_that_exist`, `Driver_templates_are_valid_Lua`).
+- The advisory governance workflows (CodeQL, Scorecard, the online zizmor run, dependency submission) pin every
+  action, use literal runner labels and timeouts, start read-only and comment every job elevation, never persist
+  checkout credentials, start every multi-line script with `$ErrorActionPreference = 'Stop'`, check the exit code of
+  every native command, never use `pull_request_target`/`merge_group`/`workflow_run`, never enable a package cache,
+  and upload only their reserved artifact names (`GovernanceWorkflowTests`). CodeQL analyses C# from a manual,
+  traced Release build of the product graph without the compiler server, C/C++ and the workflows without a build.
+  Scorecard keeps the shape its publication verifier accepts and is the only advisory job besides `release.yml` that
+  requests an OIDC token. Dependency submission detects on a read-only token with a pinned, hash-verified Component
+  Detection scan inlined directly in the workflow, and submits from a separate job that is the only governance job
+  holding `contents: write`, runs no third-party code, and is proven end to end (with `gh` replaced by a recorder) to
+  refuse a snapshot of another commit, ref or correlator.
+- Every Dependabot ecosystem waits at least seven days before proposing a release, the Roslyn pin and the
+  SDK-implicit packages never move on their own, the `dotnet-sdk` ecosystem ignores new majors, the composite action
+  directory is covered, and no ecosystem sets a commit prefix (`DependabotConfigurationTests`).
+- `SECURITY.md` names private reporting, scope, response targets, supported versions and release verification, and
+  describes the two committed binaries with their real hash; `CODE_OF_CONDUCT.md` routes reports through private
+  reporting without an e-mail address; `.github/CODEOWNERS` is the only CODEOWNERS file, starts with `*` and names
+  known maintainers and existing paths; the compatibility issue form requires the complete support tuple, never
+  presents a profile as supported or qualified, and no form tells users to edit `ce.runtimeconfig.json`
+  (`GovernanceDocumentTests`).
 
 ## Run the tests
 

@@ -60,8 +60,6 @@ public sealed partial class WorkflowContractTests
 		string packRun = WorkflowFile.Scalar(packStep, "run") ?? "";
 		Assert.Contains("dotnet pack src/CheatEngine.SDK -c Release --no-restore -o artifacts/nuget -bl:artifacts/logs/pack-Release.binlog",
 			packRun, StringComparison.Ordinal);
-		Assert.Contains("./eng/ci/Test-SdkPackage.ps1 -PackageDirectory artifacts/nuget -PackageVersion $env:PACKAGE_VERSION", packRun,
-			StringComparison.Ordinal);
 
 		// The packaging tests consume the packed file itself, in the Release leg only, and log its SHA-256.
 		YamlMappingNode testStep = job.Steps[test];
@@ -74,12 +72,13 @@ public sealed partial class WorkflowContractTests
 
 		Assert.Equal("artifacts/nuget/*.nupkg", WorkflowJob.With(job.Steps[upload], "path"));
 
-		// The script asserts one package, its exact name when a version is required, the SBOM and the CI-built bridge.
-		string script = ReadRepositoryText("eng/ci/Test-SdkPackage.ps1");
-		Assert.Contains("$sbomEntry = '_manifest/spdx_2.2/manifest.spdx.json'", script, StringComparison.Ordinal);
-		Assert.Contains("\"nupkg=$($package.FullName)\"", script, StringComparison.Ordinal);
-		Assert.Contains("\"sha256=$sha256\"", script, StringComparison.Ordinal);
-		Assert.Contains("$package.Name -cne \"$packageId.$PackageVersion.nupkg\"", script, StringComparison.Ordinal);
+		// The pre-publish sanity check is inlined in the Pack step (no bespoke eng/ci script): one package, its exact
+		// name when a version is required, the embedded SBOM and the CI-built native bridge.
+		Assert.Contains("'_manifest/spdx_2.2/manifest.spdx.json'", packRun, StringComparison.Ordinal);
+		Assert.Contains("\"nupkg=$($package.FullName)\"", packRun, StringComparison.Ordinal);
+		Assert.Contains("\"sha256=$sha256\"", packRun, StringComparison.Ordinal);
+		Assert.Contains("$package.Name -cne \"CheatEngine.SDK.$($env:PACKAGE_VERSION).nupkg\"", packRun, StringComparison.Ordinal);
+		Assert.Contains("'build/native/cheatengine-sdk-lua-bridge.dll'", packRun, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -170,24 +169,6 @@ public sealed partial class WorkflowContractTests
 		// The dump must be written, uploaded and the job reported well before the runner kills it.
 		Assert.True(hangMinutes > 0 && hangMinutes * 2 <= jobMinutes,
 			$"--hangdump-timeout {hangMinutes}m must be at most half of build-test's timeout-minutes ({jobMinutes}).");
-	}
-
-	[Fact]
-	public void Test_module_inventory_runs_in_both_legs()
-	{
-		WorkflowJob job = Pipeline().Job(BuildTestJob);
-		YamlMappingNode inventory = job.Step("Check test module inventory");
-		Assert.True(job.StepIndex("Test") < job.StepIndex("Check test module inventory"));
-		Assert.Equal("${{ !cancelled() && steps.test.outcome != 'skipped' }}", WorkflowFile.Scalar(inventory, "if"));
-		string run = WorkflowFile.Scalar(inventory, "run") ?? "";
-		Assert.Contains("./eng/ci/Test-TestModuleInventory.ps1 @options", run, StringComparison.Ordinal);
-		Assert.Contains("$options.RequireCoverage = $true", run, StringComparison.Ordinal);
-
-		// The expected set is every tests/**/*.Tests.csproj git knows, never a hard-coded list.
-		string script = ReadRepositoryText("eng/ci/Test-TestModuleInventory.ps1");
-		Assert.Contains("'tests/*.Tests.csproj'", script, StringComparison.Ordinal);
-		Assert.Contains("'^(?<module>.+)_(?<tfm>net\\d+\\.\\d+)_(?<arch>x64|x86|arm64)\\.trx$'", script, StringComparison.Ordinal);
-		Assert.Contains("executed no test", script, StringComparison.Ordinal);
 	}
 
 	[Fact]

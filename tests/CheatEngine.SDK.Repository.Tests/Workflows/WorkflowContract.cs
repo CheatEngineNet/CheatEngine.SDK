@@ -96,9 +96,7 @@ internal static class WorkflowContract
 		["lua-protection-bridge"] = "14",
 		["classic-abi-fixture-facts"] = "14",
 		["nuget-package"] = "${{ inputs.package-retention-days }}",
-		["build-info"] = "${{ inputs.package-retention-days }}",
 		["coverage"] = "7",
-		["coverage-report"] = "7",
 		["test-results-{configuration}"] = "7",
 		["test-dumps-{configuration}"] = "5",
 		["release-notes"] = "90",
@@ -106,12 +104,9 @@ internal static class WorkflowContract
 		["lua-surface-report"] = "30",
 		["client-canary-report"] = "14",
 		["attestation-bundles"] = null,
-		// Advisory workflows outside the gate: dependency-submission.yml hands its snapshot from the detect job to the
-		// submit job, and scheduled-health.yml keeps its canary, repeated-test and bridge-drift reports.
-		["dependency-snapshot"] = "5",
-		["health-sdk-canary"] = "14",
-		["health-test-repeat"] = "14",
-		["health-bridge-drift"] = "30"
+		// Advisory workflow outside the gate: dependency-submission.yml hands its snapshot from the detect job to the
+		// submit job.
+		["dependency-snapshot"] = "5"
 	};
 
 	/// <summary>

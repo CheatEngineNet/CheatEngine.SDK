@@ -237,7 +237,8 @@ public sealed partial class WorkflowContractTests
 			WorkflowFile? workflow = WorkflowFile.TryLoadWorkflow(fileName);
 			if (workflow is null)
 			{
-				// pr-policy.yml arrives with the governance work; pull-request-ci.yml must always exist.
+				// pr-policy.yml no longer exists (the PR title/changelog policy engine was removed); pull-request-ci.yml
+				// must always exist.
 				Assert.False(string.Equals(fileName, "pull-request-ci.yml", StringComparison.Ordinal), $"{fileName} is missing.");
 				continue;
 			}

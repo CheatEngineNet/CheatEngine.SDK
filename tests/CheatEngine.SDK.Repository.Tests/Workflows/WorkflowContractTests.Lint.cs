@@ -8,19 +8,18 @@ namespace CheatEngine.SDK.Repository.Tests.Workflows;
 public sealed partial class WorkflowContractTests
 {
 	private const string ZizmorConfig = ".github/zizmor.yml";
-	private const string ScriptAnalysis = "eng/ci/Invoke-ScriptAnalysis.ps1";
-	private const string ScriptAnalysisSettings = "eng/PSScriptAnalyzerSettings.psd1";
 
 	[Fact]
 	public void Lint_job_checks_out_the_repository_and_runs_every_linter()
 	{
 		WorkflowJob lint = Pipeline().Job("lint");
 
-		// Scripts live under eng/ and tests/: the whole tree is checked out, not a sparse .github.
+		// tests/native-abi-fixture/build.ps1 and other repository scripts live outside .github: the whole tree is
+		// checked out, not a sparse .github.
 		YamlMappingNode checkout = Assert.Single(lint.StepsUsing("actions/checkout@"));
 		Assert.Null(WorkflowJob.With(checkout, "sparse-checkout"));
 		Assert.Empty(lint.Needs());
-		foreach (string step in new[] { "Run actionlint", "Run zizmor", "Run PSScriptAnalyzer" })
+		foreach (string step in new[] { "Run actionlint", "Run zizmor" })
 		{
 			Assert.True(lint.StepIndex(step) >= 0, $"The lint job has no '{step}' step.");
 		}
@@ -84,26 +83,6 @@ public sealed partial class WorkflowContractTests
 	}
 
 	[Fact]
-	public void Script_analysis_uses_a_pinned_hash_verified_psscriptanalyzer()
-	{
-		string script = ReadRepositoryText(ScriptAnalysis);
-		Assert.Matches(PinnedModuleVersion(), script);
-		Assert.Matches(PinnedModuleHash(), script);
-		Assert.Contains("if ($actualSha256 -cne $moduleSha256)", script, StringComparison.Ordinal);
-		Assert.Contains("Import-Module -Name $manifest -Force", script, StringComparison.Ordinal);
-		Assert.Contains("git -C $repositoryRoot ls-files --cached --others --exclude-standard -- '*.ps1' '*.psm1'", script,
-			StringComparison.Ordinal);
-		// -EnableExit counts error records only; the script fails on warnings itself.
-		Assert.DoesNotContain("-EnableExit", StripComments(script), StringComparison.Ordinal);
-
-		string settings = ReadRepositoryText(ScriptAnalysisSettings);
-		Assert.Contains("Severity = @('Error', 'Warning')", settings, StringComparison.Ordinal);
-
-		string run = WorkflowFile.Scalar(Pipeline().Job("lint").Step("Run PSScriptAnalyzer"), "run") ?? "";
-		Assert.Contains($"./{ScriptAnalysis}", run, StringComparison.Ordinal);
-	}
-
-	[Fact]
 	public void Format_job_verifies_whitespace_without_restore()
 	{
 		WorkflowJob format = Pipeline().Job("format");
@@ -131,10 +110,4 @@ public sealed partial class WorkflowContractTests
 
 	[GeneratedRegex(@"^[0-9a-f]{64}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
 	private static partial Regex Sha256();
-
-	[GeneratedRegex(@"(?m)^\$moduleVersion = '\d+\.\d+\.\d+'$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-	private static partial Regex PinnedModuleVersion();
-
-	[GeneratedRegex(@"(?m)^\$moduleSha256 = '[0-9a-f]{64}'$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-	private static partial Regex PinnedModuleHash();
 }

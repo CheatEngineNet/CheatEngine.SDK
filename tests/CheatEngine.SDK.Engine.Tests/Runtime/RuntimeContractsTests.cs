@@ -1,3 +1,5 @@
+using System.Reflection;
+
 using CheatEngine.SDK.Engine.Inspection;
 using CheatEngine.SDK.Engine.Runtime;
 
@@ -295,14 +297,32 @@ public sealed class RuntimeContractsTests
 		Assert.True(PointerSize.Bit64.IsKnown);
 		Assert.False(PointerSize.Unknown.IsKnown);
 		Assert.Equal(0, PointerSize.Unknown.Bits);
+#pragma warning disable CESDK7001 // Pins the obsolete 1.0.0 behaviour, kept for binary compatibility.
 		Assert.Equal(PointerSize.Bit32, PointerSize.FromArchitecture(CheatEngineArchitecture.X86));
 		Assert.Equal(PointerSize.Bit32, PointerSize.FromArchitecture(CheatEngineArchitecture.Arm32));
 		Assert.Equal(PointerSize.Bit64, PointerSize.FromArchitecture(CheatEngineArchitecture.X64));
 		Assert.Equal(PointerSize.Bit64, PointerSize.FromArchitecture(CheatEngineArchitecture.Arm64));
 		Assert.Equal(PointerSize.Unknown, PointerSize.FromArchitecture(CheatEngineArchitecture.Unknown));
+#pragma warning restore CESDK7001
 		Assert.Throws<ArgumentOutOfRangeException>(() => new PointerSize(0));
 		Assert.Throws<ArgumentOutOfRangeException>(() => new PointerSize(2));
 		Assert.Throws<ArgumentOutOfRangeException>(() => new PointerSize(16));
+	}
+
+	[Fact]
+	public void pointer_size_from_architecture_is_obsolete_with_its_documented_diagnostic_id()
+	{
+		MethodInfo? method = typeof(PointerSize).GetMethod(nameof(PointerSize.FromArchitecture),
+			BindingFlags.Public | BindingFlags.Static, [typeof(CheatEngineArchitecture)]);
+
+		Assert.NotNull(method);
+		ObsoleteAttribute? obsolete = method.GetCustomAttribute<ObsoleteAttribute>();
+		Assert.NotNull(obsolete);
+		Assert.Equal("CESDK7001", obsolete.DiagnosticId);
+		Assert.Equal("https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md",
+			obsolete.UrlFormat);
+		Assert.False(obsolete.IsError);
+		Assert.Contains("ConfiguredPointerSize", obsolete.Message, StringComparison.Ordinal);
 	}
 
 	[Fact]

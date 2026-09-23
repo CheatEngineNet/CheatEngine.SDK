@@ -8,7 +8,8 @@ written for the plugin author who just saw the message: cause, reason, exact def
 Identifier ranges: `CESDK0xxx` plugin shape and bootstrap (category `CheatEngine.SDK.Plugin`), `CESDK1xxx`
 runtime-safety usage (`CheatEngine.SDK.Usage`), `CESDK2xxx` Lua generator input (`CheatEngine.SDK.Generation`). The
 separate EngineApi generator owns
-`CESDK3xxx` for curated-spec grammar and generated-identity diagnostics. Identifiers are never renumbered or reused.
+`CESDK3xxx` for curated-spec grammar and generated-identity diagnostics. `CESDK7xxx` marks members obsoleted after
+1.0.0 (`[Obsolete(DiagnosticId = …)]`). Identifiers are never renumbered or reused.
 
 | Id                        | Title                                                            | Severity | Code fix                                                                                     |
 |---------------------------|------------------------------------------------------------------|----------|----------------------------------------------------------------------------------------------|
@@ -37,6 +38,7 @@ separate EngineApi generator owns
 | [CESDK3003](CESDK3003.md) | Engine API specification does not declare the ce77 contract      | Error    | Add the `contract: ce77` header                                                              |
 | [CESDK3004](CESDK3004.md) | Engine API optional argument is invalid                          | Error    | Declare `opt:` arguments last                                                                |
 | [CESDK3005](CESDK3005.md) | Engine API optional or variadic result is invalid                | Error    | `result:`, then `opt-result:`, then one `rest:`                                              |
+| [CESDK7001](CESDK7001.md) | PointerSize.FromArchitecture is obsolete                         | Warning  | None; use `TargetArchitectureObservation.ConfiguredPointerSize` or `Bitness`                 |
 
 Configure a rule like any other analyzer diagnostic:
 

@@ -1,3 +1,5 @@
 # Commits that only reformat code. Enable locally with: git config blame.ignoreRevsFile .git-blame-ignore-revs
 # Apply repository formatting
 0a03dac0cae53d399e89dfb1494ac80843a3ab9a
+# Format the projects that live outside the solution (AotProbe, LiveProbe)
+fc6016532f5f1d963d1cf267a1750bbbfa64cc49

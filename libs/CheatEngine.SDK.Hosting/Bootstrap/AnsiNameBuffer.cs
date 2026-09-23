@@ -17,8 +17,14 @@ namespace CheatEngine.SDK.Hosting.Bootstrap;
 ///         re-encoded with the ANSI code page of the process (<see cref="Marshal.StringToHGlobalAnsi" />, i.e.
 ///         <c>WideCharToMultiByte(CP_ACP)</c>): characters the code page cannot represent become <c>?</c>, and the same
 ///         name shows differently on machines with different system locales. Plugin authors who want a name that survives
-///         everywhere keep it ASCII. Whether Cheat Engine 7.7 really interprets the name as ANSI rather than UTF-8 is
-///         not established; the ANSI reading follows the official bootstrap.
+///         everywhere keep it ASCII.
+///     </para>
+///     <para>
+///         <b>Unqualified (2.0).</b> Whether Cheat Engine 7.7 really interprets a non-ASCII plugin name as the process
+///         ANSI code page rather than UTF-8 has not been confirmed by a host-based qualification run: no local Cheat
+///         Engine qualification observation is available on this branch. The ANSI reading is kept unchanged because it
+///         follows the official bootstrap and there is no observation to justify a different one; this remains open
+///         pending a future host-based qualification run (audit A02-22, A04-14, A20-Q05-3).
 ///     </para>
 ///     <para>
 ///         An embedded NUL ends the name early, as it would in any C string. An empty name yields a buffer holding one

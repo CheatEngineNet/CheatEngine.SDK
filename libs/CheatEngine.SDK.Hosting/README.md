@@ -34,7 +34,11 @@ not established whether it is a size, version, or another discriminator, so Host
 `PluginInitRecord` from [`CheatEngine.SDK.Abi`](../CheatEngine.SDK.Abi/README.md). It copies the plugin name once into
 native memory that is
 never freed. ASCII is copied exactly. Other characters go through the process ANSI code page, and an unrepresentable
-one becomes `?`. A plugin that wants the same name on every machine keeps it ASCII. The library also builds on [
+one becomes `?`. A plugin that wants the same name on every machine keeps it ASCII. **Unqualified (2.0):** whether
+Cheat Engine 7.7 really reads a non-ASCII name as the process ANSI code page rather than UTF-8 has not been confirmed
+by a host-based qualification run — no local Cheat Engine qualification observation is available on this branch. The
+ANSI encoding is kept unchanged pending a future host-based qualification run (audit A02-22, A04-14, A20-Q05-3). The
+library also builds on [
 `CheatEngine.SDK.Lua`](../CheatEngine.SDK.Lua/README.md) and ships inside the `CheatEngine.SDK` package.
 
 | Type                                                                                                    | Role                                                                                                                                                                                 |
@@ -43,7 +47,7 @@ one becomes `?`. A plugin that wants the same name on every machine keeps it ASC
 | `PluginHost` (`CheatEngine.SDK.Hosting.Bootstrap`)                                                      | `InitializeManaged<TFactory>`, the three native callbacks, and the lock-free readers `Phase`, `IsInitialized`, `IsEnabled` and `Context`                                             |
 | `PluginContext` (`CheatEngine.SDK.Hosting.Context`)                                                     | Immutable facts of one enable: `PluginId`, `Epoch`, `MainThreadId`, `ShutdownToken`, `IsMainThread`, `IsCurrent`, `ReportedExportsSize`, `HasProcessMessages`, `HasCheckSynchronize` |
 | `MainThread` (`CheatEngine.SDK.Hosting.Threading`)                                                      | `IsMainThread`, `ProcessMessages()`, `CheckSynchronize(int)` and `Invoke`                                                                                                            |
-| `HostLog`, `IHostLogSink`, `HostLogLevel`, `DebugOutputLogSink` (`CheatEngine.SDK.Hosting.Diagnostics`) | The logging seam                                                                                                                                                                     |
+| `HostLog`, `IHostLogSink`, `HostLogLevel`, `DebugOutputLogSink` (`CheatEngine.SDK.Hosting.Diagnostics`) | The logging seam, plus the opt-in `HostLog.IdentifyOnEnable` load identification diagnostic                                                                                          |
 
 The lifecycle state machine is `Uninitialized → Registered → Enabling → Enabled → Disabling → Registered`.
 `PluginHost.IsEnabled` is true only in stable `Enabled`. `Context` is deliberately available during `Enabling` and
@@ -188,6 +192,26 @@ of recursing towards an uncatchable `StackOverflowException` (A24-21, SRC02-06).
 callback (`EnablePlugin`/`DisablePlugin`) or acquire a Lua operation while a lifecycle transition owns admission:
 both are refused immediately, without waiting for the sink.
 
+## Opt-in load identification
+
+Set `HostLog.IdentifyOnEnable = true`, or the environment variable `CHEATENGINE_SDK_IDENTIFY_ON_ENABLE=1`, before an
+enable attempt (a `[ModuleInitializer]` method applies it to the very first one). Every enable attempt that reaches
+`EnablePlugin` then writes at most one `Information` entry, **before** the exports record is copied, so it appears
+even when the Lua bind or plugin construction later fails:
+
+```
+CheatEngineSdkIdentification: sdk.version=…; sdk.commit=…; sdk.consistent=…; hosting.mvid=…; hosting.alc=…; plugin.id=…; plugin.assembly=…; host.argument=…; exports.size=…; bridge.fingerprint=…; bridge.sha256=…; lua.module=…; lua.sha256=…; ce.file=…; ce.fileVersion=…; runtime=…; arch=…
+```
+
+Fixed key order, each value at most 128 characters (the fixed-shape `bridge.fingerprint`, `<64 hex>:<64 hex>`, is the
+one 129-character exception; it is validated by its own pattern instead of the general bound), the whole entry at
+most 1024. `bridge.fingerprint`,
+`bridge.sha256` and `lua.sha256` read `unavailable` when the bridge or the Lua module cannot be located or hashed;
+`sdk.commit` reads `unknown` when no 40-hex commit can be parsed from the informational version. Nothing here is a
+directory path, a drive root or a user name: `lua.module` and `ce.file` are file names only, and `hosting.alc` keeps
+only the load context's kind and file token, never the isolated component's absolute path. Building the line calls no
+Lua API and constructs no plugin; only the finished line is written to `HostLog`, once.
+
 ```csharp
 using System;
 using CheatEngine.SDK.Annotations.Plugin;
@@ -240,6 +264,11 @@ from a simulated host record.
     enable (`ExternalResetLifecycleTests`).
 11. A throwing or re-entrant `HostLog` sink is contained during every native callback, and a second-factory
     rejection is logged outside the registration lock (`HostLogContainmentTests`).
+12. The `CheatEngineSdkIdentification` diagnostic is silent unless opted in (programmatically or through the
+    environment seam), is emitted at most once per enable attempt before the exports record is copied (so a later bind
+    or construction failure does not suppress it), keeps a fixed key order within its 1024-character bound, never
+    contains a directory separator, a drive root or the current user name, and calls no Lua API and constructs no
+    plugin while it builds (`LoadIdentificationTests`).
 
 ## Run the tests
 

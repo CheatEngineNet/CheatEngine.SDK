@@ -34,8 +34,16 @@ namespace CheatEngine.SDK.Hosting.Diagnostics;
 /// </remarks>
 public static class HostLog
 {
+	/// <summary>The environment variable that opts every enable attempt into the identification diagnostic.</summary>
+	/// <seealso cref="IdentifyOnEnable" />
+	public const string IdentifyOnEnableEnvironmentVariable = "CHEATENGINE_SDK_IDENTIFY_ON_ENABLE";
+
 	private static IHostLogSink s_sink = DebugOutputLogSink.Instance;
 	private static int s_minimumLevel = (int) HostLogLevel.Information;
+	private static int s_identifyOnEnable;
+
+	// Test seam: production reads the real process environment through DefaultIdentifyOnEnableEnvironmentReader.
+	private static Func<string?>? s_identifyOnEnableEnvironmentReader;
 
 	// Per-thread reentrancy guard (A24-21, SRC02-06): a sink that writes back into HostLog.Write from inside its own
 	// Write, directly or through a path that logs, would otherwise recurse until StackOverflowException, which
@@ -63,6 +71,41 @@ public static class HostLog
 	{
 		get => (HostLogLevel) Volatile.Read(ref s_minimumLevel);
 		set => Volatile.Write(ref s_minimumLevel, (int) value);
+	}
+
+	/// <summary>
+	///     Gets or sets whether the bounded <c>CheatEngineSdkIdentification</c> diagnostic (SDK version, bridge
+	///     fingerprint, bound Lua module hash, CE and runtime versions; never a user path) is written once at the start of
+	///     every enable attempt. Default <see langword="false" />: identification is opt-in.
+	/// </summary>
+	/// <remarks>
+	///     <para>
+	///         A plugin that wants identification on its very first enable sets this from a
+	///         <see cref="System.Runtime.CompilerServices.ModuleInitializerAttribute" />-annotated method, which the
+	///         runtime runs before any plugin code. Setting it later takes effect at the next enable attempt.
+	///     </para>
+	///     <para>
+	///         The environment variable named by <see cref="IdentifyOnEnableEnvironmentVariable" />
+	///         (<c>CHEATENGINE_SDK_IDENTIFY_ON_ENABLE=1</c>) opts in as well, without rebuilding the plugin: either this
+	///         property or the environment variable being set is enough. The environment is read once per enable attempt,
+	///         inside a <see langword="try" />/<see langword="catch" />, so a hostile or unavailable environment never
+	///         faults the callback.
+	///     </para>
+	/// </remarks>
+	public static bool IdentifyOnEnable
+	{
+		get => Volatile.Read(ref s_identifyOnEnable) != 0;
+		set => Volatile.Write(ref s_identifyOnEnable, value ? 1 : 0);
+	}
+
+	/// <summary>
+	///     Test seam for the <see cref="IdentifyOnEnableEnvironmentVariable" /> reader. <see langword="null" /> (the
+	///     default) reads the real process environment; a test replaces it so the real environment is never touched.
+	/// </summary>
+	internal static Func<string?>? IdentifyOnEnableEnvironmentReader
+	{
+		get => Volatile.Read(ref s_identifyOnEnableEnvironmentReader);
+		set => Volatile.Write(ref s_identifyOnEnableEnvironmentReader, value);
 	}
 
 	/// <summary>
@@ -131,12 +174,43 @@ public static class HostLog
 		Write(HostLogLevel.Trace, message);
 	}
 
-	/// <summary>Resets the sink, level and reentrancy counter to their defaults. For tests.</summary>
+	/// <summary>
+	///     Tells whether an enable attempt should build and emit the identification diagnostic: either
+	///     <see cref="IdentifyOnEnable" /> is set, or the <see cref="IdentifyOnEnableEnvironmentVariable" /> reads
+	///     <c>"1"</c>. The environment read never throws.
+	/// </summary>
+	internal static bool IsIdentifyOnEnableRequested()
+	{
+		return IdentifyOnEnable || IsIdentifyOnEnableEnvironmentSet();
+	}
+
+	private static bool IsIdentifyOnEnableEnvironmentSet()
+	{
+		try
+		{
+			Func<string?> reader = IdentifyOnEnableEnvironmentReader ?? ReadIdentifyOnEnableEnvironmentVariable;
+			return string.Equals(reader(), "1", StringComparison.Ordinal);
+		}
+		catch (Exception)
+		{
+			// The environment must never fault a native lifecycle callback.
+			return false;
+		}
+	}
+
+	private static string? ReadIdentifyOnEnableEnvironmentVariable()
+	{
+		return Environment.GetEnvironmentVariable(IdentifyOnEnableEnvironmentVariable);
+	}
+
+	/// <summary>Resets the sink, level, reentrancy counter and identification opt-in to their defaults. For tests.</summary>
 	internal static void ResetForTests()
 	{
 		Sink = DebugOutputLogSink.Instance;
 		MinimumLevel = HostLogLevel.Information;
 		Volatile.Write(ref s_droppedReentrantEntries, 0);
 		t_writing = false;
+		IdentifyOnEnable = false;
+		IdentifyOnEnableEnvironmentReader = null;
 	}
 }

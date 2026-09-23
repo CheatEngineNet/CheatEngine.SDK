@@ -238,6 +238,11 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 	{
 		Volatile.Write(ref s_incompleteEnableCleanup, 0);
 		Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
+
+		// Opt-in identification (WI-5): at most one entry, before any copy, bind or construction is attempted, so
+		// it is still emitted when one of those steps fails. Never touches Lua or plugin code.
+		LoadIdentification.EmitIfRequested(exports, pluginId, descriptor.FactoryType);
+
 		if (!TryCopyExports(exports, out ManagedExportedFunctions copy))
 		{
 			return false;

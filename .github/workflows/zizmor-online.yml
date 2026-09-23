@@ -1,0 +1,56 @@
+# Advisory online workflow audits (audit register PR-CQ-19): the audits that need the GitHub API
+# (known-vulnerable-actions, impostor-commit, ref-confusion, ref-version-mismatch, stale-action-refs), uploaded to code
+# scanning under the "zizmor" category. Not part of CI / Gate: in SARIF mode zizmor exits 0 with findings
+# (https://docs.zizmor.sh/usage/). The blocking, offline zizmor run lives in ci.yml (job lint) and pins the same
+# version. zizmor discovers .github/zizmor.yml by itself (https://docs.zizmor.sh/configuration/).
+# The schedule matters: the vulnerable-actions data changes without any commit.
+name: zizmor online audits
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
+  schedule:
+    - cron: '41 5 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  zizmor:
+    name: zizmor (online)
+    # Drafts wait; fork pull requests get a read-only token and cannot upload SARIF.
+    if: >-
+      github.event_name != 'pull_request'
+      || (!github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04 # the action runs zizmor in a container
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write # upload zizmor SARIF
+      actions: read # the SARIF upload reads workflow run metadata
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Inputs: https://github.com/zizmorcore/zizmor-action (action.yml at v0.6.4). The tool version is pinned next to
+      # the action, so a new zizmor release cannot change the findings without a commit.
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: 1.30.1
+          online-audits: true
+          advanced-security: true
+          persona: regular

@@ -1,0 +1,968 @@
+#nullable enable
+*REMOVED*CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.AddressResolutionOptions(bool UseHostSymbolTable = false, bool Shallow = false) -> void
+*REMOVED*CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.Deconstruct(out bool UseHostSymbolTable, out bool Shallow) -> void
+*REMOVED*CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.UseHostSymbolTable.get -> bool
+*REMOVED*CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.UseHostSymbolTable.init -> void
+*REMOVED*CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.DestinationTooSmall = 4 -> CheatEngine.SDK.Engine.Memory.MemoryAccessFailure
+*REMOVED*CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.InvalidResult = 6 -> CheatEngine.SDK.Engine.Memory.MemoryAccessFailure
+*REMOVED*CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.WriteFailed = 5 -> CheatEngine.SDK.Engine.Memory.MemoryAccessFailure
+CheatEngine.SDK.Engine.AddressList.AddressListMutations
+CheatEngine.SDK.Engine.AddressList.MemoryRecord.TryGetActive(out bool active) -> bool
+CheatEngine.SDK.Engine.AddressList.MemoryRecord.TryGetAsync(out bool isAsync) -> bool
+CheatEngine.SDK.Engine.AddressList.MemoryRecord.TryGetAsyncProcessing(out bool processing) -> bool
+CheatEngine.SDK.Engine.AddressList.MemoryRecord.TryGetOffsetCount(out int offsetCount) -> bool
+CheatEngine.SDK.Engine.AddressList.MemoryRecord.TryGetScript(out string! script) -> bool
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome.ActiveAfter.get -> bool?
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome.ActiveBefore.get -> bool?
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome.AsyncProcessingAfter.get -> bool?
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome.Effect.get -> CheatEngine.SDK.Engine.Objects.EngineEffectState
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome.Kind.get -> CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome.MemoryRecordActivationOutcome() -> void
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome.Problem.get -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome.RequestedActive.get -> bool
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind.Applied = 1 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind.Indeterminate = 5 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind.NotAttempted = 6 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind.Pending = 4 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind.RefusedByHost = 3 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind.Unchanged = 2 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind
+CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind.Unknown = 0 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcomeKind
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationEffect
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationEffect.Completed = 1 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationEffect
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationEffect.Indeterminate = 2 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationEffect
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationEffect.NotAttempted = 0 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationEffect
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationOutcome
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationOutcome.Effect.get -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationEffect
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationOutcome.IsCompleted.get -> bool
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationOutcome.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationOutcome.MemoryRecordMutationOutcome() -> void
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationOutcome.Problem.get -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.AddressListUnavailable = 2 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.CycleDetected = 6 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.GlobalUnavailable = 8 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.InvalidResult = 10 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.LuaFailure = 9 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.None = 1 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.ParentNotFound = 4 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.RecordNotFound = 3 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.RuntimeIdentityChanged = 12 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.SelfParent = 5 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.TableLoadInProgress = 11 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.TraversalLimitReached = 7 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem.Uninitialized = 0 -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationProblem
+CheatEngine.SDK.Engine.AddressList.MemoryRecordParentTraversalLimit
+CheatEngine.SDK.Engine.AddressList.MemoryRecordParentTraversalLimit.MaximumHops.get -> int
+CheatEngine.SDK.Engine.AddressList.MemoryRecordParentTraversalLimit.MemoryRecordParentTraversalLimit() -> void
+CheatEngine.SDK.Engine.AddressList.MemoryRecordParentTraversalLimit.MemoryRecordParentTraversalLimit(int maximumHops) -> void
+CheatEngine.SDK.Engine.Allocation.AllocatedRegion.LastReleaseOutcome.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Allocation.AllocatedRegion.Origin.get -> CheatEngine.SDK.Engine.Objects.EngineResourceOrigin
+CheatEngine.SDK.Engine.Allocation.AllocatedRegion.ReleaseWithOutcome() -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome
+CheatEngine.SDK.Engine.Allocation.AllocatedRegion.ReleaseWithTargetOutcome() -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Allocation.AllocatedRegion.TargetIncarnation.get -> CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation
+CheatEngine.SDK.Engine.Allocation.ITargetBoundMemoryAllocationOperations
+CheatEngine.SDK.Engine.Allocation.ITargetBoundMemoryAllocationOperations.AllocateBoundWithOutcome(CheatEngine.SDK.Engine.Allocation.TargetAllocationRequest request, out CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation incarnation, out CheatEngine.SDK.Engine.Targets.TargetSelectionObservation observation) -> CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome
+CheatEngine.SDK.Engine.Allocation.ITargetBoundMemoryAllocationOperations.DeallocateBoundWithOutcome(CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation expected, CheatEngine.SDK.Engine.Values.Address address, CheatEngine.SDK.Engine.Allocation.TargetAllocationSize size, out CheatEngine.SDK.Engine.Targets.TargetIdentityCheck targetCheck) -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome
+CheatEngine.SDK.Engine.Allocation.ITargetBoundMemoryAllocationOperations.TryDeallocateBound(CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation expected, CheatEngine.SDK.Engine.Values.Address address, CheatEngine.SDK.Engine.Allocation.TargetAllocationSize size, out CheatEngine.SDK.Engine.Targets.TargetIdentityCheck targetCheck) -> bool
+CheatEngine.SDK.Engine.Allocation.TargetAllocationAcquireOutcome
+CheatEngine.SDK.Engine.Allocation.TargetAllocationAcquireOutcome.Allocation.get -> CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome
+CheatEngine.SDK.Engine.Allocation.TargetAllocationAcquireOutcome.Compensation.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome?
+CheatEngine.SDK.Engine.Allocation.TargetAllocationAcquireOutcome.Effect.get -> CheatEngine.SDK.Engine.Objects.EngineEffectState
+CheatEngine.SDK.Engine.Allocation.TargetAllocationAcquireOutcome.HasOwner.get -> bool
+CheatEngine.SDK.Engine.Allocation.TargetAllocationAcquireOutcome.TargetAllocationAcquireOutcome() -> void
+CheatEngine.SDK.Engine.Allocation.TargetAllocationAcquireOutcome.TargetObservation.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome
+CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.Address.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.Equals(CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome other) -> bool
+CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.IsSuccess.get -> bool
+CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.Operation.get -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome
+CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.TargetMemoryAllocationOutcome() -> void
+CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocator.TargetMemoryAllocator() -> void
+CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocator.TryAllocate(CheatEngine.SDK.Engine.Allocation.TargetAllocationRequest request, out CheatEngine.SDK.Engine.Allocation.AllocatedRegion? region) -> CheatEngine.SDK.Engine.Allocation.TargetAllocationAcquireOutcome
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.Equals(CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome other) -> bool
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.FailureKind.get -> CheatEngine.SDK.Engine.Errors.EngineFailureKind?
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.IsExpectedFailure.get -> bool
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.IsSuccess.get -> bool
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.Kind.get -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.TargetMemoryOperationOutcome() -> void
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.BindingFailure = 6 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.CapabilityUnavailable = 4 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.ExpectedFailure = 2 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.GlobalUnavailable = 3 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.MarshallingFailure = 7 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.ProtectedLuaFailure = 5 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.Succeeded = 1 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.TargetIdentityMismatch = 9 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable = 8 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind.Unspecified = 0 -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.AssemblePreference.Far = 3 -> CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.AssemblePreference.Long = 2 -> CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.AssemblePreference.None = 0 -> CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.AssemblePreference.Short = 1 -> CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.Address.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.AutoAssemblerAllocationInfo() -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.Equals(CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo other) -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.Name.get -> string!
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.PreferredAddress.get -> CheatEngine.SDK.Engine.Values.Address?
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.Size.get -> long
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.AutoAssemblerApplyOutcome() -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.Compensation.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome?
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.DisableInfo.get -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshot?
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.Effect.get -> CheatEngine.SDK.Engine.Objects.EngineEffectState
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.HasHostWarnings.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.HasPatch.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.HostText.get -> string?
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.HostTextTruncated.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.HostWarnings.get -> string?
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.HostWarningsTruncated.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.Kind.get -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.PostEffectTargetCheck.get -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheck?
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome.TargetObservation.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind.Applied = 1 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind.AppliedTargetChanged = 2 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind.GlobalUnavailable = 4 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind.HandoffFailed = 8 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind.InvalidResult = 6 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind.ProtectedLuaFailure = 5 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind.Rejected = 3 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind.TargetIdentityUnavailable = 7 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind.Unknown = 0 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcome
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcome.AutoAssemblerCheckOutcome() -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcome.HostText.get -> string?
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcome.HostTextTruncated.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcome.IsAccepted.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcome.Kind.get -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcome.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind.Accepted = 1 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind.GlobalUnavailable = 3 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind.InvalidResult = 5 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind.ProtectedLuaFailure = 4 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind.Rejected = 2 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind.Unknown = 0 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcomeKind
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshot
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshot.Allocations.get -> System.Collections.Generic.IReadOnlyList<CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo>!
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshot.ExceptionRanges.get -> System.Collections.Generic.IReadOnlyList<CheatEngine.SDK.Engine.Values.Address>!
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshot.HasCCodeSymbolList.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshot.RegisteredSymbols.get -> System.Collections.Generic.IReadOnlyList<string!>!
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshot.Status.get -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshotStatus
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshot.Symbols.get -> System.Collections.Generic.IReadOnlyList<CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo>!
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshotStatus
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshotStatus.Complete = 1 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshotStatus
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshotStatus.Malformed = 3 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshotStatus
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshotStatus.Truncated = 2 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshotStatus
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshotStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshotStatus
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.AutoAssemblerOptions() -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.CaptureHostText.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.CaptureHostText.init -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxDisableInfoEntries.get -> int
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxDisableInfoEntries.init -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxDisableInfoNameBytes.get -> int
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxDisableInfoNameBytes.init -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxHostTextBytes.get -> int
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxHostTextBytes.init -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.DisableInfo.get -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerDisableInfoSnapshot!
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.Dispose() -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.IsDisposed.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.IsEnabled.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.LastReleaseOutcome.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.Origin.get -> CheatEngine.SDK.Engine.Objects.EngineResourceOrigin
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.PostApplyTargetCheck.get -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheck?
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.Release() -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.ReleaseWithTargetOutcome() -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.RequiresManualRecovery.get -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch.TargetIncarnation.get -> CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatcher
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo.Address.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo.AutoAssemblerSymbolInfo() -> void
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo.Equals(CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo other) -> bool
+CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo.Name.get -> string!
+CheatEngine.SDK.Engine.Assembly.InstructionAssembler
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Deconstruct(out CheatEngine.SDK.Engine.Inspection.TargetProcessId Target, out CheatEngine.SDK.Engine.Assembly.InstructionProfile Profile, out CheatEngine.SDK.Engine.Values.Address Origin, out CheatEngine.SDK.Engine.Assembly.AssemblePreference Preference, out bool SkipRangeCheck, out int Written, out int RequiredLength) -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Equals(CheatEngine.SDK.Engine.Assembly.InstructionAssembly other) -> bool
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.InstructionAssembly() -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.InstructionAssembly(CheatEngine.SDK.Engine.Inspection.TargetProcessId Target, CheatEngine.SDK.Engine.Assembly.InstructionProfile Profile, CheatEngine.SDK.Engine.Values.Address Origin, CheatEngine.SDK.Engine.Assembly.AssemblePreference Preference, bool SkipRangeCheck, int Written, int RequiredLength) -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Origin.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Origin.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Preference.get -> CheatEngine.SDK.Engine.Assembly.AssemblePreference
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Preference.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Profile.get -> CheatEngine.SDK.Engine.Assembly.InstructionProfile
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Profile.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.RequiredLength.get -> int
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.RequiredLength.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.SkipRangeCheck.get -> bool
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.SkipRangeCheck.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Target.get -> CheatEngine.SDK.Engine.Inspection.TargetProcessId
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Target.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Written.get -> int
+CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Written.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembler
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Address.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Address.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.AddressText.get -> string!
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.AddressText.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Bytes.get -> string!
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Bytes.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Deconstruct(out CheatEngine.SDK.Engine.Values.Address Address, out string! AddressText, out string! Bytes, out string! Opcode, out string! Extra, out int Utf8ByteLength) -> void
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Equals(CheatEngine.SDK.Engine.Assembly.InstructionDisassembly other) -> bool
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Extra.get -> string!
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Extra.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.InstructionDisassembly() -> void
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.InstructionDisassembly(CheatEngine.SDK.Engine.Values.Address Address, string! AddressText, string! Bytes, string! Opcode, string! Extra, int Utf8ByteLength) -> void
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Opcode.get -> string!
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Opcode.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Utf8ByteLength.get -> int
+CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Utf8ByteLength.init -> void
+CheatEngine.SDK.Engine.Assembly.InstructionNavigator
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.AddressExceedsProfileWidth = 3 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.DestinationTooSmall = 6 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.GlobalUnavailable = 9 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.InstructionRejected = 8 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.InvalidProfile = 2 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.InvalidResult = 11 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.LuaFailure = 10 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.OutputTooLong = 7 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.Success = 1 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.TargetChanged = 5 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.TargetNotSelected = 4 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus.UnsupportedTargetBackend = 12 -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+CheatEngine.SDK.Engine.Assembly.InstructionProfile
+CheatEngine.SDK.Engine.Assembly.InstructionProfile.AddressWidth.get -> CheatEngine.SDK.Engine.Runtime.PointerSize
+CheatEngine.SDK.Engine.Assembly.InstructionProfile.Architecture.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture
+CheatEngine.SDK.Engine.Assembly.InstructionProfile.Equals(CheatEngine.SDK.Engine.Assembly.InstructionProfile other) -> bool
+CheatEngine.SDK.Engine.Assembly.InstructionProfile.InstructionProfile() -> void
+CheatEngine.SDK.Engine.Assembly.InstructionProfile.IsValid.get -> bool
+CheatEngine.SDK.Engine.Assembly.InstructionProfiles
+CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile
+CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.Equals(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile other) -> bool
+CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.InstructionTargetProfile() -> void
+CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.Profile.get -> CheatEngine.SDK.Engine.Assembly.InstructionProfile
+CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.Target.get -> CheatEngine.SDK.Engine.Inspection.TargetProcessId
+CheatEngine.SDK.Engine.Errors.EngineFailureKind.TargetIdentityMismatch = 7 -> CheatEngine.SDK.Engine.Errors.EngineFailureKind
+CheatEngine.SDK.Engine.Errors.EngineFailureKind.TargetIdentityUnavailable = 6 -> CheatEngine.SDK.Engine.Errors.EngineFailureKind
+CheatEngine.SDK.Engine.Errors.EngineResourceHandoffException
+CheatEngine.SDK.Engine.Errors.EngineResourceHandoffException.CleanupOutcome.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Errors.EngineResourceHandoffException.EngineResourceHandoffException(string! operation, CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome cleanupOutcome, System.Exception? innerException) -> void
+CheatEngine.SDK.Engine.Errors.EngineResourceHandoffException.Operation.get -> string!
+CheatEngine.SDK.Engine.Errors.EngineTargetIdentityException
+CheatEngine.SDK.Engine.Errors.EngineTargetIdentityException.Check.get -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheck
+CheatEngine.SDK.Engine.Errors.EngineTargetIdentityException.EngineTargetIdentityException(string! operation, CheatEngine.SDK.Engine.Targets.TargetIdentityCheck check) -> void
+CheatEngine.SDK.Engine.Errors.EngineTargetIdentityException.Operation.get -> string!
+CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes
+CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions.AddressResolutionOptions(bool Shallow = false) -> void
+CheatEngine.SDK.Engine.Inspection.SymbolList
+CheatEngine.SDK.Engine.Inspection.SymbolList.Equals(CheatEngine.SDK.Engine.Inspection.SymbolList other) -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolList.Handle.get -> CheatEngine.SDK.Engine.Objects.CEObject
+CheatEngine.SDK.Engine.Inspection.SymbolList.IsNull.get -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolList.SymbolList() -> void
+CheatEngine.SDK.Engine.Inspection.SymbolList.SymbolList(CheatEngine.SDK.Engine.Objects.CEObject handle) -> void
+CheatEngine.SDK.Engine.Inspection.SymbolList.TryAddSymbol(string! moduleName, string! searchKey, CheatEngine.SDK.Engine.Values.Address address, int size) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolList.TryClear() -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolList.TryDeleteSymbol(CheatEngine.SDK.Engine.Values.Address address) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolList.TryDeleteSymbol(string! searchKey) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolList.TryGetName(out string? name) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolList.TryGetProcessId(out int processId) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolList.TryGetSymbolFromAddress(CheatEngine.SDK.Engine.Values.Address address, out CheatEngine.SDK.Engine.Inspection.SymbolInfo symbol) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolList.TryGetSymbolFromString(string! searchKey, out CheatEngine.SDK.Engine.Inspection.SymbolInfo symbol) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolList.TrySetName(string! name) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationHandoffException
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationHandoffException.CleanupOutcome.get -> CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationHandoffException.SymbolListRegistrationHandoffException(CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome cleanupOutcome, System.Exception? innerException) -> void
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationLease
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationLease.Dispose() -> void
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationLease.IsTerminal.get -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationLease.List.get -> CheatEngine.SDK.Engine.Inspection.SymbolList
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationLease.Origin.get -> CheatEngine.SDK.Engine.Objects.EngineResourceOrigin
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationLease.RegistrationConfirmed.get -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationLease.Release() -> CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.IsTerminal.get -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.ListRelease.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.SymbolListRegistrationReleaseOutcome() -> void
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.UnregisterKind.get -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationReleaseOutcome.UnregisterStatus.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus?
+CheatEngine.SDK.Engine.Inspection.SymbolLists
+CheatEngine.SDK.Engine.Inspection.SymbolName
+CheatEngine.SDK.Engine.Inspection.SymbolName.Equals(CheatEngine.SDK.Engine.Inspection.SymbolName other) -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolName.SymbolName() -> void
+CheatEngine.SDK.Engine.Inspection.SymbolName.SymbolName(string! value) -> void
+CheatEngine.SDK.Engine.Inspection.SymbolName.Value.get -> string!
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationAcquireOutcome
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationAcquireOutcome.HasLease.get -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationAcquireOutcome.Lease.get -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationLease?
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationAcquireOutcome.Status.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationAcquireOutcome.SymbolRegistrationAcquireOutcome() -> void
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationHandoffException
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationHandoffException.CleanupOutcome.get -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationHandoffException.SymbolRegistrationHandoffException(CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome cleanupOutcome, System.Exception? innerException) -> void
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationLease
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationLease.Address.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationLease.Dispose() -> void
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationLease.IsTerminal.get -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationLease.Name.get -> CheatEngine.SDK.Engine.Inspection.SymbolName
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationLease.Options.get -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationLease.Origin.get -> CheatEngine.SDK.Engine.Objects.EngineResourceOrigin
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationLease.Release() -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.Deconstruct(out bool DoNotSave) -> void
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.DoNotSave.get -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.DoNotSave.init -> void
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.Equals(CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions other) -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.SymbolRegistrationOptions() -> void
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.SymbolRegistrationOptions(bool DoNotSave = false) -> void
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind.AlreadyReleased = 2 -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind.CleanupIndeterminate = 6 -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind.CleanupUnavailable = 5 -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind.ExternallyRemoved = 8 -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind.Released = 1 -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind.Replaced = 7 -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind.StaleRuntime = 4 -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind.Superseded = 3 -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind.Unknown = 0 -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome.IsTerminal.get -> bool
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome.Kind.get -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseKind
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome.Status.get -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus?
+CheatEngine.SDK.Engine.Inspection.SymbolRegistrationReleaseOutcome.SymbolRegistrationReleaseOutcome() -> void
+CheatEngine.SDK.Engine.Inspection.SymbolRegistry
+CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.DestinationTooSmall = 5 -> CheatEngine.SDK.Engine.Memory.MemoryAccessFailure
+CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.InvalidResult = 9 -> CheatEngine.SDK.Engine.Memory.MemoryAccessFailure
+CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.PartialRead = 4 -> CheatEngine.SDK.Engine.Memory.MemoryAccessFailure
+CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.PointerValueExceedsTargetWidth = 7 -> CheatEngine.SDK.Engine.Memory.MemoryAccessFailure
+CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.PointerWidthUnknown = 6 -> CheatEngine.SDK.Engine.Memory.MemoryAccessFailure
+CheatEngine.SDK.Engine.Memory.MemoryAccessFailure.WriteFailed = 8 -> CheatEngine.SDK.Engine.Memory.MemoryAccessFailure
+CheatEngine.SDK.Engine.Objects.EngineEffectState
+CheatEngine.SDK.Engine.Objects.EngineEffectState.Applied = 3 -> CheatEngine.SDK.Engine.Objects.EngineEffectState
+CheatEngine.SDK.Engine.Objects.EngineEffectState.NotApplied = 2 -> CheatEngine.SDK.Engine.Objects.EngineEffectState
+CheatEngine.SDK.Engine.Objects.EngineEffectState.NotStarted = 1 -> CheatEngine.SDK.Engine.Objects.EngineEffectState
+CheatEngine.SDK.Engine.Objects.EngineEffectState.Unknown = 0 -> CheatEngine.SDK.Engine.Objects.EngineEffectState
+CheatEngine.SDK.Engine.Objects.EngineResourceOrigin
+CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.EngineResourceOrigin() -> void
+CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.Equals(CheatEngine.SDK.Engine.Objects.EngineResourceOrigin other) -> bool
+CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.IsCurrentRuntime.get -> bool
+CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.IsTargetBound.get -> bool
+CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.Runtime.get -> CheatEngine.SDK.Lua.Runtime.LuaStateIdentity
+CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.Target.get -> CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation?
+CheatEngine.SDK.Engine.Objects.Owned<T>.LastReleaseOutcome.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Objects.Owned<T>.Origin.get -> CheatEngine.SDK.Engine.Objects.EngineResourceOrigin
+CheatEngine.SDK.Engine.Objects.Owned<T>.ReleaseWithOutcome() -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Processes.CurrentProcessObservation
+CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.CurrentProcessObservation() -> void
+CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.CurrentProcessObservation(CheatEngine.SDK.Engine.Inspection.TargetProcessId Id, CheatEngine.SDK.Engine.Runtime.PointerSize PointerSize) -> void
+CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.Deconstruct(out CheatEngine.SDK.Engine.Inspection.TargetProcessId Id, out CheatEngine.SDK.Engine.Runtime.PointerSize PointerSize) -> void
+CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.Equals(CheatEngine.SDK.Engine.Processes.CurrentProcessObservation other) -> bool
+CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.Id.get -> CheatEngine.SDK.Engine.Inspection.TargetProcessId
+CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.Id.init -> void
+CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.PointerSize.get -> CheatEngine.SDK.Engine.Runtime.PointerSize
+CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.PointerSize.init -> void
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.Equals(CheatEngine.SDK.Engine.Processes.ProcessOperationStatus other) -> bool
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.IsSuccess.get -> bool
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.Kind.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.ProcessOperationStatus() -> void
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.FileAsProcessTarget = 8 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.GlobalUnavailable = 4 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.InvalidResult = 6 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.ProtectedLuaFailure = 5 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.SelectionNotConfirmed = 3 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.Success = 1 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.TargetChanged = 7 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.TargetNotAttached = 2 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind.Unknown = 0 -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatusKind
+CheatEngine.SDK.Engine.Processes.RuntimeHostOperations
+CheatEngine.SDK.Engine.Processes.RuntimeObservations
+CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.CheatEngineHostObservation() -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.CheatEngineHostObservation(CheatEngine.SDK.Engine.Runtime.CheatEngineVersion? FileVersion, CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture SystemArchitecture, bool? CheatEngineIs64Bit, CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem OperatingSystem) -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.CheatEngineIs64Bit.get -> bool?
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.CheatEngineIs64Bit.init -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.Deconstruct(out CheatEngine.SDK.Engine.Runtime.CheatEngineVersion? FileVersion, out CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture SystemArchitecture, out bool? CheatEngineIs64Bit, out CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem OperatingSystem) -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.Equals(CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation other) -> bool
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.FileVersion.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineVersion?
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.FileVersion.init -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.OperatingSystem.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.OperatingSystem.init -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.SystemArchitecture.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture
+CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.SystemArchitecture.init -> void
+CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem.Linux = 3 -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem.MacOS = 2 -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem.Unknown = 0 -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem.Windows = 1 -> CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem
+CheatEngine.SDK.Engine.Runtime.PointerSize.TryReadLittleEndian(System.ReadOnlySpan<byte> source, out ulong value) -> bool
+CheatEngine.SDK.Engine.Runtime.PointerSize.TryWriteLittleEndian(ulong value, System.Span<byte> destination) -> bool
+CheatEngine.SDK.Engine.Runtime.RuntimeInfo.Host.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation?
+CheatEngine.SDK.Engine.Runtime.RuntimeInfo.RuntimeInfo(CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation host, CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation? target, CheatEngine.SDK.Engine.Runtime.RuntimeCapabilities! capabilities) -> void
+CheatEngine.SDK.Engine.Runtime.RuntimeInfo.Target.get -> CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Abi.get -> CheatEngine.SDK.Engine.Runtime.TargetAbi
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.AbiCode.get -> int?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Architecture.get -> CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Backend.get -> CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Bitness.get -> CheatEngine.SDK.Engine.Runtime.PointerSize
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ConfiguredPointerSize.get -> CheatEngine.SDK.Engine.Runtime.PointerSize
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ConfiguredPointerSizeBytes.get -> int?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ConfiguredPointerSizeDiffersFromBitness.get -> bool?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Equals(CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation other) -> bool
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.IsAndroid.get -> bool?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.IsArmFamily.get -> bool?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.IsX86Family.get -> bool?
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ProcessId.get -> CheatEngine.SDK.Engine.Inspection.TargetProcessId
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.TargetArchitectureObservation() -> void
+CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.TargetArchitectureObservation(CheatEngine.SDK.Engine.Inspection.TargetProcessId processId, CheatEngine.SDK.Engine.Runtime.TargetBackend backend, CheatEngine.SDK.Engine.Runtime.PointerSize bitness, bool? isX86Family, bool? isArmFamily, bool? isAndroid, int? abiCode, int? configuredPointerSizeBytes) -> void
+CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Runtime.TargetBackend.CEServer = 3 -> CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Runtime.TargetBackend.FileAsProcess = 2 -> CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Runtime.TargetBackend.LocalProcess = 1 -> CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Runtime.TargetBackend.Unknown = 0 -> CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.Cancelled = 12 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.HostReportedError = 7 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.InvalidBounds = 3 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.InvalidResult = 8 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.Matches = 1 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.NoMatches = 2 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.RuntimeInvalidated = 11 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.ScanFailed = 5 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.SessionCreationFailed = 4 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.TargetChanged = 9 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.TargetIdentityUnavailable = 10 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind.WaitTimedOut = 6 -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.AobBoundedScanResult() -> void
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.AtOrAfterStopSkipped.get -> ulong
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.BelowStartSkipped.get -> ulong
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.CopyElapsed.get -> System.TimeSpan
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.Creation.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.Equals(CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult other) -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.HostErrorText.get -> string?
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.HostResultCount.get -> ulong
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.HostScanElapsed.get -> System.TimeSpan
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.InBoundsCountIsExact.get -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.IsHostErrorTextTruncated.get -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.IsHostErrorTextUnreadable.get -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.IsMaterializationLimitReached.get -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.IsSuccess.get -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.Kind.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.Release.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.RowsRead.get -> ulong
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.Termination.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.TotalElapsed.get -> System.TimeSpan
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.UnreadHostRows.get -> ulong
+CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.Written.get -> int
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.Cancelled = 11 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.Found = 1 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.FoundOutsideBounds = 3 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.InvalidBounds = 4 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.InvalidResult = 7 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.NotFound = 2 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.RuntimeInvalidated = 10 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.ScanFailed = 6 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.SessionCreationFailed = 5 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.TargetChanged = 8 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.TargetIdentityUnavailable = 9 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Address.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.AobFirstFoundResult() -> void
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Creation.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Equals(CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult other) -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.HasAddress.get -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.HostScanElapsed.get -> System.TimeSpan
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Kind.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Release.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.AobScanBounds() -> void
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.Contains(CheatEngine.SDK.Engine.Values.Address address) -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.Equals(CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds other) -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.IsValid.get -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.Length.get -> ulong
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.Start.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.Stop.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.AobScanOutcome() -> void
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.Equals(CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome other) -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.HasResultCount.get -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.IsSuccess.get -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.Kind.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.LuaStatus.get -> CheatEngine.SDK.Lua.Calls.LuaStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.ResultCount.get -> int
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.GlobalUnavailable = 3 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.InvalidResult = 6 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.Matches = 1 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.NoMatches = 2 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.NoResult = 5 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.ProtectedLuaFailure = 4 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.ResultListCountUnavailable = 7 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcomeKind
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.GlobalUnavailable = 2 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.InvalidResult = 5 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.LuaFailure = 3 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.NoResult = 4 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.Success = 1 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.After.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.AobScanTargetContext() -> void
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.Before.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.Equals(CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext other) -> bool
+CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.IsSameQualifiedIncarnation.get -> bool
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone.CancelledBeforeNativeCall = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone.None = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone.ObservedAfterNativeCall = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.Equals(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome other) -> bool
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.MemoryScanCreationOutcome() -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.Status.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.TargetObservation.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.AliasedFoundList = 8 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.GlobalUnavailable = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.InvalidFoundListResult = 7 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.InvalidScannerResult = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.LuaFailure = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.NoFoundListResult = 6 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.NoScannerResult = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.RollbackUnconfirmed = 9 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.Success = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.TargetIdentityUnavailable = 10 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind.RuntimeInvalidated = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind.TargetIdentityMismatch = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind.TargetIdentityUnavailable = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanFailureKind
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.None = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.ProtectedLuaFailure = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.RuntimeIdentityChanged = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.ScanTerminated = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.TargetChanged = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason.TargetProcessReused = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.Cancelled = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.DestinationTooSmall = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.InvalidResult = 9 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.LuaFailure = 8 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.NoResults = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.PageStartOutOfRange = 10 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.RuntimeInvalidated = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.Success = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.TargetIdentityMismatch = 7 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.TargetIdentityUnavailable = 6 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.Equals(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome other) -> bool
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.FoundList.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.FoundListOwnershipConsumed.get -> bool
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.MemScan.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.MemScanOwnershipConsumed.get -> bool
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.MemoryScanReleaseOutcome() -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.OwnershipConsumed.get -> bool
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.Termination.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.Address.get -> CheatEngine.SDK.Engine.Values.Address
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.Address.init -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.Deconstruct(out CheatEngine.SDK.Engine.Values.Address Address, out string! Value) -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.Equals(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult other) -> bool
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.MemoryScanResult() -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.MemoryScanResult(CheatEngine.SDK.Engine.Values.Address Address, string! Value) -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.Value.get -> string!
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.Value.init -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.Abandon() -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.InvalidationReason.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanInvalidationReason
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.LastCancellationMilestone.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCancellationMilestone
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.LastReleaseOutcome.get -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.LastTargetCheck.get -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheck?
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.ReleaseWithOutcome() -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.ResetCancellable(System.Threading.CancellationToken cancellationToken) -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.RuntimeIdentity.get -> CheatEngine.SDK.Lua.Runtime.LuaStateIdentity
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.StartFirstScanCancellable(in CheatEngine.SDK.Engine.Scanning.Values.FirstScanRequest request, System.Threading.CancellationToken cancellationToken) -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.StartNextScanCancellable(in CheatEngine.SDK.Engine.Scanning.Values.NextScanRequest request, System.Threading.CancellationToken cancellationToken) -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TargetObservation.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryCopyResults(System.Span<CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult> destination, out ulong totalCount, out int written) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryCopyResultsCancellable(System.Span<CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult> destination, out ulong totalCount, out int written, System.Threading.CancellationToken cancellationToken) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryCopyResultsPage(int firstResultIndex, System.Span<CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult> destination, out ulong totalCount, out int written) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryCopyResultsPageCancellable(int firstResultIndex, System.Span<CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult> destination, out ulong totalCount, out int written, System.Threading.CancellationToken cancellationToken) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanMaterializationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryGetHostErrorText(out string? text, out bool truncated) -> bool
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.WaitForCompletionCancellable(System.Threading.CancellationToken cancellationToken) -> void
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSessions
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.Confirmed = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.NotInvoked = 6 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.NotRequired = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.TerminateFailed = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.WaitFailed = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus.WaitTimedOut = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.Completed = 1 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.InitializationFailed = 5 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.InvalidResult = 4 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.LuaFailure = 3 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.RuntimeInvalidated = 6 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.TargetIdentityMismatch = 8 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.TargetIdentityUnavailable = 7 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.TimedOut = 2 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus.Unknown = 0 -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+CheatEngine.SDK.Engine.Tables.CheatTableFiles
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheck
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.Equals(CheatEngine.SDK.Engine.Targets.TargetIdentityCheck other) -> bool
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.IsCurrent.get -> bool
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.Kind.get -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.Observed.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.TargetIdentityCheck() -> void
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.BackendUnknown = 11 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.Current = 1 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.CurrentTargetUnqualified = 3 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.FileAsProcess = 10 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.GlobalUnavailable = 6 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.InvalidResult = 8 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.LuaFailure = 7 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.NoTargetSelected = 2 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.ProcessReused = 5 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.RemoteBackend = 9 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.TargetChanged = 4 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind.Unspecified = 0 -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheckKind
+CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
+CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence.CheatEngineSelectedProcessId = 1 -> CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
+CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence.LocalBackendConfirmed = 4 -> CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
+CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence.LocalProcessStartTime = 2 -> CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
+CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence.None = 0 -> CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
+CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation
+CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation.Equals(CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation other) -> bool
+CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation.ProcessId.get -> int
+CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation.StartedAtUtcTicks.get -> long
+CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation.TargetProcessIncarnation() -> void
+CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome
+CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.Equals(CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome other) -> bool
+CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.FailureKind.get -> CheatEngine.SDK.Engine.Errors.EngineFailureKind?
+CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.RequiresManualRecovery.get -> bool
+CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.Status.get -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.TargetCheck.get -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheck?
+CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.TargetReleaseOutcome() -> void
+CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.NotInvoked = 7 -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.RefusedIdentityUnavailable = 3 -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.RefusedNoTarget = 2 -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.RefusedProcessReused = 5 -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.RefusedRuntimeChanged = 8 -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.RefusedTargetChanged = 4 -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.Released = 1 -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.UnconfirmedAfterInvocation = 6 -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetReleaseStatus.Unspecified = 0 -> CheatEngine.SDK.Engine.Targets.TargetReleaseStatus
+CheatEngine.SDK.Engine.Targets.TargetSelection
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Backend.get -> CheatEngine.SDK.Engine.Runtime.TargetBackend
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Equals(CheatEngine.SDK.Engine.Targets.TargetSelectionObservation other) -> bool
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Evidence.get -> CheatEngine.SDK.Engine.Targets.TargetIdentityEvidence
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Incarnation.get -> CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation?
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.IsQualified.get -> bool
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.SelectedProcessId.get -> int?
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Status.get -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.TargetSelectionObservation() -> void
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.CurrentTargetBackendUnknown = 9 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.CurrentTargetFileAsProcess = 8 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.CurrentTargetQualified = 1 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.CurrentTargetRemoteBackend = 7 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.CurrentTargetUnqualified = 3 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.GlobalUnavailable = 4 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.InvalidResult = 6 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.LuaFailure = 5 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.NoTargetSelected = 2 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus.Unspecified = 0 -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservationStatus
+[CESDK5010]CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryTerminateScan(System.TimeSpan waitTimeout) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanTerminationStatus
+[CESDK5010]CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.TryWaitForCompletion(System.TimeSpan timeout) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanWaitStatus
+[CESDK5010]static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanWithinBounds(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds bounds, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, System.TimeSpan waitTimeout, System.Span<CheatEngine.SDK.Engine.Values.Address> destination, System.Threading.CancellationToken cancellationToken) -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult
+[CESDK5011]static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryFindFirstFoundWithinBounds(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds bounds, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, System.Threading.CancellationToken cancellationToken) -> CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult
+const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxDisableInfoEntriesLimit = 65536 -> int
+const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxDisableInfoNameBytesLimit = 4096 -> int
+const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MaxHostTextBytesLimit = 8192 -> int
+const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MinDisableInfoEntries = 1 -> int
+const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MinDisableInfoNameBytes = 1 -> int
+const CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.MinHostTextBytes = 1 -> int
+const CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession.HostErrorTextMaximumUtf8Bytes = 1024 -> int
+override CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Assembly.InstructionAssembly.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Assembly.InstructionProfile.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Errors.EngineResourceHandoffException.Kind.get -> CheatEngine.SDK.Engine.Errors.EngineFailureKind
+override CheatEngine.SDK.Engine.Errors.EngineTargetIdentityException.Kind.get -> CheatEngine.SDK.Engine.Errors.EngineFailureKind
+override CheatEngine.SDK.Engine.Inspection.SymbolList.Equals(object? obj) -> bool
+override CheatEngine.SDK.Engine.Inspection.SymbolList.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Inspection.SymbolList.ToString() -> string!
+override CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationHandoffException.Kind.get -> CheatEngine.SDK.Engine.Errors.EngineFailureKind
+override CheatEngine.SDK.Engine.Inspection.SymbolName.Equals(object? obj) -> bool
+override CheatEngine.SDK.Engine.Inspection.SymbolName.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Inspection.SymbolName.ToString() -> string!
+override CheatEngine.SDK.Engine.Inspection.SymbolRegistrationHandoffException.Kind.get -> CheatEngine.SDK.Engine.Errors.EngineFailureKind
+override CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.Equals(object? obj) -> bool
+override CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.Equals(object? obj) -> bool
+override CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation.Equals(object? obj) -> bool
+override CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.GetHashCode() -> int
+override CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.GetHashCode() -> int
+static CheatEngine.SDK.Engine.AddressList.AddressListMutations.Delete(CheatEngine.SDK.Engine.AddressList.MemoryRecordId recordId) -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationOutcome
+static CheatEngine.SDK.Engine.AddressList.AddressListMutations.SetActive(CheatEngine.SDK.Engine.AddressList.MemoryRecordId recordId, bool active) -> CheatEngine.SDK.Engine.AddressList.MemoryRecordActivationOutcome
+static CheatEngine.SDK.Engine.AddressList.AddressListMutations.SetParent(CheatEngine.SDK.Engine.AddressList.MemoryRecordId recordId, CheatEngine.SDK.Engine.AddressList.MemoryRecordId? parentId) -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationOutcome
+static CheatEngine.SDK.Engine.AddressList.AddressListMutations.SetParent(CheatEngine.SDK.Engine.AddressList.MemoryRecordId recordId, CheatEngine.SDK.Engine.AddressList.MemoryRecordId? parentId, CheatEngine.SDK.Engine.AddressList.MemoryRecordParentTraversalLimit traversalLimit) -> CheatEngine.SDK.Engine.AddressList.MemoryRecordMutationOutcome
+static CheatEngine.SDK.Engine.AddressList.MemoryRecordParentTraversalLimit.Default.get -> CheatEngine.SDK.Engine.AddressList.MemoryRecordParentTraversalLimit
+static CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.Failed(CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome operation) -> CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome
+static CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.Succeeded(CheatEngine.SDK.Engine.Values.Address address) -> CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome
+static CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.operator !=(CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome left, CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome right) -> bool
+static CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.operator ==(CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome left, CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome right) -> bool
+static CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.Failed(CheatEngine.SDK.Engine.Errors.EngineFailureKind failureKind, CheatEngine.SDK.Lua.Calls.LuaStatus luaStatus = default(CheatEngine.SDK.Lua.Calls.LuaStatus)) -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome
+static CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.Succeeded() -> CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome
+static CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.operator !=(CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome left, CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome right) -> bool
+static CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.operator ==(CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome left, CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome right) -> bool
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.operator !=(CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo left, CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo right) -> bool
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.operator ==(CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo left, CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo right) -> bool
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions.Default.get -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions!
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatcher.Apply(string! script) -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch!
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatcher.TryApply(string! script, out CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch? patch) -> bool
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatcher.TryApplyWithOutcome(string! script, CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions! options, out CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch? patch) -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatcher.TryApplyWithOutcome(string! script, out CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatch? patch) -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerApplyOutcome
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatcher.TryCheck(string! script, bool enable) -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcome
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerPatcher.TryCheck(string! script, bool enable, CheatEngine.SDK.Engine.Assembly.AutoAssemblerOptions! options) -> CheatEngine.SDK.Engine.Assembly.AutoAssemblerCheckOutcome
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo.operator !=(CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo left, CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo right) -> bool
+static CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo.operator ==(CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo left, CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo right) -> bool
+static CheatEngine.SDK.Engine.Assembly.InstructionAssembler.TryAssemble(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile targetProfile, string! instruction, CheatEngine.SDK.Engine.Values.Address address, CheatEngine.SDK.Engine.Assembly.AssemblePreference preference, bool skipRangeCheck, System.Span<byte> destination, out CheatEngine.SDK.Engine.Assembly.InstructionAssembly assembly) -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+static CheatEngine.SDK.Engine.Assembly.InstructionAssembler.TryAssemble(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile targetProfile, string! instruction, CheatEngine.SDK.Engine.Values.Address address, System.Span<byte> destination, out int written, out int requiredLength) -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+static CheatEngine.SDK.Engine.Assembly.InstructionAssembly.operator !=(CheatEngine.SDK.Engine.Assembly.InstructionAssembly left, CheatEngine.SDK.Engine.Assembly.InstructionAssembly right) -> bool
+static CheatEngine.SDK.Engine.Assembly.InstructionAssembly.operator ==(CheatEngine.SDK.Engine.Assembly.InstructionAssembly left, CheatEngine.SDK.Engine.Assembly.InstructionAssembly right) -> bool
+static CheatEngine.SDK.Engine.Assembly.InstructionDisassembler.TryDisassemble(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile targetProfile, CheatEngine.SDK.Engine.Values.Address address, int maximumUtf8Bytes, out CheatEngine.SDK.Engine.Assembly.InstructionDisassembly instruction, out int requiredUtf8Bytes) -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+static CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.operator !=(CheatEngine.SDK.Engine.Assembly.InstructionDisassembly left, CheatEngine.SDK.Engine.Assembly.InstructionDisassembly right) -> bool
+static CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.operator ==(CheatEngine.SDK.Engine.Assembly.InstructionDisassembly left, CheatEngine.SDK.Engine.Assembly.InstructionDisassembly right) -> bool
+static CheatEngine.SDK.Engine.Assembly.InstructionNavigator.TryGetLength(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile targetProfile, CheatEngine.SDK.Engine.Values.Address address, out int length) -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+static CheatEngine.SDK.Engine.Assembly.InstructionNavigator.TryGetPrevious(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile targetProfile, CheatEngine.SDK.Engine.Values.Address address, out CheatEngine.SDK.Engine.Values.Address previous) -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+static CheatEngine.SDK.Engine.Assembly.InstructionProfile.Arm32.get -> CheatEngine.SDK.Engine.Assembly.InstructionProfile
+static CheatEngine.SDK.Engine.Assembly.InstructionProfile.Arm64.get -> CheatEngine.SDK.Engine.Assembly.InstructionProfile
+static CheatEngine.SDK.Engine.Assembly.InstructionProfile.X64.get -> CheatEngine.SDK.Engine.Assembly.InstructionProfile
+static CheatEngine.SDK.Engine.Assembly.InstructionProfile.X86.get -> CheatEngine.SDK.Engine.Assembly.InstructionProfile
+static CheatEngine.SDK.Engine.Assembly.InstructionProfile.operator !=(CheatEngine.SDK.Engine.Assembly.InstructionProfile left, CheatEngine.SDK.Engine.Assembly.InstructionProfile right) -> bool
+static CheatEngine.SDK.Engine.Assembly.InstructionProfile.operator ==(CheatEngine.SDK.Engine.Assembly.InstructionProfile left, CheatEngine.SDK.Engine.Assembly.InstructionProfile right) -> bool
+static CheatEngine.SDK.Engine.Assembly.InstructionProfiles.TryObserveCurrent(out CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile targetProfile) -> CheatEngine.SDK.Engine.Assembly.InstructionOperationStatus
+static CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.operator !=(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile left, CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile right) -> bool
+static CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.operator ==(CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile left, CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile right) -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetCheatEngineVersion() -> double
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetConfiguredPointerSizeBytes() -> int
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetOperatingSystemCode() -> int
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetSystemArchitectureCode() -> int
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.GetTargetAbiCode() -> int
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsCheatEngine64Bit() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsConnectedToCEServer() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTarget64Bit() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTargetAndroid() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTargetArm() -> bool
+static CheatEngine.SDK.Engine.Generated.RuntimeCapabilityProbes.IsTargetX86() -> bool
+static CheatEngine.SDK.Engine.Inspection.EngineInspection.ResolveHostAddress(CheatEngine.SDK.Engine.Inspection.SymbolExpression expression, CheatEngine.SDK.Engine.Inspection.AddressResolutionOptions options, out CheatEngine.SDK.Engine.Memory.HostAddress address) -> CheatEngine.SDK.Engine.Inspection.InspectionStatus
+static CheatEngine.SDK.Engine.Inspection.SymbolList.FromHandle(CheatEngine.SDK.Engine.Objects.CEObject handle) -> CheatEngine.SDK.Engine.Inspection.SymbolList
+static CheatEngine.SDK.Engine.Inspection.SymbolList.Null.get -> CheatEngine.SDK.Engine.Inspection.SymbolList
+static CheatEngine.SDK.Engine.Inspection.SymbolList.Push(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Engine.Inspection.SymbolList value) -> void
+static CheatEngine.SDK.Engine.Inspection.SymbolList.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out CheatEngine.SDK.Engine.Inspection.SymbolList value) -> bool
+static CheatEngine.SDK.Engine.Inspection.SymbolList.operator !=(CheatEngine.SDK.Engine.Inspection.SymbolList left, CheatEngine.SDK.Engine.Inspection.SymbolList right) -> bool
+static CheatEngine.SDK.Engine.Inspection.SymbolList.operator ==(CheatEngine.SDK.Engine.Inspection.SymbolList left, CheatEngine.SDK.Engine.Inspection.SymbolList right) -> bool
+static CheatEngine.SDK.Engine.Inspection.SymbolLists.TryCreate(out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Inspection.SymbolList>? list) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Inspection.SymbolLists.TryGetMain(out CheatEngine.SDK.Engine.Inspection.SymbolList list) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Inspection.SymbolLists.TryRegister(CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Inspection.SymbolList>! list, out CheatEngine.SDK.Engine.Inspection.SymbolListRegistrationLease? lease) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Inspection.SymbolName.Push(CheatEngine.SDK.Lua.State.LuaState state, CheatEngine.SDK.Engine.Inspection.SymbolName value) -> void
+static CheatEngine.SDK.Engine.Inspection.SymbolName.TryRead(CheatEngine.SDK.Lua.State.LuaState state, int index, out CheatEngine.SDK.Engine.Inspection.SymbolName value) -> bool
+static CheatEngine.SDK.Engine.Inspection.SymbolName.operator !=(CheatEngine.SDK.Engine.Inspection.SymbolName left, CheatEngine.SDK.Engine.Inspection.SymbolName right) -> bool
+static CheatEngine.SDK.Engine.Inspection.SymbolName.operator ==(CheatEngine.SDK.Engine.Inspection.SymbolName left, CheatEngine.SDK.Engine.Inspection.SymbolName right) -> bool
+static CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.operator !=(CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions left, CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions right) -> bool
+static CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.operator ==(CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions left, CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions right) -> bool
+static CheatEngine.SDK.Engine.Inspection.SymbolRegistry.Register(CheatEngine.SDK.Engine.Inspection.SymbolName name, CheatEngine.SDK.Engine.Values.Address address, CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions options = default(CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions)) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Inspection.SymbolRegistry.TryGetName(CheatEngine.SDK.Engine.Values.Address address, out string? name) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Inspection.SymbolRegistry.TryRegisterOwned(CheatEngine.SDK.Engine.Inspection.SymbolName name, CheatEngine.SDK.Engine.Values.Address address, CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions options = default(CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions)) -> CheatEngine.SDK.Engine.Inspection.SymbolRegistrationAcquireOutcome
+static CheatEngine.SDK.Engine.Inspection.SymbolRegistry.Unregister(CheatEngine.SDK.Engine.Inspection.SymbolName name) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Memory.HostMemory.TryReadBytes(CheatEngine.SDK.Engine.Memory.HostAddress address, System.Span<byte> destination, out int written, out CheatEngine.SDK.Engine.Memory.MemoryAccessFailure failure) -> bool
+static CheatEngine.SDK.Engine.Memory.HostMemory.TryReadUtf8(CheatEngine.SDK.Engine.Memory.HostAddress address, int maximumLength, System.Span<byte> destination, bool wideCharacter, out int written, out int requiredLength, out CheatEngine.SDK.Engine.Memory.MemoryAccessFailure failure) -> bool
+static CheatEngine.SDK.Engine.Memory.HostMemory.TryWriteBytes(CheatEngine.SDK.Engine.Memory.HostAddress address, System.ReadOnlySpan<byte> value, out int written, out CheatEngine.SDK.Engine.Memory.MemoryAccessFailure failure) -> bool
+static CheatEngine.SDK.Engine.Memory.TargetMemory.TryReadBytes(CheatEngine.SDK.Engine.Values.Address address, System.Span<byte> destination, out int written, out CheatEngine.SDK.Engine.Memory.MemoryAccessFailure failure) -> bool
+static CheatEngine.SDK.Engine.Memory.TargetMemory.TryReadPointer(CheatEngine.SDK.Engine.Values.Address address, CheatEngine.SDK.Engine.Runtime.PointerSize pointerSize, out CheatEngine.SDK.Engine.Values.Address value, out CheatEngine.SDK.Engine.Memory.MemoryAccessFailure failure) -> bool
+static CheatEngine.SDK.Engine.Memory.TargetMemory.TryReadUtf8(CheatEngine.SDK.Engine.Values.Address address, int maximumLength, System.Span<byte> destination, bool wideCharacter, out int written, out int requiredLength, out CheatEngine.SDK.Engine.Memory.MemoryAccessFailure failure) -> bool
+static CheatEngine.SDK.Engine.Memory.TargetMemory.TryWriteBytes(CheatEngine.SDK.Engine.Values.Address address, System.ReadOnlySpan<byte> value, out int written, out CheatEngine.SDK.Engine.Memory.MemoryAccessFailure failure) -> bool
+static CheatEngine.SDK.Engine.Memory.TargetMemory.TryWritePointer(CheatEngine.SDK.Engine.Values.Address address, CheatEngine.SDK.Engine.Values.Address value, CheatEngine.SDK.Engine.Runtime.PointerSize pointerSize, out CheatEngine.SDK.Engine.Memory.MemoryAccessFailure failure) -> bool
+static CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.operator !=(CheatEngine.SDK.Engine.Objects.EngineResourceOrigin left, CheatEngine.SDK.Engine.Objects.EngineResourceOrigin right) -> bool
+static CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.operator ==(CheatEngine.SDK.Engine.Objects.EngineResourceOrigin left, CheatEngine.SDK.Engine.Objects.EngineResourceOrigin right) -> bool
+static CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.operator !=(CheatEngine.SDK.Engine.Processes.CurrentProcessObservation left, CheatEngine.SDK.Engine.Processes.CurrentProcessObservation right) -> bool
+static CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.operator ==(CheatEngine.SDK.Engine.Processes.CurrentProcessObservation left, CheatEngine.SDK.Engine.Processes.CurrentProcessObservation right) -> bool
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.FileAsProcessTarget.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.GlobalUnavailable.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.InvalidResult.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.ProtectedLuaFailure(CheatEngine.SDK.Lua.Calls.LuaStatus luaStatus) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.SelectionNotConfirmed.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.Success.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.TargetChanged.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.TargetNotAttached.get -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.operator !=(CheatEngine.SDK.Engine.Processes.ProcessOperationStatus left, CheatEngine.SDK.Engine.Processes.ProcessOperationStatus right) -> bool
+static CheatEngine.SDK.Engine.Processes.ProcessOperationStatus.operator ==(CheatEngine.SDK.Engine.Processes.ProcessOperationStatus left, CheatEngine.SDK.Engine.Processes.ProcessOperationStatus right) -> bool
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.ObserveHost(out CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation host) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetCheatEngineFileVersion(out CheatEngine.SDK.Engine.Runtime.CheatEngineVersion version) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetCheatEngineVersion(out double version) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetOperatingSystem(out CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem operatingSystem) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetSystemArchitecture(out CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture architecture) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryGetTargetAbi(out CheatEngine.SDK.Engine.Runtime.TargetAbi abi) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeHostOperations.TryIsCheatEngine64Bit(out bool is64Bit) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeObservations.TryObserveRuntimeInfo(out CheatEngine.SDK.Engine.Runtime.RuntimeInfo? info) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.ObserveCurrent(out CheatEngine.SDK.Engine.Processes.CurrentProcessObservation observation) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.ObserveTargetArchitecture(out CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation observation) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.SelectAndObserve(CheatEngine.SDK.Engine.Inspection.TargetProcessId processId, out CheatEngine.SDK.Engine.Processes.CurrentProcessObservation observation) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Processes.RuntimeProcessOperations.TryGetConfiguredPointerSize(out int rawBytes, out CheatEngine.SDK.Engine.Runtime.PointerSize pointerSize) -> CheatEngine.SDK.Engine.Processes.ProcessOperationStatus
+static CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.operator !=(CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation left, CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation right) -> bool
+static CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.operator ==(CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation left, CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation right) -> bool
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.CheatEngineBitness.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.ConfiguredPointerSize.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.CurrentProcess.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.OperatingSystem.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.ProcessSelection.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.TargetAndroid.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId.TargetBackend.get -> CheatEngine.SDK.Engine.Runtime.RuntimeCapabilityId
+static CheatEngine.SDK.Engine.Runtime.RuntimeInfo.TryDecodeFileVersion(long packed, out CheatEngine.SDK.Engine.Runtime.CheatEngineVersion version) -> bool
+static CheatEngine.SDK.Engine.Runtime.RuntimeInfo.TryDecodeOperatingSystem(int code, out CheatEngine.SDK.Engine.Runtime.CheatEngineOperatingSystem operatingSystem) -> bool
+static CheatEngine.SDK.Engine.Runtime.RuntimeInfo.TryDeriveTargetArchitecture(bool isX86Family, bool isArmFamily, bool is64Bit, out CheatEngine.SDK.Engine.Runtime.CheatEngineArchitecture architecture) -> bool
+static CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.operator !=(CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation left, CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation right) -> bool
+static CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.operator ==(CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation left, CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.operator !=(CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult left, CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.operator ==(CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult left, CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.operator !=(CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult left, CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.operator ==(CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult left, CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.TryCreate(CheatEngine.SDK.Engine.Values.Address start, CheatEngine.SDK.Engine.Values.Address stop, out CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds bounds) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.TryFromModule(in CheatEngine.SDK.Engine.Inspection.ModuleInfo module, out CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds bounds) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.operator !=(CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.operator ==(CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.GlobalUnavailable.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.InvalidResult.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.Matches(int resultCount) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.NoMatches.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.NoResult.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.ProtectedLuaFailure(CheatEngine.SDK.Lua.Calls.LuaStatus luaStatus) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.ResultListCountUnavailable.get -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.operator !=(CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome.operator ==(CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.operator !=(CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.operator ==(CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext left, CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanDetailed(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Objects.StringList>? results) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanDetailed(string! pattern, out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Objects.StringList>? results) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanStatus
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanOutcome(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Objects.StringList>? results) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanOutcome(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Objects.StringList>? results, out CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext targetContext) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanOutcome(string! pattern, out CheatEngine.SDK.Engine.Objects.Owned<CheatEngine.SDK.Engine.Objects.StringList>? results) -> CheatEngine.SDK.Engine.Scanning.Aob.AobScanOutcome
+static CheatEngine.SDK.Engine.Scanning.Aob.AobScanner.TryScanWithinBounds(string! pattern, CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds bounds, CheatEngine.SDK.Engine.Scanning.Aob.AobScanOptions options, System.Span<CheatEngine.SDK.Engine.Values.Address> destination, System.Threading.CancellationToken cancellationToken) -> CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult
+static CheatEngine.SDK.Engine.Scanning.Values.FirstScanRequest.ByteArray(string! pattern, CheatEngine.SDK.Engine.Values.Address startAddress, CheatEngine.SDK.Engine.Values.Address stopAddress) -> CheatEngine.SDK.Engine.Scanning.Values.FirstScanRequest
+static CheatEngine.SDK.Engine.Scanning.Values.FirstScanRequest.ByteArray(string! pattern, CheatEngine.SDK.Engine.Values.Address startAddress, CheatEngine.SDK.Engine.Values.Address stopAddress, string! protectionFlags, CheatEngine.SDK.Engine.Enums.FastScanMethod fastScanMethod, string! alignmentParameter) -> CheatEngine.SDK.Engine.Scanning.Values.FirstScanRequest
+static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.operator !=(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome left, CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.operator ==(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome left, CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.operator !=(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome left, CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.operator ==(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome left, CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.operator !=(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult left, CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.operator ==(CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult left, CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult right) -> bool
+static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSessions.TryCreate(out CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession? session) -> bool
+static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSessions.TryCreateDetailed(out CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession? session) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationStatus
+static CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSessions.TryCreateWithOutcome(out CheatEngine.SDK.Engine.Scanning.Values.MemoryScanSession? session) -> CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome
+static CheatEngine.SDK.Engine.Tables.CheatTableFiles.TryLoad(string! path, bool merge) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Tables.CheatTableFiles.TrySave(string! path) -> CheatEngine.SDK.Lua.Calls.LuaOperationStatus
+static CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.operator !=(CheatEngine.SDK.Engine.Targets.TargetIdentityCheck left, CheatEngine.SDK.Engine.Targets.TargetIdentityCheck right) -> bool
+static CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.operator ==(CheatEngine.SDK.Engine.Targets.TargetIdentityCheck left, CheatEngine.SDK.Engine.Targets.TargetIdentityCheck right) -> bool
+static CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation.operator !=(CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation left, CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation right) -> bool
+static CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation.operator ==(CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation left, CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation right) -> bool
+static CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.operator !=(CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome left, CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome right) -> bool
+static CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.operator ==(CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome left, CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome right) -> bool
+static CheatEngine.SDK.Engine.Targets.TargetSelection.ObserveCurrent() -> CheatEngine.SDK.Engine.Targets.TargetSelectionObservation
+static CheatEngine.SDK.Engine.Targets.TargetSelection.ValidateCurrent(CheatEngine.SDK.Engine.Targets.TargetProcessIncarnation expected) -> CheatEngine.SDK.Engine.Targets.TargetIdentityCheck
+static CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.operator !=(CheatEngine.SDK.Engine.Targets.TargetSelectionObservation left, CheatEngine.SDK.Engine.Targets.TargetSelectionObservation right) -> bool
+static CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.operator ==(CheatEngine.SDK.Engine.Targets.TargetSelectionObservation left, CheatEngine.SDK.Engine.Targets.TargetSelectionObservation right) -> bool
+~override CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Allocation.TargetMemoryAllocationOutcome.ToString() -> string
+~override CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Allocation.TargetMemoryOperationOutcome.ToString() -> string
+~override CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Assembly.AutoAssemblerAllocationInfo.ToString() -> string
+~override CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Assembly.AutoAssemblerSymbolInfo.ToString() -> string
+~override CheatEngine.SDK.Engine.Assembly.InstructionAssembly.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Assembly.InstructionAssembly.ToString() -> string
+~override CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Assembly.InstructionDisassembly.ToString() -> string
+~override CheatEngine.SDK.Engine.Assembly.InstructionProfile.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Assembly.InstructionProfile.ToString() -> string
+~override CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Assembly.InstructionTargetProfile.ToString() -> string
+~override CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Inspection.SymbolRegistrationOptions.ToString() -> string
+~override CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Objects.EngineResourceOrigin.ToString() -> string
+~override CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Processes.CurrentProcessObservation.ToString() -> string
+~override CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Runtime.CheatEngineHostObservation.ToString() -> string
+~override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Runtime.TargetArchitectureObservation.ToString() -> string
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobBoundedScanResult.ToString() -> string
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobFirstFoundResult.ToString() -> string
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobScanBounds.ToString() -> string
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Scanning.Aob.AobScanTargetContext.ToString() -> string
+~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanCreationOutcome.ToString() -> string
+~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanReleaseOutcome.ToString() -> string
+~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Scanning.Values.MemoryScanResult.ToString() -> string
+~override CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Targets.TargetIdentityCheck.ToString() -> string
+~override CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Targets.TargetReleaseOutcome.ToString() -> string
+~override CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.Equals(object obj) -> bool
+~override CheatEngine.SDK.Engine.Targets.TargetSelectionObservation.ToString() -> string

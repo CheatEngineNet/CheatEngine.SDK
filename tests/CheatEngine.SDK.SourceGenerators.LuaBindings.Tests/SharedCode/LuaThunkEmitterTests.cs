@@ -76,6 +76,50 @@ public sealed class LuaThunkEmitterTests
 	}
 
 	[Fact]
+	public void WrongArgumentCountMessage_names_the_accepted_range()
+	{
+		Assert.Equal("wrong number of arguments to 'f' (1 to 3 expected)",
+			LuaThunkEmitter.WrongArgumentCountMessage("f", 1, 3));
+		Assert.Equal("wrong number of arguments to 'g' (0 to 1 expected)",
+			LuaThunkEmitter.WrongArgumentCountMessage("g", 0, 1));
+		Assert.Equal(LuaThunkEmitter.WrongArgumentCountMessage("add", 2),
+			LuaThunkEmitter.WrongArgumentCountMessage("add", 2, 2));
+
+		LuaThunkModel optional = new("f", "__LuaThunk_f", "global::Demo.Suite.F", false,
+			new EquatableArray<LuaArgumentModel>([
+				new LuaArgumentModel("a", LuaValueKind.Int64, false),
+				LuaArgumentModel.Optional("b", LuaValueKind.String)
+			]), null);
+		string text = Emit(optional);
+		Assert.Equal(1, optional.RequiredArgumentCount);
+		Assert.Contains("if (__L.Top < 1 || __L.Top > 2)\n", text, StringComparison.Ordinal);
+		Assert.Contains(
+			"LuaCallSupport.TryReadOptional<string, global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller>(__L, 2, out global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<string> __arg1)",
+			text, StringComparison.Ordinal);
+		Assert.Contains("global::Demo.Suite.F(__arg0, __arg1);\n", text, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Thunk_is_cdecl_unmanaged_callers_only_and_catches_every_exception()
+	{
+		foreach (LuaThunkModel model in (LuaThunkModel[]) [Ping, IsInteger])
+		{
+			string text = Emit(model);
+
+			Assert.StartsWith(
+				"[global::System.Runtime.InteropServices.UnmanagedCallersOnly(CallConvs = new[] { typeof(global::System.Runtime.CompilerServices.CallConvCdecl) })]\nprivate static int ",
+				text, StringComparison.Ordinal);
+			Assert.Contains("(nint __handle)\n", text, StringComparison.Ordinal);
+			Assert.Contains(
+				"catch (global::System.Exception __exception)\n    {\n        return global::CheatEngine.SDK.Lua.Callbacks.LuaThunk.Fail(__L, __exception);",
+				text, StringComparison.Ordinal);
+			Assert.Equal(1, CountOccurrences(text, "catch ("));
+			Assert.DoesNotContain("lua_error", text, StringComparison.Ordinal);
+			Assert.DoesNotContain("throw", text, StringComparison.Ordinal);
+		}
+	}
+
+	[Fact]
 	public void Registration_emits_a_lease_and_legacy_registration_pair_in_the_given_order()
 	{
 		SourceWriter writer = new();
@@ -140,5 +184,18 @@ public sealed class LuaThunkEmitterTests
 		SourceWriter writer = new();
 		LuaThunkEmitter.Emit(writer, model);
 		return writer.ToString();
+	}
+
+	private static int CountOccurrences(string text, string value)
+	{
+		int count = 0;
+		for (int index = text.IndexOf(value, StringComparison.Ordinal);
+			 index >= 0;
+			 index = text.IndexOf(value, index + value.Length, StringComparison.Ordinal))
+		{
+			count++;
+		}
+
+		return count;
 	}
 }

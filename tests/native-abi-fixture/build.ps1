@@ -52,7 +52,9 @@ if ($null -eq $compiler -or $env:VSCMD_ARG_TGT_ARCH -ne 'x64') {
 }
 
 $fixtureDirectory = Split-Path -Parent $PSCommandPath
-$resolvedOutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
+# Resolve against the PowerShell location, not the process working directory: Set-Location does not move the latter,
+# so [System.IO.Path]::GetFullPath would write a relative -OutputDirectory into whatever folder pwsh started in.
+$resolvedOutputDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
 [System.IO.Directory]::CreateDirectory($resolvedOutputDirectory) | Out-Null
 
 $common = @('/nologo', '/std:c++20', '/W4', '/WX', '/EHsc', '/O2', '/I', $fixtureDirectory)

@@ -13,6 +13,7 @@ namespace CheatEngine.SDK.Abi.Tests.Fixture;
 public sealed class NativeAbiFixtureContractTests
 {
 	[Fact]
+	[Trait("Qualification", "Q01")]
 	public void Header_derived_classic_records_have_the_fixture_x64_sizes()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
@@ -33,6 +34,7 @@ public sealed class NativeAbiFixtureContractTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q01")]
 	public void Header_derived_classic_records_have_the_fixture_x64_alignments()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
@@ -56,8 +58,8 @@ public sealed class NativeAbiFixtureContractTests
 	public void Header_and_pinned_Pascal_popup_contract_conflict_keeps_the_slot_opaque_until_a_live_canary()
 	{
 		FieldInfo popup = typeof(DisassemblerContextPluginInit).GetField(
-			                  nameof(DisassemblerContextPluginInit.CallbackOnPopup))
-		                  ?? throw new InvalidOperationException("The popup callback field was not found.");
+							  nameof(DisassemblerContextPluginInit.CallbackOnPopup))
+						  ?? throw new InvalidOperationException("The popup callback field was not found.");
 
 		Type fieldType = popup.GetModifiedFieldType().UnderlyingSystemType;
 

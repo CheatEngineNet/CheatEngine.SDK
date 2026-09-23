@@ -1,0 +1,147 @@
+# Advisory CodeQL code scanning (audit register PR-CQ-22). Not part of CI / Gate: findings go to the Security tab and
+# appear as pull request annotations.
+# - C#: a manual, traced Release build of the shipped product graph (src/CheatEngine.SDK builds the six libraries, the
+#   analyzers and every source generator it packs), so generated code is analysed; build-mode none would skip it.
+# - C/C++: the native bridge and the ABI fixture sources, without a build (build-mode none), on Windows so the
+#   extractor sees the Windows SDK headers.
+# - GitHub Actions: the workflows and the composite action.
+# The repository's code-scanning default setup must stay OFF: GitHub rejects advanced-setup uploads while it is on.
+# No NuGet, dependency or TRAP cache: no cache on any path reachable by codeql (shared-contracts 1.5).
+# A fork pull request gets a read-only token, so its SARIF upload can fail; the workflow is advisory and never moves to
+# pull_request_target.
+name: CodeQL
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  csharp:
+    name: Analyze (csharp)
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: windows-2025
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      security-events: write # upload CodeQL SARIF
+      actions: read # CodeQL reads workflow run metadata
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # MinVer computes the real version, so no version-dependent guard sees a fallback
+          persist-credentials: false
+
+      - name: Set up .NET and restore the product graph
+        uses: ./.github/actions/setup-dotnet
+        with:
+          restore: src/CheatEngine.SDK/CheatEngine.SDK.csproj
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          languages: csharp
+          build-mode: manual
+          queries: security-extended
+          dependency-caching: false
+          trap-caching: false
+
+      # The compiler must run inside the traced build: no incremental skip, no build server, no compiler server (the
+      # tracer only sees newly created csc processes). CodeQL injects EmitCompilerGeneratedFiles itself.
+      # https://learn.microsoft.com/dotnet/core/tools/dotnet-build
+      # https://docs.github.com/en/code-security/reference/code-scanning/codeql/build-options-for-compiled-languages
+      - name: Build the shipped product graph
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet build src/CheatEngine.SDK/CheatEngine.SDK.csproj -c Release --no-restore --no-incremental --disable-build-servers -p:UseSharedCompilation=false -bl:artifacts/logs/codeql-csharp.binlog
+          if ($LASTEXITCODE -ne 0) {
+            throw "CodeQL traced build failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          category: /language:csharp
+
+      - name: Upload binary log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: binlogs-codeql
+          path: artifacts/logs/*.binlog
+          if-no-files-found: ignore
+          retention-days: 5
+
+  cpp:
+    name: Analyze (c-cpp)
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write # upload CodeQL SARIF
+      actions: read # CodeQL reads workflow run metadata
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          languages: c-cpp
+          build-mode: none
+          queries: security-extended
+          dependency-caching: false
+          trap-caching: false
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          category: /language:c-cpp
+
+  actions:
+    name: Analyze (actions)
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # upload CodeQL SARIF
+      actions: read # CodeQL reads workflow run metadata
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          languages: actions
+          build-mode: none
+          queries: security-extended
+          dependency-caching: false
+          trap-caching: false
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          category: /language:actions

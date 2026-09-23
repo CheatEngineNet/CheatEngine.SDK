@@ -146,14 +146,11 @@ That dispatcher verifies, in its callback thunk, that the host runs work on the 
 host that violates that check and it does not expose a fire-and-forget `queue(function, ...)` route. The CE 7.7 live
 probe still has to establish the host's real `synchronize` scheduling, errors, returns, and re-entrance behavior; see
 [09 · The main thread](../09-main-thread/README.md). Treat a disabled or stopping plugin as an expected failure
-boundary,
-not as an opportunity to retain a borrowed record.
+boundary, not as an opportunity to retain a borrowed record.
 
 ## Evidence and scope
 
-This slice is sourced from the exact CE `7.7.0.10621` x64 `celua.txt` fixture (digest recorded in the
-[source index](../../documentations/CheatEngine.SDK/SOURCES.md)): `getAddressList`, the `Addresslist` class, and
-the
+This slice is sourced from the exact CE `7.7.0.10621` x64 `celua.txt` fixture: `getAddressList`, the `Addresslist` class, and the
 `MemoryRecord` members used above. Its protected-call tests exercise the managed boundary; they do not prove a live CE
 GUI thread contract. The classic plugin callback type 0 record is a separate ABI concern and is not this object API.
 

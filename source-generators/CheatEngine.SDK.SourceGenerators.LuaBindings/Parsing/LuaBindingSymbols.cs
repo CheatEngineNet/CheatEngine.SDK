@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Immutable;
 
+using CheatEngine.SDK.SourceGenerators.Shared.LuaBindings.Parsing;
+
 using Microsoft.CodeAnalysis;
 
 namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Parsing;
@@ -10,6 +12,13 @@ namespace CheatEngine.SDK.SourceGenerators.LuaBindings.Parsing;
 ///     key: matching it structurally would let an unrelated source or referenced assembly impersonate an SDK annotation
 ///     or <c>LuaState</c>.
 /// </summary>
+/// <remarks>
+///     Every lookup keeps the candidate defined by the expected SDK assembly among all types with the metadata name
+///     (<c>Compilation.GetTypesByMetadataName</c>). <c>GetTypeByMetadataName</c> would return a same-named source type
+///     first, or <see langword="null" /> on ambiguity, and so let a look-alike hide the real type
+///     (https://learn.microsoft.com/dotnet/api/microsoft.codeanalysis.compilation.gettypebymetadataname). The analyzer
+///     resolves the same symbols per referenced assembly (<c>SdkSymbolResolver</c>).
+/// </remarks>
 internal static class LuaBindingSymbols
 {
 	private const string AnnotationsAssemblyName = "CheatEngine.SDK.Annotations";
@@ -60,6 +69,18 @@ internal static class LuaBindingSymbols
 		return ResolveSdkType(compilation, LuaMarshallerContractMetadataName, LuaAssemblyName);
 	}
 
+	/// <summary>Gets the actual <c>LuaOptional&lt;T&gt;</c>, or <see langword="null" /> when it is unavailable.</summary>
+	public static INamedTypeSymbol? ResolveLuaOptional(Compilation compilation)
+	{
+		return ResolveSdkType(compilation, LuaContractTypes.LuaOptionalMetadataName, LuaAssemblyName);
+	}
+
+	/// <summary>Gets the actual <c>LuaOperationStatus</c>, or <see langword="null" /> when it is unavailable.</summary>
+	public static INamedTypeSymbol? ResolveLuaOperationStatus(Compilation compilation)
+	{
+		return ResolveSdkType(compilation, LuaContractTypes.LuaOperationStatusMetadataName, LuaAssemblyName);
+	}
+
 	/// <summary>
 	///     Reads the name argument belonging to the resolved SDK attribute. An unrelated attribute with the same
 	///     metadata name is ignored even when Roslyn's discovery predicate delivered it.
@@ -91,9 +112,14 @@ internal static class LuaBindingSymbols
 
 	private static INamedTypeSymbol? ResolveSdkType(Compilation compilation, string metadataName, string assemblyName)
 	{
-		INamedTypeSymbol? type = compilation.GetTypeByMetadataName(metadataName);
-		return type is not null && string.Equals(type.ContainingAssembly.Name, assemblyName, StringComparison.Ordinal)
-			? type
-			: null;
+		foreach (INamedTypeSymbol type in compilation.GetTypesByMetadataName(metadataName))
+		{
+			if (string.Equals(type.ContainingAssembly?.Name, assemblyName, StringComparison.Ordinal))
+			{
+				return type;
+			}
+		}
+
+		return null;
 	}
 }

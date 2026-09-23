@@ -1,3 +1,9 @@
+// The second test below reaches a worker Lua coroutine only through RuntimeScope's admitWorkerThreads: true, which
+// opts in to the experimental CESDK5001 gate (RuntimeScope.cs carries that call's own justified #pragma). Without
+// it, the 2.0 conservative default (ADR-07) refuses every worker acquisition before the state provider runs, and
+// the qualification would have nothing to observe. See
+// `First_worker_acquisition_is_refused_by_default_without_creating_a_coroutine` for the default-policy proof.
+
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -24,12 +30,36 @@ public sealed class LuaUniverseQualificationTests
 	private static unsafe LuaNativeFunction ReturnOneFunction => new(&ReturnOne);
 
 	[Fact]
-	public void First_worker_acquisition_rejects_a_missing_state_then_uses_a_distinct_coroutine_in_the_same_universe()
+	[Trait("Qualification", "Q19")]
+	public void First_worker_acquisition_is_refused_by_default_without_creating_a_coroutine()
+	{
+		LuaTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using RuntimeScope scope = new(state);
+		int providerCallsBefore = HostDouble.ProviderCalls;
+		LuaAdmissionStatus? status = null;
+
+		Thread thread = new(() =>
+		{
+			HostDouble.ClearStateForCurrentThread();
+			status = LuaRuntime.TryAcquireOperationWithOutcome(out LuaRuntimeOperation operation);
+			operation.Dispose();
+		});
+		thread.Start();
+		Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "The refused worker acquisition did not return.");
+
+		Assert.Equal(LuaAdmissionStatus.ThreadNotAdmitted, status);
+		Assert.Equal(providerCallsBefore, HostDouble.ProviderCalls);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q19")]
+	public void First_worker_acquisition_with_the_experimental_opt_in_uses_a_distinct_coroutine_in_the_same_universe()
 	{
 		LuaTest.RequireNativeLua();
 		using NativeLuaState state = new();
 		LuaState main = LuaTest.View(state);
-		using RuntimeScope scope = new(state);
+		using RuntimeScope scope = new(state, admitWorkerThreads: true);
 		main.PushInteger(719);
 		Assert.True(main.TrySetGlobal("sdk012_shared_universe"u8).IsOk);
 		main.PushString("shared private registry"u8);
@@ -40,7 +70,9 @@ public sealed class LuaUniverseQualificationTests
 
 		Assert.Null(observation.Failure);
 		Assert.True(observation.FirstAcquisitionWasRejected);
-		Assert.Equal(2, HostDouble.ProviderCalls);
+		// 1: Attach's own eager universe-stamp attempt on the main thread; 2: the worker's rejected attempt (no
+		// state yet); 3: the worker's successful acquisition once its state is set.
+		Assert.Equal(3, HostDouble.ProviderCalls);
 		Assert.NotEqual(main.Handle, observation.WorkerState);
 		Assert.Equal(identity, observation.WorkerIdentity);
 		Assert.Equal(719L, observation.GlobalValue);
@@ -57,7 +89,8 @@ public sealed class LuaUniverseQualificationTests
 		LuaTest.RequireNativeLua();
 		using NativeLuaState state = new();
 		LuaState main = LuaTest.View(state);
-		using RuntimeScope scope = new(state);
+		// ObservePostResetWorkerCore below acquires a Lua operation from a real worker thread.
+		using RuntimeScope scope = new(state, admitWorkerThreads: true);
 		using RootedCoroutine worker = RootedCoroutine.Create(main);
 		using NativeLuaState replacementState = new();
 		LuaState replacementMain = LuaTest.View(replacementState);

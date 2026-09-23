@@ -23,6 +23,8 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 /// <param name="luaMethodAttribute">The resolved LuaMethod marker, or <see langword="null" />.</param>
 /// <param name="luaPropertyAttribute">The resolved LuaProperty marker, or <see langword="null" />.</param>
 /// <param name="luaState">The resolved SDK LuaState symbol, or <see langword="null" />.</param>
+/// <param name="luaOptional">The resolved SDK <c>LuaOptional&lt;T&gt;</c>, or <see langword="null" />.</param>
+/// <param name="luaOperationStatus">The resolved SDK <c>LuaOperationStatus</c>, or <see langword="null" />.</param>
 internal sealed class LuaBindingContractSymbols(
 	INamedTypeSymbol? luaFunctionAttribute,
 	INamedTypeSymbol? luaGlobalAttribute,
@@ -31,7 +33,9 @@ internal sealed class LuaBindingContractSymbols(
 	INamedTypeSymbol? luaClassAttribute,
 	INamedTypeSymbol? luaMethodAttribute,
 	INamedTypeSymbol? luaPropertyAttribute,
-	INamedTypeSymbol? luaState)
+	INamedTypeSymbol? luaState,
+	INamedTypeSymbol? luaOptional,
+	INamedTypeSymbol? luaOperationStatus)
 {
 	/// <summary>The marker attribute of an exported Lua function.</summary>
 	public INamedTypeSymbol? LuaFunctionAttribute
@@ -80,4 +84,16 @@ internal sealed class LuaBindingContractSymbols(
 	{
 		get;
 	} = luaState;
+
+	/// <summary>The real SDK optional value, recognised by identity only.</summary>
+	public INamedTypeSymbol? LuaOptional
+	{
+		get;
+	} = luaOptional;
+
+	/// <summary>The real SDK outcome value that selects the Outcome form, recognised by identity only.</summary>
+	public INamedTypeSymbol? LuaOperationStatus
+	{
+		get;
+	} = luaOperationStatus;
 }

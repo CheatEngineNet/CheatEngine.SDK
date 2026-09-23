@@ -36,7 +36,9 @@ internal static class HostProfileObservation
 
 			WriteFileIdentity(writer, "host", authorization.HostPath, authorization.HostSha256);
 			WriteFileIdentity(writer, "lua", FindLoadedModulePath(LuaModule.CheatEngine64ModuleName), null);
-			WriteFileIdentity(writer, "bridge", Path.Combine(AppContext.BaseDirectory, BridgeFileName), null);
+			// The bridge module the process actually loaded (through the plugin's dependency resolution), never a file
+			// guessed next to AppContext.BaseDirectory: under Cheat Engine's hostfxr runtime that is not the plugin folder.
+			WriteFileIdentity(writer, "bridge", FindLoadedModulePath(BridgeFileName), null);
 			WriteFileIdentity(writer, "plugin", typeof(HostProfileObservation).Assembly.Location, null);
 
 			writer.WriteStartObject("target");
@@ -83,7 +85,7 @@ internal static class HostProfileObservation
 			writer.WriteString("machine", reader.PEHeaders.CoffHeader.Machine.ToString());
 		}
 		catch (Exception exception) when (exception is BadImageFormatException or IOException
-			                                  or UnauthorizedAccessException)
+											  or UnauthorizedAccessException)
 		{
 			writer.WriteString("machine", "unavailable: " + exception.GetType().Name);
 		}
@@ -130,7 +132,7 @@ internal static class HostProfileObservation
 			return getFileVersion(path) ?? "not-present";
 		}
 		catch (Exception exception) when (exception is ArgumentException or Win32Exception
-			                                  or IOException or UnauthorizedAccessException)
+											  or IOException or UnauthorizedAccessException)
 		{
 			return "unavailable: " + exception.GetType().Name;
 		}
@@ -150,7 +152,7 @@ internal static class HostProfileObservation
 			}
 		}
 		catch (Exception exception) when (exception is InvalidOperationException or NotSupportedException
-			                                  or Win32Exception)
+											  or Win32Exception)
 		{
 			HostLog.Write(HostLogLevel.Warning,
 				"CE 7.7 host-profile probe could not enumerate loaded modules.", exception);

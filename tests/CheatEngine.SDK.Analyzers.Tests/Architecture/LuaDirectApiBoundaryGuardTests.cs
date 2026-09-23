@@ -17,7 +17,7 @@ namespace CheatEngine.SDK.Analyzers.Tests.Architecture;
 public sealed class LuaDirectApiBoundaryGuardTests
 {
 	private const string LuaApiQualifiedName = "CheatEngine.SDK.Lua.Interop.Api.LuaApi";
-	private const string CataloguePath = "eng/lua-bridge/protected-operations.json";
+	private const string CataloguePath = "libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json";
 	private const string LibrariesPath = "libs";
 	private const string RawApiPath = "libs/CheatEngine.SDK.Lua.Interop/Api/";
 	private const string LightCFunctionFastPathSourcePath = "libs/CheatEngine.SDK.Lua/State/LuaState.Callbacks.cs";
@@ -429,12 +429,12 @@ public sealed class LuaDirectApiBoundaryGuardTests
 		foreach (SyntaxNode node in root.DescendantNodes())
 		{
 			if (node is not InvocationExpressionSyntax invocation ||
-			    !TryGetLuaApiMemberName(invocation, aliases, hasStaticLuaApiImport, hasLuaApiNamespaceImport,
-				    shadowedNames, out string memberName) ||
-			    !policy.TryGet(memberName, out LuaDirectApiPolicyEntry entry) ||
-			    !entry.RequiresBridge ||
-			    entry.AllowedDirectly ||
-			    IsConditionallyAllowed(entry, invocation, path))
+				!TryGetLuaApiMemberName(invocation, aliases, hasStaticLuaApiImport, hasLuaApiNamespaceImport,
+					shadowedNames, out string memberName) ||
+				!policy.TryGet(memberName, out LuaDirectApiPolicyEntry entry) ||
+				!entry.RequiresBridge ||
+				entry.AllowedDirectly ||
+				IsConditionallyAllowed(entry, invocation, path))
 			{
 				continue;
 			}
@@ -450,7 +450,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
 		foreach (SyntaxNode node in root.DescendantNodesAndSelf())
 		{
 			if (node is not UsingDirectiveSyntax directive || directive.Alias is null || directive.Name is null ||
-			    !IsExactLuaApiTypeName(directive.Name.ToString()))
+				!IsExactLuaApiTypeName(directive.Name.ToString()))
 			{
 				continue;
 			}
@@ -466,8 +466,8 @@ public sealed class LuaDirectApiBoundaryGuardTests
 		foreach (SyntaxNode node in root.DescendantNodesAndSelf())
 		{
 			if (node is UsingDirectiveSyntax { Name: not null } directive &&
-			    directive.StaticKeyword.RawKind != 0 &&
-			    IsExactLuaApiTypeName(directive.Name.ToString()))
+				directive.StaticKeyword.RawKind != 0 &&
+				IsExactLuaApiTypeName(directive.Name.ToString()))
 			{
 				return true;
 			}
@@ -481,8 +481,8 @@ public sealed class LuaDirectApiBoundaryGuardTests
 		foreach (SyntaxNode node in root.DescendantNodesAndSelf())
 		{
 			if (node is UsingDirectiveSyntax { Alias: null, Name: not null } directive &&
-			    directive.StaticKeyword.RawKind == 0 &&
-			    IsLuaApiNamespaceName(directive.Name.ToString()))
+				directive.StaticKeyword.RawKind == 0 &&
+				IsLuaApiNamespaceName(directive.Name.ToString()))
 			{
 				return true;
 			}
@@ -527,14 +527,14 @@ public sealed class LuaDirectApiBoundaryGuardTests
 		switch (invocation.Expression)
 		{
 			case IdentifierNameSyntax identifier when hasStaticLuaApiImport &&
-			                                          !shadowedNames.Contains(identifier.Identifier.ValueText):
+													  !shadowedNames.Contains(identifier.Identifier.ValueText):
 				memberName = identifier.Identifier.ValueText;
 				return true;
 
 			case MemberAccessExpressionSyntax { Name: IdentifierNameSyntax name } memberAccess:
 				string typeName = memberAccess.Expression.ToString();
 				if (IsExactLuaApiTypeName(typeName) || aliases.Contains(typeName) ||
-				    (hasLuaApiNamespaceImport && string.Equals(typeName, "LuaApi", StringComparison.Ordinal)))
+					(hasLuaApiNamespaceImport && string.Equals(typeName, "LuaApi", StringComparison.Ordinal)))
 				{
 					memberName = name.Identifier.ValueText;
 					return true;
@@ -551,15 +551,15 @@ public sealed class LuaDirectApiBoundaryGuardTests
 		string path)
 	{
 		if (!entry.ConditionalDirectUse || !entry.ConditionalAllowed ||
-		    !string.Equals(entry.MemberName, "lua_pushcclosure", StringComparison.Ordinal) ||
-		    !string.Equals(path, LightCFunctionFastPathSourcePath, StringComparison.Ordinal))
+			!string.Equals(entry.MemberName, "lua_pushcclosure", StringComparison.Ordinal) ||
+			!string.Equals(path, LightCFunctionFastPathSourcePath, StringComparison.Ordinal))
 		{
 			return false;
 		}
 
 		SeparatedSyntaxList<ArgumentSyntax> arguments = invocation.ArgumentList.Arguments;
 		if (arguments.Count != 3 || !IsIdentifier(arguments[0].Expression, "Pointer") ||
-		    !IsIntegerZero(arguments[2].Expression))
+			!IsIntegerZero(arguments[2].Expression))
 		{
 			return false;
 		}
@@ -567,8 +567,8 @@ public sealed class LuaDirectApiBoundaryGuardTests
 		ExpressionStatementSyntax? pushStatement = invocation.FirstAncestorOrSelf<ExpressionStatementSyntax>();
 		MethodDeclarationSyntax? method = invocation.FirstAncestorOrSelf<MethodDeclarationSyntax>();
 		if (pushStatement is null || method is null ||
-		    !string.Equals(method.Identifier.ValueText, "PushUncheckedFunction", StringComparison.Ordinal) ||
-		    method.Body is null)
+			!string.Equals(method.Identifier.ValueText, "PushUncheckedFunction", StringComparison.Ordinal) ||
+			method.Body is null)
 		{
 			return false;
 		}
@@ -590,20 +590,20 @@ public sealed class LuaDirectApiBoundaryGuardTests
 	private static bool IsImmediateOneSlotCheckStackGuard(StatementSyntax statement)
 	{
 		if (statement is not IfStatementSyntax condition ||
-		    !ContainsOnlyThrow(condition.Statement) ||
-		    condition.Condition is not BinaryExpressionSyntax equals ||
-		    !equals.IsKind(SyntaxKind.EqualsExpression) ||
-		    !IsIntegerZero(equals.Right))
+			!ContainsOnlyThrow(condition.Statement) ||
+			condition.Condition is not BinaryExpressionSyntax equals ||
+			!equals.IsKind(SyntaxKind.EqualsExpression) ||
+			!IsIntegerZero(equals.Right))
 		{
 			return false;
 		}
 
 		if (equals.Left is not InvocationExpressionSyntax
-		    {
-			    Expression: IdentifierNameSyntax { Identifier.ValueText: "lua_checkstack" },
-			    ArgumentList.Arguments: var arguments
-		    } || arguments.Count != 2 || !IsIdentifier(arguments[0].Expression, "Pointer") ||
-		    !IsIntegerOne(arguments[1].Expression))
+			{
+				Expression: IdentifierNameSyntax { Identifier.ValueText: "lua_checkstack" },
+				ArgumentList.Arguments: var arguments
+			} || arguments.Count != 2 || !IsIdentifier(arguments[0].Expression, "Pointer") ||
+			!IsIntegerOne(arguments[1].Expression))
 		{
 			return false;
 		}
@@ -614,7 +614,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
 	private static bool ContainsOnlyThrow(StatementSyntax statement)
 	{
 		return statement is ThrowStatementSyntax ||
-		       (statement is BlockSyntax { Statements.Count: 1 } block && block.Statements[0] is ThrowStatementSyntax);
+			   (statement is BlockSyntax { Statements.Count: 1 } block && block.Statements[0] is ThrowStatementSyntax);
 	}
 
 	private static bool IsIntegerZero(ExpressionSyntax expression)
@@ -662,7 +662,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
 	private static bool IsIdentifier(ExpressionSyntax expression, string identifier)
 	{
 		return expression is IdentifierNameSyntax name &&
-		       string.Equals(name.Identifier.ValueText, identifier, StringComparison.Ordinal);
+			   string.Equals(name.Identifier.ValueText, identifier, StringComparison.Ordinal);
 	}
 
 	private static string[] ReadProvenance(JsonElement entry)
@@ -691,7 +691,7 @@ public sealed class LuaDirectApiBoundaryGuardTests
 	private static bool IsGeneratedPath(string repositoryPath)
 	{
 		return repositoryPath.Contains("/bin/", StringComparison.Ordinal) ||
-		       repositoryPath.Contains("/obj/", StringComparison.Ordinal);
+			   repositoryPath.Contains("/obj/", StringComparison.Ordinal);
 	}
 
 	private static bool IsExactLuaApiTypeName(string typeName)

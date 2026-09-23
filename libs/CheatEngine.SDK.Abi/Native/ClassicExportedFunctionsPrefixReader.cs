@@ -7,15 +7,27 @@ namespace CheatEngine.SDK.Abi.Native;
 ///     Copies the qualified physical prefix of a classic exported-functions table from caller-bounded bytes.
 /// </summary>
 /// <remarks>
-///     This is not a classic-host facade. It neither retains the source bytes nor invokes, dereferences, or assigns
-///     any slot in the copied table. A future host integration must establish the source buffer's lifetime separately.
+///     <para>
+///         This is not a classic-host facade. It neither retains the source bytes nor invokes, dereferences, or assigns
+///         any slot in the copied table. A future host integration must establish the source buffer's lifetime
+///         separately.
+///     </para>
+///     <para>
+///         <b>All or nothing.</b> The copy succeeds only when both the declared size and the physical buffer cover the
+///         whole prefix, <see cref="DirectPrefixByteCount" /> = 144 bytes, the <c>minDeclaredSize</c> of slot 17 in
+///         <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>. A table that declares, say, 64 bytes yields no prefix at all,
+///         not the first seven slots; <c>ClassicExportedFunctionsSlotReader</c> is the per-slot observation path.
+///     </para>
 /// </remarks>
 internal static class ClassicExportedFunctionsPrefixReader
 {
 	/// <summary>Number of bytes occupied by the table's declared-size field.</summary>
 	internal const int DeclaredSizeByteCount = sizeof(int);
 
-	/// <summary>Number of bytes in the only physically mapped classic table prefix.</summary>
+	/// <summary>
+	///     Number of bytes in the only physically mapped classic table prefix: the minimum declared size of registry slot
+	///     17 (<c>8 * (17 + 1)</c>).
+	/// </summary>
 	internal const int DirectPrefixByteCount = 144;
 
 	/// <summary>

@@ -15,16 +15,25 @@ namespace CheatEngine.SDK.Engine.Assembly;
 /// <summary>Assembles one instruction through CE's protected Lua <c>assemble</c> global.</summary>
 /// <remarks>
 ///     <para>
-///         The CE 7.7.0.10621 implementation accepts the instruction text and optional address, then returns a Lua
-///         byte table on success or <c>nil</c> when it rejects the instruction. This API always supplies the address:
-///         it is the explicit origin CE receives when it evaluates a relative operand. It does not claim relocation
-///         support beyond that CE operation or reconfigure CE's ambient target architecture.
+///         CE's <c>assemble(line, address?, preference?, skipRangeCheck?)</c> returns a Lua byte table on success. It
+///         returns <c>nil</c> alone when it rejects the instruction, or <c>nil</c> and a message when the attempt raised
+///         inside CE (<c>LuaHandler.pas:2914-2961</c> at ec45d5f, ObservedSource; <c>celua.txt:236-238</c>). Both are
+///         <see cref="InstructionOperationStatus.InstructionRejected" />: an unknown opcode or a missing symbol are both
+///         rejections, and the SDK never reads or parses the message (audit A15-20, A15-21). This API always supplies the
+///         address: it is the explicit origin CE receives when it evaluates a relative operand. It does not claim
+///         relocation support beyond that CE operation or reconfigure CE's ambient target architecture.
 ///     </para>
 ///     <para>
 ///         The destination is caller-owned. The table is validated completely before the first byte is copied, so a
-///         short destination or malformed later element cannot publish a prefix. Neither the table nor Lua text is
-///         retained after the stack is restored. This API does not invoke a classic native assembler slot; unresolved
-///         host ABI projections remain unavailable.
+///         short destination or malformed later element cannot publish a prefix; a destination that is too small is
+///         reported with the required length and no byte written (A15-19). Neither the table nor Lua text is retained
+///         after the stack is restored. This API does not invoke a classic native assembler slot; the classic
+///         buffer-based slots are not applicable to the managed-hostfxr profile and stay unprojected.
+///     </para>
+///     <para>
+///         The target PID is checked before and after CE's call. A change observed after CE produced the bytes is
+///         <see cref="InstructionOperationStatus.TargetChanged" />, no byte is copied, and no rollback is promised: the
+///         checks are observations, not a lock (A15-06).
 ///     </para>
 /// </remarks>
 public static class InstructionAssembler
@@ -47,14 +56,77 @@ public static class InstructionAssembler
 	/// <returns>A profile, capacity, instruction, availability, protected-call, or result-shape outcome.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="instruction" /> is <see langword="null" />.</exception>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
+	/// <remarks>
+	///     This overload passes exactly two arguments to <c>assemble</c> (the text and the address), so CE applies its
+	///     defaults for the preference and the range check. Use the overload with <see cref="AssemblePreference" /> to
+	///     pass and record them.
+	/// </remarks>
 	[RequiresPluginEnabled]
-	[SuppressMessage("Meziantou.Analyzer", "MA0051:Method is too long",
-		Justification = "The protected call, full table validation, target recheck, and copy share one stack frame.")]
 	public static InstructionOperationStatus TryAssemble(InstructionTargetProfile targetProfile, string instruction,
 		Address address,
 		Span<byte> destination, out int written, out int requiredLength)
 	{
 		ArgumentNullException.ThrowIfNull(instruction);
+		return TryAssembleCore(targetProfile, instruction, address, null, false, destination, out written,
+			out requiredLength);
+	}
+
+	/// <summary>
+	///     Assembles one instruction into caller-owned storage with an explicit origin, jump-encoding preference and
+	///     range-check option, and echoes all of them in <paramref name="assembly" />.
+	/// </summary>
+	/// <param name="targetProfile">
+	///     The CE-observed selected PID and instruction profile used to validate
+	///     <paramref name="address" />.
+	/// </param>
+	/// <param name="instruction">The instruction source sent to CE as UTF-8 without normalization.</param>
+	/// <param name="address">The target origin supplied to CE.</param>
+	/// <param name="preference">The jump-encoding preference passed to CE unchanged.</param>
+	/// <param name="skipRangeCheck">
+	///     The range-check option passed to CE. When <see langword="true" />, CE skips its own check that a relative
+	///     operand is reachable from <paramref name="address" /> and emits bytes even when they cannot encode the intended
+	///     target; the caller then owns that risk.
+	/// </param>
+	/// <param name="destination">Caller-owned storage for the complete assembled byte sequence.</param>
+	/// <param name="assembly">
+	///     The echo of the call: target, profile, origin, preference and range-check option on every outcome, plus the
+	///     written and required lengths.
+	/// </param>
+	/// <returns>A profile, capacity, instruction, availability, protected-call, or result-shape outcome.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="instruction" /> is <see langword="null" />.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">
+	///     <paramref name="preference" /> is not a defined <see cref="AssemblePreference" /> value; nothing is sent to CE.
+	/// </exception>
+	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
+	/// <remarks>
+	///     This overload always passes four arguments to <c>assemble</c>: the text, the address as a Lua integer, the
+	///     preference as its CE integer and the option as a Lua boolean.
+	/// </remarks>
+	[RequiresPluginEnabled]
+	public static InstructionOperationStatus TryAssemble(InstructionTargetProfile targetProfile, string instruction,
+		Address address, AssemblePreference preference, bool skipRangeCheck, Span<byte> destination,
+		out InstructionAssembly assembly)
+	{
+		ArgumentNullException.ThrowIfNull(instruction);
+		if ((byte) preference > (byte) AssemblePreference.Far)
+		{
+			throw new ArgumentOutOfRangeException(nameof(preference), preference,
+				"The assembler preference must be None, Short, Long or Far.");
+		}
+
+		InstructionOperationStatus status = TryAssembleCore(targetProfile, instruction, address, preference,
+			skipRangeCheck, destination, out int written, out int requiredLength);
+		assembly = new InstructionAssembly(targetProfile.Target, targetProfile.Profile, address, preference,
+			skipRangeCheck, written, requiredLength);
+		return status;
+	}
+
+	[SuppressMessage("Meziantou.Analyzer", "MA0051:Method is too long",
+		Justification = "The protected call, full table validation, target recheck, and copy share one stack frame.")]
+	private static InstructionOperationStatus TryAssembleCore(InstructionTargetProfile targetProfile,
+		string instruction, Address address, AssemblePreference? preference, bool skipRangeCheck,
+		Span<byte> destination, out int written, out int requiredLength)
+	{
 		written = 0;
 		requiredLength = 0;
 
@@ -75,13 +147,13 @@ public static class InstructionAssembler
 				return targetStatus;
 			}
 
-			LuaGlobalPushStatus global = LuaGlobalFunctions.TryPushWithStatus(state, SAssemble, "assemble"u8);
-			if (global == LuaGlobalPushStatus.Unavailable)
+			LuaGlobalPushOutcome global = LuaGlobalFunctions.TryPushWithOutcome(state, SAssemble, "assemble"u8);
+			if (global.Status == LuaGlobalPushStatus.Unavailable)
 			{
 				return InstructionOperationStatus.GlobalUnavailable;
 			}
 
-			if (global != LuaGlobalPushStatus.Success)
+			if (!global.IsSuccess)
 			{
 				return InstructionOperationStatus.LuaFailure;
 			}
@@ -89,7 +161,16 @@ public static class InstructionAssembler
 			int resultStart = state.Top - 1;
 			StringMarshaller.Push(state, instruction);
 			Address.Push(state, address);
-			if (!state.TryCall(2, LuaState.MultipleResults).IsOk)
+			int argumentCount = 2;
+			if (preference is AssemblePreference explicitPreference)
+			{
+				// The four-argument form: CE's TassemblerPreference integer, then the range-check boolean.
+				state.PushInteger((long) explicitPreference);
+				state.PushBoolean(skipRangeCheck);
+				argumentCount = 4;
+			}
+
+			if (!state.TryCall(argumentCount, LuaState.MultipleResults).IsOk)
 			{
 				return InstructionOperationStatus.LuaFailure;
 			}
@@ -106,6 +187,8 @@ public static class InstructionAssembler
 				return InstructionOperationStatus.InvalidResult;
 			}
 
+			// nil alone (CE rejected the line) and nil plus a message (CE raised internally) are both a rejection. The
+			// second value is never read, so no outcome depends on message text.
 			if (state.IsNil(resultIndex))
 			{
 				return InstructionOperationStatus.InstructionRejected;

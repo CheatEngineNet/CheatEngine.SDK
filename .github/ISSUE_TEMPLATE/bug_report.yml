@@ -1,0 +1,62 @@
+# Schema: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-githubs-form-schema
+name: Bug report
+description: An SDK API, analyzer, generator or build asset behaves differently from its documentation.
+title: "[Bug] "
+labels: [ bug ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for a defect in the SDK itself. When a plugin does not load, or works with one Cheat Engine,
+        runtime or package combination and not another, use the **Compatibility report** form instead: it records the
+        exact tuple the problem depends on. Security problems go to private reporting (see SECURITY.md).
+
+  - type: input
+    id: sdk-version
+    attributes:
+      label: CheatEngine.SDK version
+      description: The `resolved` version of `CheatEngine.SDK` in the plugin's `packages.lock.json`, or the commit when you build from source.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: ce-version
+    attributes:
+      label: Cheat Engine build
+      description: The exact file version, or `not involved` for an analyzer, generator or build problem.
+      placeholder: "7.7.0.10621"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: A minimal plugin or code snippet and the actions that trigger the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Observed result
+      description: What happened instead, with the exact error text or diagnostic id.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (optional)
+      description: Relevant, redacted build output or log lines. Remove user names and private paths first.
+      render: text
+    validations:
+      required: false

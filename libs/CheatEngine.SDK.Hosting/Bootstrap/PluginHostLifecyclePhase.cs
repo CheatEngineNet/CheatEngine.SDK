@@ -1,7 +1,9 @@
 namespace CheatEngine.SDK.Hosting.Bootstrap;
 
 /// <summary>
-///     The stable and transitional states of the one managed plugin hosted by this assembly load context.
+///     The stable and transitional states of the one managed plugin hosted by this loaded
+///     <c>CheatEngine.SDK.Hosting</c> assembly instance. Whether that equals one per assembly load context, or one per
+///     plugin, is decided by the host loader profile (Q09: C2 host-emulator facts, C4 receipts), not assumed here.
 /// </summary>
 /// <remarks>
 ///     Cheat Engine drives the transitions through the generated bootstrap's native callbacks. <see cref="Enabled" />

@@ -94,7 +94,9 @@ internal static unsafe class MainThreadDispatcher
 			return;
 		}
 
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+		// The single documented default exception to the 2.0 conservative admission policy (ADR-07): this worker's
+		// own half of the synchronize hand-off is always admitted, whatever LuaRuntime.ThreadAdmission is set to.
+		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperationForMainThreadDispatch();
 		LuaState l = operation.State;
 		using LuaFrame frame = new(l);
 
@@ -102,7 +104,7 @@ internal static unsafe class MainThreadDispatcher
 		if (!status.IsOk)
 		{
 			throw new InvalidOperationException("The host's 'synchronize' global could not be read: " +
-			                                    LuaError.FromStack(l, status).Message);
+												LuaError.FromStack(l, status).Message);
 		}
 
 		if (!l.IsFunction(-1))
@@ -116,7 +118,7 @@ internal static unsafe class MainThreadDispatcher
 		if (!status.IsOk)
 		{
 			throw new InvalidOperationException("The dispatch callback could not be created: " +
-			                                    LuaError.FromStack(l, status).Message);
+												LuaError.FromStack(l, status).Message);
 		}
 
 		using (callback)
@@ -132,7 +134,7 @@ internal static unsafe class MainThreadDispatcher
 		if (!status.IsOk)
 		{
 			throw new InvalidOperationException("The host's 'synchronize' call failed: " +
-			                                    LuaError.FromStack(l, status).Message);
+												LuaError.FromStack(l, status).Message);
 		}
 	}
 

@@ -15,7 +15,7 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
 	public void Generator_repeats_an_explicit_scoped_readonlyspan_argument()
 	{
 		const string Source = Usings +
-		                      "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(scoped System.ReadOnlySpan<byte> data, out int v); }";
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(scoped System.ReadOnlySpan<byte> data, out int v); }";
 
 		GeneratorRun run = roslyn.Run(Source);
 
@@ -24,11 +24,44 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
 			run.SingleGeneratedText, StringComparison.Ordinal);
 	}
 
+	[Theory]
+	[InlineData("LuaOptional<int> count", "global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<int> count")]
+	[InlineData("LuaOptional<string> text", "global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<string> text")]
+	[InlineData("LuaOptional<nuint> address", "global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<nuint> address")]
+	public void Generator_repeats_optional_argument_and_result_types_exactly(string declared, string generated)
+	{
+		string source = Usings + "using CheatEngine.SDK.Lua.Calls;\nusing CheatEngine.SDK.Lua.Marshalling;\n" +
+						"namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(int first, " +
+						declared + ", out LuaOptional<long> result); }";
+
+		GeneratorRun run = roslyn.Run(source);
+
+		run.AssertCompilesClean();
+		Assert.Contains(
+			"public static partial bool TryG(int first, " + generated +
+			", out global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<long> result)",
+			run.SingleGeneratedText, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Generator_repeats_an_explicit_scoped_variadic_span()
+	{
+		const string Source = Usings + "using CheatEngine.SDK.Lua.Calls;\n" +
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial LuaOperationStatus G(scoped System.Span<long> values, out int count); }";
+
+		GeneratorRun run = roslyn.Run(Source);
+
+		run.AssertCompilesClean();
+		Assert.Contains(
+			"G(scoped global::System.Span<long> values, out int count)", run.SingleGeneratedText,
+			StringComparison.Ordinal);
+	}
+
 	[Fact]
 	public void Generator_omits_scoped_when_the_defining_declaration_did()
 	{
 		const string Source = Usings +
-		                      "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(System.ReadOnlySpan<byte> data, out int v); }";
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(System.ReadOnlySpan<byte> data, out int v); }";
 
 		GeneratorRun run = roslyn.Run(Source);
 
@@ -43,7 +76,7 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
 	public void Generator_repeats_an_explicit_scoped_copyout_destination()
 	{
 		const string Source = Usings +
-		                      "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(nuint a, scoped System.Span<byte> destination, out int written); }";
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(nuint a, scoped System.Span<byte> destination, out int written); }";
 
 		GeneratorRun run = roslyn.Run(Source);
 
@@ -56,7 +89,7 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
 	public void Generator_omits_scoped_on_the_copyout_destination_when_the_defining_declaration_did()
 	{
 		const string Source = Usings +
-		                      "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(nuint a, System.Span<byte> destination, out int written); }";
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(nuint a, System.Span<byte> destination, out int written); }";
 
 		GeneratorRun run = roslyn.Run(Source);
 
@@ -72,7 +105,7 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
 		// 'scoped' on an 'out' parameter of a non-ref-struct type does not affect partial-signature matching (the
 		// compiler accepts a mismatch there), so the emitter never needs to repeat it; this pins that down.
 		const string Source = Usings +
-		                      "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(nuint a, scoped out int v); }";
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(nuint a, scoped out int v); }";
 
 		GeneratorRun run = roslyn.Run(Source);
 
@@ -85,7 +118,7 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
 	public void Generator_preserves_the_extension_receiver_in_the_implementing_declaration()
 	{
 		const string Source = Usings +
-		                      "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(this nuint address, out int value); }";
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(this nuint address, out int value); }";
 
 		GeneratorRun run = roslyn.Run(Source);
 
@@ -98,7 +131,7 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
 	public void Generator_preserves_the_extension_receiver_on_a_copyout_destination()
 	{
 		const string Source = Usings +
-		                      "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(this System.Span<byte> destination, out int written); }";
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(this System.Span<byte> destination, out int written); }";
 
 		GeneratorRun run = roslyn.Run(Source);
 
@@ -111,7 +144,7 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
 	public void Generator_qualifies_the_cache_when_a_parameter_uses_its_name()
 	{
 		const string Source = Usings +
-		                      "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial void G(int s_luaGlobal_g); }";
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial void G(int s_luaGlobal_g); }";
 
 		GeneratorRun run = roslyn.Run(Source);
 
@@ -126,7 +159,7 @@ public sealed class PartialMethodSignatureTests(RoslynFixture roslyn) : IClassFi
 		// A generated partial body shares its parameter scope with the defining declaration. Do not emit CS0136 and
 		// leave the analyzer to report the precise CESDK2007 collision at the author declaration.
 		const string Source = Usings +
-		                      "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(nuint __L, out int v); }";
+							  "namespace Demo; public static partial class Holder { [LuaGlobal(\"g\")] public static partial bool TryG(nuint __L, out int v); }";
 
 		GeneratorRun run = roslyn.Run(Source);
 

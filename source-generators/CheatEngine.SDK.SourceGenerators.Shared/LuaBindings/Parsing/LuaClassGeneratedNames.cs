@@ -28,12 +28,12 @@ internal static class LuaClassGeneratedNames
 		}
 
 		return method.MethodKind == MethodKind.Ordinary
-		       && ((string.Equals(method.Name, "get_Handle", StringComparison.Ordinal)
-		            && method.Parameters.Length == 0)
-		           || (string.Equals(method.Name, "set_Handle", StringComparison.Ordinal)
-		               && ceObject is not null
-		               && method.Parameters.Length == 1
-		               && method.Parameters[0].RefKind == RefKind.None
-		               && SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, ceObject)));
+			   && ((string.Equals(method.Name, "get_Handle", StringComparison.Ordinal)
+					&& method.Parameters.Length == 0)
+				   || (string.Equals(method.Name, "set_Handle", StringComparison.Ordinal)
+					   && ceObject is not null
+					   && method.Parameters.Length == 1
+					   && method.Parameters[0].RefKind == RefKind.None
+					   && SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, ceObject)));
 	}
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 using CheatEngine.SDK.SourceGenerators.Shared.LuaEmit;
 
@@ -69,6 +70,53 @@ internal static class LuaValueKindMapper
 		return false;
 	}
 
+	/// <summary>
+	///     Classifies <paramref name="type" /> as a <c>LuaOptional&lt;T&gt;</c> value: <see langword="true" /> only for the
+	///     resolved SDK <c>LuaOptional&lt;T&gt;</c> whose <c>T</c> maps to a built-in kind that can be optional
+	///     (<see cref="LuaValueKinds.CanBeOptional" />), never for <c>string?</c>. <see cref="TryMap" /> itself never accepts
+	///     an optional, so object members (<c>[LuaMethod]</c>, <c>[LuaProperty]</c>) keep refusing it.
+	/// </summary>
+	/// <param name="type">The parameter, result or return type.</param>
+	/// <param name="luaOptional">The resolved <c>CheatEngine.SDK.Lua.Marshalling.LuaOptional`1</c>, or <see langword="null" />.</param>
+	/// <param name="inner">The kind of <c>T</c> when the result is <see cref="LuaOptionalUse.Supported" />.</param>
+	public static LuaOptionalUse ClassifyOptional(ITypeSymbol type, INamedTypeSymbol? luaOptional,
+		out LuaValueKind inner)
+	{
+		inner = default;
+		if (LuaContractTypes.IsLookAlike(type, luaOptional, LuaContractTypes.LuaOptionalMetadataName))
+		{
+			return LuaOptionalUse.LookAlike;
+		}
+
+		if (!LuaContractTypes.Is(type, luaOptional))
+		{
+			return LuaOptionalUse.NotOptional;
+		}
+
+		ITypeSymbol argument = ((INamedTypeSymbol) type).TypeArguments[0];
+		return TryMap(argument, out inner, out bool isNullable) && !isNullable && LuaValueKinds.CanBeOptional(inner)
+			? LuaOptionalUse.Supported
+			: LuaOptionalUse.Unsupported;
+	}
+
+	/// <summary>Whether <paramref name="type" /> is <c>System.Span&lt;T&gt;</c> for a <c>T</c> other than <see langword="byte" />.</summary>
+	/// <param name="type">The parameter type.</param>
+	/// <param name="element">The element type when the result is <see langword="true" />.</param>
+	public static bool IsSpanOfOther(ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? element)
+	{
+		if (type is INamedTypeSymbol { Arity: 1, ContainingType: null } named
+			&& string.Equals(named.Name, "Span", StringComparison.Ordinal)
+			&& named.ContainingNamespace is { Name: "System", ContainingNamespace.IsGlobalNamespace: true }
+			&& named.TypeArguments[0].SpecialType != SpecialType.System_Byte)
+		{
+			element = named.TypeArguments[0];
+			return true;
+		}
+
+		element = null;
+		return false;
+	}
+
 	/// <summary>Whether <paramref name="type" /> is the resolved SDK <c>LuaState</c> symbol.</summary>
 	public static bool IsLuaState(ITypeSymbol type, INamedTypeSymbol? expectedLuaState)
 	{
@@ -90,8 +138,8 @@ internal static class LuaValueKindMapper
 	private static bool IsSystemSpanOfByte(ITypeSymbol type, string name)
 	{
 		return type is INamedTypeSymbol { Arity: 1, ContainingType: null } named
-		       && string.Equals(named.Name, name, StringComparison.Ordinal)
-		       && named.TypeArguments[0].SpecialType == SpecialType.System_Byte
-		       && named.ContainingNamespace is { Name: "System", ContainingNamespace.IsGlobalNamespace: true };
+			   && string.Equals(named.Name, name, StringComparison.Ordinal)
+			   && named.TypeArguments[0].SpecialType == SpecialType.System_Byte
+			   && named.ContainingNamespace is { Name: "System", ContainingNamespace.IsGlobalNamespace: true };
 	}
 }

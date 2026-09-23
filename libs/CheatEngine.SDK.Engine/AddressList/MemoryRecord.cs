@@ -228,6 +228,55 @@ public readonly struct MemoryRecord(CEObject handle)
 		return Handle.TryCallMethod<Address, Address>("getCurrentAddress"u8, out address);
 	}
 
+	/// <summary>Gets CE's <c>Active</c> property: whether the record is activated (frozen, or its script enabled).</summary>
+	/// <param name="active">The activation state; default on failure.</param>
+	/// <returns><see langword="true" /> when CE returned a boolean.</returns>
+	/// <remarks>
+	///     A read only. The borrowed handle has no setter for <c>Active</c>: activation is an effectful command with its
+	///     own outcome, <see cref="AddressListMutations.SetActive" />.
+	/// </remarks>
+	[RequiresPluginEnabled]
+	public bool TryGetActive(out bool active)
+	{
+		return Handle.TryGetProperty<BooleanMarshaller, bool>("Active"u8, out active);
+	}
+
+	/// <summary>Gets CE's <c>Async</c> property: whether activating this record runs asynchronously (script records).</summary>
+	/// <param name="isAsync">The value; default on failure.</param>
+	/// <returns><see langword="true" /> when CE returned a boolean.</returns>
+	[RequiresPluginEnabled]
+	public bool TryGetAsync(out bool isAsync)
+	{
+		return Handle.TryGetProperty<BooleanMarshaller, bool>("Async"u8, out isAsync);
+	}
+
+	/// <summary>Gets CE's <c>AsyncProcessing</c> property: whether an asynchronous activation is still being processed.</summary>
+	/// <param name="processing">The value; default on failure.</param>
+	/// <returns><see langword="true" /> when CE returned a boolean.</returns>
+	[RequiresPluginEnabled]
+	public bool TryGetAsyncProcessing(out bool processing)
+	{
+		return Handle.TryGetProperty<BooleanMarshaller, bool>("AsyncProcessing"u8, out processing);
+	}
+
+	/// <summary>Gets CE's <c>Script</c> property: the Auto Assembler script of an Auto Assembler record.</summary>
+	/// <param name="script">A newly allocated managed string; default on failure.</param>
+	/// <returns><see langword="true" /> when CE returned a Lua string (a non-script record typically returns none).</returns>
+	[RequiresPluginEnabled]
+	public bool TryGetScript([MaybeNullWhen(false)] out string script)
+	{
+		return Handle.TryGetProperty<StringMarshaller, string>("Script"u8, out script);
+	}
+
+	/// <summary>Gets CE's <c>OffsetCount</c> property: the number of pointer offsets (0 for a plain address).</summary>
+	/// <param name="offsetCount">The count; default on failure.</param>
+	/// <returns><see langword="true" /> when CE returned a 32-bit integer.</returns>
+	[RequiresPluginEnabled]
+	public bool TryGetOffsetCount(out int offsetCount)
+	{
+		return Handle.TryGetProperty<Int32Marshaller, int>("OffsetCount"u8, out offsetCount);
+	}
+
 	/// <summary>Gets a direct child by its zero-based child position.</summary>
 	/// <param name="zeroBasedIndex">The position in CE's <c>Child[index]</c> accessor; 0 is the first child.</param>
 	/// <param name="child">A borrowed, Cheat-Engine-owned child; default when there is no child at the index.</param>

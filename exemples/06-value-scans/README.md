@@ -49,6 +49,7 @@ stateDiagram-v2
     ResultsReady --> Scanning: deinitialize list, then next scan
     ResultsReady --> New: deinitialize list, then new scan
     New --> Disposed: dispose
+    Scanning --> Disposed: cooperative stop, then destroy child, destroy parent
     ResultsReady --> Disposed: deinitialize child, destroy child, destroy parent
     Scanning --> Invalidated: protected CE failure or ambiguous completion
     Invalidated --> New: reset only while original context is current
@@ -75,9 +76,26 @@ snapshot and publishes it to that span only on success. `NoResults`, `Destinatio
 failure, stale context and cancellation are separate `MemoryScanMaterializationStatus` values. Result-cardinality,
 progress and retry policy stay in Client rather than becoming SDK policy.
 
-The `*Cancellable` methods observe a `CancellationToken` before a CE call and after a synchronous CE call returns. CE's
-documented `waitTillDone()` has no cancellation argument, so a cancellation milestone never claims that native work was
-interrupted; it only records whether the SDK observed cancellation before work began or after it had returned.
+The `*Cancellable` methods observe a `CancellationToken` before a CE call and after a synchronous CE call returns.
+`WaitForCompletion` uses CE's no-timeout `waitTillDone()` form, which has no cancellation argument, so a cancellation
+milestone never claims that native work was interrupted; it only records whether the SDK observed cancellation before
+work began or after it had returned.
+
+CE 7.7 also has a timeout form, `waitTillDone(timeout)`, and a cooperative `terminateScan`. `TryWaitForCompletion`
+projects the first (a timed-out wait keeps the session scanning) and `TryTerminateScan` requests one cooperative stop,
+never a forced one. Both are experimental (`CESDK5010`, see [the diagnostic page](../../analyzers/docs/CESDK5010.md))
+because the timed-out path and `terminateScan` were not observed on the pinned host yet. `TryGetHostErrorText` copies
+CE's `ErrorString` as a bounded fact; never branch on its wording, which changes with CE's UI language.
+
+Releasing a session whose scan may still be running is handled by the session: `Dispose` and `ReleaseWithOutcome`
+first request one cooperative stop and wait up to five seconds for it, then destroy the found list and the scanner once
+each, even when the stop is not confirmed. That can block Cheat Engine's main thread for the wait plus whatever Cheat
+Engine's own destroy waits for its scan thread; `MemoryScanReleaseOutcome.Termination` reports whether the stop was
+confirmed. Cheat Engine's waits can run queued main-thread work (for example `MainThread.Invoke` callbacks) that calls
+back into the session. While one session member is inside a Cheat Engine call, every other member is refused and a
+release is deferred until that call has returned; the interrupted start, wait, reset or stop then throws
+`ObjectDisposedException`. Whether the host keeps these promises is still to be qualified on the pinned profile (Q26
+C3, including disposal while a scan runs).
 
 ## Ownership rule
 
@@ -85,7 +103,8 @@ interrupted; it only records whether the SDK observed cancellation before work b
 documentation cites the exact CE ownership contract. The ownership wrapper—not `class` versus `struct`, and not a
 pointer returned from Lua—determines who may destroy the object.
 
-This is the same model used by the completed AOB slice:
+This is the same model used by the completed AOB slice. `TryScan` is the boolean projection; prefer `TryScanOutcome`
+when the reason matters (see [guide 05](../05-aob-scans/README.md#3-scan-for-every-match)):
 
 ```csharp
 using CheatEngine.SDK.Engine.Scanning.Aob;
@@ -106,12 +125,14 @@ plugin disable. Do not use it to infer that `createMemScan` has the same contrac
 ## What is still required
 
 The SDK fixture covers factual factory outcomes, alias rejection, publication rollback, ordered child/parent release,
-state transitions, pre-call cancellation, bounded copying, and stale runtime/target refusal. Before the Client may
-expose a live value-scan capability, the vertical slice still must record an isolated, opt-in CE 7.7 x64 probe covering
-success, failure, ordered cleanup, cancellation while a scan is in progress, disable/re-enable and target changes.
+release while a scan may still run (one cooperative stop, then each owner destroyed once), state transitions,
+pre-call cancellation, deadline and termination paths, bounded copying, and stale runtime/target refusal. Before the
+Client may expose a live value-scan capability, the vertical slice still must record an isolated, opt-in CE 7.7 x64
+probe covering success, failure, ordered cleanup, disposal and cancellation while a scan is in progress,
+disable/re-enable and target changes.
 
-The [capability matrix](../../documentations/CheatEngine.SDK/capability-matrix.md) tracks that proof. Until then, use
-typed target-memory APIs for scalar reads/writes and `AobScanner` for the ownership-proven AOB result list from the
+Audit scenarios Q25 and Q26 track that proof. Until then,
+use typed target-memory APIs for scalar reads/writes and `AobScanner` for the ownership-proven AOB result list from the
 high-level Client; reserve `MemoryScanSessions.TryCreate` for a deliberately authorized, source-backed SDK experiment.
 
 ## Before you move on

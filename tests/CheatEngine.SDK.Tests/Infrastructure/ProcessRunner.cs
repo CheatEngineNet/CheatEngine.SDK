@@ -24,7 +24,10 @@ internal static class ProcessRunner
 			CreateNoWindow = true
 		};
 
-		using Process process = new() { StartInfo = startInfo };
+		using Process process = new()
+		{
+			StartInfo = startInfo
+		};
 		StringBuilder standardOutput = new();
 		StringBuilder standardError = new();
 		process.OutputDataReceived += (_, e) =>
@@ -51,11 +54,12 @@ internal static class ProcessRunner
 		{
 			await process.WaitForExitAsync(cancellation.Token).ConfigureAwait(false);
 		}
-		catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+		catch (OperationCanceledException exception) when (cancellation.IsCancellationRequested)
 		{
 			TryKill(process);
 			throw new TimeoutException(
-				$"'{fileName} {arguments}' in '{workingDirectory}' did not exit within {timeout}. Output so far:{Environment.NewLine}{standardOutput}{Environment.NewLine}{standardError}");
+				$"'{fileName} {arguments}' in '{workingDirectory}' did not exit within {timeout}. Output so far:{Environment.NewLine}{standardOutput}{Environment.NewLine}{standardError}",
+				exception);
 		}
 
 		return new ProcessResult(process.ExitCode, standardOutput.ToString(), standardError.ToString());

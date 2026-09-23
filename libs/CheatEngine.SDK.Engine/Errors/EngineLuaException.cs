@@ -75,6 +75,6 @@ public sealed class EngineLuaException : EngineException
 		}
 
 		return "The protected Lua operation '" + RequireText(operation, nameof(operation)) + "' failed with status " +
-		       status + ".";
+			   status + ".";
 	}
 }

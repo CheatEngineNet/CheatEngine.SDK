@@ -95,8 +95,8 @@ internal static class BootstrapEmitter
 	internal static string ChooseFactoryName(string fullyQualifiedPluginTypeName)
 	{
 		bool collides = fullyQualifiedPluginTypeName.StartsWith(QualifiedFactoryName, StringComparison.Ordinal)
-		                && (fullyQualifiedPluginTypeName.Length == QualifiedFactoryName.Length
-		                    || fullyQualifiedPluginTypeName[QualifiedFactoryName.Length] == '.');
+						&& (fullyQualifiedPluginTypeName.Length == QualifiedFactoryName.Length
+							|| fullyQualifiedPluginTypeName[QualifiedFactoryName.Length] == '.');
 
 		return collides ? AlternateFactoryName : FactoryName;
 	}

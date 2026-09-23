@@ -47,22 +47,44 @@ internal static class LuaFunctionShape
 		out LuaFunctionSignature signature)
 	{
 		return InspectCore(compilation, method, luaState, luaMarshallerAttribute, luaMarshallerContract,
-			out signature);
+			LuaContractTypes.Resolve(compilation, LuaContractTypes.LuaOptionalMetadataName), out signature);
+	}
+
+	/// <summary>Inspects <paramref name="method" /> against resolved SDK Lua binding contracts.</summary>
+	/// <param name="compilation">The consumer compilation that must be able to call a custom marshaller directly.</param>
+	/// <param name="method">The attributed method.</param>
+	/// <param name="luaState">The real Lua runtime state symbol, or <see langword="null" /> when it is unavailable.</param>
+	/// <param name="luaMarshallerAttribute">The real SDK marshaller annotation, or <see langword="null" />.</param>
+	/// <param name="luaMarshallerContract">The real SDK static marshaller contract, or <see langword="null" />.</param>
+	/// <param name="luaOptional">The real SDK <c>LuaOptional&lt;T&gt;</c>, or <see langword="null" />.</param>
+	/// <param name="signature">
+	///     What could be classified; complete only when the result is
+	///     <see cref="LuaFunctionShapeIssues.None" />.
+	/// </param>
+	public static LuaFunctionShapeIssues Inspect(Compilation compilation, IMethodSymbol method,
+		INamedTypeSymbol? luaState, INamedTypeSymbol? luaMarshallerAttribute,
+		INamedTypeSymbol? luaMarshallerContract, INamedTypeSymbol? luaOptional,
+		out LuaFunctionSignature signature)
+	{
+		return InspectCore(compilation, method, luaState, luaMarshallerAttribute, luaMarshallerContract,
+			luaOptional, out signature);
 	}
 
 	/// <summary>
 	///     Compatibility overload for consumers that only validate the built-in scalar contract. The LuaBindings
-	///     generator and its analyzer call the overload that resolves <c>[LuaMarshaller]</c> explicitly.
+	///     generator and its analyzer call the overload that resolves <c>[LuaMarshaller]</c> and
+	///     <c>LuaOptional&lt;T&gt;</c> explicitly; without a compilation every <c>LuaOptional</c> is a look-alike.
 	/// </summary>
 	public static LuaFunctionShapeIssues Inspect(IMethodSymbol method, INamedTypeSymbol? luaState,
 		out LuaFunctionSignature signature)
 	{
-		return InspectCore(null, method, luaState, null, null, out signature);
+		return InspectCore(null, method, luaState, null, null, null, out signature);
 	}
 
 	private static LuaFunctionShapeIssues InspectCore(Compilation? compilation, IMethodSymbol method,
 		INamedTypeSymbol? luaState, INamedTypeSymbol? luaMarshallerAttribute,
-		INamedTypeSymbol? luaMarshallerContract, out LuaFunctionSignature signature)
+		INamedTypeSymbol? luaMarshallerContract, INamedTypeSymbol? luaOptional,
+		out LuaFunctionSignature signature)
 	{
 		LuaFunctionShapeIssues issues = LuaFunctionShapeIssues.None;
 
@@ -87,8 +109,8 @@ internal static class LuaFunctionShape
 		}
 
 		issues |= InspectParameters(compilation, method, luaState, luaMarshallerAttribute, luaMarshallerContract,
-			out bool passesState, out EquatableArray<LuaArgumentModel> arguments);
-		issues |= InspectReturn(compilation, method, luaMarshallerAttribute, luaMarshallerContract,
+			luaOptional, out bool passesState, out EquatableArray<LuaArgumentModel> arguments);
+		issues |= InspectReturn(compilation, method, luaMarshallerAttribute, luaMarshallerContract, luaOptional,
 			out LuaValueKind? returnKind,
 			out LuaCustomMarshallerModel? returnMarshaller);
 
@@ -99,31 +121,19 @@ internal static class LuaFunctionShape
 	private static LuaFunctionShapeIssues InspectParameters(Compilation? compilation, IMethodSymbol method,
 		INamedTypeSymbol? luaState,
 		INamedTypeSymbol? luaMarshallerAttribute, INamedTypeSymbol? luaMarshallerContract,
+		INamedTypeSymbol? luaOptional,
 		out bool passesState,
 		out EquatableArray<LuaArgumentModel> arguments)
 	{
 		LuaFunctionShapeIssues issues = LuaFunctionShapeIssues.None;
+		bool sawOptional = false;
 		passesState = false;
 		ImmutableArray<LuaArgumentModel>.Builder builder =
 			ImmutableArray.CreateBuilder<LuaArgumentModel>(method.Parameters.Length);
 		for (int i = 0; i < method.Parameters.Length; i++)
 		{
 			IParameterSymbol parameter = method.Parameters[i];
-			if (parameter.RefKind != RefKind.None)
-			{
-				issues |= LuaFunctionShapeIssues.ByRefParameter;
-			}
-
-			if (parameter.IsParams)
-			{
-				issues |= LuaFunctionShapeIssues.ParamsParameter;
-			}
-
-			if (parameter.IsOptional || parameter.HasExplicitDefaultValue)
-			{
-				issues |= LuaFunctionShapeIssues.OptionalParameter;
-			}
-
+			issues |= InspectModifiers(parameter);
 			if (LuaValueKindMapper.IsLuaState(parameter.Type, luaState))
 			{
 				if (i == 0)
@@ -134,35 +144,92 @@ internal static class LuaFunctionShape
 				{
 					issues |= LuaFunctionShapeIssues.StateParameterNotFirst;
 				}
+
+				continue;
 			}
-			else if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, parameter.Type,
-				         parameter.GetAttributes(), luaMarshallerAttribute, luaMarshallerContract,
-				         out LuaCustomMarshallerModel? customMarshaller, out _))
+
+			LuaOptionalUse optional = LuaValueKindMapper.ClassifyOptional(parameter.Type, luaOptional,
+				out LuaValueKind optionalKind);
+			if (optional != LuaOptionalUse.NotOptional)
 			{
-				issues |= LuaFunctionShapeIssues.UnsupportedParameterType;
+				sawOptional = true;
+				issues |= optional switch
+				{
+					LuaOptionalUse.LookAlike => LuaFunctionShapeIssues.LookAlikeContractType,
+					LuaOptionalUse.Supported when !HasMarshallerAttribute(parameter, luaMarshallerAttribute) =>
+						LuaFunctionShapeIssues.None,
+					_ => LuaFunctionShapeIssues.OptionalNotSupportedHere
+				};
+				builder.Add(LuaArgumentModel.Optional(Identifiers.Escape(parameter.Name), optionalKind));
+				continue;
 			}
-			else if (customMarshaller is not null)
+
+			if (sawOptional)
 			{
-				builder.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), LuaValueKind.Int32,
-					false, CustomMarshaller: customMarshaller));
+				issues |= LuaFunctionShapeIssues.OptionalArgumentNotTrailing;
 			}
-			else if (LuaValueKindMapper.TryMap(parameter.Type, out LuaValueKind kind, out bool isNullable))
-			{
-				builder.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), kind, isNullable));
-			}
-			else
-			{
-				issues |= LuaFunctionShapeIssues.UnsupportedParameterType;
-			}
+
+			issues |= AddRequiredArgument(compilation, method, parameter, luaMarshallerAttribute,
+				luaMarshallerContract, builder);
 		}
 
 		arguments = new EquatableArray<LuaArgumentModel>(builder.ToImmutable());
 		return issues;
 	}
 
+	// By-reference, params and C# default values are refused on every parameter, optional or not.
+	private static LuaFunctionShapeIssues InspectModifiers(IParameterSymbol parameter)
+	{
+		LuaFunctionShapeIssues issues = LuaFunctionShapeIssues.None;
+		if (parameter.RefKind != RefKind.None)
+		{
+			issues |= LuaFunctionShapeIssues.ByRefParameter;
+		}
+
+		if (parameter.IsParams)
+		{
+			issues |= LuaFunctionShapeIssues.ParamsParameter;
+		}
+
+		if (parameter.IsOptional || parameter.HasExplicitDefaultValue)
+		{
+			issues |= LuaFunctionShapeIssues.OptionalParameter;
+		}
+
+		return issues;
+	}
+
+	// A required argument: an explicitly marshalled value or a built-in kind.
+	private static LuaFunctionShapeIssues AddRequiredArgument(Compilation? compilation, IMethodSymbol method,
+		IParameterSymbol parameter, INamedTypeSymbol? luaMarshallerAttribute,
+		INamedTypeSymbol? luaMarshallerContract, ImmutableArray<LuaArgumentModel>.Builder builder)
+	{
+		if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, parameter.Type,
+				parameter.GetAttributes(), luaMarshallerAttribute, luaMarshallerContract,
+				out LuaCustomMarshallerModel? customMarshaller, out _))
+		{
+			return LuaFunctionShapeIssues.UnsupportedParameterType;
+		}
+
+		if (customMarshaller is not null)
+		{
+			builder.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), LuaValueKind.Int32,
+				false, CustomMarshaller: customMarshaller));
+			return LuaFunctionShapeIssues.None;
+		}
+
+		if (!LuaValueKindMapper.TryMap(parameter.Type, out LuaValueKind kind, out bool isNullable))
+		{
+			return LuaFunctionShapeIssues.UnsupportedParameterType;
+		}
+
+		builder.Add(new LuaArgumentModel(Identifiers.Escape(parameter.Name), kind, isNullable));
+		return LuaFunctionShapeIssues.None;
+	}
+
 	private static LuaFunctionShapeIssues InspectReturn(Compilation? compilation, IMethodSymbol method,
 		INamedTypeSymbol? luaMarshallerAttribute,
-		INamedTypeSymbol? luaMarshallerContract, out LuaValueKind? returnKind,
+		INamedTypeSymbol? luaMarshallerContract, INamedTypeSymbol? luaOptional, out LuaValueKind? returnKind,
 		out LuaCustomMarshallerModel? returnMarshaller)
 	{
 		returnKind = null;
@@ -172,15 +239,25 @@ internal static class LuaFunctionShape
 			return LuaFunctionShapeIssues.None;
 		}
 
+		switch (LuaValueKindMapper.ClassifyOptional(method.ReturnType, luaOptional, out _))
+		{
+			case LuaOptionalUse.LookAlike:
+				return LuaFunctionShapeIssues.LookAlikeContractType;
+			case LuaOptionalUse.Supported:
+			case LuaOptionalUse.Unsupported:
+				// A thunk returns one value or none: an optional return would be two contracts in one declaration.
+				return LuaFunctionShapeIssues.OptionalNotSupportedHere;
+		}
+
 		if (method is not { ReturnsByRef: false, ReturnsByRefReadonly: false })
 		{
 			return LuaFunctionShapeIssues.UnsupportedReturnType;
 		}
 
 		if (!LuaMarshallerResolver.TryResolve(compilation, method.ContainingType, method.ReturnType,
-			    method.GetReturnTypeAttributes(), luaMarshallerAttribute, luaMarshallerContract,
-			    out returnMarshaller, out _)
-		    || (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
+				method.GetReturnTypeAttributes(), luaMarshallerAttribute, luaMarshallerContract,
+				out returnMarshaller, out _)
+			|| (returnMarshaller is not null && method.ReturnType.IsRefLikeType))
 		{
 			return LuaFunctionShapeIssues.UnsupportedReturnType;
 		}
@@ -197,5 +274,24 @@ internal static class LuaFunctionShape
 
 		returnKind = kind;
 		return LuaFunctionShapeIssues.None;
+	}
+
+	// Whether one of the parameter's attributes is the resolved SDK [LuaMarshaller].
+	private static bool HasMarshallerAttribute(IParameterSymbol parameter, INamedTypeSymbol? luaMarshallerAttribute)
+	{
+		if (luaMarshallerAttribute is null)
+		{
+			return false;
+		}
+
+		foreach (AttributeData attribute in parameter.GetAttributes())
+		{
+			if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, luaMarshallerAttribute))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

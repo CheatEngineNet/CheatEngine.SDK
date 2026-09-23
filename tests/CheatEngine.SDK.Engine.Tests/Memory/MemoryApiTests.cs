@@ -143,6 +143,7 @@ public sealed class MemoryApiTests
 	                                                 """u8;
 
 	[Fact]
+	[Trait("Qualification", "Q21")]
 	public void Target_scalars_preserve_signedness_widths_pointer_bits_and_floating_point_values()
 	{
 		EngineTest.RequireNativeLua();
@@ -190,6 +191,7 @@ public sealed class MemoryApiTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q20")]
 	public void Target_buffers_and_strings_keep_their_order_and_never_return_a_dangling_lua_span()
 	{
 		EngineTest.RequireNativeLua();
@@ -370,19 +372,22 @@ public sealed class MemoryApiTests
 		EngineTest.Run(scope.State,
 			"function readBytes(_) error('must not run') end function readBytesLocal(_) error('must not run') end function writeBytes(_) error('must not run') end function writeBytesLocal(_) error('must not run') end"u8);
 
-		Assert.Equal(0, FakeHost.ProviderCalls);
+		// Baseline is 1, not 0: LuaRuntime.Attach makes one eager provider call of its own to stamp the universe
+		// (WI-3, external-reset detection), before any of the empty read/write calls below.
+		int baseline = FakeHost.ProviderCalls;
+		Assert.Equal(1, baseline);
 		Assert.True(TargetMemory.TryReadBytes(1UL, [], out MemoryAccessFailure failure));
 		Assert.Equal(MemoryAccessFailure.None, failure);
-		Assert.Equal(1, FakeHost.ProviderCalls);
+		Assert.Equal(baseline + 1, FakeHost.ProviderCalls);
 		Assert.True(HostMemory.TryReadBytes(new HostAddress(1), [], out failure));
 		Assert.Equal(MemoryAccessFailure.None, failure);
-		Assert.Equal(2, FakeHost.ProviderCalls);
+		Assert.Equal(baseline + 2, FakeHost.ProviderCalls);
 		Assert.True(TargetMemory.TryWriteBytes(1UL, [], out failure));
 		Assert.Equal(MemoryAccessFailure.None, failure);
-		Assert.Equal(3, FakeHost.ProviderCalls);
+		Assert.Equal(baseline + 3, FakeHost.ProviderCalls);
 		Assert.True(HostMemory.TryWriteBytes(new HostAddress(1), [], out failure));
 		Assert.Equal(MemoryAccessFailure.None, failure);
-		Assert.Equal(4, FakeHost.ProviderCalls);
+		Assert.Equal(baseline + 4, FakeHost.ProviderCalls);
 		Assert.Equal(0, scope.State.Top);
 	}
 

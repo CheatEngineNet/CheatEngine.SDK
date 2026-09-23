@@ -50,6 +50,24 @@ wrong-thread behavior is rejected; they do not claim a thread hop. The end-to-en
   `LuaRuntime`, withdraws `PluginContext` and releases Lua callbacks the plugin forgot.
 - `MainThread.ProcessMessages`, `CheckSynchronize` and `Invoke` throw `InvalidOperationException` while no plugin is
   enabled. A worker `Invoke` rejects a `synchronize` callback that runs it on the wrong managed thread.
+- Without a Lua module, or with a module that lacks one Lua export, the enable fails before any plugin code runs and
+  before the host is asked for its Lua state, and the log names what is missing (`EnablePluginTests`,
+  `PartialLuaModuleEnableTests`).
+- The 2.0 conservative admission default refuses a worker before the Lua state provider ever runs; the worker-side
+  `synchronize` hand-off inside `MainThread.Invoke` is the single documented default exception and keeps working
+  unopted-in (`MainThreadTests`).
+- An external Lua-state reset is logged once as `LuaStateReplacedExternally:` and does not survive into the next
+  enable; there is no public reset API (`ExternalResetLifecycleTests`).
+- A throwing or re-entrant `HostLog` sink is contained during every native callback, and a second-factory rejection is
+  logged outside the registration lock (`HostLogContainmentTests`).
+- The opt-in `CheatEngineSdkIdentification` diagnostic is silent unless requested, bounded, path-free and built without
+  calling Lua or constructing the plugin (`LoadIdentificationTests`).
+- The native hostfxr host emulator's A/B coexistence facts are consumed as C2 evidence only, redacted of every
+  absolute path, and never presented as Cheat Engine's own behaviour (`NativeHostEmulatorTests`).
+- The bootstrap's second raw argument never changes the 36-byte record write, for any value including `int.MinValue`
+  and `int.MaxValue` (`InitializeManagedTests`); repeated enabling never accumulates a Lua-module loader reference
+  (`LuaModuleLocatorTests`); and `DisablePlugin` pumps a worker genuinely blocked inside the host's real Lua
+  `synchronize` call, not only a dispatch override, before it detaches (`DisablePluginTests`).
 
 ## Run the tests
 

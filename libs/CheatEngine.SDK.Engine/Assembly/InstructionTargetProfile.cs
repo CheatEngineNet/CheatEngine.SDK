@@ -10,11 +10,13 @@ namespace CheatEngine.SDK.Engine.Assembly;
 ///     globals.
 /// </summary>
 /// <remarks>
-///     Instances are created only by <see cref="InstructionProfiles.TryObserveCurrent" />. Instruction operations
-///     re-check the target process identifier before and after their CE call and report
+///     Instances are created only by <see cref="InstructionProfiles.TryObserveCurrent" />, which reads the selected
+///     process identifier before the ISA probes because Cheat Engine reports x64-like facts when no target is selected.
+///     Instruction operations re-check the target process identifier before and after their CE call and report
 ///     <see cref="InstructionOperationStatus.TargetChanged" /> when either check differs. This is a coherence check,
-///     not a host lock or process-incarnation observation: Cheat Engine can still change its ambient selection after
-///     the final check, an unseen A→B→A transition is not detected, and a reused PID is not distinguished.
+///     an observation rather than a lock: Cheat Engine can still change its ambient selection after the final check,
+///     an unseen A→B→A transition is not detected, a reused PID is not distinguished, and a change observed after the
+///     CE effect reports uncertainty without any rollback promise.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct InstructionTargetProfile

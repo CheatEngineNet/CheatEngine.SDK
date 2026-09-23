@@ -101,17 +101,46 @@ internal static class LuaThunkEmitter
 	public static string WrongArgumentCountMessage(string luaName, int expected)
 	{
 		return "wrong number of arguments to '" + luaName + "' (" + expected.ToString(CultureInfo.InvariantCulture) +
-		       " expected)";
+			   " expected)";
 	}
 
-	// The count check first, so that a missing argument and a surplus one get the same, complete message.
+	/// <summary>
+	///     The message a thunk with optional trailing arguments reports when it is called with fewer arguments than the
+	///     required ones or more than the declared ones: <c>wrong number of arguments to 'f' (1 to 3 expected)</c>. Equal
+	///     to <see cref="WrongArgumentCountMessage(string, int)" /> when nothing is optional.
+	/// </summary>
+	public static string WrongArgumentCountMessage(string luaName, int minimum, int maximum)
+	{
+		return minimum == maximum
+			? WrongArgumentCountMessage(luaName, maximum)
+			: "wrong number of arguments to '" + luaName + "' (" + minimum.ToString(CultureInfo.InvariantCulture) +
+			  " to " + maximum.ToString(CultureInfo.InvariantCulture) + " expected)";
+	}
+
+	// The count check first, so that a missing argument and a surplus one get the same, complete message. With optional
+	// trailing arguments any count from the required ones to all of them is accepted; an absent position reads as
+	// omitted.
 	private static void WriteArgumentCountCheck(SourceWriter writer, LuaThunkModel model)
 	{
 		int count = model.Arguments.Length;
+		int required = model.RequiredArgumentCount;
 		writer.Write("if (");
 		writer.Write(State);
-		writer.Write(".Top != ");
-		writer.Write(count.ToString(CultureInfo.InvariantCulture));
+		if (required == count)
+		{
+			writer.Write(".Top != ");
+			writer.Write(count.ToString(CultureInfo.InvariantCulture));
+		}
+		else
+		{
+			writer.Write(".Top < ");
+			writer.Write(required.ToString(CultureInfo.InvariantCulture));
+			writer.Write(" || ");
+			writer.Write(State);
+			writer.Write(".Top > ");
+			writer.Write(count.ToString(CultureInfo.InvariantCulture));
+		}
+
 		writer.WriteLine(")");
 		writer.OpenBlock();
 		writer.Write("return ");
@@ -119,7 +148,7 @@ internal static class LuaThunkEmitter
 		writer.Write(".Fail(");
 		writer.Write(State);
 		writer.Write(", ");
-		writer.Write(CSharpLiteral.ToUtf8Literal(WrongArgumentCountMessage(model.LuaName, count)));
+		writer.Write(CSharpLiteral.ToUtf8Literal(WrongArgumentCountMessage(model.LuaName, required, count)));
 		writer.WriteLine(");");
 		writer.CloseBlock();
 	}
@@ -129,15 +158,32 @@ internal static class LuaThunkEmitter
 	{
 		string position = (index + 1).ToString(CultureInfo.InvariantCulture);
 		writer.Write("if (!");
-		writer.Write(argument.GeneratedMarshallerTypeName);
-		writer.Write(".TryRead(");
+		if (argument.IsOptional)
+		{
+			// Absent (beyond the top) is omitted, nil is Nil, a value of the right kind is present; anything else is a
+			// bad argument exactly like a required one.
+			writer.Write(LuaApiNames.LuaCallSupport);
+			writer.Write(".TryReadOptional<");
+			writer.Write(LuaValueKinds.TypeName(argument.Kind));
+			writer.Write(", ");
+			writer.Write(argument.GeneratedMarshallerTypeName);
+			writer.Write(">(");
+		}
+		else
+		{
+			writer.Write(argument.GeneratedMarshallerTypeName);
+			writer.Write(".TryRead(");
+		}
+
 		writer.Write(State);
 		writer.Write(", ");
 		writer.Write(position);
 		writer.Write(", out ");
 		// A string local is declared nullable: the marshaller's out parameter is [MaybeNullWhen(false)], and the
 		// flow analysis knows it is not null once the read succeeded, so it flows into a 'string' parameter.
-		writer.Write(argument.CustomMarshaller?.ValueTypeName ?? LuaValueKinds.TypeName(argument.Kind, true));
+		writer.Write(argument.IsOptional
+			? argument.GeneratedTypeName
+			: argument.CustomMarshaller?.ValueTypeName ?? LuaValueKinds.TypeName(argument.Kind, true));
 		writer.Write(' ');
 		writer.Write(ArgumentPrefix);
 		writer.Write(index.ToString(CultureInfo.InvariantCulture));

@@ -1,0 +1,12 @@
+# Issue forms: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/CheatEngineNet/CheatEngine.SDK/security/advisories/new
+    about: Report privately through GitHub private vulnerability reporting, never in a public issue (see SECURITY.md).
+  - name: Questions and ideas
+    url: https://github.com/CheatEngineNet/CheatEngine.SDK/discussions
+    about: Ask how to use the SDK or propose an idea in GitHub Discussions.
+  - name: Problems in Cheat Engine itself
+    url: https://github.com/cheat-engine/cheat-engine/issues
+    about: Behaviour of Cheat Engine that also happens without a CheatEngine.SDK plugin belongs upstream.

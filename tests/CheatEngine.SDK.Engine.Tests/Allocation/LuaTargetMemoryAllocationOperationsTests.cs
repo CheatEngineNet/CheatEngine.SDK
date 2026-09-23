@@ -94,7 +94,7 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
 		LuaState L = scope.State;
 		EngineTest.Run(L, Encoding.UTF8.GetBytes(fixture));
 
-		TargetMemoryAllocationOutcome outcome = LuaTargetMemoryAllocationOperations.Instance.AllocateWithOutcome(
+		TargetMemoryAllocationOutcome outcome = LuaTargetMemoryAllocationOperations.AllocateWithOutcome(
 			new TargetAllocationRequest(new TargetAllocationSize(4096)));
 
 		Assert.Equal(expectedKind, outcome.Operation.Kind);
@@ -111,7 +111,7 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 
-		TargetMemoryAllocationOutcome outcome = LuaTargetMemoryAllocationOperations.Instance.AllocateWithOutcome(
+		TargetMemoryAllocationOutcome outcome = LuaTargetMemoryAllocationOperations.AllocateWithOutcome(
 			new TargetAllocationRequest(new TargetAllocationSize(4096)));
 
 		Assert.Equal(TargetMemoryOperationOutcomeKind.GlobalUnavailable, outcome.Operation.Kind);
@@ -136,7 +136,7 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
 		                  })
 		                  """u8);
 
-		TargetMemoryAllocationOutcome outcome = LuaTargetMemoryAllocationOperations.Instance.AllocateWithOutcome(
+		TargetMemoryAllocationOutcome outcome = LuaTargetMemoryAllocationOperations.AllocateWithOutcome(
 			new TargetAllocationRequest(new TargetAllocationSize(4096)));
 
 		Assert.Equal(TargetMemoryOperationOutcomeKind.ProtectedLuaFailure, outcome.Operation.Kind);
@@ -161,7 +161,7 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
 		AllocationGate.AssertZero(() =>
 		{
 			TargetMemoryAllocationOutcome outcome =
-				LuaTargetMemoryAllocationOperations.Instance.AllocateWithOutcome(request);
+				LuaTargetMemoryAllocationOperations.AllocateWithOutcome(request);
 			kind = outcome.Operation.Kind;
 			address = outcome.Address;
 		});
@@ -307,7 +307,7 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
 
 		TargetAllocationSize size = rawSize == 0 ? default : new TargetAllocationSize(rawSize);
 		TargetMemoryOperationOutcome outcome =
-			LuaTargetMemoryAllocationOperations.Instance.DeallocateWithOutcome(new Address(rawAddress), size);
+			LuaTargetMemoryAllocationOperations.DeallocateWithOutcome(new Address(rawAddress), size);
 
 		Assert.Equal(TargetMemoryOperationOutcomeKind.MarshallingFailure, outcome.Kind);
 		Assert.Equal(EngineFailureKind.MarshallingFailure, outcome.FailureKind);
@@ -424,7 +424,8 @@ public sealed class LuaTargetMemoryAllocationOperationsTests
 	private static void InstallCurrentTarget(LuaState state)
 	{
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("function getOpenedProcessID() return " +
-		                                             Environment.ProcessId + " end"));
+													 Environment.ProcessId + " end"));
+		EngineTest.Run(state, FakeHost.LocalTargetBackendChunk);
 	}
 
 	private static void AssertLuaInteger(LuaState state, string name, long expected)

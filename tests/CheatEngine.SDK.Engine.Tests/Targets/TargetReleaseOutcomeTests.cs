@@ -10,6 +10,9 @@ public sealed class TargetReleaseOutcomeTests
 	[InlineData(TargetIdentityCheckKind.NoTargetSelected, TargetReleaseStatus.RefusedNoTarget)]
 	[InlineData(TargetIdentityCheckKind.GlobalUnavailable, TargetReleaseStatus.RefusedIdentityUnavailable)]
 	[InlineData(TargetIdentityCheckKind.InvalidResult, TargetReleaseStatus.RefusedIdentityUnavailable)]
+	[InlineData(TargetIdentityCheckKind.RemoteBackend, TargetReleaseStatus.RefusedIdentityUnavailable)]
+	[InlineData(TargetIdentityCheckKind.FileAsProcess, TargetReleaseStatus.RefusedIdentityUnavailable)]
+	[InlineData(TargetIdentityCheckKind.BackendUnknown, TargetReleaseStatus.RefusedIdentityUnavailable)]
 	public void Refused_cleanup_preserves_the_specific_or_unavailable_target_fact(TargetIdentityCheckKind checkKind,
 		TargetReleaseStatus expectedStatus)
 	{
@@ -17,6 +20,9 @@ public sealed class TargetReleaseOutcomeTests
 		{
 			TargetIdentityCheckKind.NoTargetSelected => TargetSelectionObservationStatus.NoTargetSelected,
 			TargetIdentityCheckKind.GlobalUnavailable => TargetSelectionObservationStatus.GlobalUnavailable,
+			TargetIdentityCheckKind.RemoteBackend => TargetSelectionObservationStatus.CurrentTargetRemoteBackend,
+			TargetIdentityCheckKind.FileAsProcess => TargetSelectionObservationStatus.CurrentTargetFileAsProcess,
+			TargetIdentityCheckKind.BackendUnknown => TargetSelectionObservationStatus.CurrentTargetBackendUnknown,
 			_ => TargetSelectionObservationStatus.InvalidResult
 		};
 		TargetIdentityCheck check = new(checkKind, TargetSelectionObservation.FromStatus(observationStatus));
@@ -25,6 +31,7 @@ public sealed class TargetReleaseOutcomeTests
 
 		Assert.Equal(expectedStatus, outcome.Status);
 		Assert.Equal(check, outcome.TargetCheck);
+		Assert.Equal(checkKind, outcome.TargetCheck?.Kind);
 		Assert.Null(outcome.FailureKind);
 		Assert.True(outcome.RequiresManualRecovery);
 	}

@@ -21,7 +21,7 @@ protected operation. That contract has a magic value, major/minor version, contr
 `lua_Integer` and `size_t` widths, plus the exact supported-operation bitmap. Managed code checks it with
 `Unsafe.SizeOf` and also checks the fixed native export list. If the exported surface or operation contract changes,
 update `cheatengine_sdk_lua_bridge.c`, the versioned
-[`protected-operations.json`](../../eng/lua-bridge/protected-operations.json) catalogue, the generated managed
+[`protected-operations.json`](../../libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json) catalogue, the generated managed
 projection from `source-generators/CheatEngine.SDK.SourceGenerators.LuaBridgeContract` and its
 `tests/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Tests` contract tests, and the managed adapter as
 applicable; then rebuild the DLL and commit the matching assets together. The C11 bridge remains the owner of its
@@ -55,15 +55,29 @@ the repository `.gitattributes`, so their raw hashes are identical on Windows an
 with the checked-in DLL; when it is stale, the job fails after uploading the corrected `lua-protection-bridge` artifact
 for a maintainer to commit.
 
-Only rebuild it locally after changing `cheatengine_sdk_lua_bridge.c` or `xmake.lua`:
+[`bridge-audit-manifest.json`](bridge-audit-manifest.json) records the committed bridge: the SHA-256 of
+`cheatengine_sdk_lua_bridge.c` and `xmake.lua`, the fingerprint the DLL embeds, the DLL SHA-256, its PE facts (PE32+,
+AMD64, DLL, exports, import modules, no delay-import directory) and the pinned xmake version. `BridgeAuditManifestTests`
+in `tests/CheatEngine.SDK.Tests` compares it with the committed blob (`git cat-file`), never with the working-tree DLL,
+because CI replaces that file with the bridge it builds before building the SDK. The CI-built and committed DLL bytes
+may differ: the committed DLL was not necessarily built by the runner's pinned MSVC toolset. The `native` job reports
+such a difference as a drift notice, `build-info.json` records both hashes, and the release run repeats the notice for
+the bridge it packed; it is never a failure. When a manifest test fails, its message prints the complete expected
+manifest, and replacing the file with it is the regeneration procedure.
 
-```powershell
-$output = 'artifacts/native/cheatengine-sdk-lua-bridge'
-$outputPath = Join-Path $PWD $output
-xmake f -P native/cheatengine-sdk-lua-bridge -o $output -p windows -a x64 -m release -y
-xmake -P native/cheatengine-sdk-lua-bridge -y
-Copy-Item (Join-Path $outputPath 'cheatengine-sdk-lua-bridge.dll') native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll
-```
+Never commit a locally built DLL: a local Visual Studio toolset is not the runner's pinned one, so a local build has
+different bytes than the bridge CI builds, tests and packs. After changing `cheatengine_sdk_lua_bridge.c` or
+`xmake.lua`, use the CI round trip:
+
+1. Push the change. The `native` job builds the bridge three times (a second output directory and a copy of the
+   build inputs outside the repository), requires identical bytes, uploads it as the `lua-protection-bridge`
+   artifact, and then fails its fingerprint check because the committed DLL is now stale.
+2. Download that run's artifact over the checked-in asset:
+   `gh run download <run-id> -n lua-protection-bridge -D native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native`.
+3. Commit the DLL, run
+   `dotnet test --project tests/CheatEngine.SDK.Tests --filter-class CheatEngine.SDK.Tests.Packaging.BridgeAuditManifestTests`,
+   replace `bridge-audit-manifest.json` with the manifest its failure prints, and commit it in the same pull request, so
+   the squash merge lands the DLL, its sources and its manifest together.
 
 The xmake target requires MSVC, C11, Windows x64, static CRT (`/MT`) and reproducible linking (`/Brepro`). `/MT` is
 both declared through xmake and passed explicitly to prevent an MSVC/UCRT runtime DLL dependency in the CE host. The

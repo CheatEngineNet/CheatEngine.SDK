@@ -13,6 +13,7 @@ namespace CheatEngine.SDK.Lua.Tests.Protected;
 public sealed class CheckStackFailureProcessTests
 {
 	[Fact]
+	[Trait("Qualification", "Q12")]
 	public async Task Direct_checkstack_growth_with_a_rejecting_allocator_returns_zero_and_recovers()
 	{
 		Assert.SkipUnless(NativeLuaLibrary.IsAvailable, NativeLuaLibrary.UnavailableReason);

@@ -95,9 +95,9 @@ internal static unsafe class Program
 	private static bool HasValidArguments(string[] arguments)
 	{
 		return arguments.Length is >= 1 and <= 2 &&
-		       (arguments.Length != 2 ||
-		        string.Equals(arguments[1], CheckStackGrowthMode, StringComparison.Ordinal) ||
-		        string.Equals(arguments[1], GeneratedFunctionAllocationMode, StringComparison.Ordinal));
+			   (arguments.Length != 2 ||
+				string.Equals(arguments[1], CheckStackGrowthMode, StringComparison.Ordinal) ||
+				string.Equals(arguments[1], GeneratedFunctionAllocationMode, StringComparison.Ordinal));
 	}
 
 	private static int RunRequestedProbe(LuaState state, nint module, string[] arguments)
@@ -248,7 +248,13 @@ internal static unsafe class Program
 			return Fail("TryPushString did not return LUA_ERRMEM");
 		}
 
-		return AssertErrorThenRestoreSentinel(state, "TryPushString");
+		if (AssertErrorThenRestoreSentinel(state, "TryPushString") != 0)
+		{
+			return 1;
+		}
+
+		WriteMarker("MARK PushBytes protected failure recovered");
+		return 0;
 	}
 
 	private static int RunCheckStackGrowthProbe(LuaState state)
@@ -501,7 +507,7 @@ internal static unsafe class Program
 			catch (InvalidOperationException exception)
 			{
 				if (!string.Equals(exception.Message, UncheckedFunctionReservationFailureMessage,
-					    StringComparison.Ordinal))
+						StringComparison.Ordinal))
 				{
 					return Fail("PushUncheckedFunction returned an unstable reservation failure message");
 				}
@@ -544,7 +550,13 @@ internal static unsafe class Program
 			return Fail("LuaThunk.Fail returned the wrong result count");
 		}
 
-		return AssertResultsThenRestoreSentinel(state, LuaThunk.FailureResultCount, "LuaThunk.Fail");
+		if (AssertResultsThenRestoreSentinel(state, LuaThunk.FailureResultCount, "LuaThunk.Fail") != 0)
+		{
+			return 1;
+		}
+
+		WriteMarker("MARK LuaThunk.Fail protected failure recovered");
+		return 0;
 	}
 
 	private static int ProbeTableAllocation(LuaState state)
@@ -560,7 +572,13 @@ internal static unsafe class Program
 			return Fail("CreateTable did not throw LUA_ERRMEM");
 		}
 
-		return AssertOnlySentinelRemains(state, "CreateTable");
+		if (AssertOnlySentinelRemains(state, "CreateTable") != 0)
+		{
+			return 1;
+		}
+
+		WriteMarker("MARK CreateTable protected failure recovered");
+		return 0;
 	}
 
 	private static int ProbeByteTableAllocation(LuaState state)
@@ -599,7 +617,13 @@ internal static unsafe class Program
 			return Fail("NewUserdata did not throw LUA_ERRMEM");
 		}
 
-		return AssertOnlySentinelRemains(state, "NewUserdata");
+		if (AssertOnlySentinelRemains(state, "NewUserdata") != 0)
+		{
+			return 1;
+		}
+
+		WriteMarker("MARK NewUserdata protected failure recovered");
+		return 0;
 	}
 
 	private static int ProbeRawSetAllocation(LuaState state)
@@ -618,7 +642,13 @@ internal static unsafe class Program
 			return Fail("TryRawSet did not throw LUA_ERRMEM");
 		}
 
-		return AssertTableThenRestoreSentinel(state, "TryRawSet");
+		if (AssertTableThenRestoreSentinel(state, "TryRawSet") != 0)
+		{
+			return 1;
+		}
+
+		WriteMarker("MARK RawSet protected failure recovered");
+		return 0;
 	}
 
 	private static int ProbeRawSetIndexAllocation(LuaState state)
@@ -636,7 +666,13 @@ internal static unsafe class Program
 			return Fail("RawSetIndex did not throw LUA_ERRMEM");
 		}
 
-		return AssertTableThenRestoreSentinel(state, "RawSetIndex");
+		if (AssertTableThenRestoreSentinel(state, "RawSetIndex") != 0)
+		{
+			return 1;
+		}
+
+		WriteMarker("MARK RawSetIndex protected failure recovered");
+		return 0;
 	}
 
 	private static int ProbeRawSetPointerAllocation(LuaState state)
@@ -654,7 +690,13 @@ internal static unsafe class Program
 			return Fail("RawSetPointer did not throw LUA_ERRMEM");
 		}
 
-		return AssertTableThenRestoreSentinel(state, "RawSetPointer");
+		if (AssertTableThenRestoreSentinel(state, "RawSetPointer") != 0)
+		{
+			return 1;
+		}
+
+		WriteMarker("MARK RawSetPointer protected failure recovered");
+		return 0;
 	}
 
 	private static int ProbeReferenceAllocation(LuaState state)
@@ -671,7 +713,13 @@ internal static unsafe class Program
 			return Fail("CreateRef did not throw LUA_ERRMEM");
 		}
 
-		return AssertOnlySentinelRemains(state, "CreateRef");
+		if (AssertOnlySentinelRemains(state, "CreateRef") != 0)
+		{
+			return 1;
+		}
+
+		WriteMarker("MARK CreateReference protected failure recovered");
+		return 0;
 	}
 
 	private static int ProbePrivateReferenceReleaseAllocation(LuaState state)
@@ -820,7 +868,13 @@ internal static unsafe class Program
 			return Fail("LuaCallback.TryCreate returned a callback after failure");
 		}
 
-		return AssertErrorThenRestoreSentinel(state, "LuaCallback.TryCreate");
+		if (AssertErrorThenRestoreSentinel(state, "LuaCallback.TryCreate") != 0)
+		{
+			return 1;
+		}
+
+		WriteMarker("MARK PushClosure protected failure recovered");
+		return 0;
 	}
 
 	private static int ProbeGeneratedFunctionAllocation(LuaState state)
@@ -916,7 +970,7 @@ internal static unsafe class Program
 			LuaStatus status = state.TryPushString(message);
 			if (status == LuaStatus.GcMetamethodError)
 			{
-				return AssertErrorThenRestoreSentinel(state, "failing __gc");
+				return ReportFailingFinalizerRecovered(state);
 			}
 
 			if (!status.IsOk)
@@ -928,6 +982,17 @@ internal static unsafe class Program
 		}
 
 		return Fail("the protected allocation path did not observe the failing __gc");
+	}
+
+	private static int ReportFailingFinalizerRecovered(LuaState state)
+	{
+		if (AssertErrorThenRestoreSentinel(state, "failing __gc") != 0)
+		{
+			return 1;
+		}
+
+		WriteMarker("MARK failing __gc protected failure recovered");
+		return 0;
 	}
 
 	private static int ProbeHostObjectPusherLongJump(LuaState state, nint luaModule)
@@ -990,7 +1055,7 @@ internal static unsafe class Program
 		}
 
 		if (!state.TryReadString(-1, out string? error) ||
-		    !error.Contains("bad argument #1", StringComparison.Ordinal))
+			!error.Contains("bad argument #1", StringComparison.Ordinal))
 		{
 			return Fail("PushHostObject did not leave the native luaL_checkinteger failure message on the stack");
 		}

@@ -38,24 +38,31 @@ public sealed class DiagnosticCatalogTests
 			DiagnosticIds.InvalidManualBootstrap,
 			DiagnosticIds.ReservedNamespace,
 			DiagnosticIds.GeneratedEntryPointCollision,
+			DiagnosticIds.ClassicNativePluginExport,
 			DiagnosticIds.RequiresPluginEnabledTooEarly,
 			DiagnosticIds.DisposeBorrowedValue,
 			DiagnosticIds.UnguardedUnmanagedCallersOnly,
 			DiagnosticIds.AsyncPluginLifecycle,
+			DiagnosticIds.HostWidthPointerSize,
 			DiagnosticIds.UnsafeBlocksRequired,
 			DiagnosticIds.InvalidLuaBindingContainingType,
 			DiagnosticIds.InvalidLuaFunction,
 			DiagnosticIds.InvalidLuaGlobal,
 			DiagnosticIds.DuplicateLuaName,
 			DiagnosticIds.InvalidLuaAnnotationTarget,
-			DiagnosticIds.GeneratedLuaIdentityCollision
+			DiagnosticIds.GeneratedLuaIdentityCollision,
+			DiagnosticIds.NonTrailingOptionalLuaArgument,
+			DiagnosticIds.InvalidOptionalOrVariadicLuaResult,
+			DiagnosticIds.LookAlikeLuaContractType,
+			DiagnosticIds.UnsupportedLuaOptionalPosition
 		];
 
 		Assert.Equal(expected, SortedIds(AllDescriptors()), StringComparer.Ordinal);
 		Assert.Equal(
 			[
-				"CESDK0001", "CESDK0002", "CESDK0003", "CESDK0004", "CESDK0005", "CESDK1001", "CESDK1003", "CESDK1004",
-				"CESDK1005", "CESDK2001", "CESDK2002", "CESDK2003", "CESDK2004", "CESDK2005", "CESDK2006", "CESDK2007"
+				"CESDK0001", "CESDK0002", "CESDK0003", "CESDK0004", "CESDK0005", "CESDK0006", "CESDK1001", "CESDK1003",
+				"CESDK1004", "CESDK1005", "CESDK1020", "CESDK2001", "CESDK2002", "CESDK2003", "CESDK2004", "CESDK2005",
+				"CESDK2006", "CESDK2007", "CESDK2010", "CESDK2011", "CESDK2012", "CESDK2013"
 			],
 			expected,
 			StringComparer.Ordinal);
@@ -117,21 +124,23 @@ public sealed class DiagnosticCatalogTests
 		];
 
 		foreach (string trackingFile in trackingFiles)
-		foreach (string line in File.ReadLines(trackingFile))
 		{
-			string[] cells = line.Split('|');
-			if (cells.Length < 3)
+			foreach (string line in File.ReadLines(trackingFile))
 			{
-				continue;
-			}
+				string[] cells = line.Split('|');
+				if (cells.Length < 3)
+				{
+					continue;
+				}
 
-			string id = cells[0].Trim();
-			if (!id.StartsWith("CESDK", StringComparison.Ordinal))
-			{
-				continue;
-			}
+				string id = cells[0].Trim();
+				if (!id.StartsWith("CESDK", StringComparison.Ordinal))
+				{
+					continue;
+				}
 
-			Assert.True(ids.Add(id), $"Release tracking contains duplicate diagnostic id '{id}'.");
+				Assert.True(ids.Add(id), $"Release tracking contains duplicate diagnostic id '{id}'.");
+			}
 		}
 
 		Assert.Equal(SortedIds(AllDescriptors()), ids.Order(StringComparer.Ordinal), StringComparer.Ordinal);
@@ -145,9 +154,9 @@ public sealed class DiagnosticCatalogTests
 		{
 			string[] cells = line.Split('|');
 			if (cells.Length >= 3
-			    && string.Equals(cells[0].Trim(), descriptor.Id, StringComparison.Ordinal)
-			    && string.Equals(cells[1].Trim(), descriptor.Category, StringComparison.Ordinal)
-			    && string.Equals(cells[2].Trim(), descriptor.DefaultSeverity.ToString(), StringComparison.Ordinal))
+				&& string.Equals(cells[0].Trim(), descriptor.Id, StringComparison.Ordinal)
+				&& string.Equals(cells[1].Trim(), descriptor.Category, StringComparison.Ordinal)
+				&& string.Equals(cells[2].Trim(), descriptor.DefaultSeverity.ToString(), StringComparison.Ordinal))
 			{
 				return true;
 			}
@@ -162,10 +171,12 @@ public sealed class DiagnosticCatalogTests
 	[InlineData(DiagnosticIds.InvalidManualBootstrap, true)]
 	[InlineData(DiagnosticIds.ReservedNamespace, true)]
 	[InlineData(DiagnosticIds.GeneratedEntryPointCollision, true)]
+	[InlineData(DiagnosticIds.ClassicNativePluginExport, false)]
 	[InlineData(DiagnosticIds.RequiresPluginEnabledTooEarly, false)]
 	[InlineData(DiagnosticIds.DisposeBorrowedValue, false)]
 	[InlineData(DiagnosticIds.UnguardedUnmanagedCallersOnly, false)]
 	[InlineData(DiagnosticIds.AsyncPluginLifecycle, false)]
+	[InlineData(DiagnosticIds.HostWidthPointerSize, false)]
 	[InlineData(DiagnosticIds.UnsafeBlocksRequired, false)]
 	[InlineData(DiagnosticIds.InvalidLuaBindingContainingType, false)]
 	[InlineData(DiagnosticIds.InvalidLuaFunction, false)]
@@ -173,6 +184,10 @@ public sealed class DiagnosticCatalogTests
 	[InlineData(DiagnosticIds.DuplicateLuaName, true)]
 	[InlineData(DiagnosticIds.InvalidLuaAnnotationTarget, false)]
 	[InlineData(DiagnosticIds.GeneratedLuaIdentityCollision, false)]
+	[InlineData(DiagnosticIds.NonTrailingOptionalLuaArgument, false)]
+	[InlineData(DiagnosticIds.InvalidOptionalOrVariadicLuaResult, false)]
+	[InlineData(DiagnosticIds.LookAlikeLuaContractType, false)]
+	[InlineData(DiagnosticIds.UnsupportedLuaOptionalPosition, false)]
 	public void Compilation_end_tag_is_on_the_rules_reported_at_compilation_end(string id, bool compilationEnd)
 	{
 		Assert.Equal(compilationEnd,
@@ -185,10 +200,12 @@ public sealed class DiagnosticCatalogTests
 		DiagnosticAnalyzer[] analyzers =
 		[
 			new CheatEnginePluginAnalyzer(),
+			new ClassicNativeExportAnalyzer(),
 			new UnmanagedCallersOnlyGuardAnalyzer(),
 			new LuaBindingAnalyzer(),
 			new PluginLifecycleAndOwnershipAnalyzer(),
-			new LuaObjectBindingAnalyzer()
+			new LuaObjectBindingAnalyzer(),
+			new HostWidthPointerSizeAnalyzer()
 		];
 
 		IEnumerable<string> supported = SortedIds(analyzers.SelectMany(analyzer => analyzer.SupportedDiagnostics));

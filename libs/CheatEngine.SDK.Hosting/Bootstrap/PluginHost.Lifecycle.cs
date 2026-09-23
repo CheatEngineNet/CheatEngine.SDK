@@ -139,7 +139,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		if (SGate.IsHeldByCurrentThread)
 		{
 			HostLog.Error(callback +
-			              ": re-entered from plugin code while OnEnable or OnDisable is running on this thread; the call is refused and the outer transition decides the state.");
+						  ": re-entered from plugin code while OnEnable or OnDisable is running on this thread; the call is refused and the outer transition decides the state.");
 			return false;
 		}
 
@@ -149,7 +149,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		}
 
 		HostLog.Error(callback +
-		              ": another lifecycle transition is already running; concurrent callbacks fail immediately and do not wait for plugin code.");
+					  ": another lifecycle transition is already running; concurrent callbacks fail immediately and do not wait for plugin code.");
 		return false;
 	}
 
@@ -220,7 +220,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 			if (Phase is not PluginHostLifecyclePhase.Registered)
 			{
 				HostLog.Error("EnablePlugin: the plugin lifecycle is in " + Phase +
-				              "; enable is valid only from Registered.");
+							  "; enable is valid only from Registered.");
 				return LifecycleStart.Refused;
 			}
 
@@ -238,6 +238,11 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 	{
 		Volatile.Write(ref s_incompleteEnableCleanup, 0);
 		Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
+
+		// Opt-in identification (WI-5): at most one entry, before any copy, bind or construction is attempted, so
+		// it is still emitted when one of those steps fails. Never touches Lua or plugin code.
+		LoadIdentification.EmitIfRequested(exports, pluginId, descriptor.FactoryType);
+
 		if (!TryCopyExports(exports, out ManagedExportedFunctions copy))
 		{
 			return false;
@@ -296,6 +301,9 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		runtimeAttached = false;
 		shutdown = null;
 
+		// Set before Attach so a worker refusal or an external-reset detection raised during this very enable is
+		// still observed; cleared by CleanupFailedEnable/CleanupDisable.
+		LuaRuntime.DiagnosticObserver = HandleLuaRuntimeDiagnostic;
 		LuaRuntime.Attach(in binding);
 		runtimeAttached = true;
 		shutdown = CreateShutdownSource();
@@ -351,6 +359,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 			return;
 		}
 
+		LuaRuntime.DiagnosticObserver = null;
 		Volatile.Write(ref s_context, null);
 		Volatile.Write(ref s_incompleteEnableCleanup, 0);
 		Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
@@ -528,17 +537,17 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		if (context is null)
 		{
 			HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
-			              "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
+						  "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
 			return LifecycleStart.Refused;
 		}
 
 		if (Phase is PluginHostLifecyclePhase.Disabling)
 		{
 			if (Volatile.Read(ref s_incompleteEnableCleanup) == 0
-			    || Volatile.Read(ref s_incompleteEnableCleanupActive) != 0)
+				|| Volatile.Read(ref s_incompleteEnableCleanupActive) != 0)
 			{
 				HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
-				              "; a disable transition is already completing.");
+							  "; a disable transition is already completing.");
 				return LifecycleStart.Refused;
 			}
 
@@ -548,7 +557,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		if (Phase is not PluginHostLifecyclePhase.Enabled)
 		{
 			HostLog.Error("DisablePlugin: the plugin lifecycle is in " + Phase +
-			              "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
+						  "; disable is valid only from Enabled or incomplete failed-enable cleanup.");
 			return LifecycleStart.Refused;
 		}
 
@@ -637,6 +646,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 			// The operation gate has already shut out every admitted Lua caller before callback neutralization.
 			LuaRuntime.CloseOperationAdmissionAndDrain();
 			LuaRuntime.Detach();
+			LuaRuntime.DiagnosticObserver = null;
 
 			Volatile.Write(ref s_context, null);
 			Volatile.Write(ref s_incompleteEnableCleanup, 0);
@@ -650,6 +660,28 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 				"DisablePlugin: Lua detach threw; shutdown remains incomplete and the lifecycle stays Disabling.",
 				exception);
 			return false;
+		}
+	}
+
+	// The sole subscriber of LuaRuntime.DiagnosticObserver: turns a one-shot runtime fact into one stable-category
+	// HostLog entry (A24 l.36: the category token never depends on CE's UI language). Invoked synchronously on the
+	// thread that raised the fact, outside every LuaRuntime lock.
+	private static void HandleLuaRuntimeDiagnostic(LuaRuntimeDiagnostic diagnostic)
+	{
+		switch (diagnostic)
+		{
+			case LuaRuntimeDiagnostic.WorkerThreadRefused:
+				HostLog.Warning(
+					string.Create(CultureInfo.InvariantCulture,
+						$"LuaWorkerThreadRefused: a worker thread (managed thread id {Environment.CurrentManagedThreadId}) was refused Lua admission")
+					+ " by the 2.0 conservative default (ADR-07). Use MainThread.Invoke, or opt in from OnEnable with "
+					+ "the unqualified LuaRuntime.AdmitWorkerThreads() [Experimental(\"CESDK5001\")].");
+				break;
+			case LuaRuntimeDiagnostic.ExternalStateReset:
+				HostLog.Error(
+					"LuaStateReplacedExternally: the host replaced its Lua state outside this SDK's controlled reset " +
+					"path. Every owner from before the replacement is refused; disable and re-enable the plugin.");
+				break;
 		}
 	}
 

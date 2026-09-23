@@ -1,0 +1,2597 @@
+{
+  "schema": "cheatengine-lua-interop-primitives/v0",
+  "subject": "CheatEngine.SDK.Lua.Interop.Api.LuaApi",
+  "manual": "https://www.lua.org/manual/5.3/manual.html",
+  "bridgeProof": {
+    "luaFixtureSha256": "c95dcdfa0f60f97b43d970d77fd1bb907af4de04b500a3c89a99600b20b35bd2",
+    "bridgeSourceSha256": "3342be23f88976d9209a24bc0d8b9db512482a24d8db90381a836ea4f5595a56",
+    "xmakeSha256": "2871368515be4c6fd235e49e793d5557e7c50229fcc8fbfd903efd39f9b754a8",
+    "checkstackEvidence": "CheckStackFailureProcessTests.Direct_checkstack_growth_with_a_rejecting_allocator_returns_zero_and_recovers",
+    "verifiedOn": "2026-09-23"
+  },
+  "manualDivergences": [
+    {
+      "member": "luaL_dofile",
+      "manualClass": "Any",
+      "sdkClass": "Memory",
+      "reason": "luaL_dofile is luaL_loadfile followed by lua_pcall: the load can raise only a memory error and the call is protected, so the SDK remark is narrower than the manual."
+    },
+    {
+      "member": "luaL_setmetatable",
+      "manualClass": "Never",
+      "sdkClass": "Memory",
+      "reason": "Lua 5.3.6 runs luaL_getmetatable (lua_getfield on the registry with a string key, which may create that string) before lua_setmetatable; the SDK remark keeps the allocation the manual omits."
+    }
+  ],
+  "productionExceptions": [
+    {
+      "member": "lua_pushcclosure",
+      "file": "libs/CheatEngine.SDK.Lua/State/LuaState.Callbacks.cs",
+      "justification": "PushUncheckedFunction pushes a light C function (zero upvalues) in the statement right after lua_checkstack(Pointer, 1) succeeded; LuaDirectApiBoundaryGuardTests pins that exact shape."
+    },
+    {
+      "member": "lua_tolstring",
+      "file": "libs/CheatEngine.SDK.Lua/Calls/LuaError.cs",
+      "justification": "FromStack reads the error value with lua_tolstring only in its LuaType.String case, so a string is returned as is and nothing is allocated."
+    },
+    {
+      "member": "lua_tolstring",
+      "file": "libs/CheatEngine.SDK.Lua/State/LuaState.Read.cs",
+      "justification": "TryReadUtf8 returns false unless lua_type is LUA_TSTRING, so a string is returned as is, nothing is allocated and the stack slot is never rewritten."
+    }
+  ],
+  "rows": [
+    {
+      "member": "GetMissingExports",
+      "nativeSymbol": null,
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "Lifecycle",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": null
+    },
+    {
+      "member": "Initialize",
+      "nativeSymbol": null,
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "Lifecycle",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": null
+    },
+    {
+      "member": "IsInitialized",
+      "nativeSymbol": null,
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "Lifecycle",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": null
+    },
+    {
+      "member": "ModuleHandle",
+      "nativeSymbol": null,
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "Lifecycle",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": null
+    },
+    {
+      "member": "TryInitialize",
+      "nativeSymbol": null,
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "Lifecycle",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": null
+    },
+    {
+      "member": "luaL_callmeta",
+      "nativeSymbol": "luaL_callmeta",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +(0|1)",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_callmeta",
+        "marker": "[-0, +(0|1), e]"
+      }
+    },
+    {
+      "member": "luaL_dofile",
+      "nativeSymbol": null,
+      "raises": "Memory",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +?",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_dofile",
+        "marker": "[-0, +?, e]"
+      }
+    },
+    {
+      "member": "luaL_dostring",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +?",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_dostring",
+        "marker": "[-0, +?, –]"
+      }
+    },
+    {
+      "member": "luaL_getmetafield",
+      "nativeSymbol": "luaL_getmetafield",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +(0|1)",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_getmetafield",
+        "marker": "[-0, +(0|1), m]"
+      }
+    },
+    {
+      "member": "luaL_getmetatable",
+      "nativeSymbol": null,
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_getmetatable",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "luaL_getsubtable",
+      "nativeSymbol": "luaL_getsubtable",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_getsubtable",
+        "marker": "[-0, +1, e]"
+      }
+    },
+    {
+      "member": "luaL_len",
+      "nativeSymbol": "luaL_len",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_len",
+        "marker": "[-0, +0, e]"
+      }
+    },
+    {
+      "member": "luaL_loadbuffer",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_loadbuffer",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "luaL_loadbufferx",
+      "nativeSymbol": "luaL_loadbufferx",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_loadbufferx",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "luaL_loadfile",
+      "nativeSymbol": null,
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_loadfile",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "luaL_loadfilex",
+      "nativeSymbol": "luaL_loadfilex",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_loadfilex",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "luaL_loadstring",
+      "nativeSymbol": "luaL_loadstring",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_loadstring",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "luaL_newmetatable",
+      "nativeSymbol": "luaL_newmetatable",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_newmetatable",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "luaL_newstate",
+      "nativeSymbol": "luaL_newstate",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "n/a",
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_newstate",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "luaL_openlibs",
+      "nativeSymbol": "luaL_openlibs",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_openlibs",
+        "marker": "[-0, +0, e]"
+      }
+    },
+    {
+      "member": "luaL_ref",
+      "nativeSymbol": "luaL_ref",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "CreateReference",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_ref",
+        "marker": "[-1, +0, m]"
+      }
+    },
+    {
+      "member": "luaL_requiref",
+      "nativeSymbol": "luaL_requiref",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_requiref",
+        "marker": "[-0, +1, e]"
+      }
+    },
+    {
+      "member": "luaL_setfuncs",
+      "nativeSymbol": "luaL_setfuncs",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-nup +0",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_setfuncs",
+        "marker": "[-nup, +0, m]"
+      }
+    },
+    {
+      "member": "luaL_setmetatable",
+      "nativeSymbol": "luaL_setmetatable",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_setmetatable",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "luaL_testudata",
+      "nativeSymbol": "luaL_testudata",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": true,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_testudata",
+        "marker": "[-0, +0, m]"
+      }
+    },
+    {
+      "member": "luaL_tolstring",
+      "nativeSymbol": "luaL_tolstring",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": true,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_tolstring",
+        "marker": "[-0, +1, e]"
+      }
+    },
+    {
+      "member": "luaL_traceback",
+      "nativeSymbol": "luaL_traceback",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_traceback",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "luaL_typename",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_typename",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "luaL_unref",
+      "nativeSymbol": "luaL_unref",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "ReleaseReference",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#luaL_unref",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_absindex",
+      "nativeSymbol": "lua_absindex",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_absindex",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_arith",
+      "nativeSymbol": "lua_arith",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-(2|1) +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_arith",
+        "marker": "[-(2|1), +1, e]"
+      }
+    },
+    {
+      "member": "lua_atpanic",
+      "nativeSymbol": "lua_atpanic",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_atpanic",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_call",
+      "nativeSymbol": null,
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-(n+1) +r",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_call",
+        "marker": "[-(nargs+1), +nresults, e]"
+      }
+    },
+    {
+      "member": "lua_callk",
+      "nativeSymbol": "lua_callk",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": true,
+      "stackEffect": "-(nargs+1) +nresults",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_callk",
+        "marker": "[-(nargs + 1), +nresults, e]"
+      }
+    },
+    {
+      "member": "lua_checkstack",
+      "nativeSymbol": "lua_checkstack",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_checkstack",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_close",
+      "nativeSymbol": "lua_close",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "n/a",
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_close",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_compare",
+      "nativeSymbol": "lua_compare",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_compare",
+        "marker": "[-0, +0, e]"
+      }
+    },
+    {
+      "member": "lua_concat",
+      "nativeSymbol": "lua_concat",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-n +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_concat",
+        "marker": "[-n, +1, e]"
+      }
+    },
+    {
+      "member": "lua_copy",
+      "nativeSymbol": "lua_copy",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_copy",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_createtable",
+      "nativeSymbol": "lua_createtable",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "CreateTable",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_createtable",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "lua_dump",
+      "nativeSymbol": "lua_dump",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_dump",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_error",
+      "nativeSymbol": "lua_error",
+      "raises": "Always",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "BridgeRequired",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_error",
+        "marker": "[-1, +0, v]"
+      }
+    },
+    {
+      "member": "lua_gc",
+      "nativeSymbol": "lua_gc",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_gc",
+        "marker": "[-0, +0, m]"
+      }
+    },
+    {
+      "member": "lua_getallocf",
+      "nativeSymbol": "lua_getallocf",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_getallocf",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_getextraspace",
+      "nativeSymbol": null,
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": true,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_getextraspace",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_getfield",
+      "nativeSymbol": "lua_getfield",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_getfield",
+        "marker": "[-0, +1, e]"
+      }
+    },
+    {
+      "member": "lua_getglobal",
+      "nativeSymbol": "lua_getglobal",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_getglobal",
+        "marker": "[-0, +1, e]"
+      }
+    },
+    {
+      "member": "lua_gethook",
+      "nativeSymbol": "lua_gethook",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_gethook",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_gethookcount",
+      "nativeSymbol": "lua_gethookcount",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_gethookcount",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_gethookmask",
+      "nativeSymbol": "lua_gethookmask",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_gethookmask",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_geti",
+      "nativeSymbol": "lua_geti",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_geti",
+        "marker": "[-0, +1, e]"
+      }
+    },
+    {
+      "member": "lua_getinfo",
+      "nativeSymbol": "lua_getinfo",
+      "raises": "Any",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-(0|1) +(0|1|2)",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_getinfo",
+        "marker": "[-(0|1), +(0|1|2), e]"
+      }
+    },
+    {
+      "member": "lua_getlocal",
+      "nativeSymbol": "lua_getlocal",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +(0|1)",
+      "returnsBorrowedView": true,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_getlocal",
+        "marker": "[-0, +(0|1), –]"
+      }
+    },
+    {
+      "member": "lua_getmetatable",
+      "nativeSymbol": "lua_getmetatable",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +(0|1)",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_getmetatable",
+        "marker": "[-0, +(0|1), –]"
+      }
+    },
+    {
+      "member": "lua_getstack",
+      "nativeSymbol": "lua_getstack",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_getstack",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_gettable",
+      "nativeSymbol": "lua_gettable",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-1 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_gettable",
+        "marker": "[-1, +1, e]"
+      }
+    },
+    {
+      "member": "lua_gettop",
+      "nativeSymbol": "lua_gettop",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_gettop",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_getupvalue",
+      "nativeSymbol": "lua_getupvalue",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +(0|1)",
+      "returnsBorrowedView": true,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_getupvalue",
+        "marker": "[-0, +(0|1), –]"
+      }
+    },
+    {
+      "member": "lua_getuservalue",
+      "nativeSymbol": "lua_getuservalue",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_getuservalue",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_insert",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-1 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_insert",
+        "marker": "[-1, +1, –]"
+      }
+    },
+    {
+      "member": "lua_isboolean",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isboolean",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_iscfunction",
+      "nativeSymbol": "lua_iscfunction",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_iscfunction",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_isfunction",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isfunction",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_isinteger",
+      "nativeSymbol": "lua_isinteger",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isinteger",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_islightuserdata",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_islightuserdata",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_isnil",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isnil",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_isnone",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isnone",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_isnoneornil",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isnoneornil",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_isnumber",
+      "nativeSymbol": "lua_isnumber",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isnumber",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_isstring",
+      "nativeSymbol": "lua_isstring",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isstring",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_istable",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_istable",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_isthread",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isthread",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_isuserdata",
+      "nativeSymbol": "lua_isuserdata",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isuserdata",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_isyieldable",
+      "nativeSymbol": "lua_isyieldable",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_isyieldable",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_len",
+      "nativeSymbol": "lua_len",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_len",
+        "marker": "[-0, +1, e]"
+      }
+    },
+    {
+      "member": "lua_load",
+      "nativeSymbol": "lua_load",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_load",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_newstate",
+      "nativeSymbol": "lua_newstate",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "n/a",
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_newstate",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_newtable",
+      "nativeSymbol": null,
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "CreateTable",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_newtable",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "lua_newthread",
+      "nativeSymbol": "lua_newthread",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": true,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_newthread",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "lua_newuserdata",
+      "nativeSymbol": "lua_newuserdata",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": true,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "NewUserdata",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_newuserdata",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "lua_next",
+      "nativeSymbol": "lua_next",
+      "raises": "Any",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-1 +(2|0)",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_next",
+        "marker": "[-1, +(2|0), e]"
+      }
+    },
+    {
+      "member": "lua_pcall",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-(n+1) +(r|1)",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pcall",
+        "marker": "[-(nargs + 1), +(nresults|1), –]"
+      }
+    },
+    {
+      "member": "lua_pcallk",
+      "nativeSymbol": "lua_pcallk",
+      "raises": "Never",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": true,
+      "stackEffect": "-(nargs+1) +(nresults|1)",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pcallk",
+        "marker": "[-(nargs + 1), +(nresults|1), –]"
+      }
+    },
+    {
+      "member": "lua_pop",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-n +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pop",
+        "marker": "[-n, +0, –]"
+      }
+    },
+    {
+      "member": "lua_pushboolean",
+      "nativeSymbol": "lua_pushboolean",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushboolean",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_pushcclosure",
+      "nativeSymbol": "lua_pushcclosure",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-n +1",
+      "returnsBorrowedView": false,
+      "decision": "ConditionallyDirect",
+      "bridgeOperation": "PushClosure",
+      "condition": "Zero upvalues, immediately after lua_checkstack(L, 1) succeeded on the same path: Lua 5.3.6 then pushes a light C function without allocating.",
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushcclosure",
+        "marker": "[-n, +1, m]"
+      }
+    },
+    {
+      "member": "lua_pushcfunction",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushcfunction",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_pushglobaltable",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushglobaltable",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_pushinteger",
+      "nativeSymbol": "lua_pushinteger",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushinteger",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_pushlightuserdata",
+      "nativeSymbol": "lua_pushlightuserdata",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushlightuserdata",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_pushliteral",
+      "nativeSymbol": null,
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "PushBytes",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushliteral",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "lua_pushlstring",
+      "nativeSymbol": "lua_pushlstring",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": true,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "PushBytes",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushlstring",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "lua_pushnil",
+      "nativeSymbol": "lua_pushnil",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushnil",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_pushnumber",
+      "nativeSymbol": "lua_pushnumber",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushnumber",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_pushstring",
+      "nativeSymbol": "lua_pushstring",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": true,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "PushBytes",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushstring",
+        "marker": "[-0, +1, m]"
+      }
+    },
+    {
+      "member": "lua_pushthread",
+      "nativeSymbol": "lua_pushthread",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushthread",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_pushvalue",
+      "nativeSymbol": "lua_pushvalue",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_pushvalue",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_rawequal",
+      "nativeSymbol": "lua_rawequal",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawequal",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_rawget",
+      "nativeSymbol": "lua_rawget",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-1 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawget",
+        "marker": "[-1, +1, –]"
+      }
+    },
+    {
+      "member": "lua_rawgeti",
+      "nativeSymbol": "lua_rawgeti",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawgeti",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_rawgetp",
+      "nativeSymbol": "lua_rawgetp",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +1",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawgetp",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_rawlen",
+      "nativeSymbol": "lua_rawlen",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawlen",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_rawset",
+      "nativeSymbol": "lua_rawset",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-2 +0",
+      "returnsBorrowedView": false,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "RawSet",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawset",
+        "marker": "[-2, +0, m]"
+      }
+    },
+    {
+      "member": "lua_rawseti",
+      "nativeSymbol": "lua_rawseti",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "RawSetIndex",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawseti",
+        "marker": "[-1, +0, m]"
+      }
+    },
+    {
+      "member": "lua_rawsetp",
+      "nativeSymbol": "lua_rawsetp",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "BridgeRequired",
+      "bridgeOperation": "RawSetPointer",
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_rawsetp",
+        "marker": "[-1, +0, m]"
+      }
+    },
+    {
+      "member": "lua_register",
+      "nativeSymbol": null,
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_register",
+        "marker": "[-0, +0, e]"
+      }
+    },
+    {
+      "member": "lua_remove",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_remove",
+        "marker": "[-1, +0, –]"
+      }
+    },
+    {
+      "member": "lua_replace",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_replace",
+        "marker": "[-1, +0, –]"
+      }
+    },
+    {
+      "member": "lua_resume",
+      "nativeSymbol": "lua_resume",
+      "raises": "Never",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-? +?",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_resume",
+        "marker": "[-?, +?, –]"
+      }
+    },
+    {
+      "member": "lua_rotate",
+      "nativeSymbol": "lua_rotate",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_rotate",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_setallocf",
+      "nativeSymbol": "lua_setallocf",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_setallocf",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_setfield",
+      "nativeSymbol": "lua_setfield",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_setfield",
+        "marker": "[-1, +0, e]"
+      }
+    },
+    {
+      "member": "lua_setglobal",
+      "nativeSymbol": "lua_setglobal",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_setglobal",
+        "marker": "[-1, +0, e]"
+      }
+    },
+    {
+      "member": "lua_sethook",
+      "nativeSymbol": "lua_sethook",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_sethook",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_seti",
+      "nativeSymbol": "lua_seti",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_seti",
+        "marker": "[-1, +0, e]"
+      }
+    },
+    {
+      "member": "lua_setlocal",
+      "nativeSymbol": "lua_setlocal",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-(0|1) +0",
+      "returnsBorrowedView": true,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_setlocal",
+        "marker": "[-(0|1), +0, –]"
+      }
+    },
+    {
+      "member": "lua_setmetatable",
+      "nativeSymbol": "lua_setmetatable",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_setmetatable",
+        "marker": "[-1, +0, –]"
+      }
+    },
+    {
+      "member": "lua_settable",
+      "nativeSymbol": "lua_settable",
+      "raises": "Any",
+      "mayRunMetamethod": true,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-2 +0",
+      "returnsBorrowedView": false,
+      "decision": "CallerProtected",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_settable",
+        "marker": "[-2, +0, e]"
+      }
+    },
+    {
+      "member": "lua_settop",
+      "nativeSymbol": "lua_settop",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-? +?",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_settop",
+        "marker": "[-?, +?, –]"
+      }
+    },
+    {
+      "member": "lua_setupvalue",
+      "nativeSymbol": "lua_setupvalue",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-(0|1) +0",
+      "returnsBorrowedView": true,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_setupvalue",
+        "marker": "[-(0|1), +0, –]"
+      }
+    },
+    {
+      "member": "lua_setuservalue",
+      "nativeSymbol": "lua_setuservalue",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-1 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_setuservalue",
+        "marker": "[-1, +0, –]"
+      }
+    },
+    {
+      "member": "lua_status",
+      "nativeSymbol": "lua_status",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_status",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_stringtonumber",
+      "nativeSymbol": "lua_stringtonumber",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +(0|1)",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_stringtonumber",
+        "marker": "[-0, +1, –]"
+      }
+    },
+    {
+      "member": "lua_toboolean",
+      "nativeSymbol": "lua_toboolean",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_toboolean",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_tocfunction",
+      "nativeSymbol": "lua_tocfunction",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_tocfunction",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_tointeger",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_tointeger",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_tointegerx",
+      "nativeSymbol": "lua_tointegerx",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_tointegerx",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_tolstring",
+      "nativeSymbol": "lua_tolstring",
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": true,
+      "decision": "ConditionallyDirect",
+      "bridgeOperation": null,
+      "condition": "The value is already a string: lua_type returned LUA_TSTRING on the same path, so nothing is converted, allocated or rewritten.",
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_tolstring",
+        "marker": "[-0, +0, m]"
+      }
+    },
+    {
+      "member": "lua_tonumber",
+      "nativeSymbol": null,
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_tonumber",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_tonumberx",
+      "nativeSymbol": "lua_tonumberx",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_tonumberx",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_topointer",
+      "nativeSymbol": "lua_topointer",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_topointer",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_tostring",
+      "nativeSymbol": null,
+      "raises": "Memory",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": true,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": true,
+      "decision": "ConditionallyDirect",
+      "bridgeOperation": null,
+      "condition": "The value is already a string: lua_type returned LUA_TSTRING on the same path, so nothing is converted, allocated or rewritten.",
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_tostring",
+        "marker": "[-0, +0, m]"
+      }
+    },
+    {
+      "member": "lua_tothread",
+      "nativeSymbol": "lua_tothread",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": true,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_tothread",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_touserdata",
+      "nativeSymbol": "lua_touserdata",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": true,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_touserdata",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_type",
+      "nativeSymbol": "lua_type",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_type",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_typename",
+      "nativeSymbol": "lua_typename",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_typename",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_upvalueid",
+      "nativeSymbol": "lua_upvalueid",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_upvalueid",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_upvalueindex",
+      "nativeSymbol": null,
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_upvalueindex",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_upvaluejoin",
+      "nativeSymbol": "lua_upvaluejoin",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_upvaluejoin",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_version",
+      "nativeSymbol": "lua_version",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-0 +0",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_version",
+        "marker": "[-0, +0, –]"
+      }
+    },
+    {
+      "member": "lua_xmove",
+      "nativeSymbol": "lua_xmove",
+      "raises": "Never",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": "-? +? (across two stacks)",
+      "returnsBorrowedView": false,
+      "decision": "DirectAllowed",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#lua_xmove",
+        "marker": "[-?, +?, –]"
+      }
+    },
+    {
+      "member": "luaopen_base",
+      "nativeSymbol": "luaopen_base",
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#6",
+        "marker": "none: a lua_CFunction value that luaL_requiref runs; the manual gives no API marker"
+      }
+    },
+    {
+      "member": "luaopen_coroutine",
+      "nativeSymbol": "luaopen_coroutine",
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#6",
+        "marker": "none: a lua_CFunction value that luaL_requiref runs; the manual gives no API marker"
+      }
+    },
+    {
+      "member": "luaopen_debug",
+      "nativeSymbol": "luaopen_debug",
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#6",
+        "marker": "none: a lua_CFunction value that luaL_requiref runs; the manual gives no API marker"
+      }
+    },
+    {
+      "member": "luaopen_io",
+      "nativeSymbol": "luaopen_io",
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#6",
+        "marker": "none: a lua_CFunction value that luaL_requiref runs; the manual gives no API marker"
+      }
+    },
+    {
+      "member": "luaopen_math",
+      "nativeSymbol": "luaopen_math",
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#6",
+        "marker": "none: a lua_CFunction value that luaL_requiref runs; the manual gives no API marker"
+      }
+    },
+    {
+      "member": "luaopen_os",
+      "nativeSymbol": "luaopen_os",
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#6",
+        "marker": "none: a lua_CFunction value that luaL_requiref runs; the manual gives no API marker"
+      }
+    },
+    {
+      "member": "luaopen_package",
+      "nativeSymbol": "luaopen_package",
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#6",
+        "marker": "none: a lua_CFunction value that luaL_requiref runs; the manual gives no API marker"
+      }
+    },
+    {
+      "member": "luaopen_string",
+      "nativeSymbol": "luaopen_string",
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#6",
+        "marker": "none: a lua_CFunction value that luaL_requiref runs; the manual gives no API marker"
+      }
+    },
+    {
+      "member": "luaopen_table",
+      "nativeSymbol": "luaopen_table",
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#6",
+        "marker": "none: a lua_CFunction value that luaL_requiref runs; the manual gives no API marker"
+      }
+    },
+    {
+      "member": "luaopen_utf8",
+      "nativeSymbol": "luaopen_utf8",
+      "raises": "NotApplicable",
+      "mayRunMetamethod": false,
+      "mayRunFinalizer": false,
+      "mayYield": false,
+      "stackEffect": null,
+      "returnsBorrowedView": false,
+      "decision": "ForbiddenInSdk",
+      "bridgeOperation": null,
+      "condition": null,
+      "provenance": {
+        "source": "https://www.lua.org/manual/5.3/manual.html#6",
+        "marker": "none: a lua_CFunction value that luaL_requiref runs; the manual gives no API marker"
+      }
+    }
+  ]
+}

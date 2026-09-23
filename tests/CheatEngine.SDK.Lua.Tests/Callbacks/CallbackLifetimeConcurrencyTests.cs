@@ -35,7 +35,10 @@ public sealed class CallbackLifetimeConcurrencyTests
 		CancellationToken cancellationToken = TestContext.Current.CancellationToken;
 		using NativeLuaState state = new();
 		LuaState main = LuaTest.View(state);
-		using RuntimeScope scope = new(state);
+		// xUnit v3 resumes an async continuation on whatever thread pool thread is available (pitfall 4): the
+		// `using RootedThread worker` below is disposed after `await call.WaitAsync(...)` and calls
+		// LuaRuntime.TryAcquireOperation on whichever thread that continuation lands on, not necessarily this one.
+		using RuntimeScope scope = new(state, admitWorkerThreads: true);
 		using CallbackRace race = new(cancellationToken);
 		s_race = race;
 
@@ -84,7 +87,9 @@ public sealed class CallbackLifetimeConcurrencyTests
 		CancellationToken cancellationToken = TestContext.Current.CancellationToken;
 		using NativeLuaState state = new();
 		LuaState main = LuaTest.View(state);
-		using RuntimeScope scope = new(state);
+		// Same post-await thread hazard as the previous test (pitfall 4): the `using RootedThread worker` below is
+		// disposed after `await call.WaitAsync(...)`.
+		using RuntimeScope scope = new(state, admitWorkerThreads: true);
 		using CallbackRace race = new(cancellationToken);
 		s_race = race;
 
@@ -123,7 +128,9 @@ public sealed class CallbackLifetimeConcurrencyTests
 		CancellationToken cancellationToken = TestContext.Current.CancellationToken;
 		using NativeLuaState state = new();
 		LuaState main = LuaTest.View(state);
-		using RuntimeScope scope = new(state);
+		// Same post-await thread hazard as the tests above (pitfall 4): the `using RootedThread worker` below is
+		// disposed after two awaits.
+		using RuntimeScope scope = new(state, admitWorkerThreads: true);
 		using CallbackRace race = new(cancellationToken);
 		using ManualResetEventSlim admissionClosed = new(false);
 		s_race = race;

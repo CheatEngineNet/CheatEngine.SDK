@@ -38,15 +38,15 @@ internal struct LuaBridgeContract
 	internal readonly bool IsCompatible()
 	{
 		return Magic == ExpectedMagic &&
-		       ContractSize == (uint) Unsafe.SizeOf<LuaBridgeContract>() &&
-		       AbiMajor == ExpectedMajor &&
-		       AbiMinor >= MinimumMinor &&
-		       PointerSize == (byte) lua_KContext.Size &&
-		       LuaIntegerSize == (byte) Unsafe.SizeOf<lua_Integer>() &&
-		       SizeTSize == (byte) Unsafe.SizeOf<nuint>() &&
-		       ExportTableSize == (uint) Unsafe.SizeOf<LuaProtectedExports>() &&
-		       Reserved == 0 &&
-		       (SupportedOperations & LuaProtectedOperationContract.RequiredBitmap) ==
-		       LuaProtectedOperationContract.RequiredBitmap;
+			   ContractSize == (uint) Unsafe.SizeOf<LuaBridgeContract>() &&
+			   AbiMajor == ExpectedMajor &&
+			   AbiMinor >= MinimumMinor &&
+			   PointerSize == (byte) lua_KContext.Size &&
+			   LuaIntegerSize == (byte) Unsafe.SizeOf<lua_Integer>() &&
+			   SizeTSize == (byte) Unsafe.SizeOf<nuint>() &&
+			   ExportTableSize == (uint) Unsafe.SizeOf<LuaProtectedExports>() &&
+			   Reserved == 0 &&
+			   (SupportedOperations & LuaProtectedOperationContract.RequiredBitmap) ==
+			   LuaProtectedOperationContract.RequiredBitmap;
 	}
 }

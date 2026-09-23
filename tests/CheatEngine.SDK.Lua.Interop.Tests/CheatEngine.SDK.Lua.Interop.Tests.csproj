@@ -13,4 +13,12 @@
     <ProjectReference Include="../CheatEngine.SDK.Tests.Shared/CheatEngine.SDK.Tests.Shared.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The primitive matrix and the bridge catalogue, compared with LuaApi by reflection and its XML documentation. -->
+    <EmbeddedResource Include="../CheatEngine.SDK.Repository.Tests/LuaBridge/TestData/lua-interop-primitives.json"
+                      LogicalName="CheatEngine.SDK.Lua.Interop.Tests.LuaInteropPrimitives.json"/>
+    <EmbeddedResource Include="../../libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json"
+                      LogicalName="CheatEngine.SDK.Lua.Interop.Tests.ProtectedOperations.json"/>
+  </ItemGroup>
+
 </Project>

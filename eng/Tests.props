@@ -23,6 +23,9 @@
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport"/>
     <PackageReference Include="Microsoft.Testing.Extensions.GitHubActionsReport"/>
+    <!-- CI passes hangdump and crashdump to every module; a module without the extensions fails with exit code 5. -->
+    <PackageReference Include="Microsoft.Testing.Extensions.HangDump"/>
+    <PackageReference Include="Microsoft.Testing.Extensions.CrashDump"/>
     <Using Include="Xunit"/>
   </ItemGroup>
 </Project>

@@ -17,14 +17,21 @@ namespace CheatEngine.SDK.Engine.Allocation;
 ///     <c>deAlloc</c>.
 /// </summary>
 /// <remarks>
-///     The binding uses attach-epoch-aware global references, one protected call per operation, and restores the Lua
-///     stack on every return or exception. It deliberately does not infer a GUI-thread requirement: the CE 7.7 Lua
-///     contract for these two globals provides none. A <see langword="nil" /> allocation result and a <c>false</c>
-///     deallocation result are expected operation failures; a result of another shape remains a stable marshalling
-///     failure. The class is stateless and may be shared by multiple <see cref="TargetMemoryAllocator" /> instances.
+///     <para>
+///         The binding uses attach-epoch-aware global references, one protected call per operation, and restores the Lua
+///         stack on every return or exception. It deliberately does not infer a GUI-thread requirement: the CE 7.7 Lua
+///         contract for these two globals provides none. A <see langword="nil" /> allocation result and a <c>false</c>
+///         deallocation result are expected operation failures; a result of another shape remains a stable marshalling
+///         failure. The class is stateless and may be shared by multiple <see cref="TargetMemoryAllocator" /> instances.
+///     </para>
+///     <para>
+///         The type is internal on purpose: its direct <c>allocateMemory</c>/<c>deAlloc</c> members yield a live address
+///         without an owner. Consumers reach it only through <see cref="TargetMemoryAllocator" />, which never publishes
+///         an allocation without an <see cref="AllocatedRegion" /> or a reported compensation.
+///     </para>
 /// </remarks>
-public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocationOperations,
-	ITargetMemoryAllocationOutcomeOperations, ITargetBoundMemoryAllocationOperations
+internal sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocationOperations,
+	ITargetBoundMemoryAllocationOperations
 {
 	private const string AllocateOperation = "TargetMemoryAllocate";
 	private const string DeallocateOperation = "TargetMemoryDeallocate";
@@ -120,9 +127,11 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
 		return GetDeallocationResultOrThrow(DeallocateWithOutcome(address, size));
 	}
 
-	/// <inheritdoc />
+	/// <summary>Runs <c>allocateMemory</c> once and returns its structured outcome; the address has no owner.</summary>
+	/// <param name="request">The target allocation request.</param>
+	/// <returns>The result category and nonzero address on success.</returns>
 	[RequiresPluginEnabled]
-	public TargetMemoryAllocationOutcome AllocateWithOutcome(TargetAllocationRequest request)
+	public static TargetMemoryAllocationOutcome AllocateWithOutcome(TargetAllocationRequest request)
 	{
 		if (request.Size.Value <= 0)
 		{
@@ -143,9 +152,12 @@ public sealed class LuaTargetMemoryAllocationOperations : ITargetMemoryAllocatio
 		}
 	}
 
-	/// <inheritdoc />
+	/// <summary>Runs <c>deAlloc</c> once against the ambient target and returns its structured outcome.</summary>
+	/// <param name="address">The nonzero address in the target process.</param>
+	/// <param name="size">The original allocation request size.</param>
+	/// <returns>The result category for the deallocation operation.</returns>
 	[RequiresPluginEnabled]
-	public TargetMemoryOperationOutcome DeallocateWithOutcome(Address address, TargetAllocationSize size)
+	public static TargetMemoryOperationOutcome DeallocateWithOutcome(Address address, TargetAllocationSize size)
 	{
 		if (address.IsZero || size.Value <= 0)
 		{

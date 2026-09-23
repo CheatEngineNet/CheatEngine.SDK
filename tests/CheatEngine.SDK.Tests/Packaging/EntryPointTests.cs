@@ -15,6 +15,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     really reaches the generator, not just its own internal default.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class EntryPointTests(PackagedUmbrellaFixture fixture)
 {
 	[Fact]

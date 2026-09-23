@@ -8,7 +8,9 @@ written for the plugin author who just saw the message: cause, reason, exact def
 Identifier ranges: `CESDK0xxx` plugin shape and bootstrap (category `CheatEngine.SDK.Plugin`), `CESDK1xxx`
 runtime-safety usage (`CheatEngine.SDK.Usage`), `CESDK2xxx` Lua generator input (`CheatEngine.SDK.Generation`). The
 separate EngineApi generator owns
-`CESDK3xxx` for curated-spec grammar and generated-identity diagnostics. Identifiers are never renumbered or reused.
+`CESDK3xxx` for curated-spec grammar and generated-identity diagnostics. `CESDK5xxx` marks compiler-enforced
+`[Experimental]` API gates, held unqualified until their audit criteria pass. `CESDK7xxx` marks members obsoleted after
+1.0.0 (`[Obsolete(DiagnosticId = …)]`). Identifiers are never renumbered or reused.
 
 | Id                        | Title                                                            | Severity | Code fix                                                                                     |
 |---------------------------|------------------------------------------------------------------|----------|----------------------------------------------------------------------------------------------|
@@ -17,10 +19,12 @@ separate EngineApi generator owns
 | [CESDK0003](CESDK0003.md) | Manual Cheat Engine bootstrap is missing or malformed            | Error    | Add the exact `CESDK.CESDK.CEPluginInitialize(IntPtr, int)` contract                         |
 | [CESDK0004](CESDK0004.md) | Plugin assembly declares a namespace under 'CESDK'               | Warning  | None                                                                                         |
 | [CESDK0005](CESDK0005.md) | Source type collides with the generated Cheat Engine entry point | Error    | Rename it, or explicitly own the complete manual bootstrap                                   |
+| [CESDK0006](CESDK0006.md) | Method exports a classic Cheat Engine native plugin entry point  | Warning  | None                                                                                         |
 | [CESDK1001](CESDK1001.md) | Plugin startup code calls an enabled-only API                    | Error    | Move the call to `OnEnable`                                                                  |
 | [CESDK1003](CESDK1003.md) | A Cheat Engine-owned value is being destroyed                    | Error    | Keep it borrowed or use an explicit `Owned<T>` transfer                                      |
 | [CESDK1004](CESDK1004.md) | Exception can escape an [UnmanagedCallersOnly] method            | Warning  | Wrap the body in try/catch                                                                   |
 | [CESDK1005](CESDK1005.md) | Plugin lifecycle callback must not be `async void`               | Error    | Keep `OnEnable`/`OnDisable` synchronous                                                      |
+| [CESDK1020](CESDK1020.md) | PointerSize built from the plugin process width                  | Warning  | None; read the target bitness or configured pointer size from Cheat Engine                   |
 | [CESDK2001](CESDK2001.md) | Lua binding needs AllowUnsafeBlocks                              | Error    | None                                                                                         |
 | [CESDK2002](CESDK2002.md) | Type cannot receive a generated Lua binding part                 | Error    | None                                                                                         |
 | [CESDK2003](CESDK2003.md) | [LuaFunction] method cannot be exported by a generated thunk     | Error    | None                                                                                         |
@@ -28,6 +32,20 @@ separate EngineApi generator owns
 | [CESDK2005](CESDK2005.md) | Lua function name is duplicated                                  | Error    | Give one valid export a distinct Lua name                                                    |
 | [CESDK2006](CESDK2006.md) | Lua annotation target cannot receive generated code              | Error    | Declare the supported borrowed-handle/member shape                                           |
 | [CESDK2007](CESDK2007.md) | User member collides with a generated Lua binding identity       | Error    | Rename the member or change the binding declaration                                          |
+| [CESDK2010](CESDK2010.md) | Optional Lua argument is not in a trailing run                   | Error    | Declare optional arguments after the required ones                                           |
+| [CESDK2011](CESDK2011.md) | Optional or variadic Lua result shape is invalid                 | Error    | Required, then optional results; one variadic pair last                                      |
+| [CESDK2012](CESDK2012.md) | Type impersonates an SDK Lua contract type                       | Error    | Use the CheatEngine.SDK.Lua type                                                             |
+| [CESDK2013](CESDK2013.md) | LuaOptional is not supported in this position                    | Error    | Use an argument or an `out` result of a supported kind                                       |
+| [CESDK3001](CESDK3001.md) | Engine API specification is invalid                              | Error    | Correct the reported spec line                                                               |
+| [CESDK3002](CESDK3002.md) | Engine API specification has a generated-identity conflict       | Error    | Keep one spec file per generated type                                                        |
+| [CESDK3003](CESDK3003.md) | Engine API specification does not declare the ce77 contract      | Error    | Add the `contract: ce77` header                                                              |
+| [CESDK3004](CESDK3004.md) | Engine API optional argument is invalid                          | Error    | Declare `opt:` arguments last                                                                |
+| [CESDK3005](CESDK3005.md) | Engine API optional or variadic result is invalid                | Error    | `result:`, then `opt-result:`, then one `rest:`                                              |
+| [CESDK5001](CESDK5001.md) | Worker-thread Lua admission is experimental                      | Error (compiler) | None                                                                                         |
+| [CESDK5010](CESDK5010.md) | Scan deadline and cooperative termination are experimental       | Error (compiler) | None                                                                                         |
+| [CESDK5011](CESDK5011.md) | First-found AOB scan is experimental                             | Error (compiler) | None                                                                                         |
+| [CESDK7001](CESDK7001.md) | PointerSize.FromArchitecture is obsolete                         | Warning  | None; use `TargetArchitectureObservation.ConfiguredPointerSize` or `Bitness`                 |
+| [CESDK9102](CESDK9102.md) | A CheatEngine.SDK plugin library sets PublishAot (MSBuild, packaged build target) | Warning  | None                                                                            |
 
 Configure a rule like any other analyzer diagnostic:
 

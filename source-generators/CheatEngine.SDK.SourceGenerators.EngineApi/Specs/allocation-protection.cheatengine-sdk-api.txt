@@ -3,28 +3,38 @@
 # AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00, lines 682-683.
 # PinnedUpstream comparison: cheat-engine/cheat-engine commit ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37.
 # Architecture: CE 7.7.0.10621 x64. Both globals require the enabled plugin; CE's catalog does not establish GUI-thread affinity.
-# This file is intentionally not yet an AdditionalFile of CheatEngine.SDK.Engine: current EngineApi output exposes
-# address results as nuint and cannot represent CE optional arguments as the public Address/TargetAllocationRequest contract.
-# The future generator integration must retain this provenance and map a nil allocation result to an expected CE failure.
+# The grammar now represents CE's optional arguments ('opt:', LuaOptional<T>: omitted, nil or a value), so an omitted
+# base address or protection is not pushed at all. This file is still intentionally not an AdditionalFile of
+# CheatEngine.SDK.Engine: the remaining blocker is the hand-written public contract (Address and
+# TargetAllocationRequest, Engine/Allocation, owned by S-RES), which a generated wrapper must not duplicate.
+# The future integration must retain this provenance and map a nil allocation result to an expected CE failure.
 # No CE 7.7 celua.txt global for changing protection after allocation is asserted here; Protection is an allocateMemory input.
 
 namespace: CheatEngine.SDK.Engine.Generated
 type: TargetAllocationLua
+contract: ce77
+provenance: ExactInstalledFile: CE 7.7.0.10621 celua.txt, SHA-256 AA1342B4A5D5D5C65B255FB3A8FD7B6BCBBAC1CD138961669D9F37F43E0B9C00
+minimum-ce: 7.7.0.10621
+architecture: x64
+thread: unknown
+ownership: owned
 
 # allocateMemory(size, BaseAddress OPTIONAL, Protection OPTIONAL): allocation address, or an expected operation failure.
 global: allocateMemory
 method: TryAllocate
 form: try
 arg: size:int64
-arg: preferredBaseAddress:address
-arg: protection:int32
+opt: preferredBaseAddress:address
+opt: protection:int32
 result: address:address
-doc: Attempts to allocate target-process memory with an explicit base preference and page protection.
+nil: expected-failure
+doc: Attempts to allocate target-process memory, optionally at a preferred base address and with a page protection.
 
 # deAlloc(address, size OPTIONAL): releases target memory created by allocateMemory.
 global: deAlloc
 method: Deallocate
 form: throwing
 arg: address:address
-arg: size:int64
-doc: Releases a target-process allocation using the original request size.
+opt: size:int64
+nil: none
+doc: Releases a target-process allocation, optionally stating the original request size.

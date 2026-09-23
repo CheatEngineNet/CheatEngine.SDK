@@ -18,14 +18,16 @@ the [generator README](../../source-generators/CheatEngine.SDK.SourceGenerators.
 
 ## How it works
 
-| Suite           | What it proves                                                                                                                   |
-|-----------------|----------------------------------------------------------------------------------------------------------------------------------|
-| Output          | Exact text for the nominal sources, and clean compilation of every supported shape, containing type and partial-method signature |
-| Input isolation | Invalid shapes and look-alike attributes emit no conflicting source; a globals-only project works without `AllowUnsafeBlocks`    |
-| Object handles  | Borrowed-handle identity, marshalling, protected methods/properties and valid-sibling isolation                                  |
-| Incrementality  | Edits that cannot change the output recompute nothing, and an edit to one kind of binding leaves the other's output cached       |
-| End to end      | Generated thunks and wrappers are compiled, loaded and run against a real Lua 5.3 state through the real `LuaRuntime`            |
-| Shared code     | Unit tests of the linked `LuaEmit` emitters, `LuaNames`, `LuaValueKinds`, `HintNames` and the grouping models                    |
+| Suite           | What it proves                                                                                                                                                                                                                                            |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Output          | Exact text for the nominal sources, and clean compilation of every supported shape, containing type and partial-method signature                                                                                                                          |
+| Input isolation | Invalid shapes and look-alike attributes emit no conflicting source; a globals-only project works without `AllowUnsafeBlocks`                                                                                                                             |
+| Object handles  | Borrowed-handle identity, marshalling, protected methods/properties and valid-sibling isolation                                                                                                                                                           |
+| Incrementality  | Edits that cannot change the output recompute nothing, and an edit to one kind of binding leaves the other's output cached                                                                                                                                |
+| End to end      | Generated thunks and wrappers are compiled, loaded and run against a real Lua 5.3 state through the real `LuaRuntime`                                                                                                                                     |
+| Optional shapes | `OptionalBindingSources`: omitted, `nil` and present arguments, the factual result count and variadic capacity (`LuaGlobalOptionalArgumentEndToEndTests`, `LuaGlobalResultCountEndToEndTests`)                                                            |
+| Qualification   | `FidelityBindingSources`: Q20 strings (`LuaGlobalStringFidelityEndToEndTests`), Q21 integer boundaries (`LuaGlobalNumericBoundaryEndToEndTests`) and the Q22 per-form matrix (`LuaGlobalQ22MatrixEndToEndTests`), each method traited `Qualification=Q2x` |
+| Shared code     | Unit tests of the linked `LuaEmit` emitters, `LuaNames`, `LuaValueKinds`, `HintNames` and the grouping models                                                                                                                                             |
 
 Expected text is written by hand, independent of the emitter, and normalized to LF. "Compiles clean" means no warning or
 error at warning level 9999 on C# 14 with nullable on. Emitted assemblies load into their own context, which resolves
@@ -59,3 +61,7 @@ dotnet test --project tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests -
   (`LuaGlobalEndToEndTests`).
 - Warm thunk calls and the warm `Try` form allocate nothing on the managed side (`LuaFunctionEndToEndTests`,
   `LuaGlobalEndToEndTests`).
+- Optional arguments and results keep omitted, `nil` and values apart, and results are read by their factual count
+  (`LuaGlobalOptionalArgumentEndToEndTests`, `LuaGlobalResultCountEndToEndTests`).
+- The qualification suites Q20, Q21 and Q22 run at C2 on the bundled Lua and assert `L.Top == 0` after every exit
+  (`LuaGlobalStringFidelityEndToEndTests`, `LuaGlobalNumericBoundaryEndToEndTests`, `LuaGlobalQ22MatrixEndToEndTests`).

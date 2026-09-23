@@ -7,6 +7,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     manifests, and Lua bridge. The fixture also cleans and rebuilds this folder before these facts are observed.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class DeploymentLayoutTests(PackagedUmbrellaFixture fixture)
 {
 	private static readonly string[] ExpectedSdkAssemblies =

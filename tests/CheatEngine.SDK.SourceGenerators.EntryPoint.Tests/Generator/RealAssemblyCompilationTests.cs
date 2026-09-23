@@ -87,7 +87,7 @@ public sealed class RealAssemblyCompilationTests
 			.. outputCompilation
 				.GetDiagnostics(TestContext.Current.CancellationToken)
 				.Where(static diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning &&
-				                            !IsMissingDocumentationInTestInput(diagnostic))
+											!IsMissingDocumentationInTestInput(diagnostic))
 		];
 
 		Assert.True(
@@ -101,7 +101,7 @@ public sealed class RealAssemblyCompilationTests
 	private static bool IsMissingDocumentationInTestInput(Diagnostic diagnostic)
 	{
 		return string.Equals(diagnostic.Id, "CS1591", StringComparison.Ordinal)
-		       && diagnostic.Location.SourceTree is { FilePath: string path }
-		       && !path.EndsWith(".g.cs", StringComparison.Ordinal);
+			   && diagnostic.Location.SourceTree is { FilePath: string path }
+			   && !path.EndsWith(".g.cs", StringComparison.Ordinal);
 	}
 }

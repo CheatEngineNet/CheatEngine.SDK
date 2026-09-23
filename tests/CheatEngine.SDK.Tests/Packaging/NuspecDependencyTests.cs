@@ -9,6 +9,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 ///     keeps them out; this is the check that would fail if that metadata were ever dropped by accident.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class NuspecDependencyTests(PackagedUmbrellaFixture fixture)
 {
 	[Fact]

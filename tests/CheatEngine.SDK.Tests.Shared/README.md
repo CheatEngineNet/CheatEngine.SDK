@@ -20,7 +20,9 @@ reference graph and an `InternalsVisibleTo` list in the project file.
 `ThrowIfUnavailable()`. `NativeLuaProbe.Run` performs one lookup and never throws. `NativeLuaState` owns one independent
 `lua_State` (`L`, `Pointer`) and closes it on `Dispose()`, after which `L` and `Pointer` throw
 `ObjectDisposedException`. It has no finalizer and is not thread-safe: dispose every state on the thread that created
-it. The `openLibraries: false` argument skips `luaL_openlibs` and yields a bare state.
+it. The `openLibraries: false` argument skips `luaL_openlibs` and yields a bare state. `PartialLuaModule` loads, from a
+private temporary folder, a copy of the fixture whose `lua_rotate` export name is overwritten in the PE export table,
+for the tests of a module that lacks one export (Q11); it frees and deletes the copy on `Dispose()`.
 
 The first use of `NativeLuaLibrary` runs the lookup once. It reads `CHEATENGINE_SDK_LUA53_PATH` when the value is not
 blank and trims it. No fallback follows, so an override is never replaced silently. Otherwise it uses `BundledPath`, the

@@ -119,6 +119,7 @@ public sealed class LuaRefTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q17")]
 	public void A_reference_from_the_pre_reset_state_never_releases_a_current_generation_slot()
 	{
 		LuaTest.RequireNativeLua();

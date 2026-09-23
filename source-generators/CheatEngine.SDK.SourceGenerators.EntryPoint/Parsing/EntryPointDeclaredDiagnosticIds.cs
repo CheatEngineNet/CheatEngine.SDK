@@ -82,8 +82,8 @@ internal static class EntryPointDeclaredDiagnosticIds
 		foreach (AttributeData attribute in attributes)
 		{
 			if (ReadDeclaredId(attribute, experimentalAttribute, obsoleteAttribute) is { } id
-			    && IsUsableInPragma(id)
-			    && (ids is null || !ids.Contains(id)))
+				&& IsUsableInPragma(id)
+				&& (ids is null || !ids.Contains(id)))
 			{
 				(ids ??= []).Add(id);
 			}
@@ -96,24 +96,24 @@ internal static class EntryPointDeclaredDiagnosticIds
 		INamedTypeSymbol? obsoleteAttribute)
 	{
 		if (experimentalAttribute is not null
-		    && SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, experimentalAttribute))
-			// [Experimental(string diagnosticId)]
+			&& SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, experimentalAttribute))
+		// [Experimental(string diagnosticId)]
 		{
 			return attribute.ConstructorArguments.Length == 1
-			       && attribute.ConstructorArguments[0] is
-				       { Kind: TypedConstantKind.Primitive, Value: string experimentalId }
+				   && attribute.ConstructorArguments[0] is
+				   { Kind: TypedConstantKind.Primitive, Value: string experimentalId }
 				? experimentalId
 				: null;
 		}
 
 		if (obsoleteAttribute is not null
-		    && SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, obsoleteAttribute))
-			// [Obsolete(..., DiagnosticId = "ID")]
+			&& SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, obsoleteAttribute))
+		// [Obsolete(..., DiagnosticId = "ID")]
 		{
 			foreach (KeyValuePair<string, TypedConstant> argument in attribute.NamedArguments)
 			{
 				if (string.Equals(argument.Key, "DiagnosticId", StringComparison.Ordinal)
-				    && argument.Value is { Kind: TypedConstantKind.Primitive, Value: string obsoleteId })
+					&& argument.Value is { Kind: TypedConstantKind.Primitive, Value: string obsoleteId })
 				{
 					return obsoleteId;
 				}
@@ -129,7 +129,7 @@ internal static class EntryPointDeclaredDiagnosticIds
 	private static bool IsUsableInPragma(string id)
 	{
 		return SyntaxFacts.IsValidIdentifier(id)
-		       && SyntaxFacts.GetKeywordKind(id) == SyntaxKind.None
-		       && SyntaxFacts.GetPreprocessorKeywordKind(id) == SyntaxKind.None;
+			   && SyntaxFacts.GetKeywordKind(id) == SyntaxKind.None
+			   && SyntaxFacts.GetPreprocessorKeywordKind(id) == SyntaxKind.None;
 	}
 }

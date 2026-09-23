@@ -80,6 +80,64 @@ internal sealed record LuaGlobalCallModel(
 	/// </summary>
 	public int ResultCount => IsTryLike ? Results.Length : ReturnKind is null && ReturnMarshaller is null ? 0 : 1;
 
+	/// <summary>
+	///     Whether an argument is a <c>LuaOptional&lt;T&gt;</c>: the body then computes the pushed argument count before
+	///     acquiring the state and calls with it instead of a constant.
+	/// </summary>
+	public bool HasOptionalArguments
+	{
+		get
+		{
+			foreach (LuaArgumentModel argument in Arguments)
+			{
+				if (argument.IsOptional)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+	}
+
+	/// <summary>
+	///     Whether a result is optional or variadic: the body then calls with <c>LUA_MULTRET</c>, reads the factual result
+	///     count and addresses results by absolute index.
+	/// </summary>
+	public bool HasDynamicResults
+	{
+		get
+		{
+			foreach (LuaResultModel result in Results)
+			{
+				if (result.IsDynamic)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+	}
+
+	/// <summary>The number of leading results that Lua must return: the value and copy-out results.</summary>
+	public int RequiredResultCount
+	{
+		get
+		{
+			int count = 0;
+			foreach (LuaResultModel result in Results)
+			{
+				if (!result.IsDynamic)
+				{
+					count++;
+				}
+			}
+
+			return count;
+		}
+	}
+
 	/// <summary>Gets whether this shape returns its Lua values through <see langword="out" /> parameters.</summary>
 	public bool IsTryLike => Form is LuaCallForm.Try or LuaCallForm.Outcome;
 
@@ -91,15 +149,15 @@ internal sealed record LuaGlobalCallModel(
 
 	/// <summary>The concrete static marshaller for the throwing-form return value.</summary>
 	public string ReturnMarshallerTypeName => ReturnMarshaller?.MarshallerTypeName ??
-	                                          LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);
+											  LuaValueKinds.MarshallerTypeName(ReturnKind!.Value);
 
 	/// <summary>The C# type spelling for the generated return and result local.</summary>
 	public string ReturnTypeName => ReturnMarshaller?.ValueTypeName ??
-	                                LuaValueKinds.TypeName(ReturnKind!.Value, ReturnIsNullable);
+									LuaValueKinds.TypeName(ReturnKind!.Value, ReturnIsNullable);
 
 	/// <summary>The Lua-facing expected type for a throwing-form result failure.</summary>
 	public string ExpectedReturnTypeName => ReturnMarshaller?.ExpectedTypeName ??
-	                                        LuaValueKinds.ExpectedResult(ReturnKind!.Value);
+											LuaValueKinds.ExpectedResult(ReturnKind!.Value);
 
 	/// <summary>Whether the body reads the state from <see cref="StateParameterName" /> rather than from the runtime.</summary>
 	public bool TakesState => StateParameterName.Length > 0;

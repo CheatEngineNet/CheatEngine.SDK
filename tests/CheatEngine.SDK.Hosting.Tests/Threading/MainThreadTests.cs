@@ -1,11 +1,14 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Tests.Support;
 using CheatEngine.SDK.Hosting.Threading;
+using CheatEngine.SDK.Lua.Callbacks;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Interop.Api;
+using CheatEngine.SDK.Lua.References;
 using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
@@ -234,6 +237,127 @@ public sealed unsafe class MainThreadTests
 		InvalidOperationException exception = Assert.IsType<InvalidOperationException>(failure);
 		Assert.Contains("host refused", exception.Message, StringComparison.Ordinal);
 		Assert.Equal(0, LuaApi.lua_gettop(state.L));
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void Invoke_from_a_worker_works_under_the_default_admission_policy()
+	{
+		HostingTest.RequireNativeLua();
+		HostingTest.Reset();
+		using NativeLuaState state = new();
+		using HostSimulator host = new();
+		HostingTest.Enable(host, state);
+		LuaState main = new(state.Pointer);
+		int mainThreadId = Environment.CurrentManagedThreadId;
+		using HoppingSynchronizeStandIn standIn = HoppingSynchronizeStandIn.Install(main);
+		int[] box = new int[1];
+
+		Task<Exception?> worker = Task.Factory.StartNew(
+			() => Record.Exception(() => MainThread.Invoke(static b => b[0] = Environment.CurrentManagedThreadId, box)),
+			TestContext.Current.CancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+		// This is the real captured main thread: it pumps the pending call itself, exactly as CE's own main thread
+		// would while a worker blocks inside synchronize. If MainThreadDispatcher.Dispatch ever regressed to plain
+		// LuaRuntime.AcquireOperation(), the worker would be refused with ThreadNotAdmitted before it ever reached
+		// this stand-in, and PumpQueuedCall would time out waiting for a call that was never queued.
+		Assert.True(HoppingSynchronizeStandIn.PumpQueuedCall(TimeSpan.FromSeconds(5)),
+			"The worker's dispatch never reached the synchronize stand-in.");
+		Exception? workerFailure = AwaitWorker(worker);
+
+		Assert.Null(workerFailure);
+		Assert.Equal(mainThreadId, box[0]);
+		Assert.Equal(0, LuaApi.lua_gettop(state.L));
+	}
+
+	// A plain (non-test, non-unsafe-context) helper: xUnit1031 targets [Fact]/[Theory] methods specifically, so
+	// bounded blocking here, rather than in the test method itself, keeps that rule meaningful elsewhere.
+	private static Exception? AwaitWorker(Task<Exception?> worker)
+	{
+		return worker.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken).GetAwaiter()
+			.GetResult();
+	}
+
+	// A native `synchronize` stand-in that genuinely hops to the real calling (main) thread instead of running the
+	// pushed closure inline: it hands the closure to PumpQueuedCall (run on this test's true main thread) and blocks
+	// the worker until that pump has actually invoked it, so the test observes MainThread.Invoke's full round trip
+	// rather than only the rejection path the other stand-in tests prove.
+	private sealed unsafe class HoppingSynchronizeStandIn : IDisposable
+	{
+		private static ManualResetEventSlim? s_queued;
+		private static ManualResetEventSlim? s_completed;
+		private static LuaRef? s_pendingRef;
+		private static LuaStatus s_pumpedCallStatus;
+
+		private HoppingSynchronizeStandIn()
+		{
+		}
+
+		public static HoppingSynchronizeStandIn Install(LuaState main)
+		{
+			s_queued = new ManualResetEventSlim(false);
+			s_completed = new ManualResetEventSlim(false);
+			s_pendingRef = null;
+			Assert.True(main.TryPushFunction(new LuaNativeFunction(&SynchronizeThunk)).IsOk);
+			Assert.True(main.TrySetGlobal("synchronize"u8).IsOk);
+			return new HoppingSynchronizeStandIn();
+		}
+
+		/// <summary>Waits for a queued call and runs it on the calling thread. Call this from the real main thread.</summary>
+		public static bool PumpQueuedCall(TimeSpan timeout)
+		{
+			if (!s_queued!.Wait(timeout))
+			{
+				return false;
+			}
+
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			LuaState state = operation.State;
+			LuaRef pendingRef = s_pendingRef!;
+			Assert.True(state.TryPushRef(pendingRef));
+			s_pumpedCallStatus = state.TryCall(0, 0);
+			pendingRef.Release(state);
+			s_completed!.Set();
+			return true;
+		}
+
+		public void Dispose()
+		{
+			Assert.True(s_pumpedCallStatus.IsOk,
+				s_pumpedCallStatus.IsOk ? string.Empty : "The pumped call failed.");
+			s_queued?.Dispose();
+			s_completed?.Dispose();
+			s_queued = null;
+			s_completed = null;
+			s_pendingRef = null;
+		}
+
+		[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+		private static int SynchronizeThunk(nint pointer)
+		{
+			LuaState state = new(pointer);
+			try
+			{
+				if (!state.IsFunction(1))
+				{
+					return LuaThunk.Fail(state, "the hopping stand-in expects a function argument"u8);
+				}
+
+				state.PushValue(1);
+				s_pendingRef = state.CreateRef();
+				s_queued!.Set();
+				if (!s_completed!.Wait(TimeSpan.FromSeconds(5)))
+				{
+					return LuaThunk.Fail(state, "the main-thread pump never ran the queued call"u8);
+				}
+
+				return 0;
+			}
+			catch (Exception exception)
+			{
+				return LuaThunk.Fail(state, exception);
+			}
+		}
 	}
 
 	private static void InstallSynchronizeStandIn(NativeLuaState state)

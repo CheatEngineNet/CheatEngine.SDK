@@ -4,6 +4,7 @@ namespace CheatEngine.SDK.Tests.Packaging;
 
 /// <summary>Verifies the packed SDK exposes the target-bound allocation backend seam to an independent consumer.</summary>
 [Collection(PackagedUmbrellaSuite.Name)]
+[Trait("Category", UmbrellaPackage.PackagingCategory)]
 public sealed class TargetBoundAllocationConsumerTests(PackagedUmbrellaFixture fixture)
 {
 	[Fact]

@@ -1,0 +1,30 @@
+#nullable enable
+CheatEngine.SDK.Annotations.Lifetime.CEOwnedAttribute
+CheatEngine.SDK.Annotations.Lifetime.CEOwnedAttribute.CEOwnedAttribute() -> void
+CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute
+CheatEngine.SDK.Annotations.Lifetime.RequiresPluginEnabledAttribute.RequiresPluginEnabledAttribute() -> void
+CheatEngine.SDK.Annotations.Lua.LuaClassAttribute
+CheatEngine.SDK.Annotations.Lua.LuaClassAttribute.LuaClassAttribute(string! name) -> void
+CheatEngine.SDK.Annotations.Lua.LuaClassAttribute.Name.get -> string!
+CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute
+CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute.LuaFunctionAttribute(string! name) -> void
+CheatEngine.SDK.Annotations.Lua.LuaFunctionAttribute.Name.get -> string!
+CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute
+CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute.LuaGlobalAttribute(string! name) -> void
+CheatEngine.SDK.Annotations.Lua.LuaGlobalAttribute.Name.get -> string!
+CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute
+CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute.LuaMethodAttribute(string! name) -> void
+CheatEngine.SDK.Annotations.Lua.LuaMethodAttribute.Name.get -> string!
+CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute
+CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute.LuaPropertyAttribute(string! name) -> void
+CheatEngine.SDK.Annotations.Lua.LuaPropertyAttribute.Name.get -> string!
+CheatEngine.SDK.Annotations.Lua.LuaStackEffectAttribute
+CheatEngine.SDK.Annotations.Lua.LuaStackEffectAttribute.Delta.get -> int
+CheatEngine.SDK.Annotations.Lua.LuaStackEffectAttribute.LuaStackEffectAttribute(int delta) -> void
+CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute
+CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute.CheatEnginePluginAttribute(string! name) -> void
+CheatEngine.SDK.Annotations.Plugin.CheatEnginePluginAttribute.Name.get -> string!
+CheatEngine.SDK.Annotations.Threading.MainThreadOnlyAttribute
+CheatEngine.SDK.Annotations.Threading.MainThreadOnlyAttribute.MainThreadOnlyAttribute() -> void
+CheatEngine.SDK.Annotations.Threading.RunsOnMainThreadAttribute
+CheatEngine.SDK.Annotations.Threading.RunsOnMainThreadAttribute.RunsOnMainThreadAttribute() -> void

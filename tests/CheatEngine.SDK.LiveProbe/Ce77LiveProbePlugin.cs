@@ -1,6 +1,9 @@
 using System.Globalization;
+
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.State;
 
 namespace LiveProbe;
 
@@ -14,30 +17,37 @@ namespace LiveProbe;
 /// </remarks>
 internal sealed class Ce77LiveProbePlugin : CheatEnginePlugin
 {
-    /// <inheritdoc />
-    protected override void OnEnable()
-    {
-        var state = CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
-        var registration = ProbeConsole.RegisterLuaFunctions(state);
-        HostLog.Write(registration.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
-            string.Create(CultureInfo.InvariantCulture,
-                $"CE 7.7 live probe: console command registration -> {registration}."));
+	/// <inheritdoc />
+	protected override void OnEnable()
+	{
+		LuaState state = CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+		LuaStatus registration = ProbeConsole.RegisterLuaFunctions(state);
+		HostLog.Write(registration.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
+			string.Create(CultureInfo.InvariantCulture,
+				$"CE 7.7 live probe: console command registration -> {registration}."));
 
-        LiveProbeState.ValidateAfterEnable();
-        HostLog.Write(HostLogLevel.Information, LiveProbeState.GetStatus());
-    }
+		LiveProbeState.ValidateAfterEnable();
+		HostLog.Write(HostLogLevel.Information, LiveProbeState.GetStatus());
 
-    /// <inheritdoc />
-    protected override void OnDisable()
-    {
-        var state = CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
-        var registration = ProbeConsole.UnregisterLuaFunctions(state);
-        HostLog.Write(registration.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
-            string.Create(CultureInfo.InvariantCulture,
-                $"CE 7.7 live probe: console command unregistration -> {registration}."));
+		// Checkpoint B, Q06: an authorized liveprobe.fault.json can make this enable fail after the console commands
+		// were registered, so the SDK's cleanup of a failed enable is observable.
+		LiveProbeFaultInjection.EnterOnEnable();
+	}
 
-        // Deliberately do not dispose the callback-shutdown probe here. LuaRuntime.Detach, which runs immediately after
-        // OnDisable, is the system under test: it must neutralize the callback before freeing its GCHandle.
-        LiveProbeState.RecordDisable();
-    }
+	/// <inheritdoc />
+	protected override void OnDisable()
+	{
+		LuaState state = CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+		LuaStatus registration = ProbeConsole.UnregisterLuaFunctions(state);
+		HostLog.Write(registration.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
+			string.Create(CultureInfo.InvariantCulture,
+				$"CE 7.7 live probe: console command unregistration -> {registration}."));
+
+		// Deliberately do not dispose the callback-shutdown probe here. LuaRuntime.Detach, which runs immediately after
+		// OnDisable, is the system under test: it must neutralize the callback before freeing its GCHandle.
+		LiveProbeState.RecordDisable();
+
+		// Checkpoint B, Q08: an authorized liveprobe.fault.json can make OnDisable throw after its own cleanup.
+		LiveProbeFaultInjection.EnterOnDisable();
+	}
 }

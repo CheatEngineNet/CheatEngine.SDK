@@ -96,55 +96,109 @@ protected call, and reports `NoMatches` only when it can read a valid list count
 Lua `nil`, a missing global, a protected Lua failure, malformed userdata, and an unreadable list count separate;
 plugin code must not turn a raw `CEObject` into an owner itself.
 
+On Cheat Engine 7.7.0.10621 x64, the pinned profile, a scan that finds nothing returns no list at all, so
+`TryScanOutcome` reports `NoResult`, not `NoMatches`. Read `NoResult` as "no result list: zero matches or a host
+failure". It is the common outcome of a pattern that is absent, so handle it as its own case instead of throwing:
+
 ```csharp
 using CheatEngine.SDK.Engine.Scanning.Aob;
 using CheatEngine.SDK.Engine.Values;
 
 namespace SignatureTools;
 
+internal enum SignatureScan { Matches, NoMatches, NoResultList, Failed }
+
 internal static class Signatures
 {
-    public static List<Address> Scan(string pattern, AobScanOptions options = default)
+    public static SignatureScan Scan(string pattern, List<Address> matches, AobScanOptions options = default)
     {
-        List<Address> matches = [];
         var outcome = AobScanner.TryScanOutcome(pattern, options, out var owner);
-        if (outcome.Kind == AobScanOutcomeKind.NoMatches) return matches;
-        if (outcome.Kind != AobScanOutcomeKind.Matches || owner is null)
-            throw new InvalidOperationException($"AOBScan did not produce a list: {outcome.Kind} ({outcome.LuaStatus}).");
-
-        using (owner)
+        switch (outcome.Kind)
         {
-            var list = owner.Value;
+            case AobScanOutcomeKind.Matches when owner is not null:
+                using (owner)
+                {
+                    var list = owner.Value;
+                    for (var i = 0; i < outcome.ResultCount; i++)
+                    {
+                        if (list.TryGetItem(i, out var addressText) && Address.TryParse(addressText, out var address))
+                            matches.Add(address);
+                    }
+                }
 
-            for (var i = 0; i < outcome.ResultCount; i++)
-            {
-                if (list.TryGetItem(i, out var addressText) && Address.TryParse(addressText, out var address))
-                    matches.Add(address);
-            }
+                return SignatureScan.Matches;
+
+            case AobScanOutcomeKind.NoMatches:
+                // A valid empty list: never returned on the pinned CE 7.7 profile, which reports NoResult instead.
+                owner?.Dispose();
+                return SignatureScan.NoMatches;
+
+            case AobScanOutcomeKind.NoResult:
+                // Zero matches on the pinned CE 7.7 profile, or a host failure that also returned no list.
+                return SignatureScan.NoResultList;
+
+            default:
+                // Missing global, protected Lua failure, malformed result or unreadable count.
+                return SignatureScan.Failed;
         }
-
-        return matches;
     }
 }
 ```
 
-```mermaid
-flowchart LR
-    A["AobScanner.TryScanOutcome(pattern, options)"] --> B["Outcome plus owned StringList<br/>only after a valid list"]
-    B --> C["Verified Count<br/>NoMatches only at zero"]
-    C --> D["Read items 0 to Count minus 1<br/>hex text to Address"]
-    D --> E["Dispose the factory-issued owner<br/>documented destroy path"]
-    E --> F["List of Address<br/>plain managed data"]
+When the matches you want live in one module or range, do not post-filter the global scan: its native cost is a scan of
+the whole address space. The bounded route scans only the range, is exhaustive, and reports a real zero:
+
+```csharp
+using CheatEngine.SDK.Engine.Inspection;
+using CheatEngine.SDK.Engine.Scanning.Aob;
+using CheatEngine.SDK.Engine.Values;
+
+namespace SignatureTools;
+
+internal static class ModuleSignatures
+{
+    // Main thread, plugin enabled, and a qualified target selected in Cheat Engine.
+    public static Address[] Scan(in ModuleInfo module, string pattern, int maximumResults, CancellationToken token)
+    {
+        if (!AobScanBounds.TryFromModule(in module, out var bounds))
+            return []; // No image size: the module cannot bound the scan.
+
+        var destination = new Address[maximumResults];
+        var result = AobScanner.TryScanWithinBounds(pattern, bounds, AobScanOptions.Default, destination, token);
+        return result.Kind switch
+        {
+            AobBoundedScanOutcomeKind.Matches => destination[..result.Written],
+            AobBoundedScanOutcomeKind.NoMatches when !result.IsHostErrorTextUnreadable => [],
+            _ => throw new InvalidOperationException($"The bounded AOB scan ended with {result.Kind}.")
+        };
+    }
+}
 ```
 
-| Step                         | Why                                                                                                              |
-|------------------------------|------------------------------------------------------------------------------------------------------------------|
-| `AobScanner.TryScanOutcome`  | Performs the protected CE call, distinguishes no-match from failure, and provides an owner only for a valid list |
-| `Owned<StringList>`          | Is the factory-issued ownership proof; `Dispose` executes the documented destroy path once                       |
-| `AobScanOutcome.ResultCount` | Is the valid list count observed immediately after CE returns; it is not an execution bound                      |
-| `StringList.TryGetItem(i)`   | Uses Cheat Engine's zero-based index and copies one address string                                               |
-| `Address.TryParse`           | Decodes CE's hexadecimal address text into the target-address type                                               |
-| `using (owner)`              | Releases the list before it can escape as a stale native handle                                                  |
+`result.IsMaterializationLimitReached` tells you the destination filled up before every row was read, and
+`result.InBoundsCountIsExact` that `Written` is the full in-bounds count; a single match is proven only by that, never by
+a first-found scan.
+
+```mermaid
+flowchart LR
+    A["AobScanner.TryScanOutcome(pattern, options)"] --> B{"Outcome kind"}
+    B -->|Matches| C["Read items 0 to Count minus 1<br/>hex text to Address"]
+    C --> D["Dispose the factory-issued owner<br/>documented destroy path"]
+    B -->|NoResult| E["No result list<br/>zero matches or host failure"]
+    B -->|other| F["Failure with its own category"]
+    G["AobScanner.TryScanWithinBounds(pattern, bounds)"] --> H["Addresses in [Start, Stop)<br/>session released once"]
+```
+
+| Step                             | Why                                                                                                                             |
+|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| `AobScanner.TryScanOutcome`      | Performs the protected CE call, keeps no-list, failure and malformed results apart, and provides an owner only for a valid list |
+| `AobScanOutcomeKind.NoResult`    | Is how zero matches arrive on the pinned CE 7.7 profile; a host failure looks the same, so it is never "not found" proof        |
+| `Owned<StringList>`              | Is the factory-issued ownership proof; `Dispose` executes the documented destroy path once                                      |
+| `AobScanOutcome.ResultCount`     | Is the valid list count observed immediately after CE returns; it is not an execution bound                                     |
+| `StringList.TryGetItem(i)`       | Uses Cheat Engine's zero-based index and copies one address string                                                              |
+| `Address.TryParse`               | Decodes CE's hexadecimal address text into the target-address type                                                              |
+| `using (owner)`                  | Releases the list before it can escape as a stale native handle                                                                 |
+| `AobScanner.TryScanWithinBounds` | Bounds CE's own work to `[Start, Stop)`, stays exhaustive, and reports `NoMatches` (a factual zero once its error text is read) |
 
 ### 4. Export it and patch with it
 

@@ -10,6 +10,8 @@ indent_size = 4
 tab_width = 4
 max_line_length = 120
 trim_trailing_whitespace = true
+# Matches .gitattributes (eol=crlf): dotnet format and the IDE0055 build check agree on CRLF.
+end_of_line = crlf
 
 [*.{csproj,props,targets,slnx,config,json,yml,yaml}]
 # YAML cannot use tabs for indentation. Keep project and configuration files
@@ -75,24 +77,22 @@ csharp_style_prefer_top_level_statements = false
 # blockers because Directory.Build.props treats warnings as errors.
 dotnet_diagnostic.IDE0079.severity = error
 
-# Migration rules: surface the historical backlog in every Roslyn-aware editor
-# and participate in code cleanup without breaking the currently dirty tree.
-# Promote these to warning/error in a dedicated cleanup change once the existing
-# source has been reformatted and explicit types have been introduced.
+# Style rules enforced since the repository-wide reformat of the audit remediation branch
+# (see .git-blame-ignore-revs). EnforceCodeStyleInBuild plus TreatWarningsAsErrors turns them into build errors,
+# and CI also runs `dotnet format --verify-no-changes`.
 dotnet_diagnostic.IDE0007.severity = none
-dotnet_diagnostic.IDE0008.severity = suggestion
-dotnet_diagnostic.IDE0011.severity = suggestion
+dotnet_diagnostic.IDE0008.severity = warning
+dotnet_diagnostic.IDE0011.severity = warning
 dotnet_diagnostic.IDE0033.severity = suggestion
-dotnet_diagnostic.IDE0040.severity = suggestion
-dotnet_diagnostic.IDE0044.severity = suggestion
-# The formatter still follows the tab contract above. Do not flood every open
-# legacy file with a formatting diagnostic before the dedicated reformat pass.
-dotnet_diagnostic.IDE0055.severity = none
+dotnet_diagnostic.IDE0040.severity = warning
+dotnet_diagnostic.IDE0044.severity = warning
+dotnet_diagnostic.IDE0055.severity = warning
 dotnet_diagnostic.IDE0005.severity = suggestion
-dotnet_diagnostic.IDE0065.severity = suggestion
-dotnet_diagnostic.IDE0090.severity = suggestion
+dotnet_diagnostic.IDE0065.severity = warning
+dotnet_diagnostic.IDE0090.severity = warning
 dotnet_diagnostic.IDE0160.severity = none
-dotnet_diagnostic.IDE0161.severity = suggestion
+dotnet_diagnostic.IDE0161.severity = warning
+# Naming fixes rename symbols, which dotnet format cannot apply safely; keep them as editor guidance.
 dotnet_diagnostic.IDE1006.severity = suggestion
 
 # Rider derives its own "var or explicit type" inspections from the shared
@@ -148,3 +148,7 @@ dotnet_diagnostic.IDE0005.severity = error
 
 [src/**.cs]
 dotnet_diagnostic.IDE0005.severity = error
+
+# The native bridge embeds the SHA-256 of these two files; .gitattributes pins them to LF.
+[native/cheatengine-sdk-lua-bridge/{cheatengine_sdk_lua_bridge.c,xmake.lua}]
+end_of_line = lf

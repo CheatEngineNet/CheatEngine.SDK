@@ -1,5 +1,6 @@
 using CheatEngine.SDK.Engine.Allocation;
 using CheatEngine.SDK.Engine.Errors;
+using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Values;
 
@@ -27,6 +28,8 @@ public sealed class TargetBoundAllocationTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.a")]
+	[Trait("Qualification", "Q30.b")]
 	public void Dispose_after_an_external_target_switch_refuses_cleanup_without_selecting_or_deallocating()
 	{
 		TargetContext first = new(4101, 1001);
@@ -48,6 +51,8 @@ public sealed class TargetBoundAllocationTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.a")]
+	[Trait("Qualification", "Q30.b")]
 	public void Release_after_an_external_target_switch_reports_the_refusal_without_deallocating_either_target()
 	{
 		TargetContext first = new(4101, 1001);
@@ -67,6 +72,7 @@ public sealed class TargetBoundAllocationTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.a")]
 	public void Dispose_after_an_external_A_to_B_to_A_switch_uses_only_the_current_original_incarnation()
 	{
 		TargetContext first = new(4101, 1001);
@@ -87,6 +93,7 @@ public sealed class TargetBoundAllocationTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.b")]
 	public void Release_after_target_termination_refuses_cleanup_and_records_no_target()
 	{
 		TargetContext first = new(4101, 1001);
@@ -105,6 +112,7 @@ public sealed class TargetBoundAllocationTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q30.a")]
 	public void Release_after_PID_reuse_refuses_the_new_incarnation()
 	{
 		TargetContext original = new(4101, 1001);
@@ -130,10 +138,15 @@ public sealed class TargetBoundAllocationTests
 
 		EngineTargetIdentityException exception =
 			Assert.Throws<EngineTargetIdentityException>(() => allocator.Allocate(CreateRequest()));
-		TargetMemoryAllocationOutcome outcome = allocator.AllocateWithOutcome(CreateRequest());
+		TargetAllocationAcquireOutcome outcome = allocator.TryAllocate(CreateRequest(), out AllocatedRegion? region);
 
 		Assert.Equal(TargetIdentityCheckKind.NoTargetSelected, exception.Check.Kind);
-		Assert.Equal(TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable, outcome.Operation.Kind);
+		Assert.Null(region);
+		Assert.False(outcome.HasOwner);
+		Assert.Equal(EngineEffectState.NotStarted, outcome.Effect);
+		Assert.Equal(TargetSelectionObservationStatus.NoTargetSelected, outcome.TargetObservation.Status);
+		Assert.Equal(TargetMemoryOperationOutcomeKind.TargetIdentityUnavailable, outcome.Allocation.Operation.Kind);
+		Assert.Null(outcome.Compensation);
 		Assert.Equal(0, operations.TotalAllocationCalls);
 		Assert.Equal(0, operations.TotalDeallocationCalls);
 	}

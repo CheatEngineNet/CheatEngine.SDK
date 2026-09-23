@@ -14,12 +14,22 @@ A project reference proves that the source compiles, not that the installed pack
 
 ## How it works
 
-1. One collection fixture (`PackagedUmbrellaFixture`) packs `src/CheatEngine.SDK/CheatEngine.SDK.csproj` in Release
-   into a temporary local feed. The package id, that project path and the lower-cased id NuGet uses as the extraction
-   folder name live in one place, `UmbrellaPackage`.
+1. One collection fixture (`PackagedUmbrellaFixture`) puts one `CheatEngine.SDK` package into a temporary local feed.
+   Its origin is decided first, by `UmbrellaPackageSource`:
+   - `CESDK_PACKAGED_UMBRELLA_NUPKG` set: it must be the absolute path of a `CheatEngine.SDK.<version>.nupkg` file. The
+     fixture copies exactly that file and never packs. This is the CI Release leg: it packs once, passes the packed file,
+     and the same file is uploaded as `nuget-package`, attested and published, so these tests are evidence about the
+     shipped file.
+   - Unset while `CI=true`: the fixture fails at once with an actionable message. A CI run must test the file it ships,
+     and the Debug leg excludes these tests with `--filter-not-trait "Category=Packaging"`.
+   - Unset outside CI: the fixture packs `src/CheatEngine.SDK/CheatEngine.SDK.csproj` in Release itself. That package is
+     built from your working tree; it is evidence about the source (C1/C2), not about a file that was ever shipped.
+
+   The package id, that project path, the variable name, the `Packaging` category and the lower-cased id NuGet uses as
+   the extraction folder name live in one place, `UmbrellaPackage`. Every class of the `PackagedUmbrellaSuite`
+   collection, and no other class, carries `[Trait("Category", "Packaging")]`.
 2. It restores the consumers below and builds them in Release. Every consumer shares the fixture-local package
-   directory,
-   which is isolated from other fixture runs.
+   directory, which is isolated from other fixture runs.
 3. The generated `NuGet.Config` maps the exact `CheatEngine.SDK` package id to the freshly packed local feed, never an
    earlier NuGet extraction or another package source. Nuget.org remains available for other package ids. The packed Lua
    runtime consumer then runs against the checked-in offline Lua 5.3 fixture.
@@ -63,9 +73,33 @@ repository, so they import none of its build settings. Each generated `NuGet.Con
 
 ## Run the tests
 
+Local run: the fixture packs the working tree (it needs nuget.org once, for package validation against 1.0.0).
+
 ```powershell
-dotnet test --project tests/CheatEngine.SDK.Tests
+dotnet test --project tests/CheatEngine.SDK.Tests --fail-skips on
 ```
+
+Fast run without the fixture, as the Debug CI leg does it (no pack, no consumer build):
+
+```powershell
+dotnet test --project tests/CheatEngine.SDK.Tests --fail-skips on --filter-not-trait "Category=Packaging"
+```
+
+Exact-package run, as the Release CI leg does it: pack once, then hand the fixture that file. Restore nothing from
+this package into the machine-wide NuGet folder; the fixture restores into its own isolated folder.
+
+```powershell
+dotnet build CheatEngine.SDK.slnx -c Release
+$feed = Join-Path ([IO.Path]::GetTempPath()) 'cheatengine-sdk-exact-feed'
+Remove-Item $feed -Recurse -Force -ErrorAction SilentlyContinue
+dotnet pack src/CheatEngine.SDK -c Release --no-restore -o $feed
+$env:CESDK_PACKAGED_UMBRELLA_NUPKG = (Get-ChildItem $feed -Filter 'CheatEngine.SDK.*.nupkg').FullName
+dotnet test --project tests/CheatEngine.SDK.Tests -c Release --no-build --fail-skips on
+Remove-Item Env:CESDK_PACKAGED_UMBRELLA_NUPKG
+```
+
+`PackageProvenanceTests` writes `Consumed <file> sha256=<hex> origin=<Prebuilt|SelfPacked>` to the test output, so
+the TRX report names the file the facts are about.
 
 ## Promise
 
@@ -103,9 +137,51 @@ dotnet test --project tests/CheatEngine.SDK.Tests
   `CESDK9101` by the packaged build target (`PlatformTargetTests`).
 - The direct consumer remains deployable after clean/rebuild: its output folder contains the plugin, all SDK runtime
   assemblies, `.deps.json`, `.runtimeconfig.json` and the native bridge (`DeploymentLayoutTests`).
+- A clean consumer takes nothing from the development tree (qualification scenario Q40, C1/C2 evidence only): in the
+  build and publish folders of the default consumer, `.deps.json` resolves `CheatEngine.SDK` as a `package` library at
+  `cheatengine.sdk/<version>` whose `sha512` is the hash of the package under test, and no `CheatEngine.SDK*` library
+  is `project`-typed; neither `.deps.json` nor `.runtimeconfig.json` names the repository root (in any separator form)
+  or `additionalProbingPaths`, and no `*.runtimeconfig.dev.json` exists; every `lib/net10.0` assembly of the package is
+  deployed byte for byte; no `lua*.dll` is deployed (`CleanConsumerIsolationTests`). Each rule is shown to fail on the
+  leak it exists for with synthetic manifests (`ConsumerManifestRuleTests`). The relay carrier maps `CheatEngine.SDK` to
+  the fixture feed only, like every consumer, so a version already on nuget.org can never be restored in its place.
+- A direct consumer's build and publish bridges are byte-identical to the package's `build/native` entry, whatever the
+  package origin (`Direct_consumer_bridges_are_byte_identical_to_the_packed_build_native_entry`).
 - The checked-in C11 Lua protection bridge is parsed as PE/COFF without loading it: it is PE32+ AMD64, exports exactly
   four symbols, imports only its reviewed CRT/Kernel32 contract, has no delay-load table and cannot acquire a Lua
-  module. Its build and publish copies are SHA-256-identical to the audited source asset (`NativeBridgePeAuditTests` and
-  `NativeBridgePackagingAuditTests`; the detailed contract is
-  `native/cheatengine-sdk-lua-bridge/AUDIT.md`).
+  module. Its build and publish copies are SHA-256-identical to the checked-in source asset (`NativeBridgePeAuditTests`
+  and `NativeBridgePackagingAuditTests`; the bridge contract is described in the
+  [bridge README](../../native/cheatengine-sdk-lua-bridge/README.md)). Its `bridge-audit-manifest.json` records the
+  committed bridge, and `BridgeAuditManifestTests` compare it with the committed blob read through `git cat-file`,
+  never with the working-tree DLL that CI replaces with its own build: source hashes and fingerprint, DLL SHA-256, PE
+  facts, embedded fingerprint, pinned xmake version and exact-case asset path. They carry no trait, so both CI legs run
+  them, and a failure prints the complete expected manifest.
 - Consumers build against the package packed by this run, never an earlier extraction (`RestoreIsolationTests`).
+- With `CESDK_PACKAGED_UMBRELLA_NUPKG` set, every packaging fact is about exactly that file: the feed copy is
+  byte-identical to it and the fixture never packs; without it, only a run outside CI may pack, and a CI run fails
+  before any work (`PackageProvenanceTests`). The selection rules reject a relative or missing path, the relay carrier
+  and symbol packages, and a missing variable under `CI=true` (`UmbrellaPackageSourceTests`). Every class sharing the
+  fixture carries the `Packaging` category and no other class does, so the Debug filter never packs and never empties
+  the module (`PackagedUmbrellaTraitTests`).
+- The packed `.nupkg` embeds an SPDX 2.2 SBOM at `_manifest/spdx_2.2/manifest.spdx.json` that describes this package id
+  and version and lists every other entry of the package with its SHA-256, including the seven libraries, the five
+  Roslyn components and the native bridge (`Package_embeds_an_spdx_2_2_sbom_describing_itself`,
+  `Sbom_lists_every_shipped_assembly_and_the_native_bridge_with_its_sha256`,
+  `Sbom_file_inventory_equals_the_package_entries`).
+- The nuspec names the repository and the exact 40-hex commit, and the embedded PDB of every `lib/net10.0` assembly maps
+  its sources to that commit through Source Link (`Nuspec_names_the_repository_and_the_exact_commit`,
+  `Embedded_libraries_carry_source_link_to_the_repository_commit`).
+- The package version is on the `MinVerMinimumMajorMinor` line or later, every `lib/net10.0` assembly carries
+  `<major>.0.0.0` as its assembly version, and no repository contract file (`CompatibilitySuppressions.xml`, PublicAPI
+  files, lock files) is packed (`Package_version_is_on_the_minver_minimum_line_or_later`,
+  `Embedded_assemblies_carry_the_package_major_as_assembly_version`, `Package_carries_no_repository_contract_file`).
+  The pack itself also runs package validation against the published 1.0.0 baseline, so it needs nuget.org once.
+- The live plugin folders the solution builds (`CheatEngine.SDK.LivePlugin` and the two coexistence plugins, in the
+  configuration of the test run) are deployable on their own: every file their `.deps.json` promises is present, the
+  bootstrap assemblies are listed, no unlisted SDK assembly is deployed, the runtime policy is `net10.0` on
+  `Microsoft.NETCore.App`, no Lua runtime is copied, and the bridge is byte-identical to the workspace bridge
+  (`Live_plugin_output_closure_matches_the_workspace_bridge`). These folders are built from source, so this is C1
+  evidence only, and they need a solution build first. They do not contain the `CESDK.CESDK` entry point today: the
+  entry-point generator runs only with the package's `CheatEngineSdkGenerateEntryPoint` build property, which these
+  project-reference fixtures never set; a shrink-only pending list records that gap until the fixtures are fixed
+  (`Live_plugin_entry_point_is_present_unless_listed_as_a_pending_fix`).

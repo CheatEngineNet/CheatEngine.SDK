@@ -112,4 +112,25 @@ internal static class LuaCallbackRegistry
 			}
 		}
 	}
+
+	/// <summary>
+	///     Marks every live callback released without calling <see cref="LuaHostServices.Provider" /> or any Lua
+	///     function: used only after an external Lua state reset was detected, when the provider would hand out the
+	///     replacement VM's state and neutralizing the closure or releasing its <see cref="References.LuaRef" />s
+	///     would unref into a registry this SDK copy never created (A08-22). The managed handle is kept alive, which
+	///     leaks but cannot crash: the same safe failure <see cref="LuaCallback.Release" /> already uses when no state
+	///     is available.
+	/// </summary>
+	internal static void AbandonAll()
+	{
+		lock (Gate)
+		{
+			// Mirror DetachAll's explicit re-read: Release unlinks the head it is called on.
+			for (LuaCallback? head = s_head; head is not null; head = s_head)
+			{
+				head.Release(default);
+				Volatile.Read(ref AfterReleaseForTesting)?.Invoke();
+			}
+		}
+	}
 }

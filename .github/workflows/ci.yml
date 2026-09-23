@@ -1,22 +1,30 @@
 name: CI
 
-# Reusable pipeline for pull-request-ci.yml, main-ci.yml and release.yml.
+# Reusable pipeline for pull-request-ci.yml, main-ci.yml and release.yml. Its gate job is the required check
+# "CI / Gate"; the caller job id `ci` (name CI) and the job name Gate are frozen.
 #
-#   native ─► build-test (Debug, Release) ─► sonar ─┐
-#          └► aot ─────────────────────────────────┼─► gate   (the only required check: "CI / Gate")
-#   lint ──────────────────────────────────────────┘
+#   native ─┬─► build-test (Debug, Release) ─► sonar ─┐
+#           ├─► aot ───────────────────────────────────┤
+#           └─► native-host-emulator (Debug build-test leg only) ─┤
+#   lint, format, dependency-review, lock-files ───────────────────┴─► gate
 #
-# Jobs never rebuild what an upstream job produced; they exchange artifacts:
+# Artifacts (the only names this workflow may upload; WorkflowContractTests holds the list):
 #   lua-protection-bridge, classic-abi-fixture-facts   native → build-test, aot
+#   nuget-package                                      build-test (Release) → sonar, release.yml, reviewers
 #   coverage                                           build-test (Debug) → sonar
-#   nuget-package                                      build-test (Release) → sonar, release publish, reviewers
-#   test-results-<configuration>                       build-test → humans
+#   test-results-<configuration>                       build-test → reviewers
+#   test-dumps-<configuration>, binlogs-<job>[-<cfg>]  on failure only
+#
+# No job restores or saves a NuGet cache: every job is reachable from the tag release run. Every restore is locked
+# against the committed packages.lock.json files (.github/actions/setup-dotnet).
 
 on:
   workflow_call:
     inputs:
       sonar:
-        description: Run the SonarQube Cloud analysis. Merge-queue runs, fork pull requests and Dependabot always skip it.
+        description: >-
+          Run the SonarQube Cloud analysis. The gate then requires it (SONAR_EXPECTED), except for fork pull requests
+          and Dependabot, which receive no secrets.
         type: boolean
         default: false
       package-version:
@@ -42,8 +50,16 @@ defaults:
 jobs:
   native:
     name: Build native bridge
-    runs-on: windows-latest
-    timeout-minutes: 10
+    runs-on: windows-2025
+    timeout-minutes: 15
+    env:
+      # The bridge toolchain pins. 14.44 is the default toolset of the VS 2022 image and a side-by-side component of the
+      # VS 2026 image, so the pin holds whichever image windows-2025 maps to. A bump changes the shipped DLL bytes:
+      # change both values in one reviewed commit (NativeBridgePeAuditTests reads them).
+      BRIDGE_VS_TOOLSET: '14.44'
+      BRIDGE_VS_SDKVER: '10.0.26100.0'
+    outputs:
+      bridge-sha256: ${{ steps.bridge.outputs.bridge-sha256 }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,63 +71,27 @@ jobs:
         with:
           xmake-version: '3.0.9'
 
+      # Configure and build the bridge with the pinned MSVC toolset and Windows SDK. Byte-for-byte drift from the
+      # checked-in DLL is checked by the next step (a notice, never a failure); this step only has to produce the DLL
+      # every later job downloads as the lua-protection-bridge artifact.
       - name: Build bridge
+        id: bridge
         run: |
           $ErrorActionPreference = 'Stop'
-          # xmake 3.0.9 mis-parses an absolute Windows -o path when the target
-          # uses $(builddir); keep both xmake paths relative and resolve them
-          # only for PowerShell validation and cleanup.
-          $repositoryRoot = [IO.Path]::GetFullPath($PWD.Path)
-          $primaryOutput = 'artifacts/native/cheatengine-sdk-lua-bridge'
-          $reproducibilityOutput = 'artifacts/native/cheatengine-sdk-lua-bridge-repro'
-          $primaryOutputPath = [IO.Path]::GetFullPath((Join-Path $repositoryRoot $primaryOutput))
-          $reproducibilityOutputPath = [IO.Path]::GetFullPath((Join-Path $repositoryRoot $reproducibilityOutput))
-          if ([string]::Equals($primaryOutputPath, $reproducibilityOutputPath, [StringComparison]::OrdinalIgnoreCase)) {
-            throw 'The primary and reproducibility bridge output directories must be distinct.'
-          }
-
-          $workspacePrefix = "$repositoryRoot$([IO.Path]::DirectorySeparatorChar)"
-          foreach ($resolvedOutput in @($primaryOutputPath, $reproducibilityOutputPath)) {
-            if (-not $resolvedOutput.StartsWith($workspacePrefix, [StringComparison]::OrdinalIgnoreCase)) {
-              throw "Refusing to clean native bridge output outside the checkout: '$resolvedOutput'."
-            }
-            if (Test-Path -LiteralPath $resolvedOutput) {
-              Remove-Item -LiteralPath $resolvedOutput -Recurse -Force
-            }
-            New-Item -ItemType Directory -Path $resolvedOutput -Force | Out-Null
-          }
-
-          xmake f -P native/cheatengine-sdk-lua-bridge -o $primaryOutput -p windows -a x64 -m release -y
+          xmake f -P native/cheatengine-sdk-lua-bridge -o artifacts/native/cheatengine-sdk-lua-bridge -p windows -a x64 -m release -y --ccache=n "--vs_toolset=$env:BRIDGE_VS_TOOLSET" "--vs_sdkver=$env:BRIDGE_VS_SDKVER"
           if ($LASTEXITCODE -ne 0) {
-            throw "xmake configuration for the primary bridge output failed with exit code $LASTEXITCODE."
+            throw "xmake configuration for the native bridge failed with exit code $LASTEXITCODE."
           }
           xmake -P native/cheatengine-sdk-lua-bridge -y
           if ($LASTEXITCODE -ne 0) {
-            throw "xmake build for the primary bridge output failed with exit code $LASTEXITCODE."
+            throw "xmake build of the native bridge failed with exit code $LASTEXITCODE."
           }
-          $primaryBridge = Join-Path $primaryOutputPath 'cheatengine-sdk-lua-bridge.dll'
-          if (-not (Test-Path -LiteralPath $primaryBridge -PathType Leaf)) {
-            throw "xmake did not produce '$primaryBridge'."
+          $dll = 'artifacts/native/cheatengine-sdk-lua-bridge/cheatengine-sdk-lua-bridge.dll'
+          if (-not (Test-Path -LiteralPath $dll -PathType Leaf)) {
+            throw "xmake did not produce '$dll'."
           }
-
-          xmake f -P native/cheatengine-sdk-lua-bridge -o $reproducibilityOutput -p windows -a x64 -m release -y
-          if ($LASTEXITCODE -ne 0) {
-            throw "xmake configuration for the reproducibility bridge output failed with exit code $LASTEXITCODE."
-          }
-          xmake -P native/cheatengine-sdk-lua-bridge -y
-          if ($LASTEXITCODE -ne 0) {
-            throw "xmake build for the reproducibility bridge output failed with exit code $LASTEXITCODE."
-          }
-          $reproducibilityBridge = Join-Path $reproducibilityOutputPath 'cheatengine-sdk-lua-bridge.dll'
-          if (-not (Test-Path -LiteralPath $reproducibilityBridge -PathType Leaf)) {
-            throw "xmake did not produce '$reproducibilityBridge'."
-          }
-
-          $primaryHash = (Get-FileHash -LiteralPath $primaryBridge -Algorithm SHA256).Hash
-          $reproducibilityHash = (Get-FileHash -LiteralPath $reproducibilityBridge -Algorithm SHA256).Hash
-          if (-not [string]::Equals($primaryHash, $reproducibilityHash, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "The native bridge is not reproducible: '$primaryBridge' SHA-256 is $primaryHash but '$reproducibilityBridge' is $reproducibilityHash."
-          }
+          $hash = (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash.ToLowerInvariant()
+          "bridge-sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Upload bridge
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -121,7 +101,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      # Run after upload so a failed drift check still leaves the corrected DLL available to download.
+      # Run after upload so a failed check still leaves the corrected DLL available to download. Byte drift between the
+      # CI-built and the checked-in DLL is only a notice (previous step); a checked-in DLL built from other sources fails.
       - name: Verify checked-in bridge matches its source
         run: |
           $sourceHash = (Get-FileHash -Algorithm SHA256 native/cheatengine-sdk-lua-bridge/cheatengine_sdk_lua_bridge.c).Hash.ToLowerInvariant()
@@ -161,9 +142,9 @@ jobs:
 
   build-test:
     name: Build and test (${{ matrix.configuration }})
-    needs: native
-    runs-on: windows-latest
-    timeout-minutes: 30
+    needs: [ native, native-host-emulator ]
+    runs-on: windows-2025
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -175,7 +156,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0 # MinVer and the packaging tests need tags and full history
+          fetch-depth: 0 # MinVer computes the package version from tags and history
           persist-credentials: false
 
       - name: Setup .NET
@@ -196,58 +177,131 @@ jobs:
           name: classic-abi-fixture-facts
           path: artifacts/native-abi-fixture
 
+      - name: Use native host emulator
+        if: matrix.configuration == 'Debug'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: native-host-emulator
+          path: artifacts/native-host-emulator
+
+      # One build of the whole solution, which also compiles every harness it lists (LivePlugin, Coexistence, probes).
       - name: Build
         run: |
-          dotnet build CheatEngine.SDK.slnx -c $env:CONFIGURATION --no-restore
+          dotnet build CheatEngine.SDK.slnx -c $env:CONFIGURATION --no-restore "-bl:artifacts/logs/build-test-$env:CONFIGURATION.binlog"
           if ($LASTEXITCODE -ne 0) {
             throw "$env:CONFIGURATION solution build failed with exit code $LASTEXITCODE."
           }
 
-      # One parallel run over every tests/**/*.Tests project of the solution, which also proves that the solution
-      # discovers every test module. A skip fails both configurations: NativeLua tests skip when the bundled Lua DLL
-      # does not bind, and a green check must not hide that. In Debug, the facts the native job built make the managed
-      # ABI comparison mandatory, and every module writes its own GUID-named coverage report.
-      - name: Test
+      # Pack before testing: the packaging tests below consume this exact file, which is then uploaded unchanged. The
+      # pack is incremental after the build and recompiles nothing.
+      - name: Pack
+        id: pack
+        if: matrix.configuration == 'Release'
+        env:
+          PACKAGE_VERSION: ${{ inputs.package-version }}
+          BRIDGE_SHA256: ${{ needs.native.outputs.bridge-sha256 }}
         run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet pack src/CheatEngine.SDK -c Release --no-restore -o artifacts/nuget -bl:artifacts/logs/pack-Release.binlog
+          if ($LASTEXITCODE -ne 0) {
+            throw "SDK package creation failed with exit code $LASTEXITCODE."
+          }
+
+          # Pre-publish sanity check: exactly one CheatEngine.SDK.<version>.nupkg, matching nuspec identity, the
+          # embedded SPDX SBOM (Microsoft.Sbom.Targets, CESDK9008) and the CI-built native bridge.
+          $files = @(Get-ChildItem -LiteralPath artifacts/nuget -Recurse -File)
+          if ($files.Count -ne 1 -or $files[0].Name -notmatch '^CheatEngine\.SDK\.(?<version>\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\.nupkg$') {
+            throw "Expected exactly one CheatEngine.SDK.<version>.nupkg in 'artifacts/nuget', found: $(($files | ForEach-Object Name) -join ', ')."
+          }
+          $package = $files[0]
+          $fileVersion = $Matches['version']
+          if ($env:PACKAGE_VERSION -and $package.Name -cne "CheatEngine.SDK.$($env:PACKAGE_VERSION).nupkg") {
+            throw "Packed $($package.Name), but the release requires CheatEngine.SDK.$($env:PACKAGE_VERSION).nupkg."
+          }
+          $archive = [IO.Compression.ZipFile]::OpenRead($package.FullName)
+          try {
+            $nuspecEntry = $archive.GetEntry('CheatEngine.SDK.nuspec')
+            if ($null -eq $nuspecEntry) {
+              throw "$($package.Name) has no CheatEngine.SDK.nuspec at its root."
+            }
+            $reader = [IO.StreamReader]::new($nuspecEntry.Open())
+            try { [xml] $nuspec = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            if ($nuspec.package.metadata.id -cne 'CheatEngine.SDK' -or $nuspec.package.metadata.version -cne $fileVersion) {
+              throw "$($package.Name) declares id '$($nuspec.package.metadata.id)' version '$($nuspec.package.metadata.version)' in its nuspec."
+            }
+            if ($null -eq $archive.GetEntry('_manifest/spdx_2.2/manifest.spdx.json')) {
+              throw "$($package.Name) does not embed the SPDX SBOM at _manifest/spdx_2.2/manifest.spdx.json (Microsoft.Sbom.Targets, CESDK9008)."
+            }
+            $bridge = $archive.GetEntry('build/native/cheatengine-sdk-lua-bridge.dll')
+            if ($null -eq $bridge) {
+              throw "$($package.Name) does not carry the native bridge at build/native/cheatengine-sdk-lua-bridge.dll."
+            }
+            $bridgeStream = $bridge.Open()
+            try {
+              $bridgeSha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bridgeStream)).ToLowerInvariant()
+            } finally {
+              $bridgeStream.Dispose()
+            }
+            if ($bridgeSha256 -cne $env:BRIDGE_SHA256.ToLowerInvariant()) {
+              throw "$($package.Name) packs a bridge with SHA-256 $bridgeSha256, but the native job built $env:BRIDGE_SHA256."
+            }
+          } finally {
+            $archive.Dispose()
+          }
+          $sha256 = (Get-FileHash -LiteralPath $package.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          @("nupkg=$($package.FullName)", "sha256=$sha256", "version=$fileVersion") |
+            Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "Packed $($package.Name) (SHA-256 $sha256)." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      # One run over every tests/**/*.Tests module of the solution; MTP options go straight to dotnet test (SDK 10).
+      # A skip fails the run (--fail-skips on): NativeLua tests skip when the bundled Lua DLL does not bind, and a green
+      # check must not hide that. Hang and crash dumps need the extensions every module gets from eng/Tests.props.
+      # Debug: the native job's ABI facts make the managed ABI comparison mandatory, every module writes a coverage
+      # report, and the packaging tests are filtered out by trait (never skipped): they run in the Release leg against
+      # the packed file (CESDK_PACKAGED_UMBRELLA_NUPKG).
+      - name: Test
+        id: test
+        env:
+          CESDK_PACKAGED_UMBRELLA_NUPKG: ${{ matrix.configuration == 'Release' && steps.pack.outputs.nupkg || '' }}
+          PACKED_NUPKG_SHA256: ${{ steps.pack.outputs.sha256 }}
+        run: |
+          $ErrorActionPreference = 'Stop'
           $options = @(
             '--solution', 'CheatEngine.SDK.slnx', '-c', $env:CONFIGURATION, '--no-build', '--results-directory', $env:RESULTS,
-            '--fail-skips', 'on', '--report-trx', '--report-gh', '--report-gh-groups', 'off'
+            '--fail-skips', 'on', '--report-trx', '--report-gh', '--report-gh-groups', 'off',
+            '--hangdump', '--hangdump-timeout', '15m', '--crashdump'
           )
           if ($env:CONFIGURATION -eq 'Debug') {
             $env:CE77_NATIVE_ABI_FACTS_PATH = Join-Path $env:GITHUB_WORKSPACE 'artifacts/native-abi-fixture/ce77-native-abi-facts.txt'
             $env:CE77_NATIVE_ABI_REQUIRED = 'true'
-            $options += '--coverage', '--coverage-output-format', 'xml'
+            $env:CESDK_NATIVE_HOST_EMULATOR_DIR = Join-Path $env:GITHUB_WORKSPACE 'artifacts/native-host-emulator'
+            $env:CESDK_NATIVE_HOST_EMULATOR_REQUIRED = 'true'
+            $options += '--coverage', '--coverage-output-format', 'xml', '--filter-not-trait', 'Category=Packaging'
+          }
+          else {
+            $consumed = (Get-FileHash -LiteralPath $env:CESDK_PACKAGED_UMBRELLA_NUPKG -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($consumed -ne $env:PACKED_NUPKG_SHA256) {
+              throw "The package changed between Pack ($env:PACKED_NUPKG_SHA256) and Test ($consumed)."
+            }
+            "Packaging tests consume ``$(Split-Path -Leaf $env:CESDK_PACKAGED_UMBRELLA_NUPKG)`` (SHA-256 ``$consumed``)." |
+              Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           }
           dotnet test @options
           if ($LASTEXITCODE -ne 0) {
             throw "$env:CONFIGURATION tests failed with exit code $LASTEXITCODE."
           }
-          if ($env:CONFIGURATION -eq 'Debug') {
-            $modules = @(Get-ChildItem -LiteralPath $env:RESULTS -Filter *.trx -File).Count
-            $reports = @(Get-ChildItem -LiteralPath $env:RESULTS -Filter *.xml -File).Count
-            if ($reports -eq 0 -or $reports -ne $modules) {
-              throw "Expected one coverage report per test module ($modules), found $reports."
-            }
-          }
 
-      # The shipped package comes from the build the tests just ran against. The pack is incremental: nothing recompiles.
-      - name: Pack
+      # The uploaded file is the file the tests consumed.
+      - name: Verify the tested package is unchanged
         if: matrix.configuration == 'Release'
         env:
-          PACKAGE_VERSION: ${{ inputs.package-version }}
+          PACKAGE: ${{ steps.pack.outputs.nupkg }}
+          PACKED_NUPKG_SHA256: ${{ steps.pack.outputs.sha256 }}
         run: |
-          dotnet pack src/CheatEngine.SDK -c Release --no-restore -o artifacts/nuget
-          if ($LASTEXITCODE -ne 0) {
-            throw "SDK package creation failed with exit code $LASTEXITCODE."
+          $actual = (Get-FileHash -LiteralPath $env:PACKAGE -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:PACKED_NUPKG_SHA256) {
+            throw "The package changed during the tests: packed $env:PACKED_NUPKG_SHA256, now $actual."
           }
-          $packages = @(Get-ChildItem -Path artifacts/nuget -Filter *.nupkg -File)
-          if ($packages.Count -ne 1) {
-            throw "Expected one package in artifacts/nuget, found $($packages.Count)."
-          }
-          if ($env:PACKAGE_VERSION -and $packages[0].Name -ne "CheatEngine.SDK.$env:PACKAGE_VERSION.nupkg") {
-            throw "Packed $($packages[0].Name), but the release requires CheatEngine.SDK.$env:PACKAGE_VERSION.nupkg."
-          }
-          "Packed ``$($packages[0].Name)``." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
       - name: Upload package
         if: matrix.configuration == 'Release'
@@ -276,11 +330,34 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+      - name: Upload test dumps
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-dumps-${{ matrix.configuration }}
+          # Hang and crash dumps, and the crash sequence file listing the tests that were running.
+          path: |
+            ${{ env.RESULTS }}/**/*.dmp
+            ${{ env.RESULTS }}/**/*sequence*
+          if-no-files-found: ignore
+          retention-days: 5
+
+      # Binary logs only on failure: they record the environment the build saw.
+      # https://learn.microsoft.com/visualstudio/ide/msbuild-logs#provide-msbuild-binary-logs-for-investigation
+      - name: Upload binary logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: binlogs-build-test-${{ matrix.configuration }}
+          path: artifacts/logs/*.binlog
+          if-no-files-found: ignore
+          retention-days: 5
+
   aot:
     name: Native AOT publication probe
     needs: native
-    runs-on: windows-latest
-    timeout-minutes: 20
+    runs-on: windows-2025
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -288,22 +365,14 @@ jobs:
           fetch-depth: 0 # MinVer computes the version from tags and history
           persist-credentials: false
 
+      # The three projects live outside the solution's test run; their lock files carry the win-x64 ILCompiler packages.
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
         with:
-          restore: tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj
-
-      - name: Restore Native AOT library loader harness
-        run: |
-          $ErrorActionPreference = 'Stop'
-          dotnet restore tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj
-          if ($LASTEXITCODE -ne 0) {
-            throw "Native AOT library probe restore failed with exit code $LASTEXITCODE."
-          }
-          dotnet restore tests/CheatEngine.SDK.NativeAotLoaderHarness/CheatEngine.SDK.NativeAotLoaderHarness.csproj
-          if ($LASTEXITCODE -ne 0) {
-            throw "Native AOT loader harness restore failed with exit code $LASTEXITCODE."
-          }
+          restore: |
+            tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj
+            tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj
+            tests/CheatEngine.SDK.NativeAotLoaderHarness/CheatEngine.SDK.NativeAotLoaderHarness.csproj
 
       - name: Use CI-built native bridge
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -316,7 +385,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $output = Join-Path $PWD 'artifacts/aot-probe'
-          dotnet publish tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj -c Release --no-restore -o $output
+          dotnet publish tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj -c Release --no-restore -o $output -bl:artifacts/logs/aot-probe.binlog
           if ($LASTEXITCODE -ne 0) {
             throw "Native AOT probe publish failed with exit code $LASTEXITCODE."
           }
@@ -336,11 +405,11 @@ jobs:
           $profileOutput = Join-Path $PWD 'artifacts/nativeaot-loader-profile'
           $libraryProject = 'tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj'
           $harnessProject = 'tests/CheatEngine.SDK.NativeAotLoaderHarness/CheatEngine.SDK.NativeAotLoaderHarness.csproj'
-          dotnet publish $libraryProject -c Release --no-restore -o $profileOutput
+          dotnet publish $libraryProject -c Release --no-restore -o $profileOutput -bl:artifacts/logs/aot-library-probe.binlog
           if ($LASTEXITCODE -ne 0) {
             throw "Native AOT shared-library publish failed with exit code $LASTEXITCODE."
           }
-          dotnet publish $harnessProject -c Release --no-restore -o $profileOutput
+          dotnet publish $harnessProject -c Release --no-restore -o $profileOutput -bl:artifacts/logs/aot-loader-harness.binlog
           if ($LASTEXITCODE -ne 0) {
             throw "Native AOT loader harness publish failed with exit code $LASTEXITCODE."
           }
@@ -357,34 +426,79 @@ jobs:
           & $harness --load --acknowledge-process-resident-load
           if ($LASTEXITCODE -ne 0) { throw "Native AOT loader harness load exited with code $LASTEXITCODE." }
 
-  # Secrets never reach fork or Dependabot runs, and a merge-queue branch is analysed again once it lands on main.
-  # Pull requests fail on the quality gate; main only reports it.
+      - name: Upload binary logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: binlogs-aot
+          path: artifacts/logs/*.binlog
+          if-no-files-found: ignore
+          retention-days: 5
+
+  # C2 evidence only: a hostfxr component-route emulator that exercises the same managed entry point Cheat Engine's
+  # loader would call, never Cheat Engine itself. The Debug build-test leg downloads its output and runs
+  # NativeHostEmulatorTests against it (tests/native-host-emulator/README.md).
+  native-host-emulator:
+    name: Native host emulator
+    needs: native
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Needed only to locate the installed Microsoft.NETCore.App.Host.win-x64 pack's nethost headers/lib/dll; no
+      # project is restored here.
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
+
+      - name: Build native host emulator
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./tests/native-host-emulator/build.ps1 -OutputDirectory artifacts/native-host-emulator
+          if ($LASTEXITCODE -ne 0) {
+            throw "Native host emulator build failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Upload native host emulator
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-host-emulator
+          path: artifacts/native-host-emulator
+          if-no-files-found: error
+          retention-days: 14
+
+  # SONAR_EXPECTED: the same expression is the gate's SONAR_EXPECTED variable (env is not available in jobs.<id>.if;
+  # WorkflowContractTests keeps the two texts equal). Secrets never reach fork or Dependabot runs, the dormant merge_group
+  # clause stays as defense in depth, and release.yml never passes sonar. github.actor is deliberate: a maintainer who
+  # pushes onto a Dependabot branch has the token and must be analysed. Outside push events the quality gate is awaited.
   sonar:
     name: Sonar
     needs: build-test
     if: >-
-      inputs.sonar
-      && github.event_name != 'merge_group'
-      && github.actor != 'dependabot[bot]'
-      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      ${{ inputs.sonar
+          && github.event_name != 'merge_group'
+          && github.actor != 'dependabot[bot]'
+          && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     uses: ./.github/workflows/sonar.yml
     with:
-      wait-quality-gate: ${{ github.event_name == 'pull_request' }}
+      wait-quality-gate: ${{ github.event_name != 'push' }}
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   lint:
-    name: Lint workflows
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     env:
       ACTIONLINT_VERSION: 1.7.12
       ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 # linux_amd64, official checksums file
     steps:
-      - name: Checkout workflow definitions
+      - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          sparse-checkout: .github
           persist-credentials: false
 
       - name: Run actionlint
@@ -406,32 +520,150 @@ jobs:
             throw "actionlint failed with exit code $LASTEXITCODE."
           }
 
+      # Offline audits only: the gate must not depend on the GitHub API. The online audits run in an advisory workflow.
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: 1.30.1
+          online-audits: false
+          advanced-security: false
+          annotations: true
+          config: .github/zizmor.yml
+
+  # Whitespace formatting of every C# file, including projects outside the solution. Style rules are enforced by the
+  # build itself (EnforceCodeStyleInBuild with warnings as errors). No restore: --folder needs no MSBuild workspace.
+  format:
+    name: Format
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
+
+      - name: Verify whitespace formatting
+        run: |
+          dotnet format whitespace . --folder --verify-no-changes --exclude artifacts
+          if ($LASTEXITCODE -ne 0) {
+            throw "Whitespace formatting differs (exit code $LASTEXITCODE). Run 'dotnet format whitespace . --folder --exclude artifacts' and commit the result."
+          }
+
+  # Always runs, so the gate never sees it skipped: pull requests are reviewed, every other event records a notice.
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Review dependency changes
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          config-file: ./.github/dependency-review-config.yml
+          comment-summary-in-pr: never
+          retry-on-snapshot-warnings: true
+
+      - name: Nothing to review
+        if: github.event_name != 'pull_request'
+        env:
+          EVENT: ${{ github.event_name }}
+        run: Write-Host "::notice title=Dependency review::A $env:EVENT run has no base to compare; dependency review runs on pull requests."
+
+  # The committed packages.lock.json files must be exactly what a fresh restore produces. Windows only: the Native AOT
+  # lock sections record the host-RID ILCompiler packages.
+  lock-files:
+    name: Lock files
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The composite action's own locked-mode restore is the verification: it fails with NU1004 the moment a
+      # committed packages.lock.json no longer matches a fresh restore. CheatEngine.SDK.AotProbe is the only project
+      # outside the solution (Solution/SolutionInventoryTests.cs).
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
+        with:
+          restore: |
+            CheatEngine.SDK.slnx
+            tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj
+
   gate:
     name: Gate
     # always(): a failed or cancelled job must turn the required check red instead of skipping it.
     if: always()
-    needs: [ native, build-test, aot, sonar, lint ]
-    runs-on: ubuntu-latest
+    needs: [ native, build-test, aot, native-host-emulator, sonar, lint, format, dependency-review, lock-files ]
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: { }
     steps:
       - name: Check results
         env:
           NEEDS: ${{ toJSON(needs) }}
+          SONAR_EXPECTED: >-
+            ${{ inputs.sonar
+                && github.event_name != 'merge_group'
+                && github.actor != 'dependabot[bot]'
+                && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+          EVENT: ${{ github.event_name }}
         run: |
-          # Every job must succeed. Only sonar may be skipped: its own condition turns it off for releases, the merge
-          # queue, forks and Dependabot. A sonar skipped because build-test failed is caught by build-test's result.
-          $mayBeSkipped = @('sonar')
-          $needs = $env:NEEDS | ConvertFrom-Json -AsHashtable
-          $failed = [Collections.Generic.List[string]]::new()
-          $rows = foreach ($job in @($needs.Keys | Sort-Object)) {
-            $result = $needs[$job].result
-            $allowed = if ($job -in $mayBeSkipped) { 'success', 'skipped' } else { 'success' }
-            if ($result -notin $allowed) { $failed.Add("$job ($result)") }
-            "| $job | $result |"
-          }
-          @('| Job | Result |', '| --- | --- |') + $rows | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          if ($failed.Count -gt 0) {
-            Write-Host "::error::Not successful: $($failed -join ', ')."
+          # Every job must succeed, except sonar, which must match SONAR_EXPECTED: success when it is true, skipped when it
+          # is false (fork, Dependabot, merge_group or release run). A sonar run that was not expected means the job
+          # condition and this expression drifted apart, which fails the gate too. No other job may ever be skipped.
+          $ErrorActionPreference = 'Stop'
+          if ($env:SONAR_EXPECTED -notin @('true', 'false')) {
+            Write-Host "::error title=Gate::SONAR_EXPECTED must be 'true' or 'false', got '$env:SONAR_EXPECTED'."
             exit 1
           }
+          $sonarExpected = $env:SONAR_EXPECTED -eq 'true'
+          $needs = $env:NEEDS | ConvertFrom-Json -AsHashtable
+          if ($needs.Count -eq 0) {
+            Write-Host '::error title=Gate::The gate received no job results.'
+            exit 1
+          }
+          $mismatches = [Collections.Generic.List[string]]::new()
+          $rows = [Collections.Generic.List[string]]::new()
+          foreach ($job in @($needs.Keys | Sort-Object)) {
+            $result = [string] $needs[$job].result
+            $required = 'success'
+            $reason = 'every job must succeed'
+            if ($job -eq 'sonar') {
+              if ($sonarExpected) {
+                $reason = "SONAR_EXPECTED=true on ${env:EVENT}: the analysis must run and pass"
+                if ($result -eq 'skipped') {
+                  $upstream = [string] $needs['build-test'].result
+                  $reason += ($upstream -ne 'success') ? "; skipped because build-test was $upstream" : '; skipped although expected: the sonar condition drifted'
+                }
+              }
+              else {
+                $required = 'skipped'
+                $reason = "SONAR_EXPECTED=false on ${env:EVENT} (fork, Dependabot, merge_group or release run)"
+                if ($result -ne 'skipped') {
+                  $reason += '; it ran although not expected: the sonar condition drifted'
+                }
+              }
+            }
+            if ($result -ne $required) {
+              $mismatches.Add("$job is $result, required $required")
+            }
+            $rows.Add("| $job | $result | $required | $reason |")
+          }
+          @('### Gate', '', '| Job | Result | Required | Reason |', '| --- | --- | --- | --- |') + $rows |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          if ($mismatches.Count -gt 0) {
+            Write-Host "::error title=Gate::$($mismatches -join '; ')."
+            exit 1
+          }
+          Write-Host "All $($needs.Count) jobs have their required result."

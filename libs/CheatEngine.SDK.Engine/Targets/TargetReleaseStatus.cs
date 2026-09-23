@@ -25,5 +25,12 @@ public enum TargetReleaseStatus : byte
 	UnconfirmedAfterInvocation = 6,
 
 	/// <summary>The owner was consumed, but cleanup could not begin a target operation.</summary>
-	NotInvoked = 7
+	NotInvoked = 7,
+
+	/// <summary>
+	///     The owner was consumed without any Cheat Engine call because the Lua runtime identity (attach epoch or state
+	///     generation) that created it is no longer current: the plugin was re-enabled or the Lua state was replaced.
+	///     The native resource may still exist and requires manual recovery.
+	/// </summary>
+	RefusedRuntimeChanged = 8
 }

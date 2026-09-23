@@ -1,4 +1,6 @@
+using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Objects;
+using CheatEngine.SDK.Engine.Targets;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Marshalling;
@@ -8,7 +10,10 @@ using CheatEngine.SDK.Tests.Shared.NativeLua;
 
 namespace CheatEngine.SDK.Engine.Tests.Objects;
 
-/// <summary>Ownership: explicit destroy through the protected call, exactly once, and the transfer API.</summary>
+/// <summary>
+///     Ownership: explicit destroy through the protected call, exactly once, the transfer API, and the origin policy that
+///     refuses to destroy in another Lua universe.
+/// </summary>
 public sealed class OwnedTests
 {
 	[Fact]
@@ -78,7 +83,140 @@ public sealed class OwnedTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
-	public void A_detached_owner_can_be_retried_after_its_original_host_binding_is_reattached()
+	public void A_detached_owner_is_refused_after_reattach_and_consumed_without_destroy()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		CEObject handle = FakeHost.CreateObject(L, "Probe");
+		Owned<CEObject> owned = new(handle);
+		EngineResourceOrigin origin = owned.Origin;
+
+		LuaRuntime.Detach();
+		Assert.Throws<InvalidOperationException>(owned.Dispose);
+		Assert.False(owned.IsDisposed);
+
+		LuaRuntime.Attach(scope.Binding);
+		Assert.False(owned.Origin.IsCurrentRuntime);
+		owned.Dispose();
+
+		Assert.True(owned.IsDisposed);
+		Assert.Equal(origin, owned.Origin);
+		Assert.Equal(TargetReleaseStatus.RefusedRuntimeChanged, owned.LastReleaseOutcome.Status);
+		Assert.True(owned.LastReleaseOutcome.RequiresManualRecovery);
+		Assert.False(FakeHost.IsDestroyed(L, handle));
+		Assert.Equal(0, FakeHost.DestroyedCount(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q17")]
+	public void Dispose_after_a_controlled_state_replacement_consumes_the_owner_without_destroy()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		CEObject handle = FakeHost.CreateObject(L, "Probe");
+		Owned<CEObject> owned = new(handle);
+		LuaStateIdentity created = LuaRuntime.CurrentStateIdentity;
+
+		FakeHost.ReplaceStateGeneration();
+
+		Assert.Equal(created.AttachEpoch, LuaRuntime.CurrentStateIdentity.AttachEpoch);
+		Assert.Equal(created.StateGeneration + 1, LuaRuntime.CurrentStateIdentity.StateGeneration);
+		Assert.False(owned.Origin.IsCurrentRuntime);
+		owned.Dispose();
+
+		Assert.True(owned.IsDisposed);
+		Assert.Equal(created, owned.Origin.Runtime);
+		Assert.Equal(TargetReleaseStatus.RefusedRuntimeChanged, owned.LastReleaseOutcome.Status);
+		Assert.False(FakeHost.IsDestroyed(L, handle));
+		Assert.Equal(0, FakeHost.DestroyedCount(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void TryDestroy_after_a_runtime_identity_change_throws_and_consumes_the_owner_without_destroy()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		CEObject handle = FakeHost.CreateObject(L, "Probe");
+		Owned<CEObject> owned = new(handle);
+
+		FakeHost.ReplaceStateGeneration();
+		InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => owned.TryDestroy(L));
+
+		Assert.Contains("previous Lua runtime identity", exception.Message, StringComparison.Ordinal);
+		Assert.True(owned.IsDisposed);
+		Assert.Equal(TargetReleaseStatus.RefusedRuntimeChanged, owned.LastReleaseOutcome.Status);
+		Assert.False(FakeHost.IsDestroyed(L, handle));
+		Assert.Equal(0, L.Top);
+		Assert.True(owned.TryDestroy(L).IsOk);
+		Assert.Equal(0, FakeHost.DestroyedCount(L));
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void ReleaseWithOutcome_reports_released_after_exactly_one_destroy()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		CEObject handle = FakeHost.CreateObject(L, "Probe");
+		Owned<CEObject> owned = new(handle);
+
+		TargetReleaseOutcome outcome = owned.ReleaseWithOutcome();
+
+		Assert.Equal(TargetReleaseStatus.Released, outcome.Status);
+		Assert.False(outcome.RequiresManualRecovery);
+		Assert.Equal(outcome, owned.LastReleaseOutcome);
+		Assert.True(owned.IsDisposed);
+		Assert.True(FakeHost.IsDestroyed(L, handle));
+		Assert.Equal(outcome, owned.ReleaseWithOutcome());
+		owned.Dispose();
+		Assert.Equal(1, FakeHost.DestroyedCount(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void ReleaseWithOutcome_when_destroy_raises_reports_unconfirmed_and_never_retries()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		CEObject handle = FakeHost.CreateObject(L, "Probe");
+		EngineTest.Run(L, "destroy_attempts = 0"u8);
+		FakeHost.RunOnObject(L, handle, """
+		                                o.getters.destroy = function()
+		                                  return function() destroy_attempts = destroy_attempts + 1 error("refuses to be destroyed") end
+		                                end
+		                                """);
+		Owned<CEObject> owned = new(handle);
+
+		TargetReleaseOutcome outcome = owned.ReleaseWithOutcome();
+		TargetReleaseOutcome again = owned.ReleaseWithOutcome();
+		owned.Dispose();
+
+		Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, outcome.Status);
+		Assert.Equal(EngineFailureKind.ProtectedLuaFailure, outcome.FailureKind);
+		Assert.Equal(outcome, again);
+		Assert.True(owned.IsDisposed);
+		EngineTest.Run(L, "assert(destroy_attempts == 1)"u8);
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void ReleaseWithOutcome_while_detached_reports_not_invoked_and_consumes_the_owner()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -88,17 +226,102 @@ public sealed class OwnedTests
 		Owned<CEObject> owned = new(handle);
 
 		LuaRuntime.Detach();
-		Assert.Throws<InvalidOperationException>(owned.Dispose);
-		Assert.False(owned.IsDisposed);
-		Assert.False(FakeHost.IsDestroyed(L, handle));
+		TargetReleaseOutcome outcome = owned.ReleaseWithOutcome();
 
-		LuaRuntime.Attach(scope.Binding);
+		Assert.Equal(TargetReleaseStatus.NotInvoked, outcome.Status);
+		Assert.Equal(EngineFailureKind.BindingFailure, outcome.FailureKind);
+		Assert.True(owned.IsDisposed);
+		Assert.False(FakeHost.IsDestroyed(L, handle));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void ReleaseWithOutcome_with_a_binding_that_has_no_pusher_reports_not_invoked()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state, false);
+		LuaState L = scope.State;
+		CEObject handle = FakeHost.CreateObject(L, "Probe");
+		Owned<CEObject> owned = new(handle);
+
+		TargetReleaseOutcome outcome = owned.ReleaseWithOutcome();
+
+		Assert.Equal(TargetReleaseStatus.NotInvoked, outcome.Status);
+		Assert.Equal(EngineFailureKind.BindingFailure, outcome.FailureKind);
+		Assert.True(owned.IsDisposed);
+		Assert.False(FakeHost.IsDestroyed(L, handle));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void Transfer_preserves_the_origin_of_the_source_owner()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		CEObject handle = FakeHost.CreateObject(L, "Probe");
+		Owned<CEObject> source = new(handle);
+		EngineResourceOrigin origin = source.Origin;
+
+		FakeHost.ReplaceStateGeneration();
+		Owned<CEObject> destination = source.Transfer();
+		destination.Dispose();
+
+		Assert.Equal(origin, destination.Origin);
+		Assert.NotEqual(LuaRuntime.CurrentStateIdentity, destination.Origin.Runtime);
+		Assert.Equal(TargetReleaseStatus.RefusedRuntimeChanged, destination.LastReleaseOutcome.Status);
+		Assert.False(FakeHost.IsDestroyed(L, handle));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void Owned_child_destroyed_by_its_parent_before_dispose_reports_unconfirmed_and_never_retries()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		CEObject child = FakeHost.CreateObject(L, "Probe");
+		Owned<CEObject> owned = new(child);
+		EngineTest.Run(L, "destroy_attempts = 0"u8);
+		// The parent destroys its child behind the owner's back; the child's destroy then fails as CE's does.
+		FakeHost.RunOnObject(L, child, """
+		                               o.destroyed = true
+		                               o.getters.destroy = function()
+		                                 return function() destroy_attempts = destroy_attempts + 1 error("object already destroyed") end
+		                               end
+		                               """);
+
+		owned.Dispose();
 		owned.Dispose();
 
 		Assert.True(owned.IsDisposed);
-		Assert.True(FakeHost.IsDestroyed(L, handle));
-		Assert.Equal(1, FakeHost.DestroyedCount(L));
+		Assert.Equal(TargetReleaseStatus.UnconfirmedAfterInvocation, owned.LastReleaseOutcome.Status);
+		Assert.Equal(EngineFailureKind.ProtectedLuaFailure, owned.LastReleaseOutcome.FailureKind);
+		EngineTest.Run(L, "assert(destroy_attempts == 1)"u8);
+		Assert.Equal(0, FakeHost.DestroyedCount(L));
 		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void An_owner_captures_the_runtime_identity_that_created_it()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		using Owned<CEObject> owned = new(FakeHost.CreateObject(scope.State, "Probe"));
+
+		Assert.Equal(LuaRuntime.CurrentStateIdentity, owned.Origin.Runtime);
+		Assert.Null(owned.Origin.Target);
+		Assert.False(owned.Origin.IsTargetBound);
+		Assert.True(owned.Origin.IsCurrentRuntime);
+		Assert.Equal(TargetReleaseStatus.Unspecified, owned.LastReleaseOutcome.Status);
 	}
 
 	[Fact]

@@ -19,6 +19,9 @@ public sealed class NativeBridgePeAuditTests
 	private const string BuildRelativePath = "native/cheatengine-sdk-lua-bridge/xmake.lua";
 	private const string ContinuousIntegrationWorkflowRelativePath = ".github/workflows/ci.yml";
 	private const string PinnedXmakeVersion = "3.0.9";
+	private const string PinnedMsvcToolset = "14.44";
+	private const string PinnedWindowsSdk = "10.0.26100.0";
+	private const string PinnedWindowsRunner = "windows-2025";
 
 	private static readonly string[] ExpectedExports =
 	[
@@ -103,29 +106,45 @@ public sealed class NativeBridgePeAuditTests
 	}
 
 	[Fact]
-	public void Native_bridge_ci_pins_xmake_and_enforces_a_double_build_reproducibility_gate()
+	public void Native_bridge_ci_builds_once_with_pinned_xmake_and_reports_its_sha256()
 	{
-		string workflow = ReadRepositoryText(ContinuousIntegrationWorkflowRelativePath);
+		string job = ReadNativeJob();
 
-		Assert.Contains("xmake-io/github-action-setup-xmake@", workflow, StringComparison.Ordinal);
-		Assert.Contains($"xmake-version: '{PinnedXmakeVersion}'", workflow, StringComparison.Ordinal);
-		Assert.Contains("$primaryOutput = 'artifacts/native/cheatengine-sdk-lua-bridge'", workflow,
-			StringComparison.Ordinal);
-		Assert.Contains("$reproducibilityOutput = 'artifacts/native/cheatengine-sdk-lua-bridge-repro'", workflow,
-			StringComparison.Ordinal);
-		Assert.Contains("The primary and reproducibility bridge output directories must be distinct.", workflow,
-			StringComparison.Ordinal);
-		Assert.Contains("xmake f -P native/cheatengine-sdk-lua-bridge -o $primaryOutput", workflow,
-			StringComparison.Ordinal);
-		Assert.Contains("xmake f -P native/cheatengine-sdk-lua-bridge -o $reproducibilityOutput", workflow,
-			StringComparison.Ordinal);
-		Assert.Contains("$primaryHash = (Get-FileHash -LiteralPath $primaryBridge -Algorithm SHA256).Hash", workflow,
-			StringComparison.Ordinal);
+		// The native job installs the pinned xmake and configures/builds the bridge directly (no bespoke eng/ci
+		// wrapper script): one build feeds every downstream job, and its SHA-256 becomes a job output.
+		Assert.Contains("xmake-io/github-action-setup-xmake@", job, StringComparison.Ordinal);
+		Assert.Contains($"xmake-version: '{PinnedXmakeVersion}'", job, StringComparison.Ordinal);
 		Assert.Contains(
-			"$reproducibilityHash = (Get-FileHash -LiteralPath $reproducibilityBridge -Algorithm SHA256).Hash",
-			workflow, StringComparison.Ordinal);
-		Assert.Contains("$primaryHash, $reproducibilityHash, [StringComparison]::OrdinalIgnoreCase", workflow,
+			"xmake f -P native/cheatengine-sdk-lua-bridge -o artifacts/native/cheatengine-sdk-lua-bridge -p windows -a x64 -m release -y --ccache=n",
+			job, StringComparison.Ordinal);
+		Assert.Contains("xmake -P native/cheatengine-sdk-lua-bridge -y", job, StringComparison.Ordinal);
+		Assert.Contains("path: artifacts/native/cheatengine-sdk-lua-bridge/cheatengine-sdk-lua-bridge.dll", job,
 			StringComparison.Ordinal);
+		Assert.Contains("bridge-sha256: ${{ steps.bridge.outputs.bridge-sha256 }}", job, StringComparison.Ordinal);
+		Assert.Contains("\"bridge-sha256=$hash\"", job, StringComparison.Ordinal);
+
+		// Every build compiles from source: a compiler-cache hit must not stand in for a real compilation.
+		Assert.Contains("--ccache=n", job, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Native_bridge_ci_pins_the_msvc_toolset_and_windows_sdk()
+	{
+		string job = ReadNativeJob();
+
+		Assert.Contains($"BRIDGE_VS_TOOLSET: '{PinnedMsvcToolset}'", job, StringComparison.Ordinal);
+		Assert.Contains($"BRIDGE_VS_SDKVER: '{PinnedWindowsSdk}'", job, StringComparison.Ordinal);
+		Assert.Contains("\"--vs_toolset=$env:BRIDGE_VS_TOOLSET\" \"--vs_sdkver=$env:BRIDGE_VS_SDKVER\"", job,
+			StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Native_bridge_ci_runs_on_the_pinned_windows_label()
+	{
+		string job = ReadNativeJob();
+
+		Assert.Contains($"runs-on: {PinnedWindowsRunner}\n", job, StringComparison.Ordinal);
+		Assert.DoesNotContain("-latest", job, StringComparison.Ordinal);
 	}
 
 	private static PortableExecutableInspector ReadBridge()
@@ -156,9 +175,34 @@ public sealed class NativeBridgePeAuditTests
 		}
 	}
 
+	/// <summary>Reads a committed text file with LF line endings, whatever the checkout's line-ending conversion.</summary>
 	private static string ReadRepositoryText(string relativePath)
 	{
-		return File.ReadAllText(RepositoryLayout.PathOf(relativePath));
+		return File.ReadAllText(RepositoryLayout.PathOf(relativePath)).Replace("\r\n", "\n", StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	///     The <c>native</c> job of ci.yml: from its key to the next line indented like a job key (the next job, or the
+	///     comment that introduces it), so an assertion cannot be satisfied by text of another job.
+	/// </summary>
+	private static string ReadNativeJob()
+	{
+		string[] lines = ReadRepositoryText(ContinuousIntegrationWorkflowRelativePath).Split('\n');
+		int start = Array.IndexOf(lines, "  native:");
+		Assert.True(start >= 0, $"{ContinuousIntegrationWorkflowRelativePath} has no 'native' job.");
+
+		int end = start + 1;
+		while (end < lines.Length && !IsJobLevelLine(lines[end]))
+		{
+			end++;
+		}
+
+		return string.Join('\n', lines, start, end - start) + "\n";
+	}
+
+	private static bool IsJobLevelLine(string line)
+	{
+		return line.Length > 2 && line.StartsWith("  ", StringComparison.Ordinal) && line[2] != ' ';
 	}
 
 	private static string CalculateSha256(string path)

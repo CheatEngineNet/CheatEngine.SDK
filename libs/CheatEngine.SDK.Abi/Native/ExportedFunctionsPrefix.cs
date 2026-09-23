@@ -13,20 +13,24 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         validate <see cref="SizeOfExportedFunctions" />, and impose its own lifetime, main-thread, and failure policy.
 ///     </para>
 ///     <para>
-///         <b>
-///             Evidence status: source-indexed C header plus compiled-transcription fixture for x64 layout.
-///         </b>
-///         The fields through
-///         <see cref="GetAddressFromPointer" /> are the contiguous C-header-declared part of
-///         <c>ExportedFunctions</c> in the pinned historical <c>cepluginsdk.h</c>. The MSVC x64 fixture validates the
-///         physical 144-byte transcription, not a live host. All direct functions are declared <c>__stdcall</c> in the
-///         C header. That declaration does not itself make an individual slot callable: conflicting and historically
-///         null slots remain opaque below.
+///         <b>Evidence: slots 0-17 of the classic slot registry</b> (<c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>). Its
+///         authority is the host type <c>TExportedFunctions5</c> of the pinned <c>plugin.pas</c> (fields lines 47-226,
+///         assignments of <c>TPluginHandler.create</c> lines 1856-2045); <c>cepluginsdk.h</c> and
+///         <c>cepluginsdk.pas</c> are mirror columns only. Offsets are <c>Deduced</c> from the declarations (x64 natural
+///         alignment: slot 0 is a 32-bit integer at 0, slot N at 8N) and the MSVC x64 fixture validates the physical
+///         144-byte transcription, not a live host: on <c>ce-7.7.0.10621-x64-managed-hostfxr</c> every slot stays
+///         <c>NotObserved</c>. The pluginexports.pas implementations assigned to the typed slots are declared
+///         <c>stdcall</c>; that declaration does not itself make an individual slot callable: the nil slot 14
+///         (<see cref="FixMemory" />) and the divergent slot 17 (<see cref="GetAddressFromPointer" />, registry
+///         divergence D01) remain opaque below, and <c>ClassicSlotRegistryPrefixTests</c> keeps this type and the
+///         registry in lockstep.
 ///     </para>
 ///     <para>
-///         The next native field is <c>ReadProcessMemory</c>, documented by the header as a pointer to a pointer that
-///         can be hooked. That hook-bearing suffix, Delphi object references, and all later capabilities are purposely
-///         excluded from this type. Their ABI and ownership must be introduced with a dedicated dangerous facade.
+///         Slot 18 (<c>ReadProcessMemory</c>) and the 140 slots after it are purposely excluded from this type: they mix
+///         function-pointer cells the host lets plugins hook, data and object-reference cells, nil slots and direct
+///         function addresses (see the registry's <c>nature</c> and <c>indirection</c>). Their ABI and ownership must be
+///         introduced with a dedicated facade after a per-slot qualification; no suffix slot has a
+///         <c>delegate*</c> here.
 ///     </para>
 /// </remarks>
 [SuppressMessage("Meziantou.Analyzer", "MA0182",

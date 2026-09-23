@@ -238,9 +238,9 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
 			.. run.OutputCompilation
 				.GetDiagnostics(TestContext.Current.CancellationToken)
 				.Where(static diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning
-				                            && !(string.Equals(diagnostic.Id, "CS1591", StringComparison.Ordinal)
-				                                 && diagnostic.Location.SourceTree is { FilePath: string path } &&
-				                                 !path.EndsWith(".g.cs", StringComparison.Ordinal)))
+											&& !(string.Equals(diagnostic.Id, "CS1591", StringComparison.Ordinal)
+												 && diagnostic.Location.SourceTree is { FilePath: string path } &&
+												 !path.EndsWith(".g.cs", StringComparison.Ordinal)))
 		];
 		Diagnostic problem = Assert.Single(problems);
 		Assert.Equal("CS8601", problem.Id);
@@ -261,6 +261,132 @@ public sealed class LuaGlobalOutputTests(RoslynFixture roslyn) : IClassFixture<R
 
 		Assert.Single(run.GeneratedSources);
 		run.AssertCompilesClean();
+	}
+
+	[Fact]
+	public void Generator_optional_suite_compiles_clean()
+	{
+		GeneratorRun run = roslyn.Run(OptionalBindingSources.GlobalSuite);
+
+		Assert.Single(run.GeneratedSources);
+		run.AssertCompilesClean();
+	}
+
+	[Fact]
+	public void Generator_optional_arguments_compute_the_argument_count_before_acquiring_the_state()
+	{
+		GeneratorRun run = roslyn.Run(OptionalBindingSources.GlobalSuite);
+
+		string body = Section(run.SingleGeneratedText,
+			"public static partial long Arity(long first, global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<long> second, global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<string> third)",
+			"\n        }\n");
+		int count = body.IndexOf("int __argc = !third.IsOmitted ? 3 : !second.IsOmitted ? 2 : 1;",
+			StringComparison.Ordinal);
+		int gap = body.IndexOf("if (__argc > 2 && second.IsOmitted)", StringComparison.Ordinal);
+		int acquire = body.IndexOf("AcquireOperation()", StringComparison.Ordinal);
+		Assert.True(count >= 0 && gap > count && acquire > gap, "The argument count is not computed first:\n" + body);
+		Assert.Contains("throw new global::System.ArgumentException(", body, StringComparison.Ordinal);
+		Assert.Contains(
+			"if (__argc > 1)\n                {\n                    global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.PushOptional<long, global::CheatEngine.SDK.Lua.Marshalling.Int64Marshaller>(__L, second);",
+			body, StringComparison.Ordinal);
+		Assert.Contains("PushOptional<string, global::CheatEngine.SDK.Lua.Marshalling.StringMarshaller>(__L, third);",
+			body, StringComparison.Ordinal);
+		Assert.Contains("__L.TryCall(__argc, 1);", body, StringComparison.Ordinal);
+
+		// A single optional argument needs no gap check.
+		string single = Section(run.SingleGeneratedText, "public static partial bool TryArity(", "\n        }\n");
+		Assert.Contains("int __argc = !second.IsOmitted ? 2 : 1;\n\n", single, StringComparison.Ordinal);
+		Assert.DoesNotContain("ArgumentException", single, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Generator_optional_results_use_multiple_results_and_read_absolute_indices()
+	{
+		GeneratorRun run = roslyn.Run(OptionalBindingSources.GlobalSuite);
+
+		string body = Section(run.SingleGeneratedText,
+			"public static partial global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus ShapeRequiredThenOptional(",
+			"\n        }\n");
+		Assert.Contains("__L.TryCall(1, global::CheatEngine.SDK.Lua.State.LuaState.MultipleResults);", body,
+			StringComparison.Ordinal);
+		Assert.Contains("if (__L.Top - __top < 1)", body, StringComparison.Ordinal);
+		Assert.Contains("LuaOperationStatus.MissingResult, out first);", body, StringComparison.Ordinal);
+		Assert.Contains("Int64Marshaller.TryRead(__L, __top + 1, out first)", body, StringComparison.Ordinal);
+		Assert.Contains(
+			"LuaCallSupport.TryReadOptional<long, global::CheatEngine.SDK.Lua.Marshalling.Int64Marshaller>(__L, __top + 2, out second)",
+			body, StringComparison.Ordinal);
+		Assert.DoesNotContain("-1", body, StringComparison.Ordinal);
+
+		// A declaration without an optional or variadic result keeps the fixed-count call and negative indices.
+		string scalar = Section(run.SingleGeneratedText, "public static partial bool TryShapeScalar(", "\n        }\n");
+		Assert.Contains("__L.TryCall(1, 1).IsOk", scalar, StringComparison.Ordinal);
+		Assert.Contains("TryRead(__L, -1, out value)", scalar, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Generator_variadic_pair_is_emitted_only_for_the_outcome_form()
+	{
+		GeneratorRun run = roslyn.Run(OptionalBindingSources.GlobalSuite);
+
+		string body = Section(run.SingleGeneratedText,
+			"public static partial global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus Sequence(int count, global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<int> bad, global::System.Span<long> values, out int valueCount)",
+			"\n        }\n");
+		Assert.Contains(
+			"global::CheatEngine.SDK.Lua.Calls.LuaOperationStatus __rest = global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.ReadResults<long, global::CheatEngine.SDK.Lua.Marshalling.Int64Marshaller>(__L, __top + 1, values, out valueCount);",
+			body, StringComparison.Ordinal);
+		Assert.Contains("return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, __rest);",
+			body, StringComparison.Ordinal);
+
+		const string TryForm = "using System;\nusing CheatEngine.SDK.Annotations.Lua;\nnamespace Demo; public static partial class Holder { [LuaGlobal(\"seq\")] public static partial bool TrySeq(int n, Span<long> values, out int count); }";
+		roslyn.Run(TryForm).AssertNoOutput();
+	}
+
+	[Fact]
+	public void Generator_outcome_form_with_several_results_defaults_every_other_result_on_failure()
+	{
+		const string Source =
+			"using CheatEngine.SDK.Annotations.Lua;\nusing CheatEngine.SDK.Lua.Calls;\nnamespace Demo; public static partial class Holder { [LuaGlobal(\"divide\")] public static partial LuaOperationStatus Divide(long a, long b, out long quotient, out string? remainder); }";
+
+		GeneratorRun run = roslyn.Run(Source);
+
+		run.AssertCompilesClean();
+		string body = Section(run.SingleGeneratedText, "Divide(long a, long b", "\n        }\n");
+		Assert.Contains("remainder = default!;\n                    return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, __L.IsNil(-2)",
+			body, StringComparison.Ordinal);
+		Assert.Contains("quotient = default;\n                    return global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.Fail(__L, __top, __L.IsNil(-1)",
+			body, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q20")]
+	public void Generator_text_results_are_copied_or_decoded_before_the_stack_is_restored()
+	{
+		GeneratorRun run = roslyn.Run(BindingSources.GlobalSuite);
+		string text = run.SingleGeneratedText;
+
+		string copyOut = Section(text,
+			"public static partial bool TryReadString(nuint address, int maxLength, global::System.Span<byte> destination, out int written)",
+			"\n        }\n");
+		string decoded = Section(text,
+			"public static partial bool TryReadString(nuint address, int maxLength, out string value)",
+			"\n        }\n");
+		string throwing = Section(text, "public static partial string ReadString(", "\n        }\n");
+
+		AssertReadBeforeRestore(copyOut, "__L.TryCopyUtf8(-1, destination, out written)");
+		AssertReadBeforeRestore(decoded, "StringMarshaller.TryRead(__L, -1, out value)");
+		AssertReadBeforeRestore(throwing, "StringMarshaller.TryRead(__L, -1, out string? __result)");
+
+		// No generated wrapper returns or stores a span that could point into a popped Lua string.
+		Assert.DoesNotContain("out global::System.ReadOnlySpan<byte>", text, StringComparison.Ordinal);
+		Assert.DoesNotContain("Utf8Marshaller.TryRead", text, StringComparison.Ordinal);
+	}
+
+	private static void AssertReadBeforeRestore(string body, string read)
+	{
+		int readAt = body.IndexOf(read, StringComparison.Ordinal);
+		int restoreAt = body.IndexOf("__L.SetTop(__top);", StringComparison.Ordinal);
+		Assert.True(readAt >= 0 && restoreAt > readAt,
+			"The text result is not read before the stack is restored:\n" + body);
 	}
 
 	// The text from the first occurrence of 'start' to the first 'end' after it (the closing brace of the method).

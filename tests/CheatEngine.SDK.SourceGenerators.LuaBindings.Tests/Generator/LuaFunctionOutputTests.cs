@@ -49,10 +49,10 @@ public sealed class LuaFunctionOutputTests(RoslynFixture roslyn) : IClassFixture
 		run.AssertCompilesClean();
 		string text = run.SingleGeneratedText;
 		foreach (string name in new[]
-		         {
-			         "add", "greet", "ping", "isint", "boom", "echo", "half", "negate", "step", "small", "scale",
-			         "maybe"
-		         })
+				 {
+					 "add", "greet", "ping", "isint", "boom", "echo", "half", "negate", "step", "small", "scale",
+					 "maybe"
+				 })
 		{
 			Assert.Contains("private static int __LuaThunk_" + name + "(nint __handle)", text,
 				StringComparison.Ordinal);
@@ -142,6 +142,24 @@ public sealed class LuaFunctionOutputTests(RoslynFixture roslyn) : IClassFixture
 		run.AssertCompilesClean();
 		Assert.Contains("global::Demo.Holder.F(__L, __arg0, __arg1, __arg2, __arg3)", run.SingleGeneratedText,
 			StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Generator_optional_thunk_accepts_the_declared_argument_range()
+	{
+		GeneratorRun run = roslyn.Run(OptionalBindingSources.FunctionSuite);
+
+		run.AssertCompilesClean();
+		string text = run.SingleGeneratedText;
+		Assert.Contains(
+			"if (__L.Top < 1 || __L.Top > 3)\n                {\n                    return global::CheatEngine.SDK.Lua.Callbacks.LuaThunk.Fail(__L, \"wrong number of arguments to 'optdescribe' (1 to 3 expected)\"u8);",
+			text, StringComparison.Ordinal);
+		Assert.Contains(
+			"if (!global::CheatEngine.SDK.Lua.CompilerServices.LuaCallSupport.TryReadOptional<long, global::CheatEngine.SDK.Lua.Marshalling.Int64Marshaller>(__L, 2, out global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<long> __arg1))",
+			text, StringComparison.Ordinal);
+		Assert.Contains("return global::CheatEngine.SDK.Lua.Callbacks.LuaThunk.FailBadArgument(__L, 3, \"string\"u8);",
+			text, StringComparison.Ordinal);
+		Assert.Contains("if (__L.Top < 0 || __L.Top > 1)", text, StringComparison.Ordinal);
 	}
 
 	[Fact]

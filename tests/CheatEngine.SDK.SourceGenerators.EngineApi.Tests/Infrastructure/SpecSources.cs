@@ -4,6 +4,19 @@ namespace CheatEngine.SDK.SourceGenerators.EngineApi.Tests.Infrastructure;
 internal static class SpecSources
 {
 	/// <summary>
+	///     The CE 7.7 evidence keys every spec file with entries declares after <c>namespace</c> and <c>type</c>
+	///     (CESDK3003), with a fixture provenance. Each entry then also needs a <c>nil</c> key.
+	/// </summary>
+	public const string Ce77 =
+		"contract: ce77\nprovenance: ExactInstalledFile: CE 7.7 celua.txt test fixture\nminimum-ce: 7.7.0.10621\narchitecture: x64\nthread: unknown\nownership: none\n";
+
+	/// <summary>A ce77 header block for <paramref name="ns" /> and <paramref name="type" />, blank line included.</summary>
+	public static string Ce77Header(string ns, string type)
+	{
+		return "namespace: " + ns + "\ntype: " + type + "\n" + Ce77 + "\n";
+	}
+
+	/// <summary>
 	///     The nominal case: two scalar reads (Try form) and two scalar writes (throwing form, boolean return), sharing
 	///     no global.
 	/// </summary>
@@ -57,12 +70,19 @@ internal static class SpecSources
 	public const string SingleTry = """
 	                                namespace: Demo.One
 	                                type: One
+	                                contract: ce77
+	                                provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+	                                minimum-ce: 7.7.0.10621
+	                                architecture: x64
+	                                thread: unknown
+	                                ownership: none
 
 	                                global: readInteger
 	                                method: TryReadInt32
 	                                form: try
 	                                arg: address:address
 	                                result: value:int32
+	                                nil: none
 	                                doc: Reads a 32-bit integer.
 	                                """;
 
@@ -70,12 +90,19 @@ internal static class SpecSources
 	public const string SharedGlobal = """
 	                                   namespace: Demo.Shared
 	                                   type: Shared
+	                                   contract: ce77
+	                                   provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+	                                   minimum-ce: 7.7.0.10621
+	                                   architecture: x64
+	                                   thread: unknown
+	                                   ownership: none
 
 	                                   global: readInteger
 	                                   method: TryReadInt32
 	                                   form: try
 	                                   arg: address:address
 	                                   result: value:int32
+	                                   nil: none
 	                                   doc: Reads a 32-bit integer, reporting failure.
 
 	                                   global: readInteger
@@ -83,6 +110,7 @@ internal static class SpecSources
 	                                   form: throwing
 	                                   arg: address:address
 	                                   return: int32
+	                                   nil: none
 	                                   doc: Reads a 32-bit integer, raising on failure.
 	                                   """;
 
@@ -93,10 +121,17 @@ internal static class SpecSources
 	public const string BeepOnly = """
 	                               namespace: Demo.Other
 	                               type: Other
+	                               contract: ce77
+	                               provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+	                               minimum-ce: 7.7.0.10621
+	                               architecture: x64
+	                               thread: unknown
+	                               ownership: none
 
 	                               global: beep
 	                               method: Beep
 	                               form: throwing
+	                               nil: none
 	                               doc: Calls a global with no arguments and no result.
 	                               """;
 
@@ -104,6 +139,12 @@ internal static class SpecSources
 	public const string EndToEnd = """
 	                               namespace: Demo.EndToEnd
 	                               type: MemoryScalars
+	                               contract: ce77
+	                               provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+	                               minimum-ce: 7.7.0.10621
+	                               architecture: x64
+	                               thread: unknown
+	                               ownership: none
 
 	                               global: readInteger
 	                               method: TryReadInt32
@@ -111,6 +152,7 @@ internal static class SpecSources
 	                               arg: address:address
 	                               fixed: boolean:true
 	                               result: value:int32
+	                               nil: none
 	                               doc: Reads a 32-bit integer from the target process at the given address.
 
 	                               global: writeInteger
@@ -119,6 +161,7 @@ internal static class SpecSources
 	                               arg: address:address
 	                               arg: value:int32
 	                               return: boolean
+	                               nil: none
 	                               doc: Writes a 32-bit integer to the target process at the given address.
 
 	                               global: readQword
@@ -126,6 +169,7 @@ internal static class SpecSources
 	                               form: try
 	                               arg: address:address
 	                               result: value:int64
+	                               nil: none
 	                               doc: Reads a 64-bit integer from the target process at the given address.
 
 	                               global: writeQword
@@ -134,11 +178,13 @@ internal static class SpecSources
 	                               arg: address:address
 	                               arg: value:int64
 	                               return: boolean
+	                               nil: none
 	                               doc: Writes a 64-bit integer to the target process at the given address.
 
 	                               global: beep
 	                               method: Beep
 	                               form: throwing
+	                               nil: none
 	                               doc: Calls a global with no arguments and no result.
 	                               """;
 }

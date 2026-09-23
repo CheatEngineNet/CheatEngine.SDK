@@ -46,6 +46,9 @@ breaks a build. None of this needs Cheat Engine or a Lua DLL.
   package-consumer shape—stays silent rather than assigning bootstrap ownership.
 - CESDK0001 and CESDK1004 stay silent in generated code and in projects without a CheatEngine.SDK reference.
 - Every code fix, Fix All included, is compared with its expected source, and diagnostics that remain must be stated.
+- CESDK2010 to CESDK2013 report a non-trailing optional argument, an invalid optional or variadic result, a look-alike
+  `LuaOptional<T>` or `LuaOperationStatus`, and `LuaOptional<T>` on `[LuaMethod]`/`[LuaProperty]`, each from one
+  analyzer only (`LuaBindingAnalyzerTests`, `LuaObjectBindingAnalyzerTests`, `DiagnosticCatalogTests`).
 
 ## Run the tests
 

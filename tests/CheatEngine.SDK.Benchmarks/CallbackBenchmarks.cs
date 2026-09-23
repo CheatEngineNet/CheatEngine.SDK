@@ -64,7 +64,7 @@ public sealed class CallbackBenchmarks : IDisposable
 		if (!defined.IsOk)
 		{
 			throw new InvalidOperationException("Defining cheatengine_sdk_bench_loop failed: " +
-			                                    LuaError.FromStack(_l, defined));
+												LuaError.FromStack(_l, defined));
 		}
 	}
 

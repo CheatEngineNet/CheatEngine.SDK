@@ -1,20 +1,29 @@
 using System.Globalization;
+using System.Security.Cryptography;
 
 namespace CheatEngine.SDK.Tests.Infrastructure;
 
 /// <summary>
-///     Packs <c>src/CheatEngine.SDK/CheatEngine.SDK.csproj</c> once, to a throwaway local feed, then restores + builds
-///     direct
-///     and indirect plugin consumers against it: a default one that takes every package default, one that sets
+///     Puts one <c>CheatEngine.SDK</c> package into a throwaway local feed, then restores + builds direct and indirect
+///     plugin consumers against it: a default one that takes every package default, one that sets
 ///     <c>AllowUnsafeBlocks=false</c> itself, one that sets <c>CheatEngineSdkGenerateEntryPoint=false</c>, and one that
 ///     reaches the umbrella only through a second packed package. It also builds direct consumers for every supported
 ///     and explicitly unsupported <c>PlatformTarget</c> value, runs a package-only executable against the bundled
 ///     offline Lua fixture, and publishes then runs a separate package-only trim and Native AOT executable. Every fact
-///     <c>Packaging/*.cs</c> asserts on is read here, once, through <see cref="Xunit.IClassFixture{TFixture}" />,
-///     because the pipeline (real package, restore, build, clean/rebuild and publish operations)
-///     is too expensive to repeat per test.
+///     the classes of collection <see cref="PackagedUmbrellaSuite" /> assert on is read here, once, because the pipeline
+///     (real package, restore, build, clean/rebuild and publish operations) is too expensive to repeat per test.
 /// </summary>
 /// <remarks>
+///     <para>
+///         The package has one of two origins (<see cref="PackageOrigin" />), decided by
+///         <see cref="UmbrellaPackageSource.Select" /> before anything is created. When
+///         <see cref="UmbrellaPackage.PrebuiltPackageVariable" /> names a file, the fixture copies exactly that file into
+///         its feed and never packs: in the CI Release leg it is the <c>.nupkg</c> that is uploaded as
+///         <c>nuget-package</c>, attested and published, so these tests are evidence about the shipped file. Otherwise,
+///         outside CI, it packs <c>src/CheatEngine.SDK/CheatEngine.SDK.csproj</c> itself: the facts then describe the
+///         working tree, not a shipped file. Under <c>CI=true</c> a missing variable is an error, never a silent self-pack.
+///     </para>
+///     <para>
 ///     Every consumer restore is pointed (<c>dotnet restore --packages</c>) at <see cref="PackagesDirectory" />, a
 ///     directory scoped to this fixture's own <c>_tempRoot</c>, never the machine-wide global-packages folder
 ///     (typically <c>%USERPROFILE%\.nuget\packages</c>). This matters because every pack in one session gets the SAME
@@ -27,6 +36,7 @@ namespace CheatEngine.SDK.Tests.Infrastructure;
 ///     (<c>EntryPointTests</c>, <c>BuildPropertyDefaultsTests</c>); only the nuspec/file-list tests, which read the
 ///     <c>.nupkg</c> directly via <see cref="NupkgInspector" />, would be unaffected. Starting every fixture run from an
 ///     empty, run-scoped packages directory removes the sharing that makes that possible.
+///     </para>
 /// </remarks>
 public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 {
@@ -87,6 +97,61 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 		private set;
 	} = [];
 
+	/// <summary>Full path of the packed <c>.nupkg</c> the fixture read: the copy inside its local feed.</summary>
+	public string PackagePath
+	{
+		get;
+		private set;
+	} = "";
+
+	/// <summary>Whether the fixture tests a supplied package or one it packed itself.</summary>
+	public UmbrellaPackageOrigin PackageOrigin
+	{
+		get;
+		private set;
+	}
+
+	/// <summary>
+	///     The absolute path named by <see cref="UmbrellaPackage.PrebuiltPackageVariable" /> when
+	///     <see cref="PackageOrigin" /> is <see cref="UmbrellaPackageOrigin.Prebuilt" />; empty for a self-pack.
+	/// </summary>
+	public string SuppliedPackagePath
+	{
+		get;
+		private set;
+	} = "";
+
+	/// <summary>SHA-256 of the feed copy (<see cref="PackagePath" />), 64 lowercase hex digits.</summary>
+	public string PackageSha256
+	{
+		get;
+		private set;
+	} = "";
+
+	/// <summary>
+	///     SHA-512 of the feed copy as standard base64 with padding: for an unsigned package this is the NuGet
+	///     <c>contentHash</c> that restore records in <c>.deps.json</c> and in consumer lock files.
+	/// </summary>
+	public string PackageSha512Base64
+	{
+		get;
+		private set;
+	} = "";
+
+	/// <summary>How many times the fixture ran <c>dotnet pack</c> on the SDK; always zero for a supplied package.</summary>
+	public int SelfPackAttempts
+	{
+		get;
+		private set;
+	}
+
+	/// <summary>The packed <c>.nuspec</c>.</summary>
+	public XDocument Nuspec
+	{
+		get;
+		private set;
+	} = new();
+
 	/// <summary>Whether <c>CESDK.CESDK</c> exists in the default consumer's built assembly.</summary>
 	public bool DefaultEntryPointTypeExists
 	{
@@ -138,6 +203,13 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 
 	/// <summary>Path of the native bridge copied into the default consumer's publish output.</summary>
 	public string DefaultPublishedNativeBridgePath
+	{
+		get;
+		private set;
+	} = "";
+
+	/// <summary>The direct consumer's <c>dotnet publish</c> output directory.</summary>
+	public string DefaultPublishDirectory
 	{
 		get;
 		private set;
@@ -365,6 +437,12 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 	/// <inheritdoc />
 	public async ValueTask InitializeAsync()
 	{
+		// Decided before anything is created, so a CI run without its package fails in seconds, not after a pack.
+		UmbrellaPackageSelection selection = UmbrellaPackageSource.Select(
+			Environment.GetEnvironmentVariable(UmbrellaPackage.PrebuiltPackageVariable),
+			Environment.GetEnvironmentVariable("CI"));
+		PackageOrigin = selection.Origin;
+
 		_tempRoot = Directory.CreateTempSubdirectory("cheatengine-sdk-umbrella-tests-");
 		string feedDirectory = Path.Combine(_tempRoot.FullName, "feed");
 		Directory.CreateDirectory(feedDirectory);
@@ -372,7 +450,17 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 		Directory.CreateDirectory(packagesDirectory);
 		PackagesDirectory = packagesDirectory;
 
-		await PackUmbrellaAsync(feedDirectory).ConfigureAwait(false);
+		if (selection.Origin == UmbrellaPackageOrigin.Prebuilt)
+		{
+			string suppliedPath = selection.PrebuiltPath!;
+			SuppliedPackagePath = suppliedPath;
+			File.Copy(suppliedPath, Path.Combine(feedDirectory, Path.GetFileName(suppliedPath)));
+		}
+		else
+		{
+			await PackUmbrellaAsync(feedDirectory).ConfigureAwait(false);
+		}
+
 		ReadPackedNupkg(feedDirectory);
 
 		await InitializeDefaultConsumerAsync(_tempRoot.FullName, feedDirectory, packagesDirectory)
@@ -420,19 +508,20 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 	}
 
 	/// <summary>
-	///     Packing builds every project the umbrella embeds (the six libs, four active shipping components and their
-	///     shared loader dependency), through the
+	///     Local runs only (<see cref="UmbrellaPackageOrigin.SelfPacked" />). Packing builds every project the umbrella
+	///     embeds (the six libs, four active shipping components and their shared loader dependency), through the
 	///     repository's own shared <c>artifacts/</c> directory - the one resource another build running at the same
 	///     time might be touching, so a file-lock error is retried rather than treated as a real failure. A plain,
 	///     unrelated compile error is not retried.
 	/// </summary>
-	private static async Task PackUmbrellaAsync(string feedDirectory)
+	private async Task PackUmbrellaAsync(string feedDirectory)
 	{
 		const int maxAttempts = 5;
 		string cheatEngineSdkProjectPath = RepositoryLayout.PathOf(UmbrellaPackage.ProjectPath);
 		ProcessResult result = default;
 		for (int attempt = 1; attempt <= maxAttempts; attempt++)
 		{
+			SelfPackAttempts++;
 			result = await ProcessRunner
 				.RunAsync("dotnet", $"pack \"{cheatEngineSdkProjectPath}\" -c Release -o \"{feedDirectory}\" --nologo",
 					RepositoryLayout.Root, PackTimeout)
@@ -458,10 +547,10 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 	private static bool LooksLikeFileLockContention(string output)
 	{
 		return output.Contains("being used by another process", StringComparison.OrdinalIgnoreCase)
-		       || output.Contains("cannot access the file", StringComparison.OrdinalIgnoreCase)
-		       || output.Contains("MSB3021", StringComparison.Ordinal)
-		       || output.Contains("MSB3027", StringComparison.Ordinal)
-		       || output.Contains("MSB3061", StringComparison.Ordinal);
+			   || output.Contains("cannot access the file", StringComparison.OrdinalIgnoreCase)
+			   || output.Contains("MSB3021", StringComparison.Ordinal)
+			   || output.Contains("MSB3027", StringComparison.Ordinal)
+			   || output.Contains("MSB3061", StringComparison.Ordinal);
 	}
 
 	private async Task InitializeDefaultConsumerAsync(string tempRoot, string feedDirectory, string packagesDirectory)
@@ -490,6 +579,7 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 
 		string publishDirectory = Path.Combine(tempRoot, "published-default");
 		await PublishAsync(consumer, publishDirectory).ConfigureAwait(false);
+		DefaultPublishDirectory = publishDirectory;
 		DefaultPublishedNativeBridgePath = Path.Combine(publishDirectory, "cheatengine-sdk-lua-bridge.dll");
 	}
 
@@ -538,7 +628,8 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 			feedDirectory,
 			new ThrowawayConsumer.CreateOptions
 			{
-				ExtraProperties = "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n", IncludeLuaFunction = true
+				ExtraProperties = "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n",
+				IncludeLuaFunction = true
 			});
 		ProcessResult optInRestore =
 			await optInConsumer.RestoreAsync(RestoreTimeout, packagesDirectory).ConfigureAwait(false);
@@ -729,8 +820,14 @@ public sealed class PackagedUmbrellaFixture : IAsyncLifetime
 		PackageVersion = fileName[(UmbrellaPackage.Id.Length + 1)..^".nupkg".Length];
 
 		(IReadOnlyList<string> entries, XDocument nuspec) = NupkgInspector.Read(nupkgPaths[0]);
+		PackagePath = nupkgPaths[0];
+		Nuspec = nuspec;
 		PackageEntries = entries;
 		NuspecDependencyIds = NupkgInspector.GetDependencyIds(nuspec);
+
+		byte[] package = File.ReadAllBytes(PackagePath);
+		PackageSha256 = Convert.ToHexStringLower(SHA256.HashData(package));
+		PackageSha512Base64 = Convert.ToBase64String(SHA512.HashData(package));
 	}
 
 	private static async Task RestoreAndBuildAsync(ThrowawayConsumer consumer, string packagesDirectory)

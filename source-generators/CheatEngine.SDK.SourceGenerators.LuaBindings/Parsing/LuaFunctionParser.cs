@@ -31,7 +31,8 @@ internal static class LuaFunctionParser
 		LuaFunctionShapeIssues issues = LuaFunctionShape.Inspect(compilation, method,
 			LuaBindingSymbols.ResolveLuaState(compilation),
 			LuaBindingSymbols.ResolveLuaMarshallerAttribute(compilation),
-			LuaBindingSymbols.ResolveLuaMarshallerContract(compilation), out LuaFunctionSignature signature);
+			LuaBindingSymbols.ResolveLuaMarshallerContract(compilation),
+			LuaBindingSymbols.ResolveLuaOptional(compilation), out LuaFunctionSignature signature);
 		if (!isSdkAttribute || !LuaNames.IsValidName(luaName))
 		{
 			issues |= LuaFunctionShapeIssues.InvalidName;
@@ -65,13 +66,13 @@ internal static class LuaFunctionParser
 	{
 		INamedTypeSymbol type = method.ContainingType;
 		if (type.GetMembers(LuaRegistrationEmitter.RegisterMethodName).Length != 0
-		    || type.GetMembers(LuaRegistrationEmitter.RegisterLeaseMethodName).Length != 0
-		    || type.GetMembers(LuaRegistrationEmitter.UnregisterMethodName).Length != 0)
+			|| type.GetMembers(LuaRegistrationEmitter.RegisterLeaseMethodName).Length != 0
+			|| type.GetMembers(LuaRegistrationEmitter.UnregisterMethodName).Length != 0)
 		{
 			return true;
 		}
 
 		return LuaNames.IsValidName(luaName)
-		       && type.GetMembers(LuaThunkModel.ThunkNameFor(luaName!)).Length != 0;
+			   && type.GetMembers(LuaThunkModel.ThunkNameFor(luaName!)).Length != 0;
 	}
 }

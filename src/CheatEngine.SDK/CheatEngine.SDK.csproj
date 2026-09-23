@@ -7,9 +7,21 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/CheatEngineNet/CheatEngine.SDK</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
+    <!--
+      Writes <repository url commit> into the nuspec (Source Link supplies the commit); RepositoryUrl stays explicit in
+      eng/Shipping.props, without '.git'. https://learn.microsoft.com/dotnet/standard/library-guidance/sourcelink
+    -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageTags>cheat-engine;cheat-engine-plugin;sdk;lua;source-generator;roslyn-analyzer;reverse-engineering</PackageTags>
     <PackageReleaseNotes>$(PackageProjectUrl)/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <EnablePackageValidation>true</EnablePackageValidation>
+    <!--
+      Compares lib/net10.0 with the published CheatEngine.SDK 1.0.0 (downloaded at restore as a PackageDownload, read from
+      the NuGet global packages folder at pack). Intentional breaks live in CompatibilitySuppressions.xml, regenerated only
+      by the integrator; a stale suppression fails the pack (ApiCompatPermitUnnecessarySuppressions stays false). Strict
+      mode stays off so additions remain legal. CESDK9006 guards these settings.
+    -->
+    <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion>
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_CheatEngineSdkEmbedLibraries</TargetsForTfmSpecificBuildOutput>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_CheatEngineSdkPackRoslynComponents</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
@@ -18,6 +30,24 @@
   <PropertyGroup Condition="'$(NoBuild)' == 'true'">
     <BuildProjectReferences>false</BuildProjectReferences>
   </PropertyGroup>
+
+  <!--
+    SPDX 2.2 software bill of materials embedded at _manifest/spdx_2.2/manifest.spdx.json by Microsoft.Sbom.Targets (a
+    development dependency: build logic only, no nuspec dependency). Generated for every pack, local or CI, so both
+    inventories match; CESDK9008 fails a pack without it. The build-component scan is limited to this project folder,
+    which holds no package manifest, so build-only tools (MinVer, analyzers) are never listed as shipped components:
+    the SBOM describes the package and every file in it with its checksums.
+  -->
+  <PropertyGroup Label="SBOM">
+    <GenerateSBOM>true</GenerateSBOM>
+    <SbomGenerationPackageSupplier>CheatEngineNet</SbomGenerationPackageSupplier>
+    <SbomGenerationNamespaceBaseUri>https://github.com/CheatEngineNet/CheatEngine.SDK</SbomGenerationNamespaceBaseUri>
+    <SbomGenerationBuildComponentPath>$(MSBuildProjectDirectory)</SbomGenerationBuildComponentPath>
+    <SbomGenerationFetchLicenseInformation>false</SbomGenerationFetchLicenseInformation>
+  </PropertyGroup>
+  <ItemGroup Label="SBOM">
+    <PackageReference Include="Microsoft.Sbom.Targets" PrivateAssets="all"/>
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Build assets are intentionally direct-reference only: package consumers opt into generated bootstrap and defaults. -->

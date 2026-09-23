@@ -1,0 +1,28 @@
+#nullable enable
+*REMOVED*CheatEngine.SDK.Abi.Native.AddressListPluginInit.Callback -> delegate* unmanaged[Stdcall]<void*, CheatEngine.SDK.Abi.Bool32>
+*REMOVED*CheatEngine.SDK.Abi.Native.DisassemblerContextPluginInit.Callback -> delegate* unmanaged[Stdcall]<nuint*, CheatEngine.SDK.Abi.Bool32>
+CheatEngine.SDK.Abi.Native.AddressListPluginInit.Callback -> void*
+CheatEngine.SDK.Abi.Native.BoundedDebugEventObservationBuffer
+CheatEngine.SDK.Abi.Native.BoundedDebugEventObservationBuffer.BoundedDebugEventObservationBuffer(int capacity, CheatEngine.SDK.Abi.Native.DebugEventObservationOverflowPolicy overflowPolicy) -> void
+CheatEngine.SDK.Abi.Native.BoundedDebugEventObservationBuffer.Capacity.get -> int
+CheatEngine.SDK.Abi.Native.BoundedDebugEventObservationBuffer.Count.get -> int
+CheatEngine.SDK.Abi.Native.BoundedDebugEventObservationBuffer.DroppedObservationCount.get -> long
+CheatEngine.SDK.Abi.Native.BoundedDebugEventObservationBuffer.OverflowPolicy.get -> CheatEngine.SDK.Abi.Native.DebugEventObservationOverflowPolicy
+CheatEngine.SDK.Abi.Native.BoundedDebugEventObservationBuffer.TryPublish(in CheatEngine.SDK.Abi.Native.DebugEventObservation observation) -> bool
+CheatEngine.SDK.Abi.Native.BoundedDebugEventObservationBuffer.TryRead(out CheatEngine.SDK.Abi.Native.DebugEventObservation observation) -> bool
+CheatEngine.SDK.Abi.Native.DebugEventDecision
+CheatEngine.SDK.Abi.Native.DebugEventDecision.ContinueWithCheatEngine = 0 -> CheatEngine.SDK.Abi.Native.DebugEventDecision
+CheatEngine.SDK.Abi.Native.DebugEventDecision.PluginOwnsContinuation = 1 -> CheatEngine.SDK.Abi.Native.DebugEventDecision
+CheatEngine.SDK.Abi.Native.DebugEventDecisionHandler
+CheatEngine.SDK.Abi.Native.DebugEventObservation
+CheatEngine.SDK.Abi.Native.DebugEventObservation.DebugEventObservation() -> void
+CheatEngine.SDK.Abi.Native.DebugEventObservation.DebugEventObservation(long sequenceNumber, uint eventCode, uint processId, uint threadId) -> void
+CheatEngine.SDK.Abi.Native.DebugEventObservationOverflowPolicy
+CheatEngine.SDK.Abi.Native.DebugEventObservationOverflowPolicy.DropNewest = 0 -> CheatEngine.SDK.Abi.Native.DebugEventObservationOverflowPolicy
+CheatEngine.SDK.Abi.Native.DebugEventObservationOverflowPolicy.DropOldest = 1 -> CheatEngine.SDK.Abi.Native.DebugEventObservationOverflowPolicy
+CheatEngine.SDK.Abi.Native.DisassemblerContextPluginInit.Callback -> void*
+readonly CheatEngine.SDK.Abi.Native.DebugEventObservation.EventCode -> uint
+readonly CheatEngine.SDK.Abi.Native.DebugEventObservation.ProcessId -> uint
+readonly CheatEngine.SDK.Abi.Native.DebugEventObservation.SequenceNumber -> long
+readonly CheatEngine.SDK.Abi.Native.DebugEventObservation.ThreadId -> uint
+virtual CheatEngine.SDK.Abi.Native.DebugEventDecisionHandler.Invoke(in CheatEngine.SDK.Abi.Native.DebugEventObservation observation) -> CheatEngine.SDK.Abi.Native.DebugEventDecision

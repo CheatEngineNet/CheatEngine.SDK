@@ -40,9 +40,26 @@ public readonly struct PointerSize : IEquatable<PointerSize>
 	/// <summary>Gets a value indicating whether the width has been established.</summary>
 	public bool IsKnown => _bytes != 0;
 
-	/// <summary>Derives the width implied by a known process architecture.</summary>
-	/// <param name="architecture">The process architecture.</param>
-	/// <returns>The corresponding width, or <see cref="Unknown" /> when <paramref name="architecture" /> is unknown.</returns>
+	/// <summary>Returns the natural instruction-set width of an architecture: 4 bytes for x86 and ARM32, 8 for x64 and ARM64.</summary>
+	/// <param name="architecture">The architecture.</param>
+	/// <returns>The natural ISA width, or <see cref="Unknown" /> when <paramref name="architecture" /> is unknown.</returns>
+	/// <remarks>
+	///     <para>
+	///         Obsolete (<c>CESDK7001</c>). An architecture determines neither Cheat Engine's configured pointer size nor
+	///         the target bitness: on CE 7.7.0.10621 x64, <c>getPointerSize</c> reported 4 on a 64-bit x64 target after
+	///         <c>setPointerSize(4)</c>, and <c>readPointer</c> kept following the 64-bit flag (spike C3 D3, Lua-only,
+	///         ObservedHost design input). Use <see cref="TargetArchitectureObservation.ConfiguredPointerSize" /> for the
+	///         configured size and <see cref="TargetArchitectureObservation.Bitness" /> for the bitness.
+	///     </para>
+	///     <para>
+	///         The method remains, unchanged, for binary compatibility with CheatEngine.SDK 1.0.0 and is removed no earlier
+	///         than the next major version.
+	///     </para>
+	/// </remarks>
+	[Obsolete(
+		"An architecture does not determine Cheat Engine's configured pointer size or the target bitness. Use TargetArchitectureObservation.ConfiguredPointerSize or Bitness.",
+		DiagnosticId = "CESDK7001",
+		UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
 	public static PointerSize FromArchitecture(CheatEngineArchitecture architecture)
 	{
 		return architecture switch
@@ -65,7 +82,9 @@ public readonly struct PointerSize : IEquatable<PointerSize>
 	/// </returns>
 	/// <remarks>
 	///     This is explicit primitive marshalling, not an unmanaged-struct projection. A 32-bit target still consumes
-	///     four bytes when this SDK runs in CE's supported 64-bit host process.
+	///     four bytes when this SDK runs in CE's supported 64-bit host process. Little-endian byte order is an assumption
+	///     of the local x86/x64 target profile (audit A12-04), not a general Cheat Engine fact: the SDK does not observe
+	///     a target's byte order.
 	/// </remarks>
 	public bool TryReadLittleEndian(ReadOnlySpan<byte> source, out ulong value)
 	{
@@ -112,7 +131,8 @@ public readonly struct PointerSize : IEquatable<PointerSize>
 	/// </returns>
 	/// <remarks>
 	///     This is explicit primitive marshalling, not an unmanaged-struct projection. A 32-bit target rejects high
-	///     bits instead of silently truncating them through the x64 host process.
+	///     bits instead of silently truncating them through the x64 host process. Little-endian byte order is an
+	///     assumption of the local x86/x64 target profile (audit A12-04), not a general Cheat Engine fact.
 	/// </remarks>
 	public bool TryWriteLittleEndian(ulong value, Span<byte> destination)
 	{

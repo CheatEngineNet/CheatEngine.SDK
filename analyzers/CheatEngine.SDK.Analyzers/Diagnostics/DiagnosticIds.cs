@@ -29,6 +29,12 @@ public static class DiagnosticIds
 	/// <summary>A source declaration collides with the <c>CESDK.CESDK</c> type generated for an enabled plugin.</summary>
 	public const string GeneratedEntryPointCollision = "CESDK0005";
 
+	/// <summary>
+	///     A method's <c>[UnmanagedCallersOnly]</c> attribute exports a classic Cheat Engine native plugin entry point
+	///     (<c>CEPlugin_*</c>), the NativeAOT plugin DLL route CheatEngine.SDK does not support.
+	/// </summary>
+	public const string ClassicNativePluginExport = "CESDK0006";
+
 	/// <summary>A plugin constructor or initializer directly calls an API which requires an enabled plugin.</summary>
 	public const string RequiresPluginEnabledTooEarly = "CESDK1001";
 
@@ -40,6 +46,9 @@ public static class DiagnosticIds
 
 	/// <summary>An <c>OnEnable</c> or <c>OnDisable</c> implementation is <c>async void</c>.</summary>
 	public const string AsyncPluginLifecycle = "CESDK1005";
+
+	/// <summary>A <c>PointerSize</c> is built from the plugin process width instead of a Cheat Engine observation.</summary>
+	public const string HostWidthPointerSize = "CESDK1020";
 
 	/// <summary>A <c>[LuaFunction]</c> or <c>[LuaGlobal]</c> binding exists but the compilation does not allow unsafe code.</summary>
 	public const string UnsafeBlocksRequired = "CESDK2001";
@@ -61,4 +70,16 @@ public static class DiagnosticIds
 
 	/// <summary>A user declaration collides with a member that a Lua binding generator must emit.</summary>
 	public const string GeneratedLuaIdentityCollision = "CESDK2007";
+
+	/// <summary>A <c>LuaOptional&lt;T&gt;</c> argument of a Lua binding is followed by a required argument.</summary>
+	public const string NonTrailingOptionalLuaArgument = "CESDK2010";
+
+	/// <summary>The optional or variadic results of a <c>[LuaGlobal]</c> binding do not have a valid shape.</summary>
+	public const string InvalidOptionalOrVariadicLuaResult = "CESDK2011";
+
+	/// <summary>A binding names a type that has the metadata name of an SDK Lua contract type but is not that type.</summary>
+	public const string LookAlikeLuaContractType = "CESDK2012";
+
+	/// <summary><c>LuaOptional&lt;T&gt;</c> is used in a position or with a type argument that is not supported.</summary>
+	public const string UnsupportedLuaOptionalPosition = "CESDK2013";
 }

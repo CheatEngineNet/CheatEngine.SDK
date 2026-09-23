@@ -245,8 +245,14 @@ public sealed class EngineInspectionTests
 	[Fact]
 	public void AddressResolutionOptions_supports_init_and_with()
 	{
-		AddressResolutionOptions options = new() { Shallow = true };
-		AddressResolutionOptions updated = options with { Shallow = false };
+		AddressResolutionOptions options = new()
+		{
+			Shallow = true
+		};
+		AddressResolutionOptions updated = options with
+		{
+			Shallow = false
+		};
 
 		Assert.True(options.Shallow);
 		Assert.False(updated.Shallow);

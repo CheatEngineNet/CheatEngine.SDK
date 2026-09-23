@@ -103,7 +103,7 @@ internal static class HintNames
 			return hashed;
 		}
 
-		for (int ordinal = 2;; ordinal++)
+		for (int ordinal = 2; ; ordinal++)
 		{
 			string suffixed = AppendOrdinal(hashed, suffix, ordinal);
 			if (used.Add(suffixed))

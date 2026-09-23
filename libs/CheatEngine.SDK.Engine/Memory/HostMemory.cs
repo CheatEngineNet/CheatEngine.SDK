@@ -18,6 +18,19 @@ namespace CheatEngine.SDK.Engine.Memory;
 ///         specify main-thread affinity for these globals, so no unsupported affinity claim is made here. This class has
 ///         no object ownership: all returned values and caller-provided buffers remain managed values.
 ///     </para>
+///     <para>
+///         <b>Host, not target.</b> These methods address Cheat Engine's own process. The attached target process is
+///         <see cref="TargetMemory" /> with <c>CheatEngine.SDK.Engine.Values.Address</c>; neither address type converts to
+///         the other.
+///     </para>
+///     <para>
+///         <b>Text and bytes.</b> <c>maximumLength</c> is passed unchanged to CE's local string primitive. Its unit for a
+///         wide read (characters or bytes), and the terminator CE reads or writes for a wide string, are not qualified on
+///         the pinned CE profile (qualification Q20, level C3). The byte forms keep the exact bytes, embedded NULs and
+///         invalid UTF-8 included; <see cref="TryReadString" /> decodes invalid UTF-8 to U+FFFD. The
+///         <see cref="TryReadBytes(HostAddress, Span{byte}, out int, out MemoryAccessFailure)" /> overload reports a
+///         confirmed contiguous prefix with <see cref="MemoryAccessFailure.PartialRead" />.
+///     </para>
 /// </remarks>
 [RequiresPluginEnabled]
 public static class HostMemory
@@ -70,8 +83,8 @@ public static class HostMemory
 	public static bool TryReadUInt16(HostAddress address, out ushort value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallIntegerLocal"u8, address.ToInt64(), false,
-			    true,
-			    out long raw, out failure) || raw < 0 || raw > ushort.MaxValue)
+				true,
+				out long raw, out failure) || raw < 0 || raw > ushort.MaxValue)
 		{
 			value = default;
 			if (failure == MemoryAccessFailure.None)
@@ -90,8 +103,8 @@ public static class HostMemory
 	public static bool TryReadInt16(HostAddress address, out short value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadSmallInteger, "readSmallIntegerLocal"u8, address.ToInt64(), true,
-			    true,
-			    out long raw, out failure) || raw < short.MinValue || raw > short.MaxValue)
+				true,
+				out long raw, out failure) || raw < short.MinValue || raw > short.MaxValue)
 		{
 			value = default;
 			if (failure == MemoryAccessFailure.None)
@@ -110,8 +123,8 @@ public static class HostMemory
 	public static bool TryReadUInt32(HostAddress address, out uint value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadInteger, "readIntegerLocal"u8, address.ToInt64(), false,
-			    true, out long raw,
-			    out failure) || raw < 0 || (ulong) raw > uint.MaxValue)
+				true, out long raw,
+				out failure) || raw < 0 || (ulong) raw > uint.MaxValue)
 		{
 			value = default;
 			if (failure == MemoryAccessFailure.None)
@@ -130,8 +143,8 @@ public static class HostMemory
 	public static bool TryReadInt32(HostAddress address, out int value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadInteger, "readIntegerLocal"u8, address.ToInt64(), true,
-			    true, out long raw,
-			    out failure) || raw < int.MinValue || raw > int.MaxValue)
+				true, out long raw,
+				out failure) || raw < int.MinValue || raw > int.MaxValue)
 		{
 			value = default;
 			if (failure == MemoryAccessFailure.None)
@@ -150,8 +163,8 @@ public static class HostMemory
 	public static bool TryReadUInt64(HostAddress address, out ulong value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadQword, "readQwordLocal"u8, address.ToInt64(), false,
-			    false, out long raw,
-			    out failure))
+				false, out long raw,
+				out failure))
 		{
 			value = default;
 			return false;
@@ -173,8 +186,8 @@ public static class HostMemory
 	public static bool TryReadPointer(HostAddress address, out HostAddress value, out MemoryAccessFailure failure)
 	{
 		if (!MemoryLua.TryReadInteger(SReadPointer, "readPointerLocal"u8, address.ToInt64(), false,
-			    false, out long raw,
-			    out failure))
+				false, out long raw,
+				out failure))
 		{
 			value = default;
 			return false;
@@ -331,7 +344,10 @@ public static class HostMemory
 
 	/// <summary>Reads local UTF-8 text and reports the exact capacity required by the returned value.</summary>
 	/// <param name="address">The CE-host address to read.</param>
-	/// <param name="maximumLength">The maximum character count passed to CE's documented string primitive.</param>
+	/// <param name="maximumLength">
+	///     The maximum length passed unchanged to CE's documented string primitive; its unit for a wide read is not
+	///     qualified (see the class remarks). Must not be negative.
+	/// </param>
 	/// <param name="destination">The caller-owned UTF-8 storage; it is unchanged when it is too small.</param>
 	/// <param name="wideCharacter">Whether CE should read a wide-character string.</param>
 	/// <param name="written">The copied byte count, which is zero on failure.</param>

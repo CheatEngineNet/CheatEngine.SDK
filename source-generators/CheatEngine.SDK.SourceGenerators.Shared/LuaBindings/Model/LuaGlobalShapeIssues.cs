@@ -95,5 +95,49 @@ internal enum LuaGlobalShapeIssues
 	///     The method has <see langword="out" /> results but returns neither <see langword="bool" /> nor the SDK's
 	///     <c>LuaOperationStatus</c>: the throwing form has no <see langword="out" /> parameter.
 	/// </summary>
-	TryFormReturnNotBool = 1 << 16
+	TryFormReturnNotBool = 1 << 16,
+
+	/// <summary>
+	///     A required argument follows a <c>LuaOptional&lt;T&gt;</c> argument: optional arguments form a trailing run,
+	///     because Lua cannot receive an argument after an absent one (CESDK2010).
+	/// </summary>
+	OptionalArgumentNotTrailing = 1 << 17,
+
+	/// <summary>
+	///     A required result (a value or copy-out) follows an <see langword="out" /> <c>LuaOptional&lt;T&gt;</c> result:
+	///     optional results come after every required one (CESDK2011).
+	/// </summary>
+	OptionalResultNotTrailing = 1 << 18,
+
+	/// <summary>A result follows the variadic <c>Span&lt;T&gt; values, out int count</c> pair, which must be last (CESDK2011).</summary>
+	VariadicResultNotLast = 1 << 19,
+
+	/// <summary>
+	///     A variadic <c>Span&lt;T&gt; values, out int count</c> pair is declared on a form that does not return
+	///     <c>LuaOperationStatus</c>: only the Outcome form can report a capacity or element failure (CESDK2011).
+	/// </summary>
+	VariadicResultOutsideOutcome = 1 << 20,
+
+	/// <summary>
+	///     A variadic span's element type is not <see langword="int" />, <see langword="long" />,
+	///     <see langword="float" />, <see langword="double" />, <see langword="bool" /> or <see langword="nuint" />
+	///     (CESDK2011).
+	/// </summary>
+	UnsupportedVariadicElement = 1 << 21,
+
+	/// <summary>More than one variadic <c>Span&lt;T&gt; values, out int count</c> pair is declared (CESDK2011).</summary>
+	MultipleVariadicResults = 1 << 22,
+
+	/// <summary>
+	///     A parameter or return type has the metadata name of <c>LuaOptional`1</c> or <c>LuaOperationStatus</c> but is
+	///     not the <c>CheatEngine.SDK.Lua</c> type: it is never taken as the SDK contract (CESDK2012).
+	/// </summary>
+	LookAlikeContractType = 1 << 23,
+
+	/// <summary>
+	///     <c>LuaOptional&lt;T&gt;</c> is used where it is not supported: as the throwing form's return, with a
+	///     <c>T</c> that is <c>string?</c>, custom-marshalled, unmarshalled or another <c>LuaOptional</c>, or with an
+	///     explicit <c>[LuaMarshaller]</c> (CESDK2013).
+	/// </summary>
+	OptionalNotSupportedHere = 1 << 24
 }

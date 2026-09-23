@@ -1,9 +1,11 @@
+using System.Globalization;
 using System.Text;
 
 using CheatEngine.SDK.Engine.Assembly;
 using CheatEngine.SDK.Engine.Runtime;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Engine.Values;
+using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
@@ -17,7 +19,8 @@ namespace CheatEngine.SDK.Engine.Tests.Assembly;
 public sealed class InstructionOperationsTests
 {
 	[Fact]
-	public void ObserveCurrent_builds_an_x64_profile_from_coherent_target_probes_and_rejects_a_contradiction()
+	[Trait("Qualification", "Q32.a")]
+	public void observe_current_maps_the_ce_x86_family_with_64_bit_to_x64()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -31,25 +34,238 @@ public sealed class InstructionOperationsTests
 		Assert.Equal(4242, targetProfile.Target.Value);
 		Assert.Equal(CheatEngineArchitecture.X64, targetProfile.Profile.Architecture);
 		Assert.Equal(PointerSize.Bit64, targetProfile.Profile.AddressWidth);
+		Assert.True(targetProfile.Profile.IsValid);
+		Assert.Equal(0, scope.State.Top);
+	}
 
-		EngineTest.Run(scope.State, "instruction_target_is_x86 = true\ninstruction_target_is_64bit = true"u8);
-		InstructionOperationStatus contradictory =
+	[Fact]
+	[Trait("Qualification", "Q32.b")]
+	public void observe_current_maps_the_ce_x86_family_without_64_bit_to_x86()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		EngineTest.Run(scope.State, "instruction_target_is_64bit = false"u8);
+
+		InstructionOperationStatus observed =
+			InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile targetProfile);
+
+		Assert.Equal(InstructionOperationStatus.Success, observed);
+		Assert.Equal(CheatEngineArchitecture.X86, targetProfile.Profile.Architecture);
+		Assert.Equal(PointerSize.Bit32, targetProfile.Profile.AddressWidth);
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Theory]
+	[Trait("Qualification", "Q32.d")]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void observe_current_rejects_x86_and_arm_reported_together(bool is64Bit)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes(
+			"instruction_target_is_x86 = true\ninstruction_target_is_arm = true\ninstruction_target_is_64bit = " +
+			LuaBoolean(is64Bit)));
+
+		InstructionOperationStatus observed =
 			InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile rejectedProfile);
 
-		Assert.Equal(InstructionOperationStatus.InvalidProfile, contradictory);
+		Assert.Equal(InstructionOperationStatus.InvalidProfile, observed);
+		Assert.Equal(default, rejectedProfile);
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Theory]
+	[Trait("Qualification", "Q32.d")]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void observe_current_rejects_a_target_reported_in_neither_family(bool is64Bit)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes(
+			"instruction_target_is_x86 = false\ninstruction_target_is_arm = false\ninstruction_target_is_64bit = " +
+			LuaBoolean(is64Bit)));
+
+		InstructionOperationStatus observed =
+			InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile rejectedProfile);
+
+		Assert.Equal(InstructionOperationStatus.InvalidProfile, observed);
 		Assert.Equal(default, rejectedProfile);
 		Assert.Equal(0, scope.State.Top);
 	}
 
 	[Fact]
-	public void ObserveCurrent_uses_the_target_ARM_probe_and_matching_width_without_using_the_host_width()
+	[Trait("Qualification", "Q32")]
+	public void observe_current_without_a_selected_target_reports_target_not_selected_although_the_probes_look_like_x64()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		// CE 7.7 with no target: getOpenedProcessID() == 0 while the ISA probes read exactly like x64 (spike C3 D2).
+		EngineTest.Run(scope.State, """
+		                            function getOpenedProcessID() return 0 end
+		                            function targetIs64Bit() error('targetIs64Bit must not be called without a target') end
+		                            function targetIsX86() error('targetIsX86 must not be called without a target') end
+		                            function targetIsArm() error('targetIsArm must not be called without a target') end
+		                            """u8);
+
+		InstructionOperationStatus observed =
+			InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile targetProfile);
+
+		Assert.Equal(InstructionOperationStatus.TargetNotSelected, observed);
+		Assert.Equal(default, targetProfile);
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q30.c")]
+	public void observe_current_reports_a_file_as_process_selection_as_an_unsupported_target_backend()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		// openFileAsProcess stores processid := $FFFFFFFF and getOpenedProcessID pushes it as a Lua integer (ec45d5f).
+		EngineTest.Run(scope.State, """
+		                            function getOpenedProcessID() return 4294967295 end
+		                            function targetIs64Bit() error('no ISA probe for a file opened as a process') end
+		                            function targetIsX86() error('no ISA probe for a file opened as a process') end
+		                            function targetIsArm() error('no ISA probe for a file opened as a process') end
+		                            """u8);
+
+		InstructionOperationStatus observed =
+			InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile targetProfile);
+
+		Assert.Equal(InstructionOperationStatus.UnsupportedTargetBackend, observed);
+		Assert.Equal(default, targetProfile);
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Theory]
+	[Trait("Qualification", "Q32.d")]
+	[InlineData("targetIsX86")]
+	[InlineData("targetIsArm")]
+	[InlineData("targetIs64Bit")]
+	public void observe_current_reports_an_absent_isa_probe_as_global_unavailable(string absentGlobal)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes(absentGlobal + " = nil"));
+
+		InstructionOperationStatus observed =
+			InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile targetProfile);
+
+		Assert.Equal(InstructionOperationStatus.GlobalUnavailable, observed);
+		Assert.Equal(default, targetProfile);
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Theory]
+	[InlineData("targetIsX86", "return nil")]
+	[InlineData("targetIsArm", "return 1")]
+	[InlineData("targetIs64Bit", "return 'true'")]
+	public void observe_current_reports_a_non_boolean_isa_probe_as_invalid_result(string global, string body)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes("function " + global + "() " + body + " end"));
+
+		InstructionOperationStatus observed = InstructionProfiles.TryObserveCurrent(out _);
+
+		Assert.Equal(InstructionOperationStatus.InvalidResult, observed);
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Fact]
+	public void observe_current_reports_a_raising_isa_probe_as_lua_failure_and_recovers_on_the_next_call()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		EngineTest.Run(scope.State, """
+		                            raise_isa_probe = true
+		                            function targetIsArm()
+		                              if raise_isa_probe then error('fixture ISA probe failure') end
+		                              return instruction_target_is_arm
+		                            end
+		                            """u8);
+
+		InstructionOperationStatus failed = InstructionProfiles.TryObserveCurrent(out _);
+		Assert.Equal(0, scope.State.Top);
+		EngineTest.Run(scope.State, "raise_isa_probe = false"u8);
+		InstructionOperationStatus recovered = InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile profile);
+
+		Assert.Equal(InstructionOperationStatus.LuaFailure, failed);
+		Assert.Equal(InstructionOperationStatus.Success, recovered);
+		Assert.Equal(CheatEngineArchitecture.X64, profile.Profile.Architecture);
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q32")]
+	public void observe_current_reports_a_selection_change_between_the_bracketing_pid_reads_as_target_changed()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		EngineTest.Run(scope.State, "function targetIsArm() instruction_target_process_id = 5151 return false end"u8);
+
+		InstructionOperationStatus observed =
+			InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile targetProfile);
+
+		Assert.Equal(InstructionOperationStatus.TargetChanged, observed);
+		Assert.Equal(default, targetProfile);
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Fact]
+	public void observe_current_reads_only_the_pid_and_the_three_isa_probes()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		EngineTest.Run(scope.State, """
+		                            function getPointerSize() error('the instruction profile never reads the configured pointer size') end
+		                            function getABI() error('the instruction profile never reads the ABI') end
+		                            function isConnectedToCEServer() error('the instruction profile never reads the backend') end
+		                            function setAssemblerMode() error('the SDK never changes the assembler mode') end
+		                            """u8);
+
+		InstructionOperationStatus observed =
+			InstructionProfiles.TryObserveCurrent(out InstructionTargetProfile profile);
+
+		Assert.Equal(InstructionOperationStatus.Success, observed);
+		Assert.Equal(CheatEngineArchitecture.X64, profile.Profile.Architecture);
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q32.d")]
+	public void observe_current_maps_the_arm_family_to_arm32_or_arm64_by_the_64_bit_flag_without_the_host_width()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		InstallInstructionGlobals(scope.State);
 
-		EngineTest.Run(scope.State, "instruction_target_is_64bit = false\ninstruction_target_is_arm = true"u8);
+		EngineTest.Run(scope.State, """
+		                            instruction_target_is_x86 = false
+		                            instruction_target_is_64bit = false
+		                            instruction_target_is_arm = true
+		                            """u8);
 		InstructionTargetProfile arm32 = Observe(scope.State);
 
 		EngineTest.Run(scope.State, "instruction_target_is_64bit = true"u8);
@@ -59,6 +275,45 @@ public sealed class InstructionOperationsTests
 		Assert.Equal(PointerSize.Bit32, arm32.Profile.AddressWidth);
 		Assert.Equal(CheatEngineArchitecture.Arm64, arm64.Profile.Architecture);
 		Assert.Equal(PointerSize.Bit64, arm64.Profile.AddressWidth);
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q32.a")]
+	[Trait("Qualification", "Q32.b")]
+	public void x64_and_x86_profiles_carry_their_own_address_width()
+	{
+		Assert.Equal(CheatEngineArchitecture.X64, InstructionProfile.X64.Architecture);
+		Assert.Equal(PointerSize.Bit64, InstructionProfile.X64.AddressWidth);
+		Assert.True(InstructionProfile.X64.IsValid);
+		Assert.Equal(CheatEngineArchitecture.X86, InstructionProfile.X86.Architecture);
+		Assert.Equal(PointerSize.Bit32, InstructionProfile.X86.AddressWidth);
+		Assert.True(InstructionProfile.X86.IsValid);
+		Assert.NotEqual(InstructionProfile.X64, InstructionProfile.X86);
+		Assert.False(default(InstructionProfile).IsValid);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q32.a")]
+	public void assemble_on_an_x64_profile_accepts_an_address_above_4_gib()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		InstructionTargetProfile targetProfile = Observe(scope.State);
+		Span<byte> destination = stackalloc byte[5];
+		// The x64 Tutorial image base observed on CE 7.7 (spike C3 D2): the first address above 4 GiB.
+		Address origin = 0x1_0000_0000UL;
+
+		InstructionOperationStatus status = InstructionAssembler.TryAssemble(targetProfile, "jmp rel", origin,
+			destination, out int written, out int requiredLength);
+
+		Assert.Equal(InstructionOperationStatus.Success, status);
+		Assert.Equal(5, written);
+		Assert.Equal(5, requiredLength);
+		Assert.Equal(0x1_0000_0000L, ReadInteger(scope.State, "instruction_assemble_origin"));
+		Assert.Equal("integer", ReadString(scope.State, "instruction_assemble_origin_type"));
 		Assert.Equal(0, scope.State.Top);
 	}
 
@@ -127,7 +382,8 @@ public sealed class InstructionOperationsTests
 	}
 
 	[Fact]
-	public void Assemble_rejects_an_address_wider_than_the_observed_x86_profile_before_entering_Lua()
+	[Trait("Qualification", "Q32.b")]
+	public void assemble_on_an_x86_profile_refuses_an_address_above_4_gib_before_entering_lua()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -148,15 +404,21 @@ public sealed class InstructionOperationsTests
 		Assert.Equal(0, scope.State.Top);
 	}
 
-	[Fact]
-	public void Assemble_reports_a_target_change_without_copying_the_returned_bytes()
+	[Theory]
+	[Trait("Qualification", "Q32")]
+	[InlineData(7777L)]
+	[InlineData(0L)]
+	[InlineData(4294967295L)]
+	public void assemble_reports_a_target_change_after_the_effect_without_copying_bytes(long selectionAfterEffect)
 	{
+		// Another process, no target and the file-as-process sentinel all differ from the profiled selection.
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		InstallInstructionGlobals(scope.State);
 		InstructionTargetProfile targetProfile = Observe(scope.State);
-		EngineTest.Run(scope.State, "instruction_assemble_behavior = \"target-change\""u8);
+		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes("instruction_assemble_behavior = \"target-change\"\n" +
+			"instruction_assemble_next_process_id = " + selectionAfterEffect.ToString(CultureInfo.InvariantCulture)));
 		Span<byte> destination = stackalloc byte[1];
 		destination[0] = 0xA5;
 
@@ -167,6 +429,32 @@ public sealed class InstructionOperationsTests
 		Assert.Equal(0, written);
 		Assert.Equal(0, requiredLength);
 		Assert.Equal(0xA5, destination[0]);
+		Assert.Equal(1, ReadInteger(scope.State, "instruction_assemble_calls"));
+		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Theory]
+	[InlineData(0L)]
+	[InlineData(4294967295L)]
+	public void assemble_reports_a_selection_that_differs_before_the_call_as_target_changed_without_calling_assemble(
+		long selectionBeforeCall)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		InstallInstructionGlobals(scope.State);
+		InstructionTargetProfile targetProfile = Observe(scope.State);
+		EngineTest.Run(scope.State, Encoding.UTF8.GetBytes(
+			"instruction_target_process_id = " + selectionBeforeCall.ToString(CultureInfo.InvariantCulture)));
+		Span<byte> destination = stackalloc byte[8];
+
+		InstructionOperationStatus status = InstructionAssembler.TryAssemble(targetProfile, "nop", 0x140001000UL,
+			destination, out int written, out int requiredLength);
+
+		Assert.Equal(InstructionOperationStatus.TargetChanged, status);
+		Assert.Equal(0, written);
+		Assert.Equal(0, requiredLength);
+		Assert.Equal(0, ReadInteger(scope.State, "instruction_assemble_calls"));
 		Assert.Equal(0, scope.State.Top);
 	}
 
@@ -192,6 +480,33 @@ public sealed class InstructionOperationsTests
 		Assert.Equal(49, instruction.Utf8ByteLength);
 		Assert.Equal(55, requiredUtf8Bytes);
 		Assert.Equal(0, scope.State.Top);
+	}
+
+	[Fact]
+	public void disassembly_result_remains_valid_after_the_runtime_is_detached()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		InstructionDisassembly instruction;
+		Address address = 0x0000_0001_4000_1000UL;
+		using (HostScope scope = new(state))
+		{
+			InstallInstructionGlobals(scope.State);
+			InstructionTargetProfile targetProfile = Observe(scope.State);
+			Assert.Equal(InstructionOperationStatus.Success,
+				InstructionDisassembler.TryDisassemble(targetProfile, address, 256, out instruction, out _));
+		}
+
+		// The runtime is detached and the Lua state closed below: every field is a copied managed value.
+		LuaRuntime.Detach();
+		state.Dispose();
+
+		Assert.Equal(address, instruction.Address);
+		Assert.Equal("0000000140001000", instruction.AddressText);
+		Assert.Equal("E9 FB FF FF FF", instruction.Bytes);
+		Assert.Equal("jmp", instruction.Opcode);
+		Assert.Equal("0000000140001000", instruction.Extra);
+		Assert.Equal(49, instruction.Utf8ByteLength);
 	}
 
 	[Fact]
@@ -313,13 +628,16 @@ public sealed class InstructionOperationsTests
 		EngineTest.Run(state, """
 		                      instruction_assemble_calls = 0
 		                      instruction_assemble_origin = 0
+		                      instruction_assemble_origin_type = "none"
 		                      instruction_assemble_behavior = "normal"
+		                      instruction_assemble_next_process_id = 7777
 
 		                      assemble = function(line, address)
 		                        instruction_assemble_calls = instruction_assemble_calls + 1
 		                        instruction_assemble_origin = address
+		                        instruction_assemble_origin_type = math.type(address)
 		                        if instruction_assemble_behavior == "target-change" then
-		                          instruction_target_process_id = 7777
+		                          instruction_target_process_id = instruction_assemble_next_process_id
 		                          return { 0x90 }, nil
 		                        end
 		                        if line == "reject" then return nil, "instruction rejected" end
@@ -357,9 +675,10 @@ public sealed class InstructionOperationsTests
 	private static void InstallProfileGlobals(LuaState state)
 	{
 		EngineTest.Run(state, """
+		                      -- The CE-faithful x64 target (spike C3 D2): x86 family and 64-bit.
 		                      instruction_target_process_id = 4242
 		                      instruction_target_is_64bit = true
-		                      instruction_target_is_x86 = false
+		                      instruction_target_is_x86 = true
 		                      instruction_target_is_arm = false
 		                      function getOpenedProcessID() return instruction_target_process_id end
 		                      function targetIs64Bit() return instruction_target_is_64bit end
@@ -373,5 +692,17 @@ public sealed class InstructionOperationsTests
 		using LuaFrame frame = new(state);
 		Assert.True(state.TryGetGlobal(Encoding.UTF8.GetBytes(name)).IsOk);
 		return EngineTest.ReadInteger(state, -1);
+	}
+
+	private static string ReadString(LuaState state, string name)
+	{
+		using LuaFrame frame = new(state);
+		Assert.True(state.TryGetGlobal(Encoding.UTF8.GetBytes(name)).IsOk);
+		return EngineTest.ReadString(state, -1);
+	}
+
+	private static string LuaBoolean(bool value)
+	{
+		return value ? "true" : "false";
 	}
 }

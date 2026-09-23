@@ -55,6 +55,18 @@ internal static class LuaGlobalCallEmitter
 	private const string Ok = "__ok";
 	private const string Status = "__status";
 	private const string Result = "__result";
+	private const string ArgumentCount = "__argc";
+	private const string Rest = "__rest";
+
+	/// <summary>
+	///     Whether <paramref name="name" /> is a local of a generated body: a parameter with that name would collide with it,
+	///     so the LuaBindings generator skips such a declaration and CESDK2007 names the parameter.
+	/// </summary>
+	public static bool IsReservedLocal(string name)
+	{
+		return name is State or Operation or Top or Ok or Status or Result or "__resolution" or "__exception"
+			or ArgumentCount or Rest;
+	}
 
 	/// <summary>Writes the method, signature and body, at the writer's current indentation.</summary>
 	public static void Emit(SourceWriter writer, LuaGlobalCallModel model)
@@ -150,10 +162,10 @@ internal static class LuaGlobalCallEmitter
 		writer.Write(argument.Name);
 	}
 
-	// 'scoped Span<byte> destination, out int written' or 'out <type> name'.
+	// 'scoped Span<byte> destination, out int written', 'Span<T> values, out int count' or 'out <type> name'.
 	private static void WriteResultParameter(SourceWriter writer, LuaResultModel result, bool isExtensionReceiver)
 	{
-		if (result.Shape == LuaResultShape.CopyOut)
+		if (result.Shape is LuaResultShape.CopyOut or LuaResultShape.Variadic)
 		{
 			if (isExtensionReceiver)
 			{
@@ -165,7 +177,9 @@ internal static class LuaGlobalCallEmitter
 				writer.Write("scoped ");
 			}
 
-			writer.Write(LuaApiNames.SpanOfByte);
+			writer.Write(result.Shape == LuaResultShape.CopyOut
+				? LuaApiNames.SpanOfByte
+				: LuaApiNames.Span + "<" + LuaValueKinds.TypeName(result.Kind) + ">");
 			writer.Write(' ');
 			writer.Write(result.DestinationName);
 			writer.Write(", out int ");
@@ -221,6 +235,11 @@ internal static class LuaGlobalCallEmitter
 		int argumentCount = model.Arguments.Length;
 		int resultCount = model.ResultCount;
 
+		if (model.HasOptionalArguments)
+		{
+			WriteArgumentCount(writer, model);
+		}
+
 		WriteStateAndTop(writer, model);
 		WriteProtectedBody(writer, model, argumentCount, resultCount);
 		WriteExceptionHandler(writer, model);
@@ -233,8 +252,9 @@ internal static class LuaGlobalCallEmitter
 		writer.WriteLine("try");
 		writer.OpenBlock();
 
-		// Only bodies that would exceed the guaranteed free slots check the stack.
-		int slots = Math.Max(1 + argumentCount, resultCount);
+		// Only bodies that would exceed the guaranteed free slots check the stack. A call that keeps every result
+		// (LUA_MULTRET) needs no room for them in advance: Lua makes the returned values fit.
+		int slots = model.HasDynamicResults ? 1 + argumentCount : Math.Max(1 + argumentCount, resultCount);
 		if (slots > StackCheckThreshold)
 		{
 			WriteStackCheck(writer, model, slots);
@@ -248,8 +268,15 @@ internal static class LuaGlobalCallEmitter
 
 	private static void WriteArguments(SourceWriter writer, LuaGlobalCallModel model)
 	{
-		foreach (LuaArgumentModel argument in model.Arguments)
+		for (int i = 0; i < model.Arguments.Length; i++)
 		{
+			LuaArgumentModel argument = model.Arguments[i];
+			if (argument.IsOptional)
+			{
+				WriteOptionalArgument(writer, argument, i);
+				continue;
+			}
+
 			writer.Write(argument.GeneratedMarshallerTypeName);
 			writer.Write(".Push(");
 			writer.Write(State);
@@ -259,12 +286,125 @@ internal static class LuaGlobalCallEmitter
 		}
 	}
 
+	// An optional argument is pushed only when the computed count reaches its position: a present value through its
+	// marshaller, Nil as nil. The count already stops before the first omitted argument.
+	private static void WriteOptionalArgument(SourceWriter writer, LuaArgumentModel argument, int position)
+	{
+		writer.Write("if (");
+		writer.Write(ArgumentCount);
+		writer.Write(" > ");
+		writer.Write(position.ToString(CultureInfo.InvariantCulture));
+		writer.WriteLine(")");
+		writer.OpenBlock();
+		writer.Write(LuaApiNames.LuaCallSupport);
+		writer.Write(".PushOptional<");
+		writer.Write(LuaValueKinds.TypeName(argument.Kind));
+		writer.Write(", ");
+		writer.Write(argument.GeneratedMarshallerTypeName);
+		writer.Write(">(");
+		writer.Write(State);
+		writer.Write(", ");
+		writer.Write(argument.Name);
+		writer.WriteLine(");");
+		writer.CloseBlock();
+	}
+
+	// Before the state is acquired: the number of arguments to push is the position after the last optional argument
+	// that is not omitted. An omitted argument followed by a present one cannot be expressed in Lua, so it is a caller
+	// error, thrown before anything touches Lua (also while no runtime is attached).
+	private static void WriteArgumentCount(SourceWriter writer, LuaGlobalCallModel model)
+	{
+		int required = 0;
+		while (required < model.Arguments.Length && !model.Arguments[required].IsOptional)
+		{
+			required++;
+		}
+
+		writer.Write("int ");
+		writer.Write(ArgumentCount);
+		writer.Write(" = ");
+		for (int i = model.Arguments.Length - 1; i >= required; i--)
+		{
+			writer.Write('!');
+			writer.Write(model.Arguments[i].Name);
+			writer.Write(".IsOmitted ? ");
+			writer.Write((i + 1).ToString(CultureInfo.InvariantCulture));
+			writer.Write(" : ");
+		}
+
+		writer.Write(required.ToString(CultureInfo.InvariantCulture));
+		writer.WriteLine(";");
+		for (int i = required; i < model.Arguments.Length - 1; i++)
+		{
+			string name = UnescapedName(model.Arguments[i].Name);
+			writer.Write("if (");
+			writer.Write(ArgumentCount);
+			writer.Write(" > ");
+			writer.Write((i + 1).ToString(CultureInfo.InvariantCulture));
+			writer.Write(" && ");
+			writer.Write(model.Arguments[i].Name);
+			writer.WriteLine(".IsOmitted)");
+			writer.OpenBlock();
+			writer.Write("throw new ");
+			writer.Write(LuaApiNames.ArgumentException);
+			writer.Write('(');
+			writer.Write(CSharpLiteral.ToStringLiteral(OmittedBeforePresentMessage(model.GlobalName, name)));
+			writer.Write(", ");
+			writer.Write(CSharpLiteral.ToStringLiteral(name));
+			writer.WriteLine(");");
+			writer.CloseBlock();
+		}
+
+		writer.WriteLine();
+	}
+
+	/// <summary>
+	///     The message of the <c>ArgumentException</c> a wrapper throws, before touching Lua, when an optional argument is
+	///     omitted while a later one is present.
+	/// </summary>
+	public static string OmittedBeforePresentMessage(string globalName, string parameterName)
+	{
+		return "The optional argument '" + parameterName + "' of the Lua global '" + globalName +
+			   "' is omitted while a later optional argument is present; Lua cannot receive an argument after an absent one. Pass LuaOptional.Nil<T>() to send nil in its place.";
+	}
+
+	private static string UnescapedName(string name)
+	{
+		return name.Length > 0 && name[0] == '@' ? name.Substring(1) : name;
+	}
+
+	private static string ArgumentCountText(LuaGlobalCallModel model, int argumentCount)
+	{
+		return model.HasOptionalArguments ? ArgumentCount : argumentCount.ToString(CultureInfo.InvariantCulture);
+	}
+
+	private static string ResultCountText(LuaGlobalCallModel model, int resultCount)
+	{
+		return model.HasDynamicResults
+			? LuaApiNames.LuaState + ".MultipleResults"
+			: resultCount.ToString(CultureInfo.InvariantCulture);
+	}
+
+	// The absolute stack index of result 'position' after a LUA_MULTRET call: the function was pushed at __top + 1 and
+	// the call replaced it, with its arguments, by the results.
+	private static string AbsoluteResultIndex(int position)
+	{
+		return Top + " + " + (position + 1).ToString(CultureInfo.InvariantCulture);
+	}
+
 	private static void WriteCallAndResults(SourceWriter writer, LuaGlobalCallModel model, int argumentCount,
 		int resultCount)
 	{
 		if (model.Form == LuaCallForm.Try)
 		{
-			WriteTryCallAndResults(writer, model, argumentCount, resultCount);
+			if (model.HasDynamicResults)
+			{
+				WriteDynamicTryCallAndResults(writer, model, argumentCount);
+			}
+			else
+			{
+				WriteTryCallAndResults(writer, model, argumentCount, resultCount);
+			}
 		}
 		else if (model.Form == LuaCallForm.Outcome)
 		{
@@ -272,7 +412,7 @@ internal static class LuaGlobalCallEmitter
 		}
 		else
 		{
-			WriteThrowingCall(writer, argumentCount, resultCount);
+			WriteThrowingCall(writer, model, argumentCount, resultCount);
 			WriteThrowingResult(writer, model);
 		}
 	}
@@ -418,7 +558,7 @@ internal static class LuaGlobalCallEmitter
 		writer.Write("if (!");
 		writer.Write(State);
 		writer.Write(".TryCall(");
-		writer.Write(argumentCount.ToString(CultureInfo.InvariantCulture));
+		writer.Write(ArgumentCountText(model, argumentCount));
 		writer.Write(", ");
 		writer.Write(resultCount.ToString(CultureInfo.InvariantCulture));
 		writer.WriteLine(").IsOk)");
@@ -456,11 +596,99 @@ internal static class LuaGlobalCallEmitter
 		writer.WriteLine(";");
 	}
 
+	// A Try form with optional results: the call keeps every result, a required result Lua did not return is a failure
+	// (never read as nil), and each optional result is read at its absolute index or left omitted.
+	private static void WriteDynamicTryCallAndResults(SourceWriter writer, LuaGlobalCallModel model,
+		int argumentCount)
+	{
+		writer.Write("if (!");
+		writer.Write(State);
+		writer.Write(".TryCall(");
+		writer.Write(ArgumentCountText(model, argumentCount));
+		writer.Write(", ");
+		writer.Write(ResultCountText(model, 0));
+		writer.WriteLine(").IsOk)");
+		writer.OpenBlock();
+		WriteTryFailure(writer, model, 0);
+		writer.CloseBlock();
+		writer.WriteLine();
+
+		int required = model.RequiredResultCount;
+		if (required > 0)
+		{
+			WriteMissingResultCheck(writer, required);
+			writer.OpenBlock();
+			WriteTryFailure(writer, model, 0);
+			writer.CloseBlock();
+			writer.WriteLine();
+		}
+
+		for (int i = 0; i < model.Results.Length; i++)
+		{
+			LuaResultModel result = model.Results[i];
+			writer.Write("if (!");
+			if (result.Shape == LuaResultShape.Optional)
+			{
+				WriteOptionalResultRead(writer, result, i);
+			}
+			else
+			{
+				WriteResultRead(writer, result, AbsoluteResultIndex(i));
+			}
+
+			writer.WriteLine(")");
+			writer.OpenBlock();
+			WriteTryFailure(writer, model, i);
+			writer.CloseBlock();
+			writer.WriteLine();
+		}
+
+		writer.WriteLine("return true;");
+	}
+
+	// 'if (__L.Top - __top < n)': fewer results than the required ones. Lua pads a fixed-count call with nil, so only a
+	// multiple-results call can tell a missing result from a nil one.
+	private static void WriteMissingResultCheck(SourceWriter writer, int required)
+	{
+		writer.Write("if (");
+		writer.Write(State);
+		writer.Write(".Top - ");
+		writer.Write(Top);
+		writer.Write(" < ");
+		writer.Write(required.ToString(CultureInfo.InvariantCulture));
+		writer.WriteLine(")");
+	}
+
+	// 'LuaCallSupport.TryReadOptional<T, M>(__L, __top + n, out name)': a position beyond the top is omitted.
+	private static void WriteOptionalResultRead(SourceWriter writer, LuaResultModel result, int position)
+	{
+		writer.Write(LuaApiNames.LuaCallSupport);
+		writer.Write(".TryReadOptional<");
+		writer.Write(LuaValueKinds.TypeName(result.Kind));
+		writer.Write(", ");
+		writer.Write(result.GeneratedMarshallerTypeName);
+		writer.Write(">(");
+		writer.Write(State);
+		writer.Write(", ");
+		writer.Write(AbsoluteResultIndex(position));
+		writer.Write(", out ");
+		writer.Write(result.Name);
+		writer.Write(')');
+	}
+
 	private static void WriteOutcomeCallAndResults(SourceWriter writer, LuaGlobalCallModel model, int argumentCount,
 		int resultCount)
 	{
 		WriteOutcomeCall(writer, model, argumentCount, resultCount);
-		WriteOutcomeResults(writer, model, resultCount);
+		if (model.HasDynamicResults)
+		{
+			WriteDynamicOutcomeResults(writer, model);
+		}
+		else
+		{
+			WriteOutcomeResults(writer, model, resultCount);
+		}
+
 		writer.Write("return ");
 		writer.Write(LuaApiNames.LuaOperationStatus);
 		writer.WriteLine(".Success;");
@@ -475,9 +703,9 @@ internal static class LuaGlobalCallEmitter
 		writer.Write(" = ");
 		writer.Write(State);
 		writer.Write(".TryCall(");
-		writer.Write(argumentCount.ToString(CultureInfo.InvariantCulture));
+		writer.Write(ArgumentCountText(model, argumentCount));
 		writer.Write(", ");
-		writer.Write(resultCount.ToString(CultureInfo.InvariantCulture));
+		writer.Write(ResultCountText(model, resultCount));
 		writer.WriteLine(");");
 		writer.Write("if (!");
 		writer.Write(Status);
@@ -496,13 +724,124 @@ internal static class LuaGlobalCallEmitter
 		}
 	}
 
+	// The results of an Outcome form with optional or variadic results: fewer results than the required ones is
+	// MissingResult, never NilResult; optional results are read or left omitted; the variadic tail is copied by one
+	// helper call that classifies its own failures.
+	private static void WriteDynamicOutcomeResults(SourceWriter writer, LuaGlobalCallModel model)
+	{
+		int required = model.RequiredResultCount;
+		if (required > 0)
+		{
+			WriteMissingResultCheck(writer, required);
+			writer.OpenBlock();
+			WriteOutcomeFailure(writer, model, LuaApiNames.LuaOperationStatus + ".MissingResult", 0);
+			writer.CloseBlock();
+			writer.WriteLine();
+		}
+
+		for (int i = 0; i < model.Results.Length; i++)
+		{
+			switch (model.Results[i].Shape)
+			{
+				case LuaResultShape.Optional:
+					writer.Write("if (!");
+					WriteOptionalResultRead(writer, model.Results[i], i);
+					writer.WriteLine(")");
+					writer.OpenBlock();
+					WriteOutcomeFailure(writer, model, LuaApiNames.LuaOperationStatus + ".InvalidResult", i);
+					writer.CloseBlock();
+					writer.WriteLine();
+					break;
+				case LuaResultShape.Variadic:
+					WriteVariadicResults(writer, model, i);
+					break;
+				default:
+					WriteOutcomeResult(writer, model, i, AbsoluteResultIndex(i));
+					break;
+			}
+		}
+	}
+
+	// 'LuaCallSupport.ReadResults<T, M>(__L, __top + n, values, out count)' copies every value from that index to the
+	// top, or reports ResultCapacityExceeded with the needed count, NilResult or InvalidResult. On failure the other
+	// results are defaulted and the count keeps what the helper wrote.
+	private static void WriteVariadicResults(SourceWriter writer, LuaGlobalCallModel model, int position)
+	{
+		LuaResultModel result = model.Results[position];
+		writer.Write(LuaApiNames.LuaOperationStatus);
+		writer.Write(' ');
+		writer.Write(Rest);
+		writer.Write(" = ");
+		writer.Write(LuaApiNames.LuaCallSupport);
+		writer.Write(".ReadResults<");
+		writer.Write(LuaValueKinds.TypeName(result.Kind));
+		writer.Write(", ");
+		writer.Write(LuaValueKinds.MarshallerTypeName(result.Kind));
+		writer.Write(">(");
+		writer.Write(State);
+		writer.Write(", ");
+		writer.Write(AbsoluteResultIndex(position));
+		writer.Write(", ");
+		writer.Write(result.DestinationName);
+		writer.Write(", out ");
+		writer.Write(result.Name);
+		writer.WriteLine(");");
+		writer.Write("if (!");
+		writer.Write(Rest);
+		writer.WriteLine(".IsSuccess)");
+		writer.OpenBlock();
+		for (int i = 0; i < model.Results.Length; i++)
+		{
+			if (i == position)
+			{
+				continue;
+			}
+
+			LuaResultModel other = model.Results[i];
+			writer.Write(other.Name);
+			writer.WriteLine(other.IsReferenceType ? " = default!;" : " = default;");
+		}
+
+		writer.Write("return ");
+		writer.Write(LuaApiNames.LuaCallSupport);
+		writer.Write(".Fail(");
+		writer.Write(State);
+		writer.Write(", ");
+		writer.Write(Top);
+		writer.Write(", ");
+		writer.Write(Rest);
+		writer.WriteLine(");");
+		writer.CloseBlock();
+		writer.WriteLine();
+	}
+
 	private static void WriteOutcomeResult(SourceWriter writer, LuaGlobalCallModel model, int resultIndex,
 		int stackIndex)
+	{
+		WriteOutcomeResult(writer, model, resultIndex, stackIndex.ToString(CultureInfo.InvariantCulture));
+	}
+
+	private static void WriteOutcomeResult(SourceWriter writer, LuaGlobalCallModel model, int resultIndex,
+		string stackIndex)
 	{
 		writer.Write("if (!");
 		WriteResultRead(writer, model.Results[resultIndex], stackIndex);
 		writer.WriteLine(")");
 		writer.OpenBlock();
+		// Every other result is defaulted too (all read or none, like the Try form): a declaration with a single result
+		// writes nothing here.
+		for (int i = 0; i < model.Results.Length; i++)
+		{
+			if (i == resultIndex)
+			{
+				continue;
+			}
+
+			LuaResultModel other = model.Results[i];
+			writer.Write(other.Name);
+			writer.WriteLine(other.IsReferenceType ? " = default!;" : " = default;");
+		}
+
 		writer.Write("return ");
 		writer.Write(LuaApiNames.LuaCallSupport);
 		writer.Write(".Fail(");
@@ -512,7 +851,7 @@ internal static class LuaGlobalCallEmitter
 		writer.Write(", ");
 		writer.Write(State);
 		writer.Write(".IsNil(");
-		writer.Write(stackIndex.ToString(CultureInfo.InvariantCulture));
+		writer.Write(stackIndex);
 		writer.Write(") ? ");
 		writer.Write(LuaApiNames.LuaOperationStatus);
 		writer.Write(".NilResult : ");
@@ -525,7 +864,8 @@ internal static class LuaGlobalCallEmitter
 	}
 
 	// Exit 2: the call raised; the status travels to the throw helper, which reads the error value.
-	private static void WriteThrowingCall(SourceWriter writer, int argumentCount, int resultCount)
+	private static void WriteThrowingCall(SourceWriter writer, LuaGlobalCallModel model, int argumentCount,
+		int resultCount)
 	{
 		writer.Write(LuaApiNames.LuaStatus);
 		writer.Write(' ');
@@ -533,7 +873,7 @@ internal static class LuaGlobalCallEmitter
 		writer.Write(" = ");
 		writer.Write(State);
 		writer.Write(".TryCall(");
-		writer.Write(argumentCount.ToString(CultureInfo.InvariantCulture));
+		writer.Write(ArgumentCountText(model, argumentCount));
 		writer.Write(", ");
 		writer.Write(resultCount.ToString(CultureInfo.InvariantCulture));
 		writer.WriteLine(");");
@@ -556,7 +896,7 @@ internal static class LuaGlobalCallEmitter
 	private static void WriteThrowingResult(SourceWriter writer, LuaGlobalCallModel model)
 	{
 		if (!model.HasReturn)
-			// A void call keeps no result: the successful call already left the stack at its recorded top.
+		// A void call keeps no result: the successful call already left the stack at its recorded top.
 		{
 			return;
 		}
@@ -594,11 +934,18 @@ internal static class LuaGlobalCallEmitter
 	// The read of one result at a (negative) stack index, as a boolean expression.
 	private static void WriteResultRead(SourceWriter writer, LuaResultModel result, int index)
 	{
+		WriteResultRead(writer, result, index.ToString(CultureInfo.InvariantCulture));
+	}
+
+	// The read of one result at a stack index expression: a negative constant after a fixed-count call, an absolute
+	// '__top + n' after a multiple-results call.
+	private static void WriteResultRead(SourceWriter writer, LuaResultModel result, string index)
+	{
 		if (result.Shape == LuaResultShape.CopyOut)
 		{
 			writer.Write(State);
 			writer.Write(".TryCopyUtf8(");
-			writer.Write(index.ToString(CultureInfo.InvariantCulture));
+			writer.Write(index);
 			writer.Write(", ");
 			writer.Write(result.DestinationName);
 			writer.Write(", out ");
@@ -611,7 +958,7 @@ internal static class LuaGlobalCallEmitter
 		writer.Write(".TryRead(");
 		writer.Write(State);
 		writer.Write(", ");
-		writer.Write(index.ToString(CultureInfo.InvariantCulture));
+		writer.Write(index);
 		writer.Write(", out ");
 		writer.Write(result.Name);
 		writer.Write(')');

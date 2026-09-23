@@ -59,6 +59,7 @@ public sealed class LuaCallbackTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q14")]
 	public void A_failure_reported_by_the_thunk_is_a_catchable_lua_error_with_the_message()
 	{
 		LuaTest.RequireNativeLua();
@@ -93,6 +94,7 @@ public sealed class LuaCallbackTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q14")]
 	public void A_managed_exception_inside_a_thunk_never_escapes_and_becomes_a_lua_error()
 	{
 		LuaTest.RequireNativeLua();
@@ -213,7 +215,10 @@ public sealed class LuaCallbackTests
 		using NativeLuaState state = new();
 		LuaState L = LuaTest.View(state);
 		Counter a = new();
-		Counter b = new() { Value = 100 };
+		Counter b = new()
+		{
+			Value = 100
+		};
 		Assert.True(LuaCallback.TryCreate(L, Thunks.Count, a, out LuaCallback<Counter>? callbackA).IsOk);
 		Assert.True(LuaCallback.TryCreate(L, Thunks.Count, b, out LuaCallback<Counter>? callbackB).IsOk);
 		Assert.True(callbackA!.TryRegister(L, "countA"u8).IsOk);
@@ -228,6 +233,7 @@ public sealed class LuaCallbackTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q15")]
 	public void Releasing_a_callback_neutralizes_the_closure_a_script_kept()
 	{
 		LuaTest.RequireNativeLua();
@@ -262,6 +268,7 @@ public sealed class LuaCallbackTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q15")]
 	public void Detach_neutralizes_every_callback_the_plugin_forgot()
 	{
 		LuaTest.RequireNativeLua();
@@ -288,6 +295,7 @@ public sealed class LuaCallbackTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q17")]
 	public void BeginStateReset_neutralizes_every_callback_before_the_state_is_replaced()
 	{
 		LuaTest.RequireNativeLua();
@@ -506,6 +514,7 @@ public sealed class LuaCallbackTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q08")]
 	public void Detach_cleanup_failure_keeps_remaining_callbacks_and_allows_a_retry()
 	{
 		LuaTest.RequireNativeLua();

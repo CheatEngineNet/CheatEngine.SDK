@@ -2,8 +2,9 @@
 
   <!--
     Deliberately no ProjectReference, not even to src/CheatEngine.SDK: the packed .nupkg and what a plugin sees after restoring it
-    are checked from outside the project graph. Infrastructure/PackagedUmbrellaFixture.cs runs 'dotnet pack' on
-    src/CheatEngine.SDK/CheatEngine.SDK.csproj itself.
+    are checked from outside the project graph. Infrastructure/PackagedUmbrellaFixture.cs consumes the exact file named by
+    CESDK_PACKAGED_UMBRELLA_NUPKG (the CI Release leg's packed package); only outside CI, with the variable unset, does it
+    run 'dotnet pack' on src/CheatEngine.SDK/CheatEngine.SDK.csproj itself.
   -->
 
   <ItemGroup>

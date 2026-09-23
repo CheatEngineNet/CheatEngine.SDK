@@ -23,11 +23,17 @@ foreach ($line in Get-Content -LiteralPath $FactsPath) {
     $actual[$key] = $value
 }
 
+$invariant = [Globalization.CultureInfo]::InvariantCulture
+
+# Schema 3: every transcribed record, from the pinned C header and the pinned host Pascal types, with every field's
+# offset and width. The set is exact: a missing, extra or different fact fails.
 $expected = @{
-    'fixture.schema' = '2'
+    'fixture.schema' = '3'
     'source.upstream_commit' = 'ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37'
     'source.path' = 'Cheat Engine/plugin/cepluginsdk.h'
-    'source.contract' = 'transcribed-pinned-header-subset'
+    'source.host_path' = 'Cheat Engine/plugin.pas'
+    'source.mirror_path' = 'Cheat Engine/plugin/cepluginsdk.pas'
+    'source.contract' = 'transcribed-pinned-header-and-host-pascal-subset'
     'architecture' = 'win-x64'
     'sizeof.pointer' = '8'
     'sizeof.bool' = '4'
@@ -49,87 +55,65 @@ $expected = @{
     'sentinel.plugin_version.outer_guard' = 'passed'
     'sentinel.plugin_version.padding' = 'passed'
     'sentinel.exports.return_values' = 'passed'
+    'sentinel.managed_plugin_init_record.tail_guard' = 'passed'
 }
 
-$layouts = @{
-    'plugin_version' = 16
-    'plugin_type0_record' = 48
-    'plugin_type0_init' = 16
-    'plugin_type1_init' = 24
-    'plugin_type2_init' = 8
-    'plugin_type3_init' = 8
-    'plugin_type4_init' = 8
-    'plugin_type5_init' = 24
-    'plugin_type6_init' = 32
-    'plugin_type7_init' = 8
-    'plugin_type8_init' = 8
-    'register_modification_info' = 264
-    'exported_functions_prefix' = 144
+# Record => size, alignment, and 'Field=offset/width' entries in declaration order.
+$selectedRecordFields = @(
+    'InterpretedAddress=0/8', 'Address=8/8', 'IsPointer=16/4', 'CountOffsets=20/4', 'Offsets=24/8',
+    'Description=32/8', 'ValueType=40/1', 'Size=41/1'
+)
+$registerFields = @('Address=0/8')
+$registerNames = @('Eax', 'Ebx', 'Ecx', 'Edx', 'Esi', 'Edi', 'Ebp', 'Esp', 'Eip', 'R8', 'R9', 'R10', 'R11', 'R12',
+    'R13', 'R14', 'R15')
+$flagNames = @('Cf', 'Pf', 'Af', 'Zf', 'Sf', 'Of')
+$offset = 8
+foreach ($name in $registerNames + $flagNames) { $registerFields += "Change$name=$offset/4"; $offset += 4 }
+$offset = 104
+foreach ($name in $registerNames) { $registerFields += "New$name=$offset/8"; $offset += 8 }
+foreach ($name in $flagNames) { $registerFields += "New$name=$offset/4"; $offset += 4 }
+$prefixNames = @('SizeOfExportedFunctions', 'ShowMessage', 'RegisterFunction', 'UnregisterFunction', 'OpenedProcessId',
+    'OpenedProcessHandle', 'GetMainWindowHandle', 'AutoAssemble', 'Assembler', 'Disassembler',
+    'ChangeRegistersAtAddress', 'InjectDll', 'FreezeMemory', 'UnfreezeMemory', 'FixMemory', 'ProcessList',
+    'ReloadSettings', 'GetAddressFromPointer')
+$prefixFields = @('SizeOfExportedFunctions=0/4')
+for ($slot = 1; $slot -lt $prefixNames.Count; $slot++) { $prefixFields += "$($prefixNames[$slot])=$(8 * $slot)/8" }
+
+$records = [ordered]@{
+    'plugin_version' = @(16, 8, @('Version=0/4', 'PluginName=8/8'))
+    'plugin_type0_record' = @(48, 8, $selectedRecordFields)
+    'plugin_type0_init' = @(16, 8, @('Name=0/8', 'Callback=8/8'))
+    'plugin_type1_init' = @(24, 8, @('Name=0/8', 'Callback=8/8', 'Shortcut=16/8'))
+    'plugin_type2_init' = @(8, 8, @('Callback=0/8'))
+    'plugin_type3_init' = @(8, 8, @('Callback=0/8'))
+    'plugin_type4_init' = @(8, 8, @('Callback=0/8'))
+    'plugin_type5_init' = @(24, 8, @('Name=0/8', 'Callback=8/8', 'Shortcut=16/8'))
+    'plugin_type6_init' = @(32, 8, @('Name=0/8', 'Callback=8/8', 'CallbackOnPopup=16/8', 'Shortcut=24/8'))
+    'plugin_type7_init' = @(8, 8, @('Callback=0/8'))
+    'plugin_type8_init' = @(8, 8, @('Callback=0/8'))
+    'register_modification_info' = @(264, 8, $registerFields)
+    'exported_functions_prefix' = @(144, 8, $prefixFields)
+    'managed_plugin_init_record' = @(36, 1, @('Name=0/8', 'GetVersion=8/8', 'EnablePlugin=16/8', 'DisablePlugin=24/8',
+        'Version=32/4'))
+    'managed_exported_functions' = @(48, 8, @('SizeOfExportedFunctions=0/4', 'GetLuaState=8/8', 'LuaRegister=16/8',
+        'LuaPushClassInstance=24/8', 'ProcessMessages=32/8', 'CheckSynchronize=40/8'))
+    'host_plugin0_selected_record' = @(48, 8, $selectedRecordFields)
+    'pascal_dword_mirror_selected_record' = @(48, 8, @('InterpretedAddress=0/8', 'Address=8/4', 'IsPointer=12/4',
+        'CountOffsets=16/4', 'Offsets=24/8', 'Description=32/8', 'ValueType=40/1', 'Size=41/1'))
+    'pascal_boolean_mirror_selected_record' = @(48, 8, @('InterpretedAddress=0/8', 'Address=8/8', 'IsPointer=16/1',
+        'CountOffsets=20/4', 'Offsets=24/8', 'Description=32/8', 'ValueType=40/1', 'Size=41/1'))
 }
 
-foreach ($layout in $layouts.GetEnumerator()) {
-    $expected["sizeof.$($layout.Key)"] = $layout.Value.ToString([Globalization.CultureInfo]::InvariantCulture)
-    $expected["alignof.$($layout.Key)"] = '8'
-}
-
-$offsets = @{
-    'plugin_version.Version' = 0
-    'plugin_version.PluginName' = 8
-    'plugin_type0_record.InterpretedAddress' = 0
-    'plugin_type0_record.Address' = 8
-    'plugin_type0_record.IsPointer' = 16
-    'plugin_type0_record.CountOffsets' = 20
-    'plugin_type0_record.Offsets' = 24
-    'plugin_type0_record.Description' = 32
-    'plugin_type0_record.ValueType' = 40
-    'plugin_type0_record.Size' = 41
-    'plugin_type0_init.Name' = 0
-    'plugin_type0_init.Callback' = 8
-    'plugin_type1_init.Name' = 0
-    'plugin_type1_init.Callback' = 8
-    'plugin_type1_init.Shortcut' = 16
-    'plugin_type2_init.Callback' = 0
-    'plugin_type3_init.Callback' = 0
-    'plugin_type4_init.Callback' = 0
-    'plugin_type5_init.Name' = 0
-    'plugin_type5_init.Callback' = 8
-    'plugin_type5_init.Shortcut' = 16
-    'plugin_type6_init.Name' = 0
-    'plugin_type6_init.Callback' = 8
-    'plugin_type6_init.CallbackOnPopup' = 16
-    'plugin_type6_init.Shortcut' = 24
-    'plugin_type7_init.Callback' = 0
-    'plugin_type8_init.Callback' = 0
-    'register_modification_info.Address' = 0
-    'register_modification_info.ChangeEax' = 8
-    'register_modification_info.ChangeR15' = 72
-    'register_modification_info.ChangeOf' = 96
-    'register_modification_info.NewEax' = 104
-    'register_modification_info.NewR15' = 232
-    'register_modification_info.NewCf' = 240
-    'register_modification_info.NewOf' = 260
-    'exported_functions_prefix.SizeOfExportedFunctions' = 0
-    'exported_functions_prefix.ShowMessage' = 8
-    'exported_functions_prefix.RegisterFunction' = 16
-    'exported_functions_prefix.UnregisterFunction' = 24
-    'exported_functions_prefix.OpenedProcessId' = 32
-    'exported_functions_prefix.OpenedProcessHandle' = 40
-    'exported_functions_prefix.GetMainWindowHandle' = 48
-    'exported_functions_prefix.AutoAssemble' = 56
-    'exported_functions_prefix.Assembler' = 64
-    'exported_functions_prefix.Disassembler' = 72
-    'exported_functions_prefix.ChangeRegistersAtAddress' = 80
-    'exported_functions_prefix.InjectDll' = 88
-    'exported_functions_prefix.FreezeMemory' = 96
-    'exported_functions_prefix.UnfreezeMemory' = 104
-    'exported_functions_prefix.FixMemory' = 112
-    'exported_functions_prefix.ProcessList' = 120
-    'exported_functions_prefix.ReloadSettings' = 128
-    'exported_functions_prefix.GetAddressFromPointer' = 136
-}
-
-foreach ($offset in $offsets.GetEnumerator()) {
-    $expected["offsetof.$($offset.Key)"] = $offset.Value.ToString([Globalization.CultureInfo]::InvariantCulture)
+foreach ($record in $records.GetEnumerator()) {
+    $size, $alignment, $fields = $record.Value
+    $expected["sizeof.$($record.Key)"] = $size.ToString($invariant)
+    $expected["alignof.$($record.Key)"] = $alignment.ToString($invariant)
+    foreach ($field in $fields) {
+        $name, $layout = $field.Split('=')
+        $fieldOffset, $fieldWidth = $layout.Split('/')
+        $expected["offsetof.$($record.Key).$name"] = $fieldOffset
+        $expected["fieldsize.$($record.Key).$name"] = $fieldWidth
+    }
 }
 
 foreach ($key in $expected.Keys) {
@@ -143,4 +127,4 @@ foreach ($key in $actual.Keys) {
     if (-not $expected.ContainsKey($key)) { throw "The ABI fixture emitted unexpected fact '$key'." }
 }
 
-Write-Host "Validated $($expected.Count) ABI fixture facts from '$FactsPath'."
+Write-Host "Validated $($expected.Count) ABI fixture facts (schema 3) from '$FactsPath'."

@@ -37,12 +37,19 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 		const string Text = """
 		                    namespace: Demo
 		                    type: T
+		                    contract: ce77
+		                    provenance: ExactInstalledFile: CE 7.7 celua.txt test fixture
+		                    minimum-ce: 7.7.0.10621
+		                    architecture: x64
+		                    thread: unknown
+		                    ownership: none
 
 		                    global: not a name
 		                    method: Bad
 		                    form: try
 		                    arg: address:address
 		                    result: value:int32
+		                    nil: none
 		                    doc: bad.
 		                    """;
 

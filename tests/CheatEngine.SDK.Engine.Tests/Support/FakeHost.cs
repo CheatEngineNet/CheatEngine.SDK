@@ -30,7 +30,7 @@ namespace CheatEngine.SDK.Engine.Tests.Support;
 ///     state lives in a Lua table stored as the userdata's user value (<c>lua_setuservalue</c>), keyed by pointer in a
 ///     registry table so that every push of the same pointer finds the same state.
 /// </remarks>
-internal static unsafe class FakeHost // NOSONAR: the fixture implements Cheat Engine's unmanaged callback ABI.
+internal static unsafe partial class FakeHost // NOSONAR: the fixture implements Cheat Engine's unmanaged callback ABI.
 {
 	// Registry keys: light userdata whose values are the addresses of these bytes (stable for the process).
 	private const int MetatableKey = 0;
@@ -327,15 +327,15 @@ internal static unsafe class FakeHost // NOSONAR: the fixture implements Cheat E
 			}
 
 			FieldInfo tableField = typeof(LuaApi).GetField("s_table", BindingFlags.Static | BindingFlags.NonPublic)
-			                       ?? throw new InvalidOperationException(
-				                       "The Lua API table was not available for probing.");
+								   ?? throw new InvalidOperationException(
+									   "The Lua API table was not available for probing.");
 			_table = tableField.GetValue(null)
-			         ?? throw new InvalidOperationException("The Lua API table was not initialized for probing.");
+					 ?? throw new InvalidOperationException("The Lua API table was not initialized for probing.");
 			_pcallField = _table.GetType().GetField("lua_pcallk", BindingFlags.Instance | BindingFlags.NonPublic)
-			              ?? throw new InvalidOperationException(
-				              "The Lua protected-call slot was not available for probing.");
+						  ?? throw new InvalidOperationException(
+							  "The Lua protected-call slot was not available for probing.");
 			s_forwardedPCall = (nint) (_pcallField.GetValue(_table)
-			                           ?? throw new InvalidOperationException("The Lua protected-call slot was null."));
+									   ?? throw new InvalidOperationException("The Lua protected-call slot was null."));
 			_pcallField.SetValue(_table,
 				(nint) (delegate* unmanaged[Cdecl]<lua_State*, int, int, int, nint, nint, int>) &ObservePCall);
 			tableField.SetValue(null, _table);
@@ -411,8 +411,8 @@ internal static unsafe class FakeHost // NOSONAR: the fixture implements Cheat E
 		{
 			PCallProbe? probe = s_activePCallProbe;
 			if (probe is not null &&
-			    (nint) lua_tocfunction(state, -argumentCount - 1) ==
-			    (nint) (delegate* unmanaged[Cdecl]<lua_State*, int>) &WaitTillDone)
+				(nint) lua_tocfunction(state, -argumentCount - 1) ==
+				(nint) (delegate* unmanaged[Cdecl]<lua_State*, int>) &WaitTillDone)
 			{
 				probe.Observe(argumentCount, resultCount);
 			}

@@ -31,14 +31,43 @@ public static class StringLists
 		LuaState state = operation.State;
 		using LuaFrame frame = new(state);
 		if (!LuaGlobalFunctions.TryPush(state, SCreateStringList, "createStringlist"u8) ||
-		    !state.TryCall(0, 1).IsOk ||
-		    !CEObject.TryRead(state, -1, out CEObject handle))
+			!state.TryCall(0, 1).IsOk ||
+			!CEObject.TryRead(state, -1, out CEObject handle))
 		{
 			list = null;
 			return false;
 		}
 
-		list = new Owned<StringList>(StringList.FromHandle(handle));
+		list = Publish(state, handle);
 		return true;
+	}
+
+	// Between the read of a caller-owned handle and the publication of its owner, the raw handle is the only authority
+	// able to destroy the object (audit A08-09). If publication throws, destroy it once, then report the failure.
+	private static Owned<StringList> Publish(LuaState state, CEObject handle)
+	{
+		try
+		{
+			return new Owned<StringList>(StringList.FromHandle(handle));
+		}
+		catch (Exception)
+		{
+			RollBack(state, handle);
+			throw;
+		}
+	}
+
+	private static void RollBack(LuaState state, CEObject handle)
+	{
+		using LuaFrame rollback = new(state);
+		try
+		{
+			_ = handle.TryDestroy(state);
+		}
+		catch (Exception)
+		{
+			// The publication failure is the primary cause; a host-object push failure here must not replace it, and the
+			// one destroy attempt is never retried.
+		}
 	}
 }

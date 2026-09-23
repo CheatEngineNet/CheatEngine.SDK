@@ -28,5 +28,14 @@ public enum TargetIdentityCheckKind : byte
 	LuaFailure = 7,
 
 	/// <summary>The target observation returned an unsupported value.</summary>
-	InvalidResult = 8
+	InvalidResult = 8,
+
+	/// <summary>Cheat Engine is connected to CEServer, so the current target has no local incarnation to compare.</summary>
+	RemoteBackend = 9,
+
+	/// <summary>The current target is a file opened as a process, which has no process incarnation.</summary>
+	FileAsProcess = 10,
+
+	/// <summary>The target backend could not be established, so no local incarnation can be compared.</summary>
+	BackendUnknown = 11
 }

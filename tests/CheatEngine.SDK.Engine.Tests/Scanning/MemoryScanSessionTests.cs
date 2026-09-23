@@ -24,6 +24,7 @@ namespace CheatEngine.SDK.Engine.Tests.Scanning;
 public sealed class MemoryScanSessionTests
 {
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void First_scan_wait_and_read_follow_the_documented_CE_sequence()
 	{
 		EngineTest.RequireNativeLua();
@@ -50,6 +51,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void Next_scan_is_rejected_until_a_first_scan_completed_and_omits_an_unspecified_optional_argument()
 	{
 		EngineTest.RequireNativeLua();
@@ -72,6 +74,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void Next_scan_passes_a_present_saved_result_name_as_the_tenth_argument()
 	{
 		EngineTest.RequireNativeLua();
@@ -100,6 +103,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void Wait_error_invalidates_the_session_so_reset_can_recover()
 	{
 		EngineTest.RequireNativeLua();
@@ -120,6 +124,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void ReleaseWithOutcome_confirms_and_consumes_the_child_before_the_parent_without_a_retry()
 	{
 		EngineTest.RequireNativeLua();
@@ -144,6 +149,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void ReleaseWithOutcome_reports_unknown_child_cleanup_and_still_attempts_the_parent_once()
 	{
 		EngineTest.RequireNativeLua();
@@ -167,6 +173,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void Dispose_after_a_detach_consumes_ownership_without_throwing_or_using_the_prior_runtime()
 	{
 		EngineTest.RequireNativeLua();
@@ -203,6 +210,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void A_large_found_list_count_is_preserved_without_widening_row_indices()
 	{
 		EngineTest.RequireNativeLua();
@@ -221,6 +229,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void A_negative_found_list_count_is_rejected_by_raw_and_session_reads()
 	{
 		EngineTest.RequireNativeLua();
@@ -239,6 +248,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void An_empty_found_list_does_not_call_address_or_value_methods_out_of_range()
 	{
 		EngineTest.RequireNativeLua();
@@ -262,6 +272,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void Wait_for_completion_requests_zero_Lua_results_from_wait_till_done()
 	{
 		EngineTest.RequireNativeLua();
@@ -282,6 +293,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void Failed_protected_scan_invalidates_the_session_until_reset_succeeds()
 	{
 		EngineTest.RequireNativeLua();
@@ -307,6 +319,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void A_main_thread_only_scan_operation_is_rejected_before_it_touches_CE()
 	{
 		EngineTest.RequireNativeLua();
@@ -324,6 +337,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void Disposal_on_a_worker_never_throws_or_retries_unsafe_child_or_parent_cleanup()
 	{
 		EngineTest.RequireNativeLua();
@@ -346,6 +360,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void Adopt_transfers_the_source_owners_and_keeps_borrowed_handle_identity()
 	{
 		EngineTest.RequireNativeLua();
@@ -366,6 +381,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q25")]
 	public void Adopt_when_session_publication_fails_keeps_the_source_owners_for_child_before_parent_cleanup()
 	{
 		EngineTest.RequireNativeLua();
@@ -391,6 +407,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void A_non_hexadecimal_address_text_is_a_stable_unexpected_host_result()
 	{
 		EngineTest.RequireNativeLua();
@@ -408,6 +425,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResults_refuses_an_insufficient_destination_before_reading_any_row()
 	{
 		EngineTest.RequireNativeLua();
@@ -431,6 +449,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResults_creates_a_complete_non_streaming_snapshot_within_the_caller_bound()
 	{
 		EngineTest.RequireNativeLua();
@@ -455,6 +474,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResults_keeps_an_empty_found_list_distinct_from_an_invalid_result()
 	{
 		EngineTest.RequireNativeLua();
@@ -478,6 +498,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResults_reports_a_malformed_row_without_publishing_a_partial_snapshot()
 	{
 		EngineTest.RequireNativeLua();
@@ -502,6 +523,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	[SuppressMessage("xUnit.Analyzers", "xUnit1051",
 		Justification = "The fixture must start with a deliberately cancelled token to prove no Lua row call begins.")]
 	public void TryCopyResults_reports_a_preexisting_cancellation_without_reading_or_publishing_rows()
@@ -531,6 +553,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResults_cancels_after_get_address_without_reading_a_value_or_publishing_a_snapshot()
 	{
 		EngineTest.RequireNativeLua();
@@ -561,6 +584,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResultsPage_copies_only_the_requested_bounded_page_without_materializing_the_full_result_set()
 	{
 		EngineTest.RequireNativeLua();
@@ -583,6 +607,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResultsPage_does_not_publish_a_prefix_when_a_page_row_is_invalid()
 	{
 		EngineTest.RequireNativeLua();
@@ -606,6 +631,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResultsPage_reports_no_results_without_touching_the_destination()
 	{
 		EngineTest.RequireNativeLua();
@@ -629,6 +655,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResultsPage_rejects_an_exact_end_start_without_reading_a_row()
 	{
 		EngineTest.RequireNativeLua();
@@ -652,6 +679,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResultsPage_rejects_zero_capacity_without_reading_a_row()
 	{
 		EngineTest.RequireNativeLua();
@@ -672,6 +700,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryCopyResultsPage_rejects_a_negative_start_before_reading_the_count()
 	{
 		EngineTest.RequireNativeLua();
@@ -694,6 +723,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	[SuppressMessage("xUnit.Analyzers", "xUnit1051",
 		Justification = "The fixture starts with a deliberately cancelled token to prove no paged-row call begins.")]
 	public void TryCopyResultsPage_does_not_publish_a_prefix_when_cancellation_precedes_the_page()
@@ -722,6 +752,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	[SuppressMessage("xUnit.Analyzers", "xUnit1051",
 		Justification = "The fixture must start with a deliberately cancelled token to prove no CE scan call begins.")]
 	public void A_cancellable_first_scan_honors_preexisting_cancellation_without_claiming_to_interrupt_CE()
@@ -742,6 +773,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void A_cancellable_wait_records_post_call_cancellation_without_falsely_claiming_to_interrupt_CE()
 	{
 		EngineTest.RequireNativeLua();
@@ -762,6 +794,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void A_session_refuses_scan_work_when_the_original_target_is_no_longer_selected()
 	{
 		EngineTest.RequireNativeLua();
@@ -783,6 +816,7 @@ public sealed class MemoryScanSessionTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q26")]
 	public void ReleaseWithOutcome_refuses_cleanup_on_a_replaced_target_and_consumes_both_owners()
 	{
 		EngineTest.RequireNativeLua();
@@ -837,8 +871,9 @@ public sealed class MemoryScanSessionTests
 	private static void InstallCurrentTarget(LuaState state)
 	{
 		EngineTest.Run(state, Encoding.UTF8.GetBytes("opened_process_id = " +
-		                                             Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
-		                                             "; function getOpenedProcessID() return opened_process_id end"));
+													 Environment.ProcessId.ToString(CultureInfo.InvariantCulture) +
+													 "; function getOpenedProcessID() return opened_process_id end"));
+		EngineTest.Run(state, FakeHost.LocalTargetBackendChunk);
 	}
 
 	private static string ScanInitializer(bool firstScanRaises, bool waitRaises)
@@ -860,14 +895,14 @@ public sealed class MemoryScanSessionTests
 		string firstAddress = invalidAddress ? "'not-an-address'" : "'00001234'";
 		string destroyFailure = destroyRaises ? "; error('found-list destroy rejected')" : string.Empty;
 		return "o.props.initialize = function() table.insert(trace, 'list.initialize') end\n" +
-		       "o.props.deinitialize = function() table.insert(trace, 'list.deinitialize') end\n" +
-		       "o.props.Count = " + resultCountLiteral + "\n" +
-		       "o.props.getCount = function() table.insert(trace, 'results.getCount'); return o.props.Count end\n" +
-		       "o.props.getAddress = function(index) table.insert(trace, 'results.getAddress:' .. index); if index == 0 then return " +
-		       firstAddress + " end; return 'FFFFFFFFFFFFFFFF' end\n" +
-		       "o.props.getValue = function(index) table.insert(trace, 'results.getValue:' .. index); return '100' end\n" +
-		       "o.getters.destroy = function(o) return function() o.destroyed = true; table.insert(trace, 'list.destroy')" +
-		       destroyFailure + " end end";
+			   "o.props.deinitialize = function() table.insert(trace, 'list.deinitialize') end\n" +
+			   "o.props.Count = " + resultCountLiteral + "\n" +
+			   "o.props.getCount = function() table.insert(trace, 'results.getCount'); return o.props.Count end\n" +
+			   "o.props.getAddress = function(index) table.insert(trace, 'results.getAddress:' .. index); if index == 0 then return " +
+			   firstAddress + " end; return 'FFFFFFFFFFFFFFFF' end\n" +
+			   "o.props.getValue = function(index) table.insert(trace, 'results.getValue:' .. index); return '100' end\n" +
+			   "o.getters.destroy = function(o) return function() o.destroyed = true; table.insert(trace, 'list.destroy')" +
+			   destroyFailure + " end end";
 	}
 
 	private static string ReadTrace(LuaState state)

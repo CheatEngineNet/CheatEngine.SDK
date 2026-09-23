@@ -7,8 +7,15 @@ namespace CheatEngine.SDK.Engine.Processes;
 
 /// <summary>A compact, allocation-free status for one runtime process operation.</summary>
 /// <remarks>
-///     <see cref="LuaStatus" /> is meaningful only for <see cref="ProcessOperationStatusKind.ProtectedLuaFailure" />.
-///     The status never copies a Lua error object or localized message from the transient Lua stack.
+///     <para>
+///         <see cref="LuaStatus" /> is meaningful only for <see cref="ProcessOperationStatusKind.ProtectedLuaFailure" />.
+///         The status never copies a Lua error object or localized message from the transient Lua stack.
+///     </para>
+///     <para>
+///         <c>default(ProcessOperationStatus)</c> has the kind <see cref="ProcessOperationStatusKind.Unknown" />, so
+///         <see cref="IsSuccess" /> is <see langword="false" /> for a status that no operation assigned. Only
+///         <see cref="Success" /> reports success.
+///     </para>
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct ProcessOperationStatus : IEquatable<ProcessOperationStatus>
@@ -32,7 +39,7 @@ public readonly struct ProcessOperationStatus : IEquatable<ProcessOperationStatu
 	}
 
 	/// <summary>Gets a successful status.</summary>
-	public static ProcessOperationStatus Success => default;
+	public static ProcessOperationStatus Success => new(ProcessOperationStatusKind.Success, LuaStatus.Ok);
 
 	/// <summary>Gets a status for a target that is not currently selected.</summary>
 	public static ProcessOperationStatus TargetNotAttached =>
@@ -48,6 +55,16 @@ public readonly struct ProcessOperationStatus : IEquatable<ProcessOperationStatu
 
 	/// <summary>Gets a status for a result outside the documented process-observation shape.</summary>
 	public static ProcessOperationStatus InvalidResult => new(ProcessOperationStatusKind.InvalidResult, LuaStatus.Ok);
+
+	/// <summary>
+	///     Gets a status for a selected process identifier that differed between the two reads bracketing an
+	///     observation.
+	/// </summary>
+	public static ProcessOperationStatus TargetChanged => new(ProcessOperationStatusKind.TargetChanged, LuaStatus.Ok);
+
+	/// <summary>Gets a status for Cheat Engine's file-as-process sentinel identifier (4294967295).</summary>
+	public static ProcessOperationStatus FileAsProcessTarget =>
+		new(ProcessOperationStatusKind.FileAsProcessTarget, LuaStatus.Ok);
 
 	/// <summary>Creates a status for a protected Lua failure.</summary>
 	/// <param name="luaStatus">The non-success protected Lua status.</param>

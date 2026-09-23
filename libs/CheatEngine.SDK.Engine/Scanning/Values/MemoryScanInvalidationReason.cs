@@ -16,5 +16,13 @@ public enum MemoryScanInvalidationReason : byte
 	TargetChanged = 3,
 
 	/// <summary>The observed target reused the original process identifier with a different start time.</summary>
-	TargetProcessReused = 4
+	TargetProcessReused = 4,
+
+	/// <summary>
+	///     The caller asked the session to stop its running scan; the scan's results are never exposed. The termination
+	///     status that the request returned tells whether CE was asked at all
+	///     (<see cref="MemoryScanTerminationStatus.NotInvoked" /> when the session's context was refused and no CE call was
+	///     made) and whether a cooperative stop was confirmed.
+	/// </summary>
+	ScanTerminated = 5
 }

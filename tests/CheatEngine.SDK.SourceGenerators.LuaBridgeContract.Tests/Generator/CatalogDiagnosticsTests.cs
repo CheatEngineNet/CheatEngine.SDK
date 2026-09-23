@@ -14,7 +14,7 @@ public sealed class CatalogDiagnosticsTests
 	{
 		string text = CatalogSources.ReverseOpcodeOrder.Replace("0x0000000000000401", "0x0000000000000001",
 			StringComparison.Ordinal);
-		const string Path = "eng/lua-bridge/protected-operations.json";
+		const string Path = "libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json";
 		GeneratorRun run = RoslynFixture.Run(Path, text);
 
 		Assert.Empty(run.GeneratedSources);
@@ -34,7 +34,7 @@ public sealed class CatalogDiagnosticsTests
 		string text = CatalogSources.ReverseOpcodeOrder
 			.Replace("\"opcode\": 10", "\"opcode\": 0", StringComparison.Ordinal)
 			.Replace("0x0000000000000401", "0x0000000000000001", StringComparison.Ordinal);
-		GeneratorRun run = RoslynFixture.Run("eng/lua-bridge/protected-operations.json", text);
+		GeneratorRun run = RoslynFixture.Run("libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json", text);
 
 		Assert.Empty(run.GeneratedSources);
 		Assert.Equal(2, run.GeneratorDiagnostics.Length);
@@ -75,22 +75,22 @@ public sealed class CatalogDiagnosticsTests
 		Assert.Equal(3, run.GeneratorDiagnostics.Length);
 		Assert.Contains(run.GeneratorDiagnostics,
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK4001", StringComparison.Ordinal)
-			                     && string.Equals(diagnostic.Location.GetLineSpan().Path, InvalidPath,
-				                     StringComparison.Ordinal));
+								 && string.Equals(diagnostic.Location.GetLineSpan().Path, InvalidPath,
+									 StringComparison.Ordinal));
 		Assert.Contains(run.GeneratorDiagnostics,
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK4002", StringComparison.Ordinal)
-			                     && string.Equals(diagnostic.Location.GetLineSpan().Path, ValidPath,
-				                     StringComparison.Ordinal));
+								 && string.Equals(diagnostic.Location.GetLineSpan().Path, ValidPath,
+									 StringComparison.Ordinal));
 		Assert.Contains(run.GeneratorDiagnostics,
 			static diagnostic => string.Equals(diagnostic.Id, "CESDK4002", StringComparison.Ordinal)
-			                     && string.Equals(diagnostic.Location.GetLineSpan().Path, InvalidPath,
-				                     StringComparison.Ordinal));
+								 && string.Equals(diagnostic.Location.GetLineSpan().Path, InvalidPath,
+									 StringComparison.Ordinal));
 	}
 
 	[Fact]
 	public void Malformed_json_reports_the_additional_file_and_emits_nothing()
 	{
-		const string Path = "eng/lua-bridge/protected-operations.json";
+		const string Path = "libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json";
 		GeneratorRun run = RoslynFixture.Run(Path, "{ \"schemaVersion\":");
 
 		Assert.Empty(run.GeneratedSources);
@@ -103,7 +103,7 @@ public sealed class CatalogDiagnosticsTests
 	[Fact]
 	public void A_duplicate_json_property_reports_the_second_property_and_emits_nothing()
 	{
-		const string Path = "eng/lua-bridge/protected-operations.json";
+		const string Path = "libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json";
 		const string Text = "{\n  \"schemaVersion\": 1,\n  \"schemaVersion\": 1\n}";
 		GeneratorRun run = RoslynFixture.Run(Path, Text);
 

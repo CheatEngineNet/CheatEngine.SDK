@@ -15,7 +15,12 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         byte (<i>inferred</i> from the compiler mode the unit selects), which is harmless because the value only ever
 ///         travels by value in a register or a full stack slot, never inside a structure.
 ///     </para>
-///     <para>Native (Native AOT) load path only. A managed plugin has no <c>RegisterFunction</c> slot.</para>
+///     <para>
+///         Classic native load path only; not a supported CheatEngine.SDK profile (a NativeAOT plugin DLL cannot be
+///         unloaded by Cheat Engine, see <c>libs/CheatEngine.SDK.Abi/README.md</c>). A managed plugin has no
+///         <c>RegisterFunction</c> slot. The registry's <c>callbackCategories</c> keep values, contexts and host forms of
+///         all nine members in lockstep with this enumeration.
+///     </para>
 /// </remarks>
 public enum PluginType
 {

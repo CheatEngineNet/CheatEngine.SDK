@@ -1,16 +1,28 @@
 // SPDX-License-Identifier: MIT
 //
-// Minimal, header-derived classic-plugin ABI contract for an x64 fixture.
+// Minimal classic- and managed-plugin ABI contract for an x64 fixture, transcribed
+// from pinned Cheat Engine sources (names, types and line ranges only).
 //
 // Provenance (do not replace this with a locally installed header):
 //   Cheat Engine upstream commit ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37
-//   Cheat Engine/plugin/cepluginsdk.h, lines 15-160, 163-180 and 271-456
-//   https://github.com/cheat-engine/cheat-engine/blob/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37/Cheat%20Engine/plugin/cepluginsdk.h
+//   Cheat Engine/plugin/cepluginsdk.h (SHA-256 b6500df1e94d7bb011b38e173b2603197b7a1f304496d751ede82e57e36e532f),
+//     lines 15-160, 163-180 and 271-456: PluginVersion, PLUGINTYPE0_RECORD, the nine init records,
+//     REGISTERMODIFICATIONINFO, the physical ExportedFunctions prefix and the three exports.
+//   Cheat Engine/plugin.pas (SHA-256 358f51a39ad14d00ecba3c9137f440152d4ab85f1d2498068fa81fca906d09db), the host
+//     authority: TPluginDotNetInitResult (packed record, lines 29-36) -> CE77ManagedPluginInitRecord,
+//     TExportedFunctionsDotNetV1 (lines 38-45) -> CE77ManagedExportedFunctions, TPlugin0_SelectedRecord (lines
+//     726-735) -> CE77HostPlugin0SelectedRecord.
+//   Cheat Engine/plugin/cepluginsdk.pas (SHA-256 cda5269f441120e5a3bff2f87e289cd71de9158ca2a619c7d0a734eb98ee6052),
+//     the Pascal kit mirror ({$MODE Delphi}, line 3; natural alignment deduced): TPlugin0_SelectedRecord (lines
+//     161-170, address: dword) -> CE77PascalDwordMirrorSelectedRecord and TSelectedRecord (lines 147-156,
+//     ispointer: boolean) -> CE77PascalBooleanMirrorSelectedRecord. Both mirrors are known-wrong for x64 and are
+//     transcribed only as negative oracles.
+//   https://github.com/cheat-engine/cheat-engine/tree/ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37
 //
-// This is intentionally not a vendored copy of cepluginsdk.h.  It carries only
-// the declarations that the fixture measures.  The fixture is an x64 MSVC
-// build; Windows SDK headers supply no CE declarations and no CE installation
-// is consulted.
+// This is intentionally not a vendored copy of any of those files.  It carries only
+// the declarations that the fixture measures, with the C# field names of
+// CheatEngine.SDK.Abi.  The fixture is an x64 MSVC build; Windows SDK headers
+// supply no CE declarations and no CE installation is consulted.
 
 #pragma once
 
@@ -21,9 +33,11 @@
 #error The CE 7.7 fixture is deliberately Windows x64 only.
 #endif
 
-#define CE77_ABI_FIXTURE_SCHEMA_VERSION 2
+#define CE77_ABI_FIXTURE_SCHEMA_VERSION 3
 #define CE77_UPSTREAM_COMMIT "ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37"
 #define CE77_CEPLUGINSDK_PATH "Cheat Engine/plugin/cepluginsdk.h"
+#define CE77_PLUGIN_PAS_PATH "Cheat Engine/plugin.pas"
+#define CE77_CEPLUGINSDK_PAS_PATH "Cheat Engine/plugin/cepluginsdk.pas"
 
 typedef int32_t CE77_BOOL;
 typedef uint32_t CE77_ULONG;
@@ -71,6 +85,73 @@ typedef struct CE77PluginType0Record
     char ValueType;
     char Size;
 } CE77PluginType0Record;
+
+// Host type actually passed to a type-0 callback (plugin.pas lines 726-735):
+// address is ptrUint, ispointer is the four-byte BOOL. Same layout as the C header.
+typedef struct CE77HostPlugin0SelectedRecord
+{
+    char* InterpretedAddress;
+    uintptr_t Address;
+    int32_t IsPointer;
+    int32_t CountOffsets;
+    uint32_t* Offsets;
+    char* Description;
+    uint8_t ValueType;
+    uint8_t Size;
+} CE77HostPlugin0SelectedRecord;
+
+// Pascal kit mirror TPlugin0_SelectedRecord (cepluginsdk.pas lines 161-170):
+// address is a 32-bit dword, so every later field up to countoffsets moves.
+typedef struct CE77PascalDwordMirrorSelectedRecord
+{
+    char* InterpretedAddress;
+    uint32_t Address;
+    int32_t IsPointer;
+    int32_t CountOffsets;
+    uint32_t* Offsets;
+    char* Description;
+    uint8_t ValueType;
+    uint8_t Size;
+} CE77PascalDwordMirrorSelectedRecord;
+
+// Pascal kit mirror TSelectedRecord (cepluginsdk.pas lines 147-156):
+// ispointer is a one-byte Pascal boolean; the offsets match the host type.
+typedef struct CE77PascalBooleanMirrorSelectedRecord
+{
+    char* InterpretedAddress;
+    uintptr_t Address;
+    uint8_t IsPointer;
+    int32_t CountOffsets;
+    uint32_t* Offsets;
+    char* Description;
+    uint8_t ValueType;
+    uint8_t Size;
+} CE77PascalBooleanMirrorSelectedRecord;
+
+// Managed bootstrap record TPluginDotNetInitResult (plugin.pas lines 29-36, a
+// packed record): 36 bytes, byte alignment. A naturally aligned copy is 40.
+#pragma pack(push, 1)
+typedef struct CE77ManagedPluginInitRecord
+{
+    char* Name;
+    void* GetVersion;
+    void* EnablePlugin;
+    void* DisablePlugin;
+    uint32_t Version;
+} CE77ManagedPluginInitRecord;
+#pragma pack(pop)
+
+// Managed services table TExportedFunctionsDotNetV1 (plugin.pas lines 38-45):
+// one integer followed by five pointers, natural alignment, 48 bytes.
+typedef struct CE77ManagedExportedFunctions
+{
+    int32_t SizeOfExportedFunctions;
+    void* GetLuaState;
+    void* LuaRegister;
+    void* LuaPushClassInstance;
+    void* ProcessMessages;
+    void* CheckSynchronize;
+} CE77ManagedExportedFunctions;
 
 typedef CE77_BOOL(CE77_STDCALL* CE77PluginType0Callback)(CE77PluginType0Record* selectedRecord);
 typedef CE77_BOOL(CE77_STDCALL* CE77PluginType1Callback)(CE77_UINT_PTR* disassemblerAddress,
@@ -264,6 +345,39 @@ static_assert(offsetof(CE77PluginType0Record, Offsets) == 24);
 static_assert(offsetof(CE77PluginType0Record, Description) == 32);
 static_assert(offsetof(CE77PluginType0Record, ValueType) == 40);
 static_assert(offsetof(CE77PluginType0Record, Size) == 41);
+
+static_assert(sizeof(CE77HostPlugin0SelectedRecord) == 48);
+static_assert(alignof(CE77HostPlugin0SelectedRecord) == 8);
+static_assert(offsetof(CE77HostPlugin0SelectedRecord, Address) == 8);
+static_assert(offsetof(CE77HostPlugin0SelectedRecord, IsPointer) == 16);
+static_assert(offsetof(CE77HostPlugin0SelectedRecord, CountOffsets) == 20);
+static_assert(offsetof(CE77HostPlugin0SelectedRecord, Offsets) == 24);
+static_assert(offsetof(CE77HostPlugin0SelectedRecord, ValueType) == 40);
+static_assert(sizeof(CE77PascalDwordMirrorSelectedRecord) == 48);
+static_assert(offsetof(CE77PascalDwordMirrorSelectedRecord, Address) == 8);
+static_assert(offsetof(CE77PascalDwordMirrorSelectedRecord, IsPointer) == 12);
+static_assert(offsetof(CE77PascalDwordMirrorSelectedRecord, CountOffsets) == 16);
+static_assert(offsetof(CE77PascalDwordMirrorSelectedRecord, Offsets) == 24);
+static_assert(sizeof(CE77PascalBooleanMirrorSelectedRecord) == 48);
+static_assert(offsetof(CE77PascalBooleanMirrorSelectedRecord, IsPointer) == 16);
+static_assert(sizeof(((CE77PascalBooleanMirrorSelectedRecord*)0)->IsPointer) == 1);
+static_assert(offsetof(CE77PascalBooleanMirrorSelectedRecord, CountOffsets) == 20);
+
+static_assert(sizeof(CE77ManagedPluginInitRecord) == 36);
+static_assert(alignof(CE77ManagedPluginInitRecord) == 1);
+static_assert(offsetof(CE77ManagedPluginInitRecord, Name) == 0);
+static_assert(offsetof(CE77ManagedPluginInitRecord, GetVersion) == 8);
+static_assert(offsetof(CE77ManagedPluginInitRecord, EnablePlugin) == 16);
+static_assert(offsetof(CE77ManagedPluginInitRecord, DisablePlugin) == 24);
+static_assert(offsetof(CE77ManagedPluginInitRecord, Version) == 32);
+static_assert(sizeof(CE77ManagedExportedFunctions) == 48);
+static_assert(alignof(CE77ManagedExportedFunctions) == 8);
+static_assert(offsetof(CE77ManagedExportedFunctions, SizeOfExportedFunctions) == 0);
+static_assert(offsetof(CE77ManagedExportedFunctions, GetLuaState) == 8);
+static_assert(offsetof(CE77ManagedExportedFunctions, LuaRegister) == 16);
+static_assert(offsetof(CE77ManagedExportedFunctions, LuaPushClassInstance) == 24);
+static_assert(offsetof(CE77ManagedExportedFunctions, ProcessMessages) == 32);
+static_assert(offsetof(CE77ManagedExportedFunctions, CheckSynchronize) == 40);
 
 static_assert(sizeof(CE77PluginType0Init) == 16);
 static_assert(alignof(CE77PluginType0Init) == 8);

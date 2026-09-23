@@ -103,6 +103,12 @@ public static unsafe partial class PluginHost
 	internal static CheatEnginePlugin? PluginForTests => Volatile.Read(ref s_plugin);
 
 	/// <summary>
+	///     Whether the calling thread currently holds the factory-registration gate. Tests only: a sink observing this
+	///     from inside a log entry proves a rejection was logged after the gate was released (WI-6).
+	/// </summary>
+	internal static bool IsRegistrationGateHeldByCurrentThreadForTesting => SGate.IsHeldByCurrentThread;
+
+	/// <summary>
 	///     Admits one synchronous main-thread dispatch associated with <paramref name="context" />.
 	/// </summary>
 	/// <remarks>
@@ -118,8 +124,8 @@ public static unsafe partial class PluginHost
 		lock (SAdmissionGate)
 		{
 			if (Phase is not PluginHostLifecyclePhase.Enabled ||
-			    !ReferenceEquals(context, Volatile.Read(ref s_context)) ||
-			    Volatile.Read(ref s_acceptingMainThreadWork) == 0)
+				!ReferenceEquals(context, Volatile.Read(ref s_context)) ||
+				Volatile.Read(ref s_acceptingMainThreadWork) == 0)
 			{
 				throw new InvalidOperationException(
 					"The plugin is stopping or disabled and no longer accepts new main-thread dispatch work.");
@@ -210,10 +216,15 @@ public static unsafe partial class PluginHost
 	private static bool TryRegisterFactory<TFactory>(out byte* name)
 		where TFactory : IPluginFactory
 	{
+		// The rejection message is only captured under SGate; it is logged after the lock is released (WI-6 /
+		// A02-11-adjacent hardening) so that a sink re-entering a lifecycle path during this call never runs while
+		// SGate is held.
+		string? rejectionMessage = null;
+		bool registered;
 		lock (SGate)
 		{
-			PluginDescriptor? registered = s_descriptor;
-			if (registered is null)
+			PluginDescriptor? currentDescriptor = s_descriptor;
+			if (currentDescriptor is null)
 			{
 				name = AnsiNameBuffer.Allocate(TFactory.Utf8Name);
 				s_name = name;
@@ -222,19 +233,28 @@ public static unsafe partial class PluginHost
 				return true;
 			}
 
-			if (registered.FactoryType != typeof(TFactory))
+			if (currentDescriptor.FactoryType != typeof(TFactory))
 			{
-				HostLog.Error(
-					"InitializeManaged: a plugin factory of type " + registered.FactoryType +
+				rejectionMessage =
+					"InitializeManaged: a plugin factory of type " + currentDescriptor.FactoryType +
 					" is already registered in this Hosting assembly instance; "
-					+ typeof(TFactory) + " is rejected. One plugin per loaded Hosting assembly instance.");
+					+ typeof(TFactory) + " is rejected. One plugin per loaded Hosting assembly instance.";
 				name = null;
-				return false;
+				registered = false;
 			}
-
-			name = s_name;
-			return true;
+			else
+			{
+				name = s_name;
+				registered = true;
+			}
 		}
+
+		if (rejectionMessage is not null)
+		{
+			HostLog.Error(rejectionMessage);
+		}
+
+		return registered;
 	}
 
 	/// <summary>The current context, or an exception for code that cannot proceed without one.</summary>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Repository policy tests. They only read committed files (solution, workflows, Dependabot configuration, issue
+    forms) and never build, pack or restore, so every change can run them in seconds. Deliberately no ProjectReference.
+    The one exception is one Governance/ test, which starts pwsh to run the dependency-submission workflow's own
+    "submit" step text against a mocked gh, offline.
+  -->
+
+  <ItemGroup>
+    <Using Include="System.Xml.Linq"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Workflows/: parses .github/workflows/*.yml and the composite actions.
+      Governance/ reads workflows, the Dependabot configuration and issue forms with the representation model.
+    -->
+    <PackageReference Include="YamlDotNet"/>
+  </ItemGroup>
+
+</Project>

@@ -312,8 +312,8 @@ public static class CEEnumNames
 	public static bool TryParseCEName(ReadOnlySpan<byte> ceName, out MemoryProtection value)
 	{
 		for (MemoryProtection candidate = MemoryProtection.ReadOnly;
-		     candidate <= MemoryProtection.ExecuteWriteCopy;
-		     candidate = (MemoryProtection) ((uint) candidate << 1))
+			 candidate <= MemoryProtection.ExecuteWriteCopy;
+			 candidate = (MemoryProtection) ((uint) candidate << 1))
 		{
 			if (ceName.SequenceEqual(candidate.ToCEName()))
 			{

@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using CheatEngine.SDK.Abi;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Context;
+using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Plugin;
 using CheatEngine.SDK.Hosting.Threading;
 using CheatEngine.SDK.Lua.Callbacks;
@@ -81,6 +82,16 @@ internal sealed unsafe class RecordingPlugin : CheatEnginePlugin
 
 	/// <summary>A lifecycle call to make from inside <see cref="OnDisable" />; null for none. Runs once, then clears itself.</summary>
 	public static Func<Bool32>? NestedCallInOnDisable
+	{
+		get;
+		set;
+	}
+
+	/// <summary>
+	///     Arbitrary test code to run from inside <see cref="OnEnable" />, after the first Lua operation of the enable
+	///     (so the runtime is attached and stamped); null for none. Runs once, then clears itself.
+	/// </summary>
+	public static Action? ActionInOnEnable
 	{
 		get;
 		set;
@@ -220,6 +231,7 @@ internal sealed unsafe class RecordingPlugin : CheatEnginePlugin
 		ContinueOnEnable = null;
 		NestedCallInOnEnable = null;
 		NestedCallInOnDisable = null;
+		ActionInOnEnable = null;
 		ConstructorCalls = 0;
 		RuntimeAttachedInConstructor = false;
 		HostEnabledInConstructor = false;
@@ -247,18 +259,25 @@ internal sealed unsafe class RecordingPlugin : CheatEnginePlugin
 			}
 		}
 
+		Action? actionInOnEnable = ActionInOnEnable;
+		if (actionInOnEnable is not null)
+		{
+			ActionInOnEnable = null;
+			actionInOnEnable();
+		}
+
 		if (CreateCallbacksInOnEnable)
 		{
 			if (!LuaCallback.TryCreate(L, new LuaNativeFunction(&NoOpThunk), new object(),
-				    out LuaCallback<object>? first).IsOk
-			    || first is null)
+					out LuaCallback<object>? first).IsOk
+				|| first is null)
 			{
 				throw new InvalidOperationException("first callback creation failed");
 			}
 
 			if (!LuaCallback.TryCreate(L, new LuaNativeFunction(&NoOpThunk), new object(),
-				    out LuaCallback<object>? second).IsOk
-			    || second is null)
+					out LuaCallback<object>? second).IsOk
+				|| second is null)
 			{
 				throw new InvalidOperationException("second callback creation failed");
 			}
@@ -287,6 +306,9 @@ internal sealed unsafe class RecordingPlugin : CheatEnginePlugin
 		DisableCalls++;
 		RuntimeAttachedInOnDisable = LuaRuntime.IsAttached;
 		HostEnabledInOnDisable = PluginHost.IsEnabled;
+		// A stable, deliberately logged marker: a test's log sink can react to it to observe exactly this point in
+		// the disable transition (operation admission already closed, OnDisable still running).
+		HostLog.Trace("RecordingPlugin.OnDisable observed");
 
 		Func<Bool32>? nested = NestedCallInOnDisable;
 		if (nested is not null)

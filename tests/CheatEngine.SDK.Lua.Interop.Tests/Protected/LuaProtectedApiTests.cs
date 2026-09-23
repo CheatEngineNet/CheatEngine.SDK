@@ -196,6 +196,7 @@ public sealed unsafe class LuaProtectedApiTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q13")]
 	public void Push_private_reference_without_its_table_returns_an_error_and_preserves_the_caller_stack()
 	{
 		LuaTest.RequireNativeLua();

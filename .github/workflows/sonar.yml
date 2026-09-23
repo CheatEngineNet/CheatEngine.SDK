@@ -1,7 +1,9 @@
 name: Sonar
 
-# Reusable SonarQube Cloud analysis, called by ci.yml after build-test. It reuses the coverage and nuget-package
-# artifacts of the same run; only the instrumented build is repeated, because the scanner must observe a compilation.
+# Reusable SonarQube Cloud analysis, called by ci.yml after build-test when SONAR_EXPECTED is true; the gate then
+# requires it to succeed. It reuses the coverage and nuget-package artifacts of the same run; only the instrumented build
+# is repeated, because the scanner must observe a compilation. No binary log is kept here: it would record the scanner
+# environment. New Code of non-main branches is measured against the reference branch main (a SonarQube Cloud setting).
 
 on:
   workflow_call:
@@ -15,7 +17,7 @@ on:
         type: string
         default: cheatenginenet
       wait-quality-gate:
-        description: Fail the job when the quality gate fails. Pull requests wait for it; main only reports it.
+        description: Fail the job when the quality gate fails. Every event but push waits for it; main pushes only report it.
         type: boolean
         default: true
     secrets:
@@ -36,7 +38,7 @@ defaults:
 jobs:
   analyze:
     name: Analyze
-    runs-on: windows-latest
+    runs-on: windows-2025
     timeout-minutes: 30
     env:
       SONAR_PROJECT_KEY: ${{ inputs.project-key }}
@@ -68,7 +70,7 @@ jobs:
           distribution: zulu
           java-version: '21'
 
-      # SDK and CLI settings only: the restore below must not use the checked-out nuget.config.
+      # SDK and CLI settings only: the restore below must not use the checked-out nuget.config. No package cache.
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
 
@@ -103,14 +105,15 @@ jobs:
           "path=$path" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       # Restore before scanner begin: the subsequent analysis build is --no-restore, so no PR-supplied source can
-      # participate while scanner credentials are configured.
+      # participate while scanner credentials are configured. Locked mode: exactly the packages of the committed lock
+      # files, from nuget.org only.
       - name: Restore from NuGet.org
         env:
           NUGET_CONFIG: ${{ steps.nuget-config.outputs.path }}
         run: |
-          dotnet restore CheatEngine.SDK.slnx --configfile $env:NUGET_CONFIG
+          dotnet restore CheatEngine.SDK.slnx --configfile $env:NUGET_CONFIG --locked-mode
           if ($LASTEXITCODE -ne 0) {
-            throw "Sonar restore failed with exit code $LASTEXITCODE."
+            throw "Sonar restore failed with exit code $LASTEXITCODE. If a dependency changed, regenerate CheatEngine.SDK.slnx's lock file with a forced re-evaluation restore."
           }
 
       - name: Install scanner
@@ -134,8 +137,8 @@ jobs:
             Write-Host '::error::The coverage artifact holds no report.'
             exit 1
           }
-          # The new-code period follows sonar.projectVersion. The core version of the package built in this run (1.0.1
-          # for 1.0.1-alpha.0.37) changes only at a release, so new code on main means changes since the last release.
+          # sonar.projectVersion is the core version of the package built in this run (2.0.0 for 2.0.0-alpha.0.37),
+          # which changes only at a release.
           $packages = @(Get-ChildItem -Path "$env:RUNNER_TEMP/package" -Filter 'CheatEngine.SDK.*.nupkg' -File)
           if ($packages.Count -ne 1 -or $packages[0].Name -notmatch '^CheatEngine\.SDK\.(?<version>\d+\.\d+\.\d+)') {
             Write-Host '::error::The nuget-package artifact must hold exactly one CheatEngine.SDK package.'
@@ -178,10 +181,12 @@ jobs:
             "/k:$env:SONAR_PROJECT_KEY"
             "/o:$env:SONAR_ORGANIZATION"
             "/v:$version"
-            '/d:sonar.exclusions=artifacts/**,tests/CheatEngine.SDK.Benchmarks/**,tests/CheatEngine.SDK.LivePlugin/**'
+            # Not analysed: build output, harnesses that are not product or test code, catalogue tooling and docs.
+            # Tests stay analysed (the tests/** issue ignores above exist for them) but never count for coverage.
+            '/d:sonar.exclusions=artifacts/**,tests/CheatEngine.SDK.Benchmarks/**,tests/CheatEngine.SDK.LivePlugin/**,tests/CheatEngine.SDK.QualificationTarget/**,tests/native-host-emulator/**,eng/tools/**,docs/**'
             # CI publishes managed coverage only. Keep build-time tooling and test-only sources out of the product
             # coverage metric instead of presenting an incomplete report as if it covered those paths.
-            '/d:sonar.coverage.exclusions=tests/**,eng/**'
+            '/d:sonar.coverage.exclusions=tests/**,eng/**,docs/**'
             "/d:sonar.issue.ignore.multicriteria=$(($ignoredIssues.Key) -join ',')"
             "/d:sonar.cs.vscoveragexml.reportsPaths=$coverage/**/*.xml"
             "/d:sonar.qualitygate.wait=$env:SONAR_WAIT_QUALITY_GATE"
@@ -212,3 +217,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "SonarScanner end failed with exit code $LASTEXITCODE."
           }
+
+      # Also after a failed quality gate: the summary links the analysis of this pull request or branch.
+      - name: Link the analysis
+        if: ${{ !cancelled() }}
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          $scope = if ($env:PULL_REQUEST) { "pullRequest=$env:PULL_REQUEST" } else { "branch=$([Uri]::EscapeDataString($env:BRANCH))" }
+          $link = "https://sonarcloud.io/summary/new_code?id=$([Uri]::EscapeDataString($env:SONAR_PROJECT_KEY))&$scope"
+          @('### Sonar', '', "[SonarQube Cloud analysis of $env:SONAR_PROJECT_KEY]($link)") |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

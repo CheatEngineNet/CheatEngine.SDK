@@ -14,13 +14,56 @@
 
   <PropertyGroup Label="Quality gates">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!--
+      Pinned so a newer SDK band cannot add CA/IDE errors; raise together with global.json. 'latest' would follow the
+      SDK's own notion of the newest level, which is exactly what rollForward: disable is meant to freeze. CESDK9004
+      (Directory.Build.targets) fails a project or command line that overrides the pin.
+    -->
+    <_CheatEngineSdkPinnedAnalysisLevel>10.0-recommended</_CheatEngineSdkPinnedAnalysisLevel>
+    <AnalysisLevel>$(_CheatEngineSdkPinnedAnalysisLevel)</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <!-- CS1591 makes undocumented public API an error, and IDE0005 only fails the build when a documentation file exists. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!--
+    NuGet audit policy, the documented "dedicated audit pipeline" pattern:
+    https://learn.microsoft.com/nuget/concepts/auditing-packages#running-nuget-audit-in-ci
+    - Ordinary builds: high (NU1903) and critical (NU1904) advisories fail restore, even where TreatWarningsAsErrors is
+      off. Low (NU1901) and moderate (NU1902) advisories and audit-source trouble (NU1900, NU1905) are reported but do not
+      block, so an advisory published overnight does not turn every required check red without a commit.
+    - Dedicated audit run (restore -p:AuditPipeline=true): every audit code is an error. Not currently wired to any
+      workflow; run it by hand or from a future scheduled job.
+    CESDK9009 (Directory.Build.targets) fails a project that weakens any of this. Suppressions (NuGetAuditSuppress) are
+    declared only below, each with Justification and Expires metadata.
+  -->
+  <PropertyGroup Label="NuGet audit">
+    <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>
-    <!-- Feed/audit service availability is non-blocking; reported vulnerabilities remain build errors. -->
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900;NU1905</WarningsNotAsErrors>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <_CheatEngineSdkNuGetAuditCodes>NU1900;NU1901;NU1902;NU1903;NU1904;NU1905</_CheatEngineSdkNuGetAuditCodes>
+    <_CheatEngineSdkNuGetAuditBlockingCodes>NU1903;NU1904</_CheatEngineSdkNuGetAuditBlockingCodes>
+    <WarningsAsErrors Condition="'$(AuditPipeline)' != 'true'">$(WarningsAsErrors);$(_CheatEngineSdkNuGetAuditBlockingCodes)</WarningsAsErrors>
+    <WarningsNotAsErrors Condition="'$(AuditPipeline)' != 'true'">$(WarningsNotAsErrors);NU1900;NU1901;NU1902;NU1905</WarningsNotAsErrors>
+    <WarningsAsErrors Condition="'$(AuditPipeline)' == 'true'">$(WarningsAsErrors);$(_CheatEngineSdkNuGetAuditCodes)</WarningsAsErrors>
+  </PropertyGroup>
+  <!--
+    Advisory exclusions: a last resort. One item per advisory URL, with Justification (why it does not apply) and Expires
+    (yyyy-MM-dd, re-review date) metadata. The strict audit run fails once Expires is past, and a stable (release)
+    package version cannot be packed while any suppression exists. Example (never commit it without both metadata):
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-xxxx-xxxx-xxxx" Justification="..." Expires="2026-12-31"/>
+  -->
+  <ItemGroup Label="NuGet audit suppressions"/>
+
+  <!--
+    Every project restores against a committed packages.lock.json, generated only by a forced re-evaluation restore
+    (never by hand or an IDE). Props, not targets: restore must see it. RestoreLockedMode is deliberately NOT set here:
+    the CI entry points pass locked mode themselves, and a global locked mode would break a forced re-evaluation
+    restore (NU1005). CESDK9005 (Directory.Build.targets) fails a project that opts out.
+    https://learn.microsoft.com/nuget/consume-packages/package-references-in-project-files#locking-dependencies
+  -->
+  <PropertyGroup Label="Lock files">
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <PropertyGroup Label="Determinism and symbols">
@@ -36,8 +79,13 @@
     <IsPackable>false</IsPackable>
     <!-- MinVer derives the version from the nearest v* tag, so CI must fetch full history and tags. -->
     <MinVerTagPrefix>v</MinVerTagPrefix>
-    <!-- Floor for commits no v* tag covers yet, which build as 1.0.0-alpha.0.N. Raise it to open the next minor or major line, and never above the line of the tag being released. -->
-    <MinVerMinimumMajorMinor>1.0</MinVerMinimumMajorMinor>
+    <!--
+      Floor for commits no v* tag covers yet. 2.0: main breaks 1.0.0 (see src/CheatEngine.SDK/CompatibilitySuppressions.xml);
+      untagged commits build as 2.0.0-alpha.0.N, with AssemblyVersion 2.0.0.0. CESDK9007 fails a pack whose major does not
+      exceed the baseline's while intentional breaks are declared. Raise it to open the next line, never above the line
+      of the tag being released.
+    -->
+    <MinVerMinimumMajorMinor>2.0</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
   <!-- Keyed on the project name only, so the props phase is early enough. -->

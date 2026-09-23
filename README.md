@@ -4,13 +4,14 @@
 
 **An unofficial .NET SDK for Cheat Engine plugins.**
 
-[![Build](https://img.shields.io/github/actions/workflow/status/CheatEngineNet/CheatEngine.SDK/main-ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=build)](https://github.com/CheatEngineNet/CheatEngine.SDK/actions/workflows/main-ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/CheatEngineNet/CheatEngine.SDK/main-ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/CheatEngineNet/CheatEngine.SDK/actions/workflows/main-ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CheatEngineNet/CheatEngine.SDK/badge)](https://scorecard.dev/viewer/?uri=github.com/CheatEngineNet/CheatEngine.SDK)
 [![NuGet](https://img.shields.io/nuget/vpre/CheatEngine.SDK?style=flat-square&logo=nuget&logoColor=white&label=NuGet)](https://www.nuget.org/packages/CheatEngine.SDK)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/download/dotnet/10.0)
 [![Windows x64](https://img.shields.io/badge/platform-Windows%20x64-0078D4?style=flat-square)](#requirements)
 [![MIT license](https://img.shields.io/badge/license-MIT-6e7781?style=flat-square)](LICENSE)
 
-[Get started](#quick-start) · [Examples](exemples/README.md) · [API guide](exemples/api/README.md) · [Diagnostics](analyzers/docs/README.md) · [Contributing](CONTRIBUTING.md)
+[Get started](#quick-start) · [Examples](exemples/README.md) · [API guide](exemples/api/README.md) · [Diagnostics](analyzers/docs/README.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 </div>
 
@@ -20,16 +21,22 @@ an independent project and is not affiliated with Cheat Engine.
 
 ## Requirements
 
-| Requirement   | Supported version                                                                               |
-|---------------|-------------------------------------------------------------------------------------------------|
-| .NET SDK      | 10.0.401 (or a later SDK selected through `latestFeature`)                                      |
-| .NET runtimes | .NET 10 `Microsoft.NETCore.App`, `Microsoft.WindowsDesktop.App`, and `Microsoft.AspNetCore.App` |
-| Cheat Engine  | 7.7                                                                                             |
-| Platform      | Windows x64                                                                                     |
+| Requirement   | Supported version                                                                                                      |
+|---------------|------------------------------------------------------------------------------------------------------------------------|
+| .NET SDK      | 10.0.401 or later to build a plugin; exactly 10.0.401 to build this repository (`global.json`, `rollForward: disable`) |
+| .NET runtimes | .NET 10 `Microsoft.NETCore.App`, `Microsoft.WindowsDesktop.App`, and `Microsoft.AspNetCore.App`                        |
+| Cheat Engine  | 7.7                                                                                                                    |
+| Platform      | Windows x64                                                                                                            |
 
-Cheat Engine must be configured to run on .NET 10.
-The [live-plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md#run-it-in-cheat-engine) explains the required
-`ce.runtimeconfig.json` changes.
+The qualifiable host profile is `ce-7.7.0.10621-x64-managed-hostfxr`: Cheat Engine 7.7.0.10621 x64 loading managed
+plugins through `hostfxr`. No exact-host scenario (C3/C4) has been executed on it yet. The .NET 10
+`ce.runtimeconfig.json` observed on the maintainer's host is a local modification, not an installer default, and it
+affects every managed plugin of that host: record your host's runtime policy and do not edit an installed Cheat Engine
+configuration just to run a plugin. See the
+[live-plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md#run-it-in-cheat-engine).
+
+A NativeAOT plugin DLL is not a supported profile: Cheat Engine unloads a plugin with `FreeLibrary`, which .NET does
+not support for a NativeAOT library. See [load profiles and limits](src/CheatEngine.SDK/README.md#load-profiles-and-limits).
 
 ## Install
 
@@ -100,10 +107,10 @@ start with [Example 01](exemples/01-first-plugin/README.md).
 The repository pins the .NET SDK in [`global.json`](global.json). From the repository root:
 
 ```powershell
-dotnet restore CheatEngine.SDK.slnx
+dotnet restore CheatEngine.SDK.slnx --locked-mode
 dotnet build CheatEngine.SDK.slnx -c Debug --no-restore
 dotnet test --solution CheatEngine.SDK.slnx -c Debug --fail-skips on
-dotnet test --solution CheatEngine.SDK.slnx -c Release
+dotnet test --solution CheatEngine.SDK.slnx -c Release --fail-skips on
 dotnet pack src/CheatEngine.SDK -c Release -o artifacts/nuget
 ```
 
@@ -113,16 +120,16 @@ C toolchain to rebuild it.
 
 ## Project layout
 
-| Path                                           | Purpose                                                                    |
-|------------------------------------------------|----------------------------------------------------------------------------|
-| [`libs/`](libs/)                               | Layered annotations, ABI, Lua, engine, and hosting libraries.              |
-| [`src/CheatEngine.SDK/`](src/CheatEngine.SDK/) | The `CheatEngine.SDK` NuGet package and consumer build properties.         |
-| [`source-generators/`](source-generators/)     | Generated plugin entry-point and Lua-binding components.                   |
-| [`analyzers/`](analyzers/)                     | Diagnostics, code fixes, and their documentation.                          |
-| [`native/`](native/)                           | The Lua test fixture and bundled Windows x64 Lua protection bridge.        |
-| [`tests/`](tests/)                             | Unit tests, benchmarks, shared fixtures, and the live-plugin sample.       |
-| [`exemples/`](exemples/)                       | Guides, recipes, and API documentation. The directory name is intentional. |
-| [`eng/`](eng/)                                 | Shared build configuration.                                                |
+| Path                                           | Purpose                                                                     |
+|------------------------------------------------|-----------------------------------------------------------------------------|
+| [`libs/`](libs/)                               | Layered annotations, ABI, Lua, engine, and hosting libraries.               |
+| [`src/CheatEngine.SDK/`](src/CheatEngine.SDK/) | The `CheatEngine.SDK` NuGet package and consumer build properties.          |
+| [`source-generators/`](source-generators/)     | Generated plugin entry-point and Lua-binding components.                    |
+| [`analyzers/`](analyzers/)                     | Diagnostics, code fixes, and their documentation.                           |
+| [`native/`](native/)                           | The Lua test fixture and bundled Windows x64 Lua protection bridge.         |
+| [`tests/`](tests/)                             | Unit tests, benchmarks, shared fixtures, and the live-plugin sample.        |
+| [`exemples/`](exemples/)                       | Guides, recipes, and API documentation. The directory name is intentional.  |
+| [`eng/`](eng/)                                 | Shared MSBuild configuration (`Directory.Build.*`, central package management). |
 
 ## Documentation
 

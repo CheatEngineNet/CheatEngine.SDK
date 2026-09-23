@@ -57,6 +57,11 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 				data.Add(shape, source);
 			}
 
+			foreach ((string shape, string source) in FunctionOptionalRejections())
+			{
+				data.Add(shape, source);
+			}
+
 			return data;
 		}
 	}
@@ -97,6 +102,11 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 			}
 
 			foreach ((string shape, string source) in GlobalTryFormAndMiscRejections())
+			{
+				data.Add(shape, source);
+			}
+
+			foreach ((string shape, string source) in GlobalOptionalRejections())
 			{
 				data.Add(shape, source);
 			}
@@ -367,6 +377,150 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 			"namespace Other { public sealed class LuaGlobalAttribute : Attribute { public LuaGlobalAttribute(string n) { } } } public static partial class T { [Other.LuaGlobal(\"g\")] public static partial int G(nuint a); public static partial int G(nuint a) => 0; }");
 	}
 
+	// CESDK2010, CESDK2011 and CESDK2013 shapes of a bound global (LuaOptional<T> spelled in full: the row usings are
+	// shared with the other rows).
+	private static IEnumerable<(string Shape, string Source)> GlobalOptionalRejections()
+	{
+		const string Optional = "CheatEngine.SDK.Lua.Marshalling.LuaOptional";
+		const string Status = "CheatEngine.SDK.Lua.Calls.LuaOperationStatus";
+		yield return (
+			"required argument after an optional one",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<int> a, int b); }");
+		yield return (
+			"required result after an optional one",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial bool TryG(out " + Optional + "<int> a, out int b); }");
+		yield return (
+			"copy-out result after an optional one",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial bool TryG(out " + Optional + "<int> a, Span<byte> d, out int w); }");
+		yield return (
+			"variadic pair in the Try form",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial bool TryG(Span<long> v, out int c); }");
+		yield return (
+			"variadic pair in the throwing form",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial void G(Span<long> v, out int c); }");
+		yield return (
+			"result after the variadic pair",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status + " G(Span<long> v, out int c, out int d); }");
+		yield return (
+			"two variadic pairs",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status + " G(Span<long> v, out int c, Span<int> w, out int e); }");
+		yield return (
+			"variadic string element",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status + " G(Span<string> v, out int c); }");
+		yield return (
+			"variadic span without a count",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status + " G(Span<long> v); }");
+		yield return (
+			"optional nullable string",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<string?> a); }");
+		yield return (
+			"optional object",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<object> a); }");
+		yield return (
+			"nested optional",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<" + Optional + "<int>> a); }");
+		yield return (
+			"optional throwing return",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Optional + "<int> G(int a); }");
+		yield return (
+			"optional with a C# default value",
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<int> a = default); }");
+	}
+
+	// CESDK2010 and CESDK2013 shapes of an exported function.
+	private static IEnumerable<(string Shape, string Source)> FunctionOptionalRejections()
+	{
+		const string Optional = "CheatEngine.SDK.Lua.Marshalling.LuaOptional";
+		yield return (
+			"required parameter after an optional one",
+			"public static partial class T { [LuaFunction(\"f\")] public static int F(" + Optional + "<int> a, int b) => b; }");
+		yield return (
+			"optional return",
+			"public static partial class T { [LuaFunction(\"f\")] public static " + Optional + "<int> F(int a) => default; }");
+		yield return (
+			"optional nullable string parameter",
+			"public static partial class T { [LuaFunction(\"f\")] public static int F(" + Optional + "<string?> a) => 0; }");
+	}
+
+	[Fact]
+	public void Generator_non_trailing_optional_argument_emits_nothing()
+	{
+		const string Source = "using CheatEngine.SDK.Annotations.Lua;\nusing CheatEngine.SDK.Lua.Marshalling;\n" +
+							  "namespace Demo; public static partial class T { [LuaGlobal(\"g\")] public static partial int G(LuaOptional<int> a, int b); " +
+							  "[LuaFunction(\"f\")] public static int F(LuaOptional<int> a, long b) => 0; }";
+
+		roslyn.Run(Source).AssertNoOutput();
+	}
+
+	[Fact]
+	public void Generator_same_named_LuaOptional_from_source_is_not_a_binding_contract()
+	{
+		// The real CheatEngine.SDK.Lua is referenced; the source copy wins C# name lookup (CS0436) but is a look-alike.
+		const string Source = """
+		                      using CheatEngine.SDK.Annotations.Lua;
+
+		                      namespace CheatEngine.SDK.Lua.Marshalling
+		                      {
+		                          public readonly struct LuaOptional<T>
+		                          {
+		                              public bool IsOmitted => true;
+		                          }
+		                      }
+
+		                      namespace Demo
+		                      {
+		                          using CheatEngine.SDK.Lua.Marshalling;
+
+		                          public static partial class T
+		                          {
+		                              [LuaGlobal("g")]
+		                              public static partial int G(int a, LuaOptional<int> b);
+
+		                              [LuaGlobal("h")]
+		                              public static partial bool TryH(int a, out LuaOptional<int> b);
+
+		                              [LuaFunction("f")]
+		                              public static int F(LuaOptional<int> b) => 0;
+		                          }
+		                      }
+		                      """;
+
+		roslyn.Run(Source).AssertNoOutput();
+	}
+
+	[Fact]
+	public void Generator_same_named_LuaOperationStatus_from_another_assembly_does_not_select_the_outcome_form()
+	{
+		CSharpCompilation lookAlikeAssembly = CSharpCompilation.Create(
+			"Fake.Lua.Contracts",
+			[
+				RoslynFixture.Parse(
+					"namespace CheatEngine.SDK.Lua.Calls { public readonly struct LuaOperationStatus { } }",
+					"Fake.cs")
+			],
+			roslyn.Environment.FrameworkReferences,
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+		MetadataReference fake = lookAlikeAssembly.ToMetadataReference(["Fake"]);
+		const string Source = """
+		                      extern alias Fake;
+		                      using CheatEngine.SDK.Annotations.Lua;
+
+		                      namespace Demo;
+
+		                      public static partial class T
+		                      {
+		                          [LuaGlobal("readInteger")]
+		                          public static partial Fake::CheatEngine.SDK.Lua.Calls.LuaOperationStatus TryReadInt32(nuint address, out int value);
+
+		                          [LuaGlobal("beep")]
+		                          public static partial Fake::CheatEngine.SDK.Lua.Calls.LuaOperationStatus Beep();
+		                      }
+		                      """;
+		CSharpCompilation compilation = roslyn.CreateCompilation(Source).AddReferences(fake);
+
+		RoslynFixture.Run(compilation).AssertNoOutput();
+	}
+
 	[Theory]
 	[MemberData(nameof(InvalidFunctions))]
 	public void Generator_invalid_function_shape_emits_nothing(string shape, string source)
@@ -393,7 +547,7 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	public void Generator_no_attribute_emits_nothing()
 	{
 		GeneratorRun run = roslyn.Run(Usings +
-		                              "public static partial class T { public static int F(int a) => a; public static partial int G(int a); public static partial int G(int a) => a; }");
+									  "public static partial class T { public static int F(int a) => a; public static partial int G(int a); public static partial int G(int a) => a; }");
 
 		run.AssertNoOutput();
 	}
@@ -406,7 +560,7 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 		foreach (MetadataReference reference in roslyn.Environment.SdkReferences)
 		{
 			if (string.Equals(reference.Display, typeof(LuaState).Assembly.Location,
-				    StringComparison.OrdinalIgnoreCase))
+					StringComparison.OrdinalIgnoreCase))
 			{
 				continue;
 			}
@@ -560,8 +714,8 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 	{
 		int count = 0;
 		for (int index = text.IndexOf(needle, StringComparison.Ordinal);
-		     index >= 0;
-		     index = text.IndexOf(needle, index + needle.Length, StringComparison.Ordinal))
+			 index >= 0;
+			 index = text.IndexOf(needle, index + needle.Length, StringComparison.Ordinal))
 		{
 			count++;
 		}

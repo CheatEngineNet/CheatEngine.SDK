@@ -6,6 +6,7 @@ using CheatEngine.SDK.SourceGenerators.Shared;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.Generator;
 
@@ -95,5 +96,41 @@ public sealed class NominalOutputTests(RoslynFixture roslyn) : IClassFixture<Ros
 		Assert.Empty(valid.Result.Diagnostics);
 		Assert.Empty(invalid.GeneratorDiagnostics);
 		Assert.Empty(invalid.Result.Diagnostics);
+	}
+
+	[Fact]
+	public void Generator_bootstrap_constructs_the_plugin_without_reflection()
+	{
+		// Audit A04-13: the plugin type is known at compile time; eng/BannedSymbols.txt bans the reflection routes.
+		GeneratorRun run = roslyn.Run(PluginSources.Nominal);
+		string text = run.SingleGeneratedText;
+
+		foreach (string reflective in (string[]) ["Activator", "CreateInstance", "GetTypes", "GetType(", "typeof(",
+					 "System.Reflection", "Assembly."])
+		{
+			Assert.DoesNotContain(reflective, text, StringComparison.Ordinal);
+		}
+
+		Assert.Contains("Create() => new global::Demo.DemoPlugin();", text, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Generator_entry_point_catches_every_exception_before_native_code()
+	{
+		GeneratorRun run = roslyn.Run(PluginSources.Nominal);
+		MethodDeclarationSyntax initialize = CSharpSyntaxTree.ParseText(run.SingleGeneratedText,
+				cancellationToken: TestContext.Current.CancellationToken)
+			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>()
+			.Single(static method =>
+				string.Equals(method.Identifier.ValueText, "CEPluginInitialize", StringComparison.Ordinal));
+
+		// One try statement is the whole body; its only handler catches System.Exception unfiltered and returns 0.
+		TryStatementSyntax body = Assert.IsType<TryStatementSyntax>(Assert.Single(initialize.Body!.Statements));
+		CatchClauseSyntax handler = Assert.Single(body.Catches);
+		Assert.Equal("global::System.Exception", handler.Declaration!.Type.ToString());
+		Assert.Null(handler.Filter);
+		Assert.Null(body.Finally);
+		ReturnStatementSyntax fallback = Assert.IsType<ReturnStatementSyntax>(Assert.Single(handler.Block.Statements));
+		Assert.Equal("0", fallback.Expression!.ToString());
 	}
 }

@@ -78,5 +78,24 @@ internal enum LuaFunctionShapeIssues
 	///     its table, and on the analyzer side <c>LuaBindingAnalyzer</c>'s compilation-end pass
 	///     (<c>LuaFunctionDuplicateState</c>) sets this flag once every sibling member has been seen.
 	/// </summary>
-	DuplicateName = 1 << 10
+	DuplicateName = 1 << 10,
+
+	/// <summary>
+	///     A required parameter follows a <c>LuaOptional&lt;T&gt;</c> parameter: optional Lua arguments form a trailing
+	///     run, and an absent position reads as omitted (CESDK2010).
+	/// </summary>
+	OptionalArgumentNotTrailing = 1 << 12,
+
+	/// <summary>
+	///     A parameter or return type has the metadata name of <c>LuaOptional`1</c> but is not the
+	///     <c>CheatEngine.SDK.Lua</c> type (CESDK2012).
+	/// </summary>
+	LookAlikeContractType = 1 << 13,
+
+	/// <summary>
+	///     <c>LuaOptional&lt;T&gt;</c> is used where it is not supported: as the return type, with a <c>T</c> that is
+	///     <c>string?</c>, custom-marshalled, unmarshalled or another <c>LuaOptional</c>, or with an explicit
+	///     <c>[LuaMarshaller]</c> (CESDK2013).
+	/// </summary>
+	OptionalNotSupportedHere = 1 << 14
 }

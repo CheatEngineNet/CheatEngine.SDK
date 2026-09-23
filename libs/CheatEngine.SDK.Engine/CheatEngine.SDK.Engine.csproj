@@ -20,6 +20,7 @@
     <ProjectReference Include="../../source-generators/CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     <AdditionalFiles Include="../../source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/Specs/memory-scalars.cheatengine-sdk-api.txt"/>
+    <AdditionalFiles Include="../../source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/Specs/runtime-capabilities.cheatengine-sdk-api.txt"/>
   </ItemGroup>
 
 </Project>

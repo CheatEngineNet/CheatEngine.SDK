@@ -9,6 +9,7 @@ namespace CheatEngine.SDK.Hosting.Tests.Bootstrap;
 public sealed unsafe class GetVersionTests
 {
 	[Fact]
+	[Trait("Qualification", "Q01")]
 	public void Fills_version_6_and_the_bootstrap_name_pointer()
 	{
 		HostingTest.Reset();

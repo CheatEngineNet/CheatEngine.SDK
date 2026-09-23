@@ -29,8 +29,8 @@ internal static class EntryPointGeneratedIdentity
 			foreach (INamedTypeSymbol type in @namespace.GetTypeMembers(ManagedEntryPointNames.TypeName))
 			{
 				if (type.Arity == 0
-				    && !type.IsFileLocal
-				    && SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, compilation.Assembly))
+					&& !type.IsFileLocal
+					&& SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, compilation.Assembly))
 				{
 					return true;
 				}

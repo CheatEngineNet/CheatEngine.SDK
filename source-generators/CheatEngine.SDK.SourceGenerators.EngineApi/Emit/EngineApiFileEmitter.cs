@@ -30,6 +30,9 @@ internal static class EngineApiFileEmitter
 	// See EmitAddressTypedWrapper.
 	private const string EngineAddressTypeName = "global::CheatEngine.SDK.Engine.Values.Address";
 
+	// An optional target address on the public surface: LuaOptional<Address>, converted to LuaOptional<nuint> for the core.
+	private const string OptionalAddressTypeName = LuaApiNames.LuaOptional + "<" + EngineAddressTypeName + ">";
+
 	// Computed once: reads this generator assembly's name and version.
 	private static readonly string GeneratedCodeAttribute =
 		GeneratedCodeText.CreateGeneratedCodeAttribute(typeof(EngineApiFileEmitter));
@@ -137,6 +140,11 @@ internal static class EngineApiFileEmitter
 			return "bool with out results";
 		}
 
+		if (call.Form == LuaCallForm.Outcome)
+		{
+			return "LuaOperationStatus with out results";
+		}
+
 		if (call.ReturnKind is null)
 		{
 			return "void or Lua exception";
@@ -179,7 +187,8 @@ internal static class EngineApiFileEmitter
 		LuaGlobalCallModel call = entry.Call;
 		LuaGlobalCallModel core = call with
 		{
-			Modifiers = "private static", MethodName = CoreMethodName(call.MethodName)
+			Modifiers = "private static",
+			MethodName = CoreMethodName(call.MethodName)
 		};
 
 		writer.Write("// Raw core of '");
@@ -215,7 +224,8 @@ internal static class EngineApiFileEmitter
 	}
 
 	// '(<type> name, ..., out <type> name, ...)': identical to LuaGlobalCallEmitter.WriteParameterList except every
-	// target Address is typed CheatEngine.SDK.Engine.Values.Address instead of the raw nuint used in the private core.
+	// target Address is typed CheatEngine.SDK.Engine.Values.Address (LuaOptional<Address> when optional) instead of the
+	// raw nuint used in the private core.
 	private static void WriteAddressTypedParameterList(SourceWriter writer, LuaGlobalCallModel call)
 	{
 		writer.Write('(');
@@ -233,56 +243,83 @@ internal static class EngineApiFileEmitter
 			}
 
 			first = false;
-			writer.Write(argument.Kind == LuaValueKind.Address
-				? EngineAddressTypeName
-				: LuaValueKinds.TypeName(argument.Kind, argument.IsNullable));
+			writer.Write(argument.Kind != LuaValueKind.Address
+				? argument.GeneratedTypeName
+				: argument.IsOptional
+					? OptionalAddressTypeName
+					: EngineAddressTypeName);
 			writer.Write(' ');
 			writer.Write(argument.Name);
 		}
 
-		if (call.Form == LuaCallForm.Try)
+		if (call.IsTryLike)
 		{
 			for (int i = 0; i < call.Results.Length; i++)
 			{
-				LuaResultModel result = call.Results[i];
 				if (!first)
 				{
 					writer.Write(", ");
 				}
 
 				first = false;
-				writer.Write("out ");
-				writer.Write(result.Kind == LuaValueKind.Address
-					? EngineAddressTypeName
-					: LuaValueKinds.TypeName(result.Kind, result.IsNullable));
-				writer.Write(' ');
-				writer.Write(result.Name);
+				WriteAddressTypedResultParameter(writer, call.Results[i]);
 			}
 		}
 
 		writer.Write(')');
 	}
 
-	// The raw core can write nuint only. Try wrappers with Address out values receive raw locals then convert every
-	// result (also on false, where the raw core deterministically assigned zero); throwing returns convert the raw
-	// value after the protected call succeeded. The simple argument-only forms retain their allocation-free direct
-	// forwarding body.
+	private static void WriteAddressTypedResultParameter(SourceWriter writer, LuaResultModel result)
+	{
+		if (result.Shape == LuaResultShape.Variadic)
+		{
+			writer.Write(LuaApiNames.Span);
+			writer.Write('<');
+			writer.Write(LuaValueKinds.TypeName(result.Kind));
+			writer.Write("> ");
+			writer.Write(result.DestinationName);
+			writer.Write(", out int ");
+			writer.Write(result.Name);
+			return;
+		}
+
+		writer.Write("out ");
+		writer.Write(result.Kind != LuaValueKind.Address
+			? result.GeneratedTypeName
+			: result.Shape == LuaResultShape.Optional
+				? OptionalAddressTypeName
+				: EngineAddressTypeName);
+		writer.Write(' ');
+		writer.Write(result.Name);
+	}
+
+	// The raw core can write nuint only. Try and Outcome wrappers with Address out values receive raw locals then
+	// convert every result (also on failure, where the raw core deterministically assigned zero or Omitted); an optional
+	// Address keeps its state (omitted, nil or value). Throwing returns convert the raw value after the protected call
+	// succeeded. The simple argument-only forms retain their allocation-free direct forwarding body.
 	private static void WriteAddressTypedForwardingBody(SourceWriter writer, LuaGlobalCallModel call,
 		LuaGlobalCallModel core)
 	{
-		if (call.Form == LuaCallForm.Try && HasAddressResult(call))
+		if (call.IsTryLike && HasAddressResult(call))
 		{
 			for (int i = 0; i < call.Results.Length; i++)
 			{
 				if (call.Results[i].Kind == LuaValueKind.Address)
 				{
-					writer.Write("nuint ");
+					writer.Write(call.Results[i].Shape == LuaResultShape.Optional
+						? LuaValueKinds.OptionalTypeName(LuaValueKind.Address)
+						: "nuint");
+					writer.Write(' ');
 					writer.Write(RawResultName(i));
 					writer.WriteLine(";");
 				}
 			}
 
-			writer.Write("bool __engineApiSucceeded = ");
+			string outcomeLocal = call.IsOutcome ? "__engineApiStatus" : "__engineApiSucceeded";
+			writer.Write(call.IsOutcome ? LuaApiNames.LuaOperationStatus : "bool");
+			writer.Write(' ');
+			writer.Write(outcomeLocal);
+			writer.Write(" = ");
 			WriteAddressTypedInvocation(writer, call, core, true);
 			writer.WriteLine(";");
 
@@ -290,16 +327,13 @@ internal static class EngineApiFileEmitter
 			{
 				if (call.Results[i].Kind == LuaValueKind.Address)
 				{
-					writer.Write(call.Results[i].Name);
-					writer.Write(" = new ");
-					writer.Write(EngineAddressTypeName);
-					writer.Write("(unchecked((ulong)");
-					writer.Write(RawResultName(i));
-					writer.WriteLine("));");
+					WriteAddressResultConversion(writer, call.Results[i], RawResultName(i));
 				}
 			}
 
-			writer.WriteLine("return __engineApiSucceeded;");
+			writer.Write("return ");
+			writer.Write(outcomeLocal);
+			writer.WriteLine(";");
 			return;
 		}
 
@@ -324,6 +358,38 @@ internal static class EngineApiFileEmitter
 		writer.WriteLine(";");
 	}
 
+	// 'name = new Address(unchecked((ulong)raw));', or for an optional Address the same state with the value converted:
+	// 'name = raw.HasValue ? LuaOptional.Of(new Address(...)) : raw.IsNil ? LuaOptional.Nil<Address>() : default;'.
+	private static void WriteAddressResultConversion(SourceWriter writer, LuaResultModel result, string raw)
+	{
+		writer.Write(result.Name);
+		if (result.Shape != LuaResultShape.Optional)
+		{
+			writer.Write(" = new ");
+			writer.Write(EngineAddressTypeName);
+			writer.Write("(unchecked((ulong)");
+			writer.Write(raw);
+			writer.WriteLine("));");
+			return;
+		}
+
+		writer.Write(" = ");
+		writer.Write(raw);
+		writer.Write(".HasValue ? ");
+		writer.Write(LuaApiNames.LuaOptional);
+		writer.Write(".Of(new ");
+		writer.Write(EngineAddressTypeName);
+		writer.Write("(unchecked((ulong)");
+		writer.Write(raw);
+		writer.Write(".Value))) : ");
+		writer.Write(raw);
+		writer.Write(".IsNil ? ");
+		writer.Write(LuaApiNames.LuaOptional);
+		writer.Write(".Nil<");
+		writer.Write(EngineAddressTypeName);
+		writer.WriteLine(">() : default;");
+	}
+
 	private static void WriteAddressTypedInvocation(SourceWriter writer, LuaGlobalCallModel call,
 		LuaGlobalCallModel core, bool useRawAddressResults)
 	{
@@ -343,19 +409,10 @@ internal static class EngineApiFileEmitter
 			}
 
 			first = false;
-			if (argument.Kind == LuaValueKind.Address)
-			{
-				writer.Write("unchecked((nuint)");
-				writer.Write(argument.Name);
-				writer.Write(".ToUInt64())");
-			}
-			else
-			{
-				writer.Write(argument.Name);
-			}
+			WriteAddressTypedArgument(writer, argument);
 		}
 
-		if (call.Form == LuaCallForm.Try)
+		if (call.IsTryLike)
 		{
 			for (int i = 0; i < call.Results.Length; i++)
 			{
@@ -366,6 +423,12 @@ internal static class EngineApiFileEmitter
 				}
 
 				first = false;
+				if (result.Shape == LuaResultShape.Variadic)
+				{
+					writer.Write(result.DestinationName);
+					writer.Write(", ");
+				}
+
 				writer.Write("out ");
 				writer.Write(useRawAddressResults && result.Kind == LuaValueKind.Address
 					? RawResultName(i)
@@ -374,6 +437,36 @@ internal static class EngineApiFileEmitter
 		}
 
 		writer.Write(')');
+	}
+
+	// A target Address becomes the core's nuint; an optional one keeps its state, inline and allocation-free.
+	private static void WriteAddressTypedArgument(SourceWriter writer, LuaArgumentModel argument)
+	{
+		if (argument.Kind != LuaValueKind.Address)
+		{
+			writer.Write(argument.Name);
+			return;
+		}
+
+		if (!argument.IsOptional)
+		{
+			writer.Write("unchecked((nuint)");
+			writer.Write(argument.Name);
+			writer.Write(".ToUInt64())");
+			return;
+		}
+
+		writer.Write('(');
+		writer.Write(argument.Name);
+		writer.Write(".HasValue ? ");
+		writer.Write(LuaApiNames.LuaOptional);
+		writer.Write(".Of(unchecked((nuint)");
+		writer.Write(argument.Name);
+		writer.Write(".Value.ToUInt64())) : ");
+		writer.Write(argument.Name);
+		writer.Write(".IsNil ? ");
+		writer.Write(LuaApiNames.LuaOptional);
+		writer.Write(".Nil<nuint>() : default)");
 	}
 
 	private static bool HasAddressResult(LuaGlobalCallModel call)

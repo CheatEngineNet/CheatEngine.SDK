@@ -24,11 +24,40 @@ namespace CheatEngine.SDK.Hosting.Diagnostics;
 ///         delivered (guarded by <see cref="IsEnabled" />); its <see cref="HostLogLevel.Warning" /> and
 ///         <see cref="HostLogLevel.Error" /> entries sit on failure paths and are built unconditionally.
 ///     </para>
+///     <para>
+///         <b>Reentrancy containment (A24-21, SRC02-06).</b> A per-thread guard drops, and counts, a write that a sink
+///         makes back into <see cref="Write" /> from inside its own <see cref="IHostLogSink.Write" /> on the same
+///         thread: a re-entrant recursive write can otherwise reach an uncatchable <see cref="StackOverflowException" />
+///         that takes the host process down with it. Writes from other threads are never affected. See
+///         <see cref="IHostLogSink" /> for the sink's complete containment contract.
+///     </para>
 /// </remarks>
 public static class HostLog
 {
+	/// <summary>The environment variable that opts every enable attempt into the identification diagnostic.</summary>
+	/// <seealso cref="IdentifyOnEnable" />
+	public const string IdentifyOnEnableEnvironmentVariable = "CHEATENGINE_SDK_IDENTIFY_ON_ENABLE";
+
 	private static IHostLogSink s_sink = DebugOutputLogSink.Instance;
 	private static int s_minimumLevel = (int) HostLogLevel.Information;
+	private static int s_identifyOnEnable;
+
+	// Test seam: production reads the real process environment through DefaultIdentifyOnEnableEnvironmentReader.
+	private static Func<string?>? s_identifyOnEnableEnvironmentReader;
+
+	// Per-thread reentrancy guard (A24-21, SRC02-06): a sink that writes back into HostLog.Write from inside its own
+	// Write, directly or through a path that logs, would otherwise recurse until StackOverflowException, which
+	// cannot be caught and would take Cheat Engine down with it. Other threads are unaffected: a sink already
+	// running on thread A never blocks a write from thread B.
+	[ThreadStatic] private static bool t_writing;
+
+	private static long s_droppedReentrantEntries;
+
+	/// <summary>
+	///     Count of entries dropped because a sink re-entered <see cref="Write" /> on the same thread while its own
+	///     sink call was still running. For tests and diagnostics only.
+	/// </summary>
+	internal static long DroppedReentrantEntries => Interlocked.Read(ref s_droppedReentrantEntries);
 
 	/// <summary>Gets or sets the sink. Setting <see langword="null" /> restores <see cref="DebugOutputLogSink" />.</summary>
 	public static IHostLogSink Sink
@@ -42,6 +71,41 @@ public static class HostLog
 	{
 		get => (HostLogLevel) Volatile.Read(ref s_minimumLevel);
 		set => Volatile.Write(ref s_minimumLevel, (int) value);
+	}
+
+	/// <summary>
+	///     Gets or sets whether the bounded <c>CheatEngineSdkIdentification</c> diagnostic (SDK version, bridge
+	///     fingerprint, bound Lua module hash, CE and runtime versions; never a user path) is written once at the start of
+	///     every enable attempt. Default <see langword="false" />: identification is opt-in.
+	/// </summary>
+	/// <remarks>
+	///     <para>
+	///         A plugin that wants identification on its very first enable sets this from a
+	///         <see cref="System.Runtime.CompilerServices.ModuleInitializerAttribute" />-annotated method, which the
+	///         runtime runs before any plugin code. Setting it later takes effect at the next enable attempt.
+	///     </para>
+	///     <para>
+	///         The environment variable named by <see cref="IdentifyOnEnableEnvironmentVariable" />
+	///         (<c>CHEATENGINE_SDK_IDENTIFY_ON_ENABLE=1</c>) opts in as well, without rebuilding the plugin: either this
+	///         property or the environment variable being set is enough. The environment is read once per enable attempt,
+	///         inside a <see langword="try" />/<see langword="catch" />, so a hostile or unavailable environment never
+	///         faults the callback.
+	///     </para>
+	/// </remarks>
+	public static bool IdentifyOnEnable
+	{
+		get => Volatile.Read(ref s_identifyOnEnable) != 0;
+		set => Volatile.Write(ref s_identifyOnEnable, value ? 1 : 0);
+	}
+
+	/// <summary>
+	///     Test seam for the <see cref="IdentifyOnEnableEnvironmentVariable" /> reader. <see langword="null" /> (the
+	///     default) reads the real process environment; a test replaces it so the real environment is never touched.
+	/// </summary>
+	internal static Func<string?>? IdentifyOnEnableEnvironmentReader
+	{
+		get => Volatile.Read(ref s_identifyOnEnableEnvironmentReader);
+		set => Volatile.Write(ref s_identifyOnEnableEnvironmentReader, value);
 	}
 
 	/// <summary>
@@ -66,6 +130,16 @@ public static class HostLog
 			return;
 		}
 
+		if (t_writing)
+		{
+			// A sink calling back into HostLog.Write from its own Write, directly or through a path that logs, is
+			// dropped and counted instead of recursing: an uncatchable StackOverflowException would otherwise take
+			// the host process down with it.
+			Interlocked.Increment(ref s_droppedReentrantEntries);
+			return;
+		}
+
+		t_writing = true;
 		try
 		{
 			Volatile.Read(ref s_sink).Write(level, message ?? string.Empty, exception);
@@ -73,6 +147,10 @@ public static class HostLog
 		catch (Exception)
 		{
 			// A sink that throws must not turn a logged failure into an exception at the native boundary.
+		}
+		finally
+		{
+			t_writing = false;
 		}
 	}
 
@@ -96,10 +174,43 @@ public static class HostLog
 		Write(HostLogLevel.Trace, message);
 	}
 
-	/// <summary>Resets the sink and level to their defaults. For tests.</summary>
+	/// <summary>
+	///     Tells whether an enable attempt should build and emit the identification diagnostic: either
+	///     <see cref="IdentifyOnEnable" /> is set, or the <see cref="IdentifyOnEnableEnvironmentVariable" /> reads
+	///     <c>"1"</c>. The environment read never throws.
+	/// </summary>
+	internal static bool IsIdentifyOnEnableRequested()
+	{
+		return IdentifyOnEnable || IsIdentifyOnEnableEnvironmentSet();
+	}
+
+	private static bool IsIdentifyOnEnableEnvironmentSet()
+	{
+		try
+		{
+			Func<string?> reader = IdentifyOnEnableEnvironmentReader ?? ReadIdentifyOnEnableEnvironmentVariable;
+			return string.Equals(reader(), "1", StringComparison.Ordinal);
+		}
+		catch (Exception)
+		{
+			// The environment must never fault a native lifecycle callback.
+			return false;
+		}
+	}
+
+	private static string? ReadIdentifyOnEnableEnvironmentVariable()
+	{
+		return Environment.GetEnvironmentVariable(IdentifyOnEnableEnvironmentVariable);
+	}
+
+	/// <summary>Resets the sink, level, reentrancy counter and identification opt-in to their defaults. For tests.</summary>
 	internal static void ResetForTests()
 	{
 		Sink = DebugOutputLogSink.Instance;
 		MinimumLevel = HostLogLevel.Information;
+		Volatile.Write(ref s_droppedReentrantEntries, 0);
+		t_writing = false;
+		IdentifyOnEnable = false;
+		IdentifyOnEnableEnvironmentReader = null;
 	}
 }

@@ -13,6 +13,7 @@ public sealed unsafe class BoolCallBoundaryTests
 	[Theory]
 	[InlineData(0)]
 	[InlineData(1)]
+	[InlineData(2)]
 	[InlineData(-1)]
 	[InlineData(0x100)]
 	public void Bool32_result_of_a_callee_returning_int_carries_the_same_bits(int raw)
@@ -28,6 +29,7 @@ public sealed unsafe class BoolCallBoundaryTests
 	[Theory]
 	[InlineData(0)]
 	[InlineData(1)]
+	[InlineData(2)]
 	[InlineData(-1)]
 	[InlineData(0x100)]
 	public void Bool32_returned_by_a_callee_reads_as_the_same_int(int raw)
@@ -41,6 +43,7 @@ public sealed unsafe class BoolCallBoundaryTests
 	[Theory]
 	[InlineData(0)]
 	[InlineData(1)]
+	[InlineData(2)]
 	[InlineData(-1)]
 	public void Bool32_argument_arrives_as_the_same_int(int raw)
 	{

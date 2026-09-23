@@ -19,14 +19,14 @@ directly. See the [generator README](../../source-generators/CheatEngine.SDK.Sou
 
 ## How it works
 
-| Suite          | What it proves                                                                                                   |
-|----------------|------------------------------------------------------------------------------------------------------------------|
-| Parsing        | `SpecFileParser.Parse` and `IsSpecFile` handle the grammar and report issues, with no Roslyn type involved       |
-| Emission       | Exact text of a wrapper body, one cache field per global, the global namespace, a clean compilation              |
-| Diagnostics    | A malformed entry or CE 7.7 contract is a localized `CESDK3001`; a conflicting generated identity is `CESDK3002` |
-| Silence        | A foreign file name, a header-only file, or no spec at all emits nothing and reports no diagnostic               |
-| Incrementality | An unrelated edit recomputes nothing, and one spec change reruns only that file's output                         |
-| End to end     | Emitted wrappers are compiled, loaded and called against Lua stand-ins for `readInteger` and its siblings        |
+| Suite          | What it proves                                                                                                                                                                                                |
+|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Parsing        | `SpecFileParser.Parse` and `IsSpecFile` handle the grammar (`contract: ce77`, `opt`, `opt-result`, `rest`, `form: outcome`) and report issues; every production spec parses clean (`ProductionSpecsTests`)    |
+| Emission       | Exact text of a wrapper body, one cache field per global, the global namespace, a clean compilation                                                                                                           |
+| Diagnostics    | A malformed entry is `CESDK3001`, a conflicting identity `CESDK3002`, a missing ce77 contract `CESDK3003`, an invalid optional argument or result `CESDK3004`/`CESDK3005` (`EngineApiDiagnosticCatalogTests`) |
+| Silence        | A foreign file name, a header-only file, or no spec at all emits nothing and reports no diagnostic                                                                                                            |
+| Incrementality | An unrelated edit recomputes nothing, and one spec change reruns only that file's output                                                                                                                      |
+| End to end     | Emitted wrappers are compiled, loaded and called against Lua stand-ins, including the optional grammar (`EngineApiOptionalEndToEndTests`)                                                                     |
 
 The generator reads only `AdditionalTextsProvider`. So the harness compiles an almost empty compilation and passes spec
 text through `InMemoryAdditionalText`. The compilation references the real `CheatEngine.SDK.Annotations`,
@@ -60,3 +60,8 @@ dotnet test --project tests/CheatEngine.SDK.SourceGenerators.EngineApi.Tests --f
 - Unchanged input recomputes nothing, and step values hold no Roslyn objects (`IncrementalityTests`).
 - The 32-bit and 64-bit wrappers use independent storage, a detached runtime throws, and the warm success path allocates
   nothing (`MemoryScalarsEndToEndTests`).
+- Every production spec declares `contract: ce77` and parses without an issue, and the committed memory-scalars output
+  is byte-for-byte unchanged by the new grammar (`ProductionSpecsTests`, `EmissionTests`).
+- `opt` arguments, `opt-result` and `rest` results behave as declared on a real Lua state
+  (`EngineApiOptionalEndToEndTests`), and the `Address` facade converts through `ulong`, never through a floating-point
+  step (`EmissionTests`, traited `Qualification=Q21`).

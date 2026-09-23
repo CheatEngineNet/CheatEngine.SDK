@@ -15,6 +15,7 @@ namespace CheatEngine.SDK.Hosting.Tests.Bootstrap;
 public sealed unsafe class InitializeManagedTests
 {
 	[Fact]
+	[Trait("Qualification", "Q02")]
 	public void Writes_exactly_the_36_byte_record_and_nothing_past_it()
 	{
 		HostingTest.Reset();
@@ -40,6 +41,7 @@ public sealed unsafe class InitializeManagedTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q02")]
 	public void Writes_the_record_at_an_odd_address_without_touching_the_guard()
 	{
 		HostingTest.Reset();
@@ -53,6 +55,7 @@ public sealed unsafe class InitializeManagedTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q05")]
 	public void Second_call_is_idempotent_and_writes_the_same_bytes_including_the_name_pointer()
 	{
 		HostingTest.Reset();
@@ -81,6 +84,7 @@ public sealed unsafe class InitializeManagedTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q05.a")]
 	public void Non_ASCII_name_is_converted_to_the_process_ANSI_code_page()
 	{
 		HostingTest.Reset();
@@ -129,6 +133,7 @@ public sealed unsafe class InitializeManagedTests
 	[InlineData(36)]
 	[InlineData(40)]
 	[InlineData(4096)]
+	[Trait("Qualification", "Q04")]
 	public void An_opaque_bootstrap_argument_is_recorded_without_changing_the_record_write(int hostArgument)
 	{
 		HostingTest.Reset();
@@ -139,6 +144,34 @@ public sealed unsafe class InitializeManagedTests
 		Assert.False(host.RecordUntouched);
 		Assert.True(host.GuardIntact);
 		Assert.Equal(hostArgument, PluginHost.LastInitRecordArgument);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q04")]
+	public void The_bootstrap_argument_is_never_used_as_a_size_or_precondition()
+	{
+		// The Name pointer (offset 0-7) is a fresh native allocation every time HostingTest.Reset() clears the
+		// previous one, so its address legitimately differs run to run: that is not what this test is about. The
+		// remaining 28 bytes (GetVersion, EnablePlugin, DisablePlugin, Version) are addresses of static native
+		// thunks and a compile-time constant, so they are the part that must never move because of hostArgument.
+		int[] hostArguments = [int.MinValue, -1, 0, 1, 36, int.MaxValue];
+		const int NameFieldSize = sizeof(long);
+		byte[]? reference = null;
+
+		foreach (int hostArgument in hostArguments)
+		{
+			HostingTest.Reset();
+			using HostSimulator host = new();
+
+			Assert.Equal(1, host.Initialize<RecordingPluginFactory>(hostArgument));
+
+			Assert.True(host.GuardIntact, $"hostArgument={hostArgument} overran the record.");
+			ReadOnlySpan<byte> stable = host.RecordBytes[NameFieldSize..];
+			reference ??= stable.ToArray();
+			Assert.True(stable.SequenceEqual(reference),
+				$"hostArgument={hostArgument} changed the 36-byte record write.");
+			Assert.Equal(hostArgument, PluginHost.LastInitRecordArgument);
+		}
 	}
 
 	[Fact]

@@ -1,0 +1,37 @@
+# Configuration of actions/dependency-review-action v5, run by the dependency-review job of ci.yml on pull requests.
+# The job passes config-file, comment-summary-in-pr: never (no pull-requests: write, so it works the same on forks) and
+# retry-on-snapshot-warnings: true inline, as shared contract 1.6 freezes them; every other option lives here.
+# Option names: https://github.com/actions/dependency-review-action#configuration-options
+
+# A pull request fails when it adds a dependency with a known vulnerability of this severity or higher, in any scope:
+# test and build tooling runs in CI with the repository checkout, so development dependencies count too.
+fail-on-severity: moderate
+fail-on-scopes:
+  - runtime
+  - development
+
+# Licenses a new or updated dependency may carry (SPDX identifiers). Every direct reference was MIT or Apache-2.0 when
+# this list was written (nuget.org nuspecs, 2026-09-23).
+allow-licenses:
+  - MIT
+  - Apache-2.0
+  - BSD-2-Clause
+  - BSD-3-Clause
+  - ISC
+  - 0BSD
+  - Unlicense
+  - MS-PL
+
+# Packages whose nuspec ships the license as a file (license type="file") instead of an SPDX expression, so the
+# dependency graph has no identifier to compare. Both are Microsoft's code coverage tooling, used only by test runs and
+# never shipped in the CheatEngine.SDK package. Add a package here only with the same verification and a reason.
+allow-dependencies-licenses:
+  - pkg:nuget/Microsoft.Testing.Extensions.CodeCoverage
+  - pkg:nuget/dotnet-coverage
+
+# Without automatic dependency submission the head snapshot of a pull request can lag: wait up to two minutes for it
+# (retry-on-snapshot-warnings itself is set in the workflow) instead of reviewing a partial graph.
+retry-on-snapshot-warnings-timeout: 120
+
+show-openssf-scorecard: true
+warn-on-openssf-scorecard-level: 3

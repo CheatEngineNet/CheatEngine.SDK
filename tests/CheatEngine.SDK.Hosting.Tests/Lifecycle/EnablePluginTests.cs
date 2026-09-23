@@ -23,6 +23,7 @@ namespace CheatEngine.SDK.Hosting.Tests.Lifecycle;
 public sealed unsafe class EnablePluginTests
 {
 	[Fact]
+	[Trait("Qualification", "Q03")]
 	public void A_null_exports_record_fails_without_touching_Lua()
 	{
 		CapturingLogSink sink = HostingTest.Reset();
@@ -43,6 +44,7 @@ public sealed unsafe class EnablePluginTests
 	[InlineData(40)]
 	[InlineData(47)]
 	[InlineData(-48)]
+	[Trait("Qualification", "Q03")]
 	public void An_undersized_exports_record_fails_cleanly(int reportedSize)
 	{
 		CapturingLogSink sink = HostingTest.Reset();
@@ -61,6 +63,7 @@ public sealed unsafe class EnablePluginTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q03")]
 	public void A_record_without_GetLuaState_fails()
 	{
 		CapturingLogSink sink = HostingTest.Reset();
@@ -88,6 +91,7 @@ public sealed unsafe class EnablePluginTests
 	}
 
 	[Fact]
+	[Trait("Qualification", "Q11")]
 	public void Without_a_Lua_module_in_the_process_the_enable_fails_before_any_plugin_code()
 	{
 		CapturingLogSink sink = HostingTest.Reset();
@@ -224,6 +228,7 @@ public sealed unsafe class EnablePluginTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q06")]
 	public void OnEnable_throwing_makes_the_enable_fail_and_detaches_the_runtime()
 	{
 		HostingTest.RequireNativeLua();
@@ -251,6 +256,7 @@ public sealed unsafe class EnablePluginTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q08")]
 	public void OnEnable_failure_with_detach_failure_keeps_incomplete_cleanup_retryable()
 	{
 		HostingTest.RequireNativeLua();
@@ -299,6 +305,7 @@ public sealed unsafe class EnablePluginTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q08")]
 	public void A_failed_cleanup_retry_rejects_nested_disable_until_the_retry_unwinds()
 	{
 		HostingTest.RequireNativeLua();
@@ -339,7 +346,12 @@ public sealed unsafe class EnablePluginTests
 			Assert.False(nestedResult);
 			Assert.True(LuaRuntime.IsAttached);
 			Assert.Equal(PluginHostLifecyclePhase.Disabling, PluginHost.Phase);
-			Assert.True(sink.HasEntry(HostLogLevel.Error, "a disable transition is already completing"));
+			// WI-6: the nested call's own "a disable transition is already completing" log happens while this
+			// thread is still inside the outer HostLog.Write that dispatched to sink.OnMessage, so it is a
+			// reentrant write on the same thread. It is dropped and counted instead of reaching the sink, which is
+			// exactly the containment the nested lifecycle refusal above (nestedResult == false) does not depend on.
+			Assert.False(sink.HasEntry(HostLogLevel.Error, "a disable transition is already completing"));
+			Assert.True(HostLog.DroppedReentrantEntries > 0);
 
 			LuaCallbackRegistry.AfterReleaseForTesting = null;
 			sink.OnMessage = null;
@@ -356,6 +368,7 @@ public sealed unsafe class EnablePluginTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q06")]
 	public void A_throwing_constructor_fails_the_enable_and_is_retried_on_the_next_enable()
 	{
 		HostingTest.RequireNativeLua();
@@ -423,6 +436,7 @@ public sealed unsafe class EnablePluginTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q11")]
 	public void The_production_module_lookup_finds_the_fixture_when_it_is_Cheat_Engines_DLL()
 	{
 		HostingTest.RequireNativeLua();

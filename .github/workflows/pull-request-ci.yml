@@ -1,5 +1,6 @@
 name: Pull request CI
 
+# No path filter: the required check "CI / Gate" must report on every pull request.
 on:
   pull_request:
     types: [ opened, synchronize, reopened, ready_for_review ]
@@ -12,6 +13,10 @@ concurrency:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: pwsh
+
 jobs:
   ci:
     name: CI
@@ -19,6 +24,6 @@ jobs:
     if: ${{ !github.event.pull_request.draft }}
     uses: ./.github/workflows/ci.yml
     with:
-      sonar: true # ci.yml still skips Sonar for fork and Dependabot pull requests, which receive no secrets
+      sonar: true # the gate still expects no Sonar run for fork and Dependabot pull requests, which receive no secrets
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

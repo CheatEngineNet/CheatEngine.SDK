@@ -1,0 +1,263 @@
+# Advisory CI-side dependency submission (audit register PR-CQ-45). Automatic NuGet submission needs an
+# organization-level setting that cannot be enabled here, and the dependency graph resolves no version from the Central
+# Package Management layout on its own (it lists "Microsoft.CodeAnalysis.CSharp >= 0").
+# - detect: read-only token. A pinned, hash-verified Component Detection binary scans the locked restore. The official
+#   submission action is not used: it downloads the latest Component Detection release at run time and executes it
+#   next to a contents: write token.
+# - submit: the only job with contents: write. It executes no third-party code (download-artifact and gh api only) and
+#   refuses a snapshot whose commit, ref or correlator is not this run's, because detect ran repository code.
+# Pushes to main give dependency review its base snapshot; same-repository pull requests (Dependabot included) submit
+# a head snapshot for the pull request head commit. Fork pull requests and drafts never run it.
+# detect restores in locked mode, like CI: on a Dependabot pull request whose lock files still miss entries that only
+# 'dotnet restore --force-evaluate' regenerates (the SDK-implicit packages), it fails until the maintainer regenerates
+# them on the branch and pushes. It is advisory, never a required check.
+name: Dependency submission
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
+  workflow_dispatch:
+
+# Only the newest snapshot of a pull request matters, so a pull request run cancels the previous one. Runs for main are
+# serialized and a running one is never cancelled, so snapshots reach the graph in push order. GitHub keeps at most one
+# pending run per group, though: after three quick pushes the middle commit's pending run is replaced by the newest one
+# and that commit gets no snapshot. Accepted: the newest commit of main always gets one; dependency review of a pull
+# request based on a commit without a snapshot compares against the manifest-only graph and reports snapshot warnings.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  detect:
+    name: Detect NuGet dependencies
+    if: >-
+      github.event_name != 'pull_request'
+      || (!github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository)
+    # Windows: the lock files of the Native AOT projects hold win-x64 ILCompiler sections, so a locked restore needs it.
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      # The snapshot describes the commit it names: the pull request head, not the merge commit.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      # The step restores itself (locked, with binary logs for the detector).
+      - name: Set up .NET
+        uses: ./.github/actions/setup-dotnet
+
+      # GitHub's dependency graph cannot read the Central Package Management layout (it lists NuGet packages as
+      # ">= 0"), and automatic dependency submission needs an organization-level setting, so the snapshot
+      # (https://docs.github.com/en/rest/dependency-graph/dependency-submission) is built here: a pinned Component
+      # Detection binary scans a locked restore of every project, and its manifest becomes one GitHub manifest per
+      # project (repository-relative path), "direct" for the packages a project references explicitly, "development"
+      # scope for the detector's development dependencies, and the dependency edges of each project's graph.
+      - name: Run Component Detection and build the snapshot
+        env:
+          SNAPSHOT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          SNAPSHOT_REF: ${{ github.ref }}
+          SNAPSHOT_CORRELATOR: sdk-nuget
+          SNAPSHOT_JOB_ID: ${{ github.run_id }}
+          SNAPSHOT_JOB_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          # Pinned detector. Bump the three values together after reading the release and its asset digest:
+          #   gh api repos/microsoft/component-detection/releases/tags/v<version> --jq '.assets[] | select(.name == "component-detection-win-x64.exe") | .digest'
+          $detectorVersion = '8.0.1'
+          $detectorAsset = 'component-detection-win-x64.exe'
+          $detectorSha256 = '9539f792cd2ae7d719922db45df763ec4454cc380fbfcbe685da9a90c1b39cf2'
+          $minimumPackageCount = 40
+          $sentinelPackage = 'Microsoft.CodeAnalysis.CSharp'
+          $solutionFile = 'CheatEngine.SDK.slnx'
+
+          function ConvertTo-RepositoryPath($Location) {
+            $absolute = if ([IO.Path]::IsPathRooted($Location)) { $Location } else { Join-Path $PWD.Path $Location }
+            $relative = [IO.Path]::GetRelativePath($PWD.Path, $absolute).Replace('\', '/')
+            if ($relative.StartsWith('../', [StringComparison]::Ordinal) -or [IO.Path]::IsPathRooted($relative)) { return $null }
+            return $relative
+          }
+
+          function Get-PackageUrl($Component) {
+            # Package URL spec: the NuGet type keeps the name's case; '@' in a name must be percent-encoded.
+            return "pkg:nuget/$($Component.Name.Replace('@', '%40'))@$($Component.Version)"
+          }
+
+          function ConvertTo-OrdinalSet($Item) {
+            $values = [string[]] @($Item | Where-Object { $null -ne $_ })
+            $set = [Collections.Generic.HashSet[string]]::new($values, [StringComparer]::Ordinal)
+            return , $set # the unary comma keeps the set whole: PowerShell would otherwise enumerate it.
+          }
+
+          $work = Join-Path ([IO.Path]::GetTempPath()) "cheatengine-sdk-snapshot-$([guid]::NewGuid().ToString('N'))"
+          New-Item -ItemType Directory -Path $work | Out-Null
+          try {
+            $detector = Join-Path $work $detectorAsset
+            $scanManifest = Join-Path $work 'component-detection-manifest.json'
+
+            Invoke-WebRequest -Uri "https://github.com/microsoft/component-detection/releases/download/v$detectorVersion/$detectorAsset" -OutFile $detector -MaximumRetryCount 3 -RetryIntervalSec 5
+            $actualSha256 = (Get-FileHash -LiteralPath $detector -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualSha256 -cne $detectorSha256) {
+              throw "$detectorAsset v$detectorVersion has SHA-256 $actualSha256, expected $detectorSha256. Refusing to run it."
+            }
+
+            [xml] $solution = Get-Content -Raw -LiteralPath $solutionFile
+            $inSolution = @($solution.SelectNodes('//Project') | ForEach-Object { $_.GetAttribute('Path').Replace('\', '/') })
+            $outOfSolution = @(git ls-files -- '*.csproj')
+            if ($LASTEXITCODE -ne 0) {
+              throw "git ls-files failed with exit code $LASTEXITCODE."
+            }
+            $outOfSolution = @($outOfSolution | Where-Object { $_ -notin $inSolution } | Sort-Object)
+            $targets = @($solutionFile) + $outOfSolution
+            New-Item -ItemType Directory -Force -Path artifacts/logs | Out-Null
+            foreach ($target in $targets) {
+              $binaryLog = "artifacts/logs/dependency-restore-$([IO.Path]::GetFileNameWithoutExtension($target)).binlog"
+              dotnet restore $target --locked-mode "-bl:$binaryLog"
+              if ($LASTEXITCODE -ne 0) {
+                throw "Locked restore of '$target' failed with exit code $LASTEXITCODE."
+              }
+            }
+
+            & $detector scan --SourceDirectory $PWD.Path --ManifestFile $scanManifest --DetectorCategories NuGet --Output $work --LogLevel Warning
+            if ($LASTEXITCODE -ne 0) {
+              throw "Component Detection failed with exit code $LASTEXITCODE."
+            }
+
+            $scan = Get-Content -LiteralPath $scanManifest -Raw -Encoding utf8 | ConvertFrom-Json -AsHashtable
+            $components = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+            foreach ($found in @($scan['componentsFound'])) {
+              $component = $found['component']
+              if ($component['type'] -ceq 'NuGet') {
+                $components[[string] $component['id']] = [pscustomobject]@{ Name = [string] $component['name']; Version = [string] $component['version'] }
+              }
+            }
+
+            $manifests = [ordered]@{}
+            foreach ($location in @($scan['dependencyGraphs'].Keys | Sort-Object)) {
+              $relative = ConvertTo-RepositoryPath $location
+              if ($null -eq $relative) { continue }
+
+              $graph = $scan['dependencyGraphs'][$location]
+              $explicit = ConvertTo-OrdinalSet $graph['explicitlyReferencedComponentIds']
+              $development = ConvertTo-OrdinalSet $graph['developmentDependencies']
+              $resolved = [ordered]@{}
+              foreach ($id in @($graph['graph'].Keys | Sort-Object)) {
+                if (-not $components.ContainsKey($id)) { continue }
+
+                $children = @(@($graph['graph'][$id]) | Where-Object { $_ -and $components.ContainsKey($_) } |
+                    ForEach-Object { Get-PackageUrl $components[$_] } | Sort-Object -Unique)
+                $packageUrl = Get-PackageUrl $components[$id]
+                $resolved[$packageUrl] = [ordered]@{
+                  package_url  = $packageUrl
+                  relationship = if ($explicit.Contains($id)) { 'direct' } else { 'indirect' }
+                  scope        = if ($development.Contains($id)) { 'development' } else { 'runtime' }
+                  dependencies = [string[]] $children
+                }
+              }
+
+              if ($resolved.Count -gt 0) {
+                $manifests[$relative] = [ordered]@{ name = $relative; file = [ordered]@{ source_location = $relative }; resolved = $resolved }
+              }
+            }
+          }
+          finally {
+            Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+          $job = [ordered]@{ correlator = $env:SNAPSHOT_CORRELATOR; id = $env:SNAPSHOT_JOB_ID; html_url = $env:SNAPSHOT_JOB_URL }
+          $snapshot = [ordered]@{
+            version   = 0
+            sha       = $env:SNAPSHOT_SHA
+            ref       = $env:SNAPSHOT_REF
+            job       = $job
+            detector  = [ordered]@{ name = 'Microsoft Component Detection'; version = $detectorVersion; url = 'https://github.com/microsoft/component-detection' }
+            scanned   = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ', [Globalization.CultureInfo]::InvariantCulture)
+            manifests = $manifests
+          }
+
+          $packageUrls = @($manifests.Values | ForEach-Object { $_['resolved'].Keys } | Sort-Object -Unique)
+          if ($packageUrls.Count -lt $minimumPackageCount) {
+            throw "Only $($packageUrls.Count) NuGet packages detected (at least $minimumPackageCount expected): the scan missed the restore."
+          }
+
+          [xml] $packageVersions = Get-Content -Raw -LiteralPath Directory.Packages.props
+          $sentinelVersion = @($packageVersions.SelectNodes('//PackageVersion') |
+              Where-Object { $_.GetAttribute('Include') -ceq $sentinelPackage } | Select-Object -First 1).GetAttribute('Version')
+          $sentinelUrl = "pkg:nuget/$sentinelPackage@$sentinelVersion"
+          if ($packageUrls -cnotcontains $sentinelUrl) {
+            throw "The snapshot lacks $sentinelUrl, the Roslyn pin of Directory.Packages.props: the scan missed the analyzers and generators."
+          }
+
+          New-Item -ItemType Directory -Force -Path artifacts/dependency-snapshot | Out-Null
+          [IO.File]::WriteAllText('artifacts/dependency-snapshot/snapshot.json', ($snapshot | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
+          "Detected $($packageUrls.Count) distinct NuGet packages across $($manifests.Count) manifests." |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Upload snapshot
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dependency-snapshot
+          path: artifacts/dependency-snapshot/snapshot.json
+          if-no-files-found: error
+          retention-days: 5
+
+  submit:
+    name: Submit NuGet dependency graph
+    needs: detect
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write # POST /repos/{owner}/{repo}/dependency-graph/snapshots requires write
+    steps:
+      - name: Download snapshot
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dependency-snapshot
+          path: snapshot
+
+      # The artifact came from a job that ran repository code: submit it only with the snapshot shape and this run's
+      # commit, ref and correlator.
+      - name: Submit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SNAPSHOT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          SNAPSHOT_REF: ${{ github.ref }}
+          SNAPSHOT_CORRELATOR: sdk-nuget
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $snapshot = Get-Content -LiteralPath snapshot/snapshot.json -Raw | ConvertFrom-Json -AsHashtable
+          $properties = @($snapshot.Keys | Sort-Object) -join ','
+          if ($properties -cne 'detector,job,manifests,ref,scanned,sha,version') {
+            throw "The snapshot artifact has unexpected top-level properties ($properties); nothing was submitted."
+          }
+          $job = $snapshot['job']
+          $checks = [ordered]@{
+            version    = $snapshot['version'] -is [long] -and $snapshot['version'] -eq 0
+            sha        = $snapshot['sha'] -ceq $env:SNAPSHOT_SHA
+            ref        = $snapshot['ref'] -ceq $env:SNAPSHOT_REF
+            correlator = $job -is [System.Collections.IDictionary] -and $job['correlator'] -ceq $env:SNAPSHOT_CORRELATOR
+            detector   = $snapshot['detector'] -is [System.Collections.IDictionary]
+            manifests  = $snapshot['manifests'] -is [System.Collections.IDictionary] -and $snapshot['manifests'].Count -gt 0
+          }
+          $mismatches = @($checks.Keys | Where-Object { -not $checks[$_] })
+          if ($mismatches.Count -gt 0) {
+            throw "The snapshot artifact does not match this run ($($mismatches -join ', ')); nothing was submitted."
+          }
+          gh api --method POST "repos/$env:REPOSITORY/dependency-graph/snapshots" --input snapshot/snapshot.json
+          if ($LASTEXITCODE -ne 0) {
+            throw "Dependency snapshot submission failed with exit code $LASTEXITCODE."
+          }
+          "Submitted $($snapshot['manifests'].Count) manifests for ``$env:SNAPSHOT_SHA`` ($env:SNAPSHOT_REF)." |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

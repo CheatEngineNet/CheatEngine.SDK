@@ -14,4 +14,10 @@
     <ProjectReference Include="../CheatEngine.SDK.Tests.Shared/CheatEngine.SDK.Tests.Shared.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The failure evidence of every protected operation (Q13); embedded so the test needs no workspace path. -->
+    <EmbeddedResource Include="../../libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json"
+                      LogicalName="CheatEngine.SDK.Lua.Tests.ProtectedOperations.json"/>
+  </ItemGroup>
+
 </Project>

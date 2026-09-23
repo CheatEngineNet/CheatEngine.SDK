@@ -55,6 +55,18 @@ when the operands are plain. `memory` also covers a failing `__gc` finalizer tha
 bound but forbidden. The `luaL_check*` functions, `lua_yieldk`, the `luaL_Buffer` family and the C varargs functions are
 not bound. They unwind with `longjmp` or cannot be blittable pointers.
 
+Memory corruption and invalid native pointers are never recoverable through `pcall`: the protected boundary contains
+Lua errors, not undefined behaviour. Every public static `LuaApi` member is classified this way — its Lua 5.3 manual
+error marker, side effects and the route SDK production code may take to it (`Never`/`Memory`/`Any`/`Always`, and a
+decision such as `DirectAllowed`, `BridgeRequired` or `CallerProtected`) — in the committed primitive matrix
+`tests/CheatEngine.SDK.Repository.Tests/LuaBridge/TestData/lua-interop-primitives.json`, verified against this class by
+reflection in `tests/CheatEngine.SDK.Lua.Interop.Tests/Protected/LuaInteropPrimitiveMatrixTests.cs`. Cheat Engine's
+`lua53-64.dll` is not a standard Lua build, so every marker is measured on the bundled fixture, never read from a
+plugin kit's `lua.h`/`lauxlib.h`. .NET does not support unwinding managed frames with `longjmp`
+(https://learn.microsoft.com/dotnet/standard/native-interop/exceptions-interoperability#setjmplongjmp-behaviors); the
+host-object pusher `LuaPushClassInstance` is the one exception whose exact Cheat Engine 7.7 failure behavior is
+qualification scenario Q23, not yet executed on the host.
+
 `LuaModule.TryGetLoaded` calls `GetModuleHandleExW`, which answers from the loader's module list. It never loads a
 library, unlike a bare-name `LoadLibrary`, which loads whatever file its search path finds first. It returns `false` off
 Windows.
@@ -95,6 +107,9 @@ static unsafe class Example
   (`TryGetLoaded_unknown_module_returns_false_and_loads_nothing`).
 - `lua_Debug` matches the C layout on x64 and fits the record a real library writes (`NativeStructLayoutTests`,
   `Native_debug_record_fits_the_managed_struct`).
+- Every public static member has exactly one row in the committed primitive matrix, and adding an allocating or
+  metamethod-running member without a matching row fails the run (`LuaInteropPrimitiveMatrixTests`,
+  `LuaInteropPrimitiveMatrixDocumentTests`).
 
 ## Run the tests
 

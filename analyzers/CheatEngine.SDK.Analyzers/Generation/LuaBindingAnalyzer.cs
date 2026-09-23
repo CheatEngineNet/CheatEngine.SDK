@@ -18,7 +18,10 @@ namespace CheatEngine.SDK.Analyzers.Generation;
 ///     <c>[LuaGlobal]</c> member exists but the compilation does not allow unsafe code. CESDK2002: the type that
 ///     declares such a member cannot receive a generated part. CESDK2003: a <c>[LuaFunction]</c> method cannot be
 ///     exported by a generated thunk. CESDK2004: a <c>[LuaGlobal]</c> method cannot receive a generated body.
-///     CESDK2005: two otherwise valid functions of one binding type export the same Lua name.
+///     CESDK2005: two otherwise valid functions of one binding type export the same Lua name. CESDK2010 to CESDK2013:
+///     an optional argument outside the trailing run, an invalid optional or variadic result shape, a look-alike of an
+///     SDK Lua contract type, and <c>LuaOptional&lt;T&gt;</c> where it is not supported (including on
+///     <c>[LuaMethod]</c> and <c>[LuaProperty]</c> members, which do not support it yet).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -53,7 +56,11 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 		DiagnosticDescriptors.InvalidLuaBindingContainingType,
 		DiagnosticDescriptors.InvalidLuaFunction,
 		DiagnosticDescriptors.InvalidLuaGlobal,
-		DiagnosticDescriptors.DuplicateLuaName
+		DiagnosticDescriptors.DuplicateLuaName,
+		DiagnosticDescriptors.NonTrailingOptionalLuaArgument,
+		DiagnosticDescriptors.InvalidOptionalOrVariadicLuaResult,
+		DiagnosticDescriptors.LookAlikeLuaContractType,
+		DiagnosticDescriptors.UnsupportedLuaOptionalPosition
 	];
 
 	/// <inheritdoc />
@@ -83,7 +90,9 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaClassAttribute),
 			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaMethodAttribute),
 			SdkSymbolResolver.Annotation(context.Compilation, WellKnownTypeNames.LuaPropertyAttribute),
-			SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaState));
+			SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaState),
+			SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaOptional),
+			SdkSymbolResolver.Lua(context.Compilation, WellKnownTypeNames.LuaOperationStatus));
 
 		// Mirrors CheatEngine.SDK.SourceGenerators.LuaBindings.Model.CompilationFacts.From: a non-C# compilation (never seen
 		// here, the analyzer is C#-only) would read as "unsafe not allowed" too.
@@ -92,7 +101,50 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 		LuaFunctionDuplicateState duplicateNames = new();
 		context.RegisterSymbolAction(
 			symbolContext => AnalyzeMethod(symbolContext, symbols, allowsUnsafe, duplicateNames), SymbolKind.Method);
+		if (symbols.LuaMethodAttribute is not null || symbols.LuaPropertyAttribute is not null)
+		{
+			context.RegisterSymbolAction(symbolContext => AnalyzeObjectMember(symbolContext, symbols),
+				SymbolKind.Method, SymbolKind.Property);
+		}
+
 		context.RegisterCompilationEndAction(duplicateNames.Report);
+	}
+
+	// [LuaMethod] and [LuaProperty] members do not support LuaOptional<T> yet: CESDK2013 names the reason instead of the
+	// generic CESDK2006 "unsupported type" (the object-binding analyzer leaves such a position to this rule).
+	private static void AnalyzeObjectMember(SymbolAnalysisContext context, LuaBindingContractSymbols symbols)
+	{
+		if (symbols.LuaOptional is null)
+		{
+			return;
+		}
+
+		bool usesOptional;
+		switch (context.Symbol)
+		{
+			case IMethodSymbol method when symbols.LuaMethodAttribute is not null
+										   && FindAttribute(method, symbols.LuaMethodAttribute) is not null:
+				usesOptional = LuaContractTypes.Is(method.ReturnType, symbols.LuaOptional);
+				foreach (IParameterSymbol parameter in method.Parameters)
+				{
+					usesOptional |= LuaContractTypes.Is(parameter.Type, symbols.LuaOptional);
+				}
+
+				break;
+			case IPropertySymbol property when symbols.LuaPropertyAttribute is not null
+											   && FindAttribute(property, symbols.LuaPropertyAttribute) is not null:
+				usesOptional = LuaContractTypes.Is(property.Type, symbols.LuaOptional);
+				break;
+			default:
+				return;
+		}
+
+		if (usesOptional)
+		{
+			context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.UnsupportedLuaOptionalPosition,
+				FirstLocation(context.Symbol), context.Symbol.Name,
+				"must not use LuaOptional<T>: [LuaMethod] and [LuaProperty] members do not support optional values yet"));
+		}
 	}
 
 	private static void AnalyzeMethod(SymbolAnalysisContext context, LuaBindingContractSymbols symbols,
@@ -154,7 +206,7 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 		string? name = ReadName(attribute);
 		LuaFunctionShapeIssues issues = LuaFunctionShape.Inspect(context.Compilation, method, symbols.LuaState,
 			symbols.LuaMarshallerAttribute,
-			symbols.LuaMarshallerContract, out _);
+			symbols.LuaMarshallerContract, symbols.LuaOptional, out _);
 		if (!LuaNames.IsValidName(name))
 		{
 			issues |= LuaFunctionShapeIssues.InvalidName;
@@ -168,7 +220,7 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 			}
 
 			context.ReportDiagnostic(Diagnostic.Create(
-				DiagnosticDescriptors.InvalidLuaFunction, location, method.Name,
+				LuaFunctionProblemText.DescriptorFor(problem), location, method.Name,
 				LuaFunctionProblemText.Describe(problem)));
 		}
 
@@ -186,7 +238,7 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 	{
 		LuaGlobalShapeIssues issues = LuaGlobalShape.Inspect(context.Compilation, method, symbols.LuaState,
 			symbols.LuaMarshallerAttribute,
-			symbols.LuaMarshallerContract, out _);
+			symbols.LuaMarshallerContract, symbols.LuaOptional, symbols.LuaOperationStatus, out _);
 		if (!LuaNames.IsValidName(ReadName(attribute)))
 		{
 			issues |= LuaGlobalShapeIssues.InvalidName;
@@ -200,7 +252,8 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 			}
 
 			context.ReportDiagnostic(Diagnostic.Create(
-				DiagnosticDescriptors.InvalidLuaGlobal, location, method.Name, LuaGlobalProblemText.Describe(problem)));
+				LuaGlobalProblemText.DescriptorFor(problem), location, method.Name,
+				LuaGlobalProblemText.Describe(problem)));
 		}
 	}
 
@@ -215,9 +268,9 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 			: null;
 	}
 
-	private static AttributeData? FindAttribute(IMethodSymbol method, INamedTypeSymbol attributeClass)
+	private static AttributeData? FindAttribute(ISymbol symbol, INamedTypeSymbol attributeClass)
 	{
-		foreach (AttributeData attribute in method.GetAttributes())
+		foreach (AttributeData attribute in symbol.GetAttributes())
 		{
 			if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeClass))
 			{
@@ -228,8 +281,8 @@ public sealed class LuaBindingAnalyzer : DiagnosticAnalyzer
 		return null;
 	}
 
-	private static Location FirstLocation(IMethodSymbol method)
+	private static Location FirstLocation(ISymbol symbol)
 	{
-		return method.Locations.IsEmpty ? Location.None : method.Locations[0];
+		return symbol.Locations.IsEmpty ? Location.None : symbol.Locations[0];
 	}
 }

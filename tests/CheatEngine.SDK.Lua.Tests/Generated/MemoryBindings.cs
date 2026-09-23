@@ -49,7 +49,7 @@ internal static partial class MemoryBindings
 		LuaState L = LuaRuntime.AcquireState(); // one state acquisition per operation
 		int top = L.Top; // explicit settop: no EH region on the success path
 		if (!LuaGlobalFunctions.TryPush(L, s_readInteger,
-			    "readInteger"u8)) // rawgeti on the cached ref; resolve + type-check + luaL_ref on first use
+				"readInteger"u8)) // rawgeti on the cached ref; resolve + type-check + luaL_ref on first use
 		{
 			return LuaCallSupport.Fail(L, top, out value); // cold, NoInlining: restore top, default the result
 		}

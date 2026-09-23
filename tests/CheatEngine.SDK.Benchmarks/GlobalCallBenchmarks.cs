@@ -37,7 +37,7 @@ public class GlobalCallBenchmarks : IDisposable
 		if (!defined.IsOk)
 		{
 			throw new InvalidOperationException("Defining cheatengine_sdk_bench_add failed: " +
-			                                    LuaError.FromStack(l, defined));
+												LuaError.FromStack(l, defined));
 		}
 	}
 

@@ -78,7 +78,7 @@ dotnet add package CheatEngine.SDK --version 1.0.0
 | `AllowUnsafeBlocks`                | Consumer opt-in          | Set `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` for `[LuaFunction]` exports, whose generated thunks take native addresses; a `[LuaGlobal]`-only project can leave it `false` |
 | `EnableDynamicLoading`             | `true` while empty       | Copies referenced assemblies next to your plugin and writes its runtime config                                                                                                 |
 | `CheatEngineSdkGenerateEntryPoint` | `true` while empty       | Set `false` to write `CESDK.CESDK.CEPluginInitialize` by hand                                                                                                                  |
-| `PlatformTarget`                   | yours                    | Must not be `x86`: the build stops with `CESDK9101`                                                                                                                            |
+| `PlatformTarget`                   | yours                    | Leave it unset, or set `AnyCPU` or `x64`; any other explicit value (`x86`, `ARM`, `ARM64`, …) stops the build with `CESDK9101` (`PlatformTargetTests`)                         |
 
 | Requirement  | Version                                                                                                                                                                 |
 |--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -328,7 +328,7 @@ returns the Cheat Engine name as UTF-8 (empty for an undefined value or a flag c
 The normal public API is organized by domain; raw Lua names stay inside the binding layer. Every slice distinguishes a
 disabled plugin (a lifecycle error) from a CE-reported failure, an unavailable global, protected Lua failure, or an
 invalid marshalled result. Its source, CE version, architecture, thread requirement, ownership, and normal return
-semantics belong in the [capability matrix](../../documentations/CheatEngine.SDK/capability-matrix.md).
+semantics are catalogued in the audit dossier, not republished in this repository.
 
 | Domain                   | Public direction                                                                                                                                             | Ownership and thread boundary                                                                                                                                   |
 |--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -344,8 +344,8 @@ semantics belong in the [capability matrix](../../documentations/CheatEngine.SDK
 
 The owned `AutoAssemblerPatch` is the low-level primitive; high-level Auto Assembler capabilities, arbitrary
 execution/injection, debugger, DBK/DBVM, UI/D3D, network, and SQL domains remain intentionally opt-in and outside the
-ordinary API path until they have a capability, authorization, lifetime, rollback, and live-test contract. See
-the [advanced-domain boundaries](../../documentations/CheatEngine.SDK/advanced-domains/README.md).
+ordinary API path until they have a capability, authorization, lifetime, rollback, and live-test contract. Their
+dispositions are tracked as deferred families in the audit dossier, not republished in this repository.
 
 ## Threads
 

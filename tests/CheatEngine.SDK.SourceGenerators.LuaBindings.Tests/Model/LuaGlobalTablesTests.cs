@@ -38,7 +38,8 @@ public sealed class LuaGlobalTablesTests
 	{
 		LuaGlobalModel invalid = Global("g", "G()") with
 		{
-			Issues = LuaGlobalShapeIssues.NotPartialDefinition, Call = null
+			Issues = LuaGlobalShapeIssues.NotPartialDefinition,
+			Call = null
 		};
 
 		Assert.True(LuaGlobalTables.Group([invalid]).IsEmpty);
@@ -77,6 +78,47 @@ public sealed class LuaGlobalTablesTests
 		AssertHintNames(reverse,
 			HintNames.ForType("Demo.Type", LuaGlobalTableModel.HintSuffix),
 			HintNames.Disambiguated("Demo.type", LuaGlobalTableModel.HintSuffix));
+	}
+
+	[Fact]
+	public void Optional_argument_model_is_value_equal_across_runs()
+	{
+		LuaGlobalCallModel first = OptionalCall();
+		LuaGlobalCallModel second = OptionalCall();
+
+		Assert.Equal(first, second);
+		Assert.Equal(first.GetHashCode(), second.GetHashCode());
+		Assert.NotEqual(first, first with
+		{
+			Arguments = new EquatableArray<LuaArgumentModel>([
+				new LuaArgumentModel("address", LuaValueKind.Address, false),
+				new LuaArgumentModel("count", LuaValueKind.Int32, false)
+			])
+		});
+		Assert.NotEqual(first, first with
+		{
+			Results = new EquatableArray<LuaResultModel>([LuaResultModel.Value(LuaValueKind.Int64, "value")])
+		});
+		Assert.Equal(
+			new LuaArgumentModel("count", LuaValueKind.Int32, false, false, null, null),
+			new LuaArgumentModel("count", LuaValueKind.Int32, false));
+		Assert.False(new LuaArgumentModel("count", LuaValueKind.Int32, false, false, null, null).IsOptional);
+	}
+
+	private static LuaGlobalCallModel OptionalCall()
+	{
+		return new LuaGlobalCallModel("readBytes", LuaGlobalCallModel.CacheFieldFor("readBytes"), "public static partial",
+			"ReadBytes", string.Empty,
+			new EquatableArray<LuaArgumentModel>([
+				new LuaArgumentModel("address", LuaValueKind.Address, false),
+				LuaArgumentModel.Optional("count", LuaValueKind.Int32)
+			]),
+			LuaCallForm.Outcome,
+			new EquatableArray<LuaResultModel>([
+				LuaResultModel.Optional(LuaValueKind.Int64, "value"),
+				LuaResultModel.Variadic(LuaValueKind.Int32, "values", "count")
+			]),
+			null, false);
 	}
 
 	private static LuaGlobalModel Global(string name, string sortKey)

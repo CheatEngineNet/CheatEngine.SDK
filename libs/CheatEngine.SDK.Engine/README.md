@@ -224,7 +224,10 @@ raw handles until their owner is published, rolls the child back before its pare
 the pair only to `MemoryScanSession`; an ordinary consumer cannot create an `Owned<MemScan>` or `Owned<FoundList>`
 manually. Releasing a session whose scan may still run first requests one cooperative stop (`terminateScan(false)`, then a
 five-second bounded wait), then destroys the child and the parent once each even when the stop is not confirmed, which
-can block CE's main thread; `MemoryScanReleaseOutcome.Termination` reports the stop.
+can block CE's main thread; `MemoryScanReleaseOutcome.Termination` reports the stop. CE's waits can run queued
+main-thread work (`waitTillDone` pumps `CheckSynchronize`) that calls back into the session: while one session member is
+inside a CE call, every other member is refused and a release or abandon is deferred until that call has returned, so no
+destroy runs under a CE call on the same objects.
 The Client must still keep value scanning capability-gated until its opt-in CE 7.7 x64 live scenario validates creation,
 cleanup, disable/re-enable, and target changes. The session guards the `firstScan → waitTillDone → initialize → read →
 deinitialize` order and rejects worker-thread cleanup while attached because its owned children use the existing SDK
@@ -546,7 +549,8 @@ The tests in `tests/CheatEngine.SDK.Engine.Tests` drive a simulated Cheat Engine
     reports a factual `NoMatches`. Bounded scans are exhaustive (`OnlyOneResult` off), bound CE's work to
     `[Start, Stop)`, post-filter the start, name their four limits and report host-scan and copy durations separately;
     first-found stays a separately named experimental opt-in; a session stops a running scan cooperatively, once, before
-    destroying the child and then the parent (`AobScannerTests`, `AobBoundedScanTests`, `AobFirstFoundScanTests`,
+    destroying the child and then the parent, and a release requested from inside one of its own CE waits is deferred
+    until that wait has returned (`AobScannerTests`, `AobBoundedScanTests`, `AobFirstFoundScanTests`,
     `MemoryScanSessionReleaseTests`, `MemoryScanSessionDeadlineTests`). These are fixture contracts; the Q27–Q29 C3 host
     receipts are still pending.
 20. Auto Assembler activation reports a factual outcome with its effect state, keeps every result CE returns (disable

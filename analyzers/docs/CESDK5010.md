@@ -31,9 +31,14 @@ not produce the `false` path: a whole-address-space scan finished before a one-m
 exercise `terminateScan` at all. Everything these members do after a deadline expires is therefore covered by fixture
 tests (C1) only, not by the host.
 
-The members are still safe by construction: the SDK never forces termination (a forced stop can kill CE's scan thread
-and open a modal dialog on CE's main thread), requests the cooperative stop at most once, never retries it, and reports
-an unconfirmed stop instead of claiming one. The bounded scan without a deadline,
+What the SDK does guarantee, and tests at C1: it never forces termination (a forced stop can kill CE's scan thread and
+open a modal dialog on CE's main thread), requests the cooperative stop at most once, never retries it, and reports an
+unconfirmed stop instead of claiming one. CE's waits can run queued main-thread work that calls back into the session;
+while one of these members is inside a CE call, the session refuses its other members and defers a release until that
+call has returned, so it never destroys the scanner under its own wait. How long CE's stop and destroy really block, and
+whether they behave as the fixture assumes, is exactly what the host has not shown yet.
+
+The bounded scan without a deadline,
 `AobScanner.TryScanWithinBounds(string, AobScanBounds, AobScanOptions, Span<Address>, CancellationToken)`, is not
 gated: the spike settled its range semantics, completeness and cost.
 

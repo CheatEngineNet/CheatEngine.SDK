@@ -1,3 +1,5 @@
+using System.Globalization;
+
 using CheatEngine.SDK.Engine.Enums;
 using CheatEngine.SDK.Engine.Errors;
 using CheatEngine.SDK.Engine.Scanning.Values;
@@ -262,7 +264,7 @@ public sealed class MemoryScanSessionReleaseTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
-		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId());
+		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 
 		MemoryScanReleaseOutcome outcome = session.ReleaseWithOutcome();
 
@@ -271,6 +273,159 @@ public sealed class MemoryScanSessionReleaseTests
 		Assert.Equal(TargetReleaseStatus.RefusedTargetChanged, outcome.MemScan.Status);
 		Assert.Equal(string.Empty, MemScanTestHost.ReadTrace(L));
 		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q26")]
+	public void Dispose_from_inside_the_release_settle_wait_makes_no_CE_call_and_the_outer_release_destroys_once()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		MemoryScanSession session = StartScanning(L);
+		MemoryScanReleaseOutcome? inner = null;
+		using FakeHost.ManagedHookScope hook = FakeHost.InstallManagedHook(L, () =>
+		{
+			// CE's settle wait ran queued main-thread work that releases the same session again.
+			inner = session.ReleaseWithOutcome();
+			session.Dispose();
+			session.Abandon();
+		});
+		InstallWaitHook(L);
+
+		MemoryScanReleaseOutcome outer = session.ReleaseWithOutcome();
+
+		Assert.Null(hook.Failure);
+		Assert.Equal(1, hook.CallCount);
+		Assert.Equal(default(MemoryScanReleaseOutcome), inner);
+		Assert.Equal("scan.terminate:false,scan.wait:5000,hook.returned,list.destroy,scan.destroy",
+			MemScanTestHost.ReadTrace(L));
+		Assert.Equal(MemoryScanTerminationStatus.Confirmed, outer.Termination);
+		Assert.Equal(TargetReleaseStatus.Released, outer.FoundList.Status);
+		Assert.Equal(TargetReleaseStatus.Released, outer.MemScan.Status);
+		Assert.True(outer.OwnershipConsumed);
+		Assert.Equal(outer, session.LastReleaseOutcome);
+		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q26")]
+	public void Dispose_from_inside_WaitForCompletion_releases_once_after_the_wait_returned_without_initializing_results()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		MemoryScanSession session = StartScanning(L);
+		MemoryScanReleaseOutcome? inner = null;
+		using FakeHost.ManagedHookScope hook = FakeHost.InstallManagedHook(L, () =>
+		{
+			inner = session.ReleaseWithOutcome();
+			session.Dispose();
+		});
+		InstallWaitHook(L);
+
+		Assert.Throws<ObjectDisposedException>(session.WaitForCompletion);
+
+		Assert.Null(hook.Failure);
+		Assert.Equal(1, hook.CallCount);
+		Assert.Equal(default(MemoryScanReleaseOutcome), inner);
+		Assert.Equal("scan.wait,hook.returned,list.destroy,scan.destroy", MemScanTestHost.ReadTrace(L));
+		MemoryScanReleaseOutcome outcome = session.LastReleaseOutcome;
+		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.Equal(MemoryScanTerminationStatus.NotRequired, outcome.Termination);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.FoundList.Status);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.MemScan.Status);
+		Assert.True(outcome.OwnershipConsumed);
+
+		MemScanTestHost.ClearTrace(L);
+		Assert.Equal(outcome, session.ReleaseWithOutcome());
+		Assert.Equal(string.Empty, MemScanTestHost.ReadTrace(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q26")]
+	public void Abandon_from_inside_WaitForCompletion_abandons_once_after_the_wait_returned_without_any_destroy()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		MemScanTestHost.HostObjects objects = MemScanTestHost.Install(L);
+		Assert.Equal(MemoryScanCreationStatus.Success,
+			MemoryScanSessions.TryCreateWithOutcome(out MemoryScanSession? created).Status);
+		MemoryScanSession session = Assert.IsType<MemoryScanSession>(created);
+		session.StartFirstScan(FirstScanRequest.ByteArray("90", new Address(0x1000), new Address(0x2000)));
+		MemScanTestHost.ClearTrace(L);
+		using FakeHost.ManagedHookScope hook = FakeHost.InstallManagedHook(L, () =>
+		{
+			// A release requested first does not override the explicit no-CE-call abandon.
+			_ = session.ReleaseWithOutcome();
+			session.Abandon();
+		});
+		InstallWaitHook(L);
+
+		Assert.Throws<ObjectDisposedException>(session.WaitForCompletion);
+
+		Assert.Null(hook.Failure);
+		Assert.Equal("scan.wait,hook.returned", MemScanTestHost.ReadTrace(L));
+		MemoryScanReleaseOutcome outcome = session.LastReleaseOutcome;
+		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.Equal(TargetReleaseStatus.NotInvoked, outcome.FoundList.Status);
+		Assert.Equal(TargetReleaseStatus.NotInvoked, outcome.MemScan.Status);
+		Assert.Equal(MemoryScanTerminationStatus.NotRequired, outcome.Termination);
+		Assert.True(outcome.OwnershipConsumed);
+		Assert.False(FakeHost.IsDestroyed(L, objects.FoundList));
+		Assert.False(FakeHost.IsDestroyed(L, objects.Scanner));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q26")]
+	public void Members_called_from_inside_a_wait_are_refused_before_any_CE_call_and_the_wait_completes()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		using MemoryScanSession session = StartScanning(L);
+		List<Exception?> refusals = [];
+		using FakeHost.ManagedHookScope hook = FakeHost.InstallManagedHook(L, () =>
+		{
+			refusals.Add(Record.Exception(() => _ = session.Scanner));
+			refusals.Add(Record.Exception(() => session.TryGetHostErrorText(out _, out _)));
+			refusals.Add(Record.Exception(session.WaitForCompletion));
+		});
+		InstallWaitHook(L);
+
+		session.WaitForCompletion();
+
+		Assert.Null(hook.Failure);
+		Assert.Collection(refusals,
+			refusal => AssertReentrantRefusal(refusal, "Scanner"),
+			refusal => AssertReentrantRefusal(refusal, "TryGetHostErrorText"),
+			refusal => AssertReentrantRefusal(refusal, "WaitForCompletion"));
+		Assert.Equal(MemoryScanState.ResultsReady, session.State);
+		Assert.Equal("scan.wait,hook.returned,list.initialize", MemScanTestHost.ReadTrace(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	private static void AssertReentrantRefusal(Exception? refusal, string operation)
+	{
+		MemoryScanStateException exception = Assert.IsType<MemoryScanStateException>(refusal);
+		Assert.Equal(operation, exception.Operation);
+		Assert.Equal(MemoryScanState.Scanning, exception.State);
+		Assert.Contains("'WaitForCompletion' operation is still inside a Cheat Engine call", exception.Message,
+			StringComparison.Ordinal);
+	}
+
+	// Every wait runs the managed hook (CE pumping queued main-thread work), then records that the hook returned.
+	private static void InstallWaitHook(LuaState state)
+	{
+		MemScanTestHost.Run(state, "scan_wait_hook = function() managed_hook(); table.insert(trace, 'hook.returned') end");
 	}
 
 	private static MemoryScanSession StartScanning(LuaState state)

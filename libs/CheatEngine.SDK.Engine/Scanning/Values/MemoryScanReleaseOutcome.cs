@@ -61,9 +61,10 @@ public readonly record struct MemoryScanReleaseOutcome
 	/// <remarks>
 	///     <see cref="MemoryScanTerminationStatus.NotRequired" /> when no scan could be running;
 	///     <see cref="MemoryScanTerminationStatus.Confirmed" /> when the one cooperative stop was confirmed;
-	///     <see cref="MemoryScanTerminationStatus.NotInvoked" /> when a scan may run but no CE call was allowed. Any other
-	///     value is an unconfirmed stop: the found list and the scanner were still destroyed once each (CE's own destroy
-	///     stops and waits for its scan controller), and nothing is retried. The default value is
+	///     <see cref="MemoryScanTerminationStatus.NotInvoked" /> when a scan may run, no stop was requested and no CE call
+	///     was allowed. Any other value is an unconfirmed stop, never retried: when the release could reach CE, the found
+	///     list and the scanner were still destroyed once each (CE's own destroy stops and waits for its scan controller);
+	///     <see cref="FoundList" /> and <see cref="MemScan" /> say whether they were. The default value is
 	///     <see cref="MemoryScanTerminationStatus.Unknown" />.
 	/// </remarks>
 	public MemoryScanTerminationStatus Termination

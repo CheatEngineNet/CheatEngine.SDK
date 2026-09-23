@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 using CheatEngine.SDK.Engine.Enums;
@@ -214,7 +215,7 @@ public sealed class MemoryScanSessionDeadlineTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
-		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId());
+		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 
 		MemoryScanWaitStatus status = session.TryWaitForCompletion(Deadline);
 
@@ -330,6 +331,31 @@ public sealed class MemoryScanSessionDeadlineTests
 
 	[Fact]
 	[Trait("Qualification", "Q29")]
+	public void TryTerminateScan_unconfirmed_stop_is_kept_by_a_refused_release_without_any_CE_call()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		MemoryScanSession session = StartScanning(L);
+		MemScanTestHost.Run(L, "scan_wait_mode = 'false'");
+		Assert.Equal(MemoryScanTerminationStatus.WaitTimedOut, session.TryTerminateScan(Deadline));
+		MemScanTestHost.Run(L, "opened_process_id = " +
+							   MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
+		MemScanTestHost.ClearTrace(L);
+
+		MemoryScanReleaseOutcome outcome = session.ReleaseWithOutcome();
+
+		// The release is refused on the replaced target, and it reports the stop that was requested, not NotInvoked.
+		Assert.Equal(MemoryScanTerminationStatus.WaitTimedOut, outcome.Termination);
+		Assert.Equal(TargetReleaseStatus.RefusedTargetChanged, outcome.FoundList.Status);
+		Assert.Equal(TargetReleaseStatus.RefusedTargetChanged, outcome.MemScan.Status);
+		Assert.Equal(string.Empty, MemScanTestHost.ReadTrace(L));
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q29")]
 	public void TryTerminateScan_without_a_started_scan_is_a_state_error_without_a_CE_call()
 	{
 		EngineTest.RequireNativeLua();
@@ -362,7 +388,7 @@ public sealed class MemoryScanSessionDeadlineTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
-		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId());
+		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 
 		MemoryScanTerminationStatus status = session.TryTerminateScan(Deadline);
 
@@ -465,7 +491,7 @@ public sealed class MemoryScanSessionDeadlineTests
 
 	[Fact]
 	[Trait("Qualification", "Q29")]
-	public void TryGetHostErrorText_with_a_replaced_target_returns_false_without_calling_CE()
+	public void TryGetHostErrorText_with_a_replaced_target_returns_false_without_a_scanner_call_and_invalidates()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -473,13 +499,16 @@ public sealed class MemoryScanSessionDeadlineTests
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
 		MemScanTestHost.Run(L, "scan_error_string = 'unread'; opened_process_id = " +
-							   MemScanTestHost.FindOtherQualifiedProcessId());
+							   MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 
 		bool read = session.TryGetHostErrorText(out string? text, out bool truncated);
 
+		// Only the target check reached CE (getOpenedProcessID); the scanner's ErrorString was never read.
 		Assert.False(read);
 		Assert.Null(text);
 		Assert.False(truncated);
+		Assert.Equal(MemoryScanState.Invalidated, session.State);
+		Assert.Equal(MemoryScanInvalidationReason.TargetChanged, session.InvalidationReason);
 		Assert.Equal(string.Empty, MemScanTestHost.ReadTrace(L));
 		Assert.Equal(0, L.Top);
 		session.Abandon();
@@ -504,6 +533,100 @@ public sealed class MemoryScanSessionDeadlineTests
 		Assert.Equal(MemoryScanState.Disposed, session.State);
 		Assert.Equal(string.Empty, MemScanTestHost.ReadTrace(L));
 		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q26")]
+	public void TryWaitForCompletion_disposed_from_inside_the_wait_releases_once_after_it_returned()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		MemoryScanSession session = StartScanning(L);
+		MemoryScanReleaseOutcome? inner = null;
+		using FakeHost.ManagedHookScope hook = FakeHost.InstallManagedHook(L, () => inner = session.ReleaseWithOutcome());
+		InstallWaitHook(L);
+
+		Assert.Throws<ObjectDisposedException>(() => session.TryWaitForCompletion(Deadline));
+
+		Assert.Null(hook.Failure);
+		Assert.Equal(default(MemoryScanReleaseOutcome), inner);
+		Assert.Equal("scan.wait:250,hook.returned,list.destroy,scan.destroy", MemScanTestHost.ReadTrace(L));
+		MemoryScanReleaseOutcome outcome = session.LastReleaseOutcome;
+		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.Equal(MemoryScanTerminationStatus.NotRequired, outcome.Termination);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.FoundList.Status);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.MemScan.Status);
+		Assert.Equal(0, L.Top);
+	}
+
+	[Fact]
+	[Trait("Qualification", "Q26")]
+	public void TryWaitForCompletion_disposed_from_inside_a_timed_out_wait_stops_the_scan_once_after_it_returned()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		MemoryScanSession session = StartScanning(L);
+		List<MemoryScanReleaseOutcome> inner = [];
+		using FakeHost.ManagedHookScope hook = FakeHost.InstallManagedHook(L, () => inner.Add(session.ReleaseWithOutcome()));
+		InstallWaitHook(L);
+		MemScanTestHost.Run(L, "scan_wait_modes = { 'false', 'true' }");
+
+		Assert.Throws<ObjectDisposedException>(() => session.TryWaitForCompletion(Deadline));
+
+		// The deferred release stops the still-running scan once; its own settle wait runs the hook again, and that
+		// second re-entrant release starts nothing either.
+		Assert.Null(hook.Failure);
+		Assert.Equal(2, hook.CallCount);
+		Assert.Equal([default, default], inner);
+		Assert.Equal(
+			"scan.wait:250,hook.returned,scan.terminate:false,scan.wait:5000,hook.returned,list.destroy,scan.destroy",
+			MemScanTestHost.ReadTrace(L));
+		MemoryScanReleaseOutcome outcome = session.LastReleaseOutcome;
+		Assert.Equal(MemoryScanTerminationStatus.Confirmed, outcome.Termination);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.FoundList.Status);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.MemScan.Status);
+		Assert.Equal(0, L.Top);
+	}
+
+	[Theory]
+	[Trait("Qualification", "Q26")]
+	[InlineData("true", MemoryScanTerminationStatus.NotRequired)]
+	[InlineData("false", MemoryScanTerminationStatus.WaitTimedOut)]
+	public void TryTerminateScan_disposed_from_inside_the_settle_wait_releases_once_without_a_second_stop(
+		string waitMode, MemoryScanTerminationStatus expected)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState L = scope.State;
+		MemoryScanSession session = StartScanning(L);
+		using FakeHost.ManagedHookScope hook = FakeHost.InstallManagedHook(L, session.Dispose);
+		InstallWaitHook(L);
+		MemScanTestHost.Run(L, "scan_wait_mode = '" + waitMode + "'");
+
+		Assert.Throws<ObjectDisposedException>(() => session.TryTerminateScan(Deadline));
+
+		// A confirmed stop ended the scan (nothing left to stop); an unconfirmed one is reported, never repeated.
+		Assert.Null(hook.Failure);
+		Assert.Equal(1, hook.CallCount);
+		Assert.Equal("scan.terminate:false,scan.wait:250,hook.returned,list.destroy,scan.destroy",
+			MemScanTestHost.ReadTrace(L));
+		MemoryScanReleaseOutcome outcome = session.LastReleaseOutcome;
+		Assert.Equal(MemoryScanState.Disposed, session.State);
+		Assert.Equal(expected, outcome.Termination);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.FoundList.Status);
+		Assert.Equal(TargetReleaseStatus.Released, outcome.MemScan.Status);
+		Assert.Equal(0, L.Top);
+	}
+
+	// Every wait runs the managed hook (CE pumping queued main-thread work), then records that the hook returned.
+	private static void InstallWaitHook(LuaState state)
+	{
+		MemScanTestHost.Run(state, "scan_wait_hook = function() managed_hook(); table.insert(trace, 'hook.returned') end");
 	}
 
 	private static MemoryScanSession StartScanning(LuaState state)

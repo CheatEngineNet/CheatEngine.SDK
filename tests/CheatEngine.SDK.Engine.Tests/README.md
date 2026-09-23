@@ -20,15 +20,16 @@ Tests tagged `Category=NativeLua` run against the Lua DLL of Cheat Engine 7.7 ke
 native code. See [
 `tests/CheatEngine.SDK.Tests.Shared/README.md`](../CheatEngine.SDK.Tests.Shared/README.md).
 
-| Piece                         | Role                                                                                                                                                                                                                           |
-|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Support/FakeHost.cs`         | Stands in for `GetLuaState` and `LuaPushClassInstance`, not for Lua. A Lua model supplies object, list, scanner and address-list stand-ins, getters and setters that can raise, zero-based `obj[i]` and `destroy` bookkeeping. |
-| `Support/FakeHost.SRes.cs`    | Adds the S-RES fixtures: a controlled state replacement (`ReplaceStateGeneration`), a symbol-list class, a qualified local target, and a re-entrant host hook that calls back into the SDK from inside a Lua call.             |
-| `Support/HostScope.cs`        | Attaches `LuaRuntime` to a fixture state for one test and detaches on dispose. Tests attach the runtime only through it, and tests that need it unattached call `LuaRuntime.Detach()` first.                                   |
-| `Support/DebugAssertScope.cs` | Turns a failed `Debug.Assert` into an exception, so the Debug-only main-thread guard of `Owned<T>` is testable. That test skips in Release.                                                                                    |
-| `Support/EngineTest.cs`       | `RequireNativeLua()` skips without a Lua library. `RunOnWorker` runs work on a fresh thread and returns what it threw.                                                                                                         |
-| `AssemblyInfo.cs`             | Runs tests sequentially, because `LuaRuntime` and the fake host are process-wide.                                                                                                                                              |
-| `Scanning/MemScanTestHost.cs` | Lua stand-ins for `createMemScan`, `createFoundList` and the MemScan/FoundList members the SDK calls; every call is traced, and Lua globals steer each result shape (wait result, stop, error text, rows, target).             |
+| Piece                          | Role                                                                                                                                                                                                                           |
+|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Support/FakeHost.cs`          | Stands in for `GetLuaState` and `LuaPushClassInstance`, not for Lua. A Lua model supplies object, list, scanner and address-list stand-ins, getters and setters that can raise, zero-based `obj[i]` and `destroy` bookkeeping. |
+| `Support/FakeHost.SRes.cs`     | Adds the S-RES fixtures: a controlled state replacement (`ReplaceStateGeneration`), a symbol-list class, a qualified local target, and a re-entrant host hook that calls back into the SDK from inside a Lua call.             |
+| `Support/FakeHost.Scanning.cs` | Adds `managed_hook`, a Lua function that runs test code from inside a CE-shaped call, so a stand-in can model CE running queued main-thread work (for example during `waitTillDone`) that calls back into a scan session.      |
+| `Support/HostScope.cs`         | Attaches `LuaRuntime` to a fixture state for one test and detaches on dispose. Tests attach the runtime only through it, and tests that need it unattached call `LuaRuntime.Detach()` first.                                   |
+| `Support/DebugAssertScope.cs`  | Turns a failed `Debug.Assert` into an exception, so the Debug-only main-thread guard of `Owned<T>` is testable. That test skips in Release.                                                                                    |
+| `Support/EngineTest.cs`        | `RequireNativeLua()` skips without a Lua library. `RunOnWorker` runs work on a fresh thread and returns what it threw.                                                                                                         |
+| `AssemblyInfo.cs`              | Runs tests sequentially, because `LuaRuntime` and the fake host are process-wide.                                                                                                                                              |
+| `Scanning/MemScanTestHost.cs`  | Lua stand-ins for `createMemScan`, `createFoundList` and the MemScan/FoundList members the SDK calls; every call is traced, and Lua globals steer each result shape (wait result, stop, error text, rows, target).             |
 
 Each fake object is a Lua table found by its pointer, so every push of one pointer finds the same state. Pointers are
 synthetic and never dereferenced. The double follows the assumed userdata layout, so the suite cannot prove that Cheat
@@ -70,7 +71,8 @@ behavior.
 - Symbol leases never unregister a replaced or removed name, and a registered symbol list is unregistered before it is
   destroyed (`SymbolLeaseReplacementTests`, `SymbolListTests`).
 - A scan session enforces its state machine and destroys its owned `FoundList` before its `MemScan`, after one
-  cooperative stop when a scan may still run. AOB zero matches as CE 7.7 reports them (no value) are `NoResult`; the
+  cooperative stop when a scan may still run; a release requested from inside one of its own CE waits is deferred until
+  that wait has returned, and other members called from there are refused. AOB zero matches as CE 7.7 reports them (no value) are `NoResult`; the
   bounded AOB route is exhaustive, post-filters its start and reports a factual `NoMatches`; the chapter-13 battery is
   covered at fixture level and tagged `Q25`–`Q29` (`AobScannerTests`, `AobBoundedScanTests`, `AobFirstFoundScanTests`,
   `MemoryScanSessionReleaseTests`, `MemoryScanSessionDeadlineTests`, `MemoryScanSessionBatteryTests`). Address-list and

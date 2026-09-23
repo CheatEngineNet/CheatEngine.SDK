@@ -49,6 +49,20 @@ namespace CheatEngine.SDK.Engine.Scanning.Values;
 ///         finalizer runs native cleanup from an arbitrary thread.
 ///     </para>
 ///     <para>
+///         CE's waits can run queued main-thread work before they return: on the main thread, <c>waitTillDone</c> pumps
+///         <c>CheckSynchronize</c> (ObservedSource: cheat-engine/cheat-engine@ec45d5f
+///         <c>Cheat Engine/LuaMemscan.pas</c> lines 145-157), and <c>newScan</c> and <c>destroy</c> wait for CE's scan
+///         threads (<c>Cheat Engine/memscan.pas</c> lines 8360-8372 and 8929-8955), which may do the same. Work queued
+///         through CE's <c>synchronize</c> (for example with <c>MainThread.Invoke</c>) can therefore call back into this
+///         session from inside one of its own CE calls. While one member of the session is inside a CE call, every
+///         other member is refused with a <see cref="MemoryScanStateException" />, and <see cref="Dispose" />,
+///         <see cref="ReleaseWithOutcome" /> and <see cref="Abandon" /> make no CE call: the one release (or abandon) is
+///         deferred until that CE call has returned and then runs exactly once, so no destroy ever runs while a CE call
+///         on the same objects is still on the stack. A start, wait, reset or stop interrupted this way makes no
+///         further CE call and then throws <see cref="ObjectDisposedException" /> instead of completing its
+///         transition.
+///     </para>
+///     <para>
 ///         <see cref="WaitForCompletion" /> uses CE's no-timeout <c>waitTillDone()</c> form. CE 7.7.0.10621 also has a
 ///         timeout form returning a boolean (<c>celua.txt</c> line 2649) and a cooperative <c>terminateScan</c> (line
 ///         2566); <see cref="TryWaitForCompletion" /> and <see cref="TryTerminateScan" /> project them. Their
@@ -84,6 +98,14 @@ public sealed class MemoryScanSession : IDisposable
 	private bool _terminationAttempted;
 	private MemoryScanTerminationStatus _termination;
 	private TargetSelectionObservation _targetObservation;
+
+	// The member whose CE calls are in progress, or null, and whether that member is the release itself. CE's waits,
+	// resets and destroys can run queued main-thread work that calls back into this session (see the type remarks).
+	// While a member is active, every other member is refused, and a release or abandon requested meanwhile is
+	// recorded here and run by the active member once its CE calls have returned.
+	private string? _activeOperation;
+	private bool _releaseInProgress;
+	private DeferredDisposal _deferredDisposal;
 
 	private MemoryScanSession(Owned<MemScan> scanner, Owned<FoundList> foundList)
 	{
@@ -162,6 +184,7 @@ public sealed class MemoryScanSession : IDisposable
 	///     prefer the session members for the scan lifecycle.
 	/// </summary>
 	/// <exception cref="ObjectDisposedException">The session was disposed.</exception>
+	/// <exception cref="MemoryScanStateException">Another member of the session is inside a CE call.</exception>
 	[RequiresPluginEnabled]
 	public MemScan Scanner
 	{
@@ -169,9 +192,17 @@ public sealed class MemoryScanSession : IDisposable
 		{
 			ThrowIfDisposed();
 			RequireEnabledMainThread();
-			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-			EnsureCurrentContext(operation.State, "MemoryScan.Scanner");
-			return _scanner!.Value;
+			BeginSessionCall("Scanner");
+			try
+			{
+				using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+				EnsureCurrentContext(operation.State, "MemoryScan.Scanner");
+				return _scanner!.Value;
+			}
+			finally
+			{
+				EndSessionCall();
+			}
 		}
 	}
 
@@ -179,7 +210,9 @@ public sealed class MemoryScanSession : IDisposable
 	///     Gets the attached found list as a borrowed handle, only after it is initialized for reading. Direct raw
 	///     operations on the returned value bypass the session's state checks.
 	/// </summary>
-	/// <exception cref="MemoryScanStateException">The results are not ready.</exception>
+	/// <exception cref="MemoryScanStateException">
+	///     The results are not ready, or another member of the session is inside a CE call.
+	/// </exception>
 	/// <exception cref="ObjectDisposedException">The session was disposed.</exception>
 	[RequiresPluginEnabled]
 	public FoundList Results
@@ -188,9 +221,17 @@ public sealed class MemoryScanSession : IDisposable
 		{
 			RequireState("Results", MemoryScanState.ResultsReady);
 			RequireEnabledMainThread();
-			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-			EnsureCurrentContext(operation.State, "MemoryScan.Results");
-			return _foundList!.Value;
+			BeginSessionCall("Results");
+			try
+			{
+				using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+				EnsureCurrentContext(operation.State, "MemoryScan.Results");
+				return _foundList!.Value;
+			}
+			finally
+			{
+				EndSessionCall();
+			}
 		}
 	}
 
@@ -201,7 +242,9 @@ public sealed class MemoryScanSession : IDisposable
 	///     Result-reading methods intentionally retain CE's <see cref="int" /> index parameter and therefore address
 	///     only indices from zero through <c>Int32.MaxValue</c>.
 	/// </remarks>
-	/// <exception cref="MemoryScanStateException">The results are not ready.</exception>
+	/// <exception cref="MemoryScanStateException">
+	///     The results are not ready, or another member of the session is inside a CE call.
+	/// </exception>
 	/// <exception cref="MemoryScanException">CE did not return a valid non-negative integer count.</exception>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
 	[MainThreadOnly]
@@ -211,9 +254,17 @@ public sealed class MemoryScanSession : IDisposable
 		get
 		{
 			RequireEnabledMainThread();
-			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-			EnsureCurrentContext(operation.State, ResultCountOperation);
-			return ReadResultCount(operation.State, RequireResults());
+			BeginSessionCall("ResultCount");
+			try
+			{
+				using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+				EnsureCurrentContext(operation.State, ResultCountOperation);
+				return ReadResultCount(operation.State, RequireResults());
+			}
+			finally
+			{
+				EndSessionCall();
+			}
 		}
 	}
 
@@ -244,8 +295,9 @@ public sealed class MemoryScanSession : IDisposable
 	///         thread, detached runtime, changed Lua identity, or changed target), it consumes the managed owners through
 	///         <see cref="Owned{T}.Abandon" /> and reports the refusal or unavailable cleanup rather than routing handles
 	///         into a different CE context; <see cref="MemoryScanReleaseOutcome.Termination" /> is then
-	///         <see cref="MemoryScanTerminationStatus.NotInvoked" /> when a scan may still run. A protected destroy failure
-	///         consumes the corresponding owner and remains unconfirmed.
+	///         <see cref="MemoryScanTerminationStatus.NotInvoked" /> when a scan may still run and no stop was requested
+	///         before, or the unconfirmed status of the stop that was. A protected destroy failure consumes the
+	///         corresponding owner and remains unconfirmed.
 	///     </para>
 	///     <para>
 	///         When a scan may still be running (after a first or next scan call, including one that failed after CE may
@@ -256,6 +308,14 @@ public sealed class MemoryScanSession : IDisposable
 	///         <see cref="TryTerminateScan" /> is never repeated. This can block CE's main thread for up to five seconds plus
 	///         CE's own destroy wait.
 	///     </para>
+	///     <para>
+	///         When it is called from inside a CE call that another member of this session is making (CE's waits can run
+	///         queued main-thread work, see the type remarks), it makes no CE call and returns the unspecified default
+	///         outcome (both statuses <see cref="TargetReleaseStatus.Unspecified" />, ownership not consumed,
+	///         <see cref="MemoryScanTerminationStatus.Unknown" />): the single release is deferred until that CE call has
+	///         returned and then runs once, and <see cref="LastReleaseOutcome" /> holds its final outcome. A call made
+	///         while the release itself is in progress returns the same provisional outcome and never starts a second one.
+	///     </para>
 	/// </remarks>
 	public MemoryScanReleaseOutcome ReleaseWithOutcome()
 	{
@@ -264,26 +324,24 @@ public sealed class MemoryScanSession : IDisposable
 			return LastReleaseOutcome;
 		}
 
-		try
-		{
-			if (LuaRuntime.IsAttached && !LuaRuntime.IsMainThread)
-			{
-				return ConsumeWithoutCleanup(TargetReleaseOutcome.NotInvoked(EngineFailureKind.BindingFailure));
-			}
-
-			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-			MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
-			if (context != MemoryScanMaterializationStatus.Success)
-			{
-				return ConsumeWithoutCleanup(CreateRefusedReleaseOutcome(context));
-			}
-
-			return ReleaseWithinCurrentContext(operation.State);
-		}
-		catch (Exception)
+		if (LuaRuntime.IsAttached && !LuaRuntime.IsMainThread)
 		{
 			return ConsumeWithoutCleanup(TargetReleaseOutcome.NotInvoked(EngineFailureKind.BindingFailure));
 		}
+
+		if (_activeOperation is not null)
+		{
+			// Re-entered from inside one of this session's own CE calls: never destroy under that call. The active
+			// member runs the one release when its CE call returns (the release itself simply completes).
+			if (_deferredDisposal == DeferredDisposal.None)
+			{
+				_deferredDisposal = DeferredDisposal.Release;
+			}
+
+			return default;
+		}
+
+		return ReleaseAsActiveCall();
 	}
 
 	/// <summary>
@@ -293,11 +351,24 @@ public sealed class MemoryScanSession : IDisposable
 	///     This is an explicit recovery path for a session whose original Lua runtime or target cannot be validated.
 	///     It deliberately does not claim that native destruction occurred, and it must not be used as normal cleanup.
 	///     The found-list owner is abandoned before the scanner owner to preserve the parent/child ownership direction.
+	///     When it is called from inside a CE call that another member of this session is making, the abandon is
+	///     deferred until that CE call has returned (it takes precedence over a release requested the same way); while
+	///     the release itself is in progress, the release completes and this call has no effect.
 	/// </remarks>
 	public void Abandon()
 	{
 		if (State == MemoryScanState.Disposed)
 		{
+			return;
+		}
+
+		if (_activeOperation is not null)
+		{
+			if (!_releaseInProgress)
+			{
+				_deferredDisposal = DeferredDisposal.Abandon;
+			}
+
 			return;
 		}
 
@@ -396,6 +467,7 @@ public sealed class MemoryScanSession : IDisposable
 	/// <param name="request">The complete first-scan request.</param>
 	/// <param name="cancellationToken">A cooperative cancellation observation token; it cannot interrupt CE.</param>
 	/// <exception cref="OperationCanceledException">Cancellation was observed before the CE <c>firstScan</c> call began.</exception>
+	/// <exception cref="ObjectDisposedException">The session was released from inside this call (see the type remarks).</exception>
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
 	public void StartFirstScanCancellable(in FirstScanRequest request, CancellationToken cancellationToken)
@@ -404,16 +476,27 @@ public sealed class MemoryScanSession : IDisposable
 		RequireEnabledMainThread();
 		RequireState("StartFirstScan", MemoryScanState.New);
 		ValidateFirstRequest(in request);
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		EnsureCurrentContext(operation.State, FirstScanOperation);
-		ThrowIfCancelledBeforeNativeCall(cancellationToken);
+		BeginSessionCall("StartFirstScan");
+		try
+		{
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			EnsureCurrentContext(operation.State, FirstScanOperation);
+			ThrowIfCancelledBeforeNativeCall(cancellationToken);
 
-		// A CE error may happen after it accepts some scan setup. Do not report the old New state after a partial call.
-		Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
-		_scanMayBeRunning = true;
-		CallFirstScan(operation.State, _scanner!.Value, in request);
-		CompleteTransition(MemoryScanState.Scanning);
-		ObserveCancellationAfterNativeCall(cancellationToken);
+			// A CE error may happen after it accepts some scan setup. Do not report the old New state after a partial
+			// call.
+			Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
+			_scanMayBeRunning = true;
+			CallFirstScan(operation.State, _scanner!.Value, in request);
+			CompleteTransition(MemoryScanState.Scanning);
+			ObserveCancellationAfterNativeCall(cancellationToken);
+		}
+		finally
+		{
+			EndSessionCall();
+		}
+
+		ThrowIfReleasedDuringCall("StartFirstScan");
 	}
 
 	/// <summary>Begins a CE next scan over the previous readable result set.</summary>
@@ -434,6 +517,7 @@ public sealed class MemoryScanSession : IDisposable
 	/// <param name="request">The complete next-scan request.</param>
 	/// <param name="cancellationToken">A cooperative cancellation observation token; it cannot interrupt CE.</param>
 	/// <exception cref="OperationCanceledException">Cancellation was observed before the CE <c>nextScan</c> call began.</exception>
+	/// <exception cref="ObjectDisposedException">The session was released from inside this call (see the type remarks).</exception>
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
 	public void StartNextScanCancellable(in NextScanRequest request, CancellationToken cancellationToken)
@@ -442,18 +526,28 @@ public sealed class MemoryScanSession : IDisposable
 		RequireEnabledMainThread();
 		RequireState("StartNextScan", MemoryScanState.ResultsReady);
 		ValidateNextRequest(in request);
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		EnsureCurrentContext(operation.State, NextScanOperation);
-		ThrowIfCancelledBeforeNativeCall(cancellationToken);
+		BeginSessionCall("StartNextScan");
+		try
+		{
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			EnsureCurrentContext(operation.State, NextScanOperation);
+			ThrowIfCancelledBeforeNativeCall(cancellationToken);
 
-		// The list stops being readable as soon as this session releases it. A failed deinitialize or nextScan leaves
-		// the conservative Invalidated state, from which Reset is the only recovery.
-		Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
-		CallNoResult(operation.State, _foundList!.Value.Handle, "deinitialize"u8, DeinitializeResultsOperation);
-		_scanMayBeRunning = true;
-		CallNextScan(operation.State, _scanner!.Value, in request);
-		CompleteTransition(MemoryScanState.Scanning);
-		ObserveCancellationAfterNativeCall(cancellationToken);
+			// The list stops being readable as soon as this session releases it. A failed deinitialize or nextScan
+			// leaves the conservative Invalidated state, from which Reset is the only recovery.
+			Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
+			CallNoResult(operation.State, _foundList!.Value.Handle, "deinitialize"u8, DeinitializeResultsOperation);
+			_scanMayBeRunning = true;
+			CallNextScan(operation.State, _scanner!.Value, in request);
+			CompleteTransition(MemoryScanState.Scanning);
+			ObserveCancellationAfterNativeCall(cancellationToken);
+		}
+		finally
+		{
+			EndSessionCall();
+		}
+
+		ThrowIfReleasedDuringCall("StartNextScan");
 	}
 
 	/// <summary>
@@ -480,6 +574,10 @@ public sealed class MemoryScanSession : IDisposable
 	/// </summary>
 	/// <param name="cancellationToken">A cooperative cancellation observation token; it cannot interrupt CE.</param>
 	/// <exception cref="OperationCanceledException">Cancellation was observed before CE <c>waitTillDone()</c> began.</exception>
+	/// <exception cref="ObjectDisposedException">
+	///     The session was released from inside the wait (CE's wait can run queued main-thread work, see the type
+	///     remarks); the found list was not initialized and the release ran once after the wait returned.
+	/// </exception>
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
 	public void WaitForCompletionCancellable(CancellationToken cancellationToken)
@@ -487,18 +585,38 @@ public sealed class MemoryScanSession : IDisposable
 		LastCancellationMilestone = MemoryScanCancellationMilestone.None;
 		RequireEnabledMainThread();
 		RequireState("WaitForCompletion", MemoryScanState.Scanning);
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		EnsureCurrentContext(operation.State, WaitForCompletionOperation);
-		ThrowIfCancelledBeforeNativeCall(cancellationToken);
-
+		BeginSessionCall("WaitForCompletion");
 		try
 		{
-			CallWaitTillDone(operation.State, _scanner!.Value);
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			EnsureCurrentContext(operation.State, WaitForCompletionOperation);
+			ThrowIfCancelledBeforeNativeCall(cancellationToken);
+			WaitAndInitialize(operation.State, cancellationToken);
+		}
+		finally
+		{
+			EndSessionCall();
+		}
+
+		ThrowIfReleasedDuringCall("WaitForCompletion");
+	}
+
+	private void WaitAndInitialize(LuaState state, CancellationToken cancellationToken)
+	{
+		try
+		{
+			CallWaitTillDone(state, _scanner!.Value);
 			_scanMayBeRunning = false;
 			ObserveCancellationAfterNativeCall(cancellationToken);
 
+			// A release requested from inside the wait runs as soon as this member returns; it needs no readable view.
+			if (IsDisposalRequested)
+			{
+				return;
+			}
+
 			Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
-			CallNoResult(operation.State, _foundList!.Value.Handle, "initialize"u8, InitializeResultsOperation);
+			CallNoResult(state, _foundList!.Value.Handle, "initialize"u8, InitializeResultsOperation);
 			CompleteTransition(MemoryScanState.ResultsReady);
 		}
 		catch
@@ -529,8 +647,10 @@ public sealed class MemoryScanSession : IDisposable
 	/// <exception cref="OperationCanceledException">Cancellation was observed before CE cleanup began.</exception>
 	/// <exception cref="MemoryScanStateException">
 	///     The session is scanning or disposed, or a cooperative stop requested through
-	///     <see cref="TryTerminateScan" /> was not confirmed (release or abandon the session instead).
+	///     <see cref="TryTerminateScan" /> was not confirmed (release or abandon the session instead), or another member
+	///     of the session is inside a CE call.
 	/// </exception>
+	/// <exception cref="ObjectDisposedException">The session was released from inside this call (see the type remarks).</exception>
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
 	public void ResetCancellable(CancellationToken cancellationToken)
@@ -549,21 +669,31 @@ public sealed class MemoryScanSession : IDisposable
 			ThrowWrongState("Reset");
 		}
 
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		EnsureCurrentContext(operation.State, ResetOperation);
-		ThrowIfCancelledBeforeNativeCall(cancellationToken);
+		BeginSessionCall("Reset");
+		try
+		{
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			EnsureCurrentContext(operation.State, ResetOperation);
+			ThrowIfCancelledBeforeNativeCall(cancellationToken);
 
-		Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
-		CallNoResult(operation.State, _foundList!.Value.Handle, "deinitialize"u8, DeinitializeResultsOperation);
-		CallNoResult(operation.State, _scanner!.Value.Handle, "newScan"u8, ResetOperation);
+			Invalidate(MemoryScanInvalidationReason.ProtectedLuaFailure);
+			CallNoResult(operation.State, _foundList!.Value.Handle, "deinitialize"u8, DeinitializeResultsOperation);
+			CallNoResult(operation.State, _scanner!.Value.Handle, "newScan"u8, ResetOperation);
 
-		// CE's newScan stops a running scan controller before clearing its results (ObservedSource: cheat-engine/
-		// cheat-engine@ec45d5f memscan.pas:8360-8372), so a successful reset ends the previous scan's lifecycle.
-		_scanMayBeRunning = false;
-		_terminationAttempted = false;
-		_termination = MemoryScanTerminationStatus.Unknown;
-		CompleteTransition(MemoryScanState.New);
-		ObserveCancellationAfterNativeCall(cancellationToken);
+			// CE's newScan stops a running scan controller before clearing its results (ObservedSource: cheat-engine/
+			// cheat-engine@ec45d5f memscan.pas:8360-8372), so a successful reset ends the previous scan's lifecycle.
+			_scanMayBeRunning = false;
+			_terminationAttempted = false;
+			_termination = MemoryScanTerminationStatus.Unknown;
+			CompleteTransition(MemoryScanState.New);
+			ObserveCancellationAfterNativeCall(cancellationToken);
+		}
+		finally
+		{
+			EndSessionCall();
+		}
+
+		ThrowIfReleasedDuringCall("Reset");
 	}
 
 	/// <summary>
@@ -583,8 +713,13 @@ public sealed class MemoryScanSession : IDisposable
 	///     failure that invalidates the session. Categories come from the result's Lua type, never from error text.
 	/// </returns>
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="timeout" /> is outside the accepted range.</exception>
-	/// <exception cref="MemoryScanStateException">The session is not scanning.</exception>
-	/// <exception cref="ObjectDisposedException">The session was disposed.</exception>
+	/// <exception cref="MemoryScanStateException">
+	///     The session is not scanning, or another member of the session is inside a CE call.
+	/// </exception>
+	/// <exception cref="ObjectDisposedException">
+	///     The session was disposed, including by a release requested from inside this wait (see the type remarks): the
+	///     found list was then not initialized and the release ran once after the wait returned.
+	/// </exception>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
 	/// <remarks>
 	///     The call pushes exactly one integer argument and reads exactly one boolean result. The <see langword="false" />
@@ -599,14 +734,23 @@ public sealed class MemoryScanSession : IDisposable
 		int milliseconds = ToWaitMilliseconds(timeout, nameof(timeout));
 		RequireEnabledMainThread();
 		RequireState("TryWaitForCompletion", MemoryScanState.Scanning);
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
-		if (context != MemoryScanMaterializationStatus.Success)
+		MemoryScanWaitStatus status;
+		BeginSessionCall("TryWaitForCompletion");
+		try
 		{
-			return ToWaitStatus(context);
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
+			status = context == MemoryScanMaterializationStatus.Success
+				? WaitCore(operation.State, milliseconds, true, out _)
+				: ToWaitStatus(context);
+		}
+		finally
+		{
+			EndSessionCall();
 		}
 
-		return WaitCore(operation.State, milliseconds, true, out _);
+		ThrowIfReleasedDuringCall("TryWaitForCompletion");
+		return status;
 	}
 
 	/// <summary>
@@ -625,9 +769,13 @@ public sealed class MemoryScanSession : IDisposable
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="waitTimeout" /> is outside the accepted range.</exception>
 	/// <exception cref="MemoryScanStateException">
 	///     No scan can be running (the session never started one, or a wait, a confirmed stop or a reset already ended
-	///     it), or a stop was already requested for this scan.
+	///     it), a stop was already requested for this scan, or another member of the session is inside a CE call.
 	/// </exception>
-	/// <exception cref="ObjectDisposedException">The session was disposed.</exception>
+	/// <exception cref="ObjectDisposedException">
+	///     The session was disposed, including by a release requested from inside this call's settle wait (see the type
+	///     remarks); that release ran once after the wait returned, without a second stop request, and its
+	///     <see cref="MemoryScanReleaseOutcome.Termination" /> reports an unconfirmed stop.
+	/// </exception>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
 	/// <remarks>
 	///     <para>
@@ -657,20 +805,33 @@ public sealed class MemoryScanSession : IDisposable
 			ThrowWrongState("TryTerminateScan");
 		}
 
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
-		if (context != MemoryScanMaterializationStatus.Success)
+		MemoryScanTerminationStatus status;
+		BeginSessionCall("TryTerminateScan");
+		try
 		{
-			if (State != MemoryScanState.Invalidated)
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
+			if (context == MemoryScanMaterializationStatus.Success)
 			{
+				status = TerminateAndSettleCore(operation.State, milliseconds);
 				Invalidate(MemoryScanInvalidationReason.ScanTerminated);
 			}
+			else
+			{
+				if (State != MemoryScanState.Invalidated)
+				{
+					Invalidate(MemoryScanInvalidationReason.ScanTerminated);
+				}
 
-			return MemoryScanTerminationStatus.NotInvoked;
+				status = MemoryScanTerminationStatus.NotInvoked;
+			}
+		}
+		finally
+		{
+			EndSessionCall();
 		}
 
-		MemoryScanTerminationStatus status = TerminateAndSettleCore(operation.State, milliseconds);
-		Invalidate(MemoryScanInvalidationReason.ScanTerminated);
+		ThrowIfReleasedDuringCall("TryTerminateScan");
 		return status;
 	}
 
@@ -684,11 +845,15 @@ public sealed class MemoryScanSession : IDisposable
 	/// </param>
 	/// <param name="truncated">Whether the host text was longer than the copied prefix.</param>
 	/// <returns>
-	///     <see langword="false" /> without any scanner call when the session's runtime or target context is refused, and
-	///     <see langword="false" /> when the property read raised or did not return a Lua string. Neither changes the
-	///     session state.
+	///     <see langword="false" /> without any scanner call when the session's runtime or target context is refused; as
+	///     for every session operation, a changed runtime or target incarnation then invalidates the session
+	///     (<see cref="MemoryScanInvalidationReason.RuntimeIdentityChanged" />,
+	///     <see cref="MemoryScanInvalidationReason.TargetChanged" /> or
+	///     <see cref="MemoryScanInvalidationReason.TargetProcessReused" />). <see langword="false" /> when the property
+	///     read raised or did not return a Lua string, which leaves the session state unchanged.
 	/// </returns>
 	/// <exception cref="ObjectDisposedException">The session was disposed.</exception>
+	/// <exception cref="MemoryScanStateException">Another member of the session is inside a CE call.</exception>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the caller is not on its main thread.</exception>
 	/// <remarks>
 	///     Available in every state but disposed. CE's error text is a host-language diagnostic: its presence can be
@@ -701,15 +866,23 @@ public sealed class MemoryScanSession : IDisposable
 	{
 		ThrowIfDisposed();
 		RequireEnabledMainThread();
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		if (TryEnsureCurrentContext(operation.State) != MemoryScanMaterializationStatus.Success)
+		BeginSessionCall("TryGetHostErrorText");
+		try
 		{
-			text = null;
-			truncated = false;
-			return false;
-		}
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			if (TryEnsureCurrentContext(operation.State) != MemoryScanMaterializationStatus.Success)
+			{
+				text = null;
+				truncated = false;
+				return false;
+			}
 
-		return TryReadHostErrorTextCore(operation.State, out text, out truncated);
+			return TryReadHostErrorTextCore(operation.State, out text, out truncated);
+		}
+		finally
+		{
+			EndSessionCall();
+		}
 	}
 
 	/// <summary>Attempts to read the parsed target address at a zero-based result index.</summary>
@@ -729,24 +902,32 @@ public sealed class MemoryScanSession : IDisposable
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(zeroBasedIndex);
 		RequireEnabledMainThread();
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		EnsureCurrentContext(operation.State, ResultAddressOperation);
-		FoundList foundList = RequireResults();
-		if ((ulong) zeroBasedIndex >= ReadResultCount(operation.State, foundList))
+		BeginSessionCall("TryGetAddress");
+		try
 		{
-			address = default;
-			return false;
-		}
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			EnsureCurrentContext(operation.State, ResultAddressOperation);
+			FoundList foundList = RequireResults();
+			if ((ulong) zeroBasedIndex >= ReadResultCount(operation.State, foundList))
+			{
+				address = default;
+				return false;
+			}
 
-		string text = CallString(operation.State, foundList.Handle, "getAddress"u8, ResultAddressOperation,
-			zeroBasedIndex);
-		if (Address.TryParse(text, out address))
+			string text = CallString(operation.State, foundList.Handle, "getAddress"u8, ResultAddressOperation,
+				zeroBasedIndex);
+			if (Address.TryParse(text, out address))
+			{
+				return true;
+			}
+
+			throw new MemoryScanException(MemoryScanFailureKind.UnexpectedResult, ResultAddressOperation,
+				"The memory scan result address was not a hexadecimal target address.");
+		}
+		finally
 		{
-			return true;
+			EndSessionCall();
 		}
-
-		throw new MemoryScanException(MemoryScanFailureKind.UnexpectedResult, ResultAddressOperation,
-			"The memory scan result address was not a hexadecimal target address.");
 	}
 
 	/// <summary>Attempts to read the exact value text at a zero-based result index.</summary>
@@ -766,17 +947,25 @@ public sealed class MemoryScanSession : IDisposable
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(zeroBasedIndex);
 		RequireEnabledMainThread();
-		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
-		EnsureCurrentContext(operation.State, ResultValueOperation);
-		FoundList foundList = RequireResults();
-		if ((ulong) zeroBasedIndex >= ReadResultCount(operation.State, foundList))
+		BeginSessionCall("TryGetValue");
+		try
 		{
-			value = null;
-			return false;
-		}
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			EnsureCurrentContext(operation.State, ResultValueOperation);
+			FoundList foundList = RequireResults();
+			if ((ulong) zeroBasedIndex >= ReadResultCount(operation.State, foundList))
+			{
+				value = null;
+				return false;
+			}
 
-		value = CallString(operation.State, foundList.Handle, "getValue"u8, ResultValueOperation, zeroBasedIndex);
-		return true;
+			value = CallString(operation.State, foundList.Handle, "getValue"u8, ResultValueOperation, zeroBasedIndex);
+			return true;
+		}
+		finally
+		{
+			EndSessionCall();
+		}
 	}
 
 	/// <summary>Copies the complete initialized found list into a caller-bounded managed destination.</summary>
@@ -816,9 +1005,6 @@ public sealed class MemoryScanSession : IDisposable
 	/// </remarks>
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
-	[SuppressMessage("Meziantou.Analyzer", "MA0051:Method is too long",
-		Justification =
-			"This bounded materialization operation keeps its cancellation and ownership milestones together.")]
 	public MemoryScanMaterializationStatus TryCopyResultsCancellable(Span<MemoryScanResult> destination,
 		out ulong totalCount, out int written, CancellationToken cancellationToken)
 	{
@@ -831,6 +1017,22 @@ public sealed class MemoryScanSession : IDisposable
 			ThrowWrongState("TryCopyResults");
 		}
 
+		BeginSessionCall("TryCopyResults");
+		try
+		{
+			return CopyAllResults(destination, out totalCount, out written, cancellationToken);
+		}
+		finally
+		{
+			EndSessionCall();
+		}
+	}
+
+	private MemoryScanMaterializationStatus CopyAllResults(Span<MemoryScanResult> destination, out ulong totalCount,
+		out int written, CancellationToken cancellationToken)
+	{
+		totalCount = 0;
+		written = 0;
 		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
 		MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
 		if (context != MemoryScanMaterializationStatus.Success)
@@ -927,6 +1129,22 @@ public sealed class MemoryScanSession : IDisposable
 			ThrowWrongState("TryCopyResultsPage");
 		}
 
+		BeginSessionCall("TryCopyResultsPage");
+		try
+		{
+			return CopyResultsPage(firstResultIndex, destination, out totalCount, out written, cancellationToken);
+		}
+		finally
+		{
+			EndSessionCall();
+		}
+	}
+
+	private MemoryScanMaterializationStatus CopyResultsPage(int firstResultIndex, Span<MemoryScanResult> destination,
+		out ulong totalCount, out int written, CancellationToken cancellationToken)
+	{
+		totalCount = 0;
+		written = 0;
 		using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
 		MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
 		if (context != MemoryScanMaterializationStatus.Success)
@@ -1061,7 +1279,9 @@ public sealed class MemoryScanSession : IDisposable
 		}
 
 		_scanMayBeRunning = false;
-		if (!initializeResults)
+
+		// A release requested from inside the wait runs as soon as the active member returns; it needs no readable view.
+		if (!initializeResults || IsDisposalRequested)
 		{
 			return MemoryScanWaitStatus.Completed;
 		}
@@ -1108,17 +1328,20 @@ public sealed class MemoryScanSession : IDisposable
 	internal MemoryScanTerminationStatus TerminateAndSettleCore(LuaState state, int waitMilliseconds)
 	{
 		_terminationAttempted = true;
-		MemoryScanTerminationStatus status;
+		MemoryScanTerminationStatus status = MemoryScanTerminationStatus.TerminateFailed;
 		try
 		{
-			status = RequestTermination(state)
-				? SettleAfterTermination(state, waitMilliseconds)
-				: MemoryScanTerminationStatus.TerminateFailed;
+			if (RequestTermination(state))
+			{
+				// CE accepted the stop request: from here on an unexpected failure belongs to the settle wait.
+				status = MemoryScanTerminationStatus.WaitFailed;
+				status = SettleAfterTermination(state, waitMilliseconds);
+			}
 		}
 		catch (Exception)
 		{
-			// A binding failure before or during either call leaves the stop unconfirmed; it is never retried.
-			status = MemoryScanTerminationStatus.TerminateFailed;
+			// A binding failure leaves the stop unconfirmed (TerminateFailed before CE accepted the request, WaitFailed
+			// after it); it is never retried.
 		}
 
 		_termination = status;
@@ -1313,14 +1536,104 @@ public sealed class MemoryScanSession : IDisposable
 			: TerminateAndSettleCore(state, ReleaseTerminationWaitMilliseconds);
 	}
 
+	// Consumes both owners without any CE call. A stop requested earlier (and left unconfirmed) keeps its status; a
+	// scan that may run without any stop request reports NotInvoked.
 	private MemoryScanReleaseOutcome ConsumeWithoutCleanup(TargetReleaseOutcome outcome)
 	{
-		MemoryScanTerminationStatus termination = _scanMayBeRunning
-			? MemoryScanTerminationStatus.NotInvoked
-			: MemoryScanTerminationStatus.NotRequired;
+		MemoryScanTerminationStatus termination = !_scanMayBeRunning
+			? MemoryScanTerminationStatus.NotRequired
+			: _terminationAttempted
+				? _termination
+				: MemoryScanTerminationStatus.NotInvoked;
 		ConsumeOwner(_foundList);
 		ConsumeOwner(_scanner);
 		return CompleteRelease(outcome, outcome, termination);
+	}
+
+	// The one release: runs as the session's active member so that work CE runs during its waits and destroys cannot
+	// start a second release (a re-entrant release returns the provisional default outcome instead).
+	private MemoryScanReleaseOutcome ReleaseAsActiveCall()
+	{
+		_activeOperation = "ReleaseWithOutcome";
+		_releaseInProgress = true;
+		try
+		{
+			return ReleaseCore();
+		}
+		finally
+		{
+			_releaseInProgress = false;
+			_activeOperation = null;
+			_deferredDisposal = DeferredDisposal.None;
+		}
+	}
+
+	private MemoryScanReleaseOutcome ReleaseCore()
+	{
+		try
+		{
+			using LuaRuntimeOperation operation = LuaRuntime.AcquireOperation();
+			MemoryScanMaterializationStatus context = TryEnsureCurrentContext(operation.State);
+			if (context != MemoryScanMaterializationStatus.Success)
+			{
+				return ConsumeWithoutCleanup(CreateRefusedReleaseOutcome(context));
+			}
+
+			return ReleaseWithinCurrentContext(operation.State);
+		}
+		catch (Exception)
+		{
+			return ConsumeWithoutCleanup(TargetReleaseOutcome.NotInvoked(EngineFailureKind.BindingFailure));
+		}
+	}
+
+	// Marks the start of a member's CE calls. A member called from inside another member's CE call (CE ran queued
+	// main-thread work during it) is refused before it makes any CE call.
+	private void BeginSessionCall(string operation)
+	{
+		if (_activeOperation is not null)
+		{
+			throw new MemoryScanStateException(operation, State, _activeOperation);
+		}
+
+		_activeOperation = operation;
+	}
+
+	// Marks the end of a member's CE calls, then runs a release or abandon requested from inside them: exactly once,
+	// and only now that none of this session's CE calls is on the stack. Never throws.
+	private void EndSessionCall()
+	{
+		_activeOperation = null;
+		DeferredDisposal deferred = _deferredDisposal;
+		_deferredDisposal = DeferredDisposal.None;
+		if (deferred == DeferredDisposal.None || State == MemoryScanState.Disposed)
+		{
+			return;
+		}
+
+		if (deferred == DeferredDisposal.Abandon)
+		{
+			_ = ConsumeWithoutCleanup(TargetReleaseOutcome.NotInvoked());
+			return;
+		}
+
+		_ = ReleaseAsActiveCall();
+	}
+
+	// Whether a release or abandon was requested from inside the active member's CE calls: that member then makes no
+	// further CE call.
+	private bool IsDisposalRequested => _deferredDisposal != DeferredDisposal.None;
+
+	// After a lifecycle member returned: a release deferred from inside its CE calls has disposed the session, so the
+	// member must not report a completed transition.
+	private void ThrowIfReleasedDuringCall(string operation)
+	{
+		if (State == MemoryScanState.Disposed)
+		{
+			throw new ObjectDisposedException(nameof(MemoryScanSession),
+				"The memory-scan session was released or abandoned by a call made while '" + operation +
+				"' was inside a Cheat Engine call; that release ran once, after the Cheat Engine call returned.");
+		}
 	}
 
 	private MemoryScanReleaseOutcome CompleteRelease(TargetReleaseOutcome foundListOutcome,
@@ -1707,5 +2020,14 @@ public sealed class MemoryScanSession : IDisposable
 		LuaError error = LuaError.FromStack(state, status);
 		throw new MemoryScanException(MemoryScanFailureKind.LuaError, operation,
 			"The protected Lua call for memory scan operation '" + operation + "' failed.", new LuaException(error));
+	}
+
+	// What the active member must do once its CE calls have returned. Abandon takes precedence over release: it was
+	// explicitly asked to make no CE call.
+	private enum DeferredDisposal : byte
+	{
+		None = 0,
+		Release = 1,
+		Abandon = 2
 	}
 }

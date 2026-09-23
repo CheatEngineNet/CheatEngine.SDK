@@ -87,10 +87,15 @@ never a forced one. Both are experimental (`CESDK5010`, see [the diagnostic page
 because the timed-out path and `terminateScan` were not observed on the pinned host yet. `TryGetHostErrorText` copies
 CE's `ErrorString` as a bounded fact; never branch on its wording, which changes with CE's UI language.
 
-Releasing a session whose scan may still be running is safe: `Dispose` and `ReleaseWithOutcome` first request one
-cooperative stop and wait up to five seconds for it, then destroy the found list and the scanner once each, even when
-the stop is not confirmed. That can block Cheat Engine's main thread briefly; `MemoryScanReleaseOutcome.Termination`
-reports whether the stop was confirmed.
+Releasing a session whose scan may still be running is handled by the session: `Dispose` and `ReleaseWithOutcome`
+first request one cooperative stop and wait up to five seconds for it, then destroy the found list and the scanner once
+each, even when the stop is not confirmed. That can block Cheat Engine's main thread for the wait plus whatever Cheat
+Engine's own destroy waits for its scan thread; `MemoryScanReleaseOutcome.Termination` reports whether the stop was
+confirmed. Cheat Engine's waits can run queued main-thread work (for example `MainThread.Invoke` callbacks) that calls
+back into the session. While one session member is inside a Cheat Engine call, every other member is refused and a
+release is deferred until that call has returned; the interrupted start, wait, reset or stop then throws
+`ObjectDisposedException`. Whether the host keeps these promises is still to be qualified on the pinned profile (Q26
+C3, including disposal while a scan runs).
 
 ## Ownership rule
 

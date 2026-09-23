@@ -30,7 +30,7 @@
     libs/ only: src/CheatEngine.SDK declares no type of its own. The analyzer picks up PublicAPI.Shipped.txt and
     PublicAPI.Unshipped.txt next to the project; CESDK9003 (Directory.Build.targets) fails a library without them, because
     a missing file silently disables tracking. Shipped is the surface of the published CheatEngine.SDK 1.0.0 package and
-    only changes at a release; every change lands in Unshipped (eng/api/README.md).
+    only changes at a release; every change lands in Unshipped.
   -->
   <ItemGroup Label="Public API tracking (RS0016/RS0017)" Condition="$(_CheatEngineSdkFolder.StartsWith('libs/'))">
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all"/>

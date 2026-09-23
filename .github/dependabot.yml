@@ -1,11 +1,10 @@
 # Dependabot version updates (security updates are enabled in the repository settings and ignore every limit below).
 # Options: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
-# - No commit-message prefix: a prefix produces "deps: ..." titles, which the PR policy title rule rejects.
-#   Dependabot pull requests are exempt from the title and CHANGELOG rules anyway (eng/ci/PullRequestPolicy.psm1).
+# - No commit-message prefix: the repository convention is an imperative title with no prefix ("deps: ..." is not).
 # - Every ecosystem waits at least 7 days after a release (zizmor dependabot-cooldown; a cooldown never delays a
 #   security update).
 # - Dependabot does not regenerate the SDK-implicit entries of packages.lock.json: check out its branch, run
-#   ./eng/Update-LockFiles.ps1 and push the result (eng/api/README.md#lock-files).
+#   `dotnet restore <project> --force-evaluate` for each project and push the result.
 # - A dependency joins the first group it matches, so the specific groups come before the catch-all.
 version: 2
 updates:
@@ -47,7 +46,7 @@ updates:
       - dependency-name: Microsoft.CodeAnalysis.CSharp
       - dependency-name: Microsoft.CodeAnalysis.CSharp.Workspaces
       - dependency-name: Microsoft.CodeAnalysis.Analyzers
-      # SDK-implicit packages recorded in the lock files move only with global.json (eng/api/README.md#lock-files).
+      # SDK-implicit packages recorded in the lock files move only with global.json.
       - dependency-name: Microsoft.NET.ILLink.Tasks
       - dependency-name: Microsoft.DotNet.ILCompiler
       - dependency-name: 'runtime.*.Microsoft.DotNet.ILCompiler'

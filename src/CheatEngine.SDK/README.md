@@ -67,9 +67,7 @@ because the parts are built and packed together.
 > framework request can be prescribed for every CE 7.7 installation. The inspected host follows the
 > `nethost`/`hostfxr` route, and Microsoft documents that route for framework-dependent components. Do not overwrite an
 > installed Cheat Engine runtime configuration from this package guide. Establish and record the host runtime policy in
-> the controlled environment that performs the opt-in live verification. The
-> [support profile](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/docs/qualification/support-profile.md#runtime-policy)
-> records the observed policy and its hash.
+> the controlled environment that performs the opt-in live verification, including its observed hash.
 
 The [live plugin guide](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/tests/CheatEngine.SDK.LivePlugin/README.md#run-it-in-cheat-engine)
 has the controlled observation procedure; it does not establish a runtime-configuration recipe for arbitrary CE
@@ -142,11 +140,8 @@ different deployment models from this framework-dependent plugin folder.
 | .NET runtimes | .NET 10 `Microsoft.NETCore.App`, `Microsoft.WindowsDesktop.App` and `Microsoft.AspNetCore.App` (see `dotnet --list-runtimes`) |
 | Cheat Engine  | 7.7, Windows, x64                                                                                                             |
 
-The qualifiable host profile is `ce-7.7.0.10621-x64-managed-hostfxr`, described in the
-[support profile](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/docs/qualification/support-profile.md).
-Host qualification is recorded per scenario in the
-[qualification matrix](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/docs/qualification/README.md#matrix-summary);
-a scenario without a committed receipt is not executed.
+The qualifiable host profile is `ce-7.7.0.10621-x64-managed-hostfxr`. Host qualification is tracked per scenario
+against the audit's Q01-Q48 register; a scenario without gathered evidence is not executed.
 
 The analyzers and generators are built against Roslyn 5.9.0. An older SDK reports `CS9057` and skips them, so no entry
 point is generated.

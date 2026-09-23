@@ -12,8 +12,6 @@ body:
       value: |
         A compatibility report is tied to one exact combination of package, bridge, Cheat Engine build and runtime.
         Fill in every hash from the files that were actually used; a version name alone does not identify a build.
-        The profiles the project describes, and their qualification status, are listed in the
-        [support profile](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/docs/qualification/support-profile.md).
 
         Collect a SHA-256 with PowerShell:
 

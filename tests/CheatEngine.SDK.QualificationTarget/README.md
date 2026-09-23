@@ -5,7 +5,7 @@ target, not a test project, not a plugin and never a package.
 
 ## Objective
 
-Give the scan, memory and target scenarios of the [qualification matrix](../../docs/qualification/README.md) (Q25–Q32)
+Give the scan, memory and target scenarios of the audit's qualification register (Q25-Q32)
 a target whose content is known in advance on x64 and on x86: a pattern inside the executable image, copies of it on the
 heap, a region with many matches of a second pattern, and two value cells that change on command. Every count the
 target reports is measured by the target itself, so a Cheat Engine scan can be compared with ground truth.
@@ -57,12 +57,12 @@ The target opens no network connection, requests no elevation, reads no file and
 ## Promise
 
 - The target is in the solution, publishes with Native AOT for `win-x64` and `win-x86`, is not a test module and never
-  packs (`QualificationProjectShapeTests.QualificationTarget_is_in_the_solution_and_publishes_native_aot_for_x64_and_x86`,
-  `QualificationProjectShapeTests.Qualification_harnesses_are_not_test_modules_and_never_pack`).
+  packs (`QualificationHarnessShapeTests.QualificationTarget_is_in_the_solution_and_publishes_native_aot_for_x64_and_x86`,
+  `QualificationHarnessShapeTests.Qualification_harnesses_are_not_test_modules_and_never_pack`).
 - It references no SDK project, so a qualification observes the SDK only from the plugin side
-  (`QualificationProjectShapeTests.QualificationTarget_references_no_SDK_project`).
-- The ready record and the counts are produced by the published executable; the local runner
-  ([`eng/qualification`](../../eng/qualification/README.md)) publishes it per run and records its SHA-256 in each receipt.
+  (`QualificationHarnessShapeTests.QualificationTarget_references_no_SDK_project`).
+- The ready record and the counts are produced by the published executable; a qualification run publishes it and
+  records its SHA-256 in the evidence it gathers.
 
 ## Run the tests
 

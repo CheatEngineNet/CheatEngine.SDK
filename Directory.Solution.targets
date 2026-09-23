@@ -11,7 +11,7 @@
           Condition="'$(CI)' == 'true' and '$(RestoreProjectCount)' != ''">
     <Error Condition="'$(RestoreProjectCount)' != '$([MSBuild]::Add($(RestoreProjectsAuditedCount), $(RestoreSkippedCount)))'"
            Code="CESDK9009"
-           Text="Restore audited $(RestoreProjectsAuditedCount) and skipped $(RestoreSkippedCount) of $(RestoreProjectCount) projects: NuGet audit did not run for every project in the solution (eng/api/README.md#nuget-audit)."/>
+           Text="Restore audited $(RestoreProjectsAuditedCount) and skipped $(RestoreSkippedCount) of $(RestoreProjectCount) projects: NuGet audit did not run for every project in the solution."/>
     <Message Importance="normal"
              Text="NuGet audit: $(RestoreProjectsAuditedCount) audited + $(RestoreSkippedCount) up to date = $(RestoreProjectCount) projects."/>
   </Target>

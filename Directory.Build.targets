@@ -44,7 +44,7 @@
           Condition="$(_CheatEngineSdkFolder.StartsWith('libs/'))">
     <Error Condition="!Exists('$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt') or !Exists('$(MSBuildProjectDirectory)/PublicAPI.Unshipped.txt')"
            Code="CESDK9003"
-           Text="$(MSBuildProjectName) needs PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt next to its project file: every shipping library tracks its public API; see eng/api/README.md."/>
+           Text="$(MSBuildProjectName) needs PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt next to its project file: every shipping library tracks its public API."/>
   </Target>
 
   <!--
@@ -54,7 +54,7 @@
   <Target Name="CheatEngineSdkRequireLockedPackages" BeforeTargets="BeforeBuild">
     <Error Condition="'$(RestorePackagesWithLockFile)' != 'true' or '$(ManagePackageVersionsCentrally)' != 'true'"
            Code="CESDK9005"
-           Text="$(MSBuildProjectName) builds with RestorePackagesWithLockFile '$(RestorePackagesWithLockFile)' and ManagePackageVersionsCentrally '$(ManagePackageVersionsCentrally)'. Every project restores centrally managed versions against a committed packages.lock.json: remove the override and regenerate with ./eng/Update-LockFiles.ps1 (eng/api/README.md#lock-files)."/>
+           Text="$(MSBuildProjectName) builds with RestorePackagesWithLockFile '$(RestorePackagesWithLockFile)' and ManagePackageVersionsCentrally '$(ManagePackageVersionsCentrally)'. Every project restores centrally managed versions against a committed packages.lock.json: remove the override and regenerate with 'dotnet restore --force-evaluate'."/>
   </Target>
 
   <!--
@@ -89,13 +89,13 @@
     </ItemGroup>
     <Error Condition="'$(NuGetAudit)' != 'true' or '$(NuGetAuditMode)' != 'all' or '$(NuGetAuditLevel)' != 'low'"
            Code="CESDK9009"
-           Text="$(MSBuildProjectName) restores with NuGetAudit '$(NuGetAudit)', NuGetAuditMode '$(NuGetAuditMode)' and NuGetAuditLevel '$(NuGetAuditLevel)'. The repository audits every package (direct and transitive) at every severity: true, all, low. See eng/api/README.md#nuget-audit."/>
+           Text="$(MSBuildProjectName) restores with NuGetAudit '$(NuGetAudit)', NuGetAuditMode '$(NuGetAuditMode)' and NuGetAuditLevel '$(NuGetAuditLevel)'. The repository audits every package (direct and transitive) at every severity: true, all, low."/>
     <Error Condition="'@(_CheatEngineSdkAuditWeakenedRequired)' != ''"
            Code="CESDK9009"
-           Text="$(MSBuildProjectName) lists @(_CheatEngineSdkAuditWeakenedRequired, ', ') in NoWarn or WarningsNotAsErrors. High and critical advisories (and, in the AuditPipeline run, every audit code) must fail the restore: fix or upgrade the package, or add a justified, expiring NuGetAuditSuppress in Directory.Build.props (eng/api/README.md#nuget-audit)."/>
+           Text="$(MSBuildProjectName) lists @(_CheatEngineSdkAuditWeakenedRequired, ', ') in NoWarn or WarningsNotAsErrors. High and critical advisories (and, in the AuditPipeline run, every audit code) must fail the restore: fix or upgrade the package, or add a justified, expiring NuGetAuditSuppress in Directory.Build.props."/>
     <Error Condition="'@(_CheatEngineSdkAuditMissingError)' != ''"
            Code="CESDK9009"
-           Text="$(MSBuildProjectName) does not list @(_CheatEngineSdkAuditMissingError, ', ') in WarningsAsErrors. Append to WarningsAsErrors instead of replacing it (eng/api/README.md#nuget-audit)."/>
+           Text="$(MSBuildProjectName) does not list @(_CheatEngineSdkAuditMissingError, ', ') in WarningsAsErrors. Append to WarningsAsErrors instead of replacing it."/>
   </Target>
 
   <!--
@@ -112,10 +112,10 @@
     </PropertyGroup>
     <Error Condition="'%(NuGetAuditSuppress.DefiningProjectFullPath)' != '$(_CheatEngineSdkAuditSuppressionsFile)'"
            Code="CESDK9009"
-           Text="NuGetAuditSuppress '%(NuGetAuditSuppress.Identity)' is declared in '%(NuGetAuditSuppress.DefiningProjectFullPath)'. Declare advisory suppressions only in Directory.Build.props (eng/api/README.md#nuget-audit)."/>
+           Text="NuGetAuditSuppress '%(NuGetAuditSuppress.Identity)' is declared in '%(NuGetAuditSuppress.DefiningProjectFullPath)'. Declare advisory suppressions only in Directory.Build.props."/>
     <Error Condition="'%(NuGetAuditSuppress.Justification)' == '' or !$([System.Text.RegularExpressions.Regex]::IsMatch('%(NuGetAuditSuppress.Expires)', '^\d{4}-\d{2}-\d{2}$'))"
            Code="CESDK9009"
-           Text="NuGetAuditSuppress '%(NuGetAuditSuppress.Identity)' needs Justification metadata and Expires metadata in yyyy-MM-dd form (found '%(NuGetAuditSuppress.Expires)') (eng/api/README.md#nuget-audit)."/>
+           Text="NuGetAuditSuppress '%(NuGetAuditSuppress.Identity)' needs Justification metadata and Expires metadata in yyyy-MM-dd form (found '%(NuGetAuditSuppress.Expires)')."/>
     <Error Condition="'$(AuditPipeline)' == 'true' and $([System.String]::Copy('%(NuGetAuditSuppress.Expires)').Replace('-', '')) &lt; $(_CheatEngineSdkUtcToday)"
            Code="CESDK9009"
            Text="NuGetAuditSuppress '%(NuGetAuditSuppress.Identity)' expired on %(NuGetAuditSuppress.Expires). Re-review the advisory: fix it, or renew the suppression with a new justification and date."/>
@@ -126,7 +126,7 @@
     https://learn.microsoft.com/dotnet/fundamentals/apicompat/package-validation/baseline-version-validator
     Compatibility mode only (strict mode would reject additions). CI must validate against the committed
     CompatibilitySuppressions.xml and the downloaded baseline: it never regenerates, relaxes or bypasses them. Only the
-    integrator regenerates the file, locally, with -p:ApiCompatGenerateSuppressionFile=true (eng/api/README.md).
+    integrator regenerates the file, locally, with -p:ApiCompatGenerateSuppressionFile=true.
   -->
   <Target Name="CheatEngineSdkCheckPackageValidation"
           BeforeTargets="GenerateNuspec"
@@ -139,13 +139,13 @@
     </ItemGroup>
     <Error Condition="'@(_CheatEngineSdkSilencedCompatCode)' != ''"
            Code="CESDK9006"
-           Text="$(MSBuildProjectName) silences package validation diagnostics @(_CheatEngineSdkSilencedCompatCode, ', ') through NoWarn. Declare each intentional break in CompatibilitySuppressions.xml instead (eng/api/README.md#apicompat-baseline)."/>
+           Text="$(MSBuildProjectName) silences package validation diagnostics @(_CheatEngineSdkSilencedCompatCode, ', ') through NoWarn. Declare each intentional break in CompatibilitySuppressions.xml instead."/>
     <Error Condition="'$(EnablePackageValidation)' != 'true' or '$(PackageValidationBaselineVersion)' == '' or '$(EnableStrictModeForBaselineValidation)' == 'true'"
            Code="CESDK9006"
-           Text="$(MSBuildProjectName) packs with EnablePackageValidation '$(EnablePackageValidation)', PackageValidationBaselineVersion '$(PackageValidationBaselineVersion)' and EnableStrictModeForBaselineValidation '$(EnableStrictModeForBaselineValidation)'. Every pack is validated against the last published release in compatibility mode: true, a released version, not true (eng/api/README.md#apicompat-baseline)."/>
+           Text="$(MSBuildProjectName) packs with EnablePackageValidation '$(EnablePackageValidation)', PackageValidationBaselineVersion '$(PackageValidationBaselineVersion)' and EnableStrictModeForBaselineValidation '$(EnableStrictModeForBaselineValidation)'. Every pack is validated against the last published release in compatibility mode: true, a released version, not true."/>
     <Error Condition="'$(ContinuousIntegrationBuild)' == 'true' and ('$(ApiCompatGenerateSuppressionFile)' == 'true' or '$(GenerateCompatibilitySuppressionFile)' == 'true' or '$(ApiCompatPermitUnnecessarySuppressions)' == 'true' or '$(DisablePackageBaselineValidation)' == 'true' or '$(RunApiCompat)' == 'false' or '$(PackageValidationBaselinePath)' != '')"
            Code="CESDK9006"
-           Text="A CI pack of $(MSBuildProjectName) must validate against the committed CompatibilitySuppressions.xml and the downloaded $(PackageValidationBaselineVersion) baseline, but ApiCompatGenerateSuppressionFile='$(ApiCompatGenerateSuppressionFile)', GenerateCompatibilitySuppressionFile='$(GenerateCompatibilitySuppressionFile)', ApiCompatPermitUnnecessarySuppressions='$(ApiCompatPermitUnnecessarySuppressions)', DisablePackageBaselineValidation='$(DisablePackageBaselineValidation)', RunApiCompat='$(RunApiCompat)', PackageValidationBaselinePath='$(PackageValidationBaselinePath)'. Only the integrator regenerates the suppression file, locally (eng/api/README.md#apicompat-baseline)."/>
+           Text="A CI pack of $(MSBuildProjectName) must validate against the committed CompatibilitySuppressions.xml and the downloaded $(PackageValidationBaselineVersion) baseline, but ApiCompatGenerateSuppressionFile='$(ApiCompatGenerateSuppressionFile)', GenerateCompatibilitySuppressionFile='$(GenerateCompatibilitySuppressionFile)', ApiCompatPermitUnnecessarySuppressions='$(ApiCompatPermitUnnecessarySuppressions)', DisablePackageBaselineValidation='$(DisablePackageBaselineValidation)', RunApiCompat='$(RunApiCompat)', PackageValidationBaselinePath='$(PackageValidationBaselinePath)'. Only the integrator regenerates the suppression file, locally."/>
   </Target>
 
   <!--
@@ -178,7 +178,7 @@
           Condition="'$(IsPackable)' == 'true'">
     <Error Condition="'$(GenerateSBOM)' != 'true' or '@(PackageReference->WithMetadataValue('Identity', 'Microsoft.Sbom.Targets'))' == ''"
            Code="CESDK9008"
-           Text="$(MSBuildProjectName) packs without an SBOM (GenerateSBOM '$(GenerateSBOM)'). Reference Microsoft.Sbom.Targets with PrivateAssets=&quot;all&quot; and set GenerateSBOM to true unconditionally (eng/api/README.md#sbom)."/>
+           Text="$(MSBuildProjectName) packs without an SBOM (GenerateSBOM '$(GenerateSBOM)'). Reference Microsoft.Sbom.Targets with PrivateAssets=&quot;all&quot; and set GenerateSBOM to true unconditionally."/>
   </Target>
 
   <!--
@@ -201,6 +201,6 @@
           Condition="'$(IsPackable)' == 'true' and '@(NuGetAuditSuppress)' != ''">
     <Error Condition="!$(PackageVersion.Contains('-'))"
            Code="CESDK9009"
-           Text="$(MSBuildProjectName) packs the release version $(PackageVersion) while NuGetAuditSuppress items exist (@(NuGetAuditSuppress, ', ')). Remove every suppression before a release (eng/api/README.md#nuget-audit)."/>
+           Text="$(MSBuildProjectName) packs the release version $(PackageVersion) while NuGetAuditSuppress items exist (@(NuGetAuditSuppress, ', ')). Remove every suppression before a release."/>
   </Target>
 </Project>

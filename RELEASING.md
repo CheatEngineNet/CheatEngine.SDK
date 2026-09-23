@@ -4,33 +4,33 @@ NuGet releases are produced by `.github/workflows/release.yml` from version tags
 how to prepare and publish a release, and how anyone can verify one afterwards.
 
 > **Current state.** The last published version is 1.0.0, released before this chain existed: its GitHub release carries
-> the nupkg only (no SBOM, checksums or tuple) and is not immutable. The 2.0 line has not been released. The
-> [qualification gate](#qualification-gate) currently reports every gating row open, so a stable 2.0.0 tag would be
-> refused until those rows are qualified or waived.
+> the nupkg only (no SBOM or checksums) and is not immutable. The 2.0 line has not been released. There is no automated
+> qualification gate: before tagging a stable release, the maintainer confirms against the audit's Q02-Q10, Q40 and Q41
+> register (analyses/20 of the audit dossier) that the release is not claiming host qualification it has not earned, and
+> records any open row as a known limitation in the release notes.
 
 ## Overview
 
 ```text
 verify ─► ci ─► attest ─► draft-release ─► publish ─► verify-publication ─► finalize-release
           │       │             │              │               │                     │
-          │       │             │              │               │                     └ Published tuple, attested;
-          │       │             │              │               │                       release published and verified
+          │       │             │              │               │                     └ Release published and verified
           │       │             │              │               └ nuget.org serves the attested package, repository-signed
           │       │             │              └ push to nuget.org after approval of the nuget environment
           │       │             └ draft release that already carries every asset
-          │       └ SBOM, provenance and SBOM attestations, SHA256SUMS, PrePublish tuple
+          │       └ SBOM and its attestation, provenance attestation, SHA256SUMS
           └ build and test the tag in Debug and Release, pack once, test that exact nupkg
 ```
 
 | Job | What it does |
 |---|---|
-| `verify` | Checks the SemVer tag, that it points to the first-parent history of `main`, that the version is not on nuget.org yet, extracts the release notes from `CHANGELOG.md`, and runs the [qualification gate](#qualification-gate). |
-| `ci` | Runs `ci.yml` on the tag. The Release leg packs `CheatEngine.SDK.<version>.nupkg` (the file name must match the tag), runs the packaging tests on that exact file (`CESDK_PACKAGED_UMBRELLA_NUPKG`), and uploads it as `nuget-package` with `build-info.json`. |
-| `attest` | Extracts the SPDX 2.2 SBOM embedded in the nupkg, creates the SLSA provenance attestation and the SBOM attestation of the nupkg (predicate `https://spdx.dev/Document/v2.2`), verifies both, writes `SHA256SUMS` and the `PrePublish` [release tuple](#the-release-tuple). |
+| `verify` | Checks the SemVer tag, that it points to the first-parent history of `main`, that the version is not on nuget.org yet, and extracts the release notes from `CHANGELOG.md`. |
+| `ci` | Runs `ci.yml` on the tag. The Release leg packs `CheatEngine.SDK.<version>.nupkg` (the file name must match the tag), runs the packaging tests on that exact file (`CESDK_PACKAGED_UMBRELLA_NUPKG`), and uploads it as `nuget-package`. |
+| `attest` | Extracts the SPDX 2.2 SBOM embedded in the nupkg, creates the SLSA provenance attestation and the SBOM attestation of the nupkg (predicate `https://spdx.dev/Document/v2.2`), verifies both, and writes `SHA256SUMS`. |
 | `draft-release` | Creates a **draft** release that already carries every asset, or completes an existing draft. It never uploads to a published release. |
 | `publish` | Waits for approval of the `nuget` environment, checks the nupkg against `SHA256SUMS`, logs in through NuGet trusted publishing and pushes. |
-| `verify-publication` | Waits until nuget.org lists the version, downloads the repository-signed copy and checks it: `dotnet nuget verify --all`, the content hash of the attested package, and every zip entry byte-identical except the added `.signature.p7s`. |
-| `finalize-release` | Writes and attests the `Published` tuple, replaces the `PrePublish` one on the draft, publishes the release, then verifies what a consumer downloads (`SHA256SUMS`, `gh release verify`, `gh attestation verify`). |
+| `verify-publication` | Waits until nuget.org lists the version, downloads the repository-signed copy and checks it: `dotnet nuget verify --all`, and every zip entry byte-identical to the attested package except the added `.signature.p7s`. |
+| `finalize-release` | Publishes the release, then verifies what a consumer downloads (`SHA256SUMS`, `gh release verify`, `gh attestation verify`). |
 
 The `nuget-package` artifact is the release artifact: the file the packaging tests consumed is the file that is
 attested, attached to the release and pushed to nuget.org. Never upload a locally built package: nuget.org versions
@@ -39,15 +39,14 @@ are immutable.
 **Why draft-first.** Once an
 [immutable release](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/immutable-releases)
 is published, its tag cannot move and its assets cannot be added, changed or deleted, so every asset must be attached
-to the draft. That is why the attestations are created before publication: the draft must carry their bundles. The
-`Published` tuple, which replaces the `PrePublish` one while the release is still a draft, is the statement that the
-nuget.org publication happened and was verified. `eng/release/README.md` describes the scripts and the artifacts each
-job hands over ([release tooling](eng/release/README.md)).
+to the draft. That is why the attestations are created before publication: the draft must carry their bundles.
+`finalize-release` only flips the draft to published once nuget.org has served the attested package.
 
 ## Package identities
 
-One release has three package identities. They are all recorded in the release tuple. The published 1.0.0 is the
-worked example (verified on 2026-09-23):
+One release has three package identities: the attested asset, its NuGet content hash, and the nuget.org signed copy.
+`verify-publication` checks all three exist and agree; none of them is written to a separate manifest. The published
+1.0.0 is the worked example (verified on 2026-09-23):
 
 | Identity | What it is | 1.0.0 |
 |---|---|---|
@@ -89,8 +88,7 @@ job of that file, and the login runs right before the push because the temporary
 
 ### Repository settings
 
-The maintainer applies these settings with the repository settings script `eng/github/Set-RepositorySettings.ps1`,
-which the repository governance work provides, after review:
+The maintainer applies these settings directly in the repository's GitHub settings:
 
 - Environment `nuget`: the maintainers who approve publications as required reviewers, with self-review allowed
   (`prevent_self_review: false`) while a single maintainer releases; no administrator bypass; deployments limited to
@@ -120,9 +118,8 @@ releases were disabled.
 2. **Version line.** The 2.0 line is set by `MinVerMinimumMajorMinor` in `Directory.Build.props` (`2.0`); the exact
    version comes from the `v<major>.<minor>.<patch>` tag.
 3. **API compatibility.** Every pack validates `lib/net10.0` against the published 1.0.0 package, and
-   `src/CheatEngine.SDK/CompatibilitySuppressions.xml` lists exactly the intentional breaks; nothing else may differ
-   ([supply-chain contracts](eng/api/README.md)). Every suppressed break has a `### Changed`, `### Removed` or
-   `### Security` entry in the version's section.
+   `src/CheatEngine.SDK/CompatibilitySuppressions.xml` lists exactly the intentional breaks; nothing else may differ.
+   Every suppressed break has a `### Changed`, `### Removed` or `### Security` entry in the version's section.
 4. **Local validation** from the repository root, with .NET SDK 10.0.401:
 
    ```powershell
@@ -141,34 +138,24 @@ releases were disabled.
    run consumes exactly the packed file, as CI's Release leg does
    ([exact-package run](tests/CheatEngine.SDK.Tests/README.md#run-the-tests)). This local package is a rehearsal: never
    upload or publish it.
-5. **Merge** the release pull request (squash) once `CI / Gate` and `PR policy` pass.
+5. **Merge** the release pull request (squash) once `CI / Gate` passes.
 
-## Qualification gate
+## Qualification
 
 A stable release follows Checkpoint F of the audit: a user must know what they can load, with which version and which
-limits. `verify` runs `eng/release/Test-ReleaseQualification.ps1` on the tag's tree:
+limits. There is no automated gate for this: before tagging a stable release, the maintainer checks the audit's Q02-Q10,
+Q40 and Q41 register (analyses/20 of the audit dossier) against what this tree actually qualifies, and adds a
+`### Qualification waivers` section to the version's CHANGELOG entry for any row that stays open, as `- Qxx: <reason>`.
+The waivers are part of the release notes, so every consumer sees them.
 
-- The gating rows are Q02-Q10, Q40 and Q41 of `docs/qualification/matrix.json` (see the
-  [qualification documents](docs/qualification/README.md)). A row passes when every level listed in its
-  `requiredLevels` is `Passed`, or `NotApplicable` with a justification.
-- A `Passed` C3 or C4 cell must name the released tree (`treeHash`) or carry a `transferJustification`. Committing a
-  receipt already changes the tree, so a transfer justification is the normal way host evidence reaches a release.
-- A row that does not pass is waived when the version's CHANGELOG section lists it under `### Qualification waivers` as
-  `- Qxx: <reason>`. The waivers are part of the release notes, so every consumer sees them.
-- A stable version (no `-` in it) fails `verify` on any open row. A prerelease or a dry run only reports the open rows
-  in a notice. A missing matrix leaves every row open.
-
-C1 and C2 results are never presented as host qualification: a C1 cell never stands in for a required C3 level. The
-release tuple records the SHA-256 of `docs/qualification/support-profile.json` and `matrix.json` and every committed
-C3/C4 receipt of the tree; a scenario without a committed receipt is simply not listed.
+C1 and C2 results are never presented as host qualification: a C1 cell never stands in for a required C3 level.
 
 ## Dry run
 
 Start `Release` manually from a branch (**Actions → Release → Run workflow**, or
-`gh workflow run release.yml --ref <branch>`). The dry run executes `verify` (a notice instead of the tag checks and a
-qualification report), the full `ci`, and `attest` without attestations. It uploads `nuget-package`, `build-info` and
-`attestation-bundles` (SBOM, `SHA256SUMS`, and a `PrePublish` tuple whose `attestations` and `source.tag` are null),
-creates no draft and publishes nothing.
+`gh workflow run release.yml --ref <branch>`). The dry run executes `verify` (a notice instead of the tag checks), the
+full `ci`, and `attest` without attestations. It uploads `nuget-package` and `attestation-bundles` (SBOM and
+`SHA256SUMS`), creates no draft and publishes nothing.
 
 ## Publish
 
@@ -181,11 +168,11 @@ git push origin v2.0.0
 ```
 
 The tag starts the chain of the [overview](#overview). When `draft-release` finishes, the draft release already shows
-the nupkg, the SBOM, both attestation bundles, `SHA256SUMS` and the `PrePublish` tuple. `publish` then waits for a
-required reviewer to approve the `nuget` deployment on the run page. After the push, nuget.org validates and indexes the
-package, which can take several minutes; `verify-publication` polls for up to 35 minutes. `finalize-release` publishes
-the GitHub release only after nuget.org serves the attested package, and its step summary shows the three package
-identities and the asset table.
+the nupkg, the SBOM, both attestation bundles and `SHA256SUMS`. `publish` then waits for a required reviewer to
+approve the `nuget` deployment on the run page. After the push, nuget.org validates and indexes the package, which can
+take several minutes; `verify-publication` polls for up to 35 minutes. `finalize-release` publishes the GitHub release
+only after nuget.org serves the attested package, and its step summary shows the immutability status and the asset
+checksums.
 
 ## Verify a release
 
@@ -200,13 +187,12 @@ Set-Location release
 gh release verify "v$v" -R CheatEngineNet/CheatEngine.SDK
 gh release verify-asset "v$v" "CheatEngine.SDK.$v.nupkg" -R CheatEngineNet/CheatEngine.SDK
 
-# Build provenance and SBOM of the package, and provenance of the tuple, signed by this workflow for this tag.
+# Build provenance and SBOM of the package, signed by this workflow for this tag.
 $identity = @('-R', 'CheatEngineNet/CheatEngine.SDK',
   '--signer-workflow', 'CheatEngineNet/CheatEngine.SDK/.github/workflows/release.yml',
   '--source-ref', "refs/tags/v$v", '--deny-self-hosted-runners')
 gh attestation verify "CheatEngine.SDK.$v.nupkg" @identity
 gh attestation verify "CheatEngine.SDK.$v.nupkg" @identity --predicate-type https://spdx.dev/Document/v2.2
-gh attestation verify "CheatEngine.SDK.$v.tuple.json" @identity
 
 # Checksums (sha256sum -c SHA256SUMS on Linux and macOS).
 Get-Content SHA256SUMS | ForEach-Object {
@@ -215,48 +201,26 @@ Get-Content SHA256SUMS | ForEach-Object {
 }
 ```
 
-- The attestation bundles attached to the release (`*.provenance.sigstore.json`, `*.sbom.sigstore.json`,
-  `*.tuple.sigstore.json`) let `gh attestation verify` check an asset against a bundle file with `--bundle <file>`
-  instead of fetching the attestation from GitHub
-  ([`gh attestation verify`](https://cli.github.com/manual/gh_attestation_verify),
+- The attestation bundles attached to the release (`*.provenance.sigstore.json`, `*.sbom.sigstore.json`) let
+  `gh attestation verify` check an asset against a bundle file with `--bundle <file>` instead of fetching the
+  attestation from GitHub ([`gh attestation verify`](https://cli.github.com/manual/gh_attestation_verify),
   [verifying a release](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/verifying-the-integrity-of-a-release)).
 - A consumer lock file holds the NuGet content hash: the `contentHash` of `CheatEngine.SDK` in `packages.lock.json`
-  equals `package.contentHashSha512` of the tuple, which is the base64 SHA-512 of the release asset
+  equals the base64 SHA-512 of the release asset
   (`[Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData([IO.File]::ReadAllBytes("CheatEngine.SDK.$v.nupkg")))`).
 - `dotnet nuget verify --all` on the file downloaded from nuget.org reports a nuget.org repository signature and the same
   content hash ([`dotnet nuget verify`](https://learn.microsoft.com/dotnet/core/tools/dotnet-nuget-verify)). Never run it
   on the GitHub asset: that file is unsigned by design and fails with
   [NU3004](https://learn.microsoft.com/nuget/reference/errors-and-warnings/nu3004).
-- `eng/release/Test-PublishedPackage.ps1` automates the nuget.org checks; the `verify-publication` job runs it.
-
-### The release tuple
-
-`CheatEngine.SDK.<version>.tuple.json` (schema [`release-tuple.v0.schema.json`](eng/release/release-tuple.v0.schema.json))
-ties the attested package to everything that decides whether a plugin built on it can load:
-
-| Field | Content |
-|---|---|
-| `stage` | `PrePublish` on the draft, `Published` once nuget.org served the package; only the `Published` tuple is on a published release. |
-| `package` | Id, version, attested asset SHA-256, NuGet content hash, and (`Published` only) the nuget.org signed SHA-256 and SHA-512 and `repositorySignatureVerified`. |
-| `source` | Repository, tag, commit, tree, the pull request that produced the commit, the release run and the CI run that packed the file. |
-| `build` | .NET SDK, runner image, native toolchain (xmake, MSVC toolset and version, Windows SDK), Roslyn floor and analysis level. |
-| `nativeBridge` | SHA-256 and source fingerprint of `build/native/cheatengine-sdk-lua-bridge.dll` as packed. |
-| `ceProfile` | The qualifiable Cheat Engine profile id and the SHA-256 of `docs/qualification/support-profile.json`, which names the exact CE executable, Lua module and runtime policy hashes. |
-| `qualification` | The SHA-256 of `docs/qualification/matrix.json` and the committed C3/C4 receipts (id, scenario, level, status, SHA-256). |
-| `sbom` | The embedded SBOM entry, its SHA-256, `SPDX-2.2`, and whether it was attested. |
-| `attestations` | The provenance and SBOM bundle file names. |
-| `assets` | A mirror of `SHA256SUMS`. |
-
-Hashes of committed JSON documents are taken after CRLF to LF normalization, so they equal the hash of the committed
-bytes on every checkout. A packed bridge that differs from the committed, audited one
-(`native/cheatengine-sdk-lua-bridge/bridge-audit-manifest.json`) is reported as drift, never hidden and never a failure:
-CI rebuilds the bridge with its pinned toolset.
+- The `verify-publication` job automates these nuget.org checks directly in the workflow.
 
 **Reproducibility.** The promise is at the level of the DLLs and the native bridge: MinVer stamps the tag version,
 `ContinuousIntegrationBuild` normalizes paths, and the source fingerprint embedded in the bridge names its C source and
 build script. The nupkg itself is not byte-reproducible, because the SBOM it embeds has a generated document namespace
-and creation time. The attested nupkg and the identities in the tuple are therefore the identity of a release; a
-rebuild from the tag reproduces its assemblies and bridge, not the nupkg bytes.
+and creation time. The attested nupkg is therefore the identity of a release; a rebuild from the tag reproduces its
+assemblies and bridge, not the nupkg bytes. A packed bridge that differs from the committed, audited one
+(`native/cheatengine-sdk-lua-bridge/bridge-audit-manifest.json`) is reported as drift, never hidden and never a
+failure: CI rebuilds the bridge with its pinned toolset.
 
 ## After a release
 
@@ -265,8 +229,7 @@ On `main`, in one pull request after the release:
 1. Raise `MinVerMinimumMajorMinor` in `Directory.Build.props` to the next development line (after `v2.0.0`: `2.1`), so
    untagged builds become `2.1.0-alpha.0.N`.
 2. Set `PackageValidationBaselineVersion` in `src/CheatEngine.SDK/CheatEngine.SDK.csproj` to the released version.
-3. Delete `src/CheatEngine.SDK/CompatibilitySuppressions.xml` and reset `eng/api/client-induced-breaks.txt` and
-   `eng/api/apicompat-invisible-changes.txt` to their headers: the new baseline already contains those changes.
+3. Delete `src/CheatEngine.SDK/CompatibilitySuppressions.xml`: the new baseline already contains those changes.
 4. For each shipping library, apply the `*REMOVED*` lines of `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt`, move
    the other lines into `PublicAPI.Shipped.txt` (ordinally sorted), and leave `PublicAPI.Unshipped.txt` with its
    `#nullable enable` header only.
@@ -278,7 +241,7 @@ Use **Re-run failed jobs** only. Completed jobs are not repeated and the re-run 
 attempt, so the tested, attested, attached and pushed package stays the same file. Artifacts are kept 90 days: re-run
 within that window.
 
-- A draft that misses assets receives them; only the tuple may be replaced on a draft.
+- A draft that misses assets receives them.
 - A push of an existing version is skipped as a duplicate.
 - A release that is already published is never uploaded to: when it carries the same assets, `draft-release` reports it
   and succeeds, and `finalize-release` only verifies it.

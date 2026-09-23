@@ -29,13 +29,11 @@ an independent project and is not affiliated with Cheat Engine.
 | Platform      | Windows x64                                                                                                            |
 
 The qualifiable host profile is `ce-7.7.0.10621-x64-managed-hostfxr`: Cheat Engine 7.7.0.10621 x64 loading managed
-plugins through `hostfxr`. No exact-host scenario has been executed on it yet; the
-[qualification matrix](docs/qualification/README.md#matrix-summary) records its C3 and C4 cells as not executed. The
-.NET 10 `ce.runtimeconfig.json` observed on the maintainer's host is a local modification, not an installer default,
-and it affects every managed plugin of that host: record your host's runtime policy and do not edit an installed Cheat
-Engine configuration just to run a plugin. See the
-[live-plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md#run-it-in-cheat-engine) and the
-[support profile](docs/qualification/support-profile.md).
+plugins through `hostfxr`. No exact-host scenario (C3/C4) has been executed on it yet. The .NET 10
+`ce.runtimeconfig.json` observed on the maintainer's host is a local modification, not an installer default, and it
+affects every managed plugin of that host: record your host's runtime policy and do not edit an installed Cheat Engine
+configuration just to run a plugin. See the
+[live-plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md#run-it-in-cheat-engine).
 
 ## Install
 

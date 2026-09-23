@@ -7,7 +7,7 @@ argument, the disputed packed-record tail, `synchronize`, per-thread Lua states 
 
 ## Objective
 
-Give the local qualification runner ([`eng/qualification`](../../eng/qualification/README.md)) and a human operator one
+Give a local qualification run and a human operator one
 plugin that exposes, through Lua-console commands, the facts the exact-host (C3) qualification scenarios record: plugin
 id and epoch (Q05), the reported exports-table size (Q03), the raw second bootstrap integer (Q04), a managed exception
 inside a Lua callback (Q14), lifecycle faults on demand (Q06, Q08), a message pump during a callback (Q07), the
@@ -15,8 +15,8 @@ non-ASCII plugin name (Q05.a) and where the SDK assemblies were loaded from (Q40
 
 ## Why it exists
 
-Only a real Cheat Engine host can show these behaviours, and C1/C2 success is never host evidence
-([qualification levels](../../docs/qualification/README.md)). The harness keeps every probe opt-in and fail-closed, so
+Only a real Cheat Engine host can show these behaviours, and C1/C2 success is never host evidence. The harness keeps
+every probe opt-in and fail-closed, so
 loading it by mistake observes nothing and changes nothing. The solution compiles it, so a compile break is caught by CI;
 CI never loads or runs it.
 
@@ -103,8 +103,8 @@ name `CheatEngine.SDK CE 7.7 Live Probe`. The switch writes to the same output f
 
 ## Build and load
 
-The qualification runner builds the harness from the exact CI package into a clean folder and drives it; follow the
-[local qualification protocol](../../docs/qualification/local-protocol.md). For a manual session:
+A qualification run builds the harness from the exact CI package into a clean folder and drives it. For a manual
+session:
 
 ```powershell
 dotnet build tests/CheatEngine.SDK.LiveProbe/CheatEngine.SDK.LiveProbe.csproj -c Release
@@ -112,9 +112,8 @@ dotnet build tests/CheatEngine.SDK.LiveProbe/CheatEngine.SDK.LiveProbe.csproj -c
 
 Keep the complete `artifacts/bin/CheatEngine.SDK.LiveProbe/release/` folder together when loading
 `CheatEngine.SDK.LiveProbe.dll` in CE's plugin settings. It needs the SDK assemblies, `.deps.json`,
-`.runtimeconfig.json` and `cheatengine-sdk-lua-bridge.dll` next to the plugin. The supported host and runtime policy
-are recorded in the [support profile](../../docs/qualification/support-profile.md); never edit an installed CE to run
-this harness.
+`.runtimeconfig.json` and `cheatengine-sdk-lua-bridge.dll` next to the plugin. Record the supported host and runtime
+policy alongside the transcript; never edit an installed CE to run this harness.
 
 Create a short-lived authorization file on a secure local volume. Substitute only the hash and PID of the disposable
 program that the operator has deliberately launched and attached in CE:
@@ -139,7 +138,7 @@ disposable target through its normal cleanup route. Do not force-unload assembli
 ## Promise
 
 - The harness is compiled by CI through `CheatEngine.SDK.slnx` as an x64 dynamic-loading plugin that is not a test
-  module and never packs (`QualificationProjectShapeTests.LiveProbe_is_in_the_solution_as_an_x64_dynamic_loading_plugin_that_never_packs`).
+  module and never packs (`QualificationHarnessShapeTests.LiveProbe_is_in_the_solution_as_an_x64_dynamic_loading_plugin_that_never_packs`).
 - A fresh authorization is required before every acting command, and a changed manifest, target image or CE target
   PID is refused (`LiveProbeStateTests`).
 - The raw second bootstrap integer and the reported exports size are reported without interpretation
@@ -191,4 +190,4 @@ runner's job.
 - The pump hook reports what happened while the operator acted; it does not promise how Cheat Engine delivers a
   disable during a callback.
 
-Result recording and evidence rules: [local qualification protocol](../../docs/qualification/local-protocol.md).
+Record every result and its evidence in the pull request or release notes that claim it.

@@ -1,7 +1,6 @@
 # CheatEngine.SDK.LivePlugin.Coexistence
 
-An opt-in, manual fixture for the exact-host portion of qualification scenarios Q09 and Q10 (see
-[qualification](../../docs/qualification/README.md)).
+An opt-in, manual fixture for the exact-host portion of qualification scenarios Q09 and Q10.
 It builds two distinct plugin assemblies, `PluginA` and `PluginB`, and records the identities that Cheat Engine actually
 loads. It is not a unit test, it is not part of ordinary CI, and this repository contains **no executed result** for it.
 
@@ -42,11 +41,9 @@ DLL, record:
 - the timestamp, operator and complete DebugView transcript; and
 - the Plugin A/B identity lines, every Lua command result, and any loader/enable failure.
 
-A qualification run records these fields in a receipt, as the
-[local qualification protocol](../../docs/qualification/local-protocol.md) and the
-[receipt schema](../../docs/qualification/schemas/qualification-receipt.v0.schema.json) describe. Leaving any field
-unknown means the result is an unqualified manual observation. Qualification scenarios Q09 and Q10 remain not executed,
-as do the related scenarios Q19 and Q30.
+A qualification run records these fields as evidence, in the pull request or release notes that claim the result.
+Leaving any field unknown means the result is an unqualified manual observation. Qualification scenarios Q09 and Q10
+remain not executed, as do the related scenarios Q19 and Q30.
 
 ## Build and run
 

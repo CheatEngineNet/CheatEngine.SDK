@@ -9,7 +9,8 @@ focused, preserve existing patterns, and update documentation when behavior or p
 - .NET SDK 10.0.401 exactly. [`global.json`](global.json) sets `rollForward: disable`, because the NuGet lock files
   record the packages that the SDK adds implicitly. Install it with
   `winget install Microsoft.DotNet.SDK.10 --version 10.0.401`.
-- PowerShell 7 (`pwsh`) on `PATH`: the repository scripts and the repository policy tests run it.
+- PowerShell 7 (`pwsh`): every workflow step runs in it (`defaults.run.shell: pwsh`); useful for rehearsing a CI step
+  locally.
 - Git
 
 Ordinary managed work uses the checked-in Lua bridge and does not need a C toolchain. If you change [
@@ -40,54 +41,49 @@ dotnet pack src/CheatEngine.SDK -c Release -o artifacts/nuget
 The pack validates the API against the published CheatEngine.SDK 1.0.0 package, so it needs nuget.org once, and it
 embeds the SPDX SBOM.
 
-For manual host validation, use the [live-plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md). Qualification
-evidence on the exact host follows the [local qualification protocol](docs/qualification/local-protocol.md).
+For manual host validation, use the [live-plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md).
 
 ## Continuous integration
 
 Pull requests run `Pull request CI`, pushes to `main` run `Main CI`, and version tags run `Release`. All three call the
 reusable [`ci.yml`](.github/workflows/ci.yml), which builds each thing once and passes it on as an artifact. Every job
 runs on a pinned runner label (`windows-2025` or `ubuntu-24.04`), every restore is locked against the committed lock
-files, and no job uses a NuGet cache. The scripts behind the steps live in [`eng/ci`](eng/ci/README.md) and run locally
-with the same commands.
+files, and no job uses a NuGet cache. Every step is a direct `dotnet`/`xmake`/`gh` CLI call or a standard action, never
+a bespoke script: run the commands in a job's steps locally to rehearse it.
 
-| Job                           | What it checks                                                                                                                                                                                                                                                                                                                                                                                                                          |
-|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `native`                      | Builds the Lua protection bridge with the pinned xmake, MSVC toolset and Windows SDK three times (a second output directory, then a copy of the sources elsewhere) and requires the same bytes; checks that the checked-in DLL was built from the checked-in sources; builds the classic ABI fixture facts. A CI-built DLL that differs from the checked-in one is a notice, not a failure.                                             |
-| `build-test` (Debug, Release) | Builds the solution once per configuration. Release packs first and checks the single nupkg, its SBOM and its bridge; the packaging tests then consume that exact file through `CESDK_PACKAGED_UMBRELLA_NUPKG`, and the same file is uploaded as `nuget-package` with `build-info.json`. Debug excludes the packaging tests by trait (`--filter-not-trait "Category=Packaging"`), compares the ABI fixture facts and collects coverage. |
-| `aot`                         | Publishes and runs the Native AOT probes.                                                                                                                                                                                                                                                                                                                                                                                               |
-| `sonar`                       | Analyzes the code with SonarQube Cloud from the Debug coverage.                                                                                                                                                                                                                                                                                                                                                                         |
-| `lint`                        | Runs actionlint and PSScriptAnalyzer (over every tracked `*.ps1`), each pinned by version and SHA-256, and zizmor with offline audits, pinned by action commit and version.                                                                                                                                                                                                                                                             |
-| `format`                      | Verifies the whitespace formatting of every C# file, including projects outside the solution.                                                                                                                                                                                                                                                                                                                                           |
-| `dependency-review`           | Reviews dependency changes of pull requests against `.github/dependency-review-config.yml`; other events record a notice.                                                                                                                                                                                                                                                                                                               |
-| `lock-files`                  | Runs `./eng/Update-LockFiles.ps1 -Verify`: the committed lock files must equal a fresh restore.                                                                                                                                                                                                                                                                                                                                         |
-| `gate`                        | Produces `CI / Gate` from the results of every job above.                                                                                                                                                                                                                                                                                                                                                                               |
+| Job                           | What it checks                                                                                                                                                                                                                                                                                                                                                                                                        |
+|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `native`                      | Builds the Lua protection bridge with the pinned xmake, MSVC toolset and Windows SDK; checks that the checked-in DLL was built from the checked-in sources; builds the classic ABI fixture facts. A CI-built DLL that differs from the checked-in one is a notice, not a failure.                                                                                                                                    |
+| `build-test` (Debug, Release) | Builds the solution once per configuration. Release packs first and checks the single nupkg, its nuspec identity, its SBOM and its bridge; the packaging tests then consume that exact file through `CESDK_PACKAGED_UMBRELLA_NUPKG`, and the same file is uploaded as `nuget-package`. Debug excludes the packaging tests by trait (`--filter-not-trait "Category=Packaging"`), compares the ABI fixture facts and collects coverage. |
+| `aot`                         | Publishes and runs the Native AOT probes.                                                                                                                                                                                                                                                                                                                                                                             |
+| `sonar`                       | Analyzes the code with SonarQube Cloud from the Debug coverage.                                                                                                                                                                                                                                                                                                                                                       |
+| `lint`                        | Runs actionlint and zizmor with offline audits, each pinned by version (and, for actionlint, checksum).                                                                                                                                                                                                                                                                                                               |
+| `format`                      | Verifies the whitespace formatting of every C# file, including projects outside the solution.                                                                                                                                                                                                                                                                                                                        |
+| `dependency-review`           | Reviews dependency changes of pull requests against `.github/dependency-review-config.yml`; other events record a notice.                                                                                                                                                                                                                                                                                            |
+| `lock-files`                  | Restores the solution and every out-of-solution project with `--locked-mode`: the committed lock files must equal a fresh restore.                                                                                                                                                                                                                                                                                    |
+| `gate`                        | Produces `CI / Gate` from the results of every job above.                                                                                                                                                                                                                                                                                                                                                             |
 
 Both `build-test` legs run every `tests/**/*.Tests` module in a single `dotnet test --solution` call with
-`--fail-skips on`, hang and crash dumps, and then check that every module produced its report. A skipped test fails the
-run, and the packaging tests are excluded from Debug by trait, never skipped.
+`--fail-skips on`, and hang and crash dumps. A skipped test fails the run, and the packaging tests are excluded from
+Debug by trait, never skipped.
 
 ### Required checks
 
-`CI / Gate` and `PR policy` are the two required checks. There is no merge queue.
+`CI / Gate` is the only required check. There is no merge queue.
 
-- **`CI / Gate`** requires every job to succeed, with one exception: `sonar` must run and pass exactly when
-  `SONAR_EXPECTED` is true, and must be skipped otherwise. It is false for fork and Dependabot pull requests, which
-  receive no secrets, for release runs, which never request Sonar, and for the dormant `merge_group` clause. A Sonar run
-  that was not expected fails the gate too, and no other job may be skipped. The quality gate fails pull requests and is
-  only reported on `main`. Drafts do not run CI until they are marked ready for review.
-- **`PR policy`** ([`pr-policy.yml`](.github/workflows/pr-policy.yml), rules in `eng/ci/PullRequestPolicy.psm1`) runs on
-  drafts too and again on every title or description edit. The title has at most 72 characters, no trailing period and
-  no Conventional Commit or area prefix, and starts with an uppercase imperative verb. A pull request that touches
-  `libs/`, `src/`, `analyzers/`, `source-generators/` or `native/` (lock files excluded) must change `CHANGELOG.md`,
-  unless its description contains the marker `<!-- changelog: not-needed -->` alone on a line, with a reason; a quoted
-  marker, as in this sentence or the pull request template, does not waive the rule. Dependabot pull requests are
-  exempt, with a notice.
+`CI / Gate` requires every job to succeed, with one exception: `sonar` must run and pass exactly when
+`SONAR_EXPECTED` is true, and must be skipped otherwise. It is false for fork and Dependabot pull requests, which
+receive no secrets, for release runs, which never request Sonar, and for the dormant `merge_group` clause. A Sonar run
+that was not expected fails the gate too, and no other job may be skipped. The quality gate fails pull requests and is
+only reported on `main`. Drafts do not run CI until they are marked ready for review.
+
+Give the pull request an imperative title of at most 72 characters (no trailing period, no Conventional Commit or area
+prefix): pull requests are squash-merged, and the title becomes the commit subject on `main`. Record consumer-visible
+changes under `[Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md) in the same pull request.
 
 Advisory workflows run outside the gate: CodeQL (C#, C/C++ and the workflows), OpenSSF Scorecard, the online zizmor
-audits, the NuGet dependency graph submission, and the weekly [scheduled health checks](eng/ci/health/README.md)
-(strict NuGet audit, newest-SDK canary, repeated threading-sensitive tests, release bridge rebuild, external links).
-CodeRabbit reviews every pull request, but its findings and pre-merge checks are advisory.
+audits, and the NuGet dependency graph submission. CodeRabbit reviews every pull request, but its findings and
+pre-merge checks are advisory.
 
 ### Workflow changes
 
@@ -97,17 +93,12 @@ CodeRabbit reviews every pull request, but its findings and pre-merge checks are
   runners, timeouts, locked restores and the reserved artifact names. Change a workflow and its tests in the same pull
   request.
 - Dependabot does not update `runs-on`. Move to a new runner image in one pull request that changes every workflow
-  together with the label lists of the Repository tests, `eng/ci/New-BuildInfo.ps1` and
-  `eng/ci/build-info.v0.schema.json`.
-- The Debug leg fails when an assembly's line coverage drops below its floor in
-  [`eng/coverage-baseline.json`](eng/coverage-baseline.json) minus the tolerance. CI never raises a floor: copy
-  `suggested-coverage-baseline.json` from the step summary or the `coverage-report` artifact in a reviewed commit.
+  together with the label lists of the Repository tests.
 
 ### Flaky tests
 
 Required runs never retry a test. With `--fail-skips on` a skipped test fails the run, so a flaky test cannot be hidden
-with `Skip`: fix it or delete it in the pull request that finds it. The weekly scheduled health workflow repeats the
-threading-sensitive test modules to find tests that fail intermittently.
+with `Skip`: fix it or delete it in the pull request that finds it.
 
 ### Run the checks locally
 
@@ -115,8 +106,7 @@ threading-sensitive test modules to find tests that fail intermittently.
 dotnet format whitespace . --folder --verify-no-changes --exclude artifacts   # the format job
 actionlint                                                                     # 1.7.12, from the repository root
 zizmor --offline .github                                                       # 1.30.1, reads .github/zizmor.yml
-./eng/ci/Invoke-ScriptAnalysis.ps1                                             # PSScriptAnalyzer, hash-verified
-./eng/Update-LockFiles.ps1 -Verify                                             # the lock-files job
+dotnet restore CheatEngine.SDK.slnx --locked-mode                             # the lock-files job
 ```
 
 ## Style and analyzers
@@ -150,52 +140,49 @@ rules and their fixes.
 - An enum added since 1.0.0 that reports a status or an outcome starts with a neutral zero member (`Unknown`); enums
   that mirror Cheat Engine constants keep their 1.0.0 members.
 
-The details, including the regeneration command, are in [`eng/api/README.md`](eng/api/README.md#public-api-tracking).
+`CompatibilitySuppressions.xml` is regenerated only by the integrator, locally, with
+`dotnet pack src/CheatEngine.SDK -c Release -p:ApiCompatGenerateSuppressionFile=true`; CI never passes that property.
 
 ## Lock files and Dependabot
 
-- Every project restores against a committed `packages.lock.json`. Only `./eng/Update-LockFiles.ps1` writes them, on
-  Windows with the pinned SDK: run it after any change to `Directory.Packages.props`, a package reference, a project
-  file or `global.json`, and commit the result on its own (`Regenerate lock files after <reason>`). Never edit a lock
-  file by hand; on a merge conflict, take either side and run the script again
-  ([details](eng/api/README.md#lock-files)).
+- Every project restores against a committed `packages.lock.json`. Regenerate one with
+  `dotnet restore <project> --force-evaluate` (never combined with `--locked-mode`, NU1005), on Windows with the pinned
+  SDK, after any change to `Directory.Packages.props`, a package reference, a project file or `global.json`, and commit
+  the result on its own (`Regenerate lock files after <reason>`). Never edit a lock file by hand; on a merge conflict,
+  take either side and restore again.
 - Dependabot NuGet pull requests do not regenerate the SDK-implicit entries: check out the branch
-  (`gh pr checkout <number>`), run `./eng/Update-LockFiles.ps1`, commit and push.
-- For a Dependabot `dotnet-sdk` pull request, apply the `lock-files.patch` of the newest-SDK canary, make the
-  `global.json` `errorMessage` name the new version, update the documentation that names the SDK, and run
-  `./eng/Update-LockFiles.ps1 -Verify` ([procedure](eng/ci/health/README.md#newest-net-sdk-canary)).
+  (`gh pr checkout <number>`), restore each changed project with `--force-evaluate`, commit and push.
+- For a Dependabot `dotnet-sdk` pull request, install the new SDK, restore every project with `--force-evaluate`,
+  make the `global.json` `errorMessage` name the new version, and update the documentation that names the SDK.
 
 ## NuGet audit
 
 Restore audits every direct and transitive package. High and critical advisories (NU1903, NU1904) fail every build;
-lower severities are warnings, and the weekly strict audit fails on any advisory. An advisory suppression is a last
-resort: only in `Directory.Build.props`, with a justification and an expiry date, and never in a stable release
-([details](eng/api/README.md#nuget-audit)).
+lower severities are warnings. An advisory suppression is a last resort: only in `Directory.Build.props`, with a
+justification and an expiry date, and never in a stable release.
 
 ## Repository guards
 
 The MSBuild guards `CESDK9003` to `CESDK9009` fail the build when the supply-chain policy is weakened: the PublicAPI
 files, the analysis-level pin, lock files and Central Package Management, package validation, the major version that
-declared breaks require, the SBOM, and the NuGet audit. The [guard table](eng/api/README.md#repository-guards) gives the
-condition and the fix of each one.
+declared breaks require, the SBOM, and the NuGet audit. `Directory.Build.targets` and `Directory.Build.props` give the
+condition and the fix of each one, next to the guard itself.
 
 ## Qualification evidence
 
-- Evidence has five levels: C0 static contract, C1 managed tests, C2 native fixture, C3 the exact Cheat Engine host
-  with the plugin loaded, and C4 several components. A C1 or C2 result is never presented as host-qualified, and no
-  document states a global percentage. See [`docs/qualification`](docs/qualification/README.md).
-- A test that evidences a scenario carries `[Trait("Qualification", "Qxx")]`, and the matching cell of
-  `docs/qualification/matrix.json` changes in the same pull request; `QualificationMatrixTests` checks both directions.
-- C3 and C4 cells change only with a committed receipt produced by `eng/qualification/Invoke-LocalQualification.ps1`
-  under the [local qualification protocol](docs/qualification/local-protocol.md). The runner never runs in CI, and no
-  workflow references it.
+Evidence has five levels: C0 static contract, C1 managed tests, C2 native fixture, C3 the exact Cheat Engine host with
+the plugin loaded, and C4 several components. A C1 or C2 result is never presented as host-qualified, and no document
+states a global percentage. A test that evidences a scenario carries `[Trait("Qualification", "Qxx")]` naming the Qxx
+scenario of the audit's register (Q01-Q48) and the level it reaches. There is no local exact-host qualification
+runner or committed evidence tree in this repository; C3/C4 evidence, when gathered, is described in the pull request
+and release notes.
 
 ## Documentation
 
-Every Markdown file is checked offline by `DocumentationIntegrityTests` in `tests/CheatEngine.SDK.Repository.Tests`:
-exact-case relative links and anchors, no absolute local paths, no reference to the retired `documentations/` tree,
-absolute links only in packed READMEs, and the "Recreated 2026-09" header on pages under `docs/`. Run
-`dotnet test --project tests/CheatEngine.SDK.Repository.Tests/CheatEngine.SDK.Repository.Tests.csproj`.
+Keep relative Markdown links exact-case and resolvable, and never restore or link the retired `documentations/` tree.
+Narrative documentation (qualification protocol, catalogues, migration guides) is not recreated under a repository
+`docs/` folder; it lives outside both repositories, under the maintainer's own notes. A README packed into the NuGet
+package uses absolute `https://` links only.
 
 ## Branches and pull requests
 
@@ -207,8 +194,8 @@ absolute links only in packed READMEs, and the "Recreated 2026-09" header on pag
 
 Fill in the pull request template: state the problem, resulting behavior, validation commands and results, the
 qualification level of the evidence, public API and release impact, and any remaining live-host limitations. Include
-documentation changes that the work requires. Pull requests are squash-merged once `CI / Gate` and `PR policy` pass, so
-the pull request title becomes the commit subject on `main`.
+documentation changes that the work requires. Pull requests are squash-merged once `CI / Gate` passes, so the pull
+request title becomes the commit subject on `main`.
 
 ## Commits
 
@@ -226,8 +213,8 @@ request.
 Versions are derived by MinVer from the nearest `v*` tag; the current minimum major/minor line is `2.0`, as configured
 in [`Directory.Build.props`](Directory.Build.props). Pushing a valid `v<major>.<minor>.<patch>` tag (an optional SemVer
 prerelease is allowed) starts the draft-first release workflow. It builds and tests the tag, attests the package
-(provenance and SPDX 2.2 SBOM), and creates a draft release with the package, the SBOM, `SHA256SUMS`, the sigstore
-bundles and the release tuple. After manual approval on the `nuget` environment it publishes that exact package,
-verifies it on nuget.org, and only then publishes the release, whose notes are the `CHANGELOG.md` section of that
-version. A stable version also passes the [qualification gate](RELEASING.md#qualification-gate). See
-[`RELEASING.md`](RELEASING.md).
+(provenance and SPDX 2.2 SBOM), and creates a draft release with the package, the SBOM, `SHA256SUMS` and the sigstore
+bundles. After manual approval on the `nuget` environment it publishes that exact package, verifies it on nuget.org,
+and only then publishes the release, whose notes are the `CHANGELOG.md` section of that version. See
+[`RELEASING.md`](RELEASING.md), including its [qualification](RELEASING.md#qualification) expectations for a stable
+release.

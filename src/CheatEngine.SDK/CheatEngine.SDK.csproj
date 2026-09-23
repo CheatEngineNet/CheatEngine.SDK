@@ -19,7 +19,7 @@
       Compares lib/net10.0 with the published CheatEngine.SDK 1.0.0 (downloaded at restore as a PackageDownload, read from
       the NuGet global packages folder at pack). Intentional breaks live in CompatibilitySuppressions.xml, regenerated only
       by the integrator; a stale suppression fails the pack (ApiCompatPermitUnnecessarySuppressions stays false). Strict
-      mode stays off so additions remain legal. CESDK9006 guards these settings (eng/api/README.md).
+      mode stays off so additions remain legal. CESDK9006 guards these settings.
     -->
     <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion>
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_CheatEngineSdkEmbedLibraries</TargetsForTfmSpecificBuildOutput>
@@ -36,7 +36,7 @@
     development dependency: build logic only, no nuspec dependency). Generated for every pack, local or CI, so both
     inventories match; CESDK9008 fails a pack without it. The build-component scan is limited to this project folder,
     which holds no package manifest, so build-only tools (MinVer, analyzers) are never listed as shipped components:
-    the SBOM describes the package and every file in it with its checksums (eng/api/README.md#sbom).
+    the SBOM describes the package and every file in it with its checksums.
   -->
   <PropertyGroup Label="SBOM">
     <GenerateSBOM>true</GenerateSBOM>

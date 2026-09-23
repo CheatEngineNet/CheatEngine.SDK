@@ -292,6 +292,25 @@ public sealed class LocalQualificationRunnerTests
 	}
 
 	[Fact]
+	public void Only_Cheat_Engine_executables_count_as_another_instance()
+	{
+		// A false positive refuses the preflight and, after a session, turns a due HKCU restore into exit code 7.
+		JsonElement result = RunJson(ModuleImport + """
+			$names = 'cheatengine-x86_64', 'cheatengine-x86_64-SSE4-AVX2', 'cheatengine-i386', 'Cheat Engine', 'CHEATENGINE-X86_64',
+				'CheatEngine.Client.Repository.Tests', 'CheatEngine.SDK.Tests', 'CheatEngine.SDK.QualificationTarget', 'cheatengine-x86_64-old', 'Tutorial-x86_64', 'gtutorial-i386'
+			$result = [ordered]@{}
+			foreach ($name in $names) { $result[$name] = Test-CheatEngineProcessName -Name $name }
+			$result | ConvertTo-Json -Compress
+			""");
+
+		string[] cheatEngine = ["cheatengine-x86_64", "cheatengine-x86_64-SSE4-AVX2", "cheatengine-i386", "Cheat Engine", "CHEATENGINE-X86_64"];
+		foreach (JsonProperty name in result.EnumerateObject())
+		{
+			Assert.True(name.Value.GetBoolean() == cheatEngine.Contains(name.Name, StringComparer.Ordinal), name.Name);
+		}
+	}
+
+	[Fact]
 	public void Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash()
 	{
 		// For a signed package the restore's .nupkg.metadata contentHash (what lock files hold) differs from the

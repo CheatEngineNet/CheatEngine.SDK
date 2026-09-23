@@ -113,7 +113,9 @@ authorization manifest contain private data and must never be committed.
   scenario values (`Redaction_removes_user_paths_and_keeps_scenario_values`); registry differences carry names only
   (`Registry_diff_reports_value_names_only`); an incomplete bundle is refused
   (`Bundle_closure_check_rejects_a_missing_bridge_or_a_workspace_project_entry`); the recorded content hash is the
-  lock-file value (`Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash`).
+  lock-file value (`Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash`); only Cheat
+  Engine's own executables count as another instance, never a process such as a `CheatEngine.*` test host
+  (`Only_Cheat_Engine_executables_count_as_another_instance`).
 - Every Checkpoint B scenario names a matrix cell and only Lua functions its harnesses declare
   (`Every_Checkpoint_B_scenario_exists_and_cites_harness_commands_that_exist`), and every generated driver compiles
   with Cheat Engine's Lua 5.3 module (`Driver_templates_are_valid_Lua`).

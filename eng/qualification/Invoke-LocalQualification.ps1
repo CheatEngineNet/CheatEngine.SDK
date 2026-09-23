@@ -159,7 +159,7 @@ function Get-CheatEngineProcess {
     [OutputType([System.Diagnostics.Process[]])]
     param()
 
-    return @(Get-Process | Where-Object { $_.ProcessName -match '^(cheatengine|Cheat Engine)' })
+    return @(Get-Process | Where-Object { Test-CheatEngineProcessName -Name $_.ProcessName })
 }
 
 function Invoke-Preflight {

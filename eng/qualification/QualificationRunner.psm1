@@ -526,6 +526,20 @@ function Test-QualificationBundleClosure {
     return $problems.ToArray()
 }
 
+function Test-CheatEngineProcessName {
+    <#
+    .SYNOPSIS
+        True for the process names of Cheat Engine itself: the x64, x64 SSE4-AVX2 and i386 executables and the
+        launcher. Other processes whose name merely starts with "CheatEngine" (the SDK and Client test hosts, the
+        qualification target) are not Cheat Engine and never block a run or an HKCU restore.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Name)
+
+    return $Name -match '^(?:cheatengine-(?:x86_64|i386)(?:-SSE4-AVX2)?|Cheat Engine)$'
+}
+
 function Get-RestoredPackageContentHash {
     <#
     .SYNOPSIS
@@ -910,6 +924,7 @@ Export-ModuleMember -Function @(
     'Get-BundleFileManifest'
     'Test-EntryPointExport'
     'Test-QualificationBundleClosure'
+    'Test-CheatEngineProcessName'
     'Get-RestoredPackageContentHash'
     'Test-QualificationWorkRoot'
     'Get-CiEnvironmentVariable'

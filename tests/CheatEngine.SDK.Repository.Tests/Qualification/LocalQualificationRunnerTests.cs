@@ -342,6 +342,49 @@ public sealed class LocalQualificationRunnerTests
 		}
 	}
 	[Fact]
+	public void Pass_rules_require_the_observed_removal_of_plugin_A_and_a_plugin_still_enabled_after_the_refused_disable()
+	{
+		JsonElement result = RunJson(ModuleImport + $$"""
+			$plan = Get-Content -LiteralPath {{PowerShellProcess.Quote(QualificationDocuments.Absolute(Scenarios))}} -Raw | ConvertFrom-Json -Depth 64
+			function New-Step([string] $Id, [bool] $Ok, [string] $Json = '') {
+				$values = if ($Json) { @([pscustomobject]@{ type = 'string'; value = $Json }) } else { @() }
+				[pscustomobject]@{ id = $Id; ok = $Ok; values = $values }
+			}
+			function Get-Status($Scenario, $Steps, $Answers) {
+				$outcome = Resolve-QualificationOutcome -Scenario $Scenario -Steps $Steps -Answers $Answers
+				"$($outcome.status) $($outcome.passKind)".Trim()
+			}
+			$result = [ordered]@{}
+			foreach ($id in 'Q09.a', 'Q09.b') {
+				$scenario = @($plan.scenarios | Where-Object id -eq $id)[0]
+				$steps = [ordered]@{}
+				foreach ($name in 'identityA', 'identityB', 'pingB', 'pingA2', 'pingB2') { $steps[$name] = New-Step $name $true }
+				$steps.pingA = New-Step 'pingA' $false
+				$result["$id removed"] = Get-Status $scenario $steps ([ordered]@{ removeA = 'y' })
+				$steps.pingA = New-Step 'pingA' $true
+				$result["$id stillLoaded"] = Get-Status $scenario $steps ([ordered]@{ removeA = 'y' })
+				$result["$id notRemoved"] = Get-Status $scenario $steps ([ordered]@{ removeA = 'n' })
+			}
+			$q07 = @($plan.scenarios | Where-Object id -eq 'Q07')[0]
+			$steps = [ordered]@{ pump = New-Step 'pump' $true '{"enabledAfter":true,"phaseAfter":"Enabled"}'; status = New-Step 'status' $true '{"context":{"phase":"Enabled"} }' }
+			$result['Q07 refused'] = Get-Status $q07 $steps ([ordered]@{ acted = 'y' })
+			$steps.status = New-Step 'status' $true '{"context":{"phase":"Disabled"} }'
+			$result['Q07 disabledAfterThePump'] = Get-Status $q07 $steps ([ordered]@{ acted = 'y' })
+			$result | ConvertTo-Json -Compress
+			""");
+
+		foreach (string id in (string[]) ["Q09.a", "Q09.b"])
+		{
+			Assert.Equal("Passed Functional", result.GetProperty(id + " removed").GetString());
+			Assert.Equal("Failed", result.GetProperty(id + " stillLoaded").GetString());
+			Assert.Equal("Inconclusive", result.GetProperty(id + " notRemoved").GetString());
+		}
+
+		Assert.Equal("Passed RefusalVerified", result.GetProperty("Q07 refused").GetString());
+		Assert.Equal("Failed", result.GetProperty("Q07 disabledAfterThePump").GetString());
+	}
+
+	[Fact]
 	public void Only_Cheat_Engine_executables_count_as_another_instance()
 	{
 		// A false positive refuses the preflight and, after a session, turns a due HKCU restore into exit code 7.

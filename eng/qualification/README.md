@@ -116,8 +116,10 @@ authorization manifest contain private data and must never be committed.
   (`Registry_diff_reports_value_names_only`); an incomplete bundle is refused
   (`Bundle_closure_check_rejects_a_missing_bridge_or_a_workspace_project_entry`) and a bundle built from the package,
   with the generated internal entry point, is accepted
-  (`Bundle_closure_check_accepts_a_package_consumer_bundle_with_the_generated_internal_entry_point`); the recorded
-  content hash is the
+  (`Bundle_closure_check_accepts_a_package_consumer_bundle_with_the_generated_internal_entry_point`); a coexistence
+  receipt passes only when plugin A was observably removed and Q07 only when the plugin is still enabled after the pump
+  (`Pass_rules_require_the_observed_removal_of_plugin_A_and_a_plugin_still_enabled_after_the_refused_disable`); the
+  recorded content hash is the
   lock-file value (`Content_hash_is_the_lock_file_value_the_restore_recorded_not_the_file_bytes_hash`); only Cheat
   Engine's own executables count as another instance, never a process such as a `CheatEngine.*` test host
   (`Only_Cheat_Engine_executables_count_as_another_instance`).

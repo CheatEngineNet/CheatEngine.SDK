@@ -84,9 +84,9 @@ opened in Cheat Engine) is satisfied.
 | Q05      | C3    | LiveProbe                     | x64    | Status, operator unticks and ticks the plugin, status again, operator confirms the name                                  | new epoch, same plugin assembly, stable name                                                       |
 | Q05.a    | C3    | LiveProbeNonAscii             | x64    | Status; operator records how the name is shown and whether the list is intact                                            | plugin loads and the operator confirms nothing is corrupted                                        |
 | Q06      | C3    | LiveProbe, fault `OnEnable`   | x64    | Load with the fault switch; the runner removes it; operator re-enables                                                   | first enable failed and its commands are gone; re-enable succeeds and records `OnEnable@1`        |
-| Q07      | C3    | LiveProbe                     | x64    | Operator unticks the plugin while `ce77_live_probe_pump_messages(20)` runs                                               | pump completes and the plugin stays enabled (nested disable refused); operator confirms the action |
+| Q07      | C3    | LiveProbe                     | x64    | Operator unticks the plugin while `ce77_live_probe_pump_messages(20)` runs                                               | pump completes and the plugin is still enabled after it (nested disable refused); operator confirms the action |
 | Q08      | C3    | LiveProbe, fault `OnDisable`  | x64    | Operator unticks (OnDisable throws), the runner removes the switch, operator re-enables and judges                       | failure recorded (`OnDisable@1`) and no cleanly-disabled state shown while cleanup had failed       |
-| Q09.a    | C4    | Coexistence A and B, one folder | none | Load both, record identities, operator removes A, B still answers, operator restores A                                   | identities recorded; B works while A is removed; both work again                                   |
+| Q09.a    | C4    | Coexistence A and B, one folder | none | Load both, record identities, operator removes A, B still answers, operator restores A                                   | identities recorded; A no longer answers and B works while A is removed; both work again           |
 | Q09.b    | C4    | Coexistence A and B, two folders | none | Same as Q09.a                                                                                                           | same                                                                                               |
 | Q14      | C3    | LiveProbe                     | x64    | Automated: `pcall(ce77_live_probe_throw_managed_exception)`, then status                                                 | catchable Lua error with the marker text; the next call works                                      |
 | Q15      | C3    | LiveProbe                     | x64    | Callback prepared and called; operator unticks; the kept callback is called again                                        | the kept callback fails with "released"                                                            |
@@ -96,7 +96,8 @@ opened in Cheat Engine) is satisfied.
 | Q39      | C3    | —                             | —      | None: `NotApplicable` by profile decision CPA-2                                                                          | —                                                                                                  |
 | Q40      | C3    | LiveProbe (clean folder)      | x64    | Status and host profile                                                                                                  | plugin, Hosting assembly and bridge load from the bundle folder; bridge equals the packaged one    |
 
-A scenario whose operator step was not performed (for example Q07 without unticking) is **Inconclusive**: no receipt is
+A scenario whose operator step was not performed (for example Q07 without unticking, or Q09 when plugin A could not be
+removed) is **Inconclusive**: no receipt is
 written and the runner says so.
 
 ## LiveProbe authorization and fault switch

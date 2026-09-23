@@ -175,7 +175,9 @@
         "checks": [
           { "step": "pump", "ok": true },
           { "step": "pump", "json": "enabledAfter", "equals": true },
-          { "step": "pump", "json": "phaseAfter", "equals": "Enabled" }
+          { "step": "pump", "json": "phaseAfter", "equals": "Enabled" },
+          { "step": "status", "ok": true },
+          { "step": "status", "json": "context.phase", "equals": "Enabled" }
         ]
       }
     },
@@ -363,7 +365,7 @@
         { "id": "loadB", "kind": "Lua", "action": "loadPlugin", "bundle": "CoexistenceSharedB" },
         { "id": "identityA", "kind": "Lua", "action": "call", "function": "cheatengine_sdk_coexistence_a_identity" },
         { "id": "identityB", "kind": "Lua", "action": "call", "function": "cheatengine_sdk_coexistence_b_identity" },
-        { "id": "removeA", "kind": "Operator", "instruction": "In Edit > Settings > Plugins untick 'CheatEngine.SDK Coexistence Plugin A' only, and apply. Type anything to continue." },
+        { "id": "removeA", "kind": "Operator", "instruction": "In Edit > Settings > Plugins untick 'CheatEngine.SDK Coexistence Plugin A' only, and apply. Type y once A is unticked and applied, n if you could not remove it." },
         { "id": "pingB", "kind": "Lua", "action": "call", "function": "cheatengine_sdk_coexistence_b_ping" },
         { "id": "pingA", "kind": "Lua", "action": "call", "function": "cheatengine_sdk_coexistence_a_ping" },
         { "id": "restoreA", "kind": "Operator", "instruction": "Tick 'CheatEngine.SDK Coexistence Plugin A' again and apply. Type anything to continue." },
@@ -374,10 +376,12 @@
       "passRule": {
         "kind": "Automated",
         "passKind": "Functional",
+        "requiresAnswer": { "step": "removeA", "answer": "y" },
         "checks": [
           { "step": "identityA", "ok": true },
           { "step": "identityB", "ok": true },
           { "step": "pingB", "ok": true },
+          { "step": "pingA", "ok": false },
           { "step": "pingA2", "ok": true },
           { "step": "pingB2", "ok": true }
         ]
@@ -395,7 +399,7 @@
         { "id": "loadB", "kind": "Lua", "action": "loadPlugin", "bundle": "CoexistenceB" },
         { "id": "identityA", "kind": "Lua", "action": "call", "function": "cheatengine_sdk_coexistence_a_identity" },
         { "id": "identityB", "kind": "Lua", "action": "call", "function": "cheatengine_sdk_coexistence_b_identity" },
-        { "id": "removeA", "kind": "Operator", "instruction": "In Edit > Settings > Plugins untick 'CheatEngine.SDK Coexistence Plugin A' only, and apply. Type anything to continue." },
+        { "id": "removeA", "kind": "Operator", "instruction": "In Edit > Settings > Plugins untick 'CheatEngine.SDK Coexistence Plugin A' only, and apply. Type y once A is unticked and applied, n if you could not remove it." },
         { "id": "pingB", "kind": "Lua", "action": "call", "function": "cheatengine_sdk_coexistence_b_ping" },
         { "id": "pingA", "kind": "Lua", "action": "call", "function": "cheatengine_sdk_coexistence_a_ping" },
         { "id": "restoreA", "kind": "Operator", "instruction": "Tick 'CheatEngine.SDK Coexistence Plugin A' again and apply. Type anything to continue." },
@@ -406,10 +410,12 @@
       "passRule": {
         "kind": "Automated",
         "passKind": "Functional",
+        "requiresAnswer": { "step": "removeA", "answer": "y" },
         "checks": [
           { "step": "identityA", "ok": true },
           { "step": "identityB", "ok": true },
           { "step": "pingB", "ok": true },
+          { "step": "pingA", "ok": false },
           { "step": "pingA2", "ok": true },
           { "step": "pingB2", "ok": true }
         ]

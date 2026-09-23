@@ -289,8 +289,11 @@ public sealed class LuaGlobalCallEmitterTests
 			"(global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<int> n, out long first, out global::CheatEngine.SDK.Lua.Marshalling.LuaOptional<string> second, scoped global::System.Span<double> values, out int count)",
 			writer.ToString());
 
-		foreach (string local in (string[]) ["__L", "__operation", "__top", "__ok", "__status", "__result",
-					 "__resolution", "__exception", "__argc", "__rest"])
+		foreach (string local in (string[])
+				 [
+					 "__L", "__operation", "__top", "__ok", "__status", "__result",
+					 "__resolution", "__exception", "__argc", "__rest"
+				 ])
 		{
 			Assert.True(LuaGlobalCallEmitter.IsReservedLocal(local), local);
 		}

@@ -15,7 +15,10 @@ internal static class CommittedFile
 
 	/// <summary>The exact bytes of <c>HEAD:&lt;repoRelativePath&gt;</c>.</summary>
 	/// <param name="repoRelativePath">A repository-relative path with forward slashes.</param>
-	/// <exception cref="InvalidOperationException">git is missing, the tree is not a git checkout, or the path is not committed.</exception>
+	/// <exception cref="InvalidOperationException">
+	///     git is missing, the tree is not a git checkout, or the path is not
+	///     committed.
+	/// </exception>
 	public static async Task<byte[]> ReadBytesAsync(string repoRelativePath)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(repoRelativePath);
@@ -61,7 +64,8 @@ internal static class CommittedFile
 		catch (OperationCanceledException exception) when (cancellation.IsCancellationRequested)
 		{
 			process.Kill(true);
-			throw new TimeoutException($"'git cat-file blob HEAD:{repoRelativePath}' did not exit within {Timeout}.", exception);
+			throw new TimeoutException($"'git cat-file blob HEAD:{repoRelativePath}' did not exit within {Timeout}.",
+				exception);
 		}
 
 		if (process.ExitCode != 0)

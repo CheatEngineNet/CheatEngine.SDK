@@ -93,7 +93,7 @@ public sealed class EngineMarshallingException : EngineException
 
 	private static EngineMarshallingDirection ValidateDirection(EngineMarshallingDirection direction)
 	{
-		if (direction != EngineMarshallingDirection.Argument && direction != EngineMarshallingDirection.Result)
+		if (direction is not EngineMarshallingDirection.Argument and not EngineMarshallingDirection.Result)
 		{
 			throw new ArgumentOutOfRangeException(nameof(direction), direction,
 				"The marshalling direction is not defined.");

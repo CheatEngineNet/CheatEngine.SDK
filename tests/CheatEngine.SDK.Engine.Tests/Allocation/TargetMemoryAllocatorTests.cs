@@ -378,7 +378,8 @@ public sealed class TargetMemoryAllocatorTests
 		TargetMemoryAllocator allocator = new(operations);
 
 		TargetAllocationAcquireOutcome outcome =
-			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)), out AllocatedRegion? region);
+			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)),
+				out AllocatedRegion? region);
 
 		Assert.Null(region);
 		Assert.False(outcome.HasOwner);
@@ -400,7 +401,8 @@ public sealed class TargetMemoryAllocatorTests
 		TargetMemoryAllocator allocator = new(operations);
 
 		TargetAllocationAcquireOutcome outcome =
-			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)), out AllocatedRegion? region);
+			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)),
+				out AllocatedRegion? region);
 
 		Assert.Null(region);
 		Assert.False(outcome.HasOwner);
@@ -466,7 +468,8 @@ public sealed class TargetMemoryAllocatorTests
 		TargetMemoryAllocator allocator = new(operations);
 
 		TargetAllocationAcquireOutcome outcome =
-			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)), out AllocatedRegion? region);
+			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)),
+				out AllocatedRegion? region);
 
 		Assert.Null(region);
 		Assert.False(outcome.HasOwner);
@@ -488,7 +491,8 @@ public sealed class TargetMemoryAllocatorTests
 		TargetMemoryAllocator allocator = new(operations);
 
 		TargetAllocationAcquireOutcome outcome =
-			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)), out AllocatedRegion? region);
+			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)),
+				out AllocatedRegion? region);
 
 		Assert.Null(region);
 		Assert.Equal(EngineEffectState.Unknown, outcome.Effect);
@@ -508,7 +512,8 @@ public sealed class TargetMemoryAllocatorTests
 		TargetMemoryAllocator allocator = new(operations);
 
 		TargetAllocationAcquireOutcome outcome =
-			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)), out AllocatedRegion? region);
+			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)),
+				out AllocatedRegion? region);
 
 		Assert.Null(region);
 		Assert.Equal(EngineEffectState.Unknown, outcome.Effect);
@@ -528,7 +533,8 @@ public sealed class TargetMemoryAllocatorTests
 		TargetMemoryAllocator allocator = new(operations);
 
 		TargetAllocationAcquireOutcome outcome =
-			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)), out AllocatedRegion? region);
+			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)),
+				out AllocatedRegion? region);
 
 		Assert.Null(region);
 		Assert.False(outcome.HasOwner);
@@ -554,7 +560,8 @@ public sealed class TargetMemoryAllocatorTests
 			EngineFailureKind.GlobalUnavailable => new EngineGlobalUnavailableException("TargetMemoryAllocate"),
 			EngineFailureKind.TargetIdentityUnavailable => new EngineTargetIdentityException("TargetMemoryAllocate",
 				TargetSelection.CreateUnavailableCheck(TargetSelectionObservation.NoTarget())),
-			EngineFailureKind.ProtectedLuaFailure => new EngineLuaException("TargetMemoryAllocate", LuaStatus.SyntaxError,
+			EngineFailureKind.ProtectedLuaFailure => new EngineLuaException("TargetMemoryAllocate",
+				LuaStatus.SyntaxError,
 				"A deliberately irrelevant localized message."),
 			EngineFailureKind.BindingFailure => new EngineBindingException("TargetMemoryAllocate", "incompatible"),
 			_ => new EngineMarshallingException("TargetMemoryAllocate", EngineMarshallingDirection.Result, "a", "b")
@@ -566,7 +573,8 @@ public sealed class TargetMemoryAllocatorTests
 		TargetMemoryAllocator allocator = new(operations);
 
 		TargetAllocationAcquireOutcome outcome =
-			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)), out AllocatedRegion? region);
+			allocator.TryAllocate(new TargetAllocationRequest(new TargetAllocationSize(4096)),
+				out AllocatedRegion? region);
 
 		Assert.Null(region);
 		Assert.Equal(expectedEffect, outcome.Effect);

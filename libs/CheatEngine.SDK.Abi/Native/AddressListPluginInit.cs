@@ -18,7 +18,8 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         <c>TPlugin0_SelectedRecord</c> of the pinned <c>plugin.pas</c> (lines 726-735, <c>address: ptrUint</c>,
 ///         <c>ispointer: BOOL</c>), which agrees with the C header and is mirrored by the internal
 ///         <c>PluginType0Record</c>. The Pascal kit unit's two variants (<c>address: dword</c>, and a one-byte
-///         <c>ispointer: boolean</c>) are known-wrong for x64 (see <c>libs/CheatEngine.SDK.Abi/README.md</c>). What the CE 7.7.0.10621
+///         <c>ispointer: boolean</c>) are known-wrong for x64 (see <c>libs/CheatEngine.SDK.Abi/README.md</c>). What the CE
+///         7.7.0.10621
 ///         binary passes is still <b>not observed</b> (no managed-hostfxr route registers a type-0 function), so the
 ///         callback stays <c>void*</c>: no callable signature is published.
 ///     </para>

@@ -27,8 +27,17 @@ public sealed partial class RuntimeCapabilitySpecTests
 	/// </summary>
 	private static readonly SortedSet<string> s_readOnlyGlobals = new(StringComparer.Ordinal)
 	{
-		"getCEVersion", "isConnectedToCEServer", "targetIs64Bit", "targetIsX86", "targetIsArm", "targetIsAndroid",
-		"getABI", "getPointerSize", "getCheatEngineFileVersion", "getSystemArchitecture", "cheatEngineIs64Bit",
+		"getCEVersion",
+		"isConnectedToCEServer",
+		"targetIs64Bit",
+		"targetIsX86",
+		"targetIsArm",
+		"targetIsAndroid",
+		"getABI",
+		"getPointerSize",
+		"getCheatEngineFileVersion",
+		"getSystemArchitecture",
+		"cheatEngineIs64Bit",
 		"getOperatingSystem"
 	};
 
@@ -113,12 +122,15 @@ public sealed partial class RuntimeCapabilitySpecTests
 
 		SortedSet<string> rows = new(StringComparer.Ordinal);
 		List<string> qualified = [];
-		foreach (string[] cells in BackendTableRows(File.ReadAllLines(Path.Combine(RepositoryRoot.Path, EngineReadmePath))))
+		foreach (string[] cells in BackendTableRows(
+					 File.ReadAllLines(Path.Combine(RepositoryRoot.Path, EngineReadmePath))))
 		{
 			string backend = cells[0].Trim('`');
 			Assert.True(rows.Add(backend), $"Duplicate backend row {backend}.");
 			string verdict = cells[^1];
-			Assert.True(string.Equals(verdict, "no", StringComparison.Ordinal) || verdict.StartsWith("yes, ", StringComparison.Ordinal),
+			Assert.True(
+				string.Equals(verdict, "no", StringComparison.Ordinal) ||
+				verdict.StartsWith("yes, ", StringComparison.Ordinal),
 				$"The qualified cell of {backend} is neither 'no' nor 'yes, <profile>': {verdict}");
 			if (verdict.StartsWith("yes", StringComparison.Ordinal))
 			{

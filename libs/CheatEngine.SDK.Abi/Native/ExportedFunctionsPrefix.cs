@@ -13,7 +13,8 @@ namespace CheatEngine.SDK.Abi.Native;
 ///         validate <see cref="SizeOfExportedFunctions" />, and impose its own lifetime, main-thread, and failure policy.
 ///     </para>
 ///     <para>
-///         <b>Evidence: slots 0-17 of the classic slot registry</b> (<c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>). Its
+///         <b>Evidence: slots 0-17 of the classic slot registry</b> (
+///         <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>). Its
 ///         authority is the host type <c>TExportedFunctions5</c> of the pinned <c>plugin.pas</c> (fields lines 47-226,
 ///         assignments of <c>TPluginHandler.create</c> lines 1856-2045); <c>cepluginsdk.h</c> and
 ///         <c>cepluginsdk.pas</c> are mirror columns only. Offsets are <c>Deduced</c> from the declarations (x64 natural

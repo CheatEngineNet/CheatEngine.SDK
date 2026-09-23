@@ -3,7 +3,8 @@ using System.Text.Json;
 namespace CheatEngine.SDK.Abi.Tests.Support;
 
 /// <summary>
-///     Read access to the committed <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>, embedded in this test assembly. The
+///     Read access to the committed <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>,
+///     embedded in this test assembly. The
 ///     registry's authority is the pinned host source <c>plugin.pas</c>; the SDK types must agree with it, never the
 ///     other way round.
 /// </summary>
@@ -31,7 +32,8 @@ internal static class ClassicSlotRegistry
 	private static JsonElement Load()
 	{
 		using Stream stream = typeof(ClassicSlotRegistry).Assembly.GetManifestResourceStream(ResourceName)
-							  ?? throw new InvalidOperationException($"The embedded resource {ResourceName} is missing.");
+							  ?? throw new InvalidOperationException(
+								  $"The embedded resource {ResourceName} is missing.");
 		using JsonDocument document = JsonDocument.Parse(stream);
 		return document.RootElement.Clone();
 	}

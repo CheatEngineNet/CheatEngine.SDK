@@ -57,7 +57,8 @@ namespace CheatEngine.SDK.Engine.Objects;
 ///         <b>Failure modes.</b> When the destroy call raises (the object is already gone, for example destroyed by its
 ///         parent, or its class refuses), the wrapper is still marked empty: a destroy is never retried, because the
 ///         object may be half freed. <see cref="TryDestroy" /> returns that status with the message on the stack;
-///         <see cref="Dispose" /> intentionally discards it after an invocation began, and <see cref="LastReleaseOutcome" />
+///         <see cref="Dispose" /> intentionally discards it after an invocation began, and
+///         <see cref="LastReleaseOutcome" />
 ///         records it as unconfirmed. By contrast, a detached runtime, a missing pusher, or a state that is unavailable on
 ///         the calling thread prevents an invocation from beginning. Those cases make <see cref="Dispose" /> and
 ///         <see cref="TryDestroy" /> throw and retain this owner, so the plugin can retry before disable finishes or
@@ -76,7 +77,6 @@ namespace CheatEngine.SDK.Engine.Objects;
 public sealed class Owned<T> : IDisposable
 	where T : struct, ICEObject<T>
 {
-	private TargetReleaseOutcome _lastReleaseOutcome;
 	private T _value;
 
 	/// <summary>
@@ -156,7 +156,11 @@ public sealed class Owned<T> : IDisposable
 	///     <see cref="TargetReleaseStatus.NotInvoked" /> when <see cref="ReleaseWithOutcome" /> could not begin a call.
 	///     <see cref="TargetReleaseStatus.Unspecified" /> while the owner is live, and after a transfer or an abandonment.
 	/// </summary>
-	public TargetReleaseOutcome LastReleaseOutcome => _lastReleaseOutcome;
+	public TargetReleaseOutcome LastReleaseOutcome
+	{
+		get;
+		private set;
+	}
 
 	/// <summary>
 	///     Destroys the object through <see cref="TryDestroy" /> on the ambient state, discarding a protected Lua
@@ -206,7 +210,7 @@ public sealed class Owned<T> : IDisposable
 	{
 		if (IsDisposed)
 		{
-			return _lastReleaseOutcome;
+			return LastReleaseOutcome;
 		}
 
 		if (!IsOriginCurrent())
@@ -374,16 +378,16 @@ public sealed class Owned<T> : IDisposable
 	private TargetReleaseOutcome Consume(LuaStatus destroyStatus)
 	{
 		_value = default;
-		_lastReleaseOutcome = destroyStatus.IsOk
+		LastReleaseOutcome = destroyStatus.IsOk
 			? TargetReleaseOutcome.Released()
 			: TargetReleaseOutcome.Unconfirmed(EngineFailureKind.ProtectedLuaFailure);
-		return _lastReleaseOutcome;
+		return LastReleaseOutcome;
 	}
 
 	private TargetReleaseOutcome ConsumeWithoutDestroy(TargetReleaseOutcome outcome)
 	{
 		_value = default;
-		_lastReleaseOutcome = outcome;
+		LastReleaseOutcome = outcome;
 		return outcome;
 	}
 

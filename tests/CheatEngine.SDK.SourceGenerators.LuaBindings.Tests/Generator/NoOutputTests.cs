@@ -385,13 +385,16 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 		const string Status = "CheatEngine.SDK.Lua.Calls.LuaOperationStatus";
 		yield return (
 			"required argument after an optional one",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<int> a, int b); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional +
+			"<int> a, int b); }");
 		yield return (
 			"required result after an optional one",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial bool TryG(out " + Optional + "<int> a, out int b); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial bool TryG(out " + Optional +
+			"<int> a, out int b); }");
 		yield return (
 			"copy-out result after an optional one",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial bool TryG(out " + Optional + "<int> a, Span<byte> d, out int w); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial bool TryG(out " + Optional +
+			"<int> a, Span<byte> d, out int w); }");
 		yield return (
 			"variadic pair in the Try form",
 			"public static partial class T { [LuaGlobal(\"g\")] public static partial bool TryG(Span<long> v, out int c); }");
@@ -400,31 +403,40 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 			"public static partial class T { [LuaGlobal(\"g\")] public static partial void G(Span<long> v, out int c); }");
 		yield return (
 			"result after the variadic pair",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status + " G(Span<long> v, out int c, out int d); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status +
+			" G(Span<long> v, out int c, out int d); }");
 		yield return (
 			"two variadic pairs",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status + " G(Span<long> v, out int c, Span<int> w, out int e); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status +
+			" G(Span<long> v, out int c, Span<int> w, out int e); }");
 		yield return (
 			"variadic string element",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status + " G(Span<string> v, out int c); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status +
+			" G(Span<string> v, out int c); }");
 		yield return (
 			"variadic span without a count",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status + " G(Span<long> v); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Status +
+			" G(Span<long> v); }");
 		yield return (
 			"optional nullable string",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<string?> a); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional +
+			"<string?> a); }");
 		yield return (
 			"optional object",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<object> a); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional +
+			"<object> a); }");
 		yield return (
 			"nested optional",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<" + Optional + "<int>> a); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<" +
+			Optional + "<int>> a); }");
 		yield return (
 			"optional throwing return",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Optional + "<int> G(int a); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial " + Optional +
+			"<int> G(int a); }");
 		yield return (
 			"optional with a C# default value",
-			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional + "<int> a = default); }");
+			"public static partial class T { [LuaGlobal(\"g\")] public static partial int G(" + Optional +
+			"<int> a = default); }");
 	}
 
 	// CESDK2010 and CESDK2013 shapes of an exported function.
@@ -433,13 +445,16 @@ public sealed class NoOutputTests(RoslynFixture roslyn) : IClassFixture<RoslynFi
 		const string Optional = "CheatEngine.SDK.Lua.Marshalling.LuaOptional";
 		yield return (
 			"required parameter after an optional one",
-			"public static partial class T { [LuaFunction(\"f\")] public static int F(" + Optional + "<int> a, int b) => b; }");
+			"public static partial class T { [LuaFunction(\"f\")] public static int F(" + Optional +
+			"<int> a, int b) => b; }");
 		yield return (
 			"optional return",
-			"public static partial class T { [LuaFunction(\"f\")] public static " + Optional + "<int> F(int a) => default; }");
+			"public static partial class T { [LuaFunction(\"f\")] public static " + Optional +
+			"<int> F(int a) => default; }");
 		yield return (
 			"optional nullable string parameter",
-			"public static partial class T { [LuaFunction(\"f\")] public static int F(" + Optional + "<string?> a) => 0; }");
+			"public static partial class T { [LuaFunction(\"f\")] public static int F(" + Optional +
+			"<string?> a) => 0; }");
 	}
 
 	[Fact]

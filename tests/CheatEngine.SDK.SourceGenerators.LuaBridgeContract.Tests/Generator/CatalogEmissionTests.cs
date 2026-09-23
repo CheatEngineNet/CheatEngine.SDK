@@ -12,7 +12,8 @@ public sealed class CatalogEmissionTests
 	public void Catalog_operations_emit_a_numeric_sorted_enum_and_required_bitmap()
 	{
 		GeneratorRun run =
-			RoslynFixture.Run("libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json", CatalogSources.ReverseOpcodeOrder);
+			RoslynFixture.Run("libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json",
+				CatalogSources.ReverseOpcodeOrder);
 
 		run.AssertCompilesClean();
 		string generated = run.SingleGeneratedText;
@@ -30,7 +31,8 @@ public sealed class CatalogEmissionTests
 	[Fact]
 	public void Production_catalog_emits_all_C11_operations_and_the_exact_required_bitmap()
 	{
-		GeneratorRun run = RoslynFixture.Run("libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json", ProductionCatalog.Read());
+		GeneratorRun run = RoslynFixture.Run("libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json",
+			ProductionCatalog.Read());
 
 		run.AssertCompilesClean();
 		string generated = run.SingleGeneratedText;
@@ -62,7 +64,8 @@ public sealed class CatalogEmissionTests
 	[Fact]
 	public void Catalog_an_identical_rerun_is_deterministic()
 	{
-		InMemoryAdditionalText additionalText = new("libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json",
+		InMemoryAdditionalText additionalText = new(
+			"libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json",
 			CatalogSources.ReverseOpcodeOrder);
 		CSharpCompilation compilation = RoslynFixture.CreateCompilation();
 		GeneratorRun first = GeneratorRun.Execute(RoslynFixture.CreateDriver(additionalText), compilation);
@@ -122,7 +125,8 @@ public sealed class CatalogEmissionTests
 	[Fact]
 	public void An_unrelated_additional_file_is_silent()
 	{
-		GeneratorRun run = RoslynFixture.Run("libs/CheatEngine.SDK.Lua.Interop/Protected/notes.json", CatalogSources.ReverseOpcodeOrder);
+		GeneratorRun run = RoslynFixture.Run("libs/CheatEngine.SDK.Lua.Interop/Protected/notes.json",
+			CatalogSources.ReverseOpcodeOrder);
 
 		Assert.Empty(run.GeneratedSources);
 		Assert.Empty(run.GeneratorDiagnostics);

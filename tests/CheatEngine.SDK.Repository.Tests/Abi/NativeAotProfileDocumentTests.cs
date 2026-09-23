@@ -24,7 +24,8 @@ public sealed partial class NativeAotProfileDocumentTests
 		Assert.Contains(UnloadRestriction, page, StringComparison.Ordinal);
 		Assert.Contains("FreeLibrary", page, StringComparison.Ordinal);
 		Assert.Contains("ce-7.7.0.10621-x64-managed-hostfxr", page, StringComparison.Ordinal);
-		Assert.Contains("9727076da50924e4a097b49a02155e4b34759269c3017ff31375364b8826eb4d", page, StringComparison.Ordinal);
+		Assert.Contains("9727076da50924e4a097b49a02155e4b34759269c3017ff31375364b8826eb4d", page,
+			StringComparison.Ordinal);
 		Assert.Contains("LocalModified", page, StringComparison.Ordinal);
 		foreach (string profile in (string[])
 				 [
@@ -56,7 +57,8 @@ public sealed partial class NativeAotProfileDocumentTests
 		Assert.Contains("libs/CheatEngine.SDK.Abi/README.md", summary, StringComparison.Ordinal);
 		Assert.Contains("Not a replacement for the managed bootstrap", summary, StringComparison.Ordinal);
 		Assert.DoesNotContain("the path a Native AOT build of a plugin would take", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Native (Native AOT) load path only", Read("libs/CheatEngine.SDK.Abi/Native/PluginType.cs"),
+		Assert.DoesNotContain("Native (Native AOT) load path only",
+			Read("libs/CheatEngine.SDK.Abi/Native/PluginType.cs"),
 			StringComparison.Ordinal);
 	}
 
@@ -67,7 +69,8 @@ public sealed partial class NativeAotProfileDocumentTests
 
 		Assert.Contains("## Load profiles and limits", readme, StringComparison.Ordinal);
 		Assert.DoesNotContain("## AOT status", readme, StringComparison.Ordinal);
-		Assert.Contains("https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/libs/CheatEngine.SDK.Abi/README.md", readme,
+		Assert.Contains(
+			"https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/libs/CheatEngine.SDK.Abi/README.md", readme,
 			StringComparison.Ordinal);
 		Assert.Contains(UnloadRestriction, readme, StringComparison.Ordinal);
 		Assert.Contains("| NativeAOT plugin DLL | Not supported", readme, StringComparison.Ordinal);
@@ -88,13 +91,15 @@ public sealed partial class NativeAotProfileDocumentTests
 		}
 
 		Assert.Contains("library.unload=not-attempted",
-			File.ReadAllText(Path.Combine(RepositoryRoot.Path, "tests", "CheatEngine.SDK.NativeAotLoaderHarness", "Program.cs")),
+			File.ReadAllText(Path.Combine(RepositoryRoot.Path, "tests", "CheatEngine.SDK.NativeAotLoaderHarness",
+				"Program.cs")),
 			StringComparison.Ordinal);
 	}
 
 	private static string Read(string relativePath)
 	{
-		return File.ReadAllText(Path.Combine(RepositoryRoot.Path, relativePath)).Replace("\r\n", "\n", StringComparison.Ordinal);
+		return File.ReadAllText(Path.Combine(RepositoryRoot.Path, relativePath))
+			.Replace("\r\n", "\n", StringComparison.Ordinal);
 	}
 
 	[GeneratedRegex(@"\bNativeLibrary\s*\.\s*Free\s*\(|\bFreeLibrary\s*\(|\bFreeLibraryAndExitThread\s*\(",

@@ -240,9 +240,9 @@ public sealed partial class ToolchainPinTests
 		return document.RootElement.GetProperty("sdk").Clone();
 	}
 
-	[GeneratedRegex(@"^\d+\.\d+\.\d{3}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^\d+\.\d+\.\d{3}$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex ExactSdkVersion();
 
-	[GeneratedRegex(@"^\d+\.\d+-recommended$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^\d+\.\d+-recommended$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex PinnedAnalysisLevel();
 }

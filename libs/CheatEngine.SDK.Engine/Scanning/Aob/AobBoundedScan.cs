@@ -135,7 +135,8 @@ internal static class AobBoundedScan
 
 		// An omitted protection string is CE's "find everything" value, never a nil (celua.txt line 847).
 		FirstScanRequest request = FirstScanRequest.ByteArray(pattern, bounds.Start, bounds.Stop,
-			options.ProtectionFlags ?? string.Empty, options.AlignmentMethod, options.AlignmentParameter ?? string.Empty);
+			options.ProtectionFlags ?? string.Empty, options.AlignmentMethod,
+			options.AlignmentParameter ?? string.Empty);
 		long scanStarted = Stopwatch.GetTimestamp();
 		session.StartFirstScan(in request);
 		AobBoundedScanOutcomeKind waited = Wait(state, session, waitMilliseconds, ref facts);
@@ -228,7 +229,7 @@ internal static class AobBoundedScan
 		out int staging)
 	{
 		// Rows are addressed with CE's Int32 index; rows beyond it stay unread and make the in-bounds count inexact.
-		ulong readable = Math.Min(count, (ulong) int.MaxValue);
+		ulong readable = Math.Min(count, int.MaxValue);
 		staging = 0;
 		for (int index = 0; (ulong) index < readable && staging < staged.Length; index++)
 		{

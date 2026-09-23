@@ -105,7 +105,8 @@ public sealed class HostWidthPointerSizeAnalyzerTests
 			    public static PointerSize Width() => {|#0:new PointerSize(IntPtr.Size)|};
 			}
 			""",
-			new DiagnosticResult(DiagnosticDescriptors.HostWidthPointerSize).WithLocation(0).WithArguments("IntPtr.Size"));
+			new DiagnosticResult(DiagnosticDescriptors.HostWidthPointerSize).WithLocation(0)
+				.WithArguments("IntPtr.Size"));
 	}
 
 	[Fact]

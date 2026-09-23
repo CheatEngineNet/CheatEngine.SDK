@@ -72,26 +72,38 @@ public readonly record struct TargetArchitectureObservation
 		get;
 	}
 
-	/// <summary>Gets Cheat Engine's 64-bit process flag (<c>targetIs64Bit</c>) as a width; this is not the configured pointer size.</summary>
+	/// <summary>
+	///     Gets Cheat Engine's 64-bit process flag (<c>targetIs64Bit</c>) as a width; this is not the configured pointer
+	///     size.
+	/// </summary>
 	public PointerSize Bitness
 	{
 		get;
 	}
 
-	/// <summary>Gets whether Cheat Engine reports the x86 ISA family (<c>targetIsX86</c>), or <see langword="null" /> when absent.</summary>
+	/// <summary>
+	///     Gets whether Cheat Engine reports the x86 ISA family (<c>targetIsX86</c>), or <see langword="null" /> when
+	///     absent.
+	/// </summary>
 	/// <remarks>An x64 target is reported as the x86 family with the 64-bit flag set.</remarks>
 	public bool? IsX86Family
 	{
 		get;
 	}
 
-	/// <summary>Gets whether Cheat Engine reports the ARM ISA family (<c>targetIsArm</c>), or <see langword="null" /> when absent.</summary>
+	/// <summary>
+	///     Gets whether Cheat Engine reports the ARM ISA family (<c>targetIsArm</c>), or <see langword="null" /> when
+	///     absent.
+	/// </summary>
 	public bool? IsArmFamily
 	{
 		get;
 	}
 
-	/// <summary>Gets whether Cheat Engine reports an Android target (<c>targetIsAndroid</c>), or <see langword="null" /> when absent.</summary>
+	/// <summary>
+	///     Gets whether Cheat Engine reports an Android target (<c>targetIsAndroid</c>), or <see langword="null" /> when
+	///     absent.
+	/// </summary>
 	/// <remarks><see langword="null" /> means the global is absent; it is never read as <see langword="false" />.</remarks>
 	public bool? IsAndroid
 	{

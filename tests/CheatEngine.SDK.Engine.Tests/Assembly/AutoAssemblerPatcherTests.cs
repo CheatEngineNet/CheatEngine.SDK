@@ -189,7 +189,8 @@ public sealed class AutoAssemblerPatcherTests
 		LuaRef disableInfo = scope.State.CreateRef();
 		int originalTargetId = Environment.ProcessId == 1 ? 2 : 1;
 		AutoAssemblerPatch patch = new("success", disableInfo,
-			new EngineResourceOrigin(LuaRuntime.CurrentStateIdentity, new TargetProcessIncarnation(originalTargetId, 1)),
+			new EngineResourceOrigin(LuaRuntime.CurrentStateIdentity,
+				new TargetProcessIncarnation(originalTargetId, 1)),
 			snapshot, null);
 
 		TargetReleaseOutcome outcome = patch.ReleaseWithTargetOutcome();

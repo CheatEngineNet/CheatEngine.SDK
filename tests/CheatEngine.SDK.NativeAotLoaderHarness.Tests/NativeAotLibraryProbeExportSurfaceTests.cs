@@ -26,9 +26,11 @@ public sealed class NativeAotLibraryProbeExportSurfaceTests
 				.Order(StringComparer.Ordinal)
 		];
 
-		Assert.Equal(NativeAotLibraryProbeExportNames.Required.Order(StringComparer.Ordinal), entryPoints, StringComparer.Ordinal);
+		Assert.Equal(NativeAotLibraryProbeExportNames.Required.Order(StringComparer.Ordinal), entryPoints,
+			StringComparer.Ordinal);
 		Assert.DoesNotContain(entryPoints,
 			static name => name.StartsWith(LibraryProbeContract.NativePluginPrefix, StringComparison.Ordinal));
-		Assert.Empty(LibraryProbeContract.FindViolations([.. entryPoints, .. LibraryProbeContract.AllowedRuntimeExports]));
+		Assert.Empty(
+			LibraryProbeContract.FindViolations([.. entryPoints, .. LibraryProbeContract.AllowedRuntimeExports]));
 	}
 }

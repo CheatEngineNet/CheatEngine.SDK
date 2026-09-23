@@ -78,7 +78,8 @@ public sealed class LuaOptionalTests
 	[Fact]
 	public void Equality_distinguishes_the_three_states()
 	{
-		LuaOptional<int>[] states = [LuaOptional.Omitted<int>(), LuaOptional.Nil<int>(), LuaOptional.Of(0), LuaOptional.Of(1)];
+		LuaOptional<int>[] states =
+			[LuaOptional.Omitted<int>(), LuaOptional.Nil<int>(), LuaOptional.Of(0), LuaOptional.Of(1)];
 
 		for (int i = 0; i < states.Length; i++)
 		{

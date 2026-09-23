@@ -72,15 +72,15 @@ per function. `MyTrainer.Bindings.LuaGlobals.g.cs` holds one cached `LuaRef` per
 
 ## Supported shapes
 
-| Lua type                    | C# types                                                   | Allowed as                                                                     |
-|-----------------------------|------------------------------------------------------------|--------------------------------------------------------------------------------|
-| integer                     | `int`, `long`, `nuint`                                     | arguments and results                                                          |
-| number                      | `float`, `double`                                          | arguments and results                                                          |
-| boolean                     | `bool`                                                     | arguments and results                                                          |
-| string                      | `string`, `string?`                                        | arguments and results                                                          |
-| string                      | `ReadOnlySpan<byte>`                                       | arguments, and `[LuaFunction]` results                                         |
-| any of the above, or absent | `LuaOptional<T>`, `T` one of the types above except spans | trailing `[LuaGlobal]` and `[LuaFunction]` arguments; trailing `out` results   |
-| several integers/numbers    | `Span<T> values, out int count`, `T` a scalar type above   | the last results of an Outcome-form `[LuaGlobal]`                              |
+| Lua type                    | C# types                                                  | Allowed as                                                                   |
+|-----------------------------|-----------------------------------------------------------|------------------------------------------------------------------------------|
+| integer                     | `int`, `long`, `nuint`                                    | arguments and results                                                        |
+| number                      | `float`, `double`                                         | arguments and results                                                        |
+| boolean                     | `bool`                                                    | arguments and results                                                        |
+| string                      | `string`, `string?`                                       | arguments and results                                                        |
+| string                      | `ReadOnlySpan<byte>`                                      | arguments, and `[LuaFunction]` results                                       |
+| any of the above, or absent | `LuaOptional<T>`, `T` one of the types above except spans | trailing `[LuaGlobal]` and `[LuaFunction]` arguments; trailing `out` results |
+| several integers/numbers    | `Span<T> values, out int count`, `T` a scalar type above  | the last results of an Outcome-form `[LuaGlobal]`                            |
 
 A `[LuaGlobal]` method has one of three forms:
 
@@ -139,8 +139,8 @@ helper, as above. That keeps the public `int` API from receiving an unsigned val
   [`CESDK2011`](../../analyzers/docs/CESDK2011.md)). A variadic `Span<T> values, out int count` pair is the last result
   of an Outcome form, one per method (`CESDK2011`). `LuaOptional<T>` and `LuaOperationStatus` must be the SDK types; a
   look-alike with the same name is refused ([`CESDK2012`](../../analyzers/docs/CESDK2012.md)).
-- `LuaOptional<T>` is not supported on `[LuaMethod]` and `[LuaProperty]` members yet
-  ([`CESDK2013`](../../analyzers/docs/CESDK2013.md)), nor with `ReadOnlySpan<byte>`.
+- `LuaOptional<T>` is not supported on `[LuaMethod]` and `[LuaProperty]` members yet ([
+  `CESDK2013`](../../analyzers/docs/CESDK2013.md)), nor with `ReadOnlySpan<byte>`.
 - Integer, 64-bit and address values never pass through a `double`: a float at or above 2^53 is refused, not rounded
   (see the marshaller policy of [`CheatEngine.SDK.Lua`](../../libs/CheatEngine.SDK.Lua/README.md)).
 - There are no table or object results: a table where a scalar is declared is `InvalidResult`.

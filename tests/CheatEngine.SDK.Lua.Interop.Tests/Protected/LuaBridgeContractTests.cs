@@ -94,7 +94,7 @@ public sealed unsafe class LuaBridgeContractTests
 		uint directories = ReadUInt32(image, optionalOffset + 108);
 		Require(directories > 13, "The native bridge has no delay-import directory slot.");
 
-		int delayImportDirectoryOffset = optionalOffset + 112 + 13 * 8;
+		int delayImportDirectoryOffset = optionalOffset + 112 + (13 * 8);
 		return ReadUInt32(image, delayImportDirectoryOffset) != 0 ||
 			   ReadUInt32(image, delayImportDirectoryOffset + sizeof(uint)) != 0;
 	}
@@ -132,7 +132,7 @@ public sealed unsafe class LuaBridgeContractTests
 
 		for (uint i = 0u; i < namesCount; i++)
 		{
-			uint nameRva = ReadUInt32(image, checked(namesOffset + (int) i * sizeof(uint)));
+			uint nameRva = ReadUInt32(image, checked(namesOffset + ((int) i * sizeof(uint))));
 			result.Add(ReadAsciiZ(image, RvaToFileOffset(image, nameRva, sizeOfHeaders, sectionOffset, sectionCount)));
 		}
 
@@ -193,7 +193,7 @@ public sealed unsafe class LuaBridgeContractTests
 
 		for (int i = 0; i < sectionCount; i++)
 		{
-			int offset = checked(sectionOffset + i * 40);
+			int offset = checked(sectionOffset + (i * 40));
 			Require(offset <= image.Length - 40, "The native bridge has a truncated section header.");
 			uint virtualSize = ReadUInt32(image, offset + 8);
 			uint virtualAddress = ReadUInt32(image, offset + 12);

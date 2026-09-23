@@ -325,7 +325,8 @@ public static class AobScanner
 	///     the stop. The timed-out wait and <c>terminateScan</c> were not observed on the pinned CE 7.7.0.10621 host
 	///     (spike D4.7), which is why this overload is experimental.
 	/// </remarks>
-	[Experimental("CESDK5010", UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
+	[Experimental("CESDK5010",
+		UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
 	public static AobBoundedScanResult TryScanWithinBounds(string pattern, AobScanBounds bounds, AobScanOptions options,
@@ -342,7 +343,10 @@ public static class AobScanner
 	/// </summary>
 	/// <param name="pattern">CE's byte-array pattern text, passed without normalization.</param>
 	/// <param name="bounds">The CE work limit <c>[Start, Stop)</c>; an invalid value is refused before any CE call.</param>
-	/// <param name="options">CE's protection and alignment arguments; a <see langword="null" /> protection string means "find everything".</param>
+	/// <param name="options">
+	///     CE's protection and alignment arguments; a <see langword="null" /> protection string means "find
+	///     everything".
+	/// </param>
 	/// <param name="cancellationToken">
 	///     Observed before the session is created and before the scan starts; it cannot interrupt the scan.
 	/// </param>
@@ -370,7 +374,8 @@ public static class AobScanner
 	///         were not observed on the pinned CE 7.7.0.10621 host, which is why it is experimental (CESDK5011).
 	///     </para>
 	/// </remarks>
-	[Experimental("CESDK5011", UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
+	[Experimental("CESDK5011",
+		UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md")]
 	[MainThreadOnly]
 	[RequiresPluginEnabled]
 	public static AobFirstFoundResult TryFindFirstFoundWithinBounds(string pattern, AobScanBounds bounds,

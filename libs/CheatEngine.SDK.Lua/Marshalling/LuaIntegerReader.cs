@@ -82,7 +82,7 @@ internal static class LuaIntegerReader
 		bool accepted = state.TypeOf(index) switch
 		{
 			// lua_tointegerx already refused a non-integral, infinite or NaN float and one outside the long range.
-			LuaType.Number => value > -FloatExactLimit && value < FloatExactLimit,
+			LuaType.Number => value is > -FloatExactLimit and < FloatExactLimit,
 			LuaType.String => acceptIntegerNumerals && state.TryReadUtf8(index, out ReadOnlySpan<byte> text) &&
 							  IsIntegerNumeral(text),
 			_ => false
@@ -150,6 +150,6 @@ internal static class LuaIntegerReader
 	private static bool IsHexadecimalDigit(byte character)
 	{
 		return (character >= (byte) '0' && character <= (byte) '9') || ((character | 0x20) >= (byte) 'a' &&
-																		 (character | 0x20) <= (byte) 'f');
+																		(character | 0x20) <= (byte) 'f');
 	}
 }

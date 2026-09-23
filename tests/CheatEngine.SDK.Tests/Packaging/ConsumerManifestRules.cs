@@ -3,10 +3,12 @@ using CheatEngine.SDK.Tests.Infrastructure;
 namespace CheatEngine.SDK.Tests.Packaging;
 
 /// <summary>
-///     What a clean package consumer's manifests must and must not say (audit ch.21: a consumer that works thanks to a file
+///     What a clean package consumer's manifests must and must not say (audit ch.21: a consumer that works thanks to a
+///     file
 ///     found in the development folder is not a qualified consumer). Pure functions of the manifest text, each returning
 ///     one message per problem, so <see cref="CleanConsumerIsolationTests" /> applies them to the real consumer and
-///     <see cref="ConsumerManifestRuleTests" /> proves on synthetic manifests that each rule fails on the leak it exists for.
+///     <see cref="ConsumerManifestRuleTests" /> proves on synthetic manifests that each rule fails on the leak it exists
+///     for.
 /// </summary>
 internal static class ConsumerManifestRules
 {
@@ -46,7 +48,8 @@ internal static class ConsumerManifestRules
 
 		if (!string.Equals(sha512, expectedSha512, StringComparison.Ordinal))
 		{
-			problems.Add($"library '{key}' has sha512 '{sha512}', expected '{expectedSha512}' (the package under test)");
+			problems.Add(
+				$"library '{key}' has sha512 '{sha512}', expected '{expectedSha512}' (the package under test)");
 		}
 
 		return problems;

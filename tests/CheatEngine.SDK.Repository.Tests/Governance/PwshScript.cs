@@ -23,7 +23,8 @@ internal static class PwshScript
 	[
 		"GITHUB_STEP_SUMMARY", "GITHUB_OUTPUT", "GITHUB_ENV", "GITHUB_PATH", "GITHUB_STATE", "GITHUB_ACTIONS", "CI",
 		"PR_TITLE", "PR_BODY", "PR_AUTHOR", "BASE_SHA", "HEAD_SHA", "GH_TOKEN", "GITHUB_TOKEN", "GH_REPO",
-		"NEEDS", "RUN_URL", "DRIFT", "BROKEN_LINKS", "REPOSITORY", "SNAPSHOT_SHA", "SNAPSHOT_REF", "SNAPSHOT_CORRELATOR",
+		"NEEDS", "RUN_URL", "DRIFT", "BROKEN_LINKS", "REPOSITORY", "SNAPSHOT_SHA", "SNAPSHOT_REF",
+		"SNAPSHOT_CORRELATOR",
 		"SNAPSHOT_JOB_ID", "SNAPSHOT_JOB_URL", "CESDK_PACKAGED_UMBRELLA_NUPKG"
 	];
 
@@ -95,9 +96,10 @@ internal static class PwshScript
 		}
 		catch (OperationCanceledException)
 		{
-			process.Kill(entireProcessTree: true);
+			process.Kill(true);
 			TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-			Assert.Fail($"pwsh did not finish '{RepositoryRoot.ToRelative(fullPath)}' within {s_timeout.TotalSeconds} s.");
+			Assert.Fail(
+				$"pwsh did not finish '{RepositoryRoot.ToRelative(fullPath)}' within {s_timeout.TotalSeconds} s.");
 		}
 
 		return new PwshResult(process.ExitCode, await standardOutput, await standardError);

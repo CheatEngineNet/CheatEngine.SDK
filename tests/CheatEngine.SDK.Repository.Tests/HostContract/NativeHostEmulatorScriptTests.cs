@@ -52,7 +52,8 @@ public sealed partial class NativeHostEmulatorScriptTests
 				continue;
 			}
 
-			string text = File.ReadAllText(Path.Combine(RepositoryRoot.Path, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+			string text = File.ReadAllText(Path.Combine(RepositoryRoot.Path,
+				relativePath.Replace('/', Path.DirectorySeparatorChar)));
 			if (CheatEngineInstallationReference().IsMatch(text))
 			{
 				offendingFiles.Add(relativePath);
@@ -77,7 +78,8 @@ public sealed partial class NativeHostEmulatorScriptTests
 			}
 
 			string codePortion = CommentStart().Split(line)[0];
-			Assert.False(DriveLetterPath().IsMatch(codePortion), $"Hardcoded drive-letter path outside a comment: '{line.Trim()}'");
+			Assert.False(DriveLetterPath().IsMatch(codePortion),
+				$"Hardcoded drive-letter path outside a comment: '{line.Trim()}'");
 		}
 	}
 
@@ -86,22 +88,25 @@ public sealed partial class NativeHostEmulatorScriptTests
 		return Path.Combine(RepositoryRoot.Path, relativePath.Replace('/', Path.DirectorySeparatorChar));
 	}
 
-	[GeneratedRegex(@"&\s*\$compiler\.Source\b", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"&\s*\$compiler\.Source\b", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex NativeCommandInvocation();
 
-	[GeneratedRegex(@"Program Files\\Cheat Engine|cheatengine-x86_64", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"Program Files\\Cheat Engine|cheatengine-x86_64",
+		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, 1000)]
 	private static partial Regex CheatEngineInstallationReference();
 
-	[GeneratedRegex(@"^\s*(Copy-Item|Set-Content).*$", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^\s*(Copy-Item|Set-Content).*$",
+		RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.ExplicitCapture, 1000)]
 	private static partial Regex WriteCommand();
 
-	[GeneratedRegex(@"resolvedOutputDirectory|nethostDllDestination|runtimeConfigDestination|manifestPath|\$exe\b|\$objectFile\b",
-		RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(
+		@"resolvedOutputDirectory|nethostDllDestination|runtimeConfigDestination|manifestPath|\$exe\b|\$objectFile\b",
+		RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex OutputDirectoryDerivedVariable();
 
-	[GeneratedRegex(@"[A-Za-z]:\\", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"[A-Za-z]:\\", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex DriveLetterPath();
 
-	[GeneratedRegex(@"(?<!['""])#", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"(?<!['""])#", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex CommentStart();
 }

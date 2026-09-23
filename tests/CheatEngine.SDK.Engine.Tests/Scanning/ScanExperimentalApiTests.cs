@@ -14,7 +14,8 @@ namespace CheatEngine.SDK.Engine.Tests.Scanning;
 /// </summary>
 public sealed class ScanExperimentalApiTests
 {
-	private const string UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md";
+	private const string UrlFormat =
+		"https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md";
 
 	[Fact]
 	public void Scanning_experimental_members_are_exactly_the_documented_gates()

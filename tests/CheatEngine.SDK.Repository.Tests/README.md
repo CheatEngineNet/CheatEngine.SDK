@@ -14,21 +14,21 @@ workflow's own "submit" step text against a mocked `gh`, offline.
 
 ## How it works
 
-| Folder            | Content                                                                                                |
-|--------------------|--------------------------------------------------------------------------------------------------------|
-| `Infrastructure/`  | `RepositoryRoot` finds `CheatEngine.SDK.slnx` above the test binaries and enumerates source files.     |
-| `Solution/`        | `SolutionInventoryTests` compares the projects on disk with the projects listed in the solution; `QualificationHarnessShapeTests` checks the shape of the two qualification-harness projects. |
-| `Toolchain/`       | `ToolchainPinTests` reads `global.json`, `Directory.Build.props` and `Directory.Solution.targets`: exact SDK, analysis-level pin, NuGet audit policy. |
-| `LockFiles/`       | `LockFileTests` mirror the structural checks a locked restore relies on, over the committed `packages.lock.json` files. |
-| `PublicApi/`       | `PublicApiFileTests` and `EnumContractTests` check the shape of every shipping library's PublicAPI files and the classification of enums added since 1.0.0. |
-| `Abi/`             | `ClassicSlotRegistryDocumentTests` checks the committed classic slot registry `Abi/TestData/classic-slot-registry.json` (test-owned data, never a top-level `docs/` folder); `NativeAotProfileDocumentTests` checks the NativeAOT restrictions published in `libs/CheatEngine.SDK.Abi/README.md`; `AbiRouteSeparationTests` keeps the managed and classic exported-function tables apart in `libs/**`. |
-| `SourceScanning/`  | `CSharpCode` blanks the comments and literals of C# source read as text, and `TestMethodTraits` reads the `[Trait("Qualification", …)]` attributes above a named test method, both for the rules in `Abi/` and `LuaBridge/`. |
-| `LuaBridge/`       | `ProtectedOperationCatalogTests` checks `libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json` against the LF-pinned C bridge source and the failure probe; `LuaInteropPrimitiveMatrixDocumentTests` checks the committed primitive matrix `LuaBridge/TestData/lua-interop-primitives.json` and the raw `LuaApi` uses of `libs/**`. |
-| `Workflows/`       | `WorkflowContractTests` parse `.github/workflows/*.yml` and the composite actions with YamlDotNet and freeze the CI contract (job ids, the Gate, lint, format, restore, supply-chain jobs). |
-| `Release/`         | `ReleaseWorkflowContractTests` reads `.github/workflows/release.yml`: the draft-first job chain, tag guards, write scopes, trusted publishing placement and the reserved artifact names. |
-| `Governance/`      | `GovernanceWorkflowTests` freeze CodeQL, Scorecard, the online zizmor run and dependency submission; `DependabotConfigurationTests` checks `.github/dependabot.yml`; `GovernanceDocumentTests` checks `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS` and the issue forms. |
-| `Generation/`      | `GeneratorInventoryTests` pins the reviewed source generator projects, keeps the extended analyzer rules on every Roslyn component and refuses a local Cheat Engine path in their sources. |
-| `Ownership/`       | `OwnershipPolicyTests` scans the shipping sources: no finalizer, and no binding of Cheat Engine's global that deletes every registered symbol. |
+| Folder            | Content                                                                                                                                                                                                                                                                                                                                                                                                |
+|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Infrastructure/` | `RepositoryRoot` finds `CheatEngine.SDK.slnx` above the test binaries and enumerates source files.                                                                                                                                                                                                                                                                                                     |
+| `Solution/`       | `SolutionInventoryTests` compares the projects on disk with the projects listed in the solution; `QualificationHarnessShapeTests` checks the shape of the two qualification-harness projects.                                                                                                                                                                                                          |
+| `Toolchain/`      | `ToolchainPinTests` reads `global.json`, `Directory.Build.props` and `Directory.Solution.targets`: exact SDK, analysis-level pin, NuGet audit policy.                                                                                                                                                                                                                                                  |
+| `LockFiles/`      | `LockFileTests` mirror the structural checks a locked restore relies on, over the committed `packages.lock.json` files.                                                                                                                                                                                                                                                                                |
+| `PublicApi/`      | `PublicApiFileTests` and `EnumContractTests` check the shape of every shipping library's PublicAPI files and the classification of enums added since 1.0.0.                                                                                                                                                                                                                                            |
+| `Abi/`            | `ClassicSlotRegistryDocumentTests` checks the committed classic slot registry `Abi/TestData/classic-slot-registry.json` (test-owned data, never a top-level `docs/` folder); `NativeAotProfileDocumentTests` checks the NativeAOT restrictions published in `libs/CheatEngine.SDK.Abi/README.md`; `AbiRouteSeparationTests` keeps the managed and classic exported-function tables apart in `libs/**`. |
+| `SourceScanning/` | `CSharpCode` blanks the comments and literals of C# source read as text, and `TestMethodTraits` reads the `[Trait("Qualification", …)]` attributes above a named test method, both for the rules in `Abi/` and `LuaBridge/`.                                                                                                                                                                           |
+| `LuaBridge/`      | `ProtectedOperationCatalogTests` checks `libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json` against the LF-pinned C bridge source and the failure probe; `LuaInteropPrimitiveMatrixDocumentTests` checks the committed primitive matrix `LuaBridge/TestData/lua-interop-primitives.json` and the raw `LuaApi` uses of `libs/**`.                                                    |
+| `Workflows/`      | `WorkflowContractTests` parse `.github/workflows/*.yml` and the composite actions with YamlDotNet and freeze the CI contract (job ids, the Gate, lint, format, restore, supply-chain jobs).                                                                                                                                                                                                            |
+| `Release/`        | `ReleaseWorkflowContractTests` reads `.github/workflows/release.yml`: the draft-first job chain, tag guards, write scopes, trusted publishing placement and the reserved artifact names.                                                                                                                                                                                                               |
+| `Governance/`     | `GovernanceWorkflowTests` freeze CodeQL, Scorecard, the online zizmor run and dependency submission; `DependabotConfigurationTests` checks `.github/dependabot.yml`; `GovernanceDocumentTests` checks `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS` and the issue forms.                                                                                                                   |
+| `Generation/`     | `GeneratorInventoryTests` pins the reviewed source generator projects, keeps the extended analyzer rules on every Roslyn component and refuses a local Cheat Engine path in their sources.                                                                                                                                                                                                             |
+| `Ownership/`      | `OwnershipPolicyTests` scans the shipping sources: no finalizer, and no binding of Cheat Engine's global that deletes every registered symbol.                                                                                                                                                                                                                                                         |
 
 ## Promise
 
@@ -59,8 +59,8 @@ workflow's own "submit" step text against a mocked `gh`, offline.
   `Every_enum_added_after_1_0_0_is_classified`, `Status_and_outcome_enums_added_after_1_0_0_do_not_default_to_success`,
   `Pending_zero_value_fixes_are_still_needed`).
 - Every project, inside or outside the solution, has a lock file in NuGet's version 2 format, ending as NuGet writes it;
-  Native AOT projects lock their runtime-specific ILCompiler package; no lock resolves a CheatEngine.* package from a feed
-  (`Every_project_has_a_committed_lock_file`, `Lock_files_parse_and_declare_a_supported_format_version`,
+  Native AOT projects lock their runtime-specific ILCompiler package; no lock resolves a CheatEngine.* package from a
+  feed (`Every_project_has_a_committed_lock_file`, `Lock_files_parse_and_declare_a_supported_format_version`,
   `Every_lock_file_is_version_2_because_every_project_uses_central_package_management`,
   `Version_1_lock_files_hold_no_central_transitive_entries`, `Native_aot_projects_lock_the_win_x64_ilcompiler_packages`,
   `No_lock_file_resolves_a_cheatengine_package`, `Lock_files_end_without_a_final_newline_as_nuget_writes_them`).
@@ -77,27 +77,34 @@ workflow's own "submit" step text against a mocked `gh`, offline.
   `Pull_request_and_main_callers_request_sonar_and_the_release_run_never_does`).
 - No workflow listens to `pull_request_target` or `merge_group`, the pull-request workflow filters no path,
   main keeps every run and pull requests cancel superseded ones
-  (`No_workflow_uses_pull_request_target_or_a_merge_group_trigger`, `Pull_request_and_policy_workflows_have_no_path_filters`,
-  `Main_ci_runs_every_push_to_main_without_a_concurrency_group`, `Pull_request_ci_skips_drafts_and_cancels_superseded_runs`).
+  (`No_workflow_uses_pull_request_target_or_a_merge_group_trigger`,
+  `Pull_request_and_policy_workflows_have_no_path_filters`,
+  `Main_ci_runs_every_push_to_main_without_a_concurrency_group`,
+  `Pull_request_ci_skips_drafts_and_cancels_superseded_runs`).
 - Every job runs on `windows-2025` or `ubuntu-24.04` with a timeout, workflows grant read permissions only at the top
-  level and the pipeline never elevates, every remote action is pinned to a commit with its version, every checkout drops
+  level and the pipeline never elevates, every remote action is pinned to a commit with its version, every checkout
+  drops
   its credentials, every native command checks its exit code, no run script interpolates an expression, and the
   pipeline scripts run in `pwsh` (`Every_job_has_a_timeout_and_a_pinned_runner_label`,
   `Workflows_grant_only_read_permissions_at_the_top_level`, `Pipeline_jobs_never_elevate_permissions`,
-  `Every_remote_action_is_pinned_to_a_full_sha_with_a_version_comment`, `Every_checkout_disables_credential_persistence`,
+  `Every_remote_action_is_pinned_to_a_full_sha_with_a_version_comment`,
+  `Every_checkout_disables_credential_persistence`,
   `Every_native_command_in_a_workflow_script_checks_its_exit_code`, `No_run_script_interpolates_an_expression`,
   `Pipeline_workflows_and_composite_actions_run_scripts_in_pwsh`).
 - Every dotnet job installs the pinned SDK through the composite action, every restore is locked, and no job reachable
   from a release, Sonar or CodeQL run uses a package cache (`Every_dotnet_job_uses_the_composite_setup_action`,
   `Composite_setup_restores_in_locked_mode`, `Every_restore_in_the_pipeline_is_locked`,
-  `Release_reachable_workflows_never_enable_a_package_cache`, `Sonar_restores_locked_from_nuget_org_before_the_scanner_begins`).
+  `Release_reachable_workflows_never_enable_a_package_cache`,
+  `Sonar_restores_locked_from_nuget_org_before_the_scanner_begins`).
 - The Release leg packs before it tests and hands the exact nupkg to the packaging tests, with an inlined pre-publish
   sanity check (one package, its nuspec identity, the embedded SBOM and the CI-built native bridge); the Debug leg
   excludes packaging tests by trait, never by skip; every module runs once with hang and crash dumps well inside the
   job timeout (`Release_leg_packs_before_testing_and_exports_the_exact_nupkg`,
-  `Debug_leg_excludes_packaging_tests_by_trait_never_by_skip`, `Test_step_runs_every_module_once_with_the_contract_options`,
+  `Debug_leg_excludes_packaging_tests_by_trait_never_by_skip`,
+  `Test_step_runs_every_module_once_with_the_contract_options`,
   `Every_test_module_references_the_extensions_the_test_step_uses`,
-  `Hang_dump_timeout_is_well_below_the_build_test_job_timeout`, `Build_test_runs_both_configurations_without_fail_fast`).
+  `Hang_dump_timeout_is_well_below_the_build_test_job_timeout`,
+  `Build_test_runs_both_configurations_without_fail_fast`).
 - Artifacts use the reserved names and retentions only, binary logs and dumps are uploaded on failure only and never
   from Sonar or release runs, jobs that version a package fetch full history, the Native AOT probes are published, and
   the live probe is compiled exactly once and never shipped (`Every_uploaded_artifact_name_is_reserved`,
@@ -115,7 +122,8 @@ workflow's own "submit" step text against a mocked `gh`, offline.
 - No workflow runs a local qualification runner or generates ApiCompat suppressions
   (`No_workflow_references_the_local_qualification_runner`, `No_workflow_passes_ApiCompatGenerateSuppressionFile`).
 - The release workflow is draft-first (`verify → ci → attest → draft-release → publish → verify-publication →
-  finalize-release`), runs for `v*.*.*` tags and manual dry runs without cancelling a run in progress, and calls `ci.yml`
+  finalize-release`), runs for `v*.*.*` tags and manual dry runs without cancelling a run in progress, and calls
+  `ci.yml`
   with the tag version, a 90-day retention and no Sonar (`Release_jobs_form_the_draft_first_chain`,
   `Release_runs_for_version_tags_and_manual_dry_runs_without_cancelling`,
   `Release_calls_ci_with_the_tag_version_ninety_day_retention_and_no_sonar`).

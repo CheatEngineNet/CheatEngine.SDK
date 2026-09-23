@@ -86,7 +86,7 @@ internal static class SpecIdentifiers
 
 	private static bool IsStart(char c)
 	{
-		return c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or '_';
+		return c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or '_';
 	}
 
 	private static bool IsPart(char c)

@@ -15,7 +15,8 @@ namespace CheatEngine.SDK.Abi.Native;
 ///     <para>
 ///         <b>All or nothing.</b> The copy succeeds only when both the declared size and the physical buffer cover the
 ///         whole prefix, <see cref="DirectPrefixByteCount" /> = 144 bytes, the <c>minDeclaredSize</c> of slot 17 in
-///         <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>. A table that declares, say, 64 bytes yields no prefix at all,
+///         <c>tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json</c>. A table that declares,
+///         say, 64 bytes yields no prefix at all,
 ///         not the first seven slots; <c>ClassicExportedFunctionsSlotReader</c> is the per-slot observation path.
 ///     </para>
 /// </remarks>

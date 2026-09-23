@@ -17,7 +17,8 @@ namespace CheatEngine.SDK.Engine.Inspection;
 ///         newer third-party definition is never removed. The check is best effort and not atomic: a third party can
 ///         still replace the name between the lookup and the unregister, and a name that parses as an expression or that
 ///         collides case-insensitively with another symbol can produce a conservative <c>Replaced</c>. It must never be
-///         interpreted as exclusive host-wide ownership. Leases made through <see cref="SymbolRegistry.TryRegisterOwned" />
+///         interpreted as exclusive host-wide ownership. Leases made through
+///         <see cref="SymbolRegistry.TryRegisterOwned" />
 ///         in this SDK instance additionally never unregister a newer lease's registration of the same name.
 ///     </para>
 ///     <para>

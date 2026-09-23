@@ -5,6 +5,7 @@
 // Scalars (luaconf.h of a default 64-bit build: LUA_INT_LONGLONG + LUA_REAL_DOUBLE, which is what Cheat Engine ships).
 
 // Function-pointer typedefs. Lua is cdecl; the convention is a no-op on x64 but matters on x86, so it is spelled out.
+
 global using unsafe lua_Alloc = delegate* unmanaged[Cdecl]<void*, void*, nuint, nuint, void*>;
 global using unsafe lua_CFunction = delegate* unmanaged[Cdecl]<CheatEngine.SDK.Lua.Interop.Types.lua_State*, int>;
 global using unsafe lua_Hook =

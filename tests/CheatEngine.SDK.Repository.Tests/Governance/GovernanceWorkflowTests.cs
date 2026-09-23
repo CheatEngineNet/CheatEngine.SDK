@@ -53,7 +53,8 @@ public sealed partial class GovernanceWorkflowTests
 				string? runner = YamlDocument.Scalar(job.Value, "runs-on");
 				Assert.True(runner is not null && Array.IndexOf(s_runnerLabels, runner) >= 0,
 					$"{path} job {job.Key}: runs-on '{runner}' must be a literal windows-2025 or ubuntu-24.04 label.");
-				Assert.True(int.TryParse(YamlDocument.Scalar(job.Value, "timeout-minutes"), NumberStyles.None, CultureInfo.InvariantCulture,
+				Assert.True(int.TryParse(YamlDocument.Scalar(job.Value, "timeout-minutes"), NumberStyles.None,
+						CultureInfo.InvariantCulture,
 						out int minutes) && minutes > 0,
 					$"{path} job {job.Key} needs timeout-minutes.");
 			}
@@ -105,7 +106,8 @@ public sealed partial class GovernanceWorkflowTests
 				{
 					if (YamlDocument.UsesAction(step, "actions/checkout"))
 					{
-						Assert.True(string.Equals(YamlDocument.Scalar(YamlDocument.Child(step, "with"), "persist-credentials"), "false",
+						Assert.True(string.Equals(
+								YamlDocument.Scalar(YamlDocument.Child(step, "with"), "persist-credentials"), "false",
 								StringComparison.Ordinal),
 							$"{path} job {job.Key}: actions/checkout must set persist-credentials: false.");
 					}
@@ -126,8 +128,10 @@ public sealed partial class GovernanceWorkflowTests
 			{
 				foreach (YamlMappingNode step in YamlDocument.Steps(job.Value))
 				{
-					string[] lines = (YamlDocument.Scalar(step, "run") ?? "").ReplaceLineEndings("\n").Trim().Split('\n');
-					if (lines.Length > 1 && !string.Equals(lines[0].Trim(), "$ErrorActionPreference = 'Stop'", StringComparison.Ordinal))
+					string[] lines = (YamlDocument.Scalar(step, "run") ?? "").ReplaceLineEndings("\n").Trim()
+						.Split('\n');
+					if (lines.Length > 1 && !string.Equals(lines[0].Trim(), "$ErrorActionPreference = 'Stop'",
+							StringComparison.Ordinal))
 					{
 						offenders.Add($"{path} job {job.Key} step '{YamlDocument.Scalar(step, "name")}'");
 					}
@@ -165,7 +169,8 @@ public sealed partial class GovernanceWorkflowTests
 							next++;
 						}
 
-						if (next >= lines.Length || !lines[next].TrimStart().StartsWith("if ($LASTEXITCODE -ne 0)", StringComparison.Ordinal))
+						if (next >= lines.Length || !lines[next].TrimStart()
+								.StartsWith("if ($LASTEXITCODE -ne 0)", StringComparison.Ordinal))
 						{
 							offenders.Add($"{path} job {job.Key}: '{lines[i].Trim()}'");
 						}
@@ -244,7 +249,8 @@ public sealed partial class GovernanceWorkflowTests
 			["cpp"] = ("c-cpp", "none", "windows-2025"),
 			["actions"] = ("actions", "none", "ubuntu-24.04")
 		};
-		Assert.Equal(expected.Keys.Order(StringComparer.Ordinal), YamlDocument.KeysOf(YamlDocument.Child(workflow.Root, "jobs")).Order(StringComparer.Ordinal));
+		Assert.Equal(expected.Keys.Order(StringComparer.Ordinal),
+			YamlDocument.KeysOf(YamlDocument.Child(workflow.Root, "jobs")).Order(StringComparer.Ordinal));
 		foreach ((string id, (string language, string buildMode, string runner)) in expected)
 		{
 			YamlMappingNode job = workflow.Job(id);
@@ -258,7 +264,8 @@ public sealed partial class GovernanceWorkflowTests
 			Assert.Equal(language, YamlDocument.Scalar(init, "languages"));
 			Assert.Equal(buildMode, YamlDocument.Scalar(init, "build-mode"));
 			Assert.Equal("security-extended", YamlDocument.Scalar(init, "queries"));
-			Assert.Equal($"/language:{language}", YamlDocument.Scalar(WithOf(job, "github/codeql-action/analyze"), "category"));
+			Assert.Equal($"/language:{language}",
+				YamlDocument.Scalar(WithOf(job, "github/codeql-action/analyze"), "category"));
 		}
 
 		// Python is not analysed: the repository has no Python source left, and a language without sources fails.
@@ -271,17 +278,20 @@ public sealed partial class GovernanceWorkflowTests
 		YamlMappingNode job = YamlDocument.Load(GovernanceWorkflows.CodeQl).Job("csharp");
 		IReadOnlyList<YamlMappingNode> steps = YamlDocument.Steps(job);
 
-		YamlMappingNode checkout = Assert.Single(steps, static step => YamlDocument.UsesAction(step, "actions/checkout"));
+		YamlMappingNode checkout =
+			Assert.Single(steps, static step => YamlDocument.UsesAction(step, "actions/checkout"));
 		Assert.Equal("0", YamlDocument.Scalar(YamlDocument.Child(checkout, "with"), "fetch-depth"));
 		YamlMappingNode setup = Assert.Single(steps, static step =>
 			string.Equals(YamlDocument.Uses(step), "./.github/actions/setup-dotnet", StringComparison.Ordinal));
-		Assert.Equal("src/CheatEngine.SDK/CheatEngine.SDK.csproj", YamlDocument.Scalar(YamlDocument.Child(setup, "with"), "restore"));
+		Assert.Equal("src/CheatEngine.SDK/CheatEngine.SDK.csproj",
+			YamlDocument.Scalar(YamlDocument.Child(setup, "with"), "restore"));
 
 		YamlMappingNode build = Assert.Single(steps, static step => YamlDocument.Scalar(step, "run") is not null);
 		string run = YamlDocument.NormalizeWhitespace(YamlDocument.Scalar(build, "run")!);
 		foreach (string fragment in (string[])
 				 [
-					 "dotnet build src/CheatEngine.SDK/CheatEngine.SDK.csproj", "-c Release", "--no-restore", "--no-incremental",
+					 "dotnet build src/CheatEngine.SDK/CheatEngine.SDK.csproj", "-c Release", "--no-restore",
+					 "--no-incremental",
 					 "--disable-build-servers", "-p:UseSharedCompilation=false", "$LASTEXITCODE"
 				 ])
 		{
@@ -300,7 +310,8 @@ public sealed partial class GovernanceWorkflowTests
 			}
 		}
 
-		Assert.True(IndexOf(steps, "./.github/actions/setup-dotnet") < init && init < buildIndex && buildIndex < analyze,
+		Assert.True(
+			IndexOf(steps, "./.github/actions/setup-dotnet") < init && init < buildIndex && buildIndex < analyze,
 			"The CodeQL C# job must restore, then init, then build, then analyze.");
 	}
 
@@ -371,7 +382,8 @@ public sealed partial class GovernanceWorkflowTests
 			"actions/checkout", "actions/create-github-app-token", "ossf/scorecard-action", "actions/upload-artifact",
 			"github/codeql-action/upload-sarif", "step-security/harden-runner"
 		];
-		foreach (YamlMappingNode step in YamlDocument.Steps(YamlDocument.Load(GovernanceWorkflows.Scorecard).Job("analysis")))
+		foreach (YamlMappingNode step in YamlDocument.Steps(YamlDocument.Load(GovernanceWorkflows.Scorecard)
+					 .Job("analysis")))
 		{
 			string uses = YamlDocument.Uses(step) ?? "";
 			string action = uses.Split('@')[0];
@@ -426,7 +438,8 @@ public sealed partial class GovernanceWorkflowTests
 
 		// Fork pull requests cannot upload SARIF, and drafts wait.
 		string condition = YamlDocument.NormalizeWhitespace(YamlDocument.Scalar(job, "if") ?? "");
-		Assert.Contains("github.event.pull_request.head.repo.full_name == github.repository", condition, StringComparison.Ordinal);
+		Assert.Contains("github.event.pull_request.head.repo.full_name == github.repository", condition,
+			StringComparison.Ordinal);
 		Assert.Contains("!github.event.pull_request.draft", condition, StringComparison.Ordinal);
 		Assert.Equal(["push", "pull_request", "schedule", "workflow_dispatch"], workflow.Triggers);
 	}
@@ -443,7 +456,8 @@ public sealed partial class GovernanceWorkflowTests
 				{
 					if (YamlDocument.UsesAction(step, "zizmorcore/zizmor-action"))
 					{
-						Assert.True(string.Equals(YamlDocument.Scalar(YamlDocument.Child(step, "with"), "version"), ZizmorVersion,
+						Assert.True(string.Equals(YamlDocument.Scalar(YamlDocument.Child(step, "with"), "version"),
+								ZizmorVersion,
 								StringComparison.Ordinal),
 							$"{path} job {job.Key} must pin zizmor {ZizmorVersion} like {GovernanceWorkflows.ZizmorOnline}.");
 					}
@@ -486,7 +500,8 @@ public sealed partial class GovernanceWorkflowTests
 		}
 
 		Assert.Equal([GovernanceWorkflows.DependencySubmission + "#submit"], writers);
-		Assert.Null(YamlDocument.Permissions(YamlDocument.Load(GovernanceWorkflows.DependencySubmission).Job("detect")));
+		Assert.Null(
+			YamlDocument.Permissions(YamlDocument.Load(GovernanceWorkflows.DependencySubmission).Job("detect")));
 	}
 
 	[Fact]
@@ -496,7 +511,8 @@ public sealed partial class GovernanceWorkflowTests
 		IReadOnlyList<YamlMappingNode> steps = YamlDocument.Steps(workflow.Job("submit"));
 
 		Assert.Equal(2, steps.Count);
-		Assert.True(YamlDocument.UsesAction(steps[0], "actions/download-artifact"), "submit starts by downloading the snapshot.");
+		Assert.True(YamlDocument.UsesAction(steps[0], "actions/download-artifact"),
+			"submit starts by downloading the snapshot.");
 		Assert.Equal("dependency-snapshot", YamlDocument.Scalar(YamlDocument.Child(steps[0], "with"), "name"));
 		Assert.Null(YamlDocument.Uses(steps[1]));
 		string run = YamlDocument.Scalar(steps[1], "run") ?? "";
@@ -512,7 +528,8 @@ public sealed partial class GovernanceWorkflowTests
 		}
 
 		// The official action fetches the latest Component Detection at run time next to the write token.
-		Assert.DoesNotContain("component-detection-dependency-submission-action", workflow.Text, StringComparison.Ordinal);
+		Assert.DoesNotContain("component-detection-dependency-submission-action", workflow.Text,
+			StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -525,8 +542,12 @@ public sealed partial class GovernanceWorkflowTests
 				"Run Component Detection and build the snapshot", StringComparison.Ordinal));
 		string script = YamlDocument.Scalar(step, "run") ?? "";
 
-		Assert.Matches(new Regex(@"^\s*\$detectorVersion = '\d+\.\d+\.\d+'\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1)), script);
-		Assert.Matches(new Regex(@"^\s*\$detectorSha256 = '[0-9a-f]{64}'\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1)), script);
+		Assert.Matches(
+			new Regex(@"^\s*\$detectorVersion = '\d+\.\d+\.\d+'\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1)),
+			script);
+		Assert.Matches(
+			new Regex(@"^\s*\$detectorSha256 = '[0-9a-f]{64}'\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1)),
+			script);
 		Assert.Contains("releases/download/v$detectorVersion/$detectorAsset", script, StringComparison.Ordinal);
 		Assert.Contains("Get-FileHash -LiteralPath $detector -Algorithm SHA256", script, StringComparison.Ordinal);
 		Assert.Contains("--locked-mode", script, StringComparison.Ordinal);
@@ -547,31 +568,13 @@ public sealed partial class GovernanceWorkflowTests
 		const string Ref = "refs/heads/main";
 		using TemporaryDirectory directory = new();
 		Directory.CreateDirectory(directory.File("snapshot"));
-		Dictionary<string, object> snapshot = new(StringComparer.Ordinal)
-		{
-			["version"] = 0,
-			["sha"] = Is(variant, "other_commit") ? new string('f', 40) : Sha,
-			["ref"] = Is(variant, "other_ref") ? "refs/heads/feature" : Ref,
-			["job"] = new Dictionary<string, string>(StringComparer.Ordinal)
-			{
-				["correlator"] = Is(variant, "other_correlator") ? "other" : "sdk-nuget",
-				["id"] = "1"
-			},
-			["detector"] = new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = "d", ["version"] = "1", ["url"] = "u" },
-			["scanned"] = "2026-09-23T00:00:00Z",
-			["manifests"] = Is(variant, "no_manifest")
-				? new Dictionary<string, object>(StringComparer.Ordinal)
-				: new Dictionary<string, object>(StringComparer.Ordinal) { ["src/A.csproj"] = new Dictionary<string, object>(StringComparer.Ordinal) }
-		};
-		if (Is(variant, "extra_property"))
-		{
-			snapshot["extra"] = 1;
-		}
+		Dictionary<string, object> snapshot = BuildDependencySnapshot(variant, Sha, Ref);
 
 		await File.WriteAllTextAsync(directory.File("snapshot/snapshot.json"), JsonSerializer.Serialize(snapshot),
 			TestContext.Current.CancellationToken);
 
-		YamlMappingNode submit = YamlDocument.Steps(YamlDocument.Load(GovernanceWorkflows.DependencySubmission).Job("submit"))[1];
+		YamlMappingNode submit =
+			YamlDocument.Steps(YamlDocument.Load(GovernanceWorkflows.DependencySubmission).Job("submit"))[1];
 		string marker = directory.File("gh-called.txt");
 		string script = $"Set-Location -LiteralPath {PwshScript.Quote(directory.Path)}" + Environment.NewLine +
 						$"function gh {{ $args -join ' ' | Set-Content -LiteralPath {PwshScript.Quote(marker)}; $global:LASTEXITCODE = 0 }}" +
@@ -605,10 +608,46 @@ public sealed partial class GovernanceWorkflowTests
 		return string.Equals(value, expected, StringComparison.Ordinal);
 	}
 
+	private static Dictionary<string, object> BuildDependencySnapshot(string variant, string sha, string @ref)
+	{
+		Dictionary<string, object> snapshot = new(StringComparer.Ordinal)
+		{
+			["version"] = 0,
+			["sha"] = Is(variant, "other_commit") ? new string('f', 40) : sha,
+			["ref"] = Is(variant, "other_ref") ? "refs/heads/feature" : @ref,
+			["job"] = new Dictionary<string, string>(StringComparer.Ordinal)
+			{
+				["correlator"] = Is(variant, "other_correlator") ? "other" : "sdk-nuget",
+				["id"] = "1"
+			},
+			["detector"] =
+				new Dictionary<string, string>(StringComparer.Ordinal)
+				{
+					["name"] = "d",
+					["version"] = "1",
+					["url"] = "u"
+				},
+			["scanned"] = "2026-09-23T00:00:00Z",
+			["manifests"] = Is(variant, "no_manifest")
+				? new Dictionary<string, object>(StringComparer.Ordinal)
+				: new Dictionary<string, object>(StringComparer.Ordinal)
+				{
+					["src/A.csproj"] = new Dictionary<string, object>(StringComparer.Ordinal)
+				}
+		};
+		if (Is(variant, "extra_property"))
+		{
+			snapshot["extra"] = 1;
+		}
+
+		return snapshot;
+	}
+
 	private static YamlNode? WithOf(YamlMappingNode job, string action)
 	{
 		YamlMappingNode step = Assert.Single(YamlDocument.Steps(job), step => YamlDocument.UsesAction(step, action)
-																			|| string.Equals(YamlDocument.Uses(step), action, StringComparison.Ordinal));
+																			  || string.Equals(YamlDocument.Uses(step),
+																				  action, StringComparison.Ordinal));
 		return YamlDocument.Child(step, "with");
 	}
 
@@ -626,17 +665,18 @@ public sealed partial class GovernanceWorkflowTests
 		return -1;
 	}
 
-	[GeneratedRegex(@"^\s*(-\s+)?uses:\s+(?<reference>\S+)(?<comment>.*)$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
-		matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^\s*(-\s+)?uses:\s+(?<reference>\S+)(?<comment>.*)$",
+		RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
+		1000)]
 	private static partial Regex UsesLine();
 
-	[GeneratedRegex(@"^[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[0-9a-f]{40}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[0-9a-f]{40}$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex PinnedReference();
 
-	[GeneratedRegex(@"^\s+# v\d+\.\d+\.\d+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^\s+# v\d+\.\d+\.\d+$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex VersionComment();
 
 	/// <summary>A line that starts a native command or a repository script (same pattern as WorkflowContractTests).</summary>
-	[GeneratedRegex(@"^\s*(?:dotnet|xmake|git|gh|tar)\s|^\s*\./|^\s*&\s", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^\s*(?:dotnet|xmake|git|gh|tar)\s|^\s*\./|^\s*&\s", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex NativeInvocation();
 }

@@ -16,14 +16,16 @@ A project reference proves that the source compiles, not that the installed pack
 
 1. One collection fixture (`PackagedUmbrellaFixture`) puts one `CheatEngine.SDK` package into a temporary local feed.
    Its origin is decided first, by `UmbrellaPackageSource`:
-   - `CESDK_PACKAGED_UMBRELLA_NUPKG` set: it must be the absolute path of a `CheatEngine.SDK.<version>.nupkg` file. The
-     fixture copies exactly that file and never packs. This is the CI Release leg: it packs once, passes the packed file,
-     and the same file is uploaded as `nuget-package`, attested and published, so these tests are evidence about the
-     shipped file.
-   - Unset while `CI=true`: the fixture fails at once with an actionable message. A CI run must test the file it ships,
-     and the Debug leg excludes these tests with `--filter-not-trait "Category=Packaging"`.
-   - Unset outside CI: the fixture packs `src/CheatEngine.SDK/CheatEngine.SDK.csproj` in Release itself. That package is
-     built from your working tree; it is evidence about the source (C1/C2), not about a file that was ever shipped.
+    - `CESDK_PACKAGED_UMBRELLA_NUPKG` set: it must be the absolute path of a `CheatEngine.SDK.<version>.nupkg` file. The
+      fixture copies exactly that file and never packs. This is the CI Release leg: it packs once, passes the packed
+      file,
+      and the same file is uploaded as `nuget-package`, attested and published, so these tests are evidence about the
+      shipped file.
+    - Unset while `CI=true`: the fixture fails at once with an actionable message. A CI run must test the file it ships,
+      and the Debug leg excludes these tests with `--filter-not-trait "Category=Packaging"`.
+    - Unset outside CI: the fixture packs `src/CheatEngine.SDK/CheatEngine.SDK.csproj` in Release itself. That package
+      is
+      built from your working tree; it is evidence about the source (C1/C2), not about a file that was ever shipped.
 
    The package id, that project path, the variable name, the `Packaging` category and the lower-cased id NuGet uses as
    the extraction folder name live in one place, `UmbrellaPackage`. Every class of the `PackagedUmbrellaSuite`

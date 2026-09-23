@@ -8,7 +8,8 @@ namespace CheatEngine.SDK.Abi.Tests.Support;
 /// <summary>
 ///     The set of structures the assembly-wide gates inspect: every value type of <c>CheatEngine.SDK.Abi</c>, public,
 ///     internal or nested private alike, minus enumerations and compiler-generated types. Shared by
-///     <see cref="AssemblyConformanceTests" /> (sizes and shape) and <c>FieldLayout.FieldLayoutContractTests</c> (per-field
+///     <see cref="AssemblyConformanceTests" /> (sizes and shape) and <c>FieldLayout.FieldLayoutContractTests</c>
+///     (per-field
 ///     offsets and widths), so both gates always look at exactly the same structures.
 /// </summary>
 internal static class AbiStructures

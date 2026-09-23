@@ -34,12 +34,14 @@ public sealed partial class AbiRouteSeparationTests
 		{
 			if (Identifier(Managed).IsMatch(code) && Identifier(Prefix).IsMatch(code))
 			{
-				problems.Add($"{file} names both {Managed} and {Prefix}: the managed and classic tables are separate routes.");
+				problems.Add(
+					$"{file} names both {Managed} and {Prefix}: the managed and classic tables are separate routes.");
 			}
 
 			foreach (Match cast in PrefixPointerCast().Matches(code))
 			{
-				problems.Add($"{file}:{CSharpCode.LineOf(code, cast.Index)} casts to {Prefix}*; read the prefix with ClassicExportedFunctionsPrefixReader.");
+				problems.Add(
+					$"{file}:{CSharpCode.LineOf(code, cast.Index)} casts to {Prefix}*; read the prefix with ClassicExportedFunctionsPrefixReader.");
 			}
 		}
 
@@ -56,19 +58,22 @@ public sealed partial class AbiRouteSeparationTests
 		];
 
 		Assert.All(consumers, file => Assert.Contains(file, PrefixConsumers, StringComparer.Ordinal));
-		Assert.Contains("libs/CheatEngine.SDK.Abi/Native/ClassicDebugEventDispatcher.cs", consumers, StringComparer.Ordinal);
+		Assert.Contains("libs/CheatEngine.SDK.Abi/Native/ClassicDebugEventDispatcher.cs", consumers,
+			StringComparer.Ordinal);
 		Assert.All(PrefixConsumers, file => Assert.True(RepositoryDocument.Exists(file), $"{file} no longer exists."));
-		Assert.DoesNotContain(consumers, static file => file.StartsWith("libs/CheatEngine.SDK.Hosting/", StringComparison.Ordinal));
+		Assert.DoesNotContain(consumers,
+			static file => file.StartsWith("libs/CheatEngine.SDK.Hosting/", StringComparison.Ordinal));
 	}
 
 	[Fact]
 	public void The_rules_see_code_and_ignore_comments_and_strings()
 	{
 		const string Documented = """
-								  /// <summary>Unlike ManagedExportedFunctions, the ExportedFunctionsPrefix is classic.</summary>
-								  class C { string s = "ExportedFunctionsPrefix*"; }
-								  """;
-		const string Converting = "unsafe class C { void M(ManagedExportedFunctions* m) { var p = (ExportedFunctionsPrefix*) m; } }";
+		                          /// <summary>Unlike ManagedExportedFunctions, the ExportedFunctionsPrefix is classic.</summary>
+		                          class C { string s = "ExportedFunctionsPrefix*"; }
+		                          """;
+		const string Converting =
+			"unsafe class C { void M(ManagedExportedFunctions* m) { var p = (ExportedFunctionsPrefix*) m; } }";
 
 		string documented = CSharpCode.BlankCommentsAndLiterals(Documented);
 		string converting = CSharpCode.BlankCommentsAndLiterals(Converting);
@@ -92,13 +97,13 @@ public sealed partial class AbiRouteSeparationTests
 		return string.Equals(name, Managed, StringComparison.Ordinal) ? ManagedIdentifier() : PrefixIdentifier();
 	}
 
-	[GeneratedRegex(@"\bManagedExportedFunctions\b", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"\bManagedExportedFunctions\b", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex ManagedIdentifier();
 
-	[GeneratedRegex(@"\bExportedFunctionsPrefix\b", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"\bExportedFunctionsPrefix\b", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex PrefixIdentifier();
 
 	[GeneratedRegex(@"\(\s*(?:[\w.]+\.)?ExportedFunctionsPrefix\s*\*\s*\)", RegexOptions.CultureInvariant,
-		matchTimeoutMilliseconds: 1000)]
+		1000)]
 	private static partial Regex PrefixPointerCast();
 }

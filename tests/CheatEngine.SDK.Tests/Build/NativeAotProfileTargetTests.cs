@@ -5,7 +5,8 @@ using CheatEngine.SDK.Tests.Infrastructure;
 namespace CheatEngine.SDK.Tests.Build;
 
 /// <summary>
-///     The packaged build target <c>CheatEngineSdkWarnNativeAotPluginProfile</c> (<c>src/CheatEngine.SDK/build/CheatEngine.SDK.targets</c>)
+///     The packaged build target <c>CheatEngineSdkWarnNativeAotPluginProfile</c> (
+///     <c>src/CheatEngine.SDK/build/CheatEngine.SDK.targets</c>)
 ///     warns with <c>CESDK9102</c> when a direct consumer <b>library</b> sets <c>PublishAot=true</c>: a NativeAOT plugin
 ///     DLL cannot be unloaded by Cheat Engine's <c>FreeLibrary</c> (audit F02, EXT-01), so the only supported plugin
 ///     profile is the managed hostfxr route. An executable publishing with NativeAOT is not warned.
@@ -30,7 +31,7 @@ public sealed class NativeAotProfileTargetTests
 	[Trait("Qualification", "Q41")]
 	public async Task PublishAot_library_consumer_gets_CESDK9102(string nativeLib)
 	{
-		ProcessResult result = await RunTargetAsync("Library", publishAot: "true", nativeLib, noWarn: false);
+		ProcessResult result = await RunTargetAsync("Library", "true", nativeLib, false);
 
 		Assert.True(result.ExitCode == 0, result.CombinedOutput);
 		Assert.Contains("warning CESDK9102", result.StandardOutput, StringComparison.Ordinal);
@@ -41,7 +42,8 @@ public sealed class NativeAotProfileTargetTests
 	[Fact]
 	public void CESDK9102_warning_links_its_rule_page_and_runs_before_the_build()
 	{
-		XDocument targets = XDocument.Load(RepositoryLayout.PathOf("src/CheatEngine.SDK/build/CheatEngine.SDK.targets"));
+		XDocument targets =
+			XDocument.Load(RepositoryLayout.PathOf("src/CheatEngine.SDK/build/CheatEngine.SDK.targets"));
 
 		XElement target = Assert.Single(targets.Root!.Elements("Target"),
 			static element => string.Equals((string?) element.Attribute("Name"), TargetName, StringComparison.Ordinal));
@@ -59,7 +61,7 @@ public sealed class NativeAotProfileTargetTests
 	[Trait("Qualification", "Q41")]
 	public async Task PublishAot_executable_consumer_gets_no_CESDK9102(string outputType)
 	{
-		ProcessResult result = await RunTargetAsync(outputType, publishAot: "true", nativeLib: "", noWarn: false);
+		ProcessResult result = await RunTargetAsync(outputType, "true", "", false);
 
 		Assert.True(result.ExitCode == 0, result.CombinedOutput);
 		Assert.DoesNotContain("CESDK9102", result.CombinedOutput, StringComparison.Ordinal);
@@ -71,7 +73,7 @@ public sealed class NativeAotProfileTargetTests
 	[Trait("Qualification", "Q41")]
 	public async Task Consumer_without_PublishAot_gets_no_CESDK9102(string publishAot)
 	{
-		ProcessResult result = await RunTargetAsync("Library", publishAot, nativeLib: "Shared", noWarn: false);
+		ProcessResult result = await RunTargetAsync("Library", publishAot, "Shared", false);
 
 		Assert.True(result.ExitCode == 0, result.CombinedOutput);
 		Assert.DoesNotContain("CESDK9102", result.CombinedOutput, StringComparison.Ordinal);
@@ -81,7 +83,7 @@ public sealed class NativeAotProfileTargetTests
 	[Trait("Qualification", "Q41")]
 	public async Task NoWarn_demotes_CESDK9102_to_a_message()
 	{
-		ProcessResult result = await RunTargetAsync("Library", publishAot: "true", nativeLib: "Shared", noWarn: true);
+		ProcessResult result = await RunTargetAsync("Library", "true", "Shared", true);
 
 		// Detailed verbosity: MSBuild logs a warning demoted by NoWarn as a low-importance message.
 		Assert.True(result.ExitCode == 0, result.CombinedOutput);
@@ -101,18 +103,18 @@ public sealed class NativeAotProfileTargetTests
 			string project = Path.Combine(directory, "NativeAotProfileConsumer.csproj");
 			File.Copy(RepositoryLayout.PathOf("global.json"), Path.Combine(directory, "global.json"));
 			await File.WriteAllTextAsync(project, $"""
-				<Project Sdk="Microsoft.NET.Sdk">
-				  <Import Project="{Path.Combine(buildDirectory, "CheatEngine.SDK.props")}"/>
-				  <PropertyGroup>
-				    <TargetFramework>net10.0</TargetFramework>
-				    <OutputType>{outputType}</OutputType>
-				    <PublishAot>{publishAot}</PublishAot>
-				    <NativeLib>{nativeLib}</NativeLib>
-				    <NoWarn Condition="'{(noWarn ? "true" : "false")}' == 'true'">$(NoWarn);CESDK9102</NoWarn>
-				  </PropertyGroup>
-				  <Import Project="{Path.Combine(buildDirectory, "CheatEngine.SDK.targets")}"/>
-				</Project>
-				""", TestContext.Current.CancellationToken);
+			                                       <Project Sdk="Microsoft.NET.Sdk">
+			                                         <Import Project="{Path.Combine(buildDirectory, "CheatEngine.SDK.props")}"/>
+			                                         <PropertyGroup>
+			                                           <TargetFramework>net10.0</TargetFramework>
+			                                           <OutputType>{outputType}</OutputType>
+			                                           <PublishAot>{publishAot}</PublishAot>
+			                                           <NativeLib>{nativeLib}</NativeLib>
+			                                           <NoWarn Condition="'{(noWarn ? "true" : "false")}' == 'true'">$(NoWarn);CESDK9102</NoWarn>
+			                                         </PropertyGroup>
+			                                         <Import Project="{Path.Combine(buildDirectory, "CheatEngine.SDK.targets")}"/>
+			                                       </Project>
+			                                       """, TestContext.Current.CancellationToken);
 
 			string arguments = string.Create(CultureInfo.InvariantCulture,
 				$"msbuild \"{project}\" -t:{TargetName} -nologo -v:{(noWarn ? "d" : "n")} -p:ImportDirectoryBuildProps=false -p:ImportDirectoryBuildTargets=false -p:ImportDirectoryPackagesProps=false");

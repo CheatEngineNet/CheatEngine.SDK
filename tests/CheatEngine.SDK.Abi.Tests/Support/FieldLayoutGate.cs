@@ -14,7 +14,8 @@ namespace CheatEngine.SDK.Abi.Tests.Support;
 ///     <para>
 ///         <b>Offset</b> is measured, not computed: a <see cref="DynamicMethod" /> applies the IL instruction
 ///         <c>ldflda</c> for the field to the address of a zeroed native buffer of the structure's size and subtracts the
-///         buffer address. That is exactly the arithmetic the JIT performs for <c>&amp;record-&gt;Field</c> in a plugin, it
+///         buffer address. That is exactly the arithmetic the JIT performs for <c>&amp;record-&gt;Field</c> in a plugin,
+///         it
 ///         works for private and compiler-generated fields, and it does not go through
 ///         <see cref="Marshal.OffsetOf(Type, string)" />, whose <i>unmanaged</i> view is what CA1421 warns about in an
 ///         assembly with runtime marshalling disabled. The field is never read or written.
@@ -93,7 +94,8 @@ internal static class FieldLayoutGate
 	public static unsafe int OffsetOf(FieldInfo field)
 	{
 		ArgumentNullException.ThrowIfNull(field);
-		Type declaringType = field.DeclaringType ?? throw new ArgumentException("A field has a declaring type.", nameof(field));
+		Type declaringType = field.DeclaringType ??
+							 throw new ArgumentException("A field has a declaring type.", nameof(field));
 		if (!declaringType.IsValueType || field.IsStatic)
 		{
 			throw new ArgumentException("Only instance fields of structures have a layout offset.", nameof(field));

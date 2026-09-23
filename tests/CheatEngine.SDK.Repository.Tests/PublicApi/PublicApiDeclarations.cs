@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -140,7 +141,7 @@ internal static partial class PublicApiDeclarations
 
 		enumType = match.Groups["type"].Value;
 		member = match.Groups["member"].Value;
-		value = long.Parse(match.Groups["value"].Value, System.Globalization.CultureInfo.InvariantCulture);
+		value = long.Parse(match.Groups["value"].Value, CultureInfo.InvariantCulture);
 		return true;
 	}
 
@@ -185,10 +186,10 @@ internal static partial class PublicApiDeclarations
 		return type[(type.LastIndexOf('.') + 1)..];
 	}
 
-	[GeneratedRegex(@"`+\d+", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"`+\d+", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex GenericArity();
 
 	[GeneratedRegex(@"^(?<type>[\w.]+)\.(?<member>\w+) = (?<value>-?\d+) -> \k<type>$", RegexOptions.CultureInvariant,
-		matchTimeoutMilliseconds: 1000)]
+		1000)]
 	private static partial Regex EnumMemberLine();
 }

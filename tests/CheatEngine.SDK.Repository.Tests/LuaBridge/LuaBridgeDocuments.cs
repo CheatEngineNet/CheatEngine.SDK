@@ -14,7 +14,10 @@ namespace CheatEngine.SDK.Repository.Tests.LuaBridge;
 internal static class LuaBridgeDocuments
 {
 	internal const string CataloguePath = "libs/CheatEngine.SDK.Lua.Interop/Protected/protected-operations.json";
-	internal const string MatrixPath = "tests/CheatEngine.SDK.Repository.Tests/LuaBridge/TestData/lua-interop-primitives.json";
+
+	internal const string MatrixPath =
+		"tests/CheatEngine.SDK.Repository.Tests/LuaBridge/TestData/lua-interop-primitives.json";
+
 	internal const string BridgeSourcePath = "native/cheatengine-sdk-lua-bridge/cheatengine_sdk_lua_bridge.c";
 	internal const string XmakePath = "native/cheatengine-sdk-lua-bridge/xmake.lua";
 	internal const string LuaFixturePath = "native/cheat-engine/lua53-64.dll";

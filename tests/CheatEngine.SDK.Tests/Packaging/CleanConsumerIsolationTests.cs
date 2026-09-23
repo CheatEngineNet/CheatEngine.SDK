@@ -51,7 +51,8 @@ public sealed class CleanConsumerIsolationTests(PackagedUmbrellaFixture fixture)
 			{
 				string path = Path.Combine(folder, manifest);
 				Assert.True(File.Exists(path), $"'{path}' was not produced.");
-				foreach (string leak in ConsumerManifestRules.WorkspaceLeaks(File.ReadAllText(path), RepositoryLayout.Root))
+				foreach (string leak in ConsumerManifestRules.WorkspaceLeaks(File.ReadAllText(path),
+							 RepositoryLayout.Root))
 				{
 					offenders.Add($"{path}: {leak}");
 				}

@@ -35,7 +35,8 @@ public sealed unsafe class AbiBoundaryValueTests
 			(delegate* unmanaged[Stdcall]<PluginVersion*, int, int>) &RawGetVersion;
 		record.EnablePlugin = (delegate* unmanaged[Stdcall]<ManagedExportedFunctions*, uint, Bool32>)
 			(delegate* unmanaged[Stdcall]<ManagedExportedFunctions*, uint, int>) &RawEnablePlugin;
-		record.DisablePlugin = (delegate* unmanaged[Stdcall]<Bool32>) (delegate* unmanaged[Stdcall]<int>) &RawDisablePlugin;
+		record.DisablePlugin =
+			(delegate* unmanaged[Stdcall]<Bool32>) (delegate* unmanaged[Stdcall]<int>) &RawDisablePlugin;
 
 		AssertTrueWithRawBits(record.GetVersion(&version, sizeof(PluginVersion)), raw);
 		AssertTrueWithRawBits(record.EnablePlugin(&managedExports, 7u), raw);
@@ -153,7 +154,8 @@ public sealed unsafe class AbiBoundaryValueTests
 	}
 
 	[UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-	private static Bool32 SwapMemoryViewAddresses(nuint* disassemblerAddress, nuint* selectedAddress, nuint* hexViewAddress)
+	private static Bool32 SwapMemoryViewAddresses(nuint* disassemblerAddress, nuint* selectedAddress,
+		nuint* hexViewAddress)
 	{
 		_ = selectedAddress;
 		(*disassemblerAddress, *hexViewAddress) = (*hexViewAddress, *disassemblerAddress);

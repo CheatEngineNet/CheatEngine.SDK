@@ -58,7 +58,8 @@ public sealed unsafe class LuaExternalResetDetectionTests
 		Assert.False(LuaRuntime.TryAcquireOperation(out LuaRuntimeOperation viaTry));
 		viaTry.Dispose();
 
-		InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(() => LuaRuntime.AcquireOperation());
+		InvalidOperationException
+			thrown = Assert.Throws<InvalidOperationException>(() => LuaRuntime.AcquireOperation());
 		Assert.Contains("replaced its Lua state", thrown.Message, StringComparison.Ordinal);
 
 		Assert.Throws<InvalidOperationException>(() => LuaRuntime.AcquireOperation(main));
@@ -220,7 +221,8 @@ public sealed unsafe class LuaExternalResetDetectionTests
 
 	[Fact]
 	[Trait("Qualification", "Q17")]
-	public void A_state_replacement_during_a_registration_transaction_leaves_the_lease_stale_and_the_new_state_untouched()
+	public void
+		A_state_replacement_during_a_registration_transaction_leaves_the_lease_stale_and_the_new_state_untouched()
 	{
 		LuaTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -228,7 +230,7 @@ public sealed unsafe class LuaExternalResetDetectionTests
 		using RuntimeScope scope = new(state);
 		using NativeLuaState replacement = new();
 		LuaState replacementView = new(replacement.L);
-		LuaRegistrationEntry[] entries = [new LuaRegistrationEntry("sdk013_reset_registration", Thunks.Add)];
+		LuaRegistrationEntry[] entries = [new("sdk013_reset_registration", Thunks.Add)];
 		LuaRegistrationResult result = LuaRegistrationSet.Register(main, entries);
 		Assert.True(result.IsSuccess);
 		LuaRegistrationLease lease = result.Lease!;

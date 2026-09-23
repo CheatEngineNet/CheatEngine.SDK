@@ -38,11 +38,11 @@ internal static partial class LuaApiUseScanner
 	}
 
 	[GeneratedRegex(@"using\s+static\s+(?:global::)?CheatEngine\.SDK\.Lua\.Interop\.Api\.LuaApi\s*;",
-		RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+		RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex StaticImport();
 
 	[GeneratedRegex(
 		@"(?<![\w.])(?<qualifier>(?:global::)?(?:CheatEngine\.SDK\.Lua\.Interop\.Api\.)?LuaApi\s*\.\s*)?\b(?<member>(?:lua|luaL|luaopen)_\w+)\b",
-		RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+		RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex MemberReference();
 }

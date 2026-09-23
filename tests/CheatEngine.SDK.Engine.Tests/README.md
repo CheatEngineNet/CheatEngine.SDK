@@ -46,8 +46,8 @@ behavior.
 - A typed operation acquires the state once and pushes the object once (`HostCallCountTests`).
 - `Owned<T>` destroys the object exactly once. After the plugin is disabled, `Dispose` throws and leaves the object
   alive; after a re-enable or a controlled state replacement, every release path consumes the owner without a call and
-  reports `RefusedRuntimeChanged`. `ReleaseWithOutcome` never throws, and a transfer keeps the origin
-  (`OwnedTests`, `EngineResourceOriginTests`, `OwnershipSurfaceTests`).
+  reports `RefusedRuntimeChanged`. `ReleaseWithOutcome` never throws, and a transfer keeps the origin (`OwnedTests`,
+  `EngineResourceOriginTests`, `OwnershipSurfaceTests`).
 - Enum values and Cheat Engine names are pinned by literals.
 - `RuntimeInfo`/`RuntimeCapabilities` retain explicit unknown facts. `TargetMemory` and `HostMemory` keep their address
   types separate, preserve byte ordering through span calls, and distinguish expected read/write failures.

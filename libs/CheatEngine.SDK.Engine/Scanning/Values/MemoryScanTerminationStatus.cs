@@ -1,7 +1,8 @@
 namespace CheatEngine.SDK.Engine.Scanning.Values;
 
 /// <summary>
-///     Classifies the one cooperative stop request for a memory scan that may still be running: <c>terminateScan(false)</c>
+///     Classifies the one cooperative stop request for a memory scan that may still be running:
+///     <c>terminateScan(false)</c>
 ///     followed by a bounded <c>waitTillDone(timeout)</c>.
 /// </summary>
 /// <remarks>

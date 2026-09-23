@@ -47,10 +47,10 @@ internal static unsafe partial class LoadIdentification
 	private const long MaxHashedFileBytes = 16 * 1024 * 1024;
 
 	[GeneratedRegex("(?<![0-9a-fA-F])[0-9a-fA-F]{40}(?![0-9a-fA-F])", RegexOptions.CultureInvariant,
-		matchTimeoutMilliseconds: 1000)]
+		1000)]
 	private static partial Regex CommitPattern();
 
-	[GeneratedRegex("^[0-9a-f]{64}:[0-9a-f]{64}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex("^[0-9a-f]{64}:[0-9a-f]{64}$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex BridgeFingerprintPattern();
 
 	/// <summary>
@@ -90,7 +90,7 @@ internal static unsafe partial class LoadIdentification
 		AppendLuaFields(builder);
 		AppendCeFields(builder);
 		AppendField(builder, "runtime", RuntimeInformation.FrameworkDescription);
-		AppendField(builder, "arch", RuntimeInformation.ProcessArchitecture.ToString(), last: true);
+		AppendField(builder, "arch", RuntimeInformation.ProcessArchitecture.ToString(), true);
 
 		if (builder.Length > MaxEntryLength)
 		{

@@ -38,7 +38,8 @@ public static class SymbolLists
 	/// <summary>Creates one empty, unregistered, plugin-owned symbol list with <c>createSymbolList()</c>.</summary>
 	/// <param name="list">The owner on success; <see langword="null" /> otherwise.</param>
 	/// <returns>
-	///     <see cref="LuaOperationStatusKind.Success" /> with an owner, <see cref="LuaOperationStatusKind.GlobalUnavailable" />,
+	///     <see cref="LuaOperationStatusKind.Success" /> with an owner,
+	///     <see cref="LuaOperationStatusKind.GlobalUnavailable" />,
 	///     <see cref="LuaOperationStatusKind.LuaFailure" />, <see cref="LuaOperationStatusKind.NilResult" />, or
 	///     <see cref="LuaOperationStatusKind.InvalidResult" /> when Cheat Engine returned something that is not a host
 	///     object.
@@ -157,7 +158,8 @@ public static class SymbolLists
 		try
 		{
 			lease = leaseFactory(transferred, true) ??
-					throw new InvalidOperationException("The symbol-list registration lease factory returned no lease.");
+					throw new InvalidOperationException(
+						"The symbol-list registration lease factory returned no lease.");
 		}
 		catch (Exception exception)
 		{

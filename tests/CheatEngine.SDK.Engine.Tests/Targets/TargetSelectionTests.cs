@@ -27,8 +27,9 @@ public sealed class TargetSelectionTests
 		Assert.True(observation.IsQualified);
 		Assert.True(observation.Incarnation.HasValue);
 		Assert.Equal(Environment.ProcessId, observation.Incarnation.Value.ProcessId);
-		Assert.Equal(TargetIdentityEvidence.CheatEngineSelectedProcessId | TargetIdentityEvidence.LocalBackendConfirmed |
-			TargetIdentityEvidence.LocalProcessStartTime, observation.Evidence);
+		Assert.Equal(TargetIdentityEvidence.CheatEngineSelectedProcessId |
+					 TargetIdentityEvidence.LocalBackendConfirmed |
+					 TargetIdentityEvidence.LocalProcessStartTime, observation.Evidence);
 		Assert.Equal(TargetBackend.LocalProcess, observation.Backend);
 		Assert.True(TargetSelection.ValidateCurrent(observation.Incarnation.Value).IsCurrent);
 		Assert.Equal(0, scope.State.Top);

@@ -154,7 +154,10 @@ internal static class Program
 		return new LibraryInspection(fullPath, sha256, LibraryProbeContract.RuntimeExportsIn(exportNames), fileLock);
 	}
 
-	private sealed class LibraryInspection(string path, string sha256, IReadOnlyList<string> runtimeExports,
+	private sealed class LibraryInspection(
+		string path,
+		string sha256,
+		IReadOnlyList<string> runtimeExports,
 		FileStream fileLock) : IDisposable
 	{
 		public string Path

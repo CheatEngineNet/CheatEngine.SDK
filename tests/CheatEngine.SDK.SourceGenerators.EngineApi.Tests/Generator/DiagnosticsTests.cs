@@ -14,7 +14,8 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void An_invalid_entry_reports_its_additional_file_line_and_column_while_a_valid_sibling_is_emitted()
 	{
 		const string Text =
-			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: Bad\nform: try\nresult: value:int32\nnil: none\ndoc: bad.\nextra: value\n\nglobal: readQword\nmethod: Good\nform: try\nresult: value:int64\nnil: none\ndoc: good.\n";
+			"namespace: Demo\ntype: T\n" + SpecSources.Ce77 +
+			"\nglobal: readInteger\nmethod: Bad\nform: try\nresult: value:int32\nnil: none\ndoc: bad.\nextra: value\n\nglobal: readQword\nmethod: Good\nform: try\nresult: value:int64\nnil: none\ndoc: good.\n";
 		const string Path = "Specs/diagnostics.cheatengine-sdk-api.txt";
 
 		GeneratorRun run = roslyn.Run(Path, Text);
@@ -60,9 +61,11 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void Conflicting_specs_report_each_participant_and_emit_neither_while_an_independent_type_is_emitted()
 	{
 		const string First =
-			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\nglobal: readInteger\nmethod: First\nform: try\nresult: value:int32\nnil: none\ndoc: first.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 +
+			"\nglobal: readInteger\nmethod: First\nform: try\nresult: value:int32\nnil: none\ndoc: first.\n";
 		const string Second =
-			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\nglobal: readQword\nmethod: Second\nform: try\nresult: value:int64\nnil: none\ndoc: second.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 +
+			"\nglobal: readQword\nmethod: Second\nform: try\nresult: value:int64\nnil: none\ndoc: second.\n";
 
 		GeneratorRun run = roslyn.Run(
 			("Specs/first.cheatengine-sdk-api.txt", First),
@@ -89,9 +92,11 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void Conflicting_member_and_cache_identities_are_diagnosed_on_both_spec_files()
 	{
 		const string First =
-			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  nil: none\n  doc: first.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 +
+			"\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  nil: none\n  doc: first.\n";
 		const string Second =
-			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 + "\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  nil: none\n  doc: second.\n";
+			"namespace: Demo\ntype: Duplicate\n" + SpecSources.Ce77 +
+			"\n  global: readInteger\n  method: Same\n  form: try\n  result: value:int32\n  nil: none\n  doc: second.\n";
 
 		GeneratorRun run = roslyn.Run(
 			("Specs/first.cheatengine-sdk-api.txt", First),
@@ -117,11 +122,14 @@ public sealed class DiagnosticsTests(RoslynFixture roslyn) : IClassFixture<Rosly
 	public void Three_same_named_spec_files_receive_unique_case_insensitive_hint_names()
 	{
 		const string First =
-			"namespace: Demo\ntype: First\n" + SpecSources.Ce77 + "\nglobal: first\nmethod: LoadFirst\nform: throwing\nnil: none\ndoc: first.\n";
+			"namespace: Demo\ntype: First\n" + SpecSources.Ce77 +
+			"\nglobal: first\nmethod: LoadFirst\nform: throwing\nnil: none\ndoc: first.\n";
 		const string Second =
-			"namespace: Demo\ntype: Second\n" + SpecSources.Ce77 + "\nglobal: second\nmethod: LoadSecond\nform: throwing\nnil: none\ndoc: second.\n";
+			"namespace: Demo\ntype: Second\n" + SpecSources.Ce77 +
+			"\nglobal: second\nmethod: LoadSecond\nform: throwing\nnil: none\ndoc: second.\n";
 		const string Third =
-			"namespace: Demo\ntype: Third\n" + SpecSources.Ce77 + "\nglobal: third\nmethod: LoadThird\nform: throwing\nnil: none\ndoc: third.\n";
+			"namespace: Demo\ntype: Third\n" + SpecSources.Ce77 +
+			"\nglobal: third\nmethod: LoadThird\nform: throwing\nnil: none\ndoc: third.\n";
 
 		GeneratorRun run = roslyn.Run(
 			("One/shared.cheatengine-sdk-api.txt", First),

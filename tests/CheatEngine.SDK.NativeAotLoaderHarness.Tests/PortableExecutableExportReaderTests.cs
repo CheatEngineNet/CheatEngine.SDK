@@ -1,3 +1,5 @@
+using System.Text;
+
 using CheatEngine.SDK.NativeAotLoaderHarness.Tests.Support;
 
 namespace CheatEngine.SDK.NativeAotLoaderHarness.Tests;
@@ -68,7 +70,7 @@ public sealed class PortableExecutableExportReaderTests
 	public void Refuses_an_image_truncated_inside_an_export_name()
 	{
 		byte[] full = BridgeImage.Load();
-		int firstName = full.AsSpan().IndexOf(System.Text.Encoding.ASCII.GetBytes(BridgeImage.ExportNames[0] + "\0"));
+		int firstName = full.AsSpan().IndexOf(Encoding.ASCII.GetBytes(BridgeImage.ExportNames[0] + "\0"));
 		Assert.True(firstName > 0);
 		byte[] image = full[..(firstName + 3)];
 

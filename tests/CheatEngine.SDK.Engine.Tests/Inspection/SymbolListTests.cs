@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 
 using CheatEngine.SDK.Annotations.Lifetime;
 using CheatEngine.SDK.Engine.Inspection;
@@ -120,7 +121,7 @@ public sealed class SymbolListTests
 		LuaOperationStatus badProcessId = list.TryGetProcessId(out _);
 
 		Assert.Equal(LuaOperationStatusKind.NilResult, notFound.Kind);
-		Assert.Equal(default(SymbolInfo), none);
+		Assert.Equal(default, none);
 		Assert.Equal(LuaOperationStatusKind.NilResult, noName.Kind);
 		Assert.Null(name);
 		Assert.True(processId.IsSuccess);
@@ -361,7 +362,7 @@ public sealed class SymbolListTests
 		foreach (Type type in typeof(SymbolList).Assembly.GetExportedTypes())
 		{
 			foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance |
-														   BindingFlags.Static | BindingFlags.DeclaredOnly))
+														  BindingFlags.Static | BindingFlags.DeclaredOnly))
 			{
 				bool takesBorrowedList = (type == typeof(SymbolList) && !method.IsStatic) ||
 										 Array.Exists(method.GetParameters(),
@@ -376,7 +377,8 @@ public sealed class SymbolListTests
 		}
 
 		Assert.True(offenders.Count == 0,
-			"A public method registers, unregisters or destroys a borrowed SymbolList: " + string.Join(", ", offenders));
+			"A public method registers, unregisters or destroys a borrowed SymbolList: " +
+			string.Join(", ", offenders));
 	}
 
 	[Fact]
@@ -422,6 +424,12 @@ public sealed class SymbolListTests
 
 		public LuaHostBinding Binding => _scope.Binding;
 
+		public void Dispose()
+		{
+			_scope.Dispose();
+			_nativeState.Dispose();
+		}
+
 		/// <summary>Creates a list that the next <c>createSymbolList()</c> call returns.</summary>
 		public CEObject StageCreatedList(string initializer = "")
 		{
@@ -433,13 +441,7 @@ public sealed class SymbolListTests
 
 		public void Execute(string source)
 		{
-			EngineTest.Run(State, System.Text.Encoding.UTF8.GetBytes(source));
-		}
-
-		public void Dispose()
-		{
-			_scope.Dispose();
-			_nativeState.Dispose();
+			EngineTest.Run(State, Encoding.UTF8.GetBytes(source));
 		}
 	}
 }

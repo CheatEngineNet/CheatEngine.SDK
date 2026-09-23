@@ -68,9 +68,9 @@ public sealed class AddressListExitTests
 	{
 		using AddressListTestHost host = new();
 		CEObject handle = host.AddRecord(1, extra: """
-		                                            o.props.Address = "game.exe+10"
-		                                            o.getters.getCurrentAddress = function() return function() return 0x140000010 end end
-		                                            """);
+		                                           o.props.Address = "game.exe+10"
+		                                           o.getters.getCurrentAddress = function() return function() return 0x140000010 end end
+		                                           """);
 		MemoryRecord record = new(handle);
 
 		Assert.True(record.TryGetAddressExpression(out string? expression));

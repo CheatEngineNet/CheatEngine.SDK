@@ -137,10 +137,12 @@ success is never a Cheat Engine load success.**
 | x86 or ARM64 host | Not supported |
 
 Cheat Engine's native loader removes a plugin with
-`FreeLibrary`, and [Microsoft's Native AOT library guidance](https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries)
+`FreeLibrary`,
+and [Microsoft's Native AOT library guidance](https://learn.microsoft.com/dotnet/core/deploying/native-aot/libraries)
 states that .NET does not support unloading a NativeAOT library that way; only `UnmanagedCallersOnly` methods of the
 published assembly become native exports, so the package itself can never add classic `CEPlugin_*` exports for a
-consumer. See the [full restrictions, evidence and diagnostics](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/libs/CheatEngine.SDK.Abi/README.md)
+consumer. See
+the [full restrictions, evidence and diagnostics](https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/libs/CheatEngine.SDK.Abi/README.md)
 (`CESDK9102`, `CESDK0006`).
 
 ## Requirements

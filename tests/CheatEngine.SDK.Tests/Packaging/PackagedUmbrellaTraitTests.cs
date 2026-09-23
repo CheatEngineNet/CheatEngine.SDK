@@ -5,7 +5,8 @@ using CheatEngine.SDK.Tests.Infrastructure;
 namespace CheatEngine.SDK.Tests.Packaging;
 
 /// <summary>
-///     The Debug CI leg excludes the packaging fixture with <c>--filter-not-trait "Category=Packaging"</c>, and the Release
+///     The Debug CI leg excludes the packaging fixture with <c>--filter-not-trait "Category=Packaging"</c>, and the
+///     Release
 ///     leg hands it the exact package. That only works if the trait and the collection coincide: a collection class
 ///     without the trait would start a pack in the Debug leg (or fail it under <c>CI=true</c>), and a traited class
 ///     outside the collection would silently drop out of the Debug leg. Read through <see cref="CustomAttributeData" />,
@@ -87,7 +88,8 @@ public sealed class PackagedUmbrellaTraitTests
 
 	private static bool HasTestMethod(Type type)
 	{
-		foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static |
+		foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance |
+													  BindingFlags.Static |
 													  BindingFlags.DeclaredOnly))
 		{
 			foreach (CustomAttributeData attribute in method.GetCustomAttributesData())
@@ -155,7 +157,8 @@ public sealed class PackagedUmbrellaTraitTests
 
 	private static bool HasPackagingTraitOnAMethod(Type type)
 	{
-		foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static |
+		foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance |
+													  BindingFlags.Static |
 													  BindingFlags.DeclaredOnly))
 		{
 			if (HasPackagingTrait(method))

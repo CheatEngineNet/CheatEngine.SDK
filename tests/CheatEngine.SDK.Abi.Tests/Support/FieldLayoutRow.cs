@@ -6,4 +6,9 @@ namespace CheatEngine.SDK.Abi.Tests.Support;
 /// <param name="Offset">Byte offset of the field on x64.</param>
 /// <param name="Width">Byte width of the field on x64 (a pointer or function pointer is 8).</param>
 /// <param name="Kind">What the field is; a retyped <c>void*</c> keeps its width but changes its kind.</param>
-internal readonly record struct FieldLayoutRow(string TypeFullName, string FieldName, int Offset, int Width, FieldKind Kind);
+internal readonly record struct FieldLayoutRow(
+	string TypeFullName,
+	string FieldName,
+	int Offset,
+	int Width,
+	FieldKind Kind);

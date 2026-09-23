@@ -95,10 +95,11 @@ public sealed class LuaGlobalTablesTests
 				new LuaArgumentModel("count", LuaValueKind.Int32, false)
 			])
 		});
-		Assert.NotEqual(first, first with
-		{
-			Results = new EquatableArray<LuaResultModel>([LuaResultModel.Value(LuaValueKind.Int64, "value")])
-		});
+		Assert.NotEqual(first,
+			first with
+			{
+				Results = new EquatableArray<LuaResultModel>([LuaResultModel.Value(LuaValueKind.Int64, "value")])
+			});
 		Assert.Equal(
 			new LuaArgumentModel("count", LuaValueKind.Int32, false, false, null, null),
 			new LuaArgumentModel("count", LuaValueKind.Int32, false));
@@ -107,7 +108,8 @@ public sealed class LuaGlobalTablesTests
 
 	private static LuaGlobalCallModel OptionalCall()
 	{
-		return new LuaGlobalCallModel("readBytes", LuaGlobalCallModel.CacheFieldFor("readBytes"), "public static partial",
+		return new LuaGlobalCallModel("readBytes", LuaGlobalCallModel.CacheFieldFor("readBytes"),
+			"public static partial",
 			"ReadBytes", string.Empty,
 			new EquatableArray<LuaArgumentModel>([
 				new LuaArgumentModel("address", LuaValueKind.Address, false),

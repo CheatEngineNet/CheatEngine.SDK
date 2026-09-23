@@ -10,7 +10,9 @@ namespace CheatEngine.SDK.Repository.Tests.Solution;
 public sealed class QualificationHarnessShapeTests
 {
 	private const string LiveProbe = "tests/CheatEngine.SDK.LiveProbe/CheatEngine.SDK.LiveProbe.csproj";
-	private const string Target = "tests/CheatEngine.SDK.QualificationTarget/CheatEngine.SDK.QualificationTarget.csproj";
+
+	private const string Target =
+		"tests/CheatEngine.SDK.QualificationTarget/CheatEngine.SDK.QualificationTarget.csproj";
 
 	[Fact]
 	public void LiveProbe_is_in_the_solution_as_an_x64_dynamic_loading_plugin_that_never_packs()
@@ -35,7 +37,8 @@ public sealed class QualificationHarnessShapeTests
 		Assert.Equal("Exe", Property(project, "OutputType"));
 		Assert.Equal("true", Property(project, "PublishAot"));
 		Assert.Equal(["win-x64", "win-x86"],
-			(Property(project, "RuntimeIdentifiers") ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries));
+			(Property(project, "RuntimeIdentifiers") ?? string.Empty).Split(';',
+				StringSplitOptions.RemoveEmptyEntries));
 		Assert.Null(Property(project, "RuntimeIdentifier"));
 		Assert.True(File.Exists(Absolute("tests/CheatEngine.SDK.QualificationTarget/README.md")));
 	}
@@ -73,7 +76,8 @@ public sealed class QualificationHarnessShapeTests
 
 	private static XElement Project(string path)
 	{
-		return XDocument.Load(Absolute(path)).Root ?? throw new InvalidOperationException(path + " has no root element.");
+		return XDocument.Load(Absolute(path)).Root ??
+			   throw new InvalidOperationException(path + " has no root element.");
 	}
 
 	private static string? Property(XElement project, string name)

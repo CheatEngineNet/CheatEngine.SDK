@@ -18,7 +18,7 @@ namespace CheatEngine.SDK.Repository.Tests.ApiGates;
 ///     to one namespace it has a <c>ProjectReference</c> to. This project has none, by design (its own top-of-file
 ///     comment: it only reads committed files and never builds, packs or restores), so it cannot reflect over a
 ///     referenced assembly. Instead it loads the shipping assemblies' own build output with
-///     <see cref="Assembly.LoadFrom(string)"/> from <c>artifacts/bin/CheatEngine.SDK/&lt;configuration&gt;</c> — the one
+///     <see cref="Assembly.LoadFrom(string)" /> from <c>artifacts/bin/CheatEngine.SDK/&lt;configuration&gt;</c> — the one
 ///     folder <c>src/CheatEngine.SDK</c> copies every <c>libs/</c> assembly into (its csproj comment "Libraries embedded
 ///     under lib/net10.0") alongside its own — which the solution build that runs before this test module (shared
 ///     contracts section 1.8: build, then pack, then test) has already populated. This is still a from-disk load, never
@@ -27,7 +27,16 @@ namespace CheatEngine.SDK.Repository.Tests.ApiGates;
 /// </remarks>
 public sealed class ApiGateDiagnosticTests
 {
-	private const string UrlFormat = "https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md";
+	private const string UrlFormat =
+		"https://github.com/CheatEngineNet/CheatEngine.SDK/blob/main/analyzers/docs/{0}.md";
+
+	/// <summary>
+	///     The shipping assemblies (<c>libs/</c> + <c>src/CheatEngine.SDK</c> itself), loaded once per test process from
+	///     the current configuration's build output. The configuration is read from this test module's own output
+	///     directory name (<c>artifacts/bin/CheatEngine.SDK.Repository.Tests/&lt;configuration&gt;</c>), never
+	///     hard-coded, so the same test scans whichever leg (Debug or Release) built it.
+	/// </summary>
+	private static readonly Lazy<List<Assembly>> s_shippingAssemblies = new(LoadShippingAssemblies);
 
 	[Fact]
 	public void Every_api_gate_attribute_uses_a_CESDK_id_and_the_documentation_url_format()
@@ -44,7 +53,8 @@ public sealed class ApiGateDiagnosticTests
 
 			if (!string.Equals(gate.UrlFormat, UrlFormat, StringComparison.Ordinal))
 			{
-				offenders.Add($"{gate.Location}: {gate.Kind}('{gate.Id}') has UrlFormat '{gate.UrlFormat}', expected '{UrlFormat}'.");
+				offenders.Add(
+					$"{gate.Location}: {gate.Kind}('{gate.Id}') has UrlFormat '{gate.UrlFormat}', expected '{UrlFormat}'.");
 			}
 		}
 
@@ -99,14 +109,6 @@ public sealed class ApiGateDiagnosticTests
 		return true;
 	}
 
-	/// <summary>
-	///     The shipping assemblies (<c>libs/</c> + <c>src/CheatEngine.SDK</c> itself), loaded once per test process from
-	///     the current configuration's build output. The configuration is read from this test module's own output
-	///     directory name (<c>artifacts/bin/CheatEngine.SDK.Repository.Tests/&lt;configuration&gt;</c>), never
-	///     hard-coded, so the same test scans whichever leg (Debug or Release) built it.
-	/// </summary>
-	private static readonly Lazy<List<Assembly>> s_shippingAssemblies = new(LoadShippingAssemblies);
-
 	private static List<ApiGate> ApiGates()
 	{
 		List<ApiGate> gates = [];
@@ -156,7 +158,8 @@ public sealed class ApiGateDiagnosticTests
 		}
 
 		List<Assembly> assemblies = [];
-		foreach (string dll in Directory.EnumerateFiles(directory, "CheatEngine.SDK*.dll", SearchOption.TopDirectoryOnly))
+		foreach (string dll in Directory.EnumerateFiles(directory, "CheatEngine.SDK*.dll",
+					 SearchOption.TopDirectoryOnly))
 		{
 			assemblies.Add(Assembly.LoadFrom(dll));
 		}

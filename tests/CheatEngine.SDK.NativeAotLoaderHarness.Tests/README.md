@@ -34,8 +34,7 @@ win-x64, Release) exports exactly the two probe names and `DotNetRuntimeDebugHea
 - The reader returns the bridge's four export names and refuses a non-AMD64 image, an image without an export directory
   and truncated bytes (`PortableExecutableExportReaderTests`).
 - The contract refuses a `CEPlugin_*` export, including one read from patched bytes, a missing probe export and any
-  unexpected export, and accepts exactly the probe names plus the measured runtime export
-  (`LibraryProbeContractTests`).
+  unexpected export, and accepts exactly the probe names plus the measured runtime export (`LibraryProbeContractTests`).
 - The probe source declares exactly the two required entry points and no `CEPlugin_*` name
   (`NativeAotLibraryProbeExportSurfaceTests`).
 

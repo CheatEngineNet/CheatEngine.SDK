@@ -154,13 +154,17 @@ internal sealed partial class ReleaseWorkflow
 	/// <summary>A child mapping, or null.</summary>
 	public static YamlMappingNode? Mapping(YamlMappingNode node, string key)
 	{
-		return node.Children.TryGetValue(new YamlScalarNode(key), out YamlNode? value) ? value as YamlMappingNode : null;
+		return node.Children.TryGetValue(new YamlScalarNode(key), out YamlNode? value)
+			? value as YamlMappingNode
+			: null;
 	}
 
 	/// <summary>A child sequence, or null.</summary>
 	public static YamlSequenceNode? Sequence(YamlMappingNode node, string key)
 	{
-		return node.Children.TryGetValue(new YamlScalarNode(key), out YamlNode? value) ? value as YamlSequenceNode : null;
+		return node.Children.TryGetValue(new YamlScalarNode(key), out YamlNode? value)
+			? value as YamlSequenceNode
+			: null;
 	}
 
 	/// <summary>The keys of a mapping, in order.</summary>
@@ -187,6 +191,6 @@ internal sealed partial class ReleaseWorkflow
 		return values;
 	}
 
-	[GeneratedRegex(@"\s+", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"\s+", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex Whitespace();
 }

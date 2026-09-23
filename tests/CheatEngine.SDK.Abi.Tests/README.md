@@ -19,15 +19,16 @@ Engine itself.
 
 Independent techniques check the layout, so one mistake cannot hide behind another. `Managed/` and `Native/` mirror
 the `CheatEngine.SDK.Abi` namespaces. `Support/` holds `Layout`, the `AbiShape` gate, the per-field `FieldLayoutGate`
-with its literal `FieldLayoutExpectations` table, and their tests. Expected numbers are literals next to the assertion or
+with its literal `FieldLayoutExpectations` table, and their tests. Expected numbers are literals next to the assertion
+or
 in that table, never derived from the code under test.
 
-| Technique              | What it does                                                                                                                                                                                                               |
-|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Address-of arithmetic  | `Layout.SizeOf<T>()` and `Layout.OffsetOf` measure the size and every field offset.                                                                                                                                        |
-| Raw bytes              | The packed 36-byte init record is written into a guard-filled buffer at an aligned and an odd address. The 48-byte exports record is built as raw bytes, then read through the struct.                                     |
-| Host simulation        | `&Method` of a real `[UnmanagedCallersOnly]` `Stdcall` function is stored in every typed function-pointer slot, then called through the field.                                                                             |
-| Per-field gate         | `FieldLayout/FieldLayoutContractTests` walks every instance field of every struct (public, internal, nested private, compiler-generated backing fields) and compares its offset (measured with the IL `ldflda` instruction), width and kind with one literal row of `Support/FieldLayoutExpectations.cs`, in both directions.                                     |
+| Technique              | What it does                                                                                                                                                                                                                                                                                                                                                                               |
+|------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Address-of arithmetic  | `Layout.SizeOf<T>()` and `Layout.OffsetOf` measure the size and every field offset.                                                                                                                                                                                                                                                                                                        |
+| Raw bytes              | The packed 36-byte init record is written into a guard-filled buffer at an aligned and an odd address. The 48-byte exports record is built as raw bytes, then read through the struct.                                                                                                                                                                                                     |
+| Host simulation        | `&Method` of a real `[UnmanagedCallersOnly]` `Stdcall` function is stored in every typed function-pointer slot, then called through the field.                                                                                                                                                                                                                                             |
+| Per-field gate         | `FieldLayout/FieldLayoutContractTests` walks every instance field of every struct (public, internal, nested private, compiler-generated backing fields) and compares its offset (measured with the IL `ldflda` instruction), width and kind with one literal row of `Support/FieldLayoutExpectations.cs`, in both directions.                                                              |
 | Native-fact comparison | The native CI job builds the checked `ce77-native-abi-facts.txt`; the Debug build-test job passes it in and sets the required gate. A compiled managed test measures every fixture-covered layout (C-header records and, since schema 3, the packed managed bootstrap record and the managed exports) and compares its size, alignment, and every field's offset and width to that output. |
 
 The test assembly applies `[assembly: DisableRuntimeMarshalling]`, so calls take the path a plugin takes.
@@ -36,14 +37,17 @@ for `Bool8`). Every branch of `AbiArchitecture` is tested through its internal o
 
 `NativeAbiFixtureManagedComparisonTests` has no local fixture dependency. The Debug build-test CI job downloads the
 facts the native job built, supplies `CE77_NATIVE_ABI_FACTS_PATH` and sets `CE77_NATIVE_ABI_REQUIRED=true` for its
-solution test run, which makes a missing facts path fail the comparison gate. Ordinary managed runs omit the required mode and can omit the facts path; that local opt-out is
+solution test run, which makes a missing facts path fail the comparison gate. Ordinary managed runs omit the required
+mode and can omit the facts path; that local opt-out is
 intentional and is not a substitute for an exact-host test.
 
 - `AssemblyConformanceTests` compares an expected-size table with every struct of the assembly (public, internal and
   nested, keyed by full name) in both directions, then runs the `AbiShape` reflection gate over every struct.
 - `FieldLayoutContractTests` is the per-field gate: a field without a row, a row without a field, or a wrong offset,
-  width or kind fails the run. `Reflected_offsets_agree_with_address_of_offsets_for_the_packed_init_record_and_the_managed_exports`
-  proves that the reflected offsets equal the C# address-of arithmetic, and two wrong-on-purpose nested structs prove the
+  width or kind fails the run.
+  `Reflected_offsets_agree_with_address_of_offsets_for_the_packed_init_record_and_the_managed_exports`
+  proves that the reflected offsets equal the C# address-of arithmetic, and two wrong-on-purpose nested structs prove
+  the
   gate reports each class of error (including a size-preserving retype that a size check misses).
 - The gate rejects `bool`, `char`, references, foreign value types, managed or non-`Stdcall` function pointers and
   by-reference parameters at any depth. It exists because `delegate* unmanaged[Cdecl]<bool, char>` compiles without a
@@ -65,7 +69,8 @@ intentional and is not a substitute for an exact-host test.
   An unpacked mirror is 40 bytes and writes 4 bytes past the host's 36-byte variable.
 - The type-0 selection record matches the host type of `plugin.pas` field by field, and both same-size Pascal mirrors
   are told apart by a per-field check (`SelectedRecordOracleTests`).
-- The embedded [classic slot registry](../CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json) agrees with `ExportedFunctionsPrefix`
+- The embedded [classic slot registry](../CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json)
+  agrees with `ExportedFunctionsPrefix`
   on slots 0-17, their offsets, widths and opacity (`ClassicSlotRegistryPrefixTests`).
 - A classic slot is observed only when the declared and the physical sizes both reach `8 * (slot + 1)` bytes, for every
   slot and boundary, and the prefix copy is all or nothing between slot boundaries

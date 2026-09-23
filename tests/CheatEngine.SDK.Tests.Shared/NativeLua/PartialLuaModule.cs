@@ -46,20 +46,6 @@ internal sealed class PartialLuaModule : IDisposable
 		private set;
 	}
 
-	/// <summary>Copies <paramref name="fixturePath" />, removes <see cref="RemovedExport" /> from the copy and loads it.</summary>
-	/// <exception cref="InvalidOperationException">The image is not PE32+ or does not export <see cref="RemovedExport" />.</exception>
-	public static PartialLuaModule Load(string fixturePath)
-	{
-		byte[] image = File.ReadAllBytes(fixturePath);
-		RenameExport(image, RemovedExport, ReplacementName);
-		string directory = Path.Combine(Path.GetTempPath(), "CheatEngine.SDK.Tests",
-			"partial-lua-" + Guid.NewGuid().ToString("N"));
-		Directory.CreateDirectory(directory);
-		string path = Path.Combine(directory, "lua53-partial.dll");
-		File.WriteAllBytes(path, image);
-		return new PartialLuaModule(directory, NativeLibrary.Load(path));
-	}
-
 	/// <summary>Frees the copy and deletes its folder.</summary>
 	public void Dispose()
 	{
@@ -83,6 +69,20 @@ internal sealed class PartialLuaModule : IDisposable
 		}
 	}
 
+	/// <summary>Copies <paramref name="fixturePath" />, removes <see cref="RemovedExport" /> from the copy and loads it.</summary>
+	/// <exception cref="InvalidOperationException">The image is not PE32+ or does not export <see cref="RemovedExport" />.</exception>
+	public static PartialLuaModule Load(string fixturePath)
+	{
+		byte[] image = File.ReadAllBytes(fixturePath);
+		RenameExport(image, RemovedExport, ReplacementName);
+		string directory = Path.Combine(Path.GetTempPath(), "CheatEngine.SDK.Tests",
+			"partial-lua-" + Guid.NewGuid().ToString("N"));
+		Directory.CreateDirectory(directory);
+		string path = Path.Combine(directory, "lua53-partial.dll");
+		File.WriteAllBytes(path, image);
+		return new PartialLuaModule(directory, NativeLibrary.Load(path));
+	}
+
 	/// <summary>
 	///     Overwrites the export name <paramref name="existing" /> of a PE32+ <paramref name="image" /> in place with
 	///     <paramref name="replacement" />, found through the export directory rather than by searching the bytes.
@@ -94,7 +94,8 @@ internal sealed class PartialLuaModule : IDisposable
 	{
 		if (replacement.Length != existing.Length)
 		{
-			throw new ArgumentException("The replacement must have the length of the original name.", nameof(replacement));
+			throw new ArgumentException("The replacement must have the length of the original name.",
+				nameof(replacement));
 		}
 
 		int signature = BinaryPrimitives.ReadInt32LittleEndian(image.AsSpan(PeHeaderPointerOffset));
@@ -107,7 +108,9 @@ internal sealed class PartialLuaModule : IDisposable
 
 		int sectionCount = BinaryPrimitives.ReadUInt16LittleEndian(image.AsSpan(signature + 6));
 		int sections = optionalHeader + BinaryPrimitives.ReadUInt16LittleEndian(image.AsSpan(signature + 20));
-		uint exportRva = BinaryPrimitives.ReadUInt32LittleEndian(image.AsSpan(optionalHeader + ExportDirectoryOffsetInOptionalHeader));
+		uint exportRva =
+			BinaryPrimitives.ReadUInt32LittleEndian(
+				image.AsSpan(optionalHeader + ExportDirectoryOffsetInOptionalHeader));
 		int exportDirectory = ToFileOffset(image, sections, sectionCount, exportRva);
 		int nameCount = BinaryPrimitives.ReadInt32LittleEndian(image.AsSpan(exportDirectory + 24));
 		int nameTable = ToFileOffset(image, sections, sectionCount,
@@ -129,7 +132,8 @@ internal sealed class PartialLuaModule : IDisposable
 		}
 
 		bool staysSorted = (target == 0 || string.CompareOrdinal(names[target - 1].Name, replacement) < 0) &&
-						   (target == names.Count - 1 || string.CompareOrdinal(replacement, names[target + 1].Name) < 0);
+						   (target == names.Count - 1 ||
+							string.CompareOrdinal(replacement, names[target + 1].Name) < 0);
 		if (!staysSorted)
 		{
 			throw new InvalidOperationException($"'{replacement}' would leave the export name table unsorted.");

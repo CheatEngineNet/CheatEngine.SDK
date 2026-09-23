@@ -75,7 +75,7 @@ public sealed class AobBoundedScanTests
 		LuaState L = scope.State;
 		_ = MemScanTestHost.Install(L);
 		MemScanTestHost.ClearTrace(L);
-		Address[] destination = [new Address(0xA11CE)];
+		Address[] destination = [new(0xA11CE)];
 
 		AobBoundedScanResult result = Scan(default, destination);
 
@@ -112,7 +112,8 @@ public sealed class AobBoundedScanTests
 
 	[Fact]
 	[Trait("Qualification", "Q28")]
-	public void TryScanWithinBounds_passes_the_bounds_verbatim_as_integers_and_disables_only_one_result_before_the_first_scan()
+	public void
+		TryScanWithinBounds_passes_the_bounds_verbatim_as_integers_and_disables_only_one_result_before_the_first_scan()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -130,7 +131,8 @@ public sealed class AobBoundedScanTests
 		MemScanTestHost.AssertLua(L, "first_scan_args[4] == '55 48 89 E5' and first_scan_args[5] == ''");
 		MemScanTestHost.AssertLua(L, "first_scan_start_type == 'integer' and first_scan_args[6] == 0x100000000");
 		MemScanTestHost.AssertLua(L, "first_scan_stop_type == 'integer' and first_scan_args[7] == math.mininteger");
-		MemScanTestHost.AssertLua(L, "first_scan_args[8] == '' and first_scan_args[9] == 0 and first_scan_args[10] == ''");
+		MemScanTestHost.AssertLua(L,
+			"first_scan_args[8] == '' and first_scan_args[9] == 0 and first_scan_args[10] == ''");
 		MemScanTestHost.AssertLua(L, "first_scan_args[11] == true and first_scan_args[12] == false");
 		MemScanTestHost.AssertLua(L, "first_scan_args[13] == false and first_scan_args[14] == false");
 		Assert.Equal(0L, MemScanTestHost.ReadInteger(L, "create_mem_scan_argument_count"));
@@ -147,7 +149,8 @@ public sealed class AobBoundedScanTests
 		LuaState L = scope.State;
 		_ = MemScanTestHost.Install(L);
 
-		_ = AobScanner.TryScanWithinBounds(Pattern, ModuleBounds, new AobScanOptions("+X-C-W", FastScanMethod.Aligned, "4"),
+		_ = AobScanner.TryScanWithinBounds(Pattern, ModuleBounds,
+			new AobScanOptions("+X-C-W", FastScanMethod.Aligned, "4"),
 			new Address[1], TestContext.Current.CancellationToken);
 
 		MemScanTestHost.AssertLua(L, "first_scan_args[8] == '+X-C-W' and first_scan_args[9] == 1");
@@ -187,7 +190,7 @@ public sealed class AobBoundedScanTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		_ = MemScanTestHost.Install(L);
-		Address[] destination = [new Address(0xA11CE)];
+		Address[] destination = [new(0xA11CE)];
 
 		AobBoundedScanResult result = Scan(ModuleBounds, destination);
 
@@ -212,7 +215,7 @@ public sealed class AobBoundedScanTests
 		LuaState L = scope.State;
 		_ = MemScanTestHost.Install(L);
 		MemScanTestHost.Run(L, "scan_error_string = 'No readable memory found'");
-		Address[] destination = [new Address(0xA11CE)];
+		Address[] destination = [new(0xA11CE)];
 
 		AobBoundedScanResult result = Scan(ModuleBounds, destination);
 
@@ -353,7 +356,7 @@ public sealed class AobBoundedScanTests
 		using CancellationTokenSource cancellation = new();
 		using FakeHost.PCallProbe probe =
 			FakeHost.ReplaceFoundListGetAddressWithPCallProbe(L, objects.FoundList, cancellation.Cancel);
-		Address[] destination = [new Address(0xA11CE), new Address(0xA11CE), new Address(0xA11CE)];
+		Address[] destination = [new(0xA11CE), new(0xA11CE), new(0xA11CE)];
 
 		AobBoundedScanResult result = ScanWithToken(Bounds(0, 0x10000), destination, cancellation.Token);
 
@@ -490,7 +493,7 @@ public sealed class AobBoundedScanTests
 		SetAddresses(L, "100000000");
 		InsufficientMemoryException injected = new("injected staging allocation failure");
 		StagingPool pool = new(injected);
-		Address[] destination = [new Address(0xA11CE)];
+		Address[] destination = [new(0xA11CE)];
 
 		InsufficientMemoryException thrown = Assert.Throws<InsufficientMemoryException>(() =>
 			AobBoundedScan.Run(Pattern, ModuleBounds, AobScanOptions.Default, null, destination, pool,
@@ -546,7 +549,7 @@ public sealed class AobBoundedScanTests
 		LuaState L = scope.State;
 		_ = MemScanTestHost.Install(L);
 		MemScanTestHost.Run(L, mode);
-		Address[] destination = [new Address(0xA11CE), new Address(0xA11CE)];
+		Address[] destination = [new(0xA11CE), new(0xA11CE)];
 
 		AobBoundedScanResult result = Scan(ModuleBounds, destination);
 
@@ -572,7 +575,7 @@ public sealed class AobBoundedScanTests
 		MemScanTestHost.Run(L, "scan_first_hook = function() opened_process_id = " +
 							   MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture) +
 							   " end");
-		Address[] destination = [new Address(0xA11CE)];
+		Address[] destination = [new(0xA11CE)];
 
 		AobBoundedScanResult result = Scan(ModuleBounds, destination);
 
@@ -707,7 +710,7 @@ public sealed class AobBoundedScanTests
 		_ = MemScanTestHost.Install(L);
 		SetAddresses(L, "100000000");
 		MemScanTestHost.Run(L, "scan_wait_modes = { 'false', 'true' }");
-		Address[] destination = [new Address(0xA11CE)];
+		Address[] destination = [new(0xA11CE)];
 
 		AobBoundedScanResult result = AobScanner.TryScanWithinBounds(Pattern, ModuleBounds, AobScanOptions.Default,
 			TimeSpan.FromMilliseconds(100), destination, TestContext.Current.CancellationToken);
@@ -869,22 +872,26 @@ public sealed class AobBoundedScanTests
 
 		public int RentCount
 		{
-			get; private set;
+			get;
+			private set;
 		}
 
 		public int ReturnCount
 		{
-			get; private set;
+			get;
+			private set;
 		}
 
 		public Address[]? LastRented
 		{
-			get; private set;
+			get;
+			private set;
 		}
 
 		public Address[]? LastReturned
 		{
-			get; private set;
+			get;
+			private set;
 		}
 
 		public override Address[] Rent(int minimumLength)

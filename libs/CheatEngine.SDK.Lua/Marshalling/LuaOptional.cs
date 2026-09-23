@@ -59,7 +59,8 @@ public static class LuaOptional
 ///         <see cref="LuaOptional.Omitted{T}" />.
 ///     </para>
 ///     <para>
-///         The type is an ordinary (non-<see langword="ref" />) struct, so a span cannot be optional; an optional text value
+///         The type is an ordinary (non-<see langword="ref" />) struct, so a span cannot be optional; an optional text
+///         value
 ///         is a <c>LuaOptional&lt;string&gt;</c>. Creating one allocates nothing beyond the value itself.
 ///     </para>
 /// </remarks>

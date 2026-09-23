@@ -352,7 +352,8 @@ public sealed class IncrementalityTests(RoslynFixture roslyn) : IClassFixture<Ro
 	private static string[] OptionalMembers()
 	{
 		string body = OptionalBindingSources.GlobalSuite.ReplaceLineEndings("\n");
-		int open = body.IndexOf("{\n", body.IndexOf("class Optionals", StringComparison.Ordinal), StringComparison.Ordinal);
+		int open = body.IndexOf("{\n", body.IndexOf("class Optionals", StringComparison.Ordinal),
+			StringComparison.Ordinal);
 		int close = body.LastIndexOf('}');
 		return
 		[

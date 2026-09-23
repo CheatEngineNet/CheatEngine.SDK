@@ -3,6 +3,7 @@ using System.Globalization;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Plugin;
 using CheatEngine.SDK.Lua.Calls;
+using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 
 namespace LiveProbe;
@@ -20,7 +21,7 @@ internal sealed class Ce77LiveProbePlugin : CheatEnginePlugin
 	/// <inheritdoc />
 	protected override void OnEnable()
 	{
-		LuaState state = CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+		LuaState state = LuaRuntime.AcquireState();
 		LuaStatus registration = ProbeConsole.RegisterLuaFunctions(state);
 		HostLog.Write(registration.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
 			string.Create(CultureInfo.InvariantCulture,
@@ -37,7 +38,7 @@ internal sealed class Ce77LiveProbePlugin : CheatEnginePlugin
 	/// <inheritdoc />
 	protected override void OnDisable()
 	{
-		LuaState state = CheatEngine.SDK.Lua.Runtime.LuaRuntime.AcquireState();
+		LuaState state = LuaRuntime.AcquireState();
 		LuaStatus registration = ProbeConsole.UnregisterLuaFunctions(state);
 		HostLog.Write(registration.IsOk ? HostLogLevel.Information : HostLogLevel.Error,
 			string.Create(CultureInfo.InvariantCulture,

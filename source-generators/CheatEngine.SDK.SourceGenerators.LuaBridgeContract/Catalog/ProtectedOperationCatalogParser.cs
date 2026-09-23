@@ -446,7 +446,7 @@ internal static class ProtectedOperationCatalogParser
 		for (int i = 1; i < value.Length; i++)
 		{
 			char character = value[i];
-			if (character is not (>= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9'))
+			if (character is not ((>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9')))
 			{
 				return false;
 			}
@@ -932,7 +932,7 @@ internal static class ProtectedOperationCatalogParser
 			while (_position < _text.Length)
 			{
 				char character = _text[_position];
-				if (character != ' ' && character != '\t' && character != '\r' && character != '\n')
+				if (character is not ' ' and not '\t' and not '\r' and not '\n')
 				{
 					return;
 				}

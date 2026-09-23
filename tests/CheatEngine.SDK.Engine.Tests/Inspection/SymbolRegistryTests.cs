@@ -17,21 +17,21 @@ public sealed class SymbolRegistryTests
 {
 	/// <summary>A symbol handler double: registration, removal and name lookup share one table.</summary>
 	internal static ReadOnlySpan<byte> SymbolHandler => """
-	                                                   registered_symbols = {}
-	                                                   registrations = 0
-	                                                   removals = 0
-	                                                   registerSymbol = function(name, address, doNotSave)
-	                                                     registrations = registrations + 1
-	                                                     registered_symbols[name] = address
-	                                                   end
-	                                                   unregisterSymbol = function(name)
-	                                                     removals = removals + 1
-	                                                     registered_symbols[name] = nil
-	                                                   end
-	                                                   getAddressSafe = function(name, isLocal, shallow)
-	                                                     return registered_symbols[name]
-	                                                   end
-	                                                   """u8;
+	                                                    registered_symbols = {}
+	                                                    registrations = 0
+	                                                    removals = 0
+	                                                    registerSymbol = function(name, address, doNotSave)
+	                                                      registrations = registrations + 1
+	                                                      registered_symbols[name] = address
+	                                                    end
+	                                                    unregisterSymbol = function(name)
+	                                                      removals = removals + 1
+	                                                      registered_symbols[name] = nil
+	                                                    end
+	                                                    getAddressSafe = function(name, isLocal, shallow)
+	                                                      return registered_symbols[name]
+	                                                    end
+	                                                    """u8;
 
 	[Fact]
 	public void TryGetName_forwards_only_the_source_mapped_address()
@@ -224,7 +224,8 @@ public sealed class SymbolRegistryTests
 
 		SymbolRegistrationHandoffException exception = Assert.Throws<SymbolRegistrationHandoffException>(() =>
 			SymbolRegistry.TryRegisterOwnedCore(new SymbolName("Player.Health"), 0x140001000UL, default,
-				static (name, address, options, identity) => new SymbolRegistrationLease(name, address, options, identity),
+				static (name, address, options, identity) =>
+					new SymbolRegistrationLease(name, address, options, identity),
 				(_, _) => throw cause));
 
 		Assert.Same(cause, exception.InnerException);
@@ -283,7 +284,8 @@ public sealed class SymbolRegistryTests
 
 		SymbolRegistrationHandoffException exception = Assert.Throws<SymbolRegistrationHandoffException>(() =>
 			SymbolRegistry.TryRegisterOwnedCore(new SymbolName("Player.Health"), 0x140001000UL, default,
-				static (name, address, options, identity) => new SymbolRegistrationLease(name, address, options, identity),
+				static (name, address, options, identity) =>
+					new SymbolRegistrationLease(name, address, options, identity),
 				(_, _) => throw cause));
 
 		Assert.Same(cause, exception.InnerException);

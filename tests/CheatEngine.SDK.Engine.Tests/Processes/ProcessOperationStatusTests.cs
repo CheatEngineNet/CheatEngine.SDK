@@ -39,7 +39,8 @@ public sealed class ProcessOperationStatusTests
 			Assert.Equal(kind == ProcessOperationStatusKind.Success, status.IsSuccess);
 		}
 
-		Assert.Equal(LuaStatus.RuntimeError, ProcessOperationStatus.ProtectedLuaFailure(LuaStatus.RuntimeError).LuaStatus);
+		Assert.Equal(LuaStatus.RuntimeError,
+			ProcessOperationStatus.ProtectedLuaFailure(LuaStatus.RuntimeError).LuaStatus);
 		Assert.Throws<ArgumentException>(() => ProcessOperationStatus.ProtectedLuaFailure(LuaStatus.Ok));
 	}
 }

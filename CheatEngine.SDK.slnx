@@ -1,205 +1,217 @@
 <Solution>
   <Folder Name="/Solution Items/">
-    <File Path=".config/dotnet-tools.json" />
-    <File Path=".editorconfig" />
-    <File Path=".gitattributes" />
-    <File Path=".gitignore" />
-    <File Path="CHANGELOG.md" />
-    <File Path="CODE_OF_CONDUCT.md" />
-    <File Path="Directory.Build.props" />
-    <File Path="Directory.Build.targets" />
-    <File Path="Directory.Packages.props" />
-    <File Path="Directory.Solution.targets" />
-    <File Path="global.json" />
-    <File Path="LICENSE" />
-    <File Path="nuget.config" />
-    <File Path="README.md" />
-    <File Path="RELEASING.md" />
-    <File Path="SECURITY.md" />
+    <File Path=".config/dotnet-tools.json"/>
+    <File Path=".editorconfig"/>
+    <File Path=".gitattributes"/>
+    <File Path=".gitignore"/>
+    <File Path="CHANGELOG.md"/>
+    <File Path="CODE_OF_CONDUCT.md"/>
+    <File Path="Directory.Build.props"/>
+    <File Path="Directory.Build.targets"/>
+    <File Path="Directory.Packages.props"/>
+    <File Path="Directory.Solution.targets"/>
+    <File Path="global.json"/>
+    <File Path="LICENSE"/>
+    <File Path="nuget.config"/>
+    <File Path="README.md"/>
+    <File Path="RELEASING.md"/>
+    <File Path="SECURITY.md"/>
   </Folder>
   <Folder Name="/.github/">
-    <File Path=".github/CODEOWNERS" />
-    <File Path=".github/dependabot.yml" />
-    <File Path=".github/dependency-review-config.yml" />
-    <File Path=".github/zizmor.yml" />
+    <File Path=".github/CODEOWNERS"/>
+    <File Path=".github/dependabot.yml"/>
+    <File Path=".github/dependency-review-config.yml"/>
+    <File Path=".github/zizmor.yml"/>
   </Folder>
-  <Folder Name="/.github/actions/" />
+  <Folder Name="/.github/actions/"/>
   <Folder Name="/.github/actions/setup-dotnet/">
-    <File Path=".github/actions/setup-dotnet/action.yml" />
+    <File Path=".github/actions/setup-dotnet/action.yml"/>
   </Folder>
   <Folder Name="/.github/ISSUE_TEMPLATE/">
-    <File Path=".github/ISSUE_TEMPLATE/bug_report.yml" />
-    <File Path=".github/ISSUE_TEMPLATE/compatibility.yml" />
-    <File Path=".github/ISSUE_TEMPLATE/config.yml" />
+    <File Path=".github/ISSUE_TEMPLATE/bug_report.yml"/>
+    <File Path=".github/ISSUE_TEMPLATE/compatibility.yml"/>
+    <File Path=".github/ISSUE_TEMPLATE/config.yml"/>
   </Folder>
   <Folder Name="/.github/workflows/">
-    <File Path=".github/workflows/ci.yml" />
-    <File Path=".github/workflows/codeql.yml" />
-    <File Path=".github/workflows/dependency-submission.yml" />
-    <File Path=".github/workflows/main-ci.yml" />
-    <File Path=".github/workflows/release.yml" />
-    <File Path=".github/workflows/scorecard.yml" />
-    <File Path=".github/workflows/pull-request-ci.yml" />
-    <File Path=".github/workflows/sonar.yml" />
-    <File Path=".github/workflows/zizmor-online.yml" />
+    <File Path=".github/workflows/ci.yml"/>
+    <File Path=".github/workflows/codeql.yml"/>
+    <File Path=".github/workflows/dependency-submission.yml"/>
+    <File Path=".github/workflows/main-ci.yml"/>
+    <File Path=".github/workflows/release.yml"/>
+    <File Path=".github/workflows/scorecard.yml"/>
+    <File Path=".github/workflows/pull-request-ci.yml"/>
+    <File Path=".github/workflows/sonar.yml"/>
+    <File Path=".github/workflows/zizmor-online.yml"/>
   </Folder>
   <Folder Name="/eng/">
-    <File Path="eng/BannedSymbols.txt" />
-    <File Path="eng/RoslynComponent.props" />
-    <File Path="eng/Shipping.props" />
-    <File Path="eng/Tests.props" />
+    <File Path="eng/BannedSymbols.txt"/>
+    <File Path="eng/RoslynComponent.props"/>
+    <File Path="eng/Shipping.props"/>
+    <File Path="eng/Tests.props"/>
   </Folder>
-  <Folder Name="/native/" />
+  <Folder Name="/native/"/>
   <Folder Name="/native/cheat-engine/">
-    <File Path="native/cheat-engine/README.md" />
-    <File Path="native/cheat-engine/lua53-64.dll" />
+    <File Path="native/cheat-engine/README.md"/>
+    <File Path="native/cheat-engine/lua53-64.dll"/>
   </Folder>
   <Folder Name="/analyzers/">
-    <Project Path="analyzers/CheatEngine.SDK.Analyzers.CodeFixes/CheatEngine.SDK.Analyzers.CodeFixes.csproj" />
-    <Project Path="analyzers/CheatEngine.SDK.Analyzers/CheatEngine.SDK.Analyzers.csproj" />
+    <Project Path="analyzers/CheatEngine.SDK.Analyzers.CodeFixes/CheatEngine.SDK.Analyzers.CodeFixes.csproj"/>
+    <Project Path="analyzers/CheatEngine.SDK.Analyzers/CheatEngine.SDK.Analyzers.csproj"/>
   </Folder>
   <Folder Name="/analyzers/docs/">
-    <File Path="analyzers/docs/README.md" />
-    <File Path="analyzers/docs/CESDK0001.md" />
-    <File Path="analyzers/docs/CESDK0002.md" />
-    <File Path="analyzers/docs/CESDK0004.md" />
-    <File Path="analyzers/docs/CESDK1004.md" />
-    <File Path="analyzers/docs/CESDK2001.md" />
-    <File Path="analyzers/docs/CESDK2002.md" />
-    <File Path="analyzers/docs/CESDK2003.md" />
-    <File Path="analyzers/docs/CESDK2004.md" />
-    <File Path="analyzers/docs/CESDK5010.md" />
-    <File Path="analyzers/docs/CESDK5011.md" />
+    <File Path="analyzers/docs/README.md"/>
+    <File Path="analyzers/docs/CESDK0001.md"/>
+    <File Path="analyzers/docs/CESDK0002.md"/>
+    <File Path="analyzers/docs/CESDK0004.md"/>
+    <File Path="analyzers/docs/CESDK1004.md"/>
+    <File Path="analyzers/docs/CESDK2001.md"/>
+    <File Path="analyzers/docs/CESDK2002.md"/>
+    <File Path="analyzers/docs/CESDK2003.md"/>
+    <File Path="analyzers/docs/CESDK2004.md"/>
+    <File Path="analyzers/docs/CESDK5010.md"/>
+    <File Path="analyzers/docs/CESDK5011.md"/>
   </Folder>
   <Folder Name="/libs/">
-    <Project Path="libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj" />
-    <Project Path="libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj" />
-    <Project Path="libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj" />
-    <Project Path="libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj" />
-    <Project Path="libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj" />
-    <Project Path="libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj" />
+    <Project Path="libs/CheatEngine.SDK.Abi/CheatEngine.SDK.Abi.csproj"/>
+    <Project Path="libs/CheatEngine.SDK.Annotations/CheatEngine.SDK.Annotations.csproj"/>
+    <Project Path="libs/CheatEngine.SDK.Engine/CheatEngine.SDK.Engine.csproj"/>
+    <Project Path="libs/CheatEngine.SDK.Hosting/CheatEngine.SDK.Hosting.csproj"/>
+    <Project Path="libs/CheatEngine.SDK.Lua.Interop/CheatEngine.SDK.Lua.Interop.csproj"/>
+    <Project Path="libs/CheatEngine.SDK.Lua/CheatEngine.SDK.Lua.csproj"/>
   </Folder>
   <Folder Name="/source-generators/">
-    <Project Path="source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/CheatEngine.SDK.SourceGenerators.EngineApi.csproj" />
-    <Project Path="source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/CheatEngine.SDK.SourceGenerators.EntryPoint.csproj" />
-    <Project Path="source-generators/CheatEngine.SDK.SourceGenerators.LuaBridgeContract/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.csproj" />
-    <Project Path="source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/CheatEngine.SDK.SourceGenerators.LuaBindings.csproj" />
-    <Project Path="source-generators/CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj" />
+    <Project
+      Path="source-generators/CheatEngine.SDK.SourceGenerators.EngineApi/CheatEngine.SDK.SourceGenerators.EngineApi.csproj"/>
+    <Project
+      Path="source-generators/CheatEngine.SDK.SourceGenerators.EntryPoint/CheatEngine.SDK.SourceGenerators.EntryPoint.csproj"/>
+    <Project
+      Path="source-generators/CheatEngine.SDK.SourceGenerators.LuaBridgeContract/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.csproj"/>
+    <Project
+      Path="source-generators/CheatEngine.SDK.SourceGenerators.LuaBindings/CheatEngine.SDK.SourceGenerators.LuaBindings.csproj"/>
+    <Project
+      Path="source-generators/CheatEngine.SDK.SourceGenerators.Shared/CheatEngine.SDK.SourceGenerators.Shared.csproj"/>
   </Folder>
   <Folder Name="/src/">
-    <File Path="src/CheatEngine.SDK/build/CheatEngine.SDK.props" />
-    <Project Path="src/CheatEngine.SDK/CheatEngine.SDK.csproj" />
+    <File Path="src/CheatEngine.SDK/build/CheatEngine.SDK.props"/>
+    <Project Path="src/CheatEngine.SDK/CheatEngine.SDK.csproj"/>
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/CheatEngine.SDK.Abi.Tests/CheatEngine.SDK.Abi.Tests.csproj" />
-    <Project Path="tests/CheatEngine.SDK.Analyzers.Tests/CheatEngine.SDK.Analyzers.Tests.csproj" />
+    <Project Path="tests/CheatEngine.SDK.Abi.Tests/CheatEngine.SDK.Abi.Tests.csproj"/>
+    <Project Path="tests/CheatEngine.SDK.Analyzers.Tests/CheatEngine.SDK.Analyzers.Tests.csproj"/>
     <Project Path="tests/CheatEngine.SDK.Benchmarks/CheatEngine.SDK.Benchmarks.csproj">
-      <Platform Project="x64" />
+      <Platform Project="x64"/>
     </Project>
-    <Project Path="tests/CheatEngine.SDK.Engine.Tests/CheatEngine.SDK.Engine.Tests.csproj" />
-    <Project Path="tests/CheatEngine.SDK.Hosting.Tests/CheatEngine.SDK.Hosting.Tests.csproj" />
+    <Project Path="tests/CheatEngine.SDK.Engine.Tests/CheatEngine.SDK.Engine.Tests.csproj"/>
+    <Project Path="tests/CheatEngine.SDK.Hosting.Tests/CheatEngine.SDK.Hosting.Tests.csproj"/>
     <Project Path="tests/CheatEngine.SDK.LivePlugin/CheatEngine.SDK.LivePlugin.csproj">
-      <Platform Project="x64" />
+      <Platform Project="x64"/>
     </Project>
-    <Project Path="tests/CheatEngine.SDK.LiveProbe.Tests/CheatEngine.SDK.LiveProbe.Tests.csproj" />
-    <Project Path="tests/CheatEngine.SDK.QualificationTarget/CheatEngine.SDK.QualificationTarget.csproj" />
-    <Project Path="tests/CheatEngine.SDK.Repository.Tests/CheatEngine.SDK.Repository.Tests.csproj" />
+    <Project Path="tests/CheatEngine.SDK.LiveProbe.Tests/CheatEngine.SDK.LiveProbe.Tests.csproj"/>
+    <Project Path="tests/CheatEngine.SDK.QualificationTarget/CheatEngine.SDK.QualificationTarget.csproj"/>
+    <Project Path="tests/CheatEngine.SDK.Repository.Tests/CheatEngine.SDK.Repository.Tests.csproj"/>
     <Project Path="tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj">
-      <Platform Project="x64" />
+      <Platform Project="x64"/>
     </Project>
-    <Project Path="tests/CheatEngine.SDK.NativeAotLoaderHarness.Tests/CheatEngine.SDK.NativeAotLoaderHarness.Tests.csproj" />
+    <Project
+      Path="tests/CheatEngine.SDK.NativeAotLoaderHarness.Tests/CheatEngine.SDK.NativeAotLoaderHarness.Tests.csproj"/>
     <Project Path="tests/CheatEngine.SDK.NativeAotLoaderHarness/CheatEngine.SDK.NativeAotLoaderHarness.csproj">
-      <Platform Project="x64" />
+      <Platform Project="x64"/>
     </Project>
-    <Project Path="tests/CheatEngine.SDK.LivePlugin.Coexistence/PluginA/CheatEngine.SDK.LivePlugin.Coexistence.PluginA.csproj">
-      <Platform Project="x64" />
+    <Project
+      Path="tests/CheatEngine.SDK.LivePlugin.Coexistence/PluginA/CheatEngine.SDK.LivePlugin.Coexistence.PluginA.csproj">
+      <Platform Project="x64"/>
     </Project>
-    <Project Path="tests/CheatEngine.SDK.LivePlugin.Coexistence/PluginB/CheatEngine.SDK.LivePlugin.Coexistence.PluginB.csproj">
-      <Platform Project="x64" />
+    <Project
+      Path="tests/CheatEngine.SDK.LivePlugin.Coexistence/PluginB/CheatEngine.SDK.LivePlugin.Coexistence.PluginB.csproj">
+      <Platform Project="x64"/>
     </Project>
-    <Project Path="tests/CheatEngine.SDK.Lua.Interop.Tests/CheatEngine.SDK.Lua.Interop.Tests.csproj" />
+    <Project Path="tests/CheatEngine.SDK.Lua.Interop.Tests/CheatEngine.SDK.Lua.Interop.Tests.csproj"/>
     <Project Path="tests/CheatEngine.SDK.LiveProbe/CheatEngine.SDK.LiveProbe.csproj">
-      <Platform Project="x64" />
+      <Platform Project="x64"/>
     </Project>
-    <Project Path="tests/CheatEngine.SDK.Lua.FailureProbe/CheatEngine.SDK.Lua.FailureProbe.csproj" />
-    <Project Path="tests/CheatEngine.SDK.Lua.Tests/CheatEngine.SDK.Lua.Tests.csproj" />
-    <Project Path="tests/CheatEngine.SDK.SourceGenerators.EngineApi.Tests/CheatEngine.SDK.SourceGenerators.EngineApi.Tests.csproj" />
-    <Project Path="tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.csproj" />
-    <Project Path="tests/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Tests/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Tests.csproj" />
-    <Project Path="tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.csproj" />
-    <Project Path="tests/CheatEngine.SDK.Tests/CheatEngine.SDK.Tests.csproj" />
-    <Project Path="tests/CheatEngine.SDK.Tests.Shared/CheatEngine.SDK.Tests.Shared.csproj" />
+    <Project Path="tests/CheatEngine.SDK.Lua.FailureProbe/CheatEngine.SDK.Lua.FailureProbe.csproj"/>
+    <Project Path="tests/CheatEngine.SDK.Lua.Tests/CheatEngine.SDK.Lua.Tests.csproj"/>
+    <Project
+      Path="tests/CheatEngine.SDK.SourceGenerators.EngineApi.Tests/CheatEngine.SDK.SourceGenerators.EngineApi.Tests.csproj"/>
+    <Project
+      Path="tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests/CheatEngine.SDK.SourceGenerators.EntryPoint.Tests.csproj"/>
+    <Project
+      Path="tests/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Tests/CheatEngine.SDK.SourceGenerators.LuaBridgeContract.Tests.csproj"/>
+    <Project
+      Path="tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests/CheatEngine.SDK.SourceGenerators.LuaBindings.Tests.csproj"/>
+    <Project Path="tests/CheatEngine.SDK.Tests/CheatEngine.SDK.Tests.csproj"/>
+    <Project Path="tests/CheatEngine.SDK.Tests.Shared/CheatEngine.SDK.Tests.Shared.csproj"/>
   </Folder>
   <Folder Name="/exemples/">
-    <File Path="exemples/README.md" />
+    <File Path="exemples/README.md"/>
   </Folder>
   <Folder Name="/exemples/01-first-plugin/">
-    <File Path="exemples/01-first-plugin/README.md" />
+    <File Path="exemples/01-first-plugin/README.md"/>
   </Folder>
   <Folder Name="/exemples/02-lua-functions/">
-    <File Path="exemples/02-lua-functions/README.md" />
+    <File Path="exemples/02-lua-functions/README.md"/>
   </Folder>
   <Folder Name="/exemples/03-calling-cheat-engine/">
-    <File Path="exemples/03-calling-cheat-engine/README.md" />
+    <File Path="exemples/03-calling-cheat-engine/README.md"/>
   </Folder>
   <Folder Name="/exemples/04-memory/">
-    <File Path="exemples/04-memory/README.md" />
+    <File Path="exemples/04-memory/README.md"/>
   </Folder>
   <Folder Name="/exemples/05-aob-scans/">
-    <File Path="exemples/05-aob-scans/README.md" />
+    <File Path="exemples/05-aob-scans/README.md"/>
   </Folder>
   <Folder Name="/exemples/06-value-scans/">
-    <File Path="exemples/06-value-scans/README.md" />
+    <File Path="exemples/06-value-scans/README.md"/>
   </Folder>
   <Folder Name="/exemples/07-address-list/">
-    <File Path="exemples/07-address-list/README.md" />
+    <File Path="exemples/07-address-list/README.md"/>
   </Folder>
   <Folder Name="/exemples/08-running-lua/">
-    <File Path="exemples/08-running-lua/README.md" />
+    <File Path="exemples/08-running-lua/README.md"/>
   </Folder>
   <Folder Name="/exemples/09-main-thread/">
-    <File Path="exemples/09-main-thread/README.md" />
+    <File Path="exemples/09-main-thread/README.md"/>
   </Folder>
   <Folder Name="/exemples/10-logging-and-errors/">
-    <File Path="exemples/10-logging-and-errors/README.md" />
+    <File Path="exemples/10-logging-and-errors/README.md"/>
   </Folder>
   <Folder Name="/exemples/11-diagnostics/">
-    <File Path="exemples/11-diagnostics/README.md" />
+    <File Path="exemples/11-diagnostics/README.md"/>
   </Folder>
   <Folder Name="/exemples/12-trainer/">
-    <File Path="exemples/12-trainer/README.md" />
+    <File Path="exemples/12-trainer/README.md"/>
   </Folder>
   <Folder Name="/exemples/api/">
-    <File Path="exemples/api/README.md" />
+    <File Path="exemples/api/README.md"/>
   </Folder>
   <Folder Name="/exemples/recipes/">
-    <File Path="exemples/recipes/README.md" />
+    <File Path="exemples/recipes/README.md"/>
   </Folder>
   <Folder Name="/exemples/recipes/assembly/">
-    <File Path="exemples/recipes/assembly/README.md" />
+    <File Path="exemples/recipes/assembly/README.md"/>
   </Folder>
   <Folder Name="/exemples/recipes/cheat-tables/">
-    <File Path="exemples/recipes/cheat-tables/README.md" />
+    <File Path="exemples/recipes/cheat-tables/README.md"/>
   </Folder>
   <Folder Name="/exemples/recipes/dbvm/">
-    <File Path="exemples/recipes/dbvm/README.md" />
+    <File Path="exemples/recipes/dbvm/README.md"/>
   </Folder>
   <Folder Name="/exemples/recipes/debugger/">
-    <File Path="exemples/recipes/debugger/README.md" />
+    <File Path="exemples/recipes/debugger/README.md"/>
   </Folder>
   <Folder Name="/exemples/recipes/injection/">
-    <File Path="exemples/recipes/injection/README.md" />
+    <File Path="exemples/recipes/injection/README.md"/>
   </Folder>
   <Folder Name="/exemples/recipes/processes/">
-    <File Path="exemples/recipes/processes/README.md" />
+    <File Path="exemples/recipes/processes/README.md"/>
   </Folder>
   <Folder Name="/exemples/recipes/speed-and-hashing/">
-    <File Path="exemples/recipes/speed-and-hashing/README.md" />
+    <File Path="exemples/recipes/speed-and-hashing/README.md"/>
   </Folder>
   <Folder Name="/exemples/recipes/structures/">
-    <File Path="exemples/recipes/structures/README.md" />
+    <File Path="exemples/recipes/structures/README.md"/>
   </Folder>
   <Folder Name="/exemples/recipes/symbols/">
-    <File Path="exemples/recipes/symbols/README.md" />
+    <File Path="exemples/recipes/symbols/README.md"/>
   </Folder>
 </Solution>

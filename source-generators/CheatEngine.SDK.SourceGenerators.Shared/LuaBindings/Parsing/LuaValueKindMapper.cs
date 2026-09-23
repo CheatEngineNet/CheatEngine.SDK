@@ -77,7 +77,10 @@ internal static class LuaValueKindMapper
 	///     an optional, so object members (<c>[LuaMethod]</c>, <c>[LuaProperty]</c>) keep refusing it.
 	/// </summary>
 	/// <param name="type">The parameter, result or return type.</param>
-	/// <param name="luaOptional">The resolved <c>CheatEngine.SDK.Lua.Marshalling.LuaOptional`1</c>, or <see langword="null" />.</param>
+	/// <param name="luaOptional">
+	///     The resolved <c>CheatEngine.SDK.Lua.Marshalling.LuaOptional`1</c>, or <see langword="null" />
+	///     .
+	/// </param>
 	/// <param name="inner">The kind of <c>T</c> when the result is <see cref="LuaOptionalUse.Supported" />.</param>
 	public static LuaOptionalUse ClassifyOptional(ITypeSymbol type, INamedTypeSymbol? luaOptional,
 		out LuaValueKind inner)
@@ -99,7 +102,10 @@ internal static class LuaValueKindMapper
 			: LuaOptionalUse.Unsupported;
 	}
 
-	/// <summary>Whether <paramref name="type" /> is <c>System.Span&lt;T&gt;</c> for a <c>T</c> other than <see langword="byte" />.</summary>
+	/// <summary>
+	///     Whether <paramref name="type" /> is <c>System.Span&lt;T&gt;</c> for a <c>T</c> other than
+	///     <see langword="byte" />.
+	/// </summary>
 	/// <param name="type">The parameter type.</param>
 	/// <param name="element">The element type when the result is <see langword="true" />.</param>
 	public static bool IsSpanOfOther(ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? element)

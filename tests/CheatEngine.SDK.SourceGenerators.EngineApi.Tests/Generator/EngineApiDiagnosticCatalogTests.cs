@@ -32,7 +32,8 @@ public sealed class EngineApiDiagnosticCatalogTests
 			Assert.Equal(DiagnosticSeverity.Error, descriptor.DefaultSeverity);
 			Assert.Equal(HelpLinkBase + descriptor.Id + ".md", descriptor.HelpLinkUri);
 			Assert.DoesNotMatch(@"\.$", title);
-			Assert.EndsWith(".", descriptor.Description.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+			Assert.EndsWith(".", descriptor.Description.ToString(CultureInfo.InvariantCulture),
+				StringComparison.Ordinal);
 
 			string page = Path.Combine(root, "analyzers", "docs", descriptor.Id + ".md");
 			Assert.True(File.Exists(page), "Missing documentation page " + page + ".");
@@ -48,7 +49,8 @@ public sealed class EngineApiDiagnosticCatalogTests
 	{
 		return
 		[
-			.. typeof(EngineApiGenerator).Assembly.GetType("CheatEngine.SDK.SourceGenerators.EngineApi.EngineApiDiagnostics",
+			.. typeof(EngineApiGenerator).Assembly.GetType(
+					"CheatEngine.SDK.SourceGenerators.EngineApi.EngineApiDiagnostics",
 					true)!
 				.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
 				.Where(static field => field.FieldType == typeof(DiagnosticDescriptor))
@@ -59,7 +61,9 @@ public sealed class EngineApiDiagnosticCatalogTests
 	// The directory that holds CheatEngine.SDK.slnx, found from the test binaries upwards.
 	private static string RepositoryRoot()
 	{
-		for (DirectoryInfo? directory = new(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+		for (DirectoryInfo? directory = new(AppContext.BaseDirectory);
+			 directory is not null;
+			 directory = directory.Parent)
 		{
 			if (File.Exists(Path.Combine(directory.FullName, "CheatEngine.SDK.slnx")))
 			{
@@ -67,6 +71,7 @@ public sealed class EngineApiDiagnosticCatalogTests
 			}
 		}
 
-		throw new InvalidOperationException("CheatEngine.SDK.slnx was not found above " + AppContext.BaseDirectory + ".");
+		throw new InvalidOperationException(
+			"CheatEngine.SDK.slnx was not found above " + AppContext.BaseDirectory + ".");
 	}
 }

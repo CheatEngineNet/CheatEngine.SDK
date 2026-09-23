@@ -32,12 +32,14 @@ public sealed partial class WorkflowContractTests
 		YamlMappingNode strategy = Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(job.Node, "strategy"));
 		Assert.Equal("false", WorkflowFile.Scalar(strategy, "fail-fast"));
 		YamlMappingNode matrix = Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(strategy, "matrix"));
-		Assert.Equal(["Debug", "Release"], WorkflowFile.ScalarValues(Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(matrix, "configuration"))));
+		Assert.Equal(["Debug", "Release"],
+			WorkflowFile.ScalarValues(Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(matrix, "configuration"))));
 		Assert.Equal(["native", "native-host-emulator"], job.Needs());
 
 		// One build of the whole solution per leg, logged for failure analysis; every later step reuses it.
 		string build = WorkflowFile.Scalar(job.Step("Build"), "run") ?? "";
-		Assert.Contains("dotnet build CheatEngine.SDK.slnx -c $env:CONFIGURATION --no-restore", build, StringComparison.Ordinal);
+		Assert.Contains("dotnet build CheatEngine.SDK.slnx -c $env:CONFIGURATION --no-restore", build,
+			StringComparison.Ordinal);
 		Assert.Contains("\"-bl:artifacts/logs/build-test-$env:CONFIGURATION.binlog\"", build, StringComparison.Ordinal);
 	}
 
@@ -58,7 +60,8 @@ public sealed partial class WorkflowContractTests
 		Assert.Equal("matrix.configuration == 'Release'", WorkflowFile.Scalar(packStep, "if"));
 		Assert.Equal("${{ inputs.package-version }}", WorkflowJob.Env(packStep, "PACKAGE_VERSION"));
 		string packRun = WorkflowFile.Scalar(packStep, "run") ?? "";
-		Assert.Contains("dotnet pack src/CheatEngine.SDK -c Release --no-restore -o artifacts/nuget -bl:artifacts/logs/pack-Release.binlog",
+		Assert.Contains(
+			"dotnet pack src/CheatEngine.SDK -c Release --no-restore -o artifacts/nuget -bl:artifacts/logs/pack-Release.binlog",
 			packRun, StringComparison.Ordinal);
 
 		// The packaging tests consume the packed file itself, in the Release leg only, and log its SHA-256.
@@ -77,7 +80,8 @@ public sealed partial class WorkflowContractTests
 		Assert.Contains("'_manifest/spdx_2.2/manifest.spdx.json'", packRun, StringComparison.Ordinal);
 		Assert.Contains("\"nupkg=$($package.FullName)\"", packRun, StringComparison.Ordinal);
 		Assert.Contains("\"sha256=$sha256\"", packRun, StringComparison.Ordinal);
-		Assert.Contains("$package.Name -cne \"CheatEngine.SDK.$($env:PACKAGE_VERSION).nupkg\"", packRun, StringComparison.Ordinal);
+		Assert.Contains("$package.Name -cne \"CheatEngine.SDK.$($env:PACKAGE_VERSION).nupkg\"", packRun,
+			StringComparison.Ordinal);
 		Assert.Contains("'build/native/cheatengine-sdk-lua-bridge.dll'", packRun, StringComparison.Ordinal);
 	}
 
@@ -91,14 +95,18 @@ public sealed partial class WorkflowContractTests
 		int debug = run.IndexOf("if ($env:CONFIGURATION -eq 'Debug') {", StringComparison.Ordinal);
 		int release = run.IndexOf("else {", debug + 1, StringComparison.Ordinal);
 		int failSkips = run.IndexOf("'--fail-skips', 'on'", StringComparison.Ordinal);
-		int filter = run.IndexOf($"'--filter-not-trait', '{WorkflowContract.PackagingTrait}'", StringComparison.Ordinal);
+		int filter = run.IndexOf($"'--filter-not-trait', '{WorkflowContract.PackagingTrait}'",
+			StringComparison.Ordinal);
 		Assert.True(options >= 0 && options < failSkips && failSkips < debug,
 			"--fail-skips on must be a common option of both legs.");
 		Assert.True(debug < filter && filter < release, "The packaging trait filter belongs to the Debug leg only.");
 
 		// No other way to hide a test: no second filter, no ignored exit code, no retries in the required run.
 		Assert.Equal(1, Occurrences(run, "--filter"));
-		foreach (string forbidden in new[] { "--ignore-exit-code", "--retry-failed-tests", "TESTINGPLATFORM_EXITCODE_IGNORE" })
+		foreach (string forbidden in new[]
+				 {
+					 "--ignore-exit-code", "--retry-failed-tests", "TESTINGPLATFORM_EXITCODE_IGNORE"
+				 })
 		{
 			Assert.DoesNotContain(forbidden, run, StringComparison.Ordinal);
 		}
@@ -119,8 +127,9 @@ public sealed partial class WorkflowContractTests
 		Assert.Contains("dotnet test @options", run, StringComparison.Ordinal);
 		foreach (string option in new[]
 				 {
-					 "'--solution', 'CheatEngine.SDK.slnx'", "'--no-build'", "'--results-directory', $env:RESULTS", "'--report-trx'",
-					 "'--report-gh', '--report-gh-groups', 'off'", "'--hangdump', '--hangdump-timeout'", "'--crashdump'",
+					 "'--solution', 'CheatEngine.SDK.slnx'", "'--no-build'", "'--results-directory', $env:RESULTS",
+					 "'--report-trx'", "'--report-gh', '--report-gh-groups', 'off'",
+					 "'--hangdump', '--hangdump-timeout'", "'--crashdump'",
 					 "'--coverage', '--coverage-output-format', 'xml'"
 				 })
 		{
@@ -140,7 +149,8 @@ public sealed partial class WorkflowContractTests
 		HashSet<string> referenced = new(StringComparer.Ordinal);
 		foreach (XElement group in props.Descendants("ItemGroup"))
 		{
-			if (!((string?) group.Attribute("Condition") ?? "").Contains("$(MSBuildProjectName.EndsWith('.Tests'))", StringComparison.Ordinal))
+			if (!((string?) group.Attribute("Condition") ?? "").Contains("$(MSBuildProjectName.EndsWith('.Tests'))",
+					StringComparison.Ordinal))
 			{
 				continue;
 			}
@@ -167,7 +177,8 @@ public sealed partial class WorkflowContractTests
 		Match hang = HangDumpTimeout().Match(run);
 		Assert.True(hang.Success, "The Test step must pass '--hangdump-timeout', '<minutes>m'.");
 		int hangMinutes = int.Parse(hang.Groups["minutes"].Value, NumberStyles.None, CultureInfo.InvariantCulture);
-		int jobMinutes = int.Parse(WorkflowFile.Scalar(job.Node, "timeout-minutes") ?? "0", NumberStyles.None, CultureInfo.InvariantCulture);
+		int jobMinutes = int.Parse(WorkflowFile.Scalar(job.Node, "timeout-minutes") ?? "0", NumberStyles.None,
+			CultureInfo.InvariantCulture);
 
 		// The dump must be written, uploaded and the job reported well before the runner kills it.
 		Assert.True(hangMinutes > 0 && hangMinutes * 2 <= jobMinutes,
@@ -188,7 +199,8 @@ public sealed partial class WorkflowContractTests
 					string retention = WorkflowJob.With(step, "retention-days") ?? "";
 					foreach (string name in ExpandConfiguration(template))
 					{
-						Assert.True(names.Add(name), $"{workflow.FileName} uploads '{name}' twice; artifact names are unique per run.");
+						Assert.True(names.Add(name),
+							$"{workflow.FileName} uploads '{name}' twice; artifact names are unique per run.");
 					}
 
 					string? expectedRetention = ExpectedRetention(template);
@@ -218,10 +230,13 @@ public sealed partial class WorkflowContractTests
 				foreach (YamlMappingNode step in job.StepsUsing("actions/upload-artifact@"))
 				{
 					string name = WorkflowJob.With(step, "name") ?? "";
-					if (name.StartsWith("binlogs-", StringComparison.Ordinal) || name.StartsWith("test-dumps-", StringComparison.Ordinal))
+					if (name.StartsWith("binlogs-", StringComparison.Ordinal) ||
+						name.StartsWith("test-dumps-", StringComparison.Ordinal))
 					{
-						Assert.True(mayLogBuilds, $"{job.Location} uploads '{name}'; sonar.yml and release.yml never do.");
-						Assert.True(string.Equals(WorkflowFile.Scalar(step, "if"), "failure()", StringComparison.Ordinal),
+						Assert.True(mayLogBuilds,
+							$"{job.Location} uploads '{name}'; sonar.yml and release.yml never do.");
+						Assert.True(
+							string.Equals(WorkflowFile.Scalar(step, "if"), "failure()", StringComparison.Ordinal),
 							$"{job.Location} uploads '{name}' outside 'if: failure()'.");
 					}
 				}
@@ -231,7 +246,8 @@ public sealed partial class WorkflowContractTests
 		// The jobs that build, pack or publish keep their logs for a failed run.
 		WorkflowFile pipeline = Pipeline();
 		Assert.Single(pipeline.Job(BuildTestJob).StepsUsing("actions/upload-artifact@"),
-			static step => string.Equals(WorkflowJob.With(step, "name"), "binlogs-build-test-${{ matrix.configuration }}", StringComparison.Ordinal));
+			static step => string.Equals(WorkflowJob.With(step, "name"),
+				"binlogs-build-test-${{ matrix.configuration }}", StringComparison.Ordinal));
 		Assert.Single(pipeline.Job("aot").StepsUsing("actions/upload-artifact@"),
 			static step => string.Equals(WorkflowJob.With(step, "name"), "binlogs-aot", StringComparison.Ordinal));
 		Assert.Equal(3, BinaryLogSwitch().Count(pipeline.Job("aot").RunText()));
@@ -245,7 +261,8 @@ public sealed partial class WorkflowContractTests
 			foreach (WorkflowJob job in workflow.Jobs())
 			{
 				string run = job.RunText();
-				bool packs = VersionedPack().IsMatch(run) || run.Contains("dotnet-sonarscanner", StringComparison.Ordinal);
+				bool packs = VersionedPack().IsMatch(run) ||
+							 run.Contains("dotnet-sonarscanner", StringComparison.Ordinal);
 				bool builds = VersionedBuild().IsMatch(run);
 				if (!packs && !builds)
 				{
@@ -254,7 +271,8 @@ public sealed partial class WorkflowContractTests
 
 				// MinVer computes the version from tags and history; a shallow clone packs 0.0.0-alpha.0.
 				YamlMappingNode checkout = Assert.Single(job.StepsUsing("actions/checkout@"));
-				bool fullHistory = string.Equals(WorkflowJob.With(checkout, "fetch-depth"), "0", StringComparison.Ordinal);
+				bool fullHistory = string.Equals(WorkflowJob.With(checkout, "fetch-depth"), "0",
+					StringComparison.Ordinal);
 				bool skipsVersioning = !packs && run.Contains("MinVerSkip=true", StringComparison.Ordinal);
 				Assert.True(fullHistory || skipsVersioning,
 					$"{job.Location} builds, packs, tests or analyses: check out with fetch-depth: 0 (MinVer).");
@@ -280,13 +298,17 @@ public sealed partial class WorkflowContractTests
 
 		// Publication and inspection only: a NativeAOT publish is never presented as a Cheat Engine load (audit A20-07).
 		string run = aot.RunText();
-		Assert.Contains("dotnet publish tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj -c Release --no-restore", run,
+		Assert.Contains(
+			"dotnet publish tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj -c Release --no-restore",
+			run,
 			StringComparison.Ordinal);
-		Assert.Contains("$libraryProject = 'tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj'",
+		Assert.Contains(
+			"$libraryProject = 'tests/CheatEngine.SDK.NativeAotLibraryProbe/CheatEngine.SDK.NativeAotLibraryProbe.csproj'",
 			run, StringComparison.Ordinal);
 		Assert.Contains("dotnet publish $libraryProject -c Release --no-restore", run, StringComparison.Ordinal);
 		Assert.Contains("& $harness --analyze $library", run, StringComparison.Ordinal);
-		Assert.Contains("lua-protection-bridge", WorkflowJob.With(Assert.Single(aot.StepsUsing("actions/download-artifact@")), "name"),
+		Assert.Contains("lua-protection-bridge",
+			WorkflowJob.With(Assert.Single(aot.StepsUsing("actions/download-artifact@")), "name"),
 			StringComparison.Ordinal);
 	}
 
@@ -321,7 +343,8 @@ public sealed partial class WorkflowContractTests
 		{
 			foreach (YamlMappingNode upload in pipelineJob.StepsUsing("actions/upload-artifact@"))
 			{
-				Assert.DoesNotContain("LiveProbe", WorkflowJob.With(upload, "path") ?? "", StringComparison.OrdinalIgnoreCase);
+				Assert.DoesNotContain("LiveProbe", WorkflowJob.With(upload, "path") ?? "",
+					StringComparison.OrdinalIgnoreCase);
 			}
 		}
 	}
@@ -398,18 +421,19 @@ public sealed partial class WorkflowContractTests
 		return WorkflowContract.ReservedArtifacts.TryGetValue(template, out string? retention) && retention is null;
 	}
 
-	[GeneratedRegex(@"'--hangdump-timeout',\s*'(?<minutes>\d+)m'", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"'--hangdump-timeout',\s*'(?<minutes>\d+)m'", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex HangDumpTimeout();
 
-	[GeneratedRegex(@"\bdotnet\s+pack\b", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"\bdotnet\s+pack\b", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex VersionedPack();
 
-	[GeneratedRegex(@"\bdotnet\s+(?:build|test|publish)\b", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"\bdotnet\s+(?:build|test|publish)\b", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex VersionedBuild();
 
-	[GeneratedRegex(@"(?:^|\s|"")[-/]bl(?::|\s|$)", RegexOptions.Multiline | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"(?:^|\s|"")[-/]bl(?::|\s|$)", RegexOptions.Multiline | RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex BinaryLogSwitch();
 
-	[GeneratedRegex(@"^binlogs-[a-z0-9-]+?(?:-\$\{\{ matrix\.configuration \}\})?$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^binlogs-[a-z0-9-]+?(?:-\$\{\{ matrix\.configuration \}\})?$", RegexOptions.CultureInvariant,
+		1000)]
 	private static partial Regex BinlogName();
 }

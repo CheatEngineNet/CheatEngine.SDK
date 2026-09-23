@@ -15,12 +15,16 @@ public sealed partial class WorkflowContractTests
 		WorkflowFile action = SetupAction();
 
 		YamlMappingNode inputs = Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(action.Root, "inputs"));
-		Assert.Equal("false", WorkflowFile.Scalar(Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(inputs, "cache")), "default"));
-		Assert.Equal("", WorkflowFile.Scalar(Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(inputs, "restore")), "default"));
+		Assert.Equal("false",
+			WorkflowFile.Scalar(Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(inputs, "cache")), "default"));
+		Assert.Equal("",
+			WorkflowFile.Scalar(Assert.IsType<YamlMappingNode>(WorkflowFile.Mapping(inputs, "restore")), "default"));
 
 		IReadOnlyList<YamlMappingNode> steps = action.ActionSteps();
 		YamlMappingNode install = Assert.Single(steps,
-			static step => (WorkflowFile.Scalar(step, "uses") ?? "").StartsWith("actions/setup-dotnet@", StringComparison.Ordinal));
+			static step =>
+				(WorkflowFile.Scalar(step, "uses") ?? "").StartsWith("actions/setup-dotnet@",
+					StringComparison.Ordinal));
 		Assert.Equal("global.json", WorkflowJob.With(install, "global-json-file"));
 		Assert.Equal("${{ inputs.cache }}", WorkflowJob.With(install, "cache"));
 		Assert.Equal("**/packages.lock.json", WorkflowJob.With(install, "cache-dependency-path"));
@@ -57,7 +61,8 @@ public sealed partial class WorkflowContractTests
 		}
 
 		Assert.True(unlocked.Count == 0,
-			"Restore with --locked-mode, or through the composite action's restore input: " + string.Join("; ", unlocked));
+			"Restore with --locked-mode, or through the composite action's restore input: " +
+			string.Join("; ", unlocked));
 	}
 
 	[Fact]
@@ -100,7 +105,8 @@ public sealed partial class WorkflowContractTests
 				for (int index = 0; index < steps.Count; index++)
 				{
 					if (setupStep < 0 &&
-						string.Equals(WorkflowFile.Scalar(steps[index], "uses"), WorkflowContract.SetupAction, StringComparison.Ordinal))
+						string.Equals(WorkflowFile.Scalar(steps[index], "uses"), WorkflowContract.SetupAction,
+							StringComparison.Ordinal))
 					{
 						setupStep = index;
 					}
@@ -162,12 +168,12 @@ public sealed partial class WorkflowContractTests
 		return false;
 	}
 
-	[GeneratedRegex(@"(?m)(?:^|[\s;(|{&])dotnet\s", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"(?m)(?:^|[\s;(|{&])dotnet\s", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex DotnetInvocation();
 
-	[GeneratedRegex(@"\bdotnet\s+restore\b", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"\bdotnet\s+restore\b", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex DotnetRestore();
 
-	[GeneratedRegex(@"(?:^|[\s(])\.?/?(?<path>(?:eng|tests)/[\w./-]+\.ps1)\b", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"(?:^|[\s(])\.?/?(?<path>(?:eng|tests)/[\w./-]+\.ps1)\b", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex ScriptReference();
 }

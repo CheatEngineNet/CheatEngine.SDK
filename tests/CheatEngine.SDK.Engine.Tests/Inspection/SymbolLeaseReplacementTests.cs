@@ -1,3 +1,5 @@
+using System.Text;
+
 using CheatEngine.SDK.Engine.Inspection;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Engine.Values;
@@ -246,15 +248,15 @@ public sealed class SymbolLeaseReplacementTests
 			get;
 		}
 
-		public void Execute(string source)
-		{
-			EngineTest.Run(State, System.Text.Encoding.UTF8.GetBytes(source));
-		}
-
 		public void Dispose()
 		{
 			_scope.Dispose();
 			_nativeState.Dispose();
+		}
+
+		public void Execute(string source)
+		{
+			EngineTest.Run(State, Encoding.UTF8.GetBytes(source));
 		}
 	}
 }

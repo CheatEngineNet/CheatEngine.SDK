@@ -9,7 +9,8 @@ using CheatEngine.SDK.Lua.Interop.Api;
 namespace CheatEngine.SDK.Lua.Interop.Tests.Protected;
 
 /// <summary>
-///     The primitive matrix <c>tests/CheatEngine.SDK.Repository.Tests/LuaBridge/TestData/lua-interop-primitives.json</c> (embedded) against the real
+///     The primitive matrix <c>tests/CheatEngine.SDK.Repository.Tests/LuaBridge/TestData/lua-interop-primitives.json</c>
+///     (embedded) against the real
 ///     <see cref="LuaApi" />: one row per public static member, the error class and stack effect its XML documentation
 ///     states, the exports the function-pointer table binds, and the bridge catalogue's direct-call policy. DLL-free.
 /// </summary>
@@ -43,8 +44,11 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 	{
 		HashSet<string> members = PublicMembers();
 
-		string[] unknown = [.. Rows().Select(static row => row.GetProperty("member").GetString()!)
-			.Where(member => !members.Contains(member))];
+		string[] unknown =
+		[
+			.. Rows().Select(static row => row.GetProperty("member").GetString()!)
+				.Where(member => !members.Contains(member))
+		];
 
 		Assert.True(unknown.Length == 0, "Rows without a public static LuaApi member: " + string.Join(", ", unknown));
 	}
@@ -53,7 +57,8 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 	public void Matrix_raises_class_equals_the_documented_raises_remark()
 	{
 		string path = Path.Combine(AppContext.BaseDirectory, DocumentationFile);
-		Assert.True(File.Exists(path), $"The XML documentation of CheatEngine.SDK.Lua.Interop was not copied to '{path}'.");
+		Assert.True(File.Exists(path),
+			$"The XML documentation of CheatEngine.SDK.Lua.Interop was not copied to '{path}'.");
 		Dictionary<string, string> remarks = ReadRemarks(XDocument.Load(path));
 		List<string> problems = [];
 		foreach (JsonElement row in Rows())
@@ -68,7 +73,8 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 			if (!string.Equals(expectedRaises, row.GetProperty("raises").GetString(), StringComparison.Ordinal) ||
 				!string.Equals(expectedStack, stack, StringComparison.Ordinal))
 			{
-				problems.Add($"{member}: documented {expectedStack ?? "no stack"} / {expectedRaises}, matrix {stack ?? "no stack"} / {row.GetProperty("raises").GetString()}.");
+				problems.Add(
+					$"{member}: documented {expectedStack ?? "no stack"} / {expectedRaises}, matrix {stack ?? "no stack"} / {row.GetProperty("raises").GetString()}.");
 			}
 		}
 
@@ -122,12 +128,16 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 		string? bridge = Optional(row, "bridgeOperation");
 		string expectedDecision = policy.GetProperty("allowedDirectly").GetBoolean()
 			? "DirectAllowed"
-			: policy.TryGetProperty("conditionalDirectUse", out _) ? "ConditionallyDirect" : "BridgeRequired";
+			: policy.TryGetProperty("conditionalDirectUse", out _)
+				? "ConditionallyDirect"
+				: "BridgeRequired";
 		if (!string.Equals(expectedDecision, decision, StringComparison.Ordinal) ||
 			!string.Equals(Optional(policy, "bridgeOperation"), bridge, StringComparison.Ordinal) ||
-			!string.Equals(policy.GetProperty("nativeSymbol").GetString(), Optional(row, "nativeSymbol"), StringComparison.Ordinal))
+			!string.Equals(policy.GetProperty("nativeSymbol").GetString(), Optional(row, "nativeSymbol"),
+				StringComparison.Ordinal))
 		{
-			problems.Add($"{member}: the policy route ({expectedDecision}, {Optional(policy, "bridgeOperation")}) differs from the row ({decision}, {bridge}).");
+			problems.Add(
+				$"{member}: the policy route ({expectedDecision}, {Optional(policy, "bridgeOperation")}) differs from the row ({decision}, {bridge}).");
 		}
 
 		int policyRank = Rank(policy.GetProperty("raises").GetString()!);
@@ -138,7 +148,8 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 								operation.TryGetProperty("provenanceConflict", out _);
 		if (policyRank != rowRank && !(policyRank > rowRank && conflictRecorded))
 		{
-			problems.Add($"{member}: the policy classifies it {policy.GetProperty("raises").GetString()}, the matrix {row.GetProperty("raises").GetString()}.");
+			problems.Add(
+				$"{member}: the policy classifies it {policy.GetProperty("raises").GetString()}, the matrix {row.GetProperty("raises").GetString()}.");
 		}
 	}
 
@@ -213,6 +224,6 @@ public sealed partial class LuaInteropPrimitiveMatrixTests
 	}
 
 	[GeneratedRegex(@"Stack: (?<stack>.*?)\. Raises: (?<raises>\w+)", RegexOptions.CultureInvariant,
-		matchTimeoutMilliseconds: 1000)]
+		1000)]
 	private static partial Regex StackAndRaises();
 }

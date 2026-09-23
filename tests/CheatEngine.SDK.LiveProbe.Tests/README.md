@@ -23,12 +23,12 @@ namespace, so it neither loads the plugin nor runs its Lua source generator. Tes
 CE's opened PID, the fault-switch file reader and the `PluginHost` facts. `AssemblyInfo.cs` disables parallelization
 because the harness keeps process-wide static state.
 
-| Test class                       | Covers                                                                                                                      |
-|----------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
-| `LiveProbeStateTests`            | Fresh authorization and target-PID checks before host-profile capture and every protected command.                          |
-| `LiveProbeStatusTests`           | Text and JSON status (plugin id, epoch, exports size, raw second bootstrap integer), the exception hook and the pump hook. |
-| `LiveProbeFaultInjectionTests`   | The `liveprobe.fault.json` switch: never read without authorization, exact stage selection, ignored and reported failures. |
-| `HostProfileObservationTests`    | Typed outcomes for missing, locked, vanishing or protected identity files; the bridge record names the loaded module only.  |
+| Test class                     | Covers                                                                                                                     |
+|--------------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| `LiveProbeStateTests`          | Fresh authorization and target-PID checks before host-profile capture and every protected command.                         |
+| `LiveProbeStatusTests`         | Text and JSON status (plugin id, epoch, exports size, raw second bootstrap integer), the exception hook and the pump hook. |
+| `LiveProbeFaultInjectionTests` | The `liveprobe.fault.json` switch: never read without authorization, exact stage selection, ignored and reported failures. |
+| `HostProfileObservationTests`  | Typed outcomes for missing, locked, vanishing or protected identity files; the bridge record names the loaded module only. |
 
 ## Promise
 

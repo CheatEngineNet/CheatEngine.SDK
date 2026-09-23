@@ -19,20 +19,20 @@ internal sealed unsafe class TargetMemory
 		Repetitions = repetitions;
 		RepeatedPattern = TargetLayout.CreateRepeatedPattern();
 
-		_heapMarkers = GC.AllocateArray<byte>(heapCopies * TargetLayout.HeapCopyStride, pinned: true);
+		_heapMarkers = GC.AllocateArray<byte>(heapCopies * TargetLayout.HeapCopyStride, true);
 		for (int copy = 0; copy < heapCopies; copy++)
 		{
 			TargetLayout.Marker.CopyTo(_heapMarkers.AsSpan(copy * TargetLayout.HeapCopyStride));
 		}
 
-		_repeated = GC.AllocateArray<byte>(repetitions * TargetLayout.RepeatedPatternLength, pinned: true);
+		_repeated = GC.AllocateArray<byte>(repetitions * TargetLayout.RepeatedPatternLength, true);
 		for (int repetition = 0; repetition < repetitions; repetition++)
 		{
 			RepeatedPattern.CopyTo(_repeated.AsSpan(repetition * TargetLayout.RepeatedPatternLength));
 		}
 
 		// Slot 0 holds the Int32 cell in its low four bytes, slot 1 the Int64 cell; both stay naturally aligned.
-		_values = GC.AllocateArray<long>(2, pinned: true);
+		_values = GC.AllocateArray<long>(2, true);
 		Int32 = TargetLayout.InitialInt32;
 		Int64 = TargetLayout.InitialInt64;
 	}

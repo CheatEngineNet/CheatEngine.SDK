@@ -527,7 +527,7 @@ internal static class SpecFileParser
 				continue;
 			}
 
-			if (character < '0' || character > '9')
+			if (character is < '0' or > '9')
 			{
 				return false;
 			}
@@ -681,10 +681,12 @@ internal static class SpecFileParser
 			case "return":
 				return TrySetReturn(fields, singular, field, issues);
 			case "arg":
-				fields.ArgumentTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value, TokenRole.Argument));
+				fields.ArgumentTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value,
+					TokenRole.Argument));
 				return true;
 			case "opt":
-				fields.ArgumentTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value, TokenRole.Optional));
+				fields.ArgumentTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value,
+					TokenRole.Optional));
 				return true;
 			case "fixed":
 				fields.ArgumentTokens.Add(new SpecToken(field.Line, field.ValueColumn, field.Value, TokenRole.Fixed));
@@ -840,7 +842,8 @@ internal static class SpecFileParser
 			}
 			else if (token.Role == TokenRole.Argument && sawOptional)
 			{
-				problem = "is a required 'result' after an 'opt-result': optional results come after every required one";
+				problem =
+					"is a required 'result' after an 'opt-result': optional results come after every required one";
 			}
 			else if (token.Role == TokenRole.Rest && form != LuaCallForm.Outcome)
 			{
@@ -907,8 +910,10 @@ internal static class SpecFileParser
 			if (sawOptional && token.Role != TokenRole.Optional)
 			{
 				issues.Add(new SpecIssue(token.Line,
-					"'" + token.Value + "' follows an 'opt' argument: only more 'opt' arguments may follow one, because Lua "
-					+ "cannot receive an argument after an omitted one.", token.Column, SpecIssueKind.OptionalArgument));
+					"'" + token.Value +
+					"' follows an 'opt' argument: only more 'opt' arguments may follow one, because Lua "
+					+ "cannot receive an argument after an omitted one.", token.Column,
+					SpecIssueKind.OptionalArgument));
 				return null;
 			}
 
@@ -946,7 +951,8 @@ internal static class SpecFileParser
 		if (nullable || !LuaValueKinds.CanBeOptional(kind))
 		{
 			issues.Add(new SpecIssue(token.Line,
-				"'" + kindToken + "' cannot be an 'opt' kind: nil is the Nil state of LuaOptional<T>, and a span cannot be "
+				"'" + kindToken +
+				"' cannot be an 'opt' kind: nil is the Nil state of LuaOptional<T>, and a span cannot be "
 				+ "optional; use 'string' for optional text.", token.Column, SpecIssueKind.OptionalArgument));
 			return null;
 		}
@@ -1022,7 +1028,8 @@ internal static class SpecFileParser
 				return LuaResultModel.Optional(kind, name);
 			case TokenRole.Rest when !LuaValueKinds.CanBeVariadicElement(kind) || kind == LuaValueKind.Address:
 				issues.Add(new SpecIssue(token.Line,
-					"'" + kindToken + "' cannot be a 'rest' kind: expected 'int32', 'int64', 'single', 'double' or 'boolean'.",
+					"'" + kindToken +
+					"' cannot be a 'rest' kind: expected 'int32', 'int64', 'single', 'double' or 'boolean'.",
 					token.Column, SpecIssueKind.ResultShape));
 				return null;
 			case TokenRole.Rest:

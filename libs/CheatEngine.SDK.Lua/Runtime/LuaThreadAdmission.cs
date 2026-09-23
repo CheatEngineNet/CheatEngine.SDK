@@ -20,7 +20,8 @@ public enum LuaThreadAdmission
 	/// <summary>
 	///     The conservative default: a new <see cref="LuaRuntime.AcquireOperation()" />-family call is admitted only on
 	///     the host's captured main thread, inside a host-invoked callback already running on the calling thread, or
-	///     through the single documented <c>synchronize</c> hand-off (<see cref="LuaRuntime.AcquireOperationForMainThreadDispatch" />).
+	///     through the single documented <c>synchronize</c> hand-off (
+	///     <see cref="LuaRuntime.AcquireOperationForMainThreadDispatch" />).
 	/// </summary>
 	MainThreadOnly = 0,
 

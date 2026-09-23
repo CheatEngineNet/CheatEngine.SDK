@@ -59,7 +59,8 @@ public sealed class LuaGlobalResultCountEndToEndTests(RoslynFixture roslyn) : IC
 		Assert.Equal(LuaOperationStatusKind.MissingResult, detailed(0, out long missing, out _).Kind);
 		Assert.Equal(0, missing);
 		Assert.Equal(LuaOperationStatusKind.NilResult, detailed(1, out _, out _).Kind);
-		Assert.Equal(LuaOperationStatusKind.Success, detailed(2, out long onlyFirst, out LuaOptional<long> absent).Kind);
+		Assert.Equal(LuaOperationStatusKind.Success,
+			detailed(2, out long onlyFirst, out LuaOptional<long> absent).Kind);
 		Assert.Equal(7, onlyFirst);
 		Assert.True(absent.IsOmitted);
 		Assert.Equal(LuaOperationStatusKind.Success, detailed(3, out long first, out LuaOptional<long> second).Kind);
@@ -67,7 +68,8 @@ public sealed class LuaGlobalResultCountEndToEndTests(RoslynFixture roslyn) : IC
 		Assert.Equal(LuaOptional.Of(8L), second);
 		Assert.Equal(LuaOperationStatusKind.Success, detailed(8, out _, out LuaOptional<long> explicitNil).Kind);
 		Assert.True(explicitNil.IsNil);
-		Assert.Equal(LuaOperationStatusKind.InvalidResult, detailed(7, out long defaulted, out LuaOptional<long> bad).Kind);
+		Assert.Equal(LuaOperationStatusKind.InvalidResult,
+			detailed(7, out long defaulted, out LuaOptional<long> bad).Kind);
 		Assert.Equal(0, defaulted);
 		Assert.True(bad.IsOmitted);
 
@@ -129,7 +131,8 @@ public sealed class LuaGlobalResultCountEndToEndTests(RoslynFixture roslyn) : IC
 		LuaTest.Run(L, OptionalBindingSources.StandIns);
 		GeneratedAssembly assembly = LoadSuite(roslyn);
 		SequenceDelegate sequence = assembly.Delegate<SequenceDelegate>(OptionalsType, "Sequence");
-		SequenceAfterOneDelegate afterOne = assembly.Delegate<SequenceAfterOneDelegate>(OptionalsType, "SequenceAfterOne");
+		SequenceAfterOneDelegate afterOne =
+			assembly.Delegate<SequenceAfterOneDelegate>(OptionalsType, "SequenceAfterOne");
 		Span<long> values = stackalloc long[8];
 
 		Assert.Equal(LuaOperationStatusKind.Success, sequence(3, default, values, out int count).Kind);
@@ -165,7 +168,8 @@ public sealed class LuaGlobalResultCountEndToEndTests(RoslynFixture roslyn) : IC
 		LuaTest.Run(L, OptionalBindingSources.StandIns);
 		GeneratedAssembly assembly = LoadSuite(roslyn);
 		SequenceDelegate sequence = assembly.Delegate<SequenceDelegate>(OptionalsType, "Sequence");
-		SequenceAfterOneDelegate afterOne = assembly.Delegate<SequenceAfterOneDelegate>(OptionalsType, "SequenceAfterOne");
+		SequenceAfterOneDelegate afterOne =
+			assembly.Delegate<SequenceAfterOneDelegate>(OptionalsType, "SequenceAfterOne");
 		Span<long> small = stackalloc long[2];
 
 		Assert.Equal(LuaOperationStatusKind.ResultCapacityExceeded, sequence(5, default, small, out int needed).Kind);
@@ -279,6 +283,7 @@ public sealed class LuaGlobalResultCountEndToEndTests(RoslynFixture roslyn) : IC
 	private delegate LuaOperationStatus SequenceDelegate(int count, LuaOptional<int> bad, Span<long> values,
 		out int valueCount);
 
-	private delegate LuaOperationStatus SequenceAfterOneDelegate(int count, out long first, out LuaOptional<long> second,
+	private delegate LuaOperationStatus SequenceAfterOneDelegate(int count, out long first,
+		out LuaOptional<long> second,
 		Span<long> rest, out int restCount);
 }

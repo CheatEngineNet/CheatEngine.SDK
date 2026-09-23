@@ -29,7 +29,8 @@ internal static unsafe partial class FakeHost
 		}
 
 		using LuaFrame frame = new(L);
-		L.PushUncheckedFunction(new LuaNativeFunction((nint) (delegate* unmanaged[Cdecl]<lua_State*, int>) &RunManagedHook));
+		L.PushUncheckedFunction(
+			new LuaNativeFunction((nint) (delegate* unmanaged[Cdecl]<lua_State*, int>) &RunManagedHook));
 		Assert.True(L.TrySetGlobal("managed_hook"u8).IsOk);
 		ManagedHookScope scope = new(hook);
 		s_activeManagedHook = scope;

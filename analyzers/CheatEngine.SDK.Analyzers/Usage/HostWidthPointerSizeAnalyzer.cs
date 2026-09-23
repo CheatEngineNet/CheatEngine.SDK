@@ -171,7 +171,7 @@ public sealed class HostWidthPointerSizeAnalyzer : DiagnosticAnalyzer
 	{
 		IMethodSymbol method = invocation.TargetMethod;
 		if (!string.Equals(method.Name, "SizeOf", StringComparison.Ordinal) || method.TypeArguments.Length != 1
-			|| invocation.Arguments.Length != 0)
+																			|| invocation.Arguments.Length != 0)
 		{
 			return false;
 		}

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 using CheatEngine.SDK.Repository.Tests.Infrastructure;
@@ -51,7 +52,8 @@ public sealed class OwnershipPolicyTests
 		}
 
 		Assert.True(offenders.Count == 0,
-			DeleteAllRegisteredSymbols + " removes every plugin's and script's symbols; bind per-plugin cleanup instead: " +
+			DeleteAllRegisteredSymbols +
+			" removes every plugin's and script's symbols; bind per-plugin cleanup instead: " +
 			string.Join(", ", offenders));
 	}
 
@@ -98,7 +100,7 @@ public sealed class OwnershipPolicyTests
 
 			if (FinalizerDeclaration.IsMatch(line))
 			{
-				hits.Add(file + ":" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+				hits.Add(file + ":" + (index + 1).ToString(CultureInfo.InvariantCulture));
 			}
 		}
 

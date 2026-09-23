@@ -7,7 +7,9 @@ namespace CheatEngine.SDK.Repository.Tests.Abi;
 /// </summary>
 internal static class ClassicSlotRegistryContract
 {
-	internal const string RegistryPath = "tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json";
+	internal const string RegistryPath =
+		"tests/CheatEngine.SDK.Repository.Tests/Abi/TestData/classic-slot-registry.json";
+
 	internal const string Kind = "cheatengine-classic-slot-registry/v0";
 	internal const string UpstreamCommit = "ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37";
 	internal const string QualifiableProfile = "ce-7.7.0.10621-x64-managed-hostfxr";
@@ -21,14 +23,16 @@ internal static class ClassicSlotRegistryContract
 
 	internal static readonly string[] ContractRequired =
 	[
-		"pluginContractVersion", "hostTableType", "fieldCount", "pointerFieldCount", "x64TableSize", "sdkDirectPrefixSize",
+		"pluginContractVersion", "hostTableType", "fieldCount", "pointerFieldCount", "x64TableSize",
+		"sdkDirectPrefixSize",
 		"sdkPrefixSlots"
 	];
 
 	internal static readonly string[] SlotRequired =
 	[
 		"slot", "x64Offset", "width", "minDeclaredSize", "section", "hostField", "hostAssignment", "hostImplementation",
-		"nature", "indirection", "callingConvention", "nullability", "mirrors", "divergenceRefs", "sdkExposure", "sdkField",
+		"nature", "indirection", "callingConvention", "nullability", "mirrors", "divergenceRefs", "sdkExposure",
+		"sdkField",
 		"facadeStatus", "ownership", "luaEquivalent", "catalogSurfaceId", "evidenceKind", "layoutEvidenceKind",
 		"hostProfileStatus", "qualification"
 	];
@@ -41,11 +45,13 @@ internal static class ClassicSlotRegistryContract
 
 	internal static readonly string[] CallbackCategoryRequired =
 	[
-		"pluginType", "name", "hostForm", "headerForm", "additionalForms", "versionVariants", "versionDependent", "context",
+		"pluginType", "name", "hostForm", "headerForm", "additionalForms", "versionVariants", "versionDependent",
+		"context",
 		"synchronousDecision", "sdkRecord", "sdkCallbackTyped", "shapeTest", "note", "evidenceKind"
 	];
 
-	internal static readonly string[] SourceIds = ["plugin-pas", "pluginexports-pas", "cepluginsdk-h", "cepluginsdk-pas"];
+	internal static readonly string[] SourceIds =
+		["plugin-pas", "pluginexports-pas", "cepluginsdk-h", "cepluginsdk-pas"];
 
 	internal static readonly string[] SourceRoles = ["Authority", "HostImplementation", "MirrorC", "MirrorPascal"];
 
@@ -53,7 +59,8 @@ internal static class ClassicSlotRegistryContract
 
 	internal static readonly string[] Sections = ["Base", "V2", "V3", "V4", "V5"];
 
-	internal static readonly string[] AssignmentKinds = ["Size", "FunctionAddress", "CellAddress", "VariableAddress", "Nil"];
+	internal static readonly string[] AssignmentKinds =
+		["Size", "FunctionAddress", "CellAddress", "VariableAddress", "Nil"];
 
 	internal static readonly string[] Natures =
 		["Int32", "Function", "FunctionPointerCell", "DataCell", "ObjectRefCell", "Unknown"];

@@ -92,7 +92,8 @@ public sealed partial class WorkflowContractTests
 		YamlMappingNode setup = Assert.Single(format.StepsUsing(WorkflowContract.SetupAction));
 		Assert.Null(WorkflowJob.With(setup, "restore"));
 		string run = format.RunText();
-		Assert.Contains("dotnet format whitespace . --folder --verify-no-changes --exclude artifacts", run, StringComparison.Ordinal);
+		Assert.Contains("dotnet format whitespace . --folder --verify-no-changes --exclude artifacts", run,
+			StringComparison.Ordinal);
 		Assert.DoesNotContain("dotnet restore", run, StringComparison.Ordinal);
 		Assert.DoesNotContain("dotnet build", run, StringComparison.Ordinal);
 		// Style rules are enforced by the build (EnforceCodeStyleInBuild, warnings as errors), not by this job.
@@ -102,12 +103,12 @@ public sealed partial class WorkflowContractTests
 		Assert.Contains("end_of_line = crlf", ReadRepositoryText(".editorconfig"), StringComparison.Ordinal);
 	}
 
-	[GeneratedRegex(@"#\s*zizmor:\s*ignore\[[^\]]+\](?<reason>[^\n]*)", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"#\s*zizmor:\s*ignore\[[^\]]+\](?<reason>[^\n]*)", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex InlineZizmorIgnore();
 
-	[GeneratedRegex(@"^\d+\.\d+\.\d+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^\d+\.\d+\.\d+$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex ExactVersion();
 
-	[GeneratedRegex(@"^[0-9a-f]{64}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"^[0-9a-f]{64}$", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex Sha256();
 }

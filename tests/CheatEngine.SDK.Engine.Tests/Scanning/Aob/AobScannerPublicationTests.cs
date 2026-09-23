@@ -23,7 +23,7 @@ public sealed class AobScannerPublicationTests
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
-		CEObject handle = CreateTracedList(L, "Probe", destroyRaises: false);
+		CEObject handle = CreateTracedList(L, "Probe", false);
 		AobStringListTestHost.InstallAobScan(L, handle);
 		InvalidOperationException injected = new("injected publication failure");
 		Owned<StringList>? results = null;
@@ -46,7 +46,7 @@ public sealed class AobScannerPublicationTests
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
-		CEObject handle = CreateTracedList(L, "Probe", destroyRaises: false);
+		CEObject handle = CreateTracedList(L, "Probe", false);
 		AobStringListTestHost.InstallAobScan(L, handle);
 		InvalidOperationException injected = new("injected owner allocation failure");
 		Owned<StringList>? results = null;
@@ -63,13 +63,14 @@ public sealed class AobScannerPublicationTests
 
 	[Fact]
 	[Trait("Qualification", "Q27")]
-	public void TryScanOutcome_publication_failure_with_a_refusing_destroy_rethrows_the_original_failure_without_retrying()
+	public void
+		TryScanOutcome_publication_failure_with_a_refusing_destroy_rethrows_the_original_failure_without_retrying()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
-		CEObject handle = CreateTracedList(L, "Stubborn", destroyRaises: true);
+		CEObject handle = CreateTracedList(L, "Stubborn", true);
 		AobStringListTestHost.InstallAobScan(L, handle);
 		InvalidOperationException injected = new("injected publication failure");
 		Owned<StringList>? results = null;
@@ -91,7 +92,7 @@ public sealed class AobScannerPublicationTests
 		using NativeLuaState state = new();
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
-		CEObject handle = CreateTracedList(L, "Probe", destroyRaises: false);
+		CEObject handle = CreateTracedList(L, "Probe", false);
 		AobStringListTestHost.InstallAobScan(L, handle);
 		LuaException injected = new("injected publication failure");
 		Owned<StringList>? results = null;

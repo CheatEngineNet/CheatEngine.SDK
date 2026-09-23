@@ -24,7 +24,8 @@ namespace CheatEngine.SDK.Engine.Tests.Scanning;
 ///         <item><c>factory.scan</c>, <c>factory.list</c>: the two CE factories.</item>
 ///         <item>
 ///             <c>scan.setOnlyOneResult:&lt;v&gt;</c>, <c>scan.first:&lt;argument count&gt;</c>,
-///             <c>scan.next:&lt;argument count&gt;</c>, <c>scan.wait</c> (no argument) or <c>scan.wait:&lt;timeout&gt;</c>,
+///             <c>scan.next:&lt;argument count&gt;</c>, <c>scan.wait</c> (no argument) or <c>scan.wait:&lt;timeout&gt;</c>
+///             ,
 ///             <c>scan.terminate:&lt;force&gt;</c>, <c>scan.new</c>, <c>scan.getOnlyResult</c>, <c>scan.ErrorString</c> (a
 ///             property read), <c>scan.set.&lt;property&gt;:&lt;v&gt;</c> (a write to <c>OnlyOneResult</c>,
 ///             <c>IsUnique</c>, <c>OnGuiUpdate</c>, <c>OnScanDone</c> or <c>OnScanStart</c>), <c>scan.destroy</c>.
@@ -304,7 +305,8 @@ internal static class MemScanTestHost
 			}
 		}
 
-		Assert.True(selected != 0, "No other process with a readable start time exists; a target change cannot be modelled.");
+		Assert.True(selected != 0,
+			"No other process with a readable start time exists; a target change cannot be modelled.");
 		return selected;
 	}
 

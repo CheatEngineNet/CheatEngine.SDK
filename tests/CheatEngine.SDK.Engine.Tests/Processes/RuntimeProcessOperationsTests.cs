@@ -574,7 +574,8 @@ public sealed class RuntimeProcessOperationsTests
 	}
 
 	[Theory]
-	[InlineData("isConnectedToCEServer", "error('fixture probe failure')", ProcessOperationStatusKind.ProtectedLuaFailure)]
+	[InlineData("isConnectedToCEServer", "error('fixture probe failure')",
+		ProcessOperationStatusKind.ProtectedLuaFailure)]
 	[InlineData("isConnectedToCEServer", "return nil", ProcessOperationStatusKind.InvalidResult)]
 	[InlineData("isConnectedToCEServer", "return 'false'", ProcessOperationStatusKind.InvalidResult)]
 	[InlineData("targetIsX86", "error('fixture probe failure')", ProcessOperationStatusKind.ProtectedLuaFailure)]
@@ -712,7 +713,8 @@ public sealed class RuntimeProcessOperationsTests
 		using HostScope scope = new(state);
 		// With no target CE 7.7 still answers getPointerSize() == 8 (spike C3 D2); the SDK must not report it.
 		FakeHost.InstallCe77X64TargetFacts(scope.State, 0);
-		EngineTest.Run(scope.State, "function getPointerSize() error('getPointerSize must not be read without a target') end"u8);
+		EngineTest.Run(scope.State,
+			"function getPointerSize() error('getPointerSize must not be read without a target') end"u8);
 
 		ProcessOperationStatus status =
 			RuntimeProcessOperations.TryGetConfiguredPointerSize(out int rawBytes, out PointerSize pointerSize);
@@ -769,7 +771,8 @@ public sealed class RuntimeProcessOperationsTests
 	[InlineData("getPointerSize = nil", ProcessOperationStatusKind.GlobalUnavailable)]
 	[InlineData("rt_process_id = 4294967295", ProcessOperationStatusKind.FileAsProcessTarget)]
 	[InlineData("function getPointerSize() rt_process_id = 77 return 8 end", ProcessOperationStatusKind.TargetChanged)]
-	[InlineData("function getPointerSize() error('fixture failure') end", ProcessOperationStatusKind.ProtectedLuaFailure)]
+	[InlineData("function getPointerSize() error('fixture failure') end",
+		ProcessOperationStatusKind.ProtectedLuaFailure)]
 	public void configured_pointer_size_keeps_availability_backend_change_and_lua_failures_distinct(string fixture,
 		ProcessOperationStatusKind expected)
 	{

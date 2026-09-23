@@ -75,7 +75,8 @@ public sealed class AssemblyConformanceTests
 	[Fact]
 	public void Every_structure_is_listed_in_the_expected_size_table()
 	{
-		string[] actual = AbiStructures.All().Select(static type => type.FullName!).Order(StringComparer.Ordinal).ToArray();
+		string[] actual = AbiStructures.All().Select(static type => type.FullName!).Order(StringComparer.Ordinal)
+			.ToArray();
 		string[] expected = ExpectedSizesOn64Bit.Keys.Order(StringComparer.Ordinal).ToArray();
 
 		Assert.Equal(expected, actual);
@@ -100,7 +101,8 @@ public sealed class AssemblyConformanceTests
 	public void Public_structures_are_a_subset_of_the_gated_structures()
 	{
 		Assert.All(PublicStructures(),
-			static type => Assert.True(ExpectedSizesOn64Bit.ContainsKey(type.FullName!), $"{type.FullName} is not gated."));
+			static type => Assert.True(ExpectedSizesOn64Bit.ContainsKey(type.FullName!),
+				$"{type.FullName} is not gated."));
 	}
 
 	[Fact]

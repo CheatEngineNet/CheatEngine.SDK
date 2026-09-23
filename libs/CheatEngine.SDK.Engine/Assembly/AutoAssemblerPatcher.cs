@@ -32,7 +32,8 @@ namespace CheatEngine.SDK.Engine.Assembly;
 ///     </para>
 ///     <para>
 ///         <c>autoAssemble</c> is called with three results (success, disable information or error detail, compilation
-///         warnings) so that no result Cheat Engine returns is dropped. <see cref="TryApplyWithOutcome(string, out AutoAssemblerPatch?)" />
+///         warnings) so that no result Cheat Engine returns is dropped.
+///         <see cref="TryApplyWithOutcome(string, out AutoAssemblerPatch?)" />
 ///         reports every result as an <see cref="AutoAssemblerApplyOutcome" />; the older <see cref="TryApply" /> and
 ///         <see cref="Apply" /> keep their Boolean and exception contracts. Both globals are resolved through the SDK's
 ///         cached, protected global push.
@@ -148,7 +149,10 @@ public static class AutoAssemblerPatcher
 	///     Checks <paramref name="script" /> with <c>autoAssembleCheck</c> and <see cref="AutoAssemblerOptions.Default" />.
 	/// </summary>
 	/// <param name="script">The Auto Assembler script to check.</param>
-	/// <param name="enable"><see langword="true" /> to check the <c>[ENABLE]</c> section, <see langword="false" /> for <c>[DISABLE]</c>.</param>
+	/// <param name="enable">
+	///     <see langword="true" /> to check the <c>[ENABLE]</c> section, <see langword="false" /> for
+	///     <c>[DISABLE]</c>.
+	/// </param>
 	/// <returns>The outcome of the check.</returns>
 	/// <exception cref="ArgumentException"><paramref name="script" /> is empty or white-space only.</exception>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
@@ -163,7 +167,10 @@ public static class AutoAssemblerPatcher
 	///     (never <c>targetself</c>).
 	/// </summary>
 	/// <param name="script">The Auto Assembler script to check.</param>
-	/// <param name="enable"><see langword="true" /> to check the <c>[ENABLE]</c> section, <see langword="false" /> for <c>[DISABLE]</c>.</param>
+	/// <param name="enable">
+	///     <see langword="true" /> to check the <c>[ENABLE]</c> section, <see langword="false" /> for
+	///     <c>[DISABLE]</c>.
+	/// </param>
 	/// <param name="options">The host-text opt-in and bound.</param>
 	/// <returns>The outcome of the check.</returns>
 	/// <exception cref="ArgumentException"><paramref name="script" /> is empty or white-space only.</exception>
@@ -338,7 +345,8 @@ public static class AutoAssemblerPatcher
 
 		// Retain the original table on the stack while the copy is rooted. A failed root leaves the original table as
 		// the one remaining authority for a direct, target-checked disable.
-		LuaRef? disableInfo = TryTrackDisableInfo(state, detail, warnings, disableInfoTracker, out Exception? trackingFailure);
+		LuaRef? disableInfo =
+			TryTrackDisableInfo(state, detail, warnings, disableInfoTracker, out Exception? trackingFailure);
 		if (disableInfo is null)
 		{
 			cause = trackingFailure;

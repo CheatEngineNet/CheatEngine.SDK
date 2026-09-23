@@ -3,7 +3,8 @@ namespace CheatEngine.SDK.Abi.Native;
 /// <summary>
 ///     The names of the three functions a <b>classic native</b> plugin DLL exports. Classic native load path only: a
 ///     NativeAOT DLL exposing them is not a supported CheatEngine.SDK profile, because Cheat Engine unloads plugins with
-///     <c>FreeLibrary</c>, which .NET does not support for NativeAOT libraries; see <c>libs/CheatEngine.SDK.Abi/README.md</c>.
+///     <c>FreeLibrary</c>, which .NET does not support for NativeAOT libraries; see
+///     <c>libs/CheatEngine.SDK.Abi/README.md</c>.
 /// </summary>
 /// <remarks>
 ///     <para>

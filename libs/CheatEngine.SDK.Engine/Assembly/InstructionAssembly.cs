@@ -11,7 +11,9 @@ namespace CheatEngine.SDK.Engine.Assembly;
 ///         The same instruction text assembles to different bytes for a different origin, jump preference or range-check
 ///         option, or for another target profile. This value keeps them together with the result so that bytes are never
 ///         reused in a context they were not produced for (audit ch.15, A15-04). It is filled on every outcome of
-///         <see cref="InstructionAssembler.TryAssemble(InstructionTargetProfile, string, Address, AssemblePreference, bool, System.Span{byte}, out InstructionAssembly)" />:
+///         <see
+///             cref="InstructionAssembler.TryAssemble(InstructionTargetProfile, string, Address, AssemblePreference, bool, System.Span{byte}, out InstructionAssembly)" />
+///         :
 ///         the context fields always echo the request, while <see cref="Written" /> is non-zero only on success.
 ///     </para>
 ///     <para>It owns no Lua storage and no Cheat Engine object; it stays valid after the Lua runtime detaches.</para>

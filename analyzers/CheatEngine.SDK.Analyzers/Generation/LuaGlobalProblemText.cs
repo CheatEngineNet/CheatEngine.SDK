@@ -55,7 +55,8 @@ internal static class LuaGlobalProblemText
 			LuaGlobalShapeIssues.OptionalArgumentNotTrailing => DiagnosticDescriptors.NonTrailingOptionalLuaArgument,
 			LuaGlobalShapeIssues.OptionalResultNotTrailing or LuaGlobalShapeIssues.VariadicResultNotLast
 				or LuaGlobalShapeIssues.VariadicResultOutsideOutcome or LuaGlobalShapeIssues.UnsupportedVariadicElement
-				or LuaGlobalShapeIssues.MultipleVariadicResults => DiagnosticDescriptors.InvalidOptionalOrVariadicLuaResult,
+				or LuaGlobalShapeIssues.MultipleVariadicResults => DiagnosticDescriptors
+					.InvalidOptionalOrVariadicLuaResult,
 			LuaGlobalShapeIssues.LookAlikeContractType => DiagnosticDescriptors.LookAlikeLuaContractType,
 			LuaGlobalShapeIssues.OptionalNotSupportedHere => DiagnosticDescriptors.UnsupportedLuaOptionalPosition,
 			_ => DiagnosticDescriptors.InvalidLuaGlobal

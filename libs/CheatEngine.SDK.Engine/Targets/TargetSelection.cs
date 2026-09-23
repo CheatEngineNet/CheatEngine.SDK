@@ -34,7 +34,9 @@ namespace CheatEngine.SDK.Engine.Targets;
 ///             </description>
 ///         </item>
 ///         <item>
-///             <term><c>isConnectedToCEServer() == true</c></term>
+///             <term>
+///                 <c>isConnectedToCEServer() == true</c>
+///             </term>
 ///             <description>
 ///                 <see cref="TargetSelectionObservationStatus.CurrentTargetRemoteBackend" />: a local PID and creation
 ///                 time do not describe a PID served by CEServer, so no lookup runs and no incarnation is emitted.

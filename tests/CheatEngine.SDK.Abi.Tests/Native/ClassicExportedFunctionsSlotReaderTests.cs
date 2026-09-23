@@ -37,7 +37,8 @@ public sealed class ClassicExportedFunctionsSlotReaderTests
 		byte[] table = Table(minDeclaredSize - 1, ClassicExportedFunctionsSlotReader.TableByteCount);
 		WriteSlot(table, slot, 0x1234_5678_9ABC_DEF0);
 
-		Assert.False(ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
+		Assert.False(
+			ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
 		Assert.Equal(default, observation);
 	}
 
@@ -52,7 +53,8 @@ public sealed class ClassicExportedFunctionsSlotReaderTests
 		ulong value = 0x0100_0000_0000_0000UL + (ulong) slot;
 		WriteSlot(table, slot, value);
 
-		Assert.True(ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
+		Assert.True(
+			ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
 		Assert.Equal(slot, observation.Slot);
 		Assert.Equal((nint) value, observation.RawValue);
 		Assert.False(observation.IsNull);
@@ -74,23 +76,27 @@ public sealed class ClassicExportedFunctionsSlotReaderTests
 
 		for (int slot = 1; slot < ClassicExportedFunctionsSlotReader.SlotCount; slot++)
 		{
-			Assert.True(ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
-			Assert.Equal((nint) (slot * 0x10), observation.RawValue);
+			Assert.True(
+				ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
+			Assert.Equal(slot * 0x10, observation.RawValue);
 		}
 
 		// A future suffix is compatible with the known slots, but no slot past the known table is ever read.
-		Assert.False(ClassicExportedFunctionsSlotReader.TryReadSlot(table, ClassicExportedFunctionsSlotReader.SlotCount, out _));
+		Assert.False(ClassicExportedFunctionsSlotReader.TryReadSlot(table, ClassicExportedFunctionsSlotReader.SlotCount,
+			out _));
 	}
 
 	[Theory]
 	[MemberData(nameof(RegistrySlots))]
 	[Trait("Qualification", "Q39")]
-	public void Physically_truncated_table_is_refused_even_when_the_declared_size_is_large(int slot, int minDeclaredSize)
+	public void Physically_truncated_table_is_refused_even_when_the_declared_size_is_large(int slot,
+		int minDeclaredSize)
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
 		byte[] table = Table(ClassicExportedFunctionsSlotReader.TableByteCount, minDeclaredSize - 1);
 
-		Assert.False(ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
+		Assert.False(
+			ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
 		Assert.Equal(default, observation);
 	}
 
@@ -99,17 +105,23 @@ public sealed class ClassicExportedFunctionsSlotReaderTests
 	public void Null_slot_is_reported_as_null_and_never_dereferenced()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
-		byte[] table = Table(ClassicExportedFunctionsSlotReader.TableByteCount, ClassicExportedFunctionsSlotReader.TableByteCount);
-		int[] nilSlots = [.. ClassicSlotRegistry.Slots
-			.Where(static slot => string.Equals(slot.GetProperty("nullability").GetString(), "NilAssigned", StringComparison.Ordinal))
-			.Select(static slot => slot.GetProperty("slot").GetInt32())];
+		byte[] table = Table(ClassicExportedFunctionsSlotReader.TableByteCount,
+			ClassicExportedFunctionsSlotReader.TableByteCount);
+		int[] nilSlots =
+		[
+			.. ClassicSlotRegistry.Slots
+				.Where(static slot => string.Equals(slot.GetProperty("nullability").GetString(), "NilAssigned",
+					StringComparison.Ordinal))
+				.Select(static slot => slot.GetProperty("slot").GetInt32())
+		];
 		// A non-nil but invalid address in a neighbouring slot: reading it must not touch the address either.
 		WriteSlot(table, 15, 0x1);
 
 		Assert.Equal(11, nilSlots.Length);
 		foreach (int slot in nilSlots)
 		{
-			Assert.True(ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
+			Assert.True(
+				ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
 			Assert.True(observation.IsNull);
 			Assert.Equal(0, observation.RawValue);
 		}
@@ -127,12 +139,15 @@ public sealed class ClassicExportedFunctionsSlotReaderTests
 		const int ReadProcessMemorySlot = 18;
 		Assert.Equal("FunctionPointerCell",
 			ClassicSlotRegistry.Slots[ReadProcessMemorySlot].GetProperty("nature").GetString());
-		byte[] table = Table(ClassicExportedFunctionsSlotReader.TableByteCount, ClassicExportedFunctionsSlotReader.TableByteCount);
+		byte[] table = Table(ClassicExportedFunctionsSlotReader.TableByteCount,
+			ClassicExportedFunctionsSlotReader.TableByteCount);
 
 		WriteSlot(table, ReadProcessMemorySlot, 0x0000_7FF0_0000_1000);
-		Assert.True(ClassicExportedFunctionsSlotReader.TryReadSlot(table, ReadProcessMemorySlot, out ClassicSlotObservation first));
+		Assert.True(ClassicExportedFunctionsSlotReader.TryReadSlot(table, ReadProcessMemorySlot,
+			out ClassicSlotObservation first));
 		WriteSlot(table, ReadProcessMemorySlot, 0x0000_7FF0_0000_2000);
-		Assert.True(ClassicExportedFunctionsSlotReader.TryReadSlot(table, ReadProcessMemorySlot, out ClassicSlotObservation second));
+		Assert.True(ClassicExportedFunctionsSlotReader.TryReadSlot(table, ReadProcessMemorySlot,
+			out ClassicSlotObservation second));
 
 		Assert.Equal(0x0000_7FF0_0000_1000, first.RawValue);
 		Assert.Equal(0x0000_7FF0_0000_2000, second.RawValue);
@@ -144,7 +159,8 @@ public sealed class ClassicExportedFunctionsSlotReaderTests
 	public void Address_above_32_bits_round_trips_through_a_slot()
 	{
 		Assert.SkipUnless(Layout.Is64BitProcess, Layout.Requires64BitProcess);
-		byte[] table = Table(ClassicExportedFunctionsSlotReader.TableByteCount, ClassicExportedFunctionsSlotReader.TableByteCount);
+		byte[] table = Table(ClassicExportedFunctionsSlotReader.TableByteCount,
+			ClassicExportedFunctionsSlotReader.TableByteCount);
 		WriteSlot(table, 158, HighAddress);
 
 		Assert.True(ClassicExportedFunctionsSlotReader.TryReadSlot(table, 158, out ClassicSlotObservation observation));
@@ -163,7 +179,8 @@ public sealed class ClassicExportedFunctionsSlotReaderTests
 	{
 		byte[] table = Table(int.MaxValue, ClassicExportedFunctionsSlotReader.TableByteCount + 64);
 
-		Assert.False(ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
+		Assert.False(
+			ClassicExportedFunctionsSlotReader.TryReadSlot(table, slot, out ClassicSlotObservation observation));
 		Assert.Equal(default, observation);
 	}
 
@@ -173,7 +190,8 @@ public sealed class ClassicExportedFunctionsSlotReaderTests
 		JsonElement contract = ClassicSlotRegistry.Root.GetProperty("contract");
 
 		Assert.Equal(ClassicExportedFunctionsSlotReader.SlotCount, contract.GetProperty("fieldCount").GetInt32());
-		Assert.Equal(ClassicExportedFunctionsSlotReader.TableByteCount, contract.GetProperty("x64TableSize").GetInt32());
+		Assert.Equal(ClassicExportedFunctionsSlotReader.TableByteCount,
+			contract.GetProperty("x64TableSize").GetInt32());
 		Assert.Equal(ClassicExportedFunctionsSlotReader.TableByteCount, ClassicSlotRegistry.MinDeclaredSize(158));
 	}
 

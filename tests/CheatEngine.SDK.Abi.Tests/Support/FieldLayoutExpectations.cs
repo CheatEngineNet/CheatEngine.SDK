@@ -8,7 +8,8 @@ namespace CheatEngine.SDK.Abi.Tests.Support;
 /// <remarks>
 ///     <para>
 ///         Literals only, never derived from the code under test. Adding, removing, moving or retyping a field without
-///         editing this table fails <c>FieldLayout.FieldLayoutContractTests</c> in both directions (a field without a row, a row
+///         editing this table fails <c>FieldLayout.FieldLayoutContractTests</c> in both directions (a field without a row,
+///         a row
 ///         without a field, a wrong offset, width or kind).
 ///     </para>
 ///     <para>
@@ -16,7 +17,8 @@ namespace CheatEngine.SDK.Abi.Tests.Support;
 ///         <c>TPluginDotNetInitResult</c> L29-36 packed, <c>TExportedFunctionsDotNetV1</c> L38-45,
 ///         <c>TPlugin0_SelectedRecord</c> L726-735, <c>TExportedFunctions5</c> L47-226), the C header
 ///         <c>cepluginsdk.h</c> for the registration records and <c>REGISTERMODIFICATIONINFO</c>, and the x64 natural
-///         alignment rule; see <c>libs/CheatEngine.SDK.Abi/README.md</c>. The <c>PluginType0Record</c> rows are identical to the host
+///         alignment rule; see <c>libs/CheatEngine.SDK.Abi/README.md</c>. The <c>PluginType0Record</c> rows are identical
+///         to the host
 ///         type table of the audit's annex 05 (the oracle of <c>Native.SelectedRecordOracleTests</c>).
 ///     </para>
 /// </remarks>

@@ -48,7 +48,7 @@ public readonly unsafe partial struct LuaState
 	/// <remarks>One C API call; never raises for a tag of <see cref="LuaType" />.</remarks>
 	public ReadOnlySpan<byte> TypeName(LuaType type)
 	{
-		Debug.Assert(type >= LuaType.None && type <= LuaType.Thread, "Not a Lua 5.3 type tag.");
+		Debug.Assert(type is >= LuaType.None and <= LuaType.Thread, "Not a Lua 5.3 type tag.");
 		return MemoryMarshal.CreateReadOnlySpanFromNullTerminated(lua_typename(Pointer, (int) type));
 	}
 

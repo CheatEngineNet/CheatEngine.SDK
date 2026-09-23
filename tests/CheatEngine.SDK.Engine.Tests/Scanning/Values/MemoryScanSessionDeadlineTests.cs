@@ -187,7 +187,8 @@ public sealed class MemoryScanSessionDeadlineTests
 
 	[Fact]
 	[Trait("Qualification", "Q26")]
-	public void TryWaitForCompletion_initialize_failure_after_completion_is_initialization_failed_and_never_exposes_results()
+	public void
+		TryWaitForCompletion_initialize_failure_after_completion_is_initialization_failed_and_never_exposes_results()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -215,7 +216,9 @@ public sealed class MemoryScanSessionDeadlineTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
-		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
+		MemScanTestHost.Run(L,
+			"opened_process_id = " +
+			MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 
 		MemoryScanWaitStatus status = session.TryWaitForCompletion(Deadline);
 
@@ -388,7 +391,9 @@ public sealed class MemoryScanSessionDeadlineTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
-		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
+		MemScanTestHost.Run(L,
+			"opened_process_id = " +
+			MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 
 		MemoryScanTerminationStatus status = session.TryTerminateScan(Deadline);
 
@@ -545,7 +550,8 @@ public sealed class MemoryScanSessionDeadlineTests
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
 		MemoryScanReleaseOutcome? inner = null;
-		using FakeHost.ManagedHookScope hook = FakeHost.InstallManagedHook(L, () => inner = session.ReleaseWithOutcome());
+		using FakeHost.ManagedHookScope hook =
+			FakeHost.InstallManagedHook(L, () => inner = session.ReleaseWithOutcome());
 		InstallWaitHook(L);
 
 		Assert.Throws<ObjectDisposedException>(() => session.TryWaitForCompletion(Deadline));
@@ -571,7 +577,8 @@ public sealed class MemoryScanSessionDeadlineTests
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
 		List<MemoryScanReleaseOutcome> inner = [];
-		using FakeHost.ManagedHookScope hook = FakeHost.InstallManagedHook(L, () => inner.Add(session.ReleaseWithOutcome()));
+		using FakeHost.ManagedHookScope hook =
+			FakeHost.InstallManagedHook(L, () => inner.Add(session.ReleaseWithOutcome()));
 		InstallWaitHook(L);
 		MemScanTestHost.Run(L, "scan_wait_modes = { 'false', 'true' }");
 
@@ -626,7 +633,8 @@ public sealed class MemoryScanSessionDeadlineTests
 	// Every wait runs the managed hook (CE pumping queued main-thread work), then records that the hook returned.
 	private static void InstallWaitHook(LuaState state)
 	{
-		MemScanTestHost.Run(state, "scan_wait_hook = function() managed_hook(); table.insert(trace, 'hook.returned') end");
+		MemScanTestHost.Run(state,
+			"scan_wait_hook = function() managed_hook(); table.insert(trace, 'hook.returned') end");
 	}
 
 	private static MemoryScanSession StartScanning(LuaState state)

@@ -17,7 +17,7 @@ public static unsafe partial class LuaApi
 	///     <c>LUAL_NUMSIZES</c>: the size fingerprint <c>luaL_checkversion</c> compares,
 	///     <c>sizeof(lua_Integer) * 16 + sizeof(lua_Number)</c>.
 	/// </summary>
-	public const int LUAL_NUMSIZES = sizeof(lua_Integer) * 16 + sizeof(lua_Number);
+	public const int LUAL_NUMSIZES = (sizeof(lua_Integer) * 16) + sizeof(lua_Number);
 
 	// ---- limits and pseudo-indices (luaconf.h) -------------------------------------------------------------------
 

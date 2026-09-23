@@ -133,8 +133,11 @@ public sealed class LuaGlobalOptionalArgumentEndToEndTests(RoslynFixture roslyn)
 		AllocationGate.AssertZero(() =>
 		{
 			if (!tryArity(1, LuaOptional.Of(2L), out long present) || present != 2
-				|| !tryArity(1, default, out long omitted) || omitted != 1
-				|| !detailed(1, LuaOptional.Nil<double>(), LuaOptional.Of(true), out long nil).IsSuccess || nil != 3)
+																   || !tryArity(1, default, out long omitted) ||
+																   omitted != 1
+																   || !detailed(1, LuaOptional.Nil<double>(),
+																	   LuaOptional.Of(true), out long nil).IsSuccess ||
+																   nil != 3)
 			{
 				throw new InvalidOperationException("wrong count");
 			}

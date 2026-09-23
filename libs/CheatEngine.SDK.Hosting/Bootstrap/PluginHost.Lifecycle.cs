@@ -471,7 +471,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 			return true;
 		}
 
-		bool cleanupSucceeded = false;
+		bool cleanupSucceeded;
 		try
 		{
 			RunDisable(context!, plugin);

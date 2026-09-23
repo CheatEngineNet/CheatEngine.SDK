@@ -264,7 +264,9 @@ public sealed class MemoryScanSessionReleaseTests
 		using HostScope scope = new(state);
 		LuaState L = scope.State;
 		MemoryScanSession session = StartScanning(L);
-		MemScanTestHost.Run(L, "opened_process_id = " + MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
+		MemScanTestHost.Run(L,
+			"opened_process_id = " +
+			MemScanTestHost.FindOtherQualifiedProcessId().ToString(CultureInfo.InvariantCulture));
 
 		MemoryScanReleaseOutcome outcome = session.ReleaseWithOutcome();
 
@@ -312,7 +314,8 @@ public sealed class MemoryScanSessionReleaseTests
 
 	[Fact]
 	[Trait("Qualification", "Q26")]
-	public void Dispose_from_inside_WaitForCompletion_releases_once_after_the_wait_returned_without_initializing_results()
+	public void
+		Dispose_from_inside_WaitForCompletion_releases_once_after_the_wait_returned_without_initializing_results()
 	{
 		EngineTest.RequireNativeLua();
 		using NativeLuaState state = new();
@@ -425,7 +428,8 @@ public sealed class MemoryScanSessionReleaseTests
 	// Every wait runs the managed hook (CE pumping queued main-thread work), then records that the hook returned.
 	private static void InstallWaitHook(LuaState state)
 	{
-		MemScanTestHost.Run(state, "scan_wait_hook = function() managed_hook(); table.insert(trace, 'hook.returned') end");
+		MemScanTestHost.Run(state,
+			"scan_wait_hook = function() managed_hook(); table.insert(trace, 'hook.returned') end");
 	}
 
 	private static MemoryScanSession StartScanning(LuaState state)

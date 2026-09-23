@@ -61,7 +61,7 @@ internal static class LuaNames
 
 	private static bool IsIdentifierStart(char c)
 	{
-		return c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or '_';
+		return c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or '_';
 	}
 
 	private static bool IsIdentifierPart(char c)

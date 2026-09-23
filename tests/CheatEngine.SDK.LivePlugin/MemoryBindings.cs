@@ -23,6 +23,7 @@ internal static partial class MemoryBindings
 	/// </remarks>
 	internal static bool TryReadInt32(nuint address, out int value)
 	{
+		value = 0;
 		return TryReadInt32Raw(address, true, out value);
 	}
 

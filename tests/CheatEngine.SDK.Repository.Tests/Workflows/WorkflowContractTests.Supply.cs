@@ -15,7 +15,8 @@ public sealed partial class WorkflowContractTests
 		// The gate requires success: the job itself never skips, only its steps choose by event (contract 1.11).
 		Assert.Null(job.Condition);
 		Assert.Empty(job.Needs());
-		Assert.False(WorkflowFile.Has(job.Node, "permissions"), "dependency-review keeps the read-only top-level permissions.");
+		Assert.False(WorkflowFile.Has(job.Node, "permissions"),
+			"dependency-review keeps the read-only top-level permissions.");
 
 		YamlMappingNode review = Assert.Single(job.StepsUsing("actions/dependency-review-action@"));
 		Assert.Equal("github.event_name == 'pull_request'", WorkflowFile.Scalar(review, "if"));
@@ -45,11 +46,13 @@ public sealed partial class WorkflowContractTests
 
 		Assert.Equal("moderate", WorkflowFile.Scalar(config, "fail-on-severity"));
 		Assert.Equal(["runtime", "development"],
-			WorkflowFile.ScalarValues(Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(config, "fail-on-scopes"))));
+			WorkflowFile.ScalarValues(
+				Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(config, "fail-on-scopes"))));
 		Assert.Contains("MIT",
 			WorkflowFile.ScalarValues(Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(config, "allow-licenses"))),
 			StringComparer.Ordinal);
-		foreach (string purl in WorkflowFile.ScalarValues(Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(config, "allow-dependencies-licenses"))))
+		foreach (string purl in WorkflowFile.ScalarValues(
+					 Assert.IsType<YamlSequenceNode>(WorkflowFile.Sequence(config, "allow-dependencies-licenses"))))
 		{
 			Assert.StartsWith("pkg:nuget/", purl, StringComparison.Ordinal);
 		}
@@ -57,7 +60,8 @@ public sealed partial class WorkflowContractTests
 		// The workflow sets these inline (contract 1.6); a second value here could silently disagree.
 		foreach (string inline in new[] { "comment-summary-in-pr", "retry-on-snapshot-warnings", "config-file" })
 		{
-			Assert.False(WorkflowFile.Has(config, inline), $"{DependencyReviewConfig} must not repeat '{inline}', which ci.yml sets.");
+			Assert.False(WorkflowFile.Has(config, inline),
+				$"{DependencyReviewConfig} must not repeat '{inline}', which ci.yml sets.");
 		}
 	}
 
@@ -76,6 +80,7 @@ public sealed partial class WorkflowContractTests
 		YamlMappingNode setup = Assert.Single(job.StepsUsing(WorkflowContract.SetupAction));
 		List<string> targets = RestoreTargets(setup);
 		Assert.Contains("CheatEngine.SDK.slnx", targets, StringComparer.Ordinal);
-		Assert.Contains("tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj", targets, StringComparer.Ordinal);
+		Assert.Contains("tests/CheatEngine.SDK.AotProbe/CheatEngine.SDK.AotProbe.csproj", targets,
+			StringComparer.Ordinal);
 	}
 }

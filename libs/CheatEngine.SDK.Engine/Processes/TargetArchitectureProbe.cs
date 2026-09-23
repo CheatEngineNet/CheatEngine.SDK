@@ -16,7 +16,8 @@ namespace CheatEngine.SDK.Engine.Processes;
 ///     <para>
 ///         Every call runs inside the caller's <c>LuaRuntimeOperation</c> and restores the recorded stack top on every
 ///         exit path. Each global is resolved through <c>LuaGlobalFunctions.TryPushWithOutcome</c> and a static
-///         <see cref="LuaRef" /> cache, so an absent global, a raising global (with its protected <see cref="LuaStatus" />)
+///         <see cref="LuaRef" /> cache, so an absent global, a raising global (with its protected <see cref="LuaStatus" />
+///         )
 ///         and a value of the wrong type stay three distinct outcomes. No error text is read.
 ///     </para>
 ///     <para>
@@ -103,7 +104,10 @@ internal static class TargetArchitectureProbe
 
 	/// <summary>Reads and classifies <c>getOpenedProcessID</c> once, leaving the stack as it found it.</summary>
 	/// <param name="state">The admitted Lua state of the caller's operation.</param>
-	/// <param name="processId">The positive identifier when the result is <see cref="TargetProbeStatus.Success" />; otherwise zero.</param>
+	/// <param name="processId">
+	///     The positive identifier when the result is <see cref="TargetProbeStatus.Success" />; otherwise
+	///     zero.
+	/// </param>
 	/// <param name="luaStatus">The protected status of a <see cref="TargetProbeStatus.LuaFailure" />; otherwise OK.</param>
 	/// <returns>
 	///     <see cref="TargetProbeStatus.Success" />, <see cref="TargetProbeStatus.NoTargetSelected" />,
@@ -148,7 +152,10 @@ internal static class TargetArchitectureProbe
 
 	/// <summary>Classifies a raw <c>getOpenedProcessID</c> integer.</summary>
 	/// <param name="raw">The Lua integer.</param>
-	/// <param name="processId">The positive identifier when the result is <see cref="TargetProbeStatus.Success" />; otherwise zero.</param>
+	/// <param name="processId">
+	///     The positive identifier when the result is <see cref="TargetProbeStatus.Success" />; otherwise
+	///     zero.
+	/// </param>
 	/// <returns>The selected, no-target, file-as-process or invalid category.</returns>
 	internal static TargetProbeStatus ClassifyProcessId(long raw, out int processId)
 	{
@@ -255,7 +262,8 @@ internal static class TargetArchitectureProbe
 			{
 				// CE pushes these with lua_pushinteger. A float, even an integral one, and a value outside int are
 				// refused rather than rounded or truncated.
-				if (!state.IsInteger(-1) || !state.TryReadInteger(-1, out long raw) || raw is < int.MinValue or > int.MaxValue)
+				if (!state.IsInteger(-1) || !state.TryReadInteger(-1, out long raw) ||
+					raw is < int.MinValue or > int.MaxValue)
 				{
 					return TargetProbeStatus.InvalidResult;
 				}

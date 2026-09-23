@@ -36,7 +36,8 @@ configuration just to run a plugin. See the
 [live-plugin guide](tests/CheatEngine.SDK.LivePlugin/README.md#run-it-in-cheat-engine).
 
 A NativeAOT plugin DLL is not a supported profile: Cheat Engine unloads a plugin with `FreeLibrary`, which .NET does
-not support for a NativeAOT library. See [load profiles and limits](src/CheatEngine.SDK/README.md#load-profiles-and-limits).
+not support for a NativeAOT library.
+See [load profiles and limits](src/CheatEngine.SDK/README.md#load-profiles-and-limits).
 
 ## Install
 
@@ -120,15 +121,15 @@ C toolchain to rebuild it.
 
 ## Project layout
 
-| Path                                           | Purpose                                                                     |
-|------------------------------------------------|-----------------------------------------------------------------------------|
-| [`libs/`](libs/)                               | Layered annotations, ABI, Lua, engine, and hosting libraries.               |
-| [`src/CheatEngine.SDK/`](src/CheatEngine.SDK/) | The `CheatEngine.SDK` NuGet package and consumer build properties.          |
-| [`source-generators/`](source-generators/)     | Generated plugin entry-point and Lua-binding components.                    |
-| [`analyzers/`](analyzers/)                     | Diagnostics, code fixes, and their documentation.                           |
-| [`native/`](native/)                           | The Lua test fixture and bundled Windows x64 Lua protection bridge.         |
-| [`tests/`](tests/)                             | Unit tests, benchmarks, shared fixtures, and the live-plugin sample.        |
-| [`exemples/`](exemples/)                       | Guides, recipes, and API documentation. The directory name is intentional.  |
+| Path                                           | Purpose                                                                         |
+|------------------------------------------------|---------------------------------------------------------------------------------|
+| [`libs/`](libs/)                               | Layered annotations, ABI, Lua, engine, and hosting libraries.                   |
+| [`src/CheatEngine.SDK/`](src/CheatEngine.SDK/) | The `CheatEngine.SDK` NuGet package and consumer build properties.              |
+| [`source-generators/`](source-generators/)     | Generated plugin entry-point and Lua-binding components.                        |
+| [`analyzers/`](analyzers/)                     | Diagnostics, code fixes, and their documentation.                               |
+| [`native/`](native/)                           | The Lua test fixture and bundled Windows x64 Lua protection bridge.             |
+| [`tests/`](tests/)                             | Unit tests, benchmarks, shared fixtures, and the live-plugin sample.            |
+| [`exemples/`](exemples/)                       | Guides, recipes, and API documentation. The directory name is intentional.      |
 | [`eng/`](eng/)                                 | Shared MSBuild configuration (`Directory.Build.*`, central package management). |
 
 ## Documentation

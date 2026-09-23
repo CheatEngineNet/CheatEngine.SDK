@@ -7,7 +7,8 @@ namespace CheatEngine.SDK.Repository.Tests.Governance;
 /// <summary>
 ///     <c>.github/dependabot.yml</c> (audit register PR-CQ-07): every ecosystem waits before proposing a fresh release,
 ///     the Roslyn pin and the SDK-implicit packages never move on their own, and titles stay compatible with the pull
-///     request policy. https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+///     request policy.
+///     https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
 /// </summary>
 public sealed class DependabotConfigurationTests
 {
@@ -50,7 +51,9 @@ public sealed class DependabotConfigurationTests
 			foreach (string key in s_cooldownKeys)
 			{
 				string? value = YamlDocument.Scalar(cooldown, key);
-				if (value is not null && (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int days) || days < MinimumCooldownDays))
+				if (value is not null &&
+					(!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int days) ||
+					 days < MinimumCooldownDays))
 				{
 					problems.Add($"{ecosystem}: {key} is {value}");
 				}
@@ -69,7 +72,8 @@ public sealed class DependabotConfigurationTests
 		foreach (YamlMappingNode rule in YamlDocument.Mappings(nuget, "ignore"))
 		{
 			// A whole-package ignore has no update-types: a partial ignore would still let some bumps through.
-			Assert.True(YamlDocument.Child(rule, "update-types") is null && YamlDocument.Child(rule, "versions") is null,
+			Assert.True(
+				YamlDocument.Child(rule, "update-types") is null && YamlDocument.Child(rule, "versions") is null,
 				$"The nuget ignore rule for '{YamlDocument.Scalar(rule, "dependency-name")}' must ignore every version.");
 			ignored.Add(YamlDocument.Scalar(rule, "dependency-name") ?? "");
 		}
@@ -116,13 +120,15 @@ public sealed class DependabotConfigurationTests
 		foreach (YamlMappingNode rule in YamlDocument.Mappings(sdk, "ignore"))
 		{
 			if (string.Equals(YamlDocument.Scalar(rule, "dependency-name"), "*", StringComparison.Ordinal)
-				&& YamlDocument.Scalars(rule, "update-types").Contains("version-update:semver-major", StringComparer.Ordinal))
+				&& YamlDocument.Scalars(rule, "update-types")
+					.Contains("version-update:semver-major", StringComparer.Ordinal))
 			{
 				ignoresMajor = true;
 			}
 		}
 
-		Assert.True(ignoresMajor, "The dotnet-sdk ecosystem must ignore semver-major updates: a new .NET major is a migration.");
+		Assert.True(ignoresMajor,
+			"The dotnet-sdk ecosystem must ignore semver-major updates: a new .NET major is a migration.");
 	}
 
 	[Fact]
@@ -172,7 +178,8 @@ public sealed class DependabotConfigurationTests
 
 	private static List<YamlMappingNode> Updates()
 	{
-		IReadOnlyList<YamlMappingNode> updates = YamlDocument.Mappings(YamlDocument.Load(ConfigurationPath).Root, "updates");
+		IReadOnlyList<YamlMappingNode> updates =
+			YamlDocument.Mappings(YamlDocument.Load(ConfigurationPath).Root, "updates");
 		Assert.NotEmpty(updates);
 		return [.. updates];
 	}

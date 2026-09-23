@@ -19,8 +19,9 @@ public sealed unsafe partial class NativeHostEmulatorTests
 	[Fact]
 	public void Required_mode_rejects_an_absent_emulator_directory()
 	{
-		InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-			() => NativeHostEmulatorEnvironment.ResolveDirectory(null, "true"));
+		InvalidOperationException exception =
+			Assert.Throws<InvalidOperationException>(() =>
+				NativeHostEmulatorEnvironment.ResolveDirectory(null, "true"));
 
 		Assert.Equal(
 			$"'{NativeHostEmulatorEnvironment.RequiredEnvironmentVariable}=true' requires '{NativeHostEmulatorEnvironment.DirectoryEnvironmentVariable}' to name a built native host emulator directory.",
@@ -36,13 +37,15 @@ public sealed unsafe partial class NativeHostEmulatorTests
 	[Fact]
 	public void Emulator_abi_header_declares_the_managed_record_sizes()
 	{
-		string headerPath = Path.Combine(CoexistencePluginLayout.RepoRoot, "tests", "native-host-emulator", "ce_host_emulator_abi.h");
+		string headerPath = Path.Combine(CoexistencePluginLayout.RepoRoot, "tests", "native-host-emulator",
+			"ce_host_emulator_abi.h");
 		string headerText = File.ReadAllText(headerPath);
 
 		Dictionary<string, int> declaredSizes = new(StringComparer.Ordinal);
 		foreach (Match match in StaticAssertSizeOf().Matches(headerText))
 		{
-			declaredSizes[match.Groups["type"].Value] = int.Parse(match.Groups["size"].Value, CultureInfo.InvariantCulture);
+			declaredSizes[match.Groups["type"].Value] =
+				int.Parse(match.Groups["size"].Value, CultureInfo.InvariantCulture);
 		}
 
 		Assert.Equal(36, declaredSizes["CePluginInitRecord"]);
@@ -79,7 +82,8 @@ public sealed unsafe partial class NativeHostEmulatorTests
 		Assert.Equal("nil", result.Facts["after_disable_a.a_identity_type"]);
 		Assert.Equal("nil", result.Facts["after_disable_a.a_ping_type"]);
 		Assert.Equal("ok", result.Facts["after_disable_a.b_identity_call"]);
-		Assert.True(TryParseInt(result.Facts["after_disable_a.b_ping"], out int pingAfterDisableA) && pingAfterDisableA > 0,
+		Assert.True(
+			TryParseInt(result.Facts["after_disable_a.b_ping"], out int pingAfterDisableA) && pingAfterDisableA > 0,
 			DescribeFailure("Q09.b", result, factsPath));
 	}
 
@@ -94,7 +98,8 @@ public sealed unsafe partial class NativeHostEmulatorTests
 			return;
 		}
 
-		string sharedDirectory = Path.Combine(Path.GetTempPath(), "cesdk-native-host-emulator-" + Guid.NewGuid().ToString("N"));
+		string sharedDirectory =
+			Path.Combine(Path.GetTempPath(), "cesdk-native-host-emulator-" + Guid.NewGuid().ToString("N"));
 		try
 		{
 			CoexistencePluginLayout.CreateSharedLayout(sharedDirectory);
@@ -134,7 +139,8 @@ public sealed unsafe partial class NativeHostEmulatorTests
 			return;
 		}
 
-		string sharedDirectory = Path.Combine(Path.GetTempPath(), "cesdk-native-host-emulator-" + Guid.NewGuid().ToString("N"));
+		string sharedDirectory =
+			Path.Combine(Path.GetTempPath(), "cesdk-native-host-emulator-" + Guid.NewGuid().ToString("N"));
 		try
 		{
 			CoexistencePluginLayout.CreateSharedLayout(sharedDirectory);
@@ -199,7 +205,8 @@ public sealed unsafe partial class NativeHostEmulatorTests
 
 		Assert.True(0 == result.ExitCode, DescribeFailure("Q05", result, factsPath));
 		Assert.Equal("ok", result.Facts["a.enable.2"]);
-		Assert.True(TryParseInt(result.Facts["a.identity.epoch"], out int firstEpoch), DescribeFailure("Q05", result, factsPath));
+		Assert.True(TryParseInt(result.Facts["a.identity.epoch"], out int firstEpoch),
+			DescribeFailure("Q05", result, factsPath));
 		Assert.True(TryParseInt(result.Facts["a.identity.epoch_after_reenable"], out int reenabledEpoch),
 			DescribeFailure("Q05", result, factsPath));
 		Assert.True(reenabledEpoch > firstEpoch, DescribeFailure("Q05", result, factsPath));
@@ -215,7 +222,7 @@ public sealed unsafe partial class NativeHostEmulatorTests
 			return;
 		}
 
-		NativeHostEmulatorResult result = RunSeparateComponentScenario(emulatorDirectory, out string factsPath);
+		NativeHostEmulatorResult result = RunSeparateComponentScenario(emulatorDirectory, out _);
 
 		foreach (KeyValuePair<string, string> fact in result.Facts)
 		{
@@ -235,12 +242,17 @@ public sealed unsafe partial class NativeHostEmulatorTests
 			factsPath);
 	}
 
-	private static void AssertBootstrapAndEnableSucceeded(NativeHostEmulatorResult result, string label, string factsPath)
+	private static void AssertBootstrapAndEnableSucceeded(NativeHostEmulatorResult result, string label,
+		string factsPath)
 	{
-		Assert.True(string.Equals("ok", result.Facts[$"{label}.bootstrap.first"], StringComparison.Ordinal), DescribeFailure(label, result, factsPath));
-		Assert.True(string.Equals("ok", result.Facts[$"{label}.bootstrap.second"], StringComparison.Ordinal), DescribeFailure(label, result, factsPath));
-		Assert.True(string.Equals("ok", result.Facts[$"{label}.getversion"], StringComparison.Ordinal), DescribeFailure(label, result, factsPath));
-		Assert.True(string.Equals("ok", result.Facts[$"{label}.enable.1"], StringComparison.Ordinal), DescribeFailure(label, result, factsPath));
+		Assert.True(string.Equals("ok", result.Facts[$"{label}.bootstrap.first"], StringComparison.Ordinal),
+			DescribeFailure(label, result, factsPath));
+		Assert.True(string.Equals("ok", result.Facts[$"{label}.bootstrap.second"], StringComparison.Ordinal),
+			DescribeFailure(label, result, factsPath));
+		Assert.True(string.Equals("ok", result.Facts[$"{label}.getversion"], StringComparison.Ordinal),
+			DescribeFailure(label, result, factsPath));
+		Assert.True(string.Equals("ok", result.Facts[$"{label}.enable.1"], StringComparison.Ordinal),
+			DescribeFailure(label, result, factsPath));
 	}
 
 	private static bool TryParseInt(string text, out int value)
@@ -266,7 +278,7 @@ public sealed unsafe partial class NativeHostEmulatorTests
 		{
 			if (Directory.Exists(path))
 			{
-				Directory.Delete(path, recursive: true);
+				Directory.Delete(path, true);
 			}
 		}
 		catch (IOException)
@@ -279,9 +291,10 @@ public sealed unsafe partial class NativeHostEmulatorTests
 		}
 	}
 
-	[GeneratedRegex(@"static_assert\(sizeof\((?<type>\w+)\)\s*==\s*(?<size>\d+)", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"static_assert\(sizeof\((?<type>\w+)\)\s*==\s*(?<size>\d+)", RegexOptions.CultureInvariant, 1000)]
 	private static partial Regex StaticAssertSizeOf();
 
-	[GeneratedRegex(@"[A-Za-z]:[\\/]|\\\\[A-Za-z0-9._-]+\\", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+	[GeneratedRegex(@"[A-Za-z]:[\\/]|\\\\[A-Za-z0-9._-]+\\",
+		RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, 1000)]
 	private static partial Regex AbsolutePathPattern();
 }

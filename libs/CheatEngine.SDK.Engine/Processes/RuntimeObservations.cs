@@ -75,7 +75,8 @@ public static class RuntimeObservations
 		try
 		{
 			LuaOperationStatus hostStatus =
-				RuntimeHostOperations.ObserveHost(state, out CheatEngineHostObservation host, out HostProbeFacts absent);
+				RuntimeHostOperations.ObserveHost(state, out CheatEngineHostObservation host,
+					out HostProbeFacts absent);
 			if (!hostStatus.IsSuccess)
 			{
 				return FromHostStatus(hostStatus);
@@ -150,7 +151,8 @@ public static class RuntimeObservations
 
 	// A capability is listed only when its globals were probed: unavailable when any of them is absent, available when
 	// all of them resolved to a well-formed value.
-	private static void AddTarget(RuntimeCapabilityAvailability[] entries, ref int count, RuntimeCapabilityId capability,
+	private static void AddTarget(RuntimeCapabilityAvailability[] entries, ref int count,
+		RuntimeCapabilityId capability,
 		TargetProbeFacts facts, in TargetProbeResult probe)
 	{
 		if ((probe.Absent & facts) != TargetProbeFacts.None)

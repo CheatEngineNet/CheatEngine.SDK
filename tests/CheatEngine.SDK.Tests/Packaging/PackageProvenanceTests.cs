@@ -7,7 +7,8 @@ namespace CheatEngine.SDK.Tests.Packaging;
 /// <summary>
 ///     Which file every other packaging fact is about. In the CI Release leg the fixture must consume the exact
 ///     <c>.nupkg</c> named by <see cref="UmbrellaPackage.PrebuiltPackageVariable" /> (the file uploaded as
-///     <c>nuget-package</c>, attested and published) and never pack; only a local run outside CI may pack the working tree.
+///     <c>nuget-package</c>, attested and published) and never pack; only a local run outside CI may pack the working
+///     tree.
 ///     The identity of the consumed file is written to the test output, so it lands in the TRX next to the results.
 /// </summary>
 [Collection(PackagedUmbrellaSuite.Name)]

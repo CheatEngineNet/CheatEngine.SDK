@@ -29,7 +29,8 @@ The harness has exactly two modes:
 
 Both modes first require the exact export surface of `LibraryProbeContract`: no `CEPlugin_` export (a classic Cheat
 Engine plugin entry point), both probe exports, and nothing else except the NativeAOT runtime's own
-`DotNetRuntimeDebugHeader`, the one extra export a local `dotnet publish` of the probe produced. Any drift exits non-zero
+`DotNetRuntimeDebugHeader`, the one extra export a local `dotnet publish` of the probe produced. Any drift exits
+non-zero
 with `harness.error=` naming every violation; a conforming file prints `export.runtime.*`, `export.unexpected=none` and
 `contract=passed`. The load mode therefore refuses any file that has a `CEPlugin_` export, and it cannot be pointed at
 an arbitrary path or a production plugin: Windows loader initialization can run while a DLL is mapped, even when no
@@ -40,8 +41,8 @@ export is invoked.
 
 ## Promise
 
-- The contract and the PE reader are unit-tested without publishing anything
-  ([`tests/CheatEngine.SDK.NativeAotLoaderHarness.Tests`](../CheatEngine.SDK.NativeAotLoaderHarness.Tests/README.md),
+- The contract and the PE reader are unit-tested without publishing anything ([
+  `tests/CheatEngine.SDK.NativeAotLoaderHarness.Tests`](../CheatEngine.SDK.NativeAotLoaderHarness.Tests/README.md),
   Q41 at level C0): a `CEPlugin_*` export, a missing probe export and any unexpected export are refused.
 - The CI `aot` job's publish and harness transcript are the C2 evidence of Q41, recorded only after a green run.
 

@@ -3,7 +3,10 @@ namespace CheatEngine.SDK.Abi.Tests.Support;
 /// <summary>What a field of an ABI structure is, as far as the layout gate is concerned.</summary>
 internal enum FieldKind
 {
-	/// <summary>A fixed-width or pointer-sized integer (<c>int</c>, <c>uint</c>, <c>long</c>, <c>byte</c>, <c>nuint</c>, an enumeration).</summary>
+	/// <summary>
+	///     A fixed-width or pointer-sized integer (<c>int</c>, <c>uint</c>, <c>long</c>, <c>byte</c>, <c>nuint</c>, an
+	///     enumeration).
+	/// </summary>
 	Integer,
 
 	/// <summary>One of the two ABI booleans, <see cref="Bool32" /> or <see cref="Bool8" />.</summary>

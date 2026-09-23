@@ -11,7 +11,7 @@ namespace CheatEngine.SDK.Hosting.Tests.Diagnostics;
 ///     ABI callback. It cannot recurse into <see cref="HostLog.Write" />, cannot re-enter a lifecycle transition, and
 ///     cannot acquire Lua while a transition owns admission; none of that waits for the sink.
 /// </summary>
-public sealed unsafe class HostLogContainmentTests : IDisposable
+public sealed class HostLogContainmentTests : IDisposable
 {
 	public HostLogContainmentTests()
 	{

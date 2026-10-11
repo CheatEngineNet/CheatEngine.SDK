@@ -890,6 +890,26 @@ public static unsafe class LuaRuntime
 		}
 	}
 
+	// Numeric checks are separate from native state access so invalid observations can be tested without
+	// fabricating a dangling or corrupted lua_State. Admission cleanup remains with the caller's catch path.
+	internal static void ValidateProviderStackTop(int providerTop)
+	{
+		if (providerTop < 0)
+		{
+			throw new InvalidOperationException(FormattableString.Invariant(
+				$"The host returned a Lua state with a negative stack top ({providerTop})."));
+		}
+	}
+
+	internal static void ValidateVerifiedStackTop(int providerTop, int verifiedTop)
+	{
+		if (verifiedTop != providerTop)
+		{
+			throw new InvalidOperationException(FormattableString.Invariant(
+				$"The Lua stack changed during the host-state check (before {providerTop}, after {verifiedTop})."));
+		}
+	}
+
 	// Evaluates the 2.0 admission policy under SOperationGate, entirely before services.Provider() ever runs on a
 	// refused thread (pitfall 2): detached, external reset, transitioning and thread-not-admitted are all decided
 	// without creating a coroutine. Only then is the provider called and the universe stamp verified.
@@ -920,19 +940,11 @@ public static unsafe class LuaRuntime
 
 			LuaState acquired = new(l);
 			int providerTop = acquired.Top;
-			if (providerTop < 0)
-			{
-				throw new InvalidOperationException(
-					$"The host returned a Lua state with a negative stack top ({providerTop}).");
-			}
+			ValidateProviderStackTop(providerTop);
 
 			bool verified = TryStampOrVerify(acquired);
 			int verifiedTop = acquired.Top;
-			if (verifiedTop != providerTop)
-			{
-				throw new InvalidOperationException(
-					$"The Lua stack changed during the host-state check (before {providerTop}, after {verifiedTop}).");
-			}
+			ValidateVerifiedStackTop(providerTop, verifiedTop);
 
 			if (!verified)
 			{

@@ -16,9 +16,9 @@ public sealed unsafe class LuaProviderStackTests
 	public void Acquire_preserves_existing_stack_values_for_first_stamp_and_verification(bool deferredStamp)
 	{
 		LuaTest.RequireNativeLua();
-		using NativeLuaState state = new(false);
+		using NativeLuaState state = new(openLibraries: false);
 		LuaRuntime.Detach();
-		LuaState view = new(state.Pointer);
+		LuaState view = new(handle: state.Pointer);
 		view.PushInteger(123);
 		view.PushBoolean(true);
 		LuaHostBinding binding = HostDouble.CreateBinding(deferredStamp ? null : state.L);

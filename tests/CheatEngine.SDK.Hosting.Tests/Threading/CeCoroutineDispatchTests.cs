@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using CheatEngine.SDK.Hosting.Tests.Support;
 using CheatEngine.SDK.Hosting.Threading;
 using CheatEngine.SDK.Lua.Callbacks;
-using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Interop.Api;
 using CheatEngine.SDK.Lua.Interop.Types;
 using CheatEngine.SDK.Lua.Runtime;
@@ -187,15 +186,15 @@ public sealed unsafe class CeCoroutineDispatchTests
 	// modeled here; its private implementation remains to be observed on the real host.
 	private sealed class SynchronizeStandIn : IDisposable
 	{
-		private static SynchronizeStandIn? s_active;
-		private readonly AutoResetEvent _queued = new(false);
+		private static SynchronizeStandIn? _active;
+		private readonly AutoResetEvent _queued = new(initialState: false);
 		private readonly ConcurrentQueue<PendingCall> _pending = new();
 		private readonly Lock _gate = new();
 		private bool _stopping;
 
 		public SynchronizeStandIn(LuaState main)
 		{
-			s_active = this;
+			_active = this;
 			Assert.True(main.TryPushFunction(new LuaNativeFunction(&Synchronize)).IsOk);
 			Assert.True(main.TrySetGlobal("synchronize"u8).IsOk);
 		}
@@ -253,7 +252,7 @@ public sealed unsafe class CeCoroutineDispatchTests
 		public void Dispose()
 		{
 			StopAndDrain();
-			s_active = null;
+			_active = null;
 			_queued.Dispose();
 		}
 
@@ -265,7 +264,7 @@ public sealed unsafe class CeCoroutineDispatchTests
 				lua_State* state = (lua_State*) pointer;
 				LuaApi.lua_pushvalue(state, 1);
 				PendingCall call = new(pointer, LuaApi.luaL_ref(state, LuaApi.LUA_REGISTRYINDEX));
-				SynchronizeStandIn active = s_active!;
+				SynchronizeStandIn active = _active!;
 				lock (active._gate)
 				{
 					if (active.IsStopping)

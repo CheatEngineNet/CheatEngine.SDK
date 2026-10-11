@@ -8,6 +8,14 @@ Versions 0.1.0 to 0.2.1 were published under the former `CESDK` package ID befor
 rewrite published as `CheatEngine.SDK`; it is neither source nor binary compatible with them. Read the breaking changes
 under [1.0.0](#100---2026-09-20) before upgrading.
 
+## [Unreleased]
+
+### Fixed
+
+- Lua operation admission rejects a host-provided state with a negative stack top and checks that runtime stamp
+  verification preserves that top. Refusal releases the operation admission without resetting or retrying the state.
+  These guards contain invalid provider state; they do not establish the cause or resolution of a live host failure.
+
 ## [2.0.0] - 2026-09-24
 
 Every pack is validated against the published 1.0.0 package, and each intentional break is declared in

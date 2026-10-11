@@ -28,6 +28,11 @@ internal static unsafe class FakeExports
 	private static byte s_checkSynchronizeRawResult = 1;
 	private static Action? s_checkSynchronizeHandlerForTests;
 
+	internal static Func<nint>? StateProviderForTests
+	{
+		get; set;
+	}
+
 	public static int GetLuaStateCalls => Volatile.Read(ref s_getLuaStateCalls);
 
 	public static int ProcessMessagesCalls => Volatile.Read(ref s_processMessagesCalls);
@@ -84,6 +89,7 @@ internal static unsafe class FakeExports
 		s_lastPushedObject = 0;
 		s_checkSynchronizeRawResult = 1;
 		s_checkSynchronizeHandlerForTests = null;
+		StateProviderForTests = null;
 	}
 
 	/// <summary>Builds the record the host would pass, with every slot pointing at a double.</summary>
@@ -106,7 +112,7 @@ internal static unsafe class FakeExports
 	private static void* GetLuaState()
 	{
 		Interlocked.Increment(ref s_getLuaStateCalls);
-		return s_state;
+		return (void*) (StateProviderForTests?.Invoke() ?? (nint) s_state);
 	}
 
 	[UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]

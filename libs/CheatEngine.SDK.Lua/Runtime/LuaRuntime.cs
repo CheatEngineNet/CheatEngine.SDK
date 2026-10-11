@@ -919,7 +919,22 @@ public static unsafe class LuaRuntime
 			}
 
 			LuaState acquired = new(l);
-			if (!TryStampOrVerify(acquired))
+			int providerTop = acquired.Top;
+			if (providerTop < 0)
+			{
+				throw new InvalidOperationException(
+					$"The host returned a Lua state with a negative stack top ({providerTop}).");
+			}
+
+			bool verified = TryStampOrVerify(acquired);
+			int verifiedTop = acquired.Top;
+			if (verifiedTop != providerTop)
+			{
+				throw new InvalidOperationException(
+					$"The Lua stack changed during the host-state check (before {providerTop}, after {verifiedTop}).");
+			}
+
+			if (!verified)
 			{
 				ExitOperation();
 				state = default;

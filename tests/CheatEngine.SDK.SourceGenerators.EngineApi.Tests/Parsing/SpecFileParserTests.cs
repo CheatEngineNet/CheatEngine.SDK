@@ -845,6 +845,26 @@ public sealed class SpecFileParserTests
 		Assert.Contains("not a valid provenance", issue.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>An empty contract value never places its diagnostic past the source line boundary.</summary>
+	[Theory]
+	[InlineData("architecture:", 14)]
+	[InlineData("    architecture:", 18)]
+	[InlineData("\tarchitecture:", 15)]
+	[InlineData("architecture: ", 15)]
+	[InlineData("architecture:\t", 15)]
+	public void Empty_contract_values_keep_diagnostics_within_the_source_line(string field, int expectedColumn)
+	{
+		string text = "namespace: Demo\ntype: T\n" +
+			SpecSources.Ce77.Replace("architecture: x64", field, StringComparison.Ordinal);
+
+		SpecFileModel spec = SpecFileParser.Parse("contract.cheatengine-sdk-api.txt", text);
+
+		SpecIssue issue = Assert.Single(spec.Issues);
+		Assert.Equal(6, issue.Line);
+		Assert.Equal(expectedColumn, issue.Column);
+		Assert.Contains("missing required key 'architecture'", issue.Message, StringComparison.Ordinal);
+	}
+
 	/// <summary>Every independently malformed CE 7.7 header fact is retained as its own source-located issue.</summary>
 	[Fact]
 	public void Invalid_ce77_contract_facts_report_each_exact_value_location()

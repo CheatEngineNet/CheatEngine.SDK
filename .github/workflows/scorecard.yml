@@ -4,9 +4,10 @@
 # containers and services, any step without `uses:` (so no `run:` step), actions outside its allowlist, and runners
 # other than ubuntu-latest or ubuntu-NN.NN (NN.NN >= 22.04). This file therefore deliberately does NOT follow the
 # repository's `defaults: run: shell: pwsh` convention.
-# Publication works from the default branch only: the first run happens after merge. Expected low checks, explained
-# rather than chased: Binary-Artifacts (the Lua fixture and the bridge, see SECURITY.md), Code-Review (single
-# maintainer), Branch-Protection (until the maintainer configures it in the repository's GitHub settings).
+# Publication works from the default branch only: the first run happens after merge. Accepted limitations are
+# documented in SECURITY.md: Binary-Artifacts (the exact Lua fixture and verified bridge), Code-Review (single active
+# maintainer), Branch-Protection's human-review requirements, and CII-Best-Practices (no badge enrollment).
+# FsCheck parser properties run in the normal Debug/Release CI suites; CI / Gate is required by the main ruleset.
 name: Scorecard
 
 on:

@@ -23,6 +23,8 @@
   </ItemGroup>
 
   <ItemGroup Label="Tests">
+    <!-- Generated-input parser checks run through the existing xUnit/MTP runner. -->
+    <PackageVersion Include="FsCheck" Version="3.4.0"/>
     <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.1"/>
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2"/>
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.4.1"/>

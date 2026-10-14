@@ -22,6 +22,7 @@ directly. See the [generator README](../../source-generators/CheatEngine.SDK.Sou
 | Suite          | What it proves                                                                                                                                                                                                |
 |----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Parsing        | `SpecFileParser.Parse` and `IsSpecFile` handle the grammar (`contract: ce77`, `opt`, `opt-result`, `rest`, `form: outcome`) and report issues; every production spec parses clean (`ProductionSpecsTests`)    |
+| Fuzzing        | FsCheck generates 1,000 cases per property for arbitrary UTF-16 input, duplicate rejection and ordering, and complete-model equivalence across LF/CRLF/CR (`SpecFileParserFuzzTests`)                       |
 | Emission       | Exact text of a wrapper body, one cache field per global, the global namespace, a clean compilation                                                                                                           |
 | Diagnostics    | A malformed entry is `CESDK3001`, a conflicting identity `CESDK3002`, a missing ce77 contract `CESDK3003`, an invalid optional argument or result `CESDK3004`/`CESDK3005` (`EngineApiDiagnosticCatalogTests`) |
 | Silence        | A foreign file name, a header-only file, or no spec at all emits nothing and reports no diagnostic                                                                                                            |
@@ -51,6 +52,10 @@ dotnet test --project tests/CheatEngine.SDK.SourceGenerators.EngineApi.Tests --f
 ```
 
 ## Promise
+
+The FsCheck properties run in every normal Debug and Release suite through the existing xUnit/MTP runner. A failing
+property fails CI and reports a replay seed and counterexample. The generated-input checks are bounded by an end size
+of 128 and require no native library. They supplement the curated parser and generated-code regression tests.
 
 - Generated code compiles with no warning and no generator diagnostic, and its text is pinned (`EmissionTests`).
 - An invalid spec or CE 7.7 contract emits no file and reports a location-rich diagnostic; ignored and header-only specs

@@ -60,18 +60,18 @@ for a maintainer to commit.
 AMD64, DLL, exports, import modules, no delay-import directory) and the pinned xmake version. `BridgeAuditManifestTests`
 in `tests/CheatEngine.SDK.Tests` compares it with the committed blob (`git cat-file`), never with the working-tree DLL,
 because CI replaces that file with the bridge it builds before building the SDK. The CI-built and committed DLL bytes
-may differ: the committed DLL was not necessarily built by the runner's pinned MSVC toolset. The `native` job reports
-such a difference as a drift notice, `build-info.json` records both hashes, and the release run repeats the notice for
-the bridge it packed; it is never a failure. When a manifest test fails, its message prints the complete expected
-manifest, and replacing the file with it is the regeneration procedure.
+may differ: the committed DLL was not necessarily built by the runner's pinned MSVC toolset. The `native` job records
+the CI-built SHA-256 as a job output, but does not compare it with the committed asset or compare multiple independent
+builds. The exported fingerprint checks source metadata; it does not prove that the executable bytes match the source.
+Trust in the checked-in asset remains necessary for local builds. When a manifest test fails, its message prints the
+complete expected manifest, and replacing the file with it is the regeneration procedure.
 
 Never commit a locally built DLL: a local Visual Studio toolset is not the runner's pinned one, so a local build has
 different bytes than the bridge CI builds, tests and packs. After changing `cheatengine_sdk_lua_bridge.c` or
 `xmake.lua`, use the CI round trip:
 
-1. Push the change. The `native` job builds the bridge three times (a second output directory and a copy of the
-   build inputs outside the repository), requires identical bytes, uploads it as the `lua-protection-bridge`
-   artifact, and then fails its fingerprint check because the committed DLL is now stale.
+1. Push the change. The `native` job builds the bridge once with the pinned toolchain, uploads it as the
+   `lua-protection-bridge` artifact, and then fails its fingerprint check because the committed DLL is now stale.
 2. Download that run's artifact over the checked-in asset:
    `gh run download <run-id> -n lua-protection-bridge -D native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native`.
 3. Commit the DLL, run

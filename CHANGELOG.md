@@ -19,6 +19,7 @@ under [1.0.0](#100---2026-09-20) before upgrading.
 
 ### Fixed
 
+- Keep Engine API spec diagnostics within the source line when a contract field has an empty value.
 - Lua operation admission rejects a host-provided state with a negative stack top and checks that runtime stamp
   verification preserves that top. Refusal releases the operation admission without resetting or retrying the state.
   These guards contain invalid provider state; they do not establish the cause or resolution of a live host failure.

@@ -22,7 +22,8 @@ public sealed class SpecFileParserFuzzTests
 		Prop.ForAll<ushort[]>(characters =>
 		{
 			string text = new([.. characters.Select(static value => (char) value)]);
-			foreach (string input in (string[]) [text, SpecSources.SingleTry + "\n\n" + text, text + "\0\ud800\uffff"])
+			foreach (string input in (string[]) [text, SpecSources.SingleTry + "\n\n" + text, text + "\0\ud800\uffff",
+				SpecSources.SingleTry.Replace("architecture: x64", "architecture:" + text, StringComparison.Ordinal)])
 			{
 				SpecFileModel spec = SpecFileParser.Parse(FilePath, input);
 				string[] lines = input.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n');

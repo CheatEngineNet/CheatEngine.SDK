@@ -180,7 +180,8 @@ internal static class SpecFileParser
 		string key = trimmed[..colon].TrimEnd();
 		string value = trimmed[(colon + 1)..].Trim();
 		current.Fields.Add(
-			new SpecField(lineNumber, firstNonWhitespace + 1, firstNonWhitespace + colon + 3, key, value));
+			new SpecField(lineNumber, firstNonWhitespace + 1,
+				Math.Min(firstNonWhitespace + colon + 3, rawLine.Length + 1), key, value));
 	}
 
 	private static bool ParseHeader(List<Block> blocks, List<SpecIssue> issues, out string ns, out string typeName,

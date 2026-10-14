@@ -120,7 +120,7 @@ releases were disabled.
 3. **API compatibility.** Every pack validates `lib/net10.0` against the published 1.0.0 package, and
    `src/CheatEngine.SDK/CompatibilitySuppressions.xml` lists exactly the intentional breaks; nothing else may differ.
    Every suppressed break has a `### Changed`, `### Removed` or `### Security` entry in the version's section.
-4. **Local validation** from the repository root, with .NET SDK 10.0.401:
+4. **Local validation** from the repository root, with .NET SDK 10.0.402:
 
    ```powershell
    dotnet restore CheatEngine.SDK.slnx --locked-mode

@@ -1,9 +1,9 @@
 {
   "sdk": {
-    "version": "10.0.401",
+    "version": "10.0.402",
     "rollForward": "disable",
     "allowPrerelease": false,
-    "errorMessage": "CheatEngine.SDK builds only with .NET SDK 10.0.401 exactly (global.json rollForward: disable, NuGet lock files). Install it with: winget install Microsoft.DotNet.SDK.10 --version 10.0.401"
+    "errorMessage": "CheatEngine.SDK builds only with .NET SDK 10.0.402 exactly (global.json rollForward: disable, NuGet lock files). Install it with: winget install Microsoft.DotNet.SDK.10 --version 10.0.402"
   },
   "test": {
     "runner": "Microsoft.Testing.Platform"

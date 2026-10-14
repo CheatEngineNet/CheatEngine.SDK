@@ -13,6 +13,7 @@ internal static class ProtectedOperationCatalogParser
 {
 	private const string FileName = "protected-operations.json";
 	private const string ExpectedCatalogId = "cheatengine-sdk-lua-protected-operations";
+	private const int MaximumJsonDepth = 64;
 
 	public static bool IsCatalogFile(string path)
 	{
@@ -530,6 +531,7 @@ internal static class ProtectedOperationCatalogParser
 		private readonly string _path;
 		private readonly string _text;
 		private int _position;
+		private int _depth;
 
 		public JsonReader(string path, string text)
 		{
@@ -576,8 +578,7 @@ internal static class ProtectedOperationCatalogParser
 
 			return _text[_position] switch
 			{
-				'{' => TryParseObject(out value, out diagnostic),
-				'[' => TryParseArray(out value, out diagnostic),
+				'{' or '[' => TryParseContainer(out value, out diagnostic),
 				'"' => TryParseStringValue(out value, out diagnostic),
 				't' => TryParseLiteral("true", true, out value, out diagnostic),
 				'f' => TryParseLiteral("false", false, out value, out diagnostic),
@@ -586,6 +587,21 @@ internal static class ProtectedOperationCatalogParser
 				>= '0' and <= '9' => TryParseNumber(out value, out diagnostic),
 				_ => Fail(out value, out diagnostic, "Expected a JSON value.")
 			};
+		}
+
+		private bool TryParseContainer(out JsonValue value, out CatalogDiagnostic? diagnostic)
+		{
+			if (_depth >= MaximumJsonDepth)
+			{
+				return Fail(out value, out diagnostic, "JSON nesting exceeds the maximum depth of 64.");
+			}
+
+			_depth++;
+			bool success = _text[_position] == '{'
+				? TryParseObject(out value, out diagnostic)
+				: TryParseArray(out value, out diagnostic);
+			_depth--;
+			return success;
 		}
 
 		private bool TryParseObject(out JsonValue value, out CatalogDiagnostic? diagnostic)
@@ -975,12 +991,14 @@ internal static class ProtectedOperationCatalogParser
 			int character = 0;
 			for (int i = 0; i < position; i++)
 			{
-				if (_text[i] == '\n')
+				char characterAtPosition = _text[i];
+				if (characterAtPosition is '\n' or '\u0085' or '\u2028' or '\u2029' ||
+					(characterAtPosition == '\r' && (i + 1 == _text.Length || _text[i + 1] != '\n')))
 				{
 					line++;
 					character = 0;
 				}
-				else if (_text[i] != '\r')
+				else
 				{
 					character++;
 				}

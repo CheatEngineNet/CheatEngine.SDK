@@ -51,16 +51,26 @@ internal static class PortableExecutableExportReader
 		}
 
 		List<string> names = new();
-		int namesOffset = ResolveFileOffset(headers, checked((int) namesRva));
+		int namesOffset = ResolveFileOffset(headers, namesRva);
 
 		for (uint index = 0; index < numberOfNames; index++)
 		{
 			int nameRvaOffset = checked(namesOffset + checked((int) (index * sizeof(uint))));
 			uint nameRva = ReadUInt32(image, nameRvaOffset);
-			names.Add(ReadAsciiZeroTerminated(image, ResolveFileOffset(headers, checked((int) nameRva))));
+			names.Add(ReadAsciiZeroTerminated(image, ResolveFileOffset(headers, nameRva)));
 		}
 
 		return names;
+	}
+
+	private static int ResolveFileOffset(PEHeaders headers, uint relativeVirtualAddress)
+	{
+		if (relativeVirtualAddress > int.MaxValue)
+		{
+			throw new InvalidOperationException("An export RVA exceeds the supported file address range.");
+		}
+
+		return ResolveFileOffset(headers, (int) relativeVirtualAddress);
 	}
 
 	private static int ResolveFileOffset(PEHeaders headers, int relativeVirtualAddress)

@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <PackageReference Include="FsCheck"/>
+  </ItemGroup>
+
   <!--
     Unit tests of the NativeAOT loader harness contract (Q41). The harness and the probe are RID-specific NativeAOT
     projects, so there is deliberately no ProjectReference: their pure sources are compiled in here as links.

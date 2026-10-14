@@ -26,6 +26,12 @@ The harness and the probe are RID-specific NativeAOT projects, so there is no `P
 rewritten, the export data directory zeroed, or the byte array truncated. A patched image is only ever parsed; nothing
 maps or loads it.
 
+`PortableExecutableFuzzTests` adds four FsCheck properties with 1,000 bounded cases each: arbitrary bytes, random
+truncations of the fixture, independently expected ASCII export renames and high-bit export RVAs. Malformed images
+may produce only the reader's data-refusal exception or `BadImageFormatException`; indexing and arithmetic failures
+are test failures. The reader never modifies the supplied bytes. Deterministic cases pin both export-address fields
+at the signed-address boundary and the maximum unsigned value.
+
 `LibraryProbeContract.AllowedRuntimeExports` is measured: a local `dotnet publish` of the probe (.NET SDK 10.0.401,
 win-x64, Release) exports exactly the two probe names and `DotNetRuntimeDebugHeader`.
 

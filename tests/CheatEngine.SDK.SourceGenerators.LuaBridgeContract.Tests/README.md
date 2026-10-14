@@ -17,6 +17,12 @@ embedded as test data. `CatalogDiagnosticsTests` verifies malformed JSON, duplic
 bitmap, duplicate opcode and duplicate catalogue inputs. No test needs a native DLL, Cheat Engine process or
 filesystem access by the generator.
 
+`CatalogParserFuzzTests` runs five FsCheck properties with 1,000 generated cases each: arbitrary UTF-16 and exact
+Roslyn source locations, independently calculated opcode/bitmap models, duplicate and bitmap refusal, escaped
+identifiers and line endings, and bounded nested objects/arrays with equally deep siblings. Deterministic regressions
+cover CR/LF/CRLF locations, Unicode line separators and the 63/64/65-container depth boundary. Unexpected parser
+exception recovery is a failure, not a successful refusal.
+
 ## Run
 
 ```powershell

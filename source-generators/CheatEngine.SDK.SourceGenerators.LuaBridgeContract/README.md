@@ -25,6 +25,10 @@ variables, the clock, current culture or the network. Invalid JSON, duplicate op
 or an incompatible bridge declaration gives a localized `CESDK4001` error on the additional file and emits nothing.
 Two matching catalogue files give `CESDK4002` on both files and emit nothing.
 
+JSON may contain at most 64 nested object/array containers. Deeper input receives a localized `CESDK4001` error
+before further recursion. Diagnostic locations follow Roslyn's source-text line boundaries, including CR-only files
+and Unicode line separators within strings.
+
 ## Testing
 
 ```powershell

@@ -18,6 +18,7 @@ error unwind a managed frame or allocates on a hot path. Only a real interpreter
 |--------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Stack and protected operations | `LuaFrame` restores the stack top on every exit path; raising metamethods, syntax errors and host-object pusher exits become statuses, never a Lua unwind            |
 | Marshallers                    | Values round trip exactly, a value that does not fit is refused instead of truncated, and no integer or address passes through a lossy `double` (Q21)                |
+| Generated input fuzzing        | Bounded FsCheck properties exercise integer numeral grammar, number precision, raw Lua bytes, UTF-16 replacement encoding and stack/pool string boundaries          |
 | Optional values and status     | `LuaOptional<T>` keeps omitted, `nil` and a value apart; `LuaCallSupport` pushes, reads and copies optional and variadic values; status enums start at `Unknown = 0` |
 | References and runtime         | Every `LuaRuntime.Attach` advances the epoch, and a `LuaRef` from an earlier epoch is never pushed                                                                   |
 | Callbacks                      | Test thunks follow the SDK rule (static, cdecl, catch-all), state travels in the upvalue, and `Detach` drains admitted invocations before neutralizing callbacks     |
@@ -66,6 +67,9 @@ dotnet test --project tests/CheatEngine.SDK.Lua.Tests --filter-trait "Category=N
   `StringBindingTests`).
 - Integer and address marshallers keep every bit of an integer and refuse a float at or above 2^53, a float numeral
   and an out-of-range numeral (`MarshallerRoundTripTests`, traited `Qualification=Q21`).
+- Generated inputs retain Lua's exact integer-string and float conversion policy, raw bytes are copied only when a
+  destination fits, and UTF-16 text follows the platform UTF-8 replacement policy (`LuaIntegerFuzzTests`,
+  `LuaStringFuzzTests`, `Utf8ScratchFuzzTests`; 1,000 cases per property).
 - `LuaOptional<T>` and the optional and variadic call helpers keep omitted, `nil` and values distinct, allocate
   nothing, and report a missing result or an exceeded capacity (`LuaOptionalTests`, `LuaCallSupportOptionalTests`).
 - A default status is `Unknown`, never success, and every status value is pinned (`LuaOperationStatusTests`,

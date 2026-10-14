@@ -27,3 +27,14 @@ time until that direct check returns `0`, then calls the bridge wire export dire
 `PushBytes` operation. The bridge must return its `NoErrorStatus` sentinel without changing the full stack; the child
 then restores the stack and verifies recovery. The mode stays out of process because a regression that lets a native
 non-local exit cross the managed call frame must never terminate the main test process.
+
+Its `--fuzz-protected-operations` mode runs 2,000 deterministic sequences from the printed `0xD1CEBA5E` seed and
+prints 20,000 exercised top-level protected API calls. Each
+sequence keeps buffers at or below 1 KiB and table capacities at or below 64 while checking protected byte strings,
+tables, byte tables, userdata, indexed table mutations, deliberate indexing of a non-table, allocator refusal and a
+fixed recovery call. Every operation checks its values and documented stack shape, uses a lower sentinel where an
+error is expected, and ends with an empty stack. Sequence positions cycle through zero, maximum and seeded-random
+input sizes, so every run includes empty and boundary buffers, capacities and userdata sizes. The mode intentionally
+does not create callbacks, nested protected
+callback chains, executable Lua source or pointer/function-pointer inputs; those paths already have dedicated
+crash-boundary tests and are unsuitable for generated data here.

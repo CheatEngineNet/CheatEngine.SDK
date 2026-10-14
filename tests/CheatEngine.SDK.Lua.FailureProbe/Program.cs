@@ -17,6 +17,8 @@ internal static unsafe class Program
 
 	private const string GeneratedFunctionAllocationMode = "--generated-function-allocation";
 
+	private const string FuzzProtectedOperationsMode = "--fuzz-protected-operations";
+
 	private const int CheckStackGrowthSlots = 4096;
 
 	// Exact C11 CHEATENGINE_SDK_NO_ERROR sentinel. The internal production alias is LuaProtectedApi.NoErrorStatus.
@@ -39,7 +41,7 @@ internal static unsafe class Program
 		if (!HasValidArguments(arguments))
 		{
 			return Fail(
-				"expected the Lua DLL path, optionally followed by --checkstack-growth or --generated-function-allocation");
+				"expected the Lua DLL path, optionally followed by --checkstack-growth, --generated-function-allocation, or --fuzz-protected-operations");
 		}
 
 		nint module = 0;
@@ -97,7 +99,8 @@ internal static unsafe class Program
 		return arguments.Length is >= 1 and <= 2 &&
 			   (arguments.Length != 2 ||
 				string.Equals(arguments[1], CheckStackGrowthMode, StringComparison.Ordinal) ||
-				string.Equals(arguments[1], GeneratedFunctionAllocationMode, StringComparison.Ordinal));
+				string.Equals(arguments[1], GeneratedFunctionAllocationMode, StringComparison.Ordinal) ||
+				string.Equals(arguments[1], FuzzProtectedOperationsMode, StringComparison.Ordinal));
 	}
 
 	private static int RunRequestedProbe(LuaState state, nint module, string[] arguments)
@@ -106,7 +109,9 @@ internal static unsafe class Program
 		{
 			return string.Equals(arguments[1], CheckStackGrowthMode, StringComparison.Ordinal)
 				? RunCheckStackGrowthProbe(state)
-				: RunGeneratedFunctionAllocationProbe(state);
+				: string.Equals(arguments[1], GeneratedFunctionAllocationMode, StringComparison.Ordinal)
+					? RunGeneratedFunctionAllocationProbe(state)
+					: ProtectedOperationFuzzProbe.Run(state);
 		}
 
 		return RunProbe(state, module);
@@ -1093,7 +1098,7 @@ internal static unsafe class Program
 		exports[19] = NativeLibrary.GetExport(module, "luaL_unref");
 	}
 
-	private static LuaStatus CaptureMemoryException(Action operation)
+	internal static LuaStatus CaptureMemoryException(Action operation)
 	{
 		Volatile.Write(ref s_rejectAllocations, 1);
 		try

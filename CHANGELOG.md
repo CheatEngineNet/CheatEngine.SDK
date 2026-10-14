@@ -14,6 +14,8 @@ under [1.0.0](#100---2026-09-20) before upgrading.
 
 - Pin repository builds to .NET SDK 10.0.402, which selects the patched .NET 10.0.13 runtime and Native AOT packs.
 - Pin the Roslyn test tooling's transitive `System.Security.Cryptography.Pkcs` dependency to 9.0.21.
+- Add FsCheck generated-input checks for the Engine API spec parser, and document accepted Scorecard findings and
+  the required `CI / Gate` rule for `main`.
 
 ### Fixed
 

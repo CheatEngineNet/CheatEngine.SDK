@@ -83,10 +83,36 @@ signature, so it identifies the package content independently of where it was do
 
 Two binaries are committed on purpose; everything else is built from source.
 
+OpenSSF Scorecard's two `Binary-Artifacts` findings are accepted project exceptions. Keeping the exact Lua fixture
+preserves production behavior in tests; keeping the verified bridge supports local builds and package creation from
+a clean checkout. Neither finding is dismissed as a false positive. The checks described below remain mandatory.
+
 - `native/cheat-engine/lua53-64.dll` is the unmodified 64-bit Lua library of a Cheat Engine 7.7 installation, SHA-256
   `C95DCDFA0F60F97B43D970D77FD1BB907AF4DE04B500A3C89A99600B20B35BD2` ([its README](native/cheat-engine/README.md)).
   Tests and benchmarks bind it so that they exercise the Lua a plugin binds in production; it is never packed.
 - `native/cheatengine-sdk-lua-bridge/runtimes/win-x64/native/cheatengine-sdk-lua-bridge.dll` is the native protection
-  bridge that the package ships. CI rebuilds it from its C source and `xmake.lua` on every run, checks that two builds
-  are identical, and checks the committed DLL against the source fingerprint it exports. The weekly scheduled health
-  workflow also rebuilds the bridge of the latest release tag and compares it with the released DLL.
+  bridge that the package ships. CI builds it once from its C source and `xmake.lua` with the pinned toolchain and
+  supplies that build to downstream tests and packaging. CI checks the committed DLL's exported source fingerprint;
+  package tests check its committed hash, PE shape, imports and exports against the audit manifest. The workflow does
+  not compare independent rebuilds or schedule release rebuilds. A source fingerprint does not prove that a DLL's
+  executable bytes came from those sources: trusting the committed asset and its manifest remains an accepted risk
+  for local builds.
+
+### Other Scorecard findings
+
+`CI / Gate` is required on `main`, including checks against the latest base branch, with no bypass actors. The current
+single-maintainer workflow does not require independent human or code-owner approval: doing so would block merges
+without another active reviewer. The `Code-Review` finding records real historical approvals and cannot be repaired
+by changing past commits or by treating automated reviews as human review.
+
+The required check is bound to the GitHub Actions integration, not to an immutable workflow. A collaborator who can
+change the repository's CI workflows can change the check's behavior in the same pull request. Without independent
+review or an organization-managed required workflow, the rule protects against failed or missing CI but does not
+protect against a malicious maintainer changing CI itself.
+
+The repository uses FsCheck generated-input tests for the Engine API spec parser in its normal CI suites. This is
+bounded property-based fuzz testing, not continuous coverage-guided fuzzing of the complete SDK or native bridge.
+
+The project has not enrolled in the OpenSSF Best Practices badge program. The `CII-Best-Practices` finding remains
+open until a maintainer registers the project and supplies accurate, evidence-backed answers to the program's
+criteria; the Scorecard badge in the README is a different program.

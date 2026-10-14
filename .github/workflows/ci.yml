@@ -71,9 +71,9 @@ jobs:
         with:
           xmake-version: '3.0.9'
 
-      # Configure and build the bridge with the pinned MSVC toolset and Windows SDK. Byte-for-byte drift from the
-      # checked-in DLL is checked by the next step (a notice, never a failure); this step only has to produce the DLL
-      # every later job downloads as the lua-protection-bridge artifact.
+      # Configure and build the bridge once with the pinned MSVC toolset and Windows SDK. Every later job downloads
+      # this lua-protection-bridge artifact. The committed asset is checked separately for its source fingerprint;
+      # this job does not compare its executable bytes or perform independent reproducibility builds.
       - name: Build bridge
         id: bridge
         run: |
@@ -101,8 +101,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      # Run after upload so a failed check still leaves the corrected DLL available to download. Byte drift between the
-      # CI-built and the checked-in DLL is only a notice (previous step); a checked-in DLL built from other sources fails.
+      # Run after upload so a stale fingerprint still leaves the fresh DLL available to download. This compares
+      # exported source metadata, which can be copied into another binary; it does not prove executable equivalence.
       - name: Verify checked-in bridge matches its source
         run: |
           $sourceHash = (Get-FileHash -Algorithm SHA256 native/cheatengine-sdk-lua-bridge/cheatengine_sdk_lua_bridge.c).Hash.ToLowerInvariant()

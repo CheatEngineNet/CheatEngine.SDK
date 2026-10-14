@@ -49,7 +49,7 @@
     ]
   },
   "reproducibility": {
-    "doubleBuildSha256Comparison": true,
-    "ciRequirement": "Build the bridge twice into distinct output directories with the same xmake/MSVC toolchain and compare the SHA-256 before publishing the artifact."
+    "doubleBuildSha256Comparison": false,
+    "ciRequirement": "Build the bridge once with the pinned xmake/MSVC toolchain, publish its SHA-256 and artifact, and verify the committed DLL's exported source fingerprint. Independent rebuild comparison is not enforced."
   }
 }

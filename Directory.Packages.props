@@ -18,6 +18,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0"/>
     <!-- SPDX software bill of materials embedded in the package at pack time. -->
     <PackageVersion Include="Microsoft.Sbom.Targets" Version="4.1.13"/>
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
   </ItemGroup>
 
   <ItemGroup Label="Tests">

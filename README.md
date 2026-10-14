@@ -23,7 +23,7 @@ an independent project and is not affiliated with Cheat Engine.
 
 | Requirement   | Supported version                                                                                                      |
 |---------------|------------------------------------------------------------------------------------------------------------------------|
-| .NET SDK      | 10.0.401 or later to build a plugin; exactly 10.0.401 to build this repository (`global.json`, `rollForward: disable`) |
+| .NET SDK      | 10.0.401 or later to build a plugin; exactly 10.0.402 to build this repository (`global.json`, `rollForward: disable`) |
 | .NET runtimes | .NET 10 `Microsoft.NETCore.App`, `Microsoft.WindowsDesktop.App`, and `Microsoft.AspNetCore.App`                        |
 | Cheat Engine  | 7.7                                                                                                                    |
 | Platform      | Windows x64                                                                                                            |

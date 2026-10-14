@@ -10,6 +10,11 @@ under [1.0.0](#100---2026-09-20) before upgrading.
 
 ## [Unreleased]
 
+### Security
+
+- Pin repository builds to .NET SDK 10.0.402, which selects the patched .NET 10.0.13 runtime and Native AOT packs.
+- Pin the Roslyn test tooling's transitive `System.Security.Cryptography.Pkcs` dependency to 9.0.21.
+
 ### Fixed
 
 - Lua operation admission rejects a host-provided state with a negative stack top and checks that runtime stamp

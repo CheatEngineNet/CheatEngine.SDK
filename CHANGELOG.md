@@ -10,6 +10,10 @@ under [1.0.0](#100---2026-09-20) before upgrading.
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-16
+
+Patch release for the 2.0 line. The public API and native ABI are unchanged from 2.0.0.
+
 ### Security
 
 - Pin repository builds to .NET SDK 10.0.402, which selects the patched .NET 10.0.13 runtime and Native AOT packs.
@@ -28,6 +32,25 @@ under [1.0.0](#100---2026-09-20) before upgrading.
 - Lua operation admission rejects a host-provided state with a negative stack top and checks that runtime stamp
   verification preserves that top. Refusal releases the operation admission without resetting or retrying the state.
   These guards contain invalid provider state; they do not establish the cause or resolution of a live host failure.
+
+### Qualification waivers
+
+This release carries managed and native-fixture evidence (C1/C2), with no new exact-host or multi-plugin
+qualification (C3/C4). The following release-gate scenarios remain limited to the evidence described in the repository:
+
+- Q02: bootstrap initialization has managed and host-emulator checks; the exact Cheat Engine loader is not requalified.
+- Q03: exports-table validation has managed checks; the exact host's version/table-size handshake is not requalified.
+- Q04: the second bootstrap integer is recorded as a raw observation; no new exact-host meaning is asserted.
+- Q05: plugin identity and lifecycle epochs have managed checks; exact-host behavior, including non-ASCII names,
+  is not requalified.
+- Q06: startup-failure cleanup has managed checks; exact-host failure recovery is not requalified.
+- Q07: lifecycle reentrancy has managed checks; an exact-host disable during active work is not requalified.
+- Q08: disable-failure cleanup has managed checks; exact-host cleanup under injected faults is not requalified.
+- Q09: native hostfxr emulator results are C2 evidence; shared-state isolation under Cheat Engine is not established.
+- Q10: exact-host multi-plugin coexistence and teardown remain unqualified.
+- Q40: clean package-consumer checks are C1/C2 evidence; the exact-host deployment path is not requalified.
+- Q41: Native AOT publish/export probes are C0/C2 evidence; a Native AOT library remains unsupported as a classic
+  Cheat Engine plugin.
 
 ## [2.0.0] - 2026-09-24
 
@@ -182,5 +205,6 @@ Every pack is validated against the published 1.0.0 package, and each intentiona
 - The earlier project-specific exception hierarchy.
 - The NLog dependency.
 
+[2.0.1]: https://github.com/CheatEngineNet/CheatEngine.SDK/releases/tag/v2.0.1
 [2.0.0]: https://github.com/CheatEngineNet/CheatEngine.SDK/releases/tag/v2.0.0
 [1.0.0]: https://github.com/CheatEngineNet/CheatEngine.SDK/releases/tag/v1.0.0

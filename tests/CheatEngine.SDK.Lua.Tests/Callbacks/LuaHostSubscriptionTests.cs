@@ -219,7 +219,8 @@ public sealed class LuaHostSubscriptionTests
 			return releaseState => unregisters++;
 		}, out LuaHostSubscription? subscription));
 		Assert.NotNull(subscription);
-		LuaHostSubscriptionRegistry.CallbackAdmissionClosedForTesting = admissionClosed.Set;
+		// The registry seam closes registrations before it closes this subscription's callback admission.
+		LuaHostSubscription.CallbackDrainStartedForTesting = admissionClosed.Set;
 
 		try
 		{
@@ -240,6 +241,7 @@ public sealed class LuaHostSubscriptionTests
 			allowReturn.Set();
 			await enteredCall.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
 			await close.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+			Assert.Null(subscription.LastCallbackException);
 
 			LuaRuntime.Detach();
 			Assert.Equal(1, unregisters);
@@ -247,7 +249,7 @@ public sealed class LuaHostSubscriptionTests
 		}
 		finally
 		{
-			LuaHostSubscriptionRegistry.CallbackAdmissionClosedForTesting = null;
+			LuaHostSubscription.CallbackDrainStartedForTesting = null;
 			allowReturn.Set();
 		}
 	}

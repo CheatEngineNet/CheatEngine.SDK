@@ -3,11 +3,11 @@
 NuGet releases are produced by `.github/workflows/release.yml` from version tags. This document describes the chain,
 how to prepare and publish a release, and how anyone can verify one afterwards.
 
-> **Current state.** The last published version is 1.0.0, released before this chain existed: its GitHub release carries
-> the nupkg only (no SBOM or checksums) and is not immutable. The 2.0 line has not been released. There is no automated
-> qualification gate: before tagging a stable release, the maintainer confirms against the audit's Q02-Q10, Q40 and Q41
-> register (analyses/20 of the audit dossier) that the release is not claiming host qualification it has not earned, and
-> records any open row as a known limitation in the release notes.
+> **Release evidence.** The 2.0 line uses this release chain. The older 1.0.0 release predates it: its GitHub release
+> carries the nupkg only (no SBOM or checksums) and is not immutable. There is no automated qualification gate: before
+> tagging a stable release, the maintainer confirms against the audit's Q02-Q10, Q40 and Q41 register (analyses/20 of
+> the audit dossier) that the release is not claiming host qualification it has not earned, and records any open row
+> as a known limitation in the release notes.
 
 ## Overview
 

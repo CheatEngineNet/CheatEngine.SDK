@@ -145,14 +145,14 @@ public sealed class AddressListMutationsTests
 		using MutationFixture fixture = new();
 		int top = fixture.State.Top;
 
-		MemoryRecordMutationOutcome alreadyRoot = AddressListMutations.SetParent(new MemoryRecordId(1), null);
+		MemoryRecordMutationOutcome alreadyRoot = AddressListMutations.SetParent(new MemoryRecordId(1), parentId: null);
 
 		Assert.True(alreadyRoot.IsCompleted);
 		fixture.RunOnChild("assert(o.props.Parent == nil)");
 		fixture.Execute("assert(assigned == 0)");
 
 		fixture.RunOnChild("o.props.Parent = parent");
-		MemoryRecordMutationOutcome nested = AddressListMutations.SetParent(new MemoryRecordId(1), null);
+		MemoryRecordMutationOutcome nested = AddressListMutations.SetParent(new MemoryRecordId(1), parentId: null);
 
 		Assert.Equal(MemoryRecordMutationEffect.NotAttempted, nested.Effect);
 		Assert.Equal(MemoryRecordMutationProblem.GlobalUnavailable, nested.Problem);
@@ -168,11 +168,61 @@ public sealed class AddressListMutationsTests
 		using MutationFixture fixture = new();
 		int top = fixture.State.Top;
 
-		MemoryRecordMutationOutcome missing = AddressListMutations.SetParent(new MemoryRecordId(99), null);
+		MemoryRecordMutationOutcome missing = AddressListMutations.SetParent(new MemoryRecordId(99), parentId: null);
 
 		Assert.Equal(MemoryRecordMutationEffect.NotAttempted, missing.Effect);
 		Assert.Equal(MemoryRecordMutationProblem.RecordNotFound, missing.Problem);
 		fixture.Execute("assert(assigned == 0)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Theory]
+	[InlineData("error('parent read failed')", MemoryRecordMutationProblem.LuaFailure)]
+	[InlineData("return 42", MemoryRecordMutationProblem.InvalidResult)]
+	public void Set_parent_root_request_preserves_read_failure_without_starting_assignment(string parentGetter,
+		MemoryRecordMutationProblem expectedProblem)
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+		fixture.RunOnChild("o.getters.Parent = function() " + parentGetter + " end");
+
+		MemoryRecordMutationOutcome outcome = AddressListMutations.SetParent(new MemoryRecordId(1), parentId: null);
+
+		Assert.Equal(MemoryRecordMutationEffect.NotAttempted, outcome.Effect);
+		Assert.Equal(expectedProblem, outcome.Problem);
+		Assert.Equal(expectedProblem != MemoryRecordMutationProblem.LuaFailure, outcome.LuaStatus.IsOk);
+		fixture.RunOnChild("assert(o.props.Parent == nil)");
+		fixture.Execute("assert(assigned == 0)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Theory]
+	[InlineData(true, "error('parent ID read failed')", MemoryRecordMutationProblem.LuaFailure)]
+	[InlineData(true, "return 'not an ID'", MemoryRecordMutationProblem.InvalidResult)]
+	[InlineData(false, "error('parent ID read failed')", MemoryRecordMutationProblem.LuaFailure)]
+	[InlineData(false, "return 'not an ID'", MemoryRecordMutationProblem.InvalidResult)]
+	public void Set_parent_parent_id_read_failure_preserves_whether_assignment_started(bool rootRequest,
+		string idGetter, MemoryRecordMutationProblem expectedProblem)
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+		string when = rootRequest ? "true" : "assigned > 0";
+		fixture.RunOnParent("o.getters.ID = function() if " + when + " then " + idGetter + " end; return 2 end");
+		if (rootRequest)
+		{
+			fixture.RunOnChild("o.props.Parent = parent");
+		}
+
+		MemoryRecordMutationOutcome outcome = AddressListMutations.SetParent(new MemoryRecordId(1),
+			rootRequest ? null : new MemoryRecordId(2));
+
+		Assert.Equal(rootRequest ? MemoryRecordMutationEffect.NotAttempted : MemoryRecordMutationEffect.Indeterminate,
+			outcome.Effect);
+		Assert.Equal(expectedProblem, outcome.Problem);
+		Assert.Equal(expectedProblem != MemoryRecordMutationProblem.LuaFailure, outcome.LuaStatus.IsOk);
+		fixture.RunOnParent("o.getters.ID = nil");
+		fixture.RunOnChild("assert(o.props.Parent.ID == 2)");
+		fixture.Execute(rootRequest ? "assert(assigned == 0)" : "assert(assigned == 1)");
 		Assert.Equal(top, fixture.State.Top);
 	}
 

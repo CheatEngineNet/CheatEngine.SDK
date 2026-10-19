@@ -155,32 +155,17 @@ public static class AddressListMutations
 				return preflight;
 			}
 
-			if (LuaRuntime.CurrentStateIdentity != identity)
-			{
-				return NotAttempted(MemoryRecordMutationProblem.RuntimeIdentityChanged);
-			}
-
-			preflight = TryResolveRecord(state, list, recordId, false, out MemoryRecord child);
+			preflight = TryResolveRecord(state, list, recordId, isParent: false, out MemoryRecord child);
 			if (preflight.Problem != MemoryRecordMutationProblem.None)
 			{
 				return preflight;
 			}
 
-			if (LuaRuntime.CurrentStateIdentity != identity)
-			{
-				return NotAttempted(MemoryRecordMutationProblem.RuntimeIdentityChanged);
-			}
-
 			if (!parentId.HasValue)
 			{
-				preflight = TryReadParentId(state, child, out bool hasParent, out _, out bool rootReadChangedIdentity);
+				preflight = TryReadParentId(state, child, out bool hasParent, out _);
 				if (preflight.Problem != MemoryRecordMutationProblem.None)
 				{
-					if (rootReadChangedIdentity)
-					{
-						return NotAttempted(MemoryRecordMutationProblem.RuntimeIdentityChanged);
-					}
-
 					return preflight;
 				}
 
@@ -194,18 +179,13 @@ public static class AddressListMutations
 					: Completed();
 			}
 
-			preflight = TryResolveRecord(state, list, parentId.Value, true, out MemoryRecord parent);
+			preflight = TryResolveRecord(state, list, parentId.Value, isParent: true, out MemoryRecord parent);
 			if (preflight.Problem != MemoryRecordMutationProblem.None)
 			{
 				return preflight;
 			}
 
-			if (LuaRuntime.CurrentStateIdentity != identity)
-			{
-				return NotAttempted(MemoryRecordMutationProblem.RuntimeIdentityChanged);
-			}
-
-			preflight = ValidateParentChain(state, recordId, parent, traversalLimit, identity);
+			preflight = ValidateParentChain(state, recordId, parent, traversalLimit);
 			if (preflight.Problem != MemoryRecordMutationProblem.None)
 			{
 				return preflight;
@@ -224,36 +204,20 @@ public static class AddressListMutations
 				return Indeterminate(status);
 			}
 
-			// Admission prevents state resets; retain this defensive identity check and re-resolve records after callbacks.
-			if (LuaRuntime.CurrentStateIdentity != identity)
-			{
-				return Indeterminate(MemoryRecordMutationProblem.InvalidResult, LuaStatus.Ok);
-			}
-
+			// Admission prevents supported state transitions. Re-resolve records after callbacks and verify identity before success.
 			preflight = TryGetCurrentList(state, out list);
 			if (preflight.Problem != MemoryRecordMutationProblem.None)
 			{
 				return IndeterminateAfterParentSetter(preflight);
 			}
 
-			if (LuaRuntime.CurrentStateIdentity != identity)
-			{
-				return Indeterminate(MemoryRecordMutationProblem.InvalidResult, LuaStatus.Ok);
-			}
-
-			preflight = TryResolveRecord(state, list, recordId, false, out MemoryRecord rereadChild);
+			preflight = TryResolveRecord(state, list, recordId, isParent: false, out MemoryRecord rereadChild);
 			if (preflight.Problem != MemoryRecordMutationProblem.None)
 			{
 				return IndeterminateAfterParentSetter(preflight);
 			}
 
-			if (LuaRuntime.CurrentStateIdentity != identity)
-			{
-				return Indeterminate(MemoryRecordMutationProblem.InvalidResult, LuaStatus.Ok);
-			}
-
-			preflight = TryReadParentId(state, rereadChild, out bool hasActualParent, out MemoryRecordId actualParent,
-				out _);
+			preflight = TryReadParentId(state, rereadChild, out bool hasActualParent, out MemoryRecordId actualParent);
 			if (preflight.Problem != MemoryRecordMutationProblem.None)
 			{
 				return IndeterminateAfterParentSetter(preflight);
@@ -504,7 +468,7 @@ public static class AddressListMutations
 	}
 
 	private static MemoryRecordMutationOutcome ValidateParentChain(LuaState state, MemoryRecordId childId,
-		MemoryRecord proposedParent, MemoryRecordParentTraversalLimit traversalLimit, LuaStateIdentity identity)
+		MemoryRecord proposedParent, MemoryRecordParentTraversalLimit traversalLimit)
 	{
 		HashSet<MemoryRecordId> seen = new();
 		MemoryRecord current = proposedParent;
@@ -514,11 +478,6 @@ public static class AddressListMutations
 			if (!status.IsOk)
 			{
 				return FromPreflightStatus(status);
-			}
-
-			if (LuaRuntime.CurrentStateIdentity != identity)
-			{
-				return NotAttempted(MemoryRecordMutationProblem.RuntimeIdentityChanged);
 			}
 
 			if (!MemoryRecordId.TryRead(state, -1, out MemoryRecordId currentId))
@@ -535,11 +494,6 @@ public static class AddressListMutations
 			if (!status.IsOk)
 			{
 				return FromPreflightStatus(status);
-			}
-
-			if (LuaRuntime.CurrentStateIdentity != identity)
-			{
-				return NotAttempted(MemoryRecordMutationProblem.RuntimeIdentityChanged);
 			}
 
 			if (state.IsNil(-1))
@@ -560,25 +514,16 @@ public static class AddressListMutations
 	}
 
 	private static MemoryRecordMutationOutcome TryReadParentId(LuaState state, MemoryRecord child, out bool hasParent,
-		out MemoryRecordId parentId, out bool identityChanged)
+		out MemoryRecordId parentId)
 	{
 		int top = state.Top;
-		LuaStateIdentity identity = LuaRuntime.CurrentStateIdentity;
 		hasParent = false;
 		parentId = default;
-		identityChanged = false;
 		LuaStatus status = child.Handle.TryGetProperty(state, "Parent"u8);
 		if (!status.IsOk)
 		{
 			state.SetTop(top);
 			return NotAttempted(MemoryRecordMutationProblem.LuaFailure, status);
-		}
-
-		if (LuaRuntime.CurrentStateIdentity != identity)
-		{
-			state.SetTop(top);
-			identityChanged = true;
-			return NotAttempted(MemoryRecordMutationProblem.InvalidResult);
 		}
 
 		if (state.IsNil(-1))
@@ -598,13 +543,6 @@ public static class AddressListMutations
 		{
 			state.SetTop(top);
 			return NotAttempted(MemoryRecordMutationProblem.LuaFailure, status);
-		}
-
-		if (LuaRuntime.CurrentStateIdentity != identity)
-		{
-			state.SetTop(top);
-			identityChanged = true;
-			return NotAttempted(MemoryRecordMutationProblem.InvalidResult);
 		}
 
 		if (!MemoryRecordId.TryRead(state, -1, out parentId))

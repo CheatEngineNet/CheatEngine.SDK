@@ -250,9 +250,12 @@ public sealed class RuntimeProcessOperationsTests
 		LuaState lua = scope.State;
 		EngineTest.Run(lua, """
 		                    opened = 0
-		                    function openProcess(id) opened = id return true end
-		                    function getOpenedProcessID() return opened end
-		                    function targetIs64Bit() return true end
+		                    openCalls = 0
+		                    pidReads = 0
+		                    bitnessReads = 0
+		                    function openProcess(id) openCalls = openCalls + 1 opened = id return true end
+		                    function getOpenedProcessID() pidReads = pidReads + 1 return opened end
+		                    function targetIs64Bit() bitnessReads = bitnessReads + 1 return true end
 		                    """u8);
 
 		ProcessOperationStatus status =
@@ -262,6 +265,129 @@ public sealed class RuntimeProcessOperationsTests
 		Assert.True(status.IsSuccess);
 		Assert.Equal(new TargetProcessId(42), observation.Id);
 		Assert.Equal(8, observation.PointerSize.Bytes);
+		Assert.Equal(0, lua.Top);
+		EngineTest.Run(lua, "assert(openCalls == 1 and pidReads == 2 and bitnessReads == 1, 'selection call counts changed')"u8);
+		Assert.Equal(0, lua.Top);
+	}
+
+	[Fact]
+	public void SelectAndObserve_file_as_process_preflight_preserves_the_existing_target_without_opening_or_probing()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState lua = scope.State;
+		EngineTest.Run(lua, """
+		                    selected = 4294967295
+		                    openCalls = 0
+		                    pidReads = 0
+		                    bitnessReads = 0
+		                    function getOpenedProcessID() pidReads = pidReads + 1 return selected end
+		                    function openProcess(id) openCalls = openCalls + 1 selected = id return true end
+		                    function targetIs64Bit() bitnessReads = bitnessReads + 1 return true end
+		                    """u8);
+		lua.PushString("seeded stack value"u8);
+		int top = lua.Top;
+
+		ProcessOperationStatus status = RuntimeProcessOperations.SelectAndObserve(new TargetProcessId(42),
+			out CurrentProcessObservation observation);
+
+		Assert.Equal(ProcessOperationStatusKind.FileAsProcessTarget, status.Kind);
+		Assert.Equal(default, observation);
+		Assert.Equal(top, lua.Top);
+		EngineTest.Run(lua,
+			"assert(selected == 4294967295 and openCalls == 0 and pidReads == 1 and bitnessReads == 0, 'file target was mutated or probed')"u8);
+		Assert.Equal(top, lua.Top);
+	}
+
+	[Theory]
+	[InlineData("getOpenedProcessID = nil", ProcessOperationStatusKind.GlobalUnavailable, false)]
+	[InlineData("function getOpenedProcessID() error('fixture preflight failure') end",
+		ProcessOperationStatusKind.ProtectedLuaFailure, true)]
+	[InlineData("function getOpenedProcessID() return 'not a PID' end", ProcessOperationStatusKind.InvalidResult,
+		false)]
+	public void SelectAndObserve_refused_preflight_preserves_the_current_target_without_opening_or_probing(
+		string fixture, ProcessOperationStatusKind expected, bool expectsRuntimeError)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState lua = scope.State;
+		EngineTest.Run(lua, """
+		                    selected = 77
+		                    openCalls = 0
+		                    bitnessReads = 0
+		                    function openProcess(id) openCalls = openCalls + 1 selected = id return true end
+		                    function targetIs64Bit() bitnessReads = bitnessReads + 1 return true end
+		                    """u8);
+		EngineTest.Run(lua, Encoding.UTF8.GetBytes(fixture));
+		lua.PushString("seeded stack value"u8);
+		int top = lua.Top;
+
+		ProcessOperationStatus status = RuntimeProcessOperations.SelectAndObserve(new TargetProcessId(42),
+			out CurrentProcessObservation observation);
+
+		Assert.Equal(expected, status.Kind);
+		Assert.Equal(expectsRuntimeError ? LuaStatus.RuntimeError : LuaStatus.Ok, status.LuaStatus);
+		Assert.Equal(default, observation);
+		Assert.Equal(top, lua.Top);
+		EngineTest.Run(lua,
+			"assert(selected == 77 and openCalls == 0 and bitnessReads == 0, 'refused preflight mutated or probed')"u8);
+		Assert.Equal(top, lua.Top);
+	}
+
+	[Fact]
+	public void SelectAndObserve_valid_positive_current_pid_permits_normal_attach()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState lua = scope.State;
+		EngineTest.Run(lua, """
+		                    selected = 77
+		                    openCalls = 0
+		                    pidReads = 0
+		                    bitnessReads = 0
+		                    function getOpenedProcessID() pidReads = pidReads + 1 return selected end
+		                    function openProcess(id) openCalls = openCalls + 1 selected = id return true end
+		                    function targetIs64Bit() bitnessReads = bitnessReads + 1 return true end
+		                    """u8);
+
+		ProcessOperationStatus status = RuntimeProcessOperations.SelectAndObserve(new TargetProcessId(42),
+			out CurrentProcessObservation observation);
+
+		Assert.True(status.IsSuccess);
+		Assert.Equal(new TargetProcessId(42), observation.Id);
+		Assert.Equal(0, lua.Top);
+		EngineTest.Run(lua, "assert(selected == 42 and openCalls == 1 and pidReads == 2 and bitnessReads == 1, 'valid preflight did not attach')"u8);
+		Assert.Equal(0, lua.Top);
+	}
+
+	[Fact]
+	public void SelectAndObserve_post_open_file_as_process_target_remains_a_distinct_failure()
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState lua = scope.State;
+		EngineTest.Run(lua, """
+		                    selected = 0
+		                    openCalls = 0
+		                    pidReads = 0
+		                    bitnessReads = 0
+		                    function getOpenedProcessID() pidReads = pidReads + 1 return selected end
+		                    function openProcess(_) openCalls = openCalls + 1 selected = 4294967295 return true end
+		                    function targetIs64Bit() bitnessReads = bitnessReads + 1 return true end
+		                    """u8);
+
+		ProcessOperationStatus status = RuntimeProcessOperations.SelectAndObserve(new TargetProcessId(42),
+			out CurrentProcessObservation observation);
+
+		Assert.Equal(ProcessOperationStatusKind.FileAsProcessTarget, status.Kind);
+		Assert.Equal(default, observation);
+		Assert.Equal(0, lua.Top);
+		EngineTest.Run(lua,
+			"assert(selected == 4294967295 and openCalls == 1 and pidReads == 2 and bitnessReads == 0, 'post-open file target was not reported distinctly')"u8);
 		Assert.Equal(0, lua.Top);
 	}
 
@@ -289,7 +415,7 @@ public sealed class RuntimeProcessOperationsTests
 
 		using NativeLuaState failureState = new();
 		using HostScope failureScope = new(failureState);
-		EngineTest.Run(failureScope.State, "function openProcess(_) error('fixture selection failure') end"u8);
+		EngineTest.Run(failureScope.State, "function getOpenedProcessID() return 0 end function openProcess(_) error('fixture selection failure') end"u8);
 
 		ProcessOperationStatus failure = RuntimeProcessOperations.SelectAndObserve(new TargetProcessId(42), out _);
 
@@ -312,6 +438,7 @@ public sealed class RuntimeProcessOperationsTests
 		using HostScope scope = new(state);
 		LuaState lua = scope.State;
 		EngineTest.Run(lua, Encoding.UTF8.GetBytes($$"""
+		                    opened = 0
 		                    pidReads = 0
 		                    bitnessReads = 0
 		                    function openProcess(id) opened = id {{returned}} end
@@ -325,7 +452,7 @@ public sealed class RuntimeProcessOperationsTests
 		Assert.Equal(expected, status.Kind);
 		Assert.Equal(default, observation);
 		Assert.Equal(0, lua.Top);
-		EngineTest.Run(lua, "assert(pidReads == 0 and bitnessReads == 0, 'unconfirmed selection was observed')"u8);
+		EngineTest.Run(lua, "assert(pidReads == 1 and bitnessReads == 0, 'unconfirmed selection was observed')"u8);
 		Assert.Equal(0, lua.Top);
 	}
 

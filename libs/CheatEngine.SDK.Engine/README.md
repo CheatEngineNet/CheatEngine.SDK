@@ -372,7 +372,8 @@ observations `RuntimeProcessOperations.ObserveTargetArchitecture` and `TryGetCon
 `RuntimeObservations.TryObserveRuntimeInfo` and `InstructionProfiles.TryObserveCurrent` also read it last and report a
 difference as `TargetChanged`; instruction operations re-check it before and after their Cheat Engine call.
 `TargetSelection.ObserveCurrent` and `RuntimeProcessOperations.ObserveCurrent` read it once, before their other probes,
-and `RuntimeProcessOperations.SelectAndObserve` reads it once, after `openProcess`, to confirm the selection.
+and `RuntimeProcessOperations.SelectAndObserve` first requires `openProcess` to return boolean `true`, confirming
+CE's nonzero process handle, then reads the PID once to confirm the selection. A reported PID alone is insufficient.
 
 | Fact                              | CE global                    | SDK member                                                                                                                               | When unknown                                             |
 |-----------------------------------|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|

@@ -53,7 +53,7 @@ public readonly struct ProcessOperationStatus : IEquatable<ProcessOperationStatu
 	public static ProcessOperationStatus GlobalUnavailable =>
 		new(ProcessOperationStatusKind.GlobalUnavailable, LuaStatus.Ok);
 
-	/// <summary>Gets a status for a result outside the documented process-observation shape.</summary>
+	/// <summary>Gets a status for a result outside the documented process selection or observation shape.</summary>
 	public static ProcessOperationStatus InvalidResult => new(ProcessOperationStatusKind.InvalidResult, LuaStatus.Ok);
 
 	/// <summary>

@@ -250,7 +250,7 @@ public sealed class RuntimeProcessOperationsTests
 		LuaState lua = scope.State;
 		EngineTest.Run(lua, """
 		                    opened = 0
-		                    function openProcess(id) opened = id end
+		                    function openProcess(id) opened = id return true end
 		                    function getOpenedProcessID() return opened end
 		                    function targetIs64Bit() return true end
 		                    """u8);
@@ -274,7 +274,7 @@ public sealed class RuntimeProcessOperationsTests
 		{
 			LuaState lua = mismatchScope.State;
 			EngineTest.Run(lua, """
-			                    function openProcess(_) end
+			                    function openProcess(_) return true end
 			                    function getOpenedProcessID() return 77 end
 			                    function targetIs64Bit() error('must not be called after a mismatched PID') end
 			                    """u8);
@@ -296,6 +296,37 @@ public sealed class RuntimeProcessOperationsTests
 		Assert.Equal(ProcessOperationStatusKind.ProtectedLuaFailure, failure.Kind);
 		Assert.Equal(LuaStatus.RuntimeError, failure.LuaStatus);
 		Assert.Equal(0, failureScope.State.Top);
+	}
+
+	[Theory]
+	[InlineData("", ProcessOperationStatusKind.SelectionNotConfirmed)]
+	[InlineData("return false", ProcessOperationStatusKind.SelectionNotConfirmed)]
+	[InlineData("return 'true'", ProcessOperationStatusKind.InvalidResult)]
+	[InlineData("return 1", ProcessOperationStatusKind.InvalidResult)]
+	[InlineData("return {}", ProcessOperationStatusKind.InvalidResult)]
+	public void SelectAndObserve_rejects_an_unconfirmed_or_malformed_open_process_result(
+		string returned, ProcessOperationStatusKind expected)
+	{
+		EngineTest.RequireNativeLua();
+		using NativeLuaState state = new();
+		using HostScope scope = new(state);
+		LuaState lua = scope.State;
+		EngineTest.Run(lua, Encoding.UTF8.GetBytes($$"""
+		                    pidReads = 0
+		                    bitnessReads = 0
+		                    function openProcess(id) opened = id {{returned}} end
+		                    function getOpenedProcessID() pidReads = pidReads + 1 return opened end
+		                    function targetIs64Bit() bitnessReads = bitnessReads + 1 return true end
+		                    """));
+
+		ProcessOperationStatus status = RuntimeProcessOperations.SelectAndObserve(new TargetProcessId(42),
+			out CurrentProcessObservation observation);
+
+		Assert.Equal(expected, status.Kind);
+		Assert.Equal(default, observation);
+		Assert.Equal(0, lua.Top);
+		EngineTest.Run(lua, "assert(pidReads == 0 and bitnessReads == 0, 'unconfirmed selection was observed')"u8);
+		Assert.Equal(0, lua.Top);
 	}
 
 	[Fact]

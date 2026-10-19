@@ -17,8 +17,8 @@ public enum ProcessOperationStatusKind
 	TargetNotAttached = 2,
 
 	/// <summary>
-	///     An explicit selection call returned normally, but the immediately observed process was absent or did not match
-	///     the requested identifier.
+	///     An explicit selection returned no valid-handle confirmation (nil or false), or its immediately observed
+	///     process was absent or did not match the requested identifier.
 	/// </summary>
 	SelectionNotConfirmed = 3,
 
@@ -28,7 +28,7 @@ public enum ProcessOperationStatusKind
 	/// <summary>A protected Lua lookup or invocation failed.</summary>
 	ProtectedLuaFailure = 5,
 
-	/// <summary>The host returned a value outside the documented process-observation shape.</summary>
+	/// <summary>The host returned a value outside the documented process selection or observation shape.</summary>
 	InvalidResult = 6,
 
 	/// <summary>

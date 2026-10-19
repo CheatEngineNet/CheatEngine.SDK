@@ -121,7 +121,7 @@ internal static unsafe class MainThreadDispatcher
 												LuaError.FromStack(l, status).Message);
 		}
 
-		using (callback)
+		try
 		{
 			if (!callback!.TryPush(l))
 			{
@@ -129,6 +129,13 @@ internal static unsafe class MainThreadDispatcher
 			}
 
 			status = l.TryCall(1, 0);
+		}
+		finally
+		{
+			// The callback belongs to this admitted operation's Lua universe. Releasing it through Dispose would ask
+			// the host for a second thread state after synchronize returned; keep cleanup on the state whose frame and
+			// lifecycle lease are still active instead.
+			callback!.Release(l);
 		}
 
 		if (!status.IsOk)

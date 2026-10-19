@@ -78,6 +78,144 @@ public sealed unsafe class CeCoroutineDispatchTests
 		Assert.Equal(0, LuaApi.lua_gettop(root.L));
 	}
 
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	[Trait("Category", "NativeLua")]
+	public void Dispatch_releases_its_callback_on_the_original_worker_state_after_success_or_managed_failure(
+		bool throwInWork)
+	{
+		HostingTest.RequireNativeLua();
+		HostingTest.Reset();
+		using NativeLuaState root = new();
+		using ThreadStates states = new(root);
+		using HostSimulator host = new();
+		HostingTest.Enable(host, root);
+		nint mainState = states.GetState();
+		int mainThread = Environment.CurrentManagedThreadId;
+		using SynchronizeStandIn synchronize = new(new LuaState(mainState));
+		OneShotStateProvider provider = new(states);
+		FakeExports.StateProviderForTests = provider.GetState;
+		int exportCallsBefore = FakeExports.GetLuaStateCalls;
+		StrongBox<OriginalStateReleaseObservation?> observation = new();
+		const long sentinel = 0x53388;
+
+		Task worker = Task.Factory.StartNew(() =>
+		{
+			nint workerState = states.GetState();
+			LuaState workerLua = new(workerState);
+			workerLua.PushInteger(sentinel);
+			int before = workerLua.Top;
+			StrongBox<int> callbackThread = new();
+			StrongBox<int> executions = new();
+			Exception? failure = Record.Exception(() => MainThread.Invoke(_ =>
+			{
+				callbackThread.Value = Environment.CurrentManagedThreadId;
+				executions.Value++;
+				if (throwInWork)
+				{
+					throw new NotSupportedException("managed dispatch failure");
+				}
+			}, 0));
+			int after = workerLua.Top;
+			bool readSentinel = workerLua.TryReadInteger(1, out long observedSentinel);
+			workerLua.SetTop(0);
+			observation.Value = new OriginalStateReleaseObservation(workerState, before, after, readSentinel,
+				observedSentinel, callbackThread.Value, executions.Value, failure);
+		}, TestContext.Current.CancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+		try
+		{
+			Assert.True(synchronize.PumpOne(TimeSpan.FromSeconds(5)), "Worker did not queue the expected dispatch.");
+		}
+		finally
+		{
+			synchronize.StopAndDrain();
+			Join(worker);
+		}
+
+		OriginalStateReleaseObservation result = Assert.IsType<OriginalStateReleaseObservation>(observation.Value);
+		VerifyOriginalStateRelease(result, provider, exportCallsBefore, sentinel, mainState, root);
+		Assert.Equal(mainThread, result.CallbackThread);
+		Assert.Equal(1, result.Executions);
+		VerifyManagedDispatchFailure(result.Failure, throwInWork);
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void Synchronize_Lua_error_survives_same_state_callback_release_and_restores_the_worker_stack()
+	{
+		HostingTest.RequireNativeLua();
+		HostingTest.Reset();
+		using NativeLuaState root = new();
+		using ThreadStates states = new(root);
+		using HostSimulator host = new();
+		HostingTest.Enable(host, root);
+		nint mainState = states.GetState();
+		LuaState setupState = new(mainState);
+		using (LuaFrame frame = new(setupState))
+		{
+			Assert.True(setupState.TryExecute(
+				"function synchronize(f, ...) error('same-state synchronize failure', 0) end"u8, 0).IsOk);
+		}
+
+		OneShotStateProvider provider = new(states);
+		FakeExports.StateProviderForTests = provider.GetState;
+		int exportCallsBefore = FakeExports.GetLuaStateCalls;
+		StrongBox<OriginalStateReleaseObservation?> observation = new();
+		StrongBox<int> executions = new();
+		const long sentinel = 0xC511;
+
+		Task worker = Task.Factory.StartNew(() =>
+		{
+			nint workerState = states.GetState();
+			LuaState workerLua = new(workerState);
+			workerLua.PushInteger(sentinel);
+			int before = workerLua.Top;
+			Exception? failure = Record.Exception(() => MainThread.Invoke(static box => box.Value++, executions));
+			int after = workerLua.Top;
+			bool readSentinel = workerLua.TryReadInteger(1, out long observedSentinel);
+			workerLua.SetTop(0);
+			observation.Value = new OriginalStateReleaseObservation(workerState, before, after, readSentinel,
+				observedSentinel, 0, executions.Value, failure);
+		}, TestContext.Current.CancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+		Join(worker);
+
+		OriginalStateReleaseObservation result = Assert.IsType<OriginalStateReleaseObservation>(observation.Value);
+		InvalidOperationException exception = Assert.IsType<InvalidOperationException>(result.Failure);
+		Assert.Equal("The host's 'synchronize' call failed: same-state synchronize failure", exception.Message);
+		VerifyOriginalStateRelease(result, provider, exportCallsBefore, sentinel, mainState, root);
+		Assert.Equal(0, result.Executions);
+	}
+
+	private static void VerifyOriginalStateRelease(OriginalStateReleaseObservation result, OneShotStateProvider provider,
+		int exportCallsBefore, long sentinel, nint mainState, NativeLuaState root)
+	{
+		Assert.Equal(1, provider.Calls);
+		Assert.Equal(1, FakeExports.GetLuaStateCalls - exportCallsBefore);
+		Assert.Equal(0, LuaCallbackRegistry.Count);
+		Assert.Equal(1, result.Before);
+		Assert.Equal(result.Before, result.After);
+		Assert.True(result.ReadSentinel);
+		Assert.Equal(sentinel, result.Sentinel);
+		Assert.Equal(0, LuaApi.lua_gettop((lua_State*) result.WorkerState));
+		Assert.Equal(0, LuaApi.lua_gettop((lua_State*) mainState));
+		Assert.Equal(0, LuaApi.lua_gettop(root.L));
+	}
+
+	private static void VerifyManagedDispatchFailure(Exception? failure, bool expected)
+	{
+		if (expected)
+		{
+			Assert.Equal("managed dispatch failure", Assert.IsType<NotSupportedException>(failure).Message);
+		}
+		else
+		{
+			Assert.Null(failure);
+		}
+	}
+
 	private static void VerifyObservations(IEnumerable<Observation> observations, nint mainState, int mainThread,
 		bool throwInWork)
 	{
@@ -149,6 +287,23 @@ public sealed unsafe class CeCoroutineDispatchTests
 
 	private sealed record Observation(int Before, int After, nint WorkerState, nint CallbackState,
 		int CallbackThread, Exception? Failure);
+
+	private sealed record OriginalStateReleaseObservation(nint WorkerState, int Before, int After,
+		bool ReadSentinel, long Sentinel, int CallbackThread, int Executions, Exception? Failure);
+
+	private sealed class OneShotStateProvider(ThreadStates states)
+	{
+		private int _calls;
+
+		public int Calls => Volatile.Read(ref _calls);
+
+		public nint GetState()
+		{
+			// Returning null after the first lookup makes a cleanup-time provider reacquisition deterministic without
+			// violating the host contract for the state admitted at the start of the operation.
+			return Interlocked.Increment(ref _calls) == 1 ? states.GetState() : 0;
+		}
+	}
 
 	private sealed class ThreadStates(NativeLuaState root) : IDisposable
 	{

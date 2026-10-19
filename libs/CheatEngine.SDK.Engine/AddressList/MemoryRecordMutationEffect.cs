@@ -6,9 +6,12 @@ public enum MemoryRecordMutationEffect
 	/// <summary>No CE mutation was started.</summary>
 	NotAttempted,
 
-	/// <summary>The CE mutation completed successfully.</summary>
+	/// <summary>The CE mutation completed successfully, including any required postcondition read-back.</summary>
 	Completed,
 
-	/// <summary>The CE mutation started but returned a protected failure, so its final host state is unknown.</summary>
+	/// <summary>
+	///     The CE mutation started but returned a protected failure or left its postcondition unconfirmed, so its final
+	///     host state is unknown.
+	/// </summary>
 	Indeterminate
 }

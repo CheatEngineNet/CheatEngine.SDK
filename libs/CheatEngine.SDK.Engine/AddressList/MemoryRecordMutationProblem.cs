@@ -27,7 +27,10 @@ public enum MemoryRecordMutationProblem
 	/// <summary>The parent walk reached its explicit safety limit.</summary>
 	TraversalLimitReached,
 
-	/// <summary>A required CE global or member was absent or not callable.</summary>
+	/// <summary>
+	///     A required CE global or member was absent or not callable, or Cheat Engine exposes no safe operation for the
+	///     requested mutation (for example, detaching a nested record to the address-list root).
+	/// </summary>
 	GlobalUnavailable,
 
 	/// <summary>A protected CE access or call raised.</summary>

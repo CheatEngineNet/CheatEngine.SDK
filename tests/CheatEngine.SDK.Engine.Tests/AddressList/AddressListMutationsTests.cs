@@ -5,6 +5,7 @@ using CheatEngine.SDK.Engine.Objects;
 using CheatEngine.SDK.Engine.Tests.Support;
 using CheatEngine.SDK.Lua.Calls;
 using CheatEngine.SDK.Lua.Marshalling;
+using CheatEngine.SDK.Lua.Runtime;
 using CheatEngine.SDK.Lua.State;
 using CheatEngine.SDK.Tests.Shared.NativeLua;
 
@@ -124,19 +125,222 @@ public sealed class AddressListMutationsTests
 	}
 
 	[Fact]
-	public void Set_parent_assigns_a_typed_parent_or_lua_nil_for_root()
+	public void Set_parent_verifies_the_fresh_parent_after_one_typed_assignment()
 	{
 		using MutationFixture fixture = new();
 		int top = fixture.State.Top;
 
 		MemoryRecordMutationOutcome parent =
 			AddressListMutations.SetParent(new MemoryRecordId(1), new MemoryRecordId(2));
-		fixture.Execute("assert(assigned == 1)");
-		MemoryRecordMutationOutcome root = AddressListMutations.SetParent(new MemoryRecordId(1), null);
 
 		Assert.True(parent.IsCompleted);
-		Assert.True(root.IsCompleted);
-		fixture.Execute("assert(assigned == 2)");
+		fixture.RunOnChild("assert(o.props.Parent.ID == parent.ID)");
+		fixture.Execute("assert(assigned == 1)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Fact]
+	public void Set_parent_root_request_is_a_verified_no_op_or_an_unavailable_host_operation()
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+
+		MemoryRecordMutationOutcome alreadyRoot = AddressListMutations.SetParent(new MemoryRecordId(1), parentId: null);
+
+		Assert.True(alreadyRoot.IsCompleted);
+		fixture.RunOnChild("assert(o.props.Parent == nil)");
+		fixture.Execute("assert(assigned == 0)");
+
+		fixture.RunOnChild("o.props.Parent = parent");
+		MemoryRecordMutationOutcome nested = AddressListMutations.SetParent(new MemoryRecordId(1), parentId: null);
+
+		Assert.Equal(MemoryRecordMutationEffect.NotAttempted, nested.Effect);
+		Assert.Equal(MemoryRecordMutationProblem.GlobalUnavailable, nested.Problem);
+		// This setter models CE's silently ignored nil assignment. The SDK must never call it.
+		fixture.RunOnChild("assert(o.props.Parent.ID == parent.ID)");
+		fixture.Execute("assert(assigned == 0)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Fact]
+	public void Set_parent_root_request_reports_missing_child_without_calling_a_nil_setter()
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+
+		MemoryRecordMutationOutcome missing = AddressListMutations.SetParent(new MemoryRecordId(99), parentId: null);
+
+		Assert.Equal(MemoryRecordMutationEffect.NotAttempted, missing.Effect);
+		Assert.Equal(MemoryRecordMutationProblem.RecordNotFound, missing.Problem);
+		fixture.Execute("assert(assigned == 0)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Theory]
+	[InlineData("error('parent read failed')", MemoryRecordMutationProblem.LuaFailure)]
+	[InlineData("return 42", MemoryRecordMutationProblem.InvalidResult)]
+	public void Set_parent_root_request_preserves_read_failure_without_starting_assignment(string parentGetter,
+		MemoryRecordMutationProblem expectedProblem)
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+		fixture.RunOnChild("o.getters.Parent = function() " + parentGetter + " end");
+
+		MemoryRecordMutationOutcome outcome = AddressListMutations.SetParent(new MemoryRecordId(1), parentId: null);
+
+		Assert.Equal(MemoryRecordMutationEffect.NotAttempted, outcome.Effect);
+		Assert.Equal(expectedProblem, outcome.Problem);
+		Assert.Equal(expectedProblem != MemoryRecordMutationProblem.LuaFailure, outcome.LuaStatus.IsOk);
+		fixture.RunOnChild("assert(o.props.Parent == nil)");
+		fixture.Execute("assert(assigned == 0)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Theory]
+	[InlineData(true, "error('parent ID read failed')", MemoryRecordMutationProblem.LuaFailure)]
+	[InlineData(true, "return 'not an ID'", MemoryRecordMutationProblem.InvalidResult)]
+	[InlineData(false, "error('parent ID read failed')", MemoryRecordMutationProblem.LuaFailure)]
+	[InlineData(false, "return 'not an ID'", MemoryRecordMutationProblem.InvalidResult)]
+	public void Set_parent_parent_id_read_failure_preserves_whether_assignment_started(bool rootRequest,
+		string idGetter, MemoryRecordMutationProblem expectedProblem)
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+		string when = rootRequest ? "true" : "assigned > 0";
+		fixture.RunOnParent("o.getters.ID = function() if " + when + " then " + idGetter + " end; return 2 end");
+		if (rootRequest)
+		{
+			fixture.RunOnChild("o.props.Parent = parent");
+		}
+
+		MemoryRecordMutationOutcome outcome = AddressListMutations.SetParent(new MemoryRecordId(1),
+			rootRequest ? null : new MemoryRecordId(2));
+
+		Assert.Equal(rootRequest ? MemoryRecordMutationEffect.NotAttempted : MemoryRecordMutationEffect.Indeterminate,
+			outcome.Effect);
+		Assert.Equal(expectedProblem, outcome.Problem);
+		Assert.Equal(expectedProblem != MemoryRecordMutationProblem.LuaFailure, outcome.LuaStatus.IsOk);
+		fixture.RunOnParent("o.getters.ID = nil");
+		fixture.RunOnChild("assert(o.props.Parent.ID == 2)");
+		fixture.Execute(rootRequest ? "assert(assigned == 0)" : "assert(assigned == 1)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Theory]
+	[InlineData("assigned = assigned + 1")]
+	[InlineData("assigned = assigned + 1; o.props.Parent = grandparent")]
+	public void Set_parent_silent_or_wrong_host_result_is_indeterminate(string setterBody)
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+		fixture.RunOnChild("o.setters.Parent = function(o, v) " + setterBody + " end");
+
+		MemoryRecordMutationOutcome outcome =
+			AddressListMutations.SetParent(new MemoryRecordId(1), new MemoryRecordId(2));
+
+		Assert.Equal(MemoryRecordMutationEffect.Indeterminate, outcome.Effect);
+		Assert.Equal(MemoryRecordMutationProblem.InvalidResult, outcome.Problem);
+		fixture.Execute("assert(assigned == 1)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Theory]
+	[InlineData("error('parent read failed')", MemoryRecordMutationProblem.LuaFailure)]
+	[InlineData("return 42", MemoryRecordMutationProblem.InvalidResult)]
+	public void Set_parent_post_setter_parent_read_failure_is_indeterminate(string parentGetter,
+		MemoryRecordMutationProblem expectedProblem)
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+		fixture.RunOnChild("o.setters.Parent = function(o, v) assigned = assigned + 1; o.props.Parent = v; o.getters.Parent = function() " + parentGetter + " end end");
+
+		MemoryRecordMutationOutcome outcome =
+			AddressListMutations.SetParent(new MemoryRecordId(1), new MemoryRecordId(2));
+
+		Assert.Equal(MemoryRecordMutationEffect.Indeterminate, outcome.Effect);
+		Assert.Equal(expectedProblem, outcome.Problem);
+		fixture.Execute("assert(assigned == 1)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Fact]
+	public void Set_parent_missing_post_setter_child_is_indeterminate()
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+		fixture.RunOnChild("o.setters.Parent = function(o, v) assigned = assigned + 1; records[1] = nil end");
+
+		MemoryRecordMutationOutcome outcome =
+			AddressListMutations.SetParent(new MemoryRecordId(1), new MemoryRecordId(2));
+
+		Assert.Equal(MemoryRecordMutationEffect.Indeterminate, outcome.Effect);
+		Assert.Equal(MemoryRecordMutationProblem.InvalidResult, outcome.Problem);
+		fixture.Execute("assert(assigned == 1)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Fact]
+	public void Set_parent_missing_post_setter_list_is_indeterminate()
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+		fixture.RunOnChild("o.setters.Parent = function(o, v) assigned = assigned + 1; o.props.Parent = v; address_list_lookup = function() return nil end end");
+
+		MemoryRecordMutationOutcome outcome =
+			AddressListMutations.SetParent(new MemoryRecordId(1), new MemoryRecordId(2));
+
+		Assert.Equal(MemoryRecordMutationEffect.Indeterminate, outcome.Effect);
+		Assert.Equal(MemoryRecordMutationProblem.InvalidResult, outcome.Problem);
+		fixture.Execute("assert(assigned == 1)");
+		Assert.Equal(top, fixture.State.Top);
+	}
+
+	[Theory]
+	[InlineData("preflight")]
+	[InlineData("setter")]
+	[InlineData("readback")]
+	[InlineData("root")]
+	public void Set_parent_admission_rejects_reentrant_resets_and_preserves_the_verified_result(string scenario)
+	{
+		using MutationFixture fixture = new();
+		int top = fixture.State.Top;
+		LuaStateIdentity identity = LuaRuntime.CurrentStateIdentity;
+		int resetAttempts = 0;
+		bool rootRequest = string.Equals(scenario, "root", StringComparison.Ordinal);
+		using (FakeHost.InstallReentrantHook(fixture.State, "attempt_reset", () =>
+			   {
+				   resetAttempts++;
+				   FakeHost.ReplaceStateGeneration();
+			   }))
+		{
+			switch (scenario)
+			{
+				case "preflight":
+					fixture.RunOnParent("o.getters.Parent = function() attempt_reset(); return nil end");
+					break;
+				case "setter":
+					fixture.RunOnChild("o.setters.Parent = function(o, v) assigned = assigned + 1; o.props.Parent = v; attempt_reset() end");
+					break;
+				case "readback":
+					fixture.RunOnChild("o.setters.Parent = function(o, v) assigned = assigned + 1; o.props.Parent = v; o.getters.Parent = function() attempt_reset(); return o.props.Parent end end");
+					break;
+				case "root":
+					fixture.RunOnChild("o.getters.Parent = function() attempt_reset(); return nil end");
+					break;
+			}
+
+			MemoryRecordMutationOutcome outcome = AddressListMutations.SetParent(new MemoryRecordId(1),
+				rootRequest ? null : new MemoryRecordId(2));
+
+			Assert.True(outcome.IsCompleted);
+			Assert.Equal(MemoryRecordMutationProblem.None, outcome.Problem);
+		}
+
+		Assert.IsType<InvalidOperationException>(FakeHost.TakeReentrantHookFailure());
+		Assert.Equal(1, resetAttempts);
+		Assert.Equal(identity, LuaRuntime.CurrentStateIdentity);
+		fixture.Execute(rootRequest ? "assert(assigned == 0)" : "assert(assigned == 1)");
+		fixture.RunOnChild(rootRequest ? "assert(o.props.Parent == nil)" : "assert(o.props.Parent.ID == parent.ID)");
 		Assert.Equal(top, fixture.State.Top);
 	}
 
@@ -188,29 +392,36 @@ public sealed class AddressListMutationsTests
 			CEObject listObject = FakeHost.CreateObject(State, "Probe");
 			string childInitializer = parentSetterFails
 				? "o.props.ID = 1; o.setters.Parent = function(o, v) o.props.Parent = v; assigned = assigned + 1; error('set after side effect') end"
-				: "o.props.ID = 1; o.setters.Parent = function(o, v) o.props.Parent = v; assigned = assigned + 1 end";
-			CEObject childObject = FakeHost.CreateObject(State, destroyFails ? "Stubborn" : "Probe", childInitializer);
-			CEObject parentObject = FakeHost.CreateObject(State, "Probe", "o.props.ID = 2");
+				: "o.props.ID = 1; o.setters.Parent = function(o, v) assigned = assigned + 1; if v ~= nil then o.props.Parent = v end end";
+			ChildObject = FakeHost.CreateObject(State, destroyFails ? "Stubborn" : "Probe", childInitializer);
+			ParentObject = FakeHost.CreateObject(State, "Probe", "o.props.ID = 2");
 			CEObject grandparentObject = FakeHost.CreateObject(State, "Probe", "o.props.ID = 3");
 			SetGlobal(State, "list"u8, new EngineAddressList(listObject));
-			SetGlobal(State, "child"u8, new MemoryRecord(childObject));
-			SetGlobal(State, "parent"u8, new MemoryRecord(parentObject));
+			SetGlobal(State, "child"u8, new MemoryRecord(ChildObject));
+			SetGlobal(State, "parent"u8, new MemoryRecord(ParentObject));
 			SetGlobal(State, "grandparent"u8, new MemoryRecord(grandparentObject));
 			EngineTest.Run(State, """
 			                      destroyed = 0
 			                      assigned = 0
-			                      function getAddressList() return list end
-			                      list.getMemoryRecordByID = function(id)
-			                        if id == 1 then return child end
-			                        if id == 2 then return parent end
-			                        if id == 3 then return grandparent end
-			                        return nil
-			                      end
+			                      address_list_lookup = function() return list end
+			                      function getAddressList() return address_list_lookup() end
+			                      records = { [1] = child, [2] = parent, [3] = grandparent }
+			                      list.getMemoryRecordByID = function(id) return records[id] end
 			                      child.destroy = function() destroyed = destroyed + 1 end
 			                      """u8);
 		}
 
 		public LuaState State
+		{
+			get;
+		}
+
+		private CEObject ChildObject
+		{
+			get;
+		}
+
+		private CEObject ParentObject
 		{
 			get;
 		}
@@ -224,6 +435,16 @@ public sealed class AddressListMutationsTests
 		public void Execute(string source)
 		{
 			EngineTest.Run(State, Encoding.UTF8.GetBytes(source));
+		}
+
+		public void RunOnChild(string source)
+		{
+			FakeHost.RunOnObject(State, ChildObject, source);
+		}
+
+		public void RunOnParent(string source)
+		{
+			FakeHost.RunOnObject(State, ParentObject, source);
 		}
 
 		private static void SetGlobal<T>(LuaState state, ReadOnlySpan<byte> name, T value)

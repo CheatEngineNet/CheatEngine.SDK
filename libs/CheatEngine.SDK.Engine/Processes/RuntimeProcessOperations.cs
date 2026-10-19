@@ -55,8 +55,9 @@ public static class RuntimeProcessOperations
 	/// <param name="processId">The positive process identifier to select.</param>
 	/// <param name="observation">The copied matching target observation only when the returned status is successful.</param>
 	/// <returns>
-	///     The factual protected selection status. A normal <c>openProcess</c> return is not success by itself: success
-	///     requires the next <c>getOpenedProcessID</c> observation to equal <paramref name="processId" />.
+	///     The factual protected selection status. Success requires <c>openProcess</c> to return boolean
+	///     <see langword="true" />, confirming CE's nonzero process handle, and the next <c>getOpenedProcessID</c>
+	///     observation to equal <paramref name="processId" />. A missing or false confirmation refuses selection.
 	/// </returns>
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="processId" /> is default or otherwise non-positive.</exception>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
@@ -304,10 +305,26 @@ public static class RuntimeProcessOperations
 		}
 
 		state.PushInteger(processId.Value);
-		LuaStatus luaStatus = state.TryCall(1, 0);
-		return luaStatus.IsOk
+		LuaStatus luaStatus = state.TryCall(1, 1);
+		if (!luaStatus.IsOk)
+		{
+			return ProcessOperationStatus.ProtectedLuaFailure(luaStatus);
+		}
+
+		// CE assigns the requested PID before opening its handle. Only its true return confirms both.
+		LuaType resultType = state.TypeOf(-1);
+		if (resultType == LuaType.Nil)
+		{
+			return ProcessOperationStatus.SelectionNotConfirmed;
+		}
+		if (resultType != LuaType.Boolean)
+		{
+			return ProcessOperationStatus.InvalidResult;
+		}
+
+		return state.ToBoolean(-1)
 			? ProcessOperationStatus.Success
-			: ProcessOperationStatus.ProtectedLuaFailure(luaStatus);
+			: ProcessOperationStatus.SelectionNotConfirmed;
 	}
 
 	private static ProcessOperationStatus TryCallBoolean(LuaState state, LuaRef cache, ReadOnlySpan<byte> globalName,

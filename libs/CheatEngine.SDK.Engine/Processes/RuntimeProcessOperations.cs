@@ -57,7 +57,9 @@ public static class RuntimeProcessOperations
 	/// <returns>
 	///     The factual protected selection status. Success requires <c>openProcess</c> to return boolean
 	///     <see langword="true" />, confirming CE's nonzero process handle, and the next <c>getOpenedProcessID</c>
-	///     observation to equal <paramref name="processId" />. A missing or false confirmation refuses selection.
+	///     observation to equal <paramref name="processId" />. A missing or false confirmation refuses selection. A
+	///     current file-as-process target returns <see cref="ProcessOperationStatusKind.FileAsProcessTarget" /> before
+	///     calling <c>openProcess</c>.
 	/// </returns>
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="processId" /> is default or otherwise non-positive.</exception>
 	/// <exception cref="InvalidOperationException">The plugin is not enabled or the calling thread has no Lua state.</exception>
@@ -75,7 +77,14 @@ public static class RuntimeProcessOperations
 		int top = state.Top;
 		try
 		{
-			ProcessOperationStatus status = TryOpenProcess(state, processId);
+			ProcessOperationStatus status = TryGetOpenedProcessId(state, out _);
+			if (!status.IsSuccess && status.Kind != ProcessOperationStatusKind.TargetNotAttached)
+			{
+				observation = default;
+				return status;
+			}
+
+			status = TryOpenProcess(state, processId);
 			if (!status.IsSuccess)
 			{
 				observation = default;

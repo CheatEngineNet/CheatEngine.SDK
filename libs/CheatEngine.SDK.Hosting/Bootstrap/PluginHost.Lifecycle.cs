@@ -238,6 +238,7 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 	{
 		Volatile.Write(ref s_incompleteEnableCleanup, 0);
 		Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
+		Volatile.Write(ref s_failedEnableRollbackSignaled, 0);
 
 		// Opt-in identification (WI-5): at most one entry, before any copy, bind or construction is attempted, so
 		// it is still emitted when one of those steps fails. Never touches Lua or plugin code.
@@ -262,8 +263,9 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 	}
 
 	// Attaches the runtime binding (this thread is the main thread of this enable; the epoch advances), publishes
-	// the context so that OnEnable can use it, and runs OnEnable. It opens dispatch admission only after OnEnable
-	// succeeds. IsEnabled intentionally stays false until then: the published context is lifecycle-only in Enabling.
+	// the context so that OnEnable can use it, and runs OnEnable. Synchronous inline dispatch is allowed only on the
+	// lifecycle thread while its callback is running; worker-dispatch admission opens after OnEnable succeeds.
+	// IsEnabled intentionally stays false until then: the published context is lifecycle-only in Enabling.
 	private static bool AttachAndEnable(CheatEnginePlugin plugin, in ManagedExportedFunctions exports, uint pluginId)
 	{
 		bool runtimeAttached = false;
@@ -272,7 +274,17 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 		{
 			PluginContext context =
 				AttachAndPublishEnableContext(in exports, pluginId, out runtimeAttached, out shutdown);
-			plugin.OnEnable();
+			PluginContext? previousCallbackContext = t_lifecycleCallbackInlineContext;
+			t_lifecycleCallbackInlineContext = context;
+			try
+			{
+				plugin.OnEnable();
+			}
+			finally
+			{
+				t_lifecycleCallbackInlineContext = previousCallbackContext;
+			}
+
 			CompleteEnable(context, shutdown);
 			return true;
 		}
@@ -314,7 +326,14 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 
 	private static void CompleteEnable(PluginContext context, CancellationTokenSource shutdown)
 	{
-		// OnEnable observes Enabling and cannot admit worker dispatch. Only its successful completion opens the gate.
+		if (Volatile.Read(ref s_failedEnableRollbackSignaled) != 0)
+		{
+			throw new InvalidOperationException(
+				"OnEnable began failed-enable rollback and cannot complete the activation successfully.");
+		}
+
+		// OnEnable observes Enabling. Inline work in the callback has a scoped exception; only successful completion opens
+		// worker-dispatch admission.
 		OpenMainThreadWorkAdmission(shutdown);
 		SetPhase(PluginHostLifecyclePhase.Enabled);
 
@@ -625,6 +644,8 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 
 		if (plugin is not null)
 		{
+			PluginContext? previousCallbackContext = t_lifecycleCallbackInlineContext;
+			t_lifecycleCallbackInlineContext = context;
 			try
 			{
 				// The runtime is still attached, so plugin cleanup can release Lua resources before Detach.
@@ -635,6 +656,10 @@ public static unsafe partial class PluginHost // NOSONAR: bootstrap callbacks mu
 				HostLog.Error(
 					"DisablePlugin: OnDisable threw; cleanup continues and detach determines the final disable result.",
 					exception);
+			}
+			finally
+			{
+				t_lifecycleCallbackInlineContext = previousCallbackContext;
 			}
 		}
 	}

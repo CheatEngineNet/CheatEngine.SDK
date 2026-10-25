@@ -7,6 +7,7 @@ using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Hosting.Bootstrap;
 using CheatEngine.SDK.Hosting.Context;
 using CheatEngine.SDK.Hosting.Diagnostics;
+using CheatEngine.SDK.Hosting.Plugin;
 using CheatEngine.SDK.Hosting.Tests.Support;
 using CheatEngine.SDK.Hosting.Threading;
 using CheatEngine.SDK.Lua.Callbacks;
@@ -109,6 +110,167 @@ public sealed unsafe class AdmissionLifecycleTests
 
 	[Fact]
 	[Trait("Category", "NativeLua")]
+	public void OnDisable_can_run_inline_main_thread_cleanup_after_general_admission_closes()
+	{
+		HostingTest.RequireNativeLua();
+		HostingTest.Reset();
+		using NativeLuaState state = new();
+		using HostSimulator host = new();
+		RecordingPlugin plugin = HostingTest.Enable(host, state);
+		InlineDisableObservation observation = new(host);
+		int dispatchAttempts = 0;
+		MainThreadDispatcher.DispatchOverrideForTests = _ => Interlocked.Increment(ref dispatchAttempts);
+		RecordingPlugin.NestedCallInOnDisable = () =>
+		{
+			MainThread.Invoke(static current =>
+			{
+				current.ExecutionCount++;
+				current.IsExecutingInline = MainThreadDispatcher.IsExecutingInlineWorkOnCurrentThread;
+				current.IsExecutingWork = MainThreadDispatcher.IsExecutingWorkOnCurrentThread;
+				current.RuntimeAttached = LuaRuntime.IsAttached;
+				current.NestedDisableResult = current.Host.CallDisable();
+			}, observation);
+			return Bool32.True;
+		};
+
+		try
+		{
+			Assert.True(host.CallDisable().IsTrue);
+
+			Assert.Equal(1, observation.ExecutionCount);
+			Assert.True(observation.IsExecutingInline);
+			Assert.True(observation.IsExecutingWork);
+			Assert.True(observation.RuntimeAttached);
+			Assert.False(observation.NestedDisableResult.IsTrue);
+			Assert.Equal(0, dispatchAttempts);
+			Assert.Equal(1, plugin.DisableCalls);
+			Assert.False(LuaRuntime.IsAttached);
+			Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
+		}
+		finally
+		{
+			MainThreadDispatcher.DispatchOverrideForTests = null;
+		}
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	[SuppressMessage("xUnit.Analyzers", "xUnit1051",
+		Justification = "The worker is joined against the deterministic OnEnable callback boundary.")]
+	public void OnEnable_allows_inline_dispatch_but_keeps_worker_dispatch_closed()
+	{
+		HostingTest.RequireNativeLua();
+		HostingTest.Reset();
+		using NativeLuaState state = new();
+		using HostSimulator host = new();
+		HostingTest.UseFixture(state);
+		HostingTest.Bootstrap(host);
+		InlineEnableObservation observation = new();
+		int dispatchAttempts = 0;
+		MainThreadDispatcher.DispatchOverrideForTests = _ => Interlocked.Increment(ref dispatchAttempts);
+		RecordingPlugin.NestedCallInOnEnable = () =>
+		{
+			MainThread.Invoke(static current =>
+			{
+				current.InlineExecuted = true;
+				current.RuntimeAttached = LuaRuntime.IsAttached;
+				current.HostEnabledDuringCallback = PluginHost.IsEnabled;
+			}, observation);
+
+			Thread worker = new(() => observation.WorkerFailure = Record.Exception(() => MainThread.Invoke(
+				static _ =>
+				{
+				}, 0)));
+			worker.Start();
+			if (!worker.Join(TimeSpan.FromSeconds(5)))
+			{
+				throw new TimeoutException("The OnEnable admission-closed worker did not return.");
+			}
+
+			return Bool32.True;
+		};
+
+		try
+		{
+			ManagedExportedFunctions exports = FakeExports.Create();
+			Assert.True(host.CallEnable(&exports, 1).IsTrue);
+
+			Assert.True(observation.InlineExecuted);
+			Assert.True(observation.RuntimeAttached);
+			Assert.False(observation.HostEnabledDuringCallback);
+			InvalidOperationException failure = Assert.IsType<InvalidOperationException>(observation.WorkerFailure);
+			Assert.Contains("no longer accepts new main-thread dispatch", failure.Message, StringComparison.Ordinal);
+			Assert.Equal(0, dispatchAttempts);
+			Assert.True(PluginHost.IsEnabled);
+		}
+		finally
+		{
+			MainThreadDispatcher.DispatchOverrideForTests = null;
+		}
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	[SuppressMessage("xUnit.Analyzers", "xUnit1051",
+		Justification = "The worker is joined from the failed-enable lifecycle callback after admission closes.")]
+	public void FailedOnEnableRollback_signals_shutdown_before_cleanup_and_preserves_only_inline_dispatch()
+	{
+		HostingTest.RequireNativeLua();
+		HostingTest.Reset();
+		using NativeLuaState state = new();
+		using HostSimulator host = new();
+		HostingTest.UseFixture(state);
+		Assert.Equal(1, host.Initialize<RollbackSignalPluginFactory>());
+		int dispatchAttempts = 0;
+		MainThreadDispatcher.DispatchOverrideForTests = _ => Interlocked.Increment(ref dispatchAttempts);
+
+		try
+		{
+			ManagedExportedFunctions exports = FakeExports.Create();
+			Assert.False(host.CallEnable(&exports, 1).IsTrue);
+
+			RollbackSignalPlugin plugin = Assert.IsType<RollbackSignalPlugin>(PluginHost.PluginForTests);
+			Assert.True(plugin.ShutdownObserved);
+			Assert.True(plugin.InlineCleanupExecuted);
+			Assert.True(plugin.InlineCleanupWasMarked);
+			Assert.True(plugin.InlineCleanupSawAttachedRuntime);
+			InvalidOperationException workerFailure = Assert.IsType<InvalidOperationException>(plugin.WorkerFailure);
+			Assert.Contains("no longer accepts new main-thread dispatch", workerFailure.Message, StringComparison.Ordinal);
+			Assert.Equal(0, dispatchAttempts);
+			Assert.True(plugin.ContextAtRollback.ShutdownToken.IsCancellationRequested);
+			Assert.False(LuaRuntime.IsAttached);
+			Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
+		}
+		finally
+		{
+			MainThreadDispatcher.DispatchOverrideForTests = null;
+		}
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
+	public void A_failed_enable_rollback_that_returns_cannot_open_admission()
+	{
+		HostingTest.RequireNativeLua();
+		CapturingLogSink sink = HostingTest.Reset();
+		using NativeLuaState state = new();
+		using HostSimulator host = new();
+		HostingTest.UseFixture(state);
+		Assert.Equal(1, host.Initialize<ReturningRollbackPluginFactory>());
+		ManagedExportedFunctions exports = FakeExports.Create();
+
+		Assert.False(host.CallEnable(&exports, 1).IsTrue);
+
+		ReturningRollbackPlugin plugin = Assert.IsType<ReturningRollbackPlugin>(PluginHost.PluginForTests);
+		Assert.True(plugin.ContextAtRollback.ShutdownToken.IsCancellationRequested);
+		Assert.False(PluginHost.IsEnabled);
+		Assert.False(LuaRuntime.IsAttached);
+		Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
+		Assert.NotEmpty(sink.Errors("OnEnable threw"));
+	}
+
+	[Fact]
+	[Trait("Category", "NativeLua")]
 	public void A_throwing_shutdown_registration_is_neutralized_and_cleanup_completes()
 	{
 		HostingTest.RequireNativeLua();
@@ -182,6 +344,68 @@ public sealed unsafe class AdmissionLifecycleTests
 		return Bool32.True;
 	}
 
+	private sealed class InlineDisableObservation(HostSimulator host)
+	{
+		public HostSimulator Host { get; } = host;
+
+		public int ExecutionCount
+		{
+			get;
+			set;
+		}
+
+		public bool IsExecutingInline
+		{
+			get;
+			set;
+		}
+
+		public bool IsExecutingWork
+		{
+			get;
+			set;
+		}
+
+		public bool RuntimeAttached
+		{
+			get;
+			set;
+		}
+
+		public Bool32 NestedDisableResult
+		{
+			get;
+			set;
+		}
+	}
+
+	private sealed class InlineEnableObservation
+	{
+		public bool InlineExecuted
+		{
+			get;
+			set;
+		}
+
+		public bool RuntimeAttached
+		{
+			get;
+			set;
+		}
+
+		public bool HostEnabledDuringCallback
+		{
+			get;
+			set;
+		}
+
+		public Exception? WorkerFailure
+		{
+			get;
+			set;
+		}
+	}
+
 	[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
 	private static int CountInvocation(nint pointer)
 	{
@@ -208,6 +432,110 @@ public sealed unsafe class AdmissionLifecycleTests
 		{
 			get;
 			set;
+		}
+	}
+
+	private sealed class RollbackSignalPlugin : CheatEnginePlugin
+	{
+		internal PluginContext ContextAtRollback
+		{
+			get;
+			private set;
+		} = null!;
+
+		internal bool ShutdownObserved
+		{
+			get;
+			private set;
+		}
+
+		internal bool InlineCleanupExecuted
+		{
+			get;
+			private set;
+		}
+
+		internal bool InlineCleanupWasMarked
+		{
+			get;
+			private set;
+		}
+
+		internal bool InlineCleanupSawAttachedRuntime
+		{
+			get;
+			private set;
+		}
+
+		internal Exception? WorkerFailure
+		{
+			get;
+			private set;
+		}
+
+		protected internal override void OnEnable()
+		{
+			ContextAtRollback = Context;
+			BeginFailedEnableRollback();
+			ShutdownObserved = Context.ShutdownToken.IsCancellationRequested;
+			MainThread.Invoke(_ =>
+			{
+				InlineCleanupExecuted = true;
+				InlineCleanupWasMarked = MainThreadDispatcher.IsExecutingInlineWorkOnCurrentThread;
+				InlineCleanupSawAttachedRuntime = LuaRuntime.IsAttached;
+			}, 0);
+
+			Thread worker = new(() => WorkerFailure = Record.Exception(() => MainThread.Invoke(static _ => { }, 0)));
+			worker.Start();
+			if (!worker.Join(TimeSpan.FromSeconds(5)))
+			{
+				throw new TimeoutException("The failed-enable admission-closed worker did not return.");
+			}
+
+			throw new InvalidOperationException("Rollback requested by the test.");
+		}
+
+		protected internal override void OnDisable()
+		{
+		}
+	}
+
+	private sealed class RollbackSignalPluginFactory : IPluginFactory
+	{
+		public static ReadOnlySpan<byte> Utf8Name => "Rollback Signal Test Plugin"u8;
+
+		public static CheatEnginePlugin Create()
+		{
+			return new RollbackSignalPlugin();
+		}
+	}
+
+	private sealed class ReturningRollbackPlugin : CheatEnginePlugin
+	{
+		internal PluginContext ContextAtRollback
+		{
+			get;
+			private set;
+		} = null!;
+
+		protected internal override void OnEnable()
+		{
+			ContextAtRollback = Context;
+			BeginFailedEnableRollback();
+		}
+
+		protected internal override void OnDisable()
+		{
+		}
+	}
+
+	private sealed class ReturningRollbackPluginFactory : IPluginFactory
+	{
+		public static ReadOnlySpan<byte> Utf8Name => "Returning Rollback Test Plugin"u8;
+
+		public static CheatEnginePlugin Create()
+		{
+			return new ReturningRollbackPlugin();
 		}
 	}
 }

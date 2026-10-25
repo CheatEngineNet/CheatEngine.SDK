@@ -47,6 +47,10 @@ namespace CheatEngine.SDK.Hosting.Bootstrap;
 /// </remarks>
 public static unsafe partial class PluginHost
 {
+	// Lifecycle callbacks may synchronously dispatch inline work while the runtime is attached. A ThreadStatic scope
+	// permits only that callback thread; worker threads created during a callback do not inherit the exception.
+	[ThreadStatic] private static PluginContext? t_lifecycleCallbackInlineContext;
+
 	private static readonly Lock SGate = new();
 	private static readonly Lock SAdmissionGate = new();
 	private static readonly ManualResetEventSlim SNoAdmittedMainThreadWork = new(true);
@@ -63,6 +67,7 @@ public static unsafe partial class PluginHost
 	private static int s_acceptingMainThreadWork;
 	private static int s_incompleteEnableCleanup;
 	private static int s_incompleteEnableCleanupActive;
+	private static int s_failedEnableRollbackSignaled;
 	private static int s_phase;
 	private static int s_lastInitRecordArgument = -1;
 	private static int s_lastVersionRecordSize = -1;
@@ -123,9 +128,13 @@ public static unsafe partial class PluginHost
 	{
 		lock (SAdmissionGate)
 		{
-			if (Phase is not PluginHostLifecyclePhase.Enabled ||
-				!ReferenceEquals(context, Volatile.Read(ref s_context)) ||
-				Volatile.Read(ref s_acceptingMainThreadWork) == 0)
+			bool isCurrentContext = ReferenceEquals(context, Volatile.Read(ref s_context));
+			bool isEnabledAdmission = Phase is PluginHostLifecyclePhase.Enabled &&
+				Volatile.Read(ref s_acceptingMainThreadWork) != 0;
+			bool isInlineLifecycleCallback =
+				(Phase is PluginHostLifecyclePhase.Enabling or PluginHostLifecyclePhase.Disabling) &&
+				ReferenceEquals(context, t_lifecycleCallbackInlineContext) && context.IsMainThread;
+			if (!isCurrentContext || (!isEnabledAdmission && !isInlineLifecycleCallback))
 			{
 				throw new InvalidOperationException(
 					"The plugin is stopping or disabled and no longer accepts new main-thread dispatch work.");
@@ -143,6 +152,34 @@ public static unsafe partial class PluginHost
 
 			return new MainThreadWorkAdmission();
 		}
+	}
+
+	/// <summary>
+	///     Closes general admission and signals the current activation's shutdown token while its failed enable callback
+	///     still owns the attached runtime.
+	/// </summary>
+	/// <remarks>
+	///     This is intentionally available only to <see cref="CheatEnginePlugin" />. It accepts the exact context on the
+	///     captured lifecycle callback thread during <see cref="PluginHostLifecyclePhase.Enabling" />. The callback-local
+	///     inline dispatch exception remains available for bounded cleanup; it never opens worker admission.
+	/// </remarks>
+	internal static void BeginFailedEnableRollback(PluginContext context)
+	{
+		ArgumentNullException.ThrowIfNull(context);
+		lock (SAdmissionGate)
+		{
+			if (Phase is not PluginHostLifecyclePhase.Enabling ||
+				!ReferenceEquals(context, Volatile.Read(ref s_context)) ||
+				!ReferenceEquals(context, t_lifecycleCallbackInlineContext) || !context.IsMainThread)
+			{
+				throw new InvalidOperationException(
+					"A failed-enable rollback can begin only from the current plugin's main-thread OnEnable callback.");
+			}
+
+			Volatile.Write(ref s_failedEnableRollbackSignaled, 1);
+		}
+
+		CloseMainThreadWorkAdmissionAndSignalShutdown(context);
 	}
 
 	/// <summary>
@@ -294,6 +331,7 @@ public static unsafe partial class PluginHost
 			Volatile.Write(ref s_descriptor, null);
 			Volatile.Write(ref s_incompleteEnableCleanup, 0);
 			Volatile.Write(ref s_incompleteEnableCleanupActive, 0);
+			Volatile.Write(ref s_failedEnableRollbackSignaled, 0);
 			SetPhase(PluginHostLifecyclePhase.Uninitialized);
 			Volatile.Write(ref s_lastInitRecordArgument, -1);
 			Volatile.Write(ref s_lastVersionRecordSize, -1);

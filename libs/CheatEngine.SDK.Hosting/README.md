@@ -63,8 +63,9 @@ The lifecycle state machine is `Uninitialized → Registered → Enabling → En
    `LuaRuntime` attaches after construction.
 4. Attach `LuaRuntime` with a new epoch and publish the `PluginContext`. The enabling thread becomes the main thread of
    this enable. The phase is `Enabling`, so `IsEnabled` remains false and worker dispatch admission remains closed.
-5. Run `OnEnable`. On success, open worker-dispatch admission and move to `Enabled`. On any failure, cancel the
-   context's shutdown token, detach in `finally`, withdraw the context, and return to `Registered`.
+5. Run `OnEnable`. A synchronous inline `MainThread.Invoke` on the lifecycle thread is admitted while this callback
+   runs; worker dispatch stays closed. On success, open worker-dispatch admission and move to `Enabled`. On any
+   failure, cancel the context's shutdown token, detach in `finally`, withdraw the context, and return to `Registered`.
 
 `DisablePlugin` moves to `Disabling`, closes worker-dispatch admission, and signals `PluginContext.ShutdownToken`
 before it invokes plugin cleanup. Work admitted before that boundary is drained first. When disable runs on the
@@ -73,8 +74,9 @@ captured GUI thread, Hosting pumps the host's `CheckSynchronize(0)` slot so a wo
 operation or already executing dispatched action is refused before it changes lifecycle state. `OnDisable` then runs
 while `LuaRuntime` is still attached. Finally, Hosting closes and drains `LuaRuntime`'s independent operation
 admission, then detaches (neutralizing every Lua callback the plugin forgot), withdraws the context, and returns to
-`Registered`. If detach fails, the callback returns `FALSE` and the host remains visibly `Disabling` with its runtime
-attached rather than reporting a completed shutdown. After a completed shutdown, the next enable reuses
+`Registered`. A synchronous inline `MainThread.Invoke` on the lifecycle thread is admitted during `OnDisable` so cleanup
+can release resources; new worker dispatch stays refused. If detach fails, the callback returns `FALSE` and the host
+remains visibly `Disabling` with its runtime attached rather than reporting a completed shutdown. After a completed shutdown, the next enable reuses
 the plugin instance with a new epoch, so a `PluginContext` or Lua reference from an earlier enable is stale.
 `PluginContext.IsCurrent` tells a kept context from the live one. While the plugin is disabled, `PluginHost.Context`
 returns `null` and `CheatEnginePlugin.Context` throws.

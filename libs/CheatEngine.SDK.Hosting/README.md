@@ -67,6 +67,11 @@ The lifecycle state machine is `Uninitialized → Registered → Enabling → En
    runs; worker dispatch stays closed. On success, open worker-dispatch admission and move to `Enabled`. On any
    failure, cancel the context's shutdown token, detach in `finally`, withdraw the context, and return to `Registered`.
 
+An `OnEnable` failure handler may call `BeginFailedEnableRollback()` before its synchronous resource cleanup,
+then rethrow. This signals shutdown while retaining the callback's inline cleanup path. Calling rollback from
+inside `MainThread.Invoke` is refused before changing state: draining admission there would wait for the caller's
+own lease. Returning normally after signaling rollback still fails enable.
+
 `DisablePlugin` moves to `Disabling`, closes worker-dispatch admission, and signals `PluginContext.ShutdownToken`
 before it invokes plugin cleanup. Work admitted before that boundary is drained first. When disable runs on the
 captured GUI thread, Hosting pumps the host's `CheckSynchronize(0)` slot so a worker already waiting in

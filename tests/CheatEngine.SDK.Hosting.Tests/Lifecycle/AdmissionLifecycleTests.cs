@@ -209,6 +209,56 @@ public sealed unsafe class AdmissionLifecycleTests
 		}
 	}
 
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	[Trait("Category", "NativeLua")]
+	[Trait("Qualification", "Q07")]
+	public void Failed_enable_rollback_nested_in_inline_work_is_refused_without_changing_activation(bool returnsValue)
+	{
+		HostingTest.RequireNativeLua();
+		HostingTest.Reset();
+		using NativeLuaState state = new();
+		using HostSimulator host = new();
+		HostingTest.UseFixture(state);
+		HostingTest.Bootstrap(host);
+		Exception? nestedFailure = null;
+		bool shutdownObserved = true;
+		RecordingPlugin.NestedCallInOnEnable = () =>
+		{
+			nestedFailure = Record.Exception(() =>
+			{
+				if (returnsValue)
+				{
+					MainThread.Invoke(static _ =>
+					{
+						PluginHost.BeginFailedEnableRollback(PluginHost.Context!);
+						return 1;
+					}, 0);
+				}
+				else
+				{
+					MainThread.Invoke(static _ => PluginHost.BeginFailedEnableRollback(PluginHost.Context!), 0);
+				}
+			});
+			shutdownObserved = PluginHost.Context!.ShutdownToken.IsCancellationRequested;
+			return Bool32.True;
+		};
+
+		ManagedExportedFunctions exports = FakeExports.Create();
+		Assert.True(host.CallEnable(&exports, 1).IsTrue);
+
+		InvalidOperationException failure = Assert.IsType<InvalidOperationException>(nestedFailure);
+		Assert.Contains("outside nested main-thread dispatch work", failure.Message, StringComparison.Ordinal);
+		Assert.False(shutdownObserved);
+		Assert.False(PluginHost.Context!.ShutdownToken.IsCancellationRequested);
+		Assert.Equal(PluginHostLifecyclePhase.Enabled, PluginHost.Phase);
+		Assert.True(LuaRuntime.IsAttached);
+		Assert.Equal(17, MainThread.Invoke(static value => value, 17));
+		Assert.True(host.CallDisable().IsTrue);
+		Assert.Equal(PluginHostLifecyclePhase.Registered, PluginHost.Phase);
+	}
+
 	[Fact]
 	[Trait("Category", "NativeLua")]
 	[SuppressMessage("xUnit.Analyzers", "xUnit1051",

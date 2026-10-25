@@ -67,9 +67,12 @@ public abstract class CheatEnginePlugin
 	///     It closes general main-thread admission and cancels <see cref="PluginContext.ShutdownToken" />, while preserving
 	///     the lifecycle callback's inline main-thread cleanup path until <see cref="OnEnable" /> returns. A call that
 	///     returns normally from <see cref="OnEnable" /> after this method is rejected as a failed enable.
+	///     Call directly from the failure handler, outside nested <c>MainThread.Invoke</c> work: that work holds an
+	///     admission lease which rollback would otherwise wait for before the caller could return.
 	/// </remarks>
 	/// <exception cref="InvalidOperationException">
-	///     The caller is not the current plugin's main-thread <see cref="OnEnable" /> callback.
+	///     The caller is not the current plugin's main-thread <see cref="OnEnable" /> callback, or is inside nested
+	///     main-thread dispatch work.
 	/// </exception>
 	[RunsOnMainThread]
 	protected static void BeginFailedEnableRollback()

@@ -10,6 +10,18 @@ under [1.0.0](#100---2026-09-20) before upgrading.
 
 ## [Unreleased]
 
+### Added
+
+- Add protected `CheatEnginePlugin.BeginFailedEnableRollback()` so an `OnEnable` failure handler can close
+  general dispatch admission and signal shutdown before releasing resources that need the attached runtime.
+
+### Fixed
+
+- Permit bounded inline main-thread cleanup during lifecycle callbacks while keeping worker admission closed.
+- Refuse failed-enable rollback from nested `MainThread.Invoke` work before changing shutdown state, avoiding a
+  self-deadlock while draining the caller's admission lease. Both action and function overloads have fixture coverage;
+  this does not claim new exact-host qualification.
+
 ## [2.0.1] - 2026-10-16
 
 Patch release for the 2.0 line. The public API and native ABI are unchanged from 2.0.0.

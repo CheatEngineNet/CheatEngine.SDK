@@ -9,6 +9,7 @@ using CheatEngine.SDK.Abi.Managed;
 using CheatEngine.SDK.Hosting.Context;
 using CheatEngine.SDK.Hosting.Diagnostics;
 using CheatEngine.SDK.Hosting.Plugin;
+using CheatEngine.SDK.Hosting.Threading;
 using CheatEngine.SDK.Lua.Runtime;
 
 namespace CheatEngine.SDK.Hosting.Bootstrap;
@@ -162,6 +163,7 @@ public static unsafe partial class PluginHost
 	///     This is intentionally available only to <see cref="CheatEnginePlugin" />. It accepts the exact context on the
 	///     captured lifecycle callback thread during <see cref="PluginHostLifecyclePhase.Enabling" />. The callback-local
 	///     inline dispatch exception remains available for bounded cleanup; it never opens worker admission.
+	///     Nested dispatch work cannot initiate rollback because draining admission would wait for its own lease.
 	/// </remarks>
 	internal static void BeginFailedEnableRollback(PluginContext context)
 	{
@@ -170,10 +172,12 @@ public static unsafe partial class PluginHost
 		{
 			if (Phase is not PluginHostLifecyclePhase.Enabling ||
 				!ReferenceEquals(context, Volatile.Read(ref s_context)) ||
-				!ReferenceEquals(context, t_lifecycleCallbackInlineContext) || !context.IsMainThread)
+				!ReferenceEquals(context, t_lifecycleCallbackInlineContext) || !context.IsMainThread ||
+				MainThreadDispatcher.IsExecutingInlineWorkOnCurrentThread ||
+				MainThreadDispatcher.IsExecutingWorkOnCurrentThread)
 			{
 				throw new InvalidOperationException(
-					"A failed-enable rollback can begin only from the current plugin's main-thread OnEnable callback.");
+					"A failed-enable rollback can begin only from the current plugin's main-thread OnEnable callback, outside nested main-thread dispatch work.");
 			}
 
 			Volatile.Write(ref s_failedEnableRollbackSignaled, 1);

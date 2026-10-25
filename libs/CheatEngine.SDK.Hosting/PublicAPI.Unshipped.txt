@@ -2,3 +2,4 @@
 const CheatEngine.SDK.Hosting.Diagnostics.HostLog.IdentifyOnEnableEnvironmentVariable = "CHEATENGINE_SDK_IDENTIFY_ON_ENABLE" -> string!
 static CheatEngine.SDK.Hosting.Diagnostics.HostLog.IdentifyOnEnable.get -> bool
 static CheatEngine.SDK.Hosting.Diagnostics.HostLog.IdentifyOnEnable.set -> void
+static CheatEngine.SDK.Hosting.Plugin.CheatEnginePlugin.BeginFailedEnableRollback() -> void

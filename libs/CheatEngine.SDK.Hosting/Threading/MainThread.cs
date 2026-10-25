@@ -39,15 +39,18 @@ namespace CheatEngine.SDK.Hosting.Threading;
 ///         path is confirmed live.
 ///     </para>
 ///     <para>
-///         <b>Preconditions.</b> Everything here needs the plugin to be enabled (<see cref="InvalidOperationException" />
-///         otherwise). <see cref="ProcessMessages" /> and <see cref="CheckSynchronize" /> additionally require the main
-///         thread and throw when called from another one rather than pumping a foreign thread's queue.
+///         <b>Preconditions.</b> Calls need the current plugin context. Outside a synchronous lifecycle callback,
+///         <see cref="Invoke{TState}" /> also requires the plugin to be enabled; during <c>OnEnable</c> or
+///         <c>OnDisable</c>, only an inline invocation on the captured main thread is admitted. Worker dispatch remains
+///         closed until enable completes and after disable begins. <see cref="ProcessMessages" /> and
+///         <see cref="CheckSynchronize" /> require the plugin to be enabled and the main thread.
 ///     </para>
 ///     <para>
 ///         <b>Admission.</b> Every <c>Invoke</c> call, including an inline call
-///         already on the main thread, acquires the lifecycle work admission before its action starts. A transition
-///         therefore rejects a new invocation before user work runs; a nested disable requested by that work is refused
-///         because it cannot drain its own admission.
+///         already on the main thread, acquires the lifecycle work admission before its action starts. During a
+///         lifecycle callback, that exception is limited to the callback's exact context and main thread, so cleanup
+///         can run synchronously while worker dispatch remains refused. A nested disable requested by inline work is
+///         refused because it cannot drain its own admission.
 ///     </para>
 /// </remarks>
 public static unsafe class MainThread

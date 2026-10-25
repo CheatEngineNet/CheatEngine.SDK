@@ -48,6 +48,10 @@ wrong-thread behavior is rejected; they do not claim a thread hop. The end-to-en
 - `DisablePlugin` closes worker-dispatch admission, signals `PluginContext.ShutdownToken`, pumps
   `CheckSynchronize` when needed to drain admitted work, closes and drains ordinary Lua operations, then detaches
   `LuaRuntime`, withdraws `PluginContext` and releases Lua callbacks the plugin forgot.
+- `MainThread.Invoke` can run inline on the captured lifecycle thread during `OnEnable` and `OnDisable`; worker
+  dispatch remains closed during both callbacks (`AdmissionLifecycleTests`).
+- Failed-enable rollback nested in either `MainThread.Invoke` overload is refused before shutdown is signaled;
+  the outer enable and subsequent normal dispatch/disable still succeed (`AdmissionLifecycleTests`, Q07, C2).
 - `MainThread.ProcessMessages`, `CheckSynchronize` and `Invoke` throw `InvalidOperationException` while no plugin is
   enabled. A worker `Invoke` rejects a `synchronize` callback that runs it on the wrong managed thread.
 - Without a Lua module, or with a module that lacks one Lua export, the enable fails before any plugin code runs and

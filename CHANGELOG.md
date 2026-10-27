@@ -10,6 +10,10 @@ under [1.0.0](#100---2026-09-20) before upgrading.
 
 ## [Unreleased]
 
+### Security
+
+- Pin repository builds to .NET SDK 10.0.403 and refresh implicit tool locks to 10.0.14 for the October 25 servicing fixes.
+
 ### Added
 
 - Add protected `CheatEnginePlugin.BeginFailedEnableRollback()` so an `OnEnable` failure handler can close

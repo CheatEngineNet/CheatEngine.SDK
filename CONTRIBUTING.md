@@ -6,9 +6,9 @@ focused, preserve existing patterns, and update documentation when behavior or p
 ## Prerequisites
 
 - Windows x64
-- .NET SDK 10.0.402 exactly. [`global.json`](global.json) sets `rollForward: disable`, because the NuGet lock files
+- .NET SDK 10.0.403 exactly. [`global.json`](global.json) sets `rollForward: disable`, because the NuGet lock files
   record the packages that the SDK adds implicitly. Install it with
-  `winget install Microsoft.DotNet.SDK.10 --version 10.0.402`.
+  `winget install Microsoft.DotNet.SDK.10 --version 10.0.403`.
 - PowerShell 7 (`pwsh`): every workflow step runs in it (`defaults.run.shell: pwsh`); useful for rehearsing a CI step
   locally.
 - Git

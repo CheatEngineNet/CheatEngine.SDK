@@ -48,7 +48,7 @@ jobs:
       # Inputs: https://github.com/zizmorcore/zizmor-action (action.yml at v0.6.4). The tool version is pinned next to
       # the action, so a new zizmor release cannot change the findings without a commit.
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
         with:
           version: 1.30.1
           online-audits: true
